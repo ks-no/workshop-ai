@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  title: Sandbox Backend API
+  version: 0.1.0
+  description: API for prosesser, syntetiske data, søknader og revisjonslogg.
+servers:
+  - url: http://localhost:8080
+paths:
+  /helse:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /api/prosesser:
+    get:
+      summary: List prosesser
+      responses:
+        "200":
+          description: Prosessliste
+    post:
+      summary: Opprett prosess
+      responses:
+        "201":
+          description: Prosess opprettet
+  /api/prosesser/{prosessId}:
+    get:
+      summary: Hent prosess
+      parameters:
+        - name: prosessId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prosess returnert
+    put:
+      summary: Oppdater prosess
+      parameters:
+        - name: prosessId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prosess oppdatert
+  /api/prosessoekter:
+    post:
+      summary: Opprett prosessøkt
+      responses:
+        "201":
+          description: Prosessøkt opprettet
+  /api/prosessoekter/{oektsId}:
+    get:
+      summary: Hent prosessøkt
+      parameters:
+        - name: oektsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prosessøkt returnert
+  /api/prosessoekter/{oektsId}/svar:
+    post:
+      summary: Lagre svar i prosessøkt
+      parameters:
+        - name: oektsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Svar lagret
+  /api/prosessoekter/{oektsId}/handling:
+    post:
+      summary: Utfør aktiv steg-handling
+      parameters:
+        - name: oektsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Handling utført
+  /api/prosessoekter/{oektsId}/neste:
+    post:
+      summary: Gå til neste steg
+      parameters:
+        - name: oektsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Neste steg aktivert
+  /api/prosessoekter/{oektsId}/forrige:
+    post:
+      summary: Gå til forrige steg
+      parameters:
+        - name: oektsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Forrige steg aktivert
+  /api/personer:
+    get:
+      summary: List syntetiske personer
+      responses:
+        "200":
+          description: Personer returnert
+  /api/personer/{personId}/inntekt:
+    get:
+      summary: Hent inntekt for person
+      parameters:
+        - name: personId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inntekt returnert
+        "403":
+          description: Samtykke mangler

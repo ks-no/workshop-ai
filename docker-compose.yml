@@ -1,0 +1,45 @@
+services:
+  process-builder:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/process-builder/src/server.js"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/workspace
+
+  demo-gui:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/demo-gui/src/server.js"]
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./:/workspace
+
+  sandbox-backend:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/sandbox-backend/src/server.js"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/workspace
+
+  fiks-simulator:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/fiks-simulator/src/server.js"]
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./:/workspace
+
+  ai-gateway:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/ai-gateway/src/server.js"]
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./:/workspace

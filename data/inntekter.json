@@ -1,0 +1,12 @@
+[
+  { "personId": "person-001", "aar": 2025, "bruttoInntekt": 485000, "manedsInntekt": 40417, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-003", "aar": 2025, "bruttoInntekt": 512000, "manedsInntekt": 42667, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-005", "aar": 2025, "bruttoInntekt": 468000, "manedsInntekt": 39000, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-007", "aar": 2025, "bruttoInntekt": 598000, "manedsInntekt": 49833, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-009", "aar": 2025, "bruttoInntekt": 451000, "manedsInntekt": 37583, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-011", "aar": 2025, "bruttoInntekt": 430000, "manedsInntekt": 35833, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-013", "aar": 2025, "bruttoInntekt": 539000, "manedsInntekt": 44917, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-015", "aar": 2025, "bruttoInntekt": 476000, "manedsInntekt": 39667, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-017", "aar": 2025, "bruttoInntekt": 421000, "manedsInntekt": 35083, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
+  { "personId": "person-019", "aar": 2025, "bruttoInntekt": 503000, "manedsInntekt": 41917, "kilde": "syntetisk-inntektsregister", "syntetisk": true }
+]

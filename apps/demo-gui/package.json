@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/demo-gui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo-app for innbyggerdialog-sandbox.",
+  "type": "module"
+}

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innbyggerdialog Demo</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #eef3f8; color: #17232f; }
+      main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+      .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+      .kort { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+      button, select, textarea { padding: 10px 12px; border-radius: 8px; border: 1px solid #ccd6e0; font: inherit; }
+      button { background: #1459c7; color: white; border: 0; cursor: pointer; }
+      button.sekundar { background: #6a7786; }
+      pre { white-space: pre-wrap; background: #0f1724; color: #d8e2ef; padding: 16px; border-radius: 8px; min-height: 140px; overflow: auto; }
+      textarea { width: 100%; box-sizing: border-box; min-height: 110px; }
+      .rad { margin-bottom: 12px; }
+      .etikett { font-size: 14px; color: #526171; margin-bottom: 6px; }
+      .linje { padding: 10px 0; border-bottom: 1px solid #edf2f7; }
+      .handlinger { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .status { padding: 12px; background: #eef4ff; border-radius: 8px; color: #1f3f78; margin-bottom: 12px; }
+      .stegkort { border: 1px solid #e6edf5; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+      .stegtype { display: inline-block; font-size: 12px; background: #eaf1ff; color: #2250a8; padding: 4px 8px; border-radius: 999px; margin-bottom: 8px; }
+      .aktiv { border-left: 4px solid #1459c7; padding-left: 12px; }
+      .ferdig { color: #2f6f3e; }
+      .muted { color: #617182; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Innbyggerdialog Demo</h1>
+      <p>Demo-GUI-en bruker nå prosessøkt-API i backend som eneste inngang til sandboxen.</p>
+      <div class="grid">
+        <section class="kort">
+          <div class="rad">
+            <div class="etikett">Testbruker</div>
+            <select id="personvelger"></select>
+          </div>
+          <div class="rad">
+            <div class="etikett">Prosess</div>
+            <select id="prosessvelger"></select>
+          </div>
+          <div class="handlinger">
+            <button id="start">Start prosess</button>
+            <button id="forrige" class="sekundar">Forrige steg</button>
+            <button id="neste" class="sekundar">Neste steg</button>
+            <button id="hentLogg" class="sekundar">Hent revisjonslogg</button>
+          </div>
+          <div id="status" class="status">Velg testbruker og prosess for å starte.</div>
+          <div id="aktivtSteg" class="stegkort">
+            <div class="muted">Ingen aktiv prosess ennå.</div>
+          </div>
+          <h3>Visning</h3>
+          <pre id="visning">Prosessdata og API-svar vises her.</pre>
+        </section>
+        <section class="kort">
+          <h2>Flyt og spor</h2>
+          <div class="linje"><strong>Sporings-ID:</strong> <span id="sporingsId"></span></div>
+          <div class="linje"><strong>Aktiv prosessøkt:</strong> <span id="oektsId">ikke opprettet</span></div>
+          <div class="linje"><strong>Aktivt samtykke:</strong> <span id="samtykkeId">ikke opprettet</span></div>
+          <div class="linje"><strong>Prosess-steg:</strong> <span id="stegTeller">0 / 0</span></div>
+          <h3>Prosessoversikt</h3>
+          <div id="prosessOversikt"></div>
+          <h3>Hendelser</h3>
+          <div id="hendelser"></div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const personvelger = document.getElementById("personvelger");
+      const prosessvelger = document.getElementById("prosessvelger");
+      const statusEl = document.getElementById("status");
+      const visning = document.getElementById("visning");
+      const hendelser = document.getElementById("hendelser");
+      const samtykkeIdEl = document.getElementById("samtykkeId");
+      const sporingsIdEl = document.getElementById("sporingsId");
+      const oektsIdEl = document.getElementById("oektsId");
+      const stegTeller = document.getElementById("stegTeller");
+      const aktivtStegEl = document.getElementById("aktivtSteg");
+      const prosessOversikt = document.getElementById("prosessOversikt");
+
+      let personer = [];
+      let prosesser = [];
+      let aktivProsessoekt = null;
+      let aktivProsess = null;
+      let sporingsId = `flyt-${Date.now()}`;
+      sporingsIdEl.textContent = sporingsId;
+
+      function settStatus(tekst) {
+        statusEl.textContent = tekst;
+      }
+
+      function logg(tekst) {
+        const node = document.createElement("div");
+        node.className = "linje";
+        node.textContent = tekst;
+        hendelser.prepend(node);
+      }
+
+      function valgtPersonId() {
+        return personvelger.value;
+      }
+
+      function valgtProsessId() {
+        return prosessvelger.value;
+      }
+
+      function prosessFraId(prosessId) {
+        return prosesser.find((prosess) => prosess.id === prosessId) || null;
+      }
+
+      async function hentJson(url, valg = {}) {
+        const svar = await fetch(url, valg);
+        const data = await svar.json();
+        if (!svar.ok) {
+          throw new Error(data.feil || `Feil ${svar.status}`);
+        }
+        return data;
+      }
+
+      async function postJson(url, payload = {}) {
+        return hentJson(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      async function lastInnGrunnlag() {
+        personer = await hentJson("http://localhost:8080/api/personer");
+        prosesser = await hentJson("http://localhost:8080/api/prosesser");
+
+        personvelger.innerHTML = personer
+          .map((person) => `<option value="${person.personId}">${person.fornavn} ${person.etternavn} (${person.kommune})</option>`)
+          .join("");
+
+        prosessvelger.innerHTML = prosesser
+          .map((prosess) => `<option value="${prosess.id}">${prosess.navn}</option>`)
+          .join("");
+
+        tegnProsessOversikt();
+      }
+
+      function tegnProsessOversikt() {
+        const prosess = aktivProsess || prosessFraId(valgtProsessId());
+        if (!prosess) {
+          prosessOversikt.innerHTML = `<div class="muted">Ingen prosess valgt.</div>`;
+          stegTeller.textContent = "0 / 0";
+          return;
+        }
+
+        const aktivIndex = aktivProsessoekt?.stegIndex ?? -1;
+        stegTeller.textContent = `${Math.max(aktivIndex + 1, 0)} / ${prosess.steg.length}`;
+        prosessOversikt.innerHTML = prosess.steg.map((steg, indeks) => {
+          const klasser = [];
+          if (indeks === aktivIndex) klasser.push("aktiv");
+          if (indeks < aktivIndex) klasser.push("ferdig");
+          return `
+            <div class="stegkort ${klasser.join(" ")}">
+              <div class="stegtype">${steg.type}</div>
+              <div><strong>${indeks + 1}. ${steg.tittel}</strong></div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function oppdaterSessionVisning(oekt) {
+        aktivProsessoekt = oekt;
+        aktivProsess = prosessFraId(oekt.prosessId);
+        sporingsId = oekt.sporingsId;
+        sporingsIdEl.textContent = sporingsId;
+        oektsIdEl.textContent = oekt.oektsId;
+        samtykkeIdEl.textContent = oekt.aktivtSamtykkeId || "ikke opprettet";
+        tegnProsessOversikt();
+      }
+
+      function tegnAktivtSteg() {
+        const steg = aktivProsessoekt?.aktivtSteg;
+        if (!steg) {
+          aktivtStegEl.innerHTML = `<div class="muted">Ingen aktivt steg.</div>`;
+          tegnProsessOversikt();
+          return;
+        }
+
+        tegnProsessOversikt();
+
+        let innhold = `
+          <div class="stegtype">${steg.type}</div>
+          <h2>${steg.tittel}</h2>
+          ${steg.tekst ? `<p>${steg.tekst}</p>` : ""}
+        `;
+
+        if (steg.type === "QUESTION") {
+          const svar = aktivProsessoekt.svar?.[steg.id] || "";
+          innhold += `
+            <div class="rad">
+              <div class="etikett">Ditt svar</div>
+              <textarea id="fritekstSvar" placeholder="Skriv svaret ditt her...">${svar}</textarea>
+            </div>
+            <button id="lagreSvar">Lagre svar</button>
+          `;
+        }
+
+        if (steg.type === "CONSENT_REQUEST") {
+          innhold += `
+            <p><strong>Formål:</strong> ${steg.formaal || "Ikke oppgitt"}</p>
+            <p><strong>Datakilder:</strong> ${(steg.dataKilder || []).join(", ") || "Ingen"}</p>
+            <div class="handlinger">
+              <button id="opprettSamtykke">Opprett samtykke</button>
+              <button id="samtykk">Gi samtykke</button>
+              <button id="ikkeSamtykk" class="sekundar">Ikke samtykk</button>
+            </div>
+          `;
+        }
+
+        if (steg.type === "DATA_FETCH") {
+          innhold += `<button id="kjorHandling">Kjør datahenting</button>`;
+        }
+
+        if (steg.type === "SUMMARY") {
+          innhold += `<button id="kjorHandling">Lag oppsummering</button>`;
+        }
+
+        if (steg.type === "SUBMIT") {
+          innhold += `<button id="kjorHandling">Send søknad</button>`;
+        }
+
+        if (steg.type === "INFO") {
+          innhold += `<div class="muted">Bruk Neste steg for å fortsette.</div>`;
+        }
+
+        aktivtStegEl.innerHTML = innhold;
+        kobleStegHandlinger(steg);
+      }
+
+      function kobleStegHandlinger(steg) {
+        if (steg.type === "QUESTION") {
+          document.getElementById("lagreSvar").onclick = async () => {
+            try {
+              const oekt = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/svar`, {
+                stegId: steg.id,
+                svar: document.getElementById("fritekstSvar").value.trim()
+              });
+              oppdaterSessionVisning(oekt);
+              visning.textContent = JSON.stringify(oekt, null, 2);
+              settStatus("Svar lagret i prosessøkten.");
+              logg(`Svar lagret for steg ${steg.id}.`);
+              tegnAktivtSteg();
+            } catch (error) {
+              settStatus(error.message);
+            }
+          };
+        }
+
+        if (steg.type === "CONSENT_REQUEST") {
+          document.getElementById("opprettSamtykke").onclick = async () => {
+            await kjorStegHandling({ handling: "opprett-samtykke" }, "Samtykke opprettet.");
+          };
+          document.getElementById("samtykk").onclick = async () => {
+            await kjorStegHandling({ handling: "samtykkesvar", status: "SAMTYKKET" }, "Samtykke registrert.");
+          };
+          document.getElementById("ikkeSamtykk").onclick = async () => {
+            await kjorStegHandling({ handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }, "Svar registrert uten samtykke.");
+          };
+        }
+
+        if (steg.type === "DATA_FETCH" || steg.type === "SUMMARY" || steg.type === "SUBMIT") {
+          document.getElementById("kjorHandling").onclick = async () => {
+            const meldinger = {
+              DATA_FETCH: "Handling kjørt for datahenting.",
+              SUMMARY: "Oppsummering laget.",
+              SUBMIT: "Søknad sendt inn."
+            };
+            await kjorStegHandling({}, meldinger[steg.type]);
+          };
+        }
+      }
+
+      async function kjorStegHandling(payload, statusmelding) {
+        try {
+          const data = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/handling`, payload);
+          oppdaterSessionVisning(data.oekt);
+          visning.textContent = JSON.stringify(data.resultat, null, 2);
+          settStatus(statusmelding);
+          logg(statusmelding);
+          tegnAktivtSteg();
+        } catch (error) {
+          settStatus(error.message);
+          visning.textContent = JSON.stringify({ feil: error.message }, null, 2);
+        }
+      }
+
+      async function startProsess() {
+        try {
+          const oekt = await postJson("http://localhost:8080/api/prosessoekter", {
+            personId: valgtPersonId(),
+            prosessId: valgtProsessId(),
+            sporingsId: `flyt-${Date.now()}`
+          });
+          oppdaterSessionVisning(oekt);
+          visning.textContent = JSON.stringify(oekt, null, 2);
+          settStatus(`Prosess startet: ${aktivProsess?.navn || "ukjent prosess"}`);
+          logg("Prosess startet.");
+          tegnAktivtSteg();
+        } catch (error) {
+          settStatus(error.message);
+        }
+      }
+
+      async function flyttSteg(retning) {
+        if (!aktivProsessoekt) {
+          settStatus("Start en prosess først.");
+          return;
+        }
+        try {
+          const endepunkt = retning < 0 ? "forrige" : "neste";
+          const oekt = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/${endepunkt}`);
+          oppdaterSessionVisning(oekt);
+          visning.textContent = JSON.stringify(oekt, null, 2);
+          settStatus(`Viser steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`);
+          tegnAktivtSteg();
+        } catch (error) {
+          settStatus(error.message);
+        }
+      }
+
+      document.getElementById("start").onclick = startProsess;
+      document.getElementById("forrige").onclick = () => flyttSteg(-1);
+      document.getElementById("neste").onclick = () => flyttSteg(1);
+      document.getElementById("hentLogg").onclick = async () => {
+        try {
+          const data = await hentJson(`http://localhost:8080/api/revisjonslogg/${sporingsId}`);
+          visning.textContent = JSON.stringify(data, null, 2);
+          settStatus("Revisjonslogg hentet.");
+          logg("Revisjonslogg hentet.");
+        } catch (error) {
+          settStatus(error.message);
+        }
+      };
+
+      prosessvelger.onchange = () => {
+        if (!aktivProsessoekt) {
+          tegnProsessOversikt();
+        }
+      };
+
+      lastInnGrunnlag().then(() => {
+        settStatus("Demo-GUI klar.");
+      }).catch((error) => {
+        settStatus(`Kunne ikke laste grunnlag: ${error.message}`);
+      });
+    </script>
+  </body>
+</html>

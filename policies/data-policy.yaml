@@ -1,0 +1,14 @@
+name: data-policy
+version: 0.1.0
+rules:
+  - id: synthetic-data-only
+    description: Kun syntetiske data er tillatt i sandkassen.
+    enforcement: manual-and-technical
+
+  - id: marker-alt-som-syntetisk
+    description: Alle API-responser skal markeres med syntetisk=true.
+    enforcement: technical
+
+  - id: no-sensitive-real-data
+    description: Reelle personopplysninger, helseopplysninger eller andre sensitive data skal ikke brukes.
+    enforcement: manual-and-technical

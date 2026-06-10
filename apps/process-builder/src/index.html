@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prosessbygger</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #16202a; }
+      header, main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+      .kort { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
+      .grid { display: grid; grid-template-columns: 280px 1fr 1fr; gap: 20px; align-items: start; }
+      button { border: 0; background: #1459c7; color: white; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+      button.sekundar { background: #6a7786; }
+      ul { padding-left: 18px; }
+      pre, textarea { white-space: pre-wrap; background: #0e1726; color: #d9e3f0; padding: 16px; border-radius: 8px; overflow: auto; }
+      textarea, input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccd6e0; border-radius: 8px; margin-bottom: 12px; font: inherit; background: white; color: #16202a; }
+      textarea.mork { background: #0e1726; color: #d9e3f0; min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .liten { color: #506070; }
+      .rad { margin-bottom: 12px; }
+      .handlinger { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .status { padding: 10px 12px; background: #eef4ff; border-radius: 8px; color: #1f3f78; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Prosessbygger</h1>
+      <p class="liten">Lag, rediger og del prosessdefinisjoner med norske begreper for hackathon-sandboxen.</p>
+    </header>
+    <main class="grid">
+      <section class="kort">
+        <h2>Prosesser</h2>
+        <div class="handlinger">
+          <button id="oppdater">Hent prosesser</button>
+          <button id="nyProsess" class="sekundar">Ny prosess</button>
+        </div>
+        <ul id="prosesser"></ul>
+      </section>
+      <section class="kort">
+        <h2>Redigering</h2>
+        <div class="rad">
+          <label for="prosessId">Prosess-ID</label>
+          <input id="prosessId" placeholder="f.eks. bostotte-veiledning" />
+        </div>
+        <div class="rad">
+          <label for="prosessNavn">Navn</label>
+          <input id="prosessNavn" placeholder="Navn på prosessen" />
+        </div>
+        <div class="rad">
+          <label for="prosessVersjon">Versjon</label>
+          <input id="prosessVersjon" value="0.1.0" />
+        </div>
+        <div class="rad">
+          <label for="prosessBeskrivelse">Beskrivelse</label>
+          <textarea id="prosessBeskrivelse" rows="4" placeholder="Kort beskrivelse av prosessen"></textarea>
+        </div>
+        <div class="rad">
+          <label for="prosessSteg">Steg (JSON)</label>
+          <textarea id="prosessSteg" class="mork" spellcheck="false"></textarea>
+        </div>
+        <div class="handlinger">
+          <button id="lagreProsess">Lagre prosess</button>
+          <button id="lastInnEksempel" class="sekundar">Last inn eksempelsteg</button>
+        </div>
+        <div id="status" class="status">Velg en prosess eller opprett en ny.</div>
+      </section>
+      <section class="kort">
+        <h2>Forhåndsvisning</h2>
+        <div id="detaljer" class="liten">Velg en prosess for å se steg og rådata.</div>
+      </section>
+    </main>
+    <script>
+      const prosessListe = document.getElementById("prosesser");
+      const detaljer = document.getElementById("detaljer");
+      const status = document.getElementById("status");
+      const prosessId = document.getElementById("prosessId");
+      const prosessNavn = document.getElementById("prosessNavn");
+      const prosessVersjon = document.getElementById("prosessVersjon");
+      const prosessBeskrivelse = document.getElementById("prosessBeskrivelse");
+      const prosessSteg = document.getElementById("prosessSteg");
+      const prosesser = [];
+
+      const eksempelSteg = [
+        {
+          id: "intro",
+          type: "INFO",
+          tittel: "Velkommen",
+          tekst: "Vi hjelper deg gjennom denne dialogen steg for steg."
+        },
+        {
+          id: "behov",
+          type: "QUESTION",
+          tittel: "Hva trenger du hjelp til?",
+          tekst: "Beskriv behovet ditt kort."
+        },
+        {
+          id: "oppsummering",
+          type: "SUMMARY",
+          tittel: "Oppsummering"
+        },
+        {
+          id: "send-inn",
+          type: "SUBMIT",
+          tittel: "Send inn"
+        }
+      ];
+
+      function settStatus(tekst) {
+        status.textContent = tekst;
+      }
+
+      async function hentProsesser() {
+        const svar = await fetch("http://localhost:8080/api/prosesser");
+        const data = await svar.json();
+        prosesser.length = 0;
+        prosesser.push(...data);
+        prosessListe.innerHTML = "";
+
+        for (const prosess of prosesser) {
+          const li = document.createElement("li");
+          const knapp = document.createElement("button");
+          knapp.textContent = prosess.navn;
+          knapp.onclick = () => {
+            visProsess(prosess);
+            fyllSkjema(prosess);
+          };
+          li.appendChild(knapp);
+          prosessListe.appendChild(li);
+        }
+      }
+
+      function fyllSkjema(prosess) {
+        prosessId.value = prosess.id || "";
+        prosessNavn.value = prosess.navn || "";
+        prosessVersjon.value = prosess.versjon || "0.1.0";
+        prosessBeskrivelse.value = prosess.beskrivelse || "";
+        prosessSteg.value = JSON.stringify(prosess.steg || [], null, 2);
+      }
+
+      function visProsess(prosess) {
+        const stegHtml = (prosess.steg || [])
+          .map((steg, indeks) => `<li><strong>${indeks + 1}. ${steg.tittel}</strong> — ${steg.type}</li>`)
+          .join("");
+
+        detaljer.innerHTML = `
+          <h3>${prosess.navn}</h3>
+          <p>${prosess.beskrivelse}</p>
+          <h4>Steg</h4>
+          <ul>${stegHtml}</ul>
+          <h4>Rådata</h4>
+          <pre>${JSON.stringify(prosess, null, 2)}</pre>
+        `;
+      }
+
+      function nullstillSkjema() {
+        prosessId.value = "";
+        prosessNavn.value = "";
+        prosessVersjon.value = "0.1.0";
+        prosessBeskrivelse.value = "";
+        prosessSteg.value = JSON.stringify(eksempelSteg, null, 2);
+      }
+
+      async function lagreProsess() {
+        let steg;
+        try {
+          steg = JSON.parse(prosessSteg.value || "[]");
+        } catch (error) {
+          settStatus(`Kunne ikke tolke steg-JSON: ${error.message}`);
+          return;
+        }
+
+        const payload = {
+          id: prosessId.value.trim(),
+          navn: prosessNavn.value.trim(),
+          beskrivelse: prosessBeskrivelse.value.trim(),
+          versjon: prosessVersjon.value.trim(),
+          steg
+        };
+
+        if (!payload.id || !payload.navn) {
+          settStatus("Prosess må ha både ID og navn.");
+          return;
+        }
+
+        const finnes = prosesser.some((prosess) => prosess.id === payload.id);
+        const metode = finnes ? "PUT" : "POST";
+        const url = finnes
+          ? `http://localhost:8080/api/prosesser/${payload.id}`
+          : "http://localhost:8080/api/prosesser";
+
+        const svar = await fetch(url, {
+          method: metode,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await svar.json();
+        if (!svar.ok) {
+          settStatus(`Lagring feilet: ${data.feil || svar.status}`);
+          return;
+        }
+
+        settStatus(finnes ? "Prosess oppdatert." : "Ny prosess opprettet.");
+        await hentProsesser();
+        fyllSkjema(data);
+        visProsess(data);
+      }
+
+      document.getElementById("oppdater").onclick = () => {
+        hentProsesser().then(() => settStatus("Prosessliste oppdatert."));
+      };
+
+      document.getElementById("nyProsess").onclick = () => {
+        nullstillSkjema();
+        detaljer.textContent = "Ny prosess er klar til redigering.";
+        settStatus("Ny prosess opprettet i skjemaet. Fyll inn ID og navn før lagring.");
+      };
+
+      document.getElementById("lagreProsess").onclick = lagreProsess;
+
+      document.getElementById("lastInnEksempel").onclick = () => {
+        prosessSteg.value = JSON.stringify(eksempelSteg, null, 2);
+        settStatus("Eksempelsteg lagt inn i skjemaet.");
+      };
+
+      hentProsesser()
+        .then(() => {
+          nullstillSkjema();
+          settStatus("Prosesser hentet.");
+        })
+        .catch((error) => {
+          detaljer.textContent = `Kunne ikke hente prosesser: ${error.message}`;
+          settStatus(`Kunne ikke hente prosesser: ${error.message}`);
+        });
+    </script>
+  </body>
+</html>

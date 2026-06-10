@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/process-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prosessbygger for innbyggerdialog-sandbox.",
+  "type": "module"
+}

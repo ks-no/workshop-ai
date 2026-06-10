@@ -1,0 +1,19 @@
+name: ai-policy
+version: 0.1.0
+rules:
+  - id: ai-no-decisions
+    description: KI skal ikke fatte vedtak eller gi automatisk innvilgelse eller avslag.
+    enforcement: technical-and-manual
+
+  - id: ai-explain-only
+    description: KI kan brukes til forklaring, oppsummering, klarspråk og dialogforslag.
+    allowedUse:
+      - dialogforslag
+      - oppsummering
+      - forklaring-av-databruk
+      - klarsprak
+      - risikosjekk
+
+  - id: revisjon-av-alle-ki-kall
+    description: Alle kall til AI-gateway skal logges i revisjonsloggen.
+    enforcement: technical

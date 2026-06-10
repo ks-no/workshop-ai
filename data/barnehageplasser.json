@@ -1,0 +1,7 @@
+[
+  { "personId": "person-002", "barnehageId": "kg-bergen-001", "barnehagenavn": "Solsiden barnehage", "kommune": "Bergen", "plassprosent": 100, "manedspris": 3200, "syntetisk": true },
+  { "personId": "person-004", "barnehageId": "kg-trondheim-001", "barnehagenavn": "Bakklandet barnehage", "kommune": "Trondheim", "plassprosent": 100, "manedspris": 3300, "syntetisk": true },
+  { "personId": "person-006", "barnehageId": "kg-oslo-001", "barnehagenavn": "Majorstuen barnehage", "kommune": "Oslo", "plassprosent": 80, "manedspris": 2900, "syntetisk": true },
+  { "personId": "person-008", "barnehageId": "kg-stavanger-001", "barnehagenavn": "Fjellhagen barnehage", "kommune": "Stavanger", "plassprosent": 100, "manedspris": 3150, "syntetisk": true },
+  { "personId": "person-010", "barnehageId": "kg-drammen-001", "barnehagenavn": "Stromso barnehage", "kommune": "Drammen", "plassprosent": 60, "manedspris": 2500, "syntetisk": true }
+]

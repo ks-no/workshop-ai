@@ -1,0 +1,47 @@
+{
+  "modeller": [
+    {
+      "id": "kindergarten-payment",
+      "navn": "Redusert foreldrebetaling",
+      "begreper": [
+        {
+          "id": "person",
+          "navn": "Person",
+          "beskrivelse": "Syntetisk representasjon av innbygger eller barn"
+        },
+        {
+          "id": "household",
+          "navn": "Husstand",
+          "beskrivelse": "Personer som inngår i samme økonomiske husholdning"
+        },
+        {
+          "id": "income",
+          "navn": "Inntekt",
+          "beskrivelse": "Syntetisk inntektsgrunnlag brukt i vurdering"
+        },
+        {
+          "id": "consent",
+          "navn": "Samtykke eller bekreftelse",
+          "beskrivelse": "Innbyggerens godkjenning eller bekreftelse av databruk"
+        }
+      ],
+      "relasjoner": [
+        {
+          "from": "person",
+          "to": "household",
+          "type": "memberOf"
+        },
+        {
+          "from": "person",
+          "to": "income",
+          "type": "hasIncome"
+        },
+        {
+          "from": "person",
+          "to": "consent",
+          "type": "hasConsent"
+        }
+      ]
+    }
+  ]
+}

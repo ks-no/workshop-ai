@@ -1,0 +1,142 @@
+[
+  {
+    "id": "reduced-kindergarten-payment",
+    "navn": "Redusert foreldrebetaling",
+    "beskrivelse": "Demo av dialogbasert søknad om redusert foreldrebetaling",
+    "versjon": "0.1.0",
+    "steg": [
+      {
+        "id": "intro",
+        "type": "INFO",
+        "tittel": "Velkommen",
+        "tekst": "Vi hjelper deg å søke redusert foreldrebetaling."
+      },
+      {
+        "id": "fetch-household",
+        "type": "DATA_FETCH",
+        "tittel": "Henter husstandsopplysninger",
+        "api": {
+          "method": "GET",
+          "url": "/api/personer/{personId}/husstand"
+        }
+      },
+      {
+        "id": "consent-income",
+        "type": "CONSENT_REQUEST",
+        "tittel": "Kan vi hente inntektsopplysninger?",
+        "formaal": "Vurdere rett til redusert foreldrebetaling",
+        "dataKilder": ["inntekt"]
+      },
+      {
+        "id": "fetch-income",
+        "type": "DATA_FETCH",
+        "tittel": "Henter inntektsopplysninger",
+        "kreverSamtykke": "inntekt",
+        "api": {
+          "method": "GET",
+          "url": "/api/personer/{personId}/inntekt"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "SUMMARY",
+        "tittel": "Oppsummering"
+      },
+      {
+        "id": "submit",
+        "type": "SUBMIT",
+        "tittel": "Send søknad"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "id": "sfo-moderasjon",
+    "navn": "Redusert betaling i SFO",
+    "beskrivelse": "Demo av dialogbasert søknad om redusert betaling i skolefritidsordningen.",
+    "versjon": "0.1.0",
+    "steg": [
+      {
+        "id": "intro",
+        "type": "INFO",
+        "tittel": "Velkommen",
+        "tekst": "Vi hjelper deg å søke om redusert betaling i SFO."
+      },
+      {
+        "id": "hent-husstand",
+        "type": "DATA_FETCH",
+        "tittel": "Henter husstandsopplysninger",
+        "api": {
+          "method": "GET",
+          "url": "/api/personer/{personId}/husstand"
+        }
+      },
+      {
+        "id": "samtykke-inntekt",
+        "type": "CONSENT_REQUEST",
+        "tittel": "Kan vi hente inntektsopplysninger?",
+        "formaal": "Vurdere rett til redusert betaling i SFO",
+        "dataKilder": ["inntekt"]
+      },
+      {
+        "id": "hent-inntekt",
+        "type": "DATA_FETCH",
+        "tittel": "Henter inntektsopplysninger",
+        "kreverSamtykke": "inntekt",
+        "api": {
+          "method": "GET",
+          "url": "/api/personer/{personId}/inntekt"
+        }
+      },
+      {
+        "id": "oppsummering",
+        "type": "SUMMARY",
+        "tittel": "Oppsummering"
+      },
+      {
+        "id": "send-inn",
+        "type": "SUBMIT",
+        "tittel": "Send søknad"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "id": "stottekontakt-behov",
+    "navn": "Behovsavklaring for støttekontakt",
+    "beskrivelse": "Demo av en innledende dialog som hjelper innbyggeren å forstå hva kommunen trenger.",
+    "versjon": "0.1.0",
+    "steg": [
+      {
+        "id": "intro",
+        "type": "INFO",
+        "tittel": "Velkommen",
+        "tekst": "Vi stiller noen korte spørsmål for å hjelpe deg videre."
+      },
+      {
+        "id": "situasjon",
+        "type": "QUESTION",
+        "tittel": "Hva trenger du hjelp til?",
+        "tekst": "Beskriv kort behovet ditt i egne ord."
+      },
+      {
+        "id": "forklar-data",
+        "type": "CONSENT_REQUEST",
+        "tittel": "Kan vi bruke kontaktopplysningene dine i denne demoen?",
+        "formaal": "Følge opp behovsavklaringen",
+        "dataKilder": ["kontaktinfo"]
+      },
+      {
+        "id": "oppsummering",
+        "type": "SUMMARY",
+        "tittel": "Oppsummering"
+      },
+      {
+        "id": "send-inn",
+        "type": "SUBMIT",
+        "tittel": "Send inn"
+      }
+    ],
+    "syntetisk": true
+  }
+]

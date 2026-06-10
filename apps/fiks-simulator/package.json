@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/fiks-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fiks-simulator for innbyggerdialog-sandbox.",
+  "type": "module"
+}

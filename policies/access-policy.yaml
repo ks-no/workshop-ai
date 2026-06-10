@@ -1,0 +1,12 @@
+name: access-policy
+version: 0.1.0
+rules:
+  - id: consent-before-income
+    description: Inntektsdata kan ikke hentes før samtykke eller annet rettslig grunnlag er registrert.
+    resource: income
+    requires:
+      consentStatus: SAMTYKKET
+
+  - id: revisjon-av-all-datatilgang
+    description: Alle kall mot person-, husstands- og inntektsdata skal revisjonslogges.
+    enforcement: technical

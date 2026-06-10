@@ -1,0 +1,32 @@
+openapi: 3.1.0
+info:
+  title: Fiks Simulator API
+  version: 0.1.0
+  description: Mock-API for samtykke, register og oppgaver.
+servers:
+  - url: http://localhost:8081
+paths:
+  /helse:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /fiks/samtykke:
+    post:
+      summary: Create consent
+      responses:
+        "201":
+          description: Consent created
+  /fiks/samtykke/{samtykkeId}:
+    get:
+      summary: Get consent
+      parameters:
+        - name: samtykkeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consent returned

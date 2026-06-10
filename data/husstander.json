@@ -1,0 +1,12 @@
+[
+  { "husstandId": "household-001", "adresse": "Eksempelveien 12", "kommune": "Bergen", "medlemmer": [{ "personId": "person-001", "rolle": "foresatt" }, { "personId": "person-002", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-002", "adresse": "Nordre gate 4", "kommune": "Trondheim", "medlemmer": [{ "personId": "person-003", "rolle": "foresatt" }, { "personId": "person-004", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-003", "adresse": "Pilestredet 18", "kommune": "Oslo", "medlemmer": [{ "personId": "person-005", "rolle": "foresatt" }, { "personId": "person-006", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-004", "adresse": "Fjordveien 7", "kommune": "Stavanger", "medlemmer": [{ "personId": "person-007", "rolle": "foresatt" }, { "personId": "person-008", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-005", "adresse": "Bragernes torg 5", "kommune": "Drammen", "medlemmer": [{ "personId": "person-009", "rolle": "foresatt" }, { "personId": "person-010", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-006", "adresse": "Storgata 33", "kommune": "Tromso", "medlemmer": [{ "personId": "person-011", "rolle": "foresatt" }, { "personId": "person-012", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-007", "adresse": "Markens gate 14", "kommune": "Kristiansand", "medlemmer": [{ "personId": "person-013", "rolle": "foresatt" }, { "personId": "person-014", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-008", "adresse": "Sjogata 11", "kommune": "Bodo", "medlemmer": [{ "personId": "person-015", "rolle": "foresatt" }, { "personId": "person-016", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-009", "adresse": "Apotekergata 9", "kommune": "Alesund", "medlemmer": [{ "personId": "person-017", "rolle": "foresatt" }, { "personId": "person-018", "rolle": "barn" }], "syntetisk": true },
+  { "husstandId": "household-010", "adresse": "Langgata 2", "kommune": "Sandnes", "medlemmer": [{ "personId": "person-019", "rolle": "foresatt" }, { "personId": "person-020", "rolle": "barn" }], "syntetisk": true }
+]

@@ -1,0 +1,304 @@
+import { createServer } from "node:http";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const dataMappe = path.resolve(__dirname, "../../../data");
+const port = 8081;
+
+function jsonSvar(response, statusCode, data) {
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  });
+  response.end(JSON.stringify(data, null, 2));
+}
+
+function tekstSvar(response, statusCode, data, contentType = "text/html; charset=utf-8") {
+  response.writeHead(statusCode, {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": "*"
+  });
+  response.end(data);
+}
+
+async function lesJson(filnavn) {
+  return JSON.parse(await readFile(path.join(dataMappe, filnavn), "utf8"));
+}
+
+async function skrivJson(filnavn, data) {
+  await writeFile(path.join(dataMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
+}
+
+async function lesBody(request) {
+  const deler = [];
+  for await (const del of request) {
+    deler.push(del);
+  }
+  return deler.length ? JSON.parse(Buffer.concat(deler).toString("utf8")) : {};
+}
+
+function nyttId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function leggTilRevisjon(hendelse) {
+  const revisjonslogg = await lesJson("revisjonslogg.json");
+  revisjonslogg.push({
+    hendelseId: nyttId("revisjon"),
+    tidspunkt: new Date().toISOString(),
+    syntetisk: true,
+    ...hendelse
+  });
+  await skrivJson("revisjonslogg.json", revisjonslogg);
+}
+
+function docsHtml() {
+  return `
+  <!doctype html>
+  <html lang="nb">
+    <head><meta charset="utf-8"><title>Fiks Simulator API</title></head>
+    <body style="font-family: Arial, sans-serif; padding: 24px;">
+      <h1>Fiks Simulator API</h1>
+      <ul>
+        <li><code>POST /fiks/samtykke</code></li>
+        <li><code>GET /fiks/samtykke/{samtykkeId}</code></li>
+        <li><code>PUT /fiks/samtykke/{samtykkeId}/svar</code></li>
+        <li><code>PUT /fiks/samtykke/{samtykkeId}/trekk</code></li>
+        <li><code>GET /fiks/personer/{personId}/samtykker</code></li>
+        <li><code>POST /fiks/oppgaver</code></li>
+      </ul>
+    </body>
+  </html>`;
+}
+
+const server = createServer(async (request, response) => {
+  const url = new URL(request.url, `http://${request.headers.host}`);
+
+  if (request.method === "OPTIONS") {
+    jsonSvar(response, 204, {});
+    return;
+  }
+
+  try {
+    if (url.pathname === "/helse" || url.pathname === "/health") {
+      jsonSvar(response, 200, { status: "ok", tjeneste: "fiks-simulator", tidspunkt: new Date().toISOString() });
+      return;
+    }
+
+    if (url.pathname === "/docs") {
+      tekstSvar(response, 200, docsHtml());
+      return;
+    }
+
+    if (url.pathname === "/openapi.yaml") {
+      const yaml = await readFile(path.resolve(__dirname, "../../../openapi/fiks-simulator.yaml"), "utf8");
+      tekstSvar(response, 200, yaml, "text/yaml; charset=utf-8");
+      return;
+    }
+
+    const personer = await lesJson("personer.json");
+    const husstander = await lesJson("husstander.json");
+    const inntekter = await lesJson("inntekter.json");
+    const barnehageplasser = await lesJson("barnehageplasser.json");
+    const samtykker = await lesJson("samtykker.json");
+    const oppgaver = await lesJson("oppgaver.json");
+    const meldinger = await lesJson("meldinger.json");
+
+    if (request.method === "POST" && url.pathname === "/fiks/samtykke") {
+      const body = await lesBody(request);
+      const nyttSamtykke = {
+        samtykkeId: nyttId("samtykke"),
+        personId: body.personId,
+        formaal: body.formaal,
+        dataKilder: body.dataKilder || [],
+        status: "VENTER_PAA_SVAR",
+        opprettet: new Date().toISOString(),
+        utloper: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        sporingsId: body.sporingsId || nyttId("flyt"),
+        historikk: [{ tidspunkt: new Date().toISOString(), status: "VENTER_PAA_SVAR" }],
+        syntetisk: true
+      };
+      samtykker.push(nyttSamtykke);
+      await skrivJson("samtykker.json", samtykker);
+      await leggTilRevisjon({
+        sporingsId: nyttSamtykke.sporingsId,
+        handling: "SAMTYKKE_OPPRETTET",
+        ressurs: "samtykke",
+        aktor: { type: "testbruker", id: nyttSamtykke.personId }
+      });
+      jsonSvar(response, 201, nyttSamtykke);
+      return;
+    }
+
+    const samtykkeTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)$/);
+    if (request.method === "GET" && samtykkeTreff) {
+      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === samtykkeTreff[1]);
+      if (!samtykke) {
+        jsonSvar(response, 404, { feil: "Fant ikke samtykke." });
+        return;
+      }
+      jsonSvar(response, 200, samtykke);
+      return;
+    }
+
+    const historikkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/historikk$/);
+    if (request.method === "GET" && historikkTreff) {
+      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === historikkTreff[1]);
+      if (!samtykke) {
+        jsonSvar(response, 404, { feil: "Fant ikke samtykke." });
+        return;
+      }
+      jsonSvar(response, 200, samtykke.historikk || []);
+      return;
+    }
+
+    const svarTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/svar$/);
+    if (request.method === "PUT" && svarTreff) {
+      const body = await lesBody(request);
+      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === svarTreff[1]);
+      if (!samtykke) {
+        jsonSvar(response, 404, { feil: "Fant ikke samtykke." });
+        return;
+      }
+      samtykke.status = body.status || "SAMTYKKET";
+      samtykke.historikk.push({ tidspunkt: new Date().toISOString(), status: samtykke.status });
+      await skrivJson("samtykker.json", samtykker);
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || samtykke.sporingsId,
+        handling: "SAMTYKKE_SVART",
+        ressurs: "samtykke",
+        aktor: { type: "testbruker", id: samtykke.personId },
+        grunnlag: { status: samtykke.status, id: samtykke.samtykkeId }
+      });
+      jsonSvar(response, 200, samtykke);
+      return;
+    }
+
+    const trekkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/trekk$/);
+    if (request.method === "PUT" && trekkTreff) {
+      const body = await lesBody(request);
+      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === trekkTreff[1]);
+      if (!samtykke) {
+        jsonSvar(response, 404, { feil: "Fant ikke samtykke." });
+        return;
+      }
+      samtykke.status = "TRUKKET";
+      samtykke.historikk.push({ tidspunkt: new Date().toISOString(), status: "TRUKKET" });
+      await skrivJson("samtykker.json", samtykker);
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || samtykke.sporingsId,
+        handling: "SAMTYKKE_TRUKKET",
+        ressurs: "samtykke",
+        aktor: { type: "testbruker", id: samtykke.personId }
+      });
+      jsonSvar(response, 200, samtykke);
+      return;
+    }
+
+    const personSamtykkeTreff = url.pathname.match(/^\/fiks\/personer\/([^/]+)\/samtykker$/);
+    if (request.method === "GET" && personSamtykkeTreff) {
+      jsonSvar(response, 200, samtykker.filter((samtykke) => samtykke.personId === personSamtykkeTreff[1]));
+      return;
+    }
+
+    const personTreff = url.pathname.match(/^\/fiks\/register\/person\/([^/]+)$/);
+    if (request.method === "GET" && personTreff) {
+      const person = personer.find((kandidat) => kandidat.personId === personTreff[1]);
+      jsonSvar(response, person ? 200 : 404, person || { feil: "Fant ikke person." });
+      return;
+    }
+
+    const husstandTreff = url.pathname.match(/^\/fiks\/register\/husstand\/([^/]+)$/);
+    if (request.method === "GET" && husstandTreff) {
+      const person = personer.find((kandidat) => kandidat.personId === husstandTreff[1]);
+      const husstand = husstander.find((kandidat) => kandidat.husstandId === person?.husstandId);
+      jsonSvar(response, husstand ? 200 : 404, husstand || { feil: "Fant ikke husstand." });
+      return;
+    }
+
+    const inntektTreff = url.pathname.match(/^\/fiks\/register\/inntekt\/([^/]+)$/);
+    if (request.method === "GET" && inntektTreff) {
+      const inntekt = inntekter.find((kandidat) => kandidat.personId === inntektTreff[1]);
+      jsonSvar(response, inntekt ? 200 : 404, inntekt || { feil: "Fant ikke inntekt." });
+      return;
+    }
+
+    const barnehageTreff = url.pathname.match(/^\/fiks\/register\/barnehage\/([^/]+)$/);
+    if (request.method === "GET" && barnehageTreff) {
+      jsonSvar(response, 200, barnehageplasser.filter((kandidat) => kandidat.personId === barnehageTreff[1]));
+      return;
+    }
+
+    const kontaktTreff = url.pathname.match(/^\/fiks\/register\/kontaktinfo\/([^/]+)$/);
+    if (request.method === "GET" && kontaktTreff) {
+      const person = personer.find((kandidat) => kandidat.personId === kontaktTreff[1]);
+      jsonSvar(response, person ? 200 : 404, person ? { personId: person.personId, kontakt: person.kontakt, syntetisk: true } : { feil: "Fant ikke person." });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/fiks/oppgaver") {
+      const body = await lesBody(request);
+      const oppgave = {
+        oppgaveId: nyttId("oppgave"),
+        personId: body.personId,
+        soknadId: body.soknadId,
+        tittel: body.tittel || "Ny oppgave",
+        status: "OPPRETTET",
+        opprettet: new Date().toISOString(),
+        sporingsId: body.sporingsId || nyttId("flyt"),
+        syntetisk: true
+      };
+      oppgaver.push(oppgave);
+      await skrivJson("oppgaver.json", oppgaver);
+      await leggTilRevisjon({
+        sporingsId: oppgave.sporingsId,
+        handling: "OPPGAVE_OPPRETTET",
+        ressurs: "oppgave",
+        aktor: { type: "system", id: "fiks-simulator" }
+      });
+      jsonSvar(response, 201, oppgave);
+      return;
+    }
+
+    const oppgaveTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)$/);
+    if (request.method === "GET" && oppgaveTreff) {
+      const oppgave = oppgaver.find((kandidat) => kandidat.oppgaveId === oppgaveTreff[1]);
+      jsonSvar(response, oppgave ? 200 : 404, oppgave || { feil: "Fant ikke oppgave." });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/fiks/meldinger") {
+      const body = await lesBody(request);
+      const melding = {
+        meldingId: nyttId("melding"),
+        tittel: body.tittel || "Ny melding",
+        innhold: body.innhold || "",
+        opprettet: new Date().toISOString(),
+        syntetisk: true
+      };
+      meldinger.push(melding);
+      await skrivJson("meldinger.json", meldinger);
+      jsonSvar(response, 201, melding);
+      return;
+    }
+
+    const meldingTreff = url.pathname.match(/^\/fiks\/meldinger\/([^/]+)$/);
+    if (request.method === "GET" && meldingTreff) {
+      const melding = meldinger.find((kandidat) => kandidat.meldingId === meldingTreff[1]);
+      jsonSvar(response, melding ? 200 : 404, melding || { feil: "Fant ikke melding." });
+      return;
+    }
+
+    jsonSvar(response, 404, { feil: "Fant ikke endepunkt." });
+  } catch (error) {
+    jsonSvar(response, 500, { feil: "Intern feil i Fiks-simulator.", detalj: error.message, syntetisk: true });
+  }
+});
+
+server.listen(port, () => {
+  console.log(`Fiks-simulator kjører på http://localhost:${port}`);
+});

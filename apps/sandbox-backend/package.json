@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/sandbox-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend for innbyggerdialog-sandbox.",
+  "type": "module"
+}
