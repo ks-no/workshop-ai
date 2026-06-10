@@ -182,6 +182,7 @@ Dette repoet er lagt opp for flere team. Se:
 - `docs/architecture.md`
 - `docs/api-oversikt.md`
 - `docs/api-foerst-integrasjoner.md`
+- `docs/veien-videre.md`
 
 Anbefalt arbeidsform:
 
@@ -206,5 +207,6 @@ Anbefalt arbeidsform:
 - `package.json`
 - `docs/architecture.md`
 - `docs/api-foerst-integrasjoner.md`
+- `docs/veien-videre.md`
 - `docs/sikkerhet-og-personvern.md`
 - `policies/data-policy.yaml`
