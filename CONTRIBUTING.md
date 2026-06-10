@@ -13,6 +13,8 @@ Vi bygger en pedagogisk og teknisk fungerende sandbox for hackathon og videre ar
 - oppdater dokumentasjon sammen med kode
 - tenk API-først når du lager nye kapabiliteter
 - sørg for at policyer er synlige både i kode og dokumentasjon
+- bevar høy autonomi for team som bygger egne løsninger oppå sandboxen
+- skill tydelig mellom felles kapabiliteter og valgfrie referanseimplementasjoner
 
 ## Forslag til teamfordeling
 
@@ -46,3 +48,4 @@ En endring er ikke ferdig før:
 - språk i dokumentasjon: norsk er ok, engelsk er også greit hvis teamet trenger det
 - API-felter: bruk konsistente navn og eksplisitt `syntetisk: true` der det passer
 - ikke introduser tunge plattformer før behovet er reelt
+- unngå å gjøre midlertidige referanseløsninger til harde krav for andre team

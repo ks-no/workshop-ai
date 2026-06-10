@@ -14,6 +14,19 @@ Første demo-case er:
 
 Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser mellom frontend, backend, simulatorer, policyer og datasett.
 
+## Designprinsipp for hackathon
+
+Sandboxen skal gi teamene **høy autonomi**, men også **nok støtte til at de faktisk rekker å levere noe i løpet av hackathonet**.
+
+Det betyr i praksis:
+
+- vi tilbyr felles kapabiliteter som API-er
+- vi tilbyr referanseimplementasjoner som støtte
+- vi unngår å låse teamene til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy
+- vi prioriterer enkle integrasjonsflater og god dokumentasjon over tunge interne rammeverk
+
+Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal derfor forstås som **hjelpemidler og eksempler**, ikke som tvungne måter å bygge løsningene på.
+
 ## Status
 
 Dette repoet inneholder første versjon av:
@@ -176,6 +189,7 @@ Anbefalt arbeidsform:
 - små PR-er med tydelig scope
 - dokumentasjon oppdateres sammen med kode
 - API-kontrakter avklares før implementasjon
+- bruk sandboxens referanseimplementasjoner hvis de sparer tid, men stå fritt til å lage egne løsninger oppå de samme API-ene
 
 ## Kjente begrensninger
 

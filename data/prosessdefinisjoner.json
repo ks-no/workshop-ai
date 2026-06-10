@@ -117,7 +117,29 @@
         "id": "situasjon",
         "type": "QUESTION",
         "tittel": "Hva trenger du hjelp til?",
-        "tekst": "Beskriv kort behovet ditt i egne ord."
+        "tekst": "Beskriv kort behovet ditt i egne ord.",
+        "felter": [
+          {
+            "id": "beskrivelse",
+            "label": "Beskriv behovet ditt",
+            "type": "tekst",
+            "placeholder": "Skriv kort hva du trenger hjelp til",
+            "obligatorisk": true
+          },
+          {
+            "id": "onskerKontakt",
+            "label": "Ønsker du at kommunen kontakter deg?",
+            "type": "ja-nei",
+            "obligatorisk": true
+          },
+          {
+            "id": "kontaktkanal",
+            "label": "Hvordan vil du helst kontaktes?",
+            "type": "valg",
+            "alternativer": ["Telefon", "E-post", "Digital melding"],
+            "obligatorisk": false
+          }
+        ]
       },
       {
         "id": "forklar-data",

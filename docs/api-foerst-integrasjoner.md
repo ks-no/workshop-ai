@@ -14,6 +14,8 @@ Det gir oss:
 
 For denne sandboxen betyr det at **alle koblinger mellom komponenter bør behandles som eksterne integrasjoner**, selv når de kjører i samme Docker Compose-oppsett.
 
+Samtidig må vi ikke bruke API-strategien til å redusere teamenes frihet unødvendig. Målet er å gi teamene felles kapabiliteter, ikke å tvinge alle inn i samme applikasjonsmønster.
+
 ## Anbefalt prinsipp
 
 Bruk følgende tommelfingerregel:
@@ -26,6 +28,12 @@ Det betyr:
 - `prosessbygger` snakker kun med API-er
 - `sandbox-backend` snakker med `fiks-simulator` og `ai-gateway` via API-er
 - datafiler er kun en intern implementasjonsdetalj i den tjenesten som eier dem
+
+Det betyr også:
+
+- teamene kan bygge egne klienter så lenge de følger API-kontraktene
+- referanseimplementasjonene våre er støtteverktøy, ikke tvang
+- vi kan bytte ut `process-builder` med `Altinn Studio` eller lignende senere uten å rive hele sandboxen
 
 ## Foreslått API-modell
 
@@ -329,3 +337,19 @@ Hvis vi skal være pragmatiske, ville jeg gjort dette nå:
 5. Flytte all stegstyring gradvis fra GUI til backend
 
 Da får vi en sandbox som både er pedagogisk, delbar og arkitekturmessig ryddig.
+
+## Praktisk balanse for hackathonet
+
+For å balansere frihet og faktisk leveringsevne anbefaler jeg:
+
+1. Gjør API-er og syntetiske data obligatoriske som felles grunnlag
+2. Gjør referanse-GUI og prosessbygger valgfrie
+3. Gi teamene minst ett fungerende eksempel de kan bygge videre på
+4. Unngå å kreve at alle bruker samme prosessformat internt
+5. Prioriter adaptere og dokumentasjon over tunge plattformvalg
+
+Da får vi:
+
+- nok struktur til at teamene kommer raskt i gang
+- nok frihet til at de kan utforske ulike løsningsretninger
+- lavere risiko for at sandboxen låser oss til dagens verktøyvalg

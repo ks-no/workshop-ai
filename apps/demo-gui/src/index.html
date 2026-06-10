@@ -9,11 +9,11 @@
       main { max-width: 1280px; margin: 0 auto; padding: 24px; }
       .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
       .kort { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-      button, select, textarea { padding: 10px 12px; border-radius: 8px; border: 1px solid #ccd6e0; font: inherit; }
+      button, select, textarea, input { padding: 10px 12px; border-radius: 8px; border: 1px solid #ccd6e0; font: inherit; }
       button { background: #1459c7; color: white; border: 0; cursor: pointer; }
       button.sekundar { background: #6a7786; }
       pre { white-space: pre-wrap; background: #0f1724; color: #d8e2ef; padding: 16px; border-radius: 8px; min-height: 140px; overflow: auto; }
-      textarea { width: 100%; box-sizing: border-box; min-height: 110px; }
+      textarea, input, select.feltsvar { width: 100%; box-sizing: border-box; min-height: 44px; }
       .rad { margin-bottom: 12px; }
       .etikett { font-size: 14px; color: #526171; margin-bottom: 6px; }
       .linje { padding: 10px 0; border-bottom: 1px solid #edf2f7; }
@@ -109,6 +109,14 @@
         return prosesser.find((prosess) => prosess.id === prosessId) || null;
       }
 
+      function htmlEscape(tekst) {
+        return String(tekst ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
       async function hentJson(url, valg = {}) {
         const svar = await fetch(url, valg);
         const data = await svar.json();
@@ -191,14 +199,54 @@
         `;
 
         if (steg.type === "QUESTION") {
-          const svar = aktivProsessoekt.svar?.[steg.id] || "";
-          innhold += `
-            <div class="rad">
-              <div class="etikett">Ditt svar</div>
-              <textarea id="fritekstSvar" placeholder="Skriv svaret ditt her...">${svar}</textarea>
-            </div>
-            <button id="lagreSvar">Lagre svar</button>
-          `;
+          if (Array.isArray(steg.felter) && steg.felter.length > 0) {
+            const svar = aktivProsessoekt.svar?.[steg.id] || {};
+            const feltHtml = steg.felter.map((felt) => {
+              const svarverdi = svar[felt.id] ?? "";
+              if (felt.type === "ja-nei") {
+                return `
+                  <div class="rad">
+                    <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
+                    <select class="feltsvar" data-felt-id="${felt.id}">
+                      <option value="">Velg</option>
+                      <option value="Ja" ${svarverdi === "Ja" ? "selected" : ""}>Ja</option>
+                      <option value="Nei" ${svarverdi === "Nei" ? "selected" : ""}>Nei</option>
+                    </select>
+                  </div>
+                `;
+              }
+              if (felt.type === "valg") {
+                const alternativer = (felt.alternativer || []).map((alternativ) =>
+                  `<option value="${htmlEscape(alternativ)}" ${svarverdi === alternativ ? "selected" : ""}>${htmlEscape(alternativ)}</option>`
+                ).join("");
+                return `
+                  <div class="rad">
+                    <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
+                    <select class="feltsvar" data-felt-id="${felt.id}">
+                      <option value="">Velg</option>
+                      ${alternativer}
+                    </select>
+                  </div>
+                `;
+              }
+              return `
+                <div class="rad">
+                  <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
+                  <textarea class="feltsvar" data-felt-id="${felt.id}" placeholder="${htmlEscape(felt.placeholder || "")}">${htmlEscape(svarverdi)}</textarea>
+                </div>
+              `;
+            }).join("");
+            innhold += `${feltHtml}<button id="lagreSvar">Lagre svar</button>`;
+          } else {
+            const svar = aktivProsessoekt.svar?.[steg.id] || "";
+            innhold += `
+              <div class="rad">
+                <div class="etikett">Ditt svar</div>
+                <textarea id="fritekstSvar" placeholder="Skriv svaret ditt her...">${svar}</textarea>
+              </div>
+              <button id="lagreSvar">Lagre svar</button>
+            `;
+          }
         }
 
         if (steg.type === "CONSENT_REQUEST") {
@@ -237,9 +285,23 @@
         if (steg.type === "QUESTION") {
           document.getElementById("lagreSvar").onclick = async () => {
             try {
+              let svar;
+              if (Array.isArray(steg.felter) && steg.felter.length > 0) {
+                svar = {};
+                const feltNoder = document.querySelectorAll("[data-felt-id]");
+                for (const node of feltNoder) {
+                  svar[node.dataset.feltId] = node.value.trim();
+                }
+                const mangler = steg.felter.filter((felt) => felt.obligatorisk && !svar[felt.id]);
+                if (mangler.length > 0) {
+                  throw new Error(`Mangler svar for: ${mangler.map((felt) => felt.label).join(", ")}`);
+                }
+              } else {
+                svar = document.getElementById("fritekstSvar").value.trim();
+              }
               const oekt = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/svar`, {
                 stegId: steg.id,
-                svar: document.getElementById("fritekstSvar").value.trim()
+                svar
               });
               oppdaterSessionVisning(oekt);
               visning.textContent = JSON.stringify(oekt, null, 2);

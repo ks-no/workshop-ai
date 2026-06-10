@@ -90,7 +90,29 @@
           id: "behov",
           type: "QUESTION",
           tittel: "Hva trenger du hjelp til?",
-          tekst: "Beskriv behovet ditt kort."
+          tekst: "Beskriv behovet ditt kort.",
+          felter: [
+            {
+              id: "beskrivelse",
+              label: "Beskrivelse",
+              type: "tekst",
+              placeholder: "Skriv kort hva du trenger hjelp til",
+              obligatorisk: true
+            },
+            {
+              id: "onskerKontakt",
+              label: "Ønsker du kontakt?",
+              type: "ja-nei",
+              obligatorisk: true
+            },
+            {
+              id: "kontaktkanal",
+              label: "Foretrukket kontaktkanal",
+              type: "valg",
+              alternativer: ["Telefon", "E-post", "Digital melding"],
+              obligatorisk: false
+            }
+          ]
         },
         {
           id: "oppsummering",
@@ -138,7 +160,10 @@
 
       function visProsess(prosess) {
         const stegHtml = (prosess.steg || [])
-          .map((steg, indeks) => `<li><strong>${indeks + 1}. ${steg.tittel}</strong> — ${steg.type}</li>`)
+          .map((steg, indeks) => {
+            const feltInfo = steg.felter?.length ? ` (${steg.felter.length} felt)` : "";
+            return `<li><strong>${indeks + 1}. ${steg.tittel}</strong> — ${steg.type}${feltInfo}</li>`;
+          })
           .join("");
 
         detaljer.innerHTML = `
