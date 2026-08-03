@@ -1,2 +1,182 @@
-[]
-
+[
+  {
+    "soknadId": "soknad-1785745615879-01b2ij",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T08:26:55.879Z",
+    "sporingsId": "flyt-1785745615802-zlr44f",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785745615940-ekapy4",
+    "personId": "person-001",
+    "prosessId": "sfo-moderasjon",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T08:26:55.940Z",
+    "sporingsId": "flyt-1785745615888-m9zkr2",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785745616003-yfbdan",
+    "personId": "person-001",
+    "prosessId": "stottekontakt-behov",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T08:26:56.003Z",
+    "sporingsId": "flyt-1785745615955-by8zgu",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785745803234-e4gs0x",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T08:30:03.234Z",
+    "sporingsId": "flyt-1785745771941",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785746317304-ecpoak",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T08:38:37.304Z",
+    "sporingsId": "flyt-1785746317250-bvyiho",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722779-ybsq7i",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.779Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722792-ghotxe",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.792Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722800-et6od7",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.800Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722807-jd673c",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.807Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722814-0d97sr",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.814Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722820-coyotf",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.820Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722828-8p7mu0",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.828Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722839-3n28au",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.839Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722851-nwf1a5",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.851Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722862-fneyrd",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.862Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722875-ksb1uc",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.875Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722888-uyeq0p",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.888Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722905-jq9is7",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.905Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722917-y3x1u8",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.917Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785754722924-yq428e",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T10:58:42.924Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  }
+]

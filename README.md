@@ -54,6 +54,8 @@ Bygg og start alle tjenester:
 docker compose up --build
 ```
 
+Dette starter ogs en lokal `ollama`-tjeneste i Docker Compose og puller en liten standardmodell for `ai-gateway`.
+
 ## Hvordan stoppe den
 
 ```bash
@@ -69,11 +71,13 @@ docker compose down
 | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
 | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
 | `ai-gateway` | `8082` | Mock av AI-støtte og forklaringer |
+| `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
 
 Planlagte URL-er når tjenestene er implementert:
 
 - [http://localhost:3000](http://localhost:3000)
 - [http://localhost:3001](http://localhost:3001)
+- [http://localhost:3001/chat](http://localhost:3001/chat)
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
 - [http://localhost:8082/health](http://localhost:8082/health)
@@ -110,6 +114,7 @@ Andre tilgjengelige demo-case:
 
 - `Redusert betaling i SFO`
 - `Behovsavklaring for støttekontakt`
+- `Soknad om fritidskort-stotte`
 
 Demo-GUI-en er nå prosessdrevet og leser steg direkte fra valgt prosessdefinisjon.
 Demo-GUI-en bruker også prosessøkt-API i backend for å starte flyter, lagre svar og utføre steg.

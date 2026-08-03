@@ -1,1 +1,202 @@
-[]
+[
+  {
+    "oppgaveId": "oppgave-1785745615884-qwe156",
+    "personId": "person-001",
+    "soknadId": "soknad-1785745615879-01b2ij",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T08:26:55.884Z",
+    "sporingsId": "flyt-1785745615802-zlr44f",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785745615948-6i2nui",
+    "personId": "person-001",
+    "soknadId": "soknad-1785745615940-ekapy4",
+    "tittel": "Behandle Redusert betaling i SFO",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T08:26:55.948Z",
+    "sporingsId": "flyt-1785745615888-m9zkr2",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785745616006-ocm3bi",
+    "personId": "person-001",
+    "soknadId": "soknad-1785745616003-yfbdan",
+    "tittel": "Behandle Behovsavklaring for støttekontakt",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T08:26:56.006Z",
+    "sporingsId": "flyt-1785745615955-by8zgu",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785745803245-jl6uwp",
+    "personId": "person-001",
+    "soknadId": "soknad-1785745803234-e4gs0x",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T08:30:03.245Z",
+    "sporingsId": "flyt-1785745771941",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785746317307-etv2gm",
+    "personId": "person-001",
+    "soknadId": "soknad-1785746317304-ecpoak",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T08:38:37.307Z",
+    "sporingsId": "flyt-1785746317250-bvyiho",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722784-liuylh",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722779-ybsq7i",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.784Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722796-snp4yo",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722792-ghotxe",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.796Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722803-vz6ke0",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722800-et6od7",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.803Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722809-yxybeb",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722807-jd673c",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.809Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722816-uyk7lp",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722814-0d97sr",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.816Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722823-b0qbyw",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722820-coyotf",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.823Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722832-k0s0zu",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722828-8p7mu0",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.832Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722843-pt1cbn",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722839-3n28au",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.843Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722855-zivrpr",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722851-nwf1a5",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.855Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722868-smf8uc",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722862-fneyrd",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.868Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722880-v5z9ys",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722875-ksb1uc",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.880Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722896-5jowaw",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722888-uyeq0p",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.896Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722912-uxzfho",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722905-jq9is7",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.912Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722921-6g06nh",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722917-y3x1u8",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.921Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785754722927-w1x1nb",
+    "personId": "person-001",
+    "soknadId": "soknad-1785754722924-yq428e",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T10:58:42.927Z",
+    "sporingsId": "flyt-1785754710492-t6k0m6",
+    "syntetisk": true
+  }
+]

@@ -14,3 +14,9 @@ Nåværende MVP:
 - prosessdrevet flyt fra `data/prosessdefinisjoner.json`
 - prosessøkt-API via `sandbox-backend`
 - støtte for `INFO`, `QUESTION`, `DATA_FETCH`, `CONSENT_REQUEST`, `SUMMARY` og `SUBMIT`
+
+Tilgjengelige sider:
+
+- `http://localhost:3001/` klassisk stegvis demo
+- `http://localhost:3001/chat` chatdrevet prosessgrensesnitt
+

@@ -6,6 +6,11 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataMappe = path.resolve(__dirname, "../../../data");
 const port = 8082;
+const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
+const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:3b";
+const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
+const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
 
 function jsonSvar(response, statusCode, data) {
   response.writeHead(statusCode, {
@@ -69,6 +74,7 @@ function docsHtml() {
         <li><code>POST /ai/forklar-databruk</code></li>
         <li><code>POST /ai/klarsprak</code></li>
         <li><code>POST /ai/risikosjekk</code></li>
+        <li><code>POST /ai/tolk-svar</code></li>
       </ul>
     </body>
   </html>`;
@@ -90,6 +96,392 @@ function byggSvar(type, body) {
     modell: "mock-ai-gateway",
     sprak: body.sprak || "nb"
   };
+}
+
+function byggPrompt(type, body, fallbackTekst) {
+  const kontekst = body?.kontekst || {};
+  const sprak = body?.sprak || "nb";
+  return [
+    "Du er en hjelpsom assistent i en kommunal demosandbox.",
+    `Svar kort pa ${sprak} med klart sprak uten personopplysninger utover det som er gitt.`,
+    `Oppgavetype: ${type}`,
+    `Tjeneste: ${kontekst.tjeneste || "ukjent"}`,
+    `Steg: ${kontekst.steg?.tittel || kontekst.steg?.type || "ukjent"}`,
+    `Anbefalt innhold: ${fallbackTekst}`,
+    `Kontekst JSON: ${JSON.stringify(kontekst)}`
+  ].join("\n");
+}
+
+function normaliserTekst(tekst) {
+  return String(tekst || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function heuristiskTolkning(body) {
+  const tekst = normaliserTekst(body?.tekst);
+  const jaIntent = body?.jaIntent || "ja";
+  const neiIntent = body?.neiIntent || "nei";
+  const ukjentIntent = body?.ukjentIntent || "ukjent";
+
+  const positiveMonstre = [
+    "ja",
+    "japp",
+    "yes",
+    "klart",
+    "greit",
+    "okei",
+    "ok",
+    "gjerne",
+    "ja takk",
+    "det går fint",
+    "det er greit",
+    "samtykker",
+    "jeg samtykker",
+    "eg samtykker",
+    "godta",
+    "godtar",
+    "kjør på",
+    "kjor pa",
+    "send inn",
+    "fortsett",
+    "klar"
+  ];
+
+  const negativeMonstre = [
+    "nei",
+    "nei takk",
+    "ikke nå",
+    "ikke na",
+    "senere",
+    "stopp",
+    "vil ikke",
+    "samtykker ikke",
+    "ikke send",
+    "avslå",
+    "avsla"
+  ];
+
+  if (negativeMonstre.some((monster) => tekst.includes(monster))) {
+    return {
+      intent: neiIntent,
+      confidence: 0.8,
+      begrunnelse: "Heuristisk negativ tolkning"
+    };
+  }
+
+  if (positiveMonstre.some((monster) => tekst.includes(monster))) {
+    return {
+      intent: jaIntent,
+      confidence: 0.8,
+      begrunnelse: "Heuristisk positiv tolkning"
+    };
+  }
+
+  return {
+    intent: ukjentIntent,
+    confidence: 0.2,
+    begrunnelse: "Fant ingen tydelig heuristisk intensjon"
+  };
+}
+
+function byggTolkningsPrompt(body) {
+  const jaIntent = body?.jaIntent || "ja";
+  const neiIntent = body?.neiIntent || "nei";
+  const ukjentIntent = body?.ukjentIntent || "ukjent";
+  return [
+    "Du klassifiserer en kort brukermelding i en kommunal chatflyt.",
+    "Svar KUN med gyldig JSON og ingen annen tekst.",
+    `Gyldige intent-verdier: ${jaIntent}, ${neiIntent}, ${ukjentIntent}`,
+    `Hvis meldingen uttrykker samtykke, bekreftelse eller godkjenning, bruk ${jaIntent}.`,
+    `Hvis meldingen uttrykker avslag, usikkerhet eller at brukeren ikke vil gå videre, bruk ${neiIntent}.`,
+    `Hvis du ikke kan avgjøre det trygt, bruk ${ukjentIntent}.`,
+    "Returner nøyaktig dette skjemaet:",
+    '{"intent":"<verdi>","confidence":0.0,"begrunnelse":"kort forklaring"}',
+    `Brukermelding: ${JSON.stringify(body?.tekst || "")}`,
+    `Kontekst: ${JSON.stringify(body?.kontekst || {})}`
+  ].join("\n");
+}
+
+function parseJsonObjekt(tekst) {
+  const trimmet = String(tekst || "").trim();
+  if (!trimmet) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmet);
+  } catch {
+    const start = trimmet.indexOf("{");
+    const slutt = trimmet.lastIndexOf("}");
+    if (start !== -1 && slutt !== -1 && slutt > start) {
+      try {
+        return JSON.parse(trimmet.slice(start, slutt + 1));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function validerTolkning(data, body) {
+  const jaIntent = body?.jaIntent || "ja";
+  const neiIntent = body?.neiIntent || "nei";
+  const ukjentIntent = body?.ukjentIntent || "ukjent";
+  const gyldige = new Set([jaIntent, neiIntent, ukjentIntent]);
+
+  if (!data || !gyldige.has(data.intent)) {
+    return null;
+  }
+
+  const confidence = Number(data.confidence);
+  return {
+    intent: data.intent,
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.5,
+    begrunnelse: typeof data.begrunnelse === "string" ? data.begrunnelse : "LLM-tolkning"
+  };
+}
+
+async function hentFraOllama(prompt) {
+  const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: ollamaModel,
+      prompt,
+      stream: false,
+      options: { temperature: 0.2 }
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`Ollama svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  return {
+    tekst: data.response?.trim() || "",
+    modell: `ollama:${ollamaModel}`
+  };
+}
+
+async function hentTolkningFraOllama(body) {
+  const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: ollamaModel,
+      prompt: byggTolkningsPrompt(body),
+      stream: false,
+      options: { temperature: 0 }
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`Ollama svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const parsed = validerTolkning(parseJsonObjekt(data.response), body);
+  if (!parsed) {
+    throw new Error("Kunne ikke tolke JSON-svar fra Ollama");
+  }
+  return {
+    ...parsed,
+    modell: `ollama:${ollamaModel}`
+  };
+}
+
+async function hentFraOpenRouter(prompt) {
+  if (!openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY mangler");
+  }
+  const svar = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${openRouterApiKey}`
+    },
+    body: JSON.stringify({
+      model: openRouterModel,
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content: "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`OpenRouter svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
+  return {
+    tekst,
+    modell: `openrouter:${openRouterModel}`
+  };
+}
+
+async function hentTolkningFraOpenRouter(body) {
+  if (!openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY mangler");
+  }
+  const svar = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${openRouterApiKey}`
+    },
+    body: JSON.stringify({
+      model: openRouterModel,
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst."
+        },
+        {
+          role: "user",
+          content: byggTolkningsPrompt(body)
+        }
+      ]
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`OpenRouter svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
+  const parsed = validerTolkning(parseJsonObjekt(tekst), body);
+  if (!parsed) {
+    throw new Error("Kunne ikke tolke JSON-svar fra OpenRouter");
+  }
+  return {
+    ...parsed,
+    modell: `openrouter:${openRouterModel}`
+  };
+}
+
+async function tolkSvarMedAi(body) {
+  const fallback = heuristiskTolkning(body);
+  const ukjentIntent = body?.ukjentIntent || "ukjent";
+
+  if (fallback.intent !== ukjentIntent && fallback.confidence >= 0.75) {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: "heuristisk-tolkning"
+    };
+  }
+
+  try {
+    if (aiProvider === "ollama") {
+      const llmSvar = {
+        ...(await hentTolkningFraOllama(body)),
+        syntetisk: true
+      };
+      if (llmSvar.intent === ukjentIntent && fallback.intent !== ukjentIntent) {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte ukjent, brukte heuristisk tolkning"
+        };
+      }
+      if (llmSvar.confidence < 0.6 && fallback.intent !== ukjentIntent) {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM hadde lav trygghet, brukte heuristisk tolkning"
+        };
+      }
+      return llmSvar;
+    }
+
+    if (aiProvider === "openrouter") {
+      const llmSvar = {
+        ...(await hentTolkningFraOpenRouter(body)),
+        syntetisk: true
+      };
+      if (llmSvar.intent === ukjentIntent && fallback.intent !== ukjentIntent) {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte ukjent, brukte heuristisk tolkning"
+        };
+      }
+      if (llmSvar.confidence < 0.6 && fallback.intent !== ukjentIntent) {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM hadde lav trygghet, brukte heuristisk tolkning"
+        };
+      }
+      return llmSvar;
+    }
+  } catch (error) {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: `${aiProvider || "mock"}-fallback`,
+      advarsel: `LLM-tolkning feilet: ${error.message}`
+    };
+  }
+
+  return {
+    ...fallback,
+    syntetisk: true,
+    modell: "heuristisk-tolkning"
+  };
+}
+
+async function byggAiSvar(type, body) {
+  const mockSvar = byggSvar(type, body);
+  const prompt = byggPrompt(type, body, mockSvar.tekst);
+
+  try {
+    if (aiProvider === "ollama") {
+      const llm = await hentFraOllama(prompt);
+      if (llm.tekst) {
+        return {
+          tekst: llm.tekst,
+          syntetisk: true,
+          modell: llm.modell,
+          sprak: body.sprak || "nb"
+        };
+      }
+      throw new Error("Tomt svar fra Ollama");
+    }
+
+    if (aiProvider === "openrouter") {
+      const llm = await hentFraOpenRouter(prompt);
+      if (llm.tekst) {
+        return {
+          tekst: llm.tekst,
+          syntetisk: true,
+          modell: llm.modell,
+          sprak: body.sprak || "nb"
+        };
+      }
+      throw new Error("Tomt svar fra OpenRouter");
+    }
+  } catch (error) {
+    return {
+      ...mockSvar,
+      modell: `${mockSvar.modell} (fallback)` ,
+      advarsel: `Provider ${aiProvider} feilet: ${error.message}`
+    };
+  }
+
+  return mockSvar;
 }
 
 const server = createServer(async (request, response) => {
@@ -117,11 +509,24 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && url.pathname === "/ai/tolk-svar") {
+      const body = await lesBody(request);
+      const svar = await tolkSvarMedAi(body);
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || nyttId("flyt"),
+        handling: "KI_TOLKNING",
+        ressurs: "tolk-svar",
+        aktor: { type: "system", id: "ai-gateway" }
+      });
+      jsonSvar(response, 200, svar);
+      return;
+    }
+
     const gyldigeStier = ["/ai/dialogforslag", "/ai/oppsummering", "/ai/forklar-databruk", "/ai/klarsprak", "/ai/risikosjekk"];
     if (request.method === "POST" && gyldigeStier.includes(url.pathname)) {
       const body = await lesBody(request);
       const type = url.pathname.replace("/ai/", "");
-      const svar = byggSvar(type, body);
+      const svar = await byggAiSvar(type, body);
       await leggTilRevisjon({
         sporingsId: body.sporingsId || nyttId("flyt"),
         handling: "KI_KALL",

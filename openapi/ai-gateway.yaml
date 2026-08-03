@@ -24,3 +24,9 @@ paths:
       responses:
         "200":
           description: Summary returned
+  /ai/tolk-svar:
+    post:
+      summary: Interpret a short user reply into a structured intent
+      responses:
+        "200":
+          description: Intent returned

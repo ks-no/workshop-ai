@@ -1,4 +1,32 @@
 services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:0.5b}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - ollama pull "$$OLLAMA_MODEL"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: "no"
+
   process-builder:
     image: node:22-alpine
     working_dir: /workspace
@@ -39,7 +67,22 @@ services:
     image: node:22-alpine
     working_dir: /workspace
     command: ["node", "apps/ai-gateway/src/server.js"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:0.5b}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
     ports:
       - "8082:8082"
     volumes:
       - ./:/workspace
+
+volumes:
+  ollama-data:
+

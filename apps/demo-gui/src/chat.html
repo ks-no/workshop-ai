@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innbyggerdialog Chat</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #eef3f8; color: #17232f; }
+      main { max-width: 920px; margin: 0 auto; padding: 24px; }
+      .card { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 18px; }
+      .row { margin-bottom: 10px; }
+      .label { font-size: 13px; color: #556575; margin-bottom: 5px; }
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      button, select, textarea { font: inherit; border: 1px solid #ccdae8; border-radius: 8px; padding: 10px 12px; }
+      button { background: #1459c7; color: #fff; border: 0; cursor: pointer; }
+      button.secondary { background: #667788; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      #chat { background: #f7fafd; border: 1px solid #e3e9f0; border-radius: 10px; min-height: 460px; max-height: 620px; overflow: auto; padding: 14px; }
+      .msg { margin-bottom: 12px; display: flex; }
+      .bubble { border-radius: 12px; padding: 10px 12px; max-width: 85%; white-space: pre-wrap; line-height: 1.35; }
+      .assistant { justify-content: flex-start; }
+      .assistant .bubble { background: #e9f1ff; color: #153d80; }
+      .user { justify-content: flex-end; }
+      .user .bubble { background: #1459c7; color: #fff; }
+      .system { justify-content: center; }
+      .system .bubble { background: #eff5df; color: #3e5c1d; }
+      .error .bubble { background: #ffe6e6; color: #812222; }
+      .muted { color: #607181; font-size: 13px; }
+      .top-links { margin-bottom: 10px; }
+      .top-links a { color: #1459c7; text-decoration: none; }
+      .top-links a:hover { text-decoration: underline; }
+      textarea { width: 100%; min-height: 90px; box-sizing: border-box; }
+      #sessionInfo { margin: 8px 0 10px 0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top-links"><a href="/">Apen klassisk demo</a></div>
+      <h1>Innbyggerdialog Chat</h1>
+      <p class="muted">Chatten styrer stegene direkte. Hoyre side er fjernet for en renere dialogflyt.</p>
+
+      <section class="card">
+        <div class="two-col">
+          <div class="row">
+            <label for="person" class="label">Testbruker</label>
+            <select id="person"></select>
+          </div>
+          <div class="row">
+            <label for="prosess" class="label">Prosess</label>
+            <select id="prosess"></select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="start">Start chat</button>
+          <button id="reset" class="secondary">Nullstill chat</button>
+        </div>
+
+        <div id="sessionInfo" class="muted">Ingen aktiv prosess.</div>
+        <div id="chat" aria-live="polite"></div>
+
+        <div class="actions" id="quickActions"></div>
+
+        <div class="row" style="margin-top:12px">
+          <label for="input" class="label">Skriv melding</label>
+          <textarea id="input" placeholder="Skriv svaret ditt her... (Enter for send, Shift+Enter for ny linje)"></textarea>
+        </div>
+        <div class="actions">
+          <button id="send">Send</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const backendBase = "http://localhost:8080";
+      const aiBase = "http://localhost:8082";
+
+      const personEl = document.getElementById("person");
+      const prosessEl = document.getElementById("prosess");
+      const chatEl = document.getElementById("chat");
+      const inputEl = document.getElementById("input");
+      const quickActionsEl = document.getElementById("quickActions");
+      const sessionInfoEl = document.getElementById("sessionInfo");
+
+      let prosesser = [];
+      let oekt = null;
+      let aktivProsess = null;
+      let aktivAutoHandling = null;
+
+      function addMsg(role, text) {
+        const row = document.createElement("div");
+        row.className = `msg ${role}`;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        chatEl.appendChild(row);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      function formatNumber(value) {
+        return new Intl.NumberFormat("nb-NO").format(Number(value || 0));
+      }
+
+      function summarizeResult(steg, result) {
+        if (!result) {
+          return "";
+        }
+
+        if (steg?.type === "CONSENT_REQUEST") {
+          if (result.status === "SAMTYKKET") {
+            return "Takk. Samtykket er registrert, så da kan vi gå videre.";
+          }
+          if (result.status === "IKKE_SAMTYKKET") {
+            return "Skjønner. Jeg har registrert at du ikke vil samtykke akkurat nå.";
+          }
+          return "Samtykkevalget ditt er registrert.";
+        }
+
+        if (steg?.type === "DATA_FETCH") {
+          if (result.bruttoInntekt) {
+            return `Jeg har hentet inntektsopplysningene. Registrert bruttoinntekt for ${result.aar} er ${formatNumber(result.bruttoInntekt)} kroner.`;
+          }
+          if (result.husstandId && Array.isArray(result.medlemmer)) {
+            return `Jeg har hentet husstandsopplysninger for ${result.husstandId}. Husstanden har ${result.medlemmer.length} registrerte medlemmer.`;
+          }
+          if (Array.isArray(result)) {
+            if (result.length === 0) {
+              return "Jeg fant ingen registrerte opplysninger for dette steget.";
+            }
+            return `Jeg hentet ${result.length} registrerte oppføringer for dette steget.`;
+          }
+        }
+
+        if (steg?.type === "SUMMARY") {
+          if (result.tekst) {
+            return result.tekst;
+          }
+          return "Jeg har laget en oppsummering av opplysningene dine.";
+        }
+
+        if (steg?.type === "SUBMIT") {
+          const oppgave = result.oppgave?.oppgaveId ? " Det er også opprettet en oppgave for videre behandling." : "";
+          return `Søknaden er sendt inn.${oppgave}`.trim();
+        }
+
+        if (typeof result.tekst === "string" && result.tekst.trim()) {
+          return result.tekst.trim();
+        }
+
+        return "Steget ble gjennomført.";
+      }
+
+      function promptForStep(steg) {
+        if (!steg) {
+          return "Vi er ferdige med prosessen.";
+        }
+
+        if (steg.type === "INFO") {
+          return steg.tekst || `Hei ${valgtPerson()}, jeg hjelper deg med ${aktivProsess?.navn || "prosessen"}. Når du er klar, kan vi starte.`;
+        }
+
+        if (steg.type === "QUESTION") {
+          const intro = steg.tekst || steg.tittel;
+          return `${intro}\n\n${byggSporsmalsHjelp(steg)}`;
+        }
+
+        if (steg.type === "CONSENT_REQUEST") {
+          const dataKilder = (steg.dataKilder || []).join(", ") || "nødvendige opplysninger";
+          return `For å komme videre trenger jeg ditt samtykke til å hente ${dataKilder}. Dette bruker vi for å ${String(steg.formaal || "behandle saken").toLowerCase()}. Er det greit for deg?`;
+        }
+
+        if (steg.type === "DATA_FETCH") {
+          return "Takk. Da henter jeg de opplysningene vi trenger nå.";
+        }
+
+        if (steg.type === "SUMMARY") {
+          return "Flott. Nå lager jeg en kort oppsummering av det vi har gått gjennom.";
+        }
+
+        if (steg.type === "SUBMIT") {
+          return "Da er vi klare til å sende inn. Vil du at jeg skal sende søknaden nå?";
+        }
+
+        return steg.tittel || "Neste steg er klart.";
+      }
+
+      function updateSessionInfo() {
+        if (!oekt) {
+          sessionInfoEl.textContent = "Ingen aktiv prosess.";
+          return;
+        }
+        sessionInfoEl.textContent = `Du er i ${aktivProsess?.navn || oekt.prosessId}. Steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`;
+      }
+
+      function setQuickActions(buttons = []) {
+        quickActionsEl.innerHTML = "";
+        for (const button of buttons) {
+          const node = document.createElement("button");
+          node.textContent = button.label;
+          if (button.secondary) {
+            node.className = "secondary";
+          }
+          node.onclick = button.onClick;
+          quickActionsEl.appendChild(node);
+        }
+      }
+
+      function valgtPerson() {
+        const option = personEl.selectedOptions?.[0];
+        return option ? option.textContent : "deg";
+      }
+
+      async function req(path, options = {}) {
+        const res = await fetch(`${backendBase}${path}`, {
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.feil || `Feil ${res.status}`);
+        }
+        return data;
+      }
+
+      function erJaSvar(text) {
+        const lower = normalize(text);
+        return ["ja", "japp", "yes", "klart", "greit", "okei", "ok", "gjerne", "ja takk", "send inn", "det går fint", "det er greit"].some((match) => lower.includes(match));
+      }
+
+      function erNeiSvar(text) {
+        const lower = normalize(text);
+        return ["nei", "ikke", "stopp", "senere", "ikke nå", "nei takk"].some((match) => lower.includes(match));
+      }
+
+      function byggSporsmalsHjelp(steg) {
+        const felter = steg?.felter || [];
+        if (felter.length === 0) {
+          return "Fortell gjerne med dine egne ord.";
+        }
+        if (felter.length === 1) {
+          return `Fortell gjerne litt om dette: ${felter[0].label}.`;
+        }
+        const liste = felter.map((felt) => felt.label.toLowerCase());
+        const siste = liste.pop();
+        return `Du kan gjerne svare samlet og si litt om ${liste.join(", ")} og ${siste}.`;
+      }
+
+      function vent(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function tolkBrukersvar(text, intents, kontekst = {}) {
+        try {
+          const res = await fetch(`${aiBase}/ai/tolk-svar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tekst: text,
+              jaIntent: intents.ja,
+              neiIntent: intents.nei,
+              ukjentIntent: intents.ukjent,
+              sporingsId: oekt?.sporingsId,
+              kontekst: {
+                tjeneste: aktivProsess?.navn || "ukjent prosess",
+                steg: oekt?.aktivtSteg,
+                ...kontekst
+              }
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.feil || `Feil ${res.status}`);
+          }
+          return data;
+        } catch {
+          if (erJaSvar(text)) {
+            return { intent: intents.ja, confidence: 0.6, modell: "lokal-fallback" };
+          }
+          if (erNeiSvar(text)) {
+            return { intent: intents.nei, confidence: 0.6, modell: "lokal-fallback" };
+          }
+          return { intent: intents.ukjent, confidence: 0.1, modell: "lokal-fallback" };
+        }
+      }
+
+      async function aiExplain(promptType, context = {}) {
+        try {
+          const res = await fetch(`${aiBase}/ai/${promptType}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sporingsId: oekt?.sporingsId,
+              kontekst: {
+                tjeneste: aktivProsess?.navn || "ukjent prosess",
+                steg: oekt?.aktivtSteg,
+                ...context
+              },
+              sprak: "nb"
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.tekst) {
+            return data.tekst;
+          }
+        } catch {
+          // Fallback text below.
+        }
+        return "";
+      }
+
+      async function goNext() {
+        if (!oekt || oekt.status === "FULLFORT") return;
+        if (oekt.stegIndex >= (oekt.totaltAntallSteg - 1)) return;
+        oekt = await req(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" });
+        updateSessionInfo();
+        await renderStep();
+      }
+
+      async function runHandling(payload, successText) {
+        const steg = oekt?.aktivtSteg;
+        const result = await req(`/api/prosessoekter/${oekt.oektsId}/handling`, {
+          method: "POST",
+          body: JSON.stringify(payload || {})
+        });
+        oekt = result.oekt;
+        updateSessionInfo();
+        addMsg("system", successText);
+        const summary = summarizeResult(steg, result.resultat);
+        if (summary) {
+          addMsg("assistant", summary);
+        }
+        await goNext();
+      }
+
+      async function ensureConsentDecision(status, successText) {
+        if (!oekt?.aktivtSamtykkeId) {
+          addMsg("system", "Jeg oppretter samtykkeforespørselen nå.");
+          const opprettet = await req(`/api/prosessoekter/${oekt.oektsId}/handling`, {
+            method: "POST",
+            body: JSON.stringify({ handling: "opprett-samtykke" })
+          });
+          oekt = opprettet.oekt;
+          updateSessionInfo();
+        }
+        await runHandling({ handling: "samtykkesvar", status }, successText);
+      }
+
+      async function autoRunStep(steg, successText) {
+        if (!oekt || aktivAutoHandling === steg.id) {
+          return;
+        }
+        aktivAutoHandling = steg.id;
+        try {
+          await vent(250);
+          await runHandling({}, successText);
+        } finally {
+          aktivAutoHandling = null;
+        }
+      }
+
+      async function renderStep() {
+        setQuickActions([]);
+        const steg = oekt?.aktivtSteg;
+        if (!steg) {
+          addMsg("system", "Ingen aktivt steg.");
+          return;
+        }
+        if (oekt.status === "FULLFORT") {
+          addMsg("assistant", "Da er vi ferdige. Takk for at du gikk gjennom dette sammen med meg.");
+          return;
+        }
+
+        addMsg("assistant", promptForStep(steg));
+
+        if (steg.type === "INFO") {
+          setQuickActions([{ label: "Start", onClick: () => goNext() }]);
+          return;
+        }
+
+        if (steg.type === "QUESTION") {
+          return;
+        }
+
+        if (steg.type === "CONSENT_REQUEST") {
+          setQuickActions([
+            { label: "Ja, det går fint", onClick: () => ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.") },
+            { label: "Nei, ikke nå", onClick: () => ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden."), secondary: true }
+          ]);
+          return;
+        }
+
+        if (steg.type === "DATA_FETCH") {
+          await autoRunStep(steg, "Jeg henter opplysningene nå.");
+          return;
+        }
+
+        if (steg.type === "SUMMARY") {
+          await autoRunStep(steg, "Jeg lager oppsummeringen nå.");
+          return;
+        }
+
+        if (steg.type === "SUBMIT") {
+          setQuickActions([
+            { label: "Ja, send inn", onClick: () => runHandling({}, "Da sender jeg inn søknaden.") },
+            { label: "Ikke ennå", onClick: () => addMsg("assistant", "Helt i orden. Gi beskjed når du vil sende den inn."), secondary: true }
+          ]);
+          return;
+        }
+
+        addMsg("error", `Ukjent stegtype: ${steg.type}`);
+      }
+
+      function normalize(text) {
+        return text.toLowerCase().trim();
+      }
+
+      async function sendMessage() {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        inputEl.value = "";
+        addMsg("user", text);
+
+        if (!oekt || !oekt.aktivtSteg) {
+          addMsg("error", "Start en prosess forst.");
+          return;
+        }
+
+        const steg = oekt.aktivtSteg;
+        const lower = normalize(text);
+        try {
+          if (steg.type === "INFO") {
+            if (lower.includes("fortsett") || lower.includes("neste") || lower.includes("start") || lower.includes("klar") || erJaSvar(text)) {
+              await goNext();
+            } else {
+              addMsg("assistant", "Bare si fra når du er klar, så går vi videre.");
+            }
+            return;
+          }
+
+          if (steg.type === "QUESTION") {
+            oekt = await req(`/api/prosessoekter/${oekt.oektsId}/svar`, {
+              method: "POST",
+              body: JSON.stringify({ stegId: steg.id, svar: text })
+            });
+            addMsg("assistant", "Takk, det har jeg notert.");
+            updateSessionInfo();
+            await goNext();
+            return;
+          }
+
+          if (steg.type === "CONSENT_REQUEST") {
+            const tolkning = await tolkBrukersvar(text, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
+            if (tolkning.intent === "samtykke-ja") {
+              await ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.");
+              return;
+            }
+            if (tolkning.intent === "samtykke-nei") {
+              await ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden.");
+              return;
+            }
+            addMsg("assistant", "Du kan svare helt naturlig, for eksempel 'ja, det går fint' eller 'nei, ikke nå'.");
+            return;
+          }
+
+          if (steg.type === "DATA_FETCH") {
+            addMsg("assistant", "Jeg holder allerede på å hente opplysningene.");
+            return;
+          }
+
+          if (steg.type === "SUMMARY") {
+            addMsg("assistant", "Jeg holder på med oppsummeringen nå.");
+            return;
+          }
+
+          if (steg.type === "SUBMIT") {
+            const tolkning = await tolkBrukersvar(text, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
+            if (tolkning.intent === "send-ja") {
+              await runHandling({}, "Da sender jeg inn søknaden.");
+              return;
+            }
+            if (tolkning.intent === "send-nei") {
+              addMsg("assistant", "Helt i orden. Vi kan vente med innsendingen til du er klar.");
+              return;
+            }
+            addMsg("assistant", "Du kan for eksempel svare 'ja, send inn' eller 'nei, ikke ennå'.");
+            return;
+          }
+
+          addMsg("error", `Ukjent stegtype: ${steg.type}`);
+        } catch (error) {
+          addMsg("error", `Feil: ${error.message}`);
+        }
+      }
+
+      async function startChat() {
+        try {
+          const personId = personEl.value;
+          const prosessId = prosessEl.value;
+          aktivProsess = prosesser.find((p) => p.id === prosessId) || null;
+          oekt = await req("/api/prosessoekter", {
+            method: "POST",
+            body: JSON.stringify({ personId, prosessId, sporingsId: `flyt-${Date.now()}` })
+          });
+          chatEl.innerHTML = "";
+          updateSessionInfo();
+          addMsg("assistant", `Hei ${valgtPerson()}! Jeg kan hjelpe deg med ${aktivProsess?.navn || prosessId}.`);
+          await renderStep();
+        } catch (error) {
+          addMsg("error", `Kunne ikke starte chat: ${error.message}`);
+        }
+      }
+
+      async function loadOptions() {
+        const personer = await req("/api/personer");
+        prosesser = await req("/api/prosesser");
+        personEl.innerHTML = personer.map((p) => `<option value="${p.personId}">${p.fornavn} ${p.etternavn} (${p.kommune})</option>`).join("");
+        prosessEl.innerHTML = prosesser.map((p) => `<option value="${p.id}">${p.navn}</option>`).join("");
+      }
+
+      document.getElementById("start").onclick = () => startChat();
+      document.getElementById("send").onclick = () => sendMessage();
+      document.getElementById("reset").onclick = () => {
+        oekt = null;
+        aktivProsess = null;
+        chatEl.innerHTML = "";
+        setQuickActions([]);
+        updateSessionInfo();
+        addMsg("system", "Chat nullstilt.");
+      };
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      loadOptions()
+        .then(() => addMsg("assistant", "Velg en person og en prosess, så kan vi starte når du vil."))
+        .catch((error) => addMsg("error", `Kunne ikke laste grunnlag: ${error.message}`));
+    </script>
+  </body>
+</html>
+
+
+
+
+
+
+
+

@@ -6,6 +6,12 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = 3001;
 
+async function sendHtml(response, filename) {
+  const filsti = path.join(__dirname, filename);
+  const innhold = await readFile(filsti, "utf8");
+  send(response, 200, innhold);
+}
+
 function send(response, statusCode, body, contentType = "text/html; charset=utf-8") {
   response.writeHead(statusCode, {
     "Content-Type": contentType,
@@ -20,9 +26,17 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const filsti = path.join(__dirname, "index.html");
-  const innhold = await readFile(filsti, "utf8");
-  send(response, 200, innhold);
+  if (request.url === "/" || request.url === "/index.html") {
+    await sendHtml(response, "index.html");
+    return;
+  }
+
+  if (request.url === "/chat" || request.url === "/chat.html") {
+    await sendHtml(response, "chat.html");
+    return;
+  }
+
+  send(response, 404, "Fant ikke side.", "text/plain; charset=utf-8");
 });
 
 server.listen(port, () => {

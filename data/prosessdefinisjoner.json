@@ -160,5 +160,69 @@
       }
     ],
     "syntetisk": true
+  },
+  {
+    "id": "fritidskort-stotte",
+    "navn": "Soknad om fritidskort-stotte",
+    "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-stotte.",
+    "versjon": "0.1.0",
+    "steg": [
+      {
+        "id": "intro",
+        "type": "INFO",
+        "tittel": "Velkommen",
+        "tekst": "Vi hjelper deg med en kort chatbasert soknad om fritidskort-stotte."
+      },
+      {
+        "id": "behov",
+        "type": "QUESTION",
+        "tittel": "Hvem skal bruke fritidskortet?",
+        "tekst": "Svar kort med navn eller relasjon, og hva stotten skal brukes til.",
+        "felter": [
+          {
+            "id": "gjelderFor",
+            "label": "Hvem gjelder soknaden for?",
+            "type": "tekst",
+            "placeholder": "For eksempel barnet mitt i 5. klasse",
+            "obligatorisk": true
+          },
+          {
+            "id": "aktivitet",
+            "label": "Hvilken aktivitet onskes stotte til?",
+            "type": "tekst",
+            "placeholder": "For eksempel fotball, korps eller dans",
+            "obligatorisk": true
+          }
+        ]
+      },
+      {
+        "id": "samtykke-inntekt",
+        "type": "CONSENT_REQUEST",
+        "tittel": "Kan vi hente inntektsopplysninger?",
+        "formaal": "Vurdere rett til fritidskort-stotte",
+        "dataKilder": ["inntekt"]
+      },
+      {
+        "id": "hent-inntekt",
+        "type": "DATA_FETCH",
+        "tittel": "Henter inntektsopplysninger",
+        "kreverSamtykke": "inntekt",
+        "api": {
+          "method": "GET",
+          "url": "/api/personer/{personId}/inntekt"
+        }
+      },
+      {
+        "id": "oppsummering",
+        "type": "SUMMARY",
+        "tittel": "Oppsummering"
+      },
+      {
+        "id": "send-inn",
+        "type": "SUBMIT",
+        "tittel": "Send inn"
+      }
+    ],
+    "syntetisk": true
   }
 ]
