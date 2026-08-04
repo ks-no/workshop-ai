@@ -5,20 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Prosessbygger</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #16202a; }
-      header, main { max-width: 1280px; margin: 0 auto; padding: 24px; }
-      .kort { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
-      .grid { display: grid; grid-template-columns: 280px 1fr 1fr; gap: 20px; align-items: start; }
-      button { border: 0; background: #1459c7; color: white; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+      body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #16202a; line-height: 1.45; }
+      header, main { max-width: 1360px; margin: 0 auto; padding: 28px; }
+      header { padding-bottom: 12px; }
+      h1, h2, h3, h4 { margin-top: 0; }
+      h2 { margin-bottom: 16px; }
+      .kort { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
+      .grid { display: grid; grid-template-columns: minmax(240px, 300px) minmax(360px, 1fr) minmax(320px, 1fr); gap: 28px; align-items: start; }
+      button { border: 0; background: #1459c7; color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
       button.sekundar { background: #6a7786; }
-      ul { padding-left: 18px; }
+      ul { padding-left: 20px; margin: 0; }
+      li + li { margin-top: 8px; }
       pre, textarea { white-space: pre-wrap; background: #0e1726; color: #d9e3f0; padding: 16px; border-radius: 8px; overflow: auto; }
-      textarea, input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccd6e0; border-radius: 8px; margin-bottom: 12px; font: inherit; background: white; color: #16202a; }
+      textarea, input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccd6e0; border-radius: 8px; margin-bottom: 14px; font: inherit; background: white; color: #16202a; }
       textarea.mork { background: #0e1726; color: #d9e3f0; min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
       .liten { color: #506070; }
-      .rad { margin-bottom: 12px; }
-      .handlinger { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-      .status { padding: 10px 12px; background: #eef4ff; border-radius: 8px; color: #1f3f78; }
+      .rad { margin-bottom: 14px; }
+      .handlinger { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+      .status { padding: 12px 14px; background: #eef4ff; border-radius: 8px; color: #1f3f78; }
+      @media (max-width: 1200px) {
+        .grid { grid-template-columns: minmax(280px, 320px) 1fr; }
+      }
+      @media (max-width: 900px) {
+        header, main { padding: 20px; }
+        .grid { grid-template-columns: 1fr; gap: 20px; }
+        .kort { padding: 20px; }
+      }
     </style>
   </head>
   <body>
