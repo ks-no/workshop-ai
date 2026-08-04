@@ -9,11 +9,14 @@
     "start:backend": "node apps/sandbox-backend/src/server.js",
     "start:fiks": "node apps/fiks-simulator/src/server.js",
     "start:ai": "node apps/ai-gateway/src/server.js",
+    "start:mcp": "node apps/mcp-services/src/server.js",
+    "start:agent": "node apps/process-agent/src/server.js",
     "start:demo": "node apps/demo-gui/src/server.js",
     "start:prosessbygger": "node apps/process-builder/src/server.js",
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
+    "test:agent": "node scripts/test-agent-flow.js",
     "lint": "echo \"Ingen linter konfigurert ennå\"",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   }

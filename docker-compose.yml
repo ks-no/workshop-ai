@@ -11,18 +11,41 @@ services:
       timeout: 5s
       retries: 12
 
-  ollama-pull:
+  ollama-pull-selected:
     image: ollama/ollama:latest
+    profiles: ["pull"]
     depends_on:
       ollama:
         condition: service_healthy
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:0.5b}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
     entrypoint:
       - /bin/sh
       - -c
       - ollama pull "$$OLLAMA_MODEL"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: "no"
+
+  ollama-pull-all:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    profiles: ["models"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODELS=qwen2.5:0.5b qwen2.5:7b qwen2.5:14b llama3.1:8b mistral-nemo
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        for model in $$OLLAMA_MODELS; do
+          echo "Pulling $$model"
+          ollama pull "$$model"
+        done
     volumes:
       - ollama-data:/root/.ollama
     restart: "no"
@@ -70,16 +93,42 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-      ollama-pull:
-        condition: service_completed_successfully
     environment:
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:0.5b}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
     ports:
       - "8082:8082"
+    volumes:
+      - ./:/workspace
+
+  mcp-services:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/mcp-services/src/server.js"]
+    depends_on:
+      - sandbox-backend
+      - ai-gateway
+    environment:
+      - BACKEND_BASE_URL=http://sandbox-backend:8080
+      - AI_BASE_URL=http://ai-gateway:8082
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./:/workspace
+
+  process-agent:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: ["node", "apps/process-agent/src/server.js"]
+    depends_on:
+      - mcp-services
+    environment:
+      - MCP_BASE_URL=http://mcp-services:8083
+    ports:
+      - "8084:8084"
     volumes:
       - ./:/workspace
 

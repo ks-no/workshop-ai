@@ -54,7 +54,55 @@ Bygg og start alle tjenester:
 docker compose up --build
 ```
 
-Dette starter ogs en lokal `ollama`-tjeneste i Docker Compose og puller en liten standardmodell for `ai-gateway`.
+For GPU-stotte i Docker (NVIDIA), se:
+
+- https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
+Nar GPU-stotte er aktivert lokalt kan du starte Ollama med GPU ved a bruke override-filen:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+```
+
+Verifiser at Docker faktisk har GPU-tilgang:
+
+```bash
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+Hvis denne kommandoen feiler, fullfor NVIDIA Container Toolkit-oppsettet i lenken over for du starter med GPU-override.
+
+Dette starter ogs en lokal `ollama`-tjeneste i Docker Compose.
+
+### Velg modell lokalt (Ollama)
+
+Standardmodell er `qwen2.5:7b`, men modeller pulles kun nar du ber om det.
+
+Pull kun modellen du vil bruke:
+
+```bash
+OLLAMA_MODEL=qwen2.5:7b docker compose --profile pull up ollama-pull-selected
+```
+
+Kjor med en bestemt modell:
+
+```bash
+OLLAMA_MODEL=qwen2.5:14b docker compose up -d --force-recreate ai-gateway mcp-services process-agent
+```
+
+Pull alle anbefalte modeller en gang:
+
+```bash
+docker compose --profile models up ollama-pull-all
+```
+
+Anbefalte modeller:
+
+- `qwen2.5:0.5b` (raskest)
+- `qwen2.5:7b` (balansert)
+- `qwen2.5:14b` (best kvalitet av Qwen-variantene)
+- `llama3.1:8b` (god generell kvalitet)
+- `mistral-nemo` (god alternativ kvalitet)
 
 ## Hvordan stoppe den
 
@@ -72,6 +120,8 @@ docker compose down
 | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
 | `ai-gateway` | `8082` | Mock av AI-støtte og forklaringer |
 | `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
+| `mcp-services` | `8083` | MCP-style verktøy over backend- og AI-tjenester |
+| `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
 
 Planlagte URL-er når tjenestene er implementert:
 
@@ -81,9 +131,16 @@ Planlagte URL-er når tjenestene er implementert:
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
 - [http://localhost:8082/health](http://localhost:8082/health)
+- [http://localhost:8083/health](http://localhost:8083/health)
+- [http://localhost:8084/health](http://localhost:8084/health)
 - [http://localhost:8080/docs](http://localhost:8080/docs)
 - [http://localhost:8081/docs](http://localhost:8081/docs)
 - [http://localhost:8082/docs](http://localhost:8082/docs)
+
+Nye API-er:
+
+- `GET /mcp/tools` pa `http://localhost:8083`
+- `POST /agent/sessions` pa `http://localhost:8084`
 
 ## Demo-bruker
 
@@ -149,6 +206,26 @@ curl -X POST http://localhost:8081/fiks/samtykke \
     "formaal": "Vurdere rett til redusert foreldrebetaling",
     "dataKilder": ["inntekt"]
   }'
+```
+
+Opprett agentsesjon (generisk prosessguide):
+
+```bash
+curl -s -X POST http://localhost:8084/agent/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"personId":"person-001"}'
+```
+
+Liste tilgjengelige MCP-tools:
+
+```bash
+curl -s http://localhost:8083/mcp/tools
+```
+
+Kjor en enkel end-to-end smoke test mot agenten:
+
+```bash
+npx pnpm test:agent
 ```
 
 ## Hvor syntetiske data ligger

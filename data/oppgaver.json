@@ -198,5 +198,45 @@
     "opprettet": "2026-08-03T10:58:42.927Z",
     "sporingsId": "flyt-1785754710492-t6k0m6",
     "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785755633663-lfxfni",
+    "personId": "person-001",
+    "soknadId": "soknad-1785755633659-rght8p",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T11:13:53.663Z",
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785758702008-4o9nqq",
+    "personId": "person-001",
+    "soknadId": "soknad-1785758701999-vqial9",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T12:05:02.008Z",
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785758982112-qz6ylh",
+    "personId": "person-001",
+    "soknadId": "soknad-1785758982108-a83z2r",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T12:09:42.112Z",
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785763366858-0lnh4m",
+    "personId": "person-001",
+    "soknadId": "soknad-1785763366849-422uon",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-03T13:22:46.858Z",
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "syntetisk": true
   }
 ]

@@ -178,5 +178,41 @@
     "opprettet": "2026-08-03T10:58:42.924Z",
     "sporingsId": "flyt-1785754710492-t6k0m6",
     "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785755633659-rght8p",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T11:13:53.659Z",
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785758701999-vqial9",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T12:05:01.999Z",
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785758982108-a83z2r",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T12:09:42.108Z",
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785763366849-422uon",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-03T13:22:46.849Z",
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "syntetisk": true
   }
 ]

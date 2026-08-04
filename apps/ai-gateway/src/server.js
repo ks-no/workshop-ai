@@ -8,7 +8,7 @@ const dataMappe = path.resolve(__dirname, "../../../data");
 const port = 8082;
 const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:3b";
+const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
 

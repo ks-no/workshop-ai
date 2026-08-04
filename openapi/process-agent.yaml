@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Process Agent API
+  version: 0.1.0
+  description: Generic process guide agent powered by MCP tools.
+servers:
+  - url: http://localhost:8084
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /agent/sessions:
+    post:
+      summary: Create an agent session
+      responses:
+        "201":
+          description: Session created
+  /agent/sessions/{sessionId}:
+    get:
+      summary: Get session status
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session state
+  /agent/sessions/{sessionId}/messages:
+    post:
+      summary: Send message to agent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Agent replies
+

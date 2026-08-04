@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innbyggerdialog – AI-agent</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; margin: 0; background: #eef3f8; color: #17232f; }
+      main { max-width: 760px; margin: 0 auto; padding: 24px; }
+      .card { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 20px; }
+      .row { margin-bottom: 12px; }
+      label { font-size: 13px; color: #556575; display: block; margin-bottom: 5px; }
+      button, select, textarea { font: inherit; border: 1px solid #ccdae8; border-radius: 8px; padding: 10px 14px; }
+      button { background: #1459c7; color: #fff; border: 0; cursor: pointer; }
+      button.secondary { background: #667788; }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      #chat {
+        background: #f7fafd;
+        border: 1px solid #dde6f0;
+        border-radius: 10px;
+        min-height: 480px;
+        max-height: 640px;
+        overflow-y: auto;
+        padding: 16px;
+        margin: 14px 0;
+      }
+      .msg { display: flex; margin-bottom: 14px; }
+      .bubble { border-radius: 14px; padding: 11px 14px; max-width: 88%; white-space: pre-wrap; line-height: 1.4; font-size: 15px; }
+      .assistant { justify-content: flex-start; }
+      .assistant .bubble { background: #e9f1ff; color: #153d80; }
+      .user { justify-content: flex-end; }
+      .user .bubble { background: #1459c7; color: #fff; }
+      .system { justify-content: center; }
+      .system .bubble { background: #eef5df; color: #3e5c1a; font-size: 13px; }
+      .error .bubble { background: #ffe5e5; color: #7d1f1f; }
+      textarea { width: 100%; min-height: 80px; resize: vertical; }
+      .top-links { margin-bottom: 10px; font-size: 14px; }
+      .top-links a { color: #1459c7; text-decoration: none; margin-right: 14px; }
+      .top-links a:hover { text-decoration: underline; }
+      #sessionInfo { font-size: 13px; color: #607181; margin: 6px 0 10px 0; }
+      .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccd6e8; border-top-color: #1459c7; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top-links">
+        <a href="/">Klassisk demo</a>
+        <a href="/chat">Chat-demo</a>
+      </div>
+      <h1>Innbyggerdialog – AI-agent</h1>
+      <p style="color:#607181;font-size:14px">Agenten velger og styrer prosessen for deg. Du trenger bare å svare naturlig.</p>
+
+      <section class="card">
+        <div class="row">
+          <label for="person">Testbruker</label>
+          <select id="person" style="width:100%"></select>
+        </div>
+        <div class="actions">
+          <button id="start">Start med AI-agent</button>
+          <button id="reset" class="secondary">Nullstill</button>
+        </div>
+
+        <div id="sessionInfo">Ingen aktiv agent-sesjon.</div>
+        <div id="chat" aria-live="polite"></div>
+
+        <div class="row">
+          <label for="input">Din melding</label>
+          <textarea id="input" placeholder="Skriv svaret ditt her... (Enter = send, Shift+Enter = ny linje)"></textarea>
+        </div>
+        <div class="actions">
+          <button id="send">Send</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const agentBase  = "http://localhost:8084";
+      const backendBase = "http://localhost:8080";
+
+      const personEl      = document.getElementById("person");
+      const chatEl        = document.getElementById("chat");
+      const inputEl       = document.getElementById("input");
+      const sessionInfoEl = document.getElementById("sessionInfo");
+
+      let sessionId = null;
+
+      // ── helpers ──────────────────────────────────────────────────────────────
+      function addMsg(role, text) {
+        const row = document.createElement("div");
+        row.className = `msg ${role}`;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        chatEl.appendChild(row);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      function addTyping() {
+        const row = document.createElement("div");
+        row.className = "msg assistant";
+        row.id = "typing";
+        row.innerHTML = '<div class="bubble"><span class="spinner"></span>Tenker…</div>';
+        chatEl.appendChild(row);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      function removeTyping() {
+        document.getElementById("typing")?.remove();
+      }
+
+      function setSending(sending) {
+        document.getElementById("send").disabled = sending;
+        document.getElementById("start").disabled = sending;
+      }
+
+      async function agentReq(path, options = {}) {
+        const res = await fetch(`${agentBase}${path}`, {
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.feil || data.detalj || `Feil ${res.status}`);
+        }
+        return data;
+      }
+
+      function updateSessionInfo(data) {
+        if (!data || !sessionId) {
+          sessionInfoEl.textContent = "Ingen aktiv agent-sesjon.";
+          return;
+        }
+        const proc = data.selectedProcess?.navn || "–";
+        const state = data.awaiting || "fullfort";
+        sessionInfoEl.textContent = `Sesjon: ${sessionId} | Prosess: ${proc} | Venter: ${state}`;
+      }
+
+      // ── init ─────────────────────────────────────────────────────────────────
+      async function loadPeople() {
+        try {
+          const res = await fetch(`${backendBase}/api/personer`);
+          const people = await res.json();
+          personEl.innerHTML = people
+            .map((p) => `<option value="${p.personId}">${p.fornavn} ${p.etternavn} (${p.kommune})</option>`)
+            .join("");
+        } catch {
+          addMsg("error", "Kunne ikke laste testbrukere fra backend.");
+        }
+      }
+
+      // ── start session ────────────────────────────────────────────────────────
+      async function startSession() {
+        setSending(true);
+        chatEl.innerHTML = "";
+        sessionId = null;
+        updateSessionInfo(null);
+
+        try {
+          addTyping();
+          const created = await agentReq("/agent/sessions", {
+            method: "POST",
+            body: JSON.stringify({ personId: personEl.value })
+          });
+          removeTyping();
+
+          sessionId = created.sessionId;
+          updateSessionInfo(created);
+          addMsg("system", `Sesjon startet for ${personEl.options[personEl.selectedIndex]?.text || personEl.value}`);
+          addMsg("assistant", created.message);
+        } catch (error) {
+          removeTyping();
+          addMsg("error", `Kunne ikke starte sesjon: ${error.message}`);
+        } finally {
+          setSending(false);
+          inputEl.focus();
+        }
+      }
+
+      // ── send message ─────────────────────────────────────────────────────────
+      async function sendMessage() {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        if (!sessionId) {
+          addMsg("error", "Start en sesjon først.");
+          return;
+        }
+
+        inputEl.value = "";
+        addMsg("user", text);
+        setSending(true);
+        addTyping();
+
+        try {
+          const data = await agentReq(`/agent/sessions/${sessionId}/messages`, {
+            method: "POST",
+            body: JSON.stringify({ message: text })
+          });
+
+          removeTyping();
+          updateSessionInfo(data);
+
+          for (const reply of data.replies || []) {
+            addMsg("assistant", reply);
+          }
+
+          if (!data.awaiting) {
+            addMsg("system", "Prosessen er fullført.");
+          }
+        } catch (error) {
+          removeTyping();
+          addMsg("error", `Feil: ${error.message}`);
+        } finally {
+          setSending(false);
+          inputEl.focus();
+        }
+      }
+
+      // ── event wiring ─────────────────────────────────────────────────────────
+      document.getElementById("start").onclick = () => startSession();
+      document.getElementById("send").onclick  = () => sendMessage();
+      document.getElementById("reset").onclick = () => {
+        sessionId = null;
+        chatEl.innerHTML = "";
+        updateSessionInfo(null);
+        addMsg("system", "Nullstilt. Velg bruker og start på nytt.");
+      };
+
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // ── bootstrap ────────────────────────────────────────────────────────────
+      loadPeople().then(() => {
+        addMsg("assistant", "Velg en testbruker og trykk «Start med AI-agent» for å begynne.");
+      });
+    </script>
+  </body>
+</html>
+

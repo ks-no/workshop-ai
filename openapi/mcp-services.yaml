@@ -1,0 +1,27 @@
+openapi: 3.1.0
+info:
+  title: MCP Services API
+  version: 0.1.0
+  description: MCP-style HTTP tool endpoints for process orchestration.
+servers:
+  - url: http://localhost:8083
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /mcp/tools:
+    get:
+      summary: List available tools
+      responses:
+        "200":
+          description: Tool list
+  /mcp/tools/invoke:
+    post:
+      summary: Invoke a named tool
+      responses:
+        "200":
+          description: Tool response
+

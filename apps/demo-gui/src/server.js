@@ -36,6 +36,11 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.url === "/agent" || request.url === "/agent.html") {
+    await sendHtml(response, "agent.html");
+    return;
+  }
+
   send(response, 404, "Fant ikke side.", "text/plain; charset=utf-8");
 });
 

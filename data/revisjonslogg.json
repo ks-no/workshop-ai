@@ -1338,5 +1338,667 @@
       "type": "system",
       "id": "ai-gateway"
     }
+  },
+  {
+    "hendelseId": "revisjon-1785755625240-pjccee",
+    "tidspunkt": "2026-08-03T11:13:45.240Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "PROSESSOEKT_OPPRETTET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755625271-sbiuy2",
+    "tidspunkt": "2026-08-03T11:13:45.271Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "STEG_SVAR_LAGRET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755625293-6sy1of",
+    "tidspunkt": "2026-08-03T11:13:45.293Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755625308-uxmel9",
+    "tidspunkt": "2026-08-03T11:13:45.308Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "SAMTYKKE_OPPRETTET",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755625315-s2jw8c",
+    "tidspunkt": "2026-08-03T11:13:45.315Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "SAMTYKKE_SVART",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    },
+    "grunnlag": {
+      "status": "SAMTYKKET",
+      "id": "samtykke-1785755625307-gywrdt"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755625331-ogigmt",
+    "tidspunkt": "2026-08-03T11:13:45.331Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "DATA_LES",
+    "ressurs": "inntekt",
+    "formaal": "Vurdere rett til dialogrelatert tjeneste",
+    "grunnlag": {
+      "type": "samtykke",
+      "id": "samtykke-1785744964777-nsruev",
+      "status": "SAMTYKKET"
+    },
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755633627-54godd",
+    "tidspunkt": "2026-08-03T11:13:53.627Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "KI_KALL",
+    "ressurs": "oppsummering",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755633652-k5xdtv",
+    "tidspunkt": "2026-08-03T11:13:53.652Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755633660-5if0hm",
+    "tidspunkt": "2026-08-03T11:13:53.660Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "SOKNAD_SENDT_INN",
+    "ressurs": "soknad",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785755633664-fzw0tv",
+    "tidspunkt": "2026-08-03T11:13:53.664Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785755625232-8tul93",
+    "handling": "OPPGAVE_OPPRETTET",
+    "ressurs": "oppgave",
+    "aktor": {
+      "type": "system",
+      "id": "fiks-simulator"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758696018-2hsidb",
+    "tidspunkt": "2026-08-03T12:04:56.018Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "PROSESSOEKT_OPPRETTET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758696056-x4hk5x",
+    "tidspunkt": "2026-08-03T12:04:56.056Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "DATA_LES",
+    "ressurs": "husstand",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758697852-j9toly",
+    "tidspunkt": "2026-08-03T12:04:57.852Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758697870-y9353o",
+    "tidspunkt": "2026-08-03T12:04:57.870Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "SAMTYKKE_OPPRETTET",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758697878-7c6odt",
+    "tidspunkt": "2026-08-03T12:04:57.878Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "SAMTYKKE_SVART",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    },
+    "grunnlag": {
+      "status": "IKKE_SAMTYKKET",
+      "id": "samtykke-1785758697870-tq5u4r"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758697895-t4yij8",
+    "tidspunkt": "2026-08-03T12:04:57.895Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "DATA_LES",
+    "ressurs": "inntekt",
+    "formaal": "Vurdere rett til dialogrelatert tjeneste",
+    "grunnlag": {
+      "type": "samtykke",
+      "id": "samtykke-1785744964777-nsruev",
+      "status": "SAMTYKKET"
+    },
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758701959-e5e2v9",
+    "tidspunkt": "2026-08-03T12:05:01.959Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "KI_KALL",
+    "ressurs": "oppsummering",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758701989-3vmnw4",
+    "tidspunkt": "2026-08-03T12:05:01.989Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758702001-ln4n0n",
+    "tidspunkt": "2026-08-03T12:05:02.001Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "SOKNAD_SENDT_INN",
+    "ressurs": "soknad",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758702009-jablmr",
+    "tidspunkt": "2026-08-03T12:05:02.009Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758696011-duyzpl",
+    "handling": "OPPGAVE_OPPRETTET",
+    "ressurs": "oppgave",
+    "aktor": {
+      "type": "system",
+      "id": "fiks-simulator"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758956140-6b607f",
+    "tidspunkt": "2026-08-03T12:09:16.140Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758956138-etnbp5",
+    "handling": "KI_KALL",
+    "ressurs": "dialogforslag",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758956150-renelt",
+    "tidspunkt": "2026-08-03T12:09:16.150Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758956149-3w1rdx",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963306-nsttgu",
+    "tidspunkt": "2026-08-03T12:09:23.306Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "PROSESSOEKT_OPPRETTET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963335-3neweq",
+    "tidspunkt": "2026-08-03T12:09:23.335Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "STEG_SVAR_LAGRET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963357-57686z",
+    "tidspunkt": "2026-08-03T12:09:23.357Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963369-4qx30y",
+    "tidspunkt": "2026-08-03T12:09:23.369Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "SAMTYKKE_OPPRETTET",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963378-hxa10w",
+    "tidspunkt": "2026-08-03T12:09:23.378Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "SAMTYKKE_SVART",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    },
+    "grunnlag": {
+      "status": "SAMTYKKET",
+      "id": "samtykke-1785758963369-cs2l38"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758963394-oqu0dq",
+    "tidspunkt": "2026-08-03T12:09:23.394Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "DATA_LES",
+    "ressurs": "inntekt",
+    "formaal": "Vurdere rett til dialogrelatert tjeneste",
+    "grunnlag": {
+      "type": "samtykke",
+      "id": "samtykke-1785744964777-nsruev",
+      "status": "SAMTYKKET"
+    },
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758982077-70jk49",
+    "tidspunkt": "2026-08-03T12:09:42.077Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "KI_KALL",
+    "ressurs": "oppsummering",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758982102-vefhc8",
+    "tidspunkt": "2026-08-03T12:09:42.102Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758982109-qpsrrd",
+    "tidspunkt": "2026-08-03T12:09:42.109Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "SOKNAD_SENDT_INN",
+    "ressurs": "soknad",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785758982113-lwvveo",
+    "tidspunkt": "2026-08-03T12:09:42.113Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785758963298-9cetu7",
+    "handling": "OPPGAVE_OPPRETTET",
+    "ressurs": "oppgave",
+    "aktor": {
+      "type": "system",
+      "id": "fiks-simulator"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785759247548-a9daar",
+    "tidspunkt": "2026-08-03T12:14:07.548Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785759247546-rhjsm6",
+    "handling": "KI_KALL",
+    "ressurs": "dialogforslag",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762690004-ufdo4j",
+    "tidspunkt": "2026-08-03T13:11:30.004Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "PROSESSOEKT_OPPRETTET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762690031-xrw93l",
+    "tidspunkt": "2026-08-03T13:11:30.031Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "DATA_LES",
+    "ressurs": "husstand",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762697731-k77mri",
+    "tidspunkt": "2026-08-03T13:11:37.731Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762697758-vzibpn",
+    "tidspunkt": "2026-08-03T13:11:37.758Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "SAMTYKKE_OPPRETTET",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762697770-1hqb55",
+    "tidspunkt": "2026-08-03T13:11:37.770Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "SAMTYKKE_SVART",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    },
+    "grunnlag": {
+      "status": "SAMTYKKET",
+      "id": "samtykke-1785762697756-xdcvxn"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762697785-febpiy",
+    "tidspunkt": "2026-08-03T13:11:37.785Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "DATA_LES",
+    "ressurs": "inntekt",
+    "formaal": "Vurdere rett til dialogrelatert tjeneste",
+    "grunnlag": {
+      "type": "samtykke",
+      "id": "samtykke-1785744964777-nsruev",
+      "status": "SAMTYKKET"
+    },
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762724443-igkrzc",
+    "tidspunkt": "2026-08-03T13:12:04.443Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "KI_KALL",
+    "ressurs": "oppsummering",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762750797-ijf73n",
+    "tidspunkt": "2026-08-03T13:12:30.797Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762689995-6u3294",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762846134-a22q41",
+    "tidspunkt": "2026-08-03T13:14:06.134Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "PROSESSOEKT_OPPRETTET",
+    "ressurs": "prosessoekt",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762846155-qnfryf",
+    "tidspunkt": "2026-08-03T13:14:06.155Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "DATA_LES",
+    "ressurs": "husstand",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762849245-oh3bk0",
+    "tidspunkt": "2026-08-03T13:14:09.245Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762849259-76p0rg",
+    "tidspunkt": "2026-08-03T13:14:09.259Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "SAMTYKKE_OPPRETTET",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762849264-bj5bhg",
+    "tidspunkt": "2026-08-03T13:14:09.264Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "SAMTYKKE_SVART",
+    "ressurs": "samtykke",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    },
+    "grunnlag": {
+      "status": "SAMTYKKET",
+      "id": "samtykke-1785762849258-50vyyt"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762849278-ewbl2l",
+    "tidspunkt": "2026-08-03T13:14:09.278Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "DATA_LES",
+    "ressurs": "inntekt",
+    "formaal": "Vurdere rett til dialogrelatert tjeneste",
+    "grunnlag": {
+      "type": "samtykke",
+      "id": "samtykke-1785744964777-nsruev",
+      "status": "SAMTYKKET"
+    },
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785762880799-nza0wi",
+    "tidspunkt": "2026-08-03T13:14:40.799Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "KI_KALL",
+    "ressurs": "oppsummering",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785763366845-a43ggm",
+    "tidspunkt": "2026-08-03T13:22:46.845Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "KI_TOLKNING",
+    "ressurs": "tolk-svar",
+    "aktor": {
+      "type": "system",
+      "id": "ai-gateway"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785763366850-91iz9v",
+    "tidspunkt": "2026-08-03T13:22:46.850Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "SOKNAD_SENDT_INN",
+    "ressurs": "soknad",
+    "aktor": {
+      "type": "testbruker",
+      "id": "person-001"
+    }
+  },
+  {
+    "hendelseId": "revisjon-1785763366859-vtbg31",
+    "tidspunkt": "2026-08-03T13:22:46.859Z",
+    "syntetisk": true,
+    "sporingsId": "flyt-1785762846127-f2j7ze",
+    "handling": "OPPGAVE_OPPRETTET",
+    "ressurs": "oppgave",
+    "aktor": {
+      "type": "system",
+      "id": "fiks-simulator"
+    }
   }
 ]
