@@ -152,15 +152,24 @@ async function ai(path, payload) {
 
 async function invokeTool(name, args = {}) {
   if (name === "list_processes") {
-    const prosesser = await api("/api/prosesser");
+    const prosessdata = await api("/api/prosesser");
+    const prosesser = Array.isArray(prosessdata)
+      ? prosessdata
+      : (Array.isArray(prosessdata?.prosesser) ? prosessdata.prosesser : []);
+    const maler = Array.isArray(prosessdata?.maler) ? prosessdata.maler : [];
+
+    const toProsessInfo = (p) => ({
+      id: p.id,
+      navn: p.navn,
+      beskrivelse: p.beskrivelse,
+      antallSteg: p.steg?.length || 0
+    });
+
     return {
       count: prosesser.length,
-      prosesser: prosesser.map((p) => ({
-        id: p.id,
-        navn: p.navn,
-        beskrivelse: p.beskrivelse,
-        antallSteg: p.steg?.length || 0
-      }))
+      prosesser: prosesser.map(toProsessInfo),
+      antallMaler: maler.length,
+      maler: maler.map(toProsessInfo)
     };
   }
 

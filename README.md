@@ -261,6 +261,7 @@ Syntetiske data ligger under `data/`:
 Dette repoet er lagt opp for flere team. Se:
 
 - `CONTRIBUTING.md`
+- `openapi/README.md`
 - `docs/architecture.md`
 - `docs/api-oversikt.md`
 - `docs/api-foerst-integrasjoner.md`

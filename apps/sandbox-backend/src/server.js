@@ -47,6 +47,57 @@ async function lesRequestBody(request) {
   return deler.length === 0 ? {} : JSON.parse(Buffer.concat(deler).toString("utf8"));
 }
 
+function normaliserProsess(prosess) {
+  return {
+    ...prosess,
+    steg: Array.isArray(prosess?.steg) ? prosess.steg : [],
+    redigering: {
+      status: "publisert",
+      ...prosess?.redigering
+    }
+  };
+}
+
+function parseProsessDefinisjoner(data) {
+  if (Array.isArray(data)) {
+    return {
+      formatVersion: "0.1.0",
+      prosesser: data.map(normaliserProsess),
+      maler: [],
+      meta: {}
+    };
+  }
+
+  const { prosesser, maler, formatVersion, ...meta } = data || {};
+
+  return {
+    formatVersion: formatVersion || "0.2.0",
+    prosesser: Array.isArray(prosesser) ? prosesser.map(normaliserProsess) : [],
+    maler: Array.isArray(maler) ? maler.map(normaliserProsess) : [],
+    meta
+  };
+}
+
+function erMalProsess(prosess) {
+  return prosess?.redigering?.mal === true || prosess?.redigering?.status === "template";
+}
+
+function hentProsesserForVisning(tilstand, inkluderMaler = false) {
+  if (inkluderMaler) {
+    return [...tilstand.prosesser, ...tilstand.prosessMaler];
+  }
+  return tilstand.prosesser;
+}
+
+async function lagreProsessdefinisjoner(tilstand) {
+  await skrivJson("prosessdefinisjoner.json", {
+    ...tilstand.prosessKatalogMeta,
+    formatVersion: tilstand.prosessFormatVersion || "0.2.0",
+    prosesser: tilstand.prosesser,
+    maler: tilstand.prosessMaler
+  });
+}
+
 function nyttId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -80,13 +131,18 @@ async function lesTilstand() {
     lesJson("prosessoekter.json")
   ]);
 
+  const prosesskatalog = parseProsessDefinisjoner(prosesser);
+
   return {
     personer,
     husstander,
     inntekter,
     barnehageplasser,
     soknader,
-    prosesser,
+    prosesser: prosesskatalog.prosesser,
+    prosessMaler: prosesskatalog.maler,
+    prosessFormatVersion: prosesskatalog.formatVersion,
+    prosessKatalogMeta: prosesskatalog.meta,
     informasjonsmodeller,
     samtykker,
     revisjonslogg,
@@ -132,7 +188,7 @@ function finnPerson(tilstand, personId) {
 }
 
 function finnProsess(tilstand, prosessId) {
-  return tilstand.prosesser.find((prosess) => prosess.id === prosessId) || null;
+  return hentProsesserForVisning(tilstand, true).find((prosess) => prosess.id === prosessId) || null;
 }
 
 function finnProsessoekt(tilstand, oektsId) {
@@ -415,26 +471,33 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/api/prosesser") {
-      jsonSvar(response, 200, tilstand.prosesser);
+      const inkluderMaler = url.searchParams.get("inkluderMaler") === "true";
+      jsonSvar(response, 200, hentProsesserForVisning(tilstand, inkluderMaler));
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/api/prosesser") {
       const body = await lesRequestBody(request);
-      const nyProsess = {
+      const nyProsess = normaliserProsess({
         id: body.id || nyttId("prosess"),
         navn: body.navn || "Ny prosess",
         beskrivelse: body.beskrivelse || "Prosess opprettet i prosessbyggeren.",
         versjon: body.versjon || "0.1.0",
         steg: Array.isArray(body.steg) ? body.steg : [],
+        redigering: body.redigering || {},
         syntetisk: true
-      };
-      if (tilstand.prosesser.some((prosess) => prosess.id === nyProsess.id)) {
+      });
+      const alleProsesser = hentProsesserForVisning(tilstand, true);
+      if (alleProsesser.some((prosess) => prosess.id === nyProsess.id)) {
         jsonSvar(response, 409, { feil: "Prosess med samme id finnes allerede." });
         return;
       }
-      tilstand.prosesser.push(nyProsess);
-      await skrivJson("prosessdefinisjoner.json", tilstand.prosesser);
+      if (erMalProsess(nyProsess)) {
+        tilstand.prosessMaler.push(nyProsess);
+      } else {
+        tilstand.prosesser.push(nyProsess);
+      }
+      await lagreProsessdefinisjoner(tilstand);
       await leggTilRevisjon({
         sporingsId: nyttId("flyt"),
         handling: "PROSESS_OPPRETTET",
@@ -528,20 +591,26 @@ const server = createServer(async (request, response) => {
     if (request.method === "PUT" && prosessTreff) {
       const body = await lesRequestBody(request);
       const indeks = tilstand.prosesser.findIndex((prosess) => prosess.id === prosessTreff[1]);
-      if (indeks === -1) {
+      const malIndeks = tilstand.prosessMaler.findIndex((prosess) => prosess.id === prosessTreff[1]);
+      if (indeks === -1 && malIndeks === -1) {
         jsonSvar(response, 404, { feil: "Fant ikke prosess." });
         return;
       }
-      const oppdatertProsess = {
-        ...tilstand.prosesser[indeks],
-        navn: body.navn ?? tilstand.prosesser[indeks].navn,
-        beskrivelse: body.beskrivelse ?? tilstand.prosesser[indeks].beskrivelse,
-        versjon: body.versjon ?? tilstand.prosesser[indeks].versjon,
-        steg: Array.isArray(body.steg) ? body.steg : tilstand.prosesser[indeks].steg,
+      const erMal = malIndeks !== -1;
+      const liste = erMal ? tilstand.prosessMaler : tilstand.prosesser;
+      const listeIndeks = erMal ? malIndeks : indeks;
+      const eksisterende = liste[listeIndeks];
+      const oppdatertProsess = normaliserProsess({
+        ...eksisterende,
+        navn: body.navn ?? eksisterende.navn,
+        beskrivelse: body.beskrivelse ?? eksisterende.beskrivelse,
+        versjon: body.versjon ?? eksisterende.versjon,
+        steg: Array.isArray(body.steg) ? body.steg : eksisterende.steg,
+        redigering: body.redigering ? { ...eksisterende.redigering, ...body.redigering } : eksisterende.redigering,
         syntetisk: true
-      };
-      tilstand.prosesser[indeks] = oppdatertProsess;
-      await skrivJson("prosessdefinisjoner.json", tilstand.prosesser);
+      });
+      liste[listeIndeks] = oppdatertProsess;
+      await lagreProsessdefinisjoner(tilstand);
       await leggTilRevisjon({
         sporingsId: nyttId("flyt"),
         handling: "PROSESS_OPPDATERT",
@@ -554,7 +623,7 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && url.pathname === "/api/prosessoekter") {
       const body = await lesRequestBody(request);
-      const prosess = finnProsess(tilstand, body.prosessId);
+      const prosess = tilstand.prosesser.find((kandidat) => kandidat.id === body.prosessId) || null;
       const person = finnPerson(tilstand, body.personId);
       if (!prosess || !person) {
         jsonSvar(response, 404, { feil: "Fant ikke prosess eller person." });

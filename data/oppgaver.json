@@ -238,5 +238,65 @@
     "opprettet": "2026-08-03T13:22:46.858Z",
     "sporingsId": "flyt-1785762846127-f2j7ze",
     "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785828637309-gnzoxn",
+    "personId": "person-001",
+    "soknadId": "soknad-1785828637299-kb34io",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T07:30:37.309Z",
+    "sporingsId": "flyt-1785828596572-ljbbzd",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785828888928-c870bl",
+    "personId": "person-001",
+    "soknadId": "soknad-1785828888922-5h6n0r",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T07:34:48.928Z",
+    "sporingsId": "test-chat-1785828886461",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785832569148-hfrzn9",
+    "personId": "person-001",
+    "soknadId": "soknad-1785832569140-zgr9re",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T08:36:09.148Z",
+    "sporingsId": "summary-test-1785832569039",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785832964356-eh8unb",
+    "personId": "person-001",
+    "soknadId": "soknad-1785832964351-7tlnx8",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T08:42:44.356Z",
+    "sporingsId": "t1-1785832964184",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785832964436-ucglny",
+    "personId": "person-001",
+    "soknadId": "soknad-1785832964431-ukhr3g",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T08:42:44.436Z",
+    "sporingsId": "t2-1785832964360",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785832995943-20ddmc",
+    "personId": "person-001",
+    "soknadId": "soknad-1785832995932-27lgen",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T08:43:15.943Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
   }
 ]

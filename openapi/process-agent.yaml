@@ -6,18 +6,48 @@ info:
 servers:
   - url: http://localhost:8084
 paths:
+  /helse:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
   /health:
     get:
       summary: Health check
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
   /agent/sessions:
     post:
       summary: Create an agent session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
       responses:
         "201":
           description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSessionResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentError"
   /agent/sessions/{sessionId}:
     get:
       summary: Get session status
@@ -30,6 +60,22 @@ paths:
       responses:
         "200":
           description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStateResponse"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentError"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentError"
   /agent/sessions/{sessionId}/messages:
     post:
       summary: Send message to agent
@@ -39,7 +85,146 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
       responses:
         "200":
           description: Agent replies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendMessageResponse"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentError"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentError"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, tjeneste, tidspunkt]
+      properties:
+        status:
+          type: string
+          example: ok
+        tjeneste:
+          type: string
+          example: process-agent
+        tidspunkt:
+          type: string
+          format: date-time
+    AgentError:
+      type: object
+      required: [feil]
+      properties:
+        feil:
+          type: string
+        detalj:
+          type: string
+    ProcessSummary:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        navn:
+          type: string
+        beskrivelse:
+          type: string
+        antallSteg:
+          type: integer
+    CreateSessionRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        personId:
+          type: string
+          description: Optional. Defaults to person-001.
+    CreateSessionResponse:
+      type: object
+      required: [sessionId, personId, message]
+      properties:
+        sessionId:
+          type: string
+        personId:
+          type: string
+        message:
+          type: string
+          description: Initial prompt listing available processes.
+    SessionStateResponse:
+      type: object
+      required: [sessionId, personId, awaiting, created, updated]
+      properties:
+        sessionId:
+          type: string
+        personId:
+          type: string
+        selectedProcess:
+          oneOf:
+            - $ref: "#/components/schemas/ProcessSummary"
+            - type: "null"
+        oektsId:
+          oneOf:
+            - type: string
+            - type: "null"
+        sporingsId:
+          oneOf:
+            - type: string
+            - type: "null"
+        awaiting:
+          oneOf:
+            - type: string
+            - type: "null"
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+    SendMessageRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+          description: User message for the current session state.
+    SendMessageResponse:
+      type: object
+      required: [sessionId, replies, awaiting]
+      properties:
+        sessionId:
+          type: string
+        replies:
+          type: array
+          items:
+            type: string
+        awaiting:
+          oneOf:
+            - type: string
+            - type: "null"
+        selectedProcess:
+          oneOf:
+            - $ref: "#/components/schemas/ProcessSummary"
+            - type: "null"
+        oektsId:
+          oneOf:
+            - type: string
+            - type: "null"
+        sporingsId:
+          oneOf:
+            - type: string
+            - type: "null"
 

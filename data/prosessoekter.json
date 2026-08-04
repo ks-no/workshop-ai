@@ -1058,5 +1058,607 @@
     "opprettet": "2026-08-03T13:14:06.134Z",
     "oppdatert": "2026-08-03T13:22:46.860Z",
     "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785828596583-c81xqk",
+    "prosessId": "fritidskort-stotte",
+    "personId": "person-001",
+    "sporingsId": "flyt-1785828596572-ljbbzd",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {
+      "behov": "Dette gjelder barnet mitt, og vi onsker stotte til fotball."
+    },
+    "resultater": {
+      "samtykke-inntekt": {
+        "samtykkeId": "samtykke-1785828596684-q4kd5a",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til fritidskort-stotte",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T07:29:56.684Z",
+        "utloper": "2026-09-03T07:29:56.684Z",
+        "sporingsId": "flyt-1785828596572-ljbbzd",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T07:29:56.684Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T07:29:56.703Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "hent-inntekt": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "oppsummering": {
+        "tekst": "Oppsummering:\n\nDemoen for Soknad om fritidskort-stotte har utført seg uten personopplysninger overensstemmende med anbefalt innhold. Data om husstand og inntekt ble brukt kun for å illustrere hvordan kommunen kan forklare databruk tydeligere. Samtykke til bruk av inntektsinformasjon var gitt, og opplysningene om inntekt var syntetiske. Behovet er angitt som støtte til fotballforhold for barnet.",
+        "syntetisk": true,
+        "modell": "ollama:qwen2.5:7b",
+        "sprak": "nb"
+      },
+      "send-inn": {
+        "soknadId": "soknad-1785828637299-kb34io",
+        "personId": "person-001",
+        "prosessId": "fritidskort-stotte",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T07:30:37.299Z",
+        "sporingsId": "flyt-1785828596572-ljbbzd",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785828637309-gnzoxn",
+          "personId": "person-001",
+          "soknadId": "soknad-1785828637299-kb34io",
+          "tittel": "Behandle Soknad om fritidskort-stotte",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T07:30:37.309Z",
+          "sporingsId": "flyt-1785828596572-ljbbzd",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785828596684-q4kd5a",
+    "opprettet": "2026-08-04T07:29:56.583Z",
+    "oppdatert": "2026-08-04T07:30:37.313Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785828886465-okyle2",
+    "prosessId": "fritidskort-stotte",
+    "personId": "person-001",
+    "sporingsId": "test-chat-1785828886461",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {
+      "behov": "Test fra chatflyt"
+    },
+    "resultater": {
+      "samtykke-inntekt": {
+        "samtykkeId": "samtykke-1785828886491-056ics",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til fritidskort-stotte",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T07:34:46.491Z",
+        "utloper": "2026-09-03T07:34:46.491Z",
+        "sporingsId": "test-chat-1785828886461",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T07:34:46.491Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T07:34:46.501Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "hent-inntekt": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "oppsummering": {
+        "tekst": "Oppsummering:\n\nDemoen for Soknad om fritidskort-stotte har utført seg uten personopplysninger overensstemmende med gitt kontekst. Opplysningene om husstand og inntekt brukes kun til å illustrere hvordan kommunen kan forklare databruk tydeligere. Samtykke til bruk av inntekt er gitt, og oppfølging på samtykkestatus viser at det er samtykket. Inntektsdata er syntetiske og brukes kun i demoen. Behovet fra chatflyt for videre prosessering er registrert.",
+        "syntetisk": true,
+        "modell": "ollama:qwen2.5:7b",
+        "sprak": "nb"
+      },
+      "send-inn": {
+        "soknadId": "soknad-1785828888922-5h6n0r",
+        "personId": "person-001",
+        "prosessId": "fritidskort-stotte",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T07:34:48.922Z",
+        "sporingsId": "test-chat-1785828886461",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785828888928-c870bl",
+          "personId": "person-001",
+          "soknadId": "soknad-1785828888922-5h6n0r",
+          "tittel": "Behandle Soknad om fritidskort-stotte",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T07:34:48.928Z",
+          "sporingsId": "test-chat-1785828886461",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785828886491-056ics",
+    "opprettet": "2026-08-04T07:34:46.465Z",
+    "oppdatert": "2026-08-04T07:34:48.933Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785831413759-9j8qyo",
+    "prosessId": "reduced-kindergarten-payment",
+    "personId": "person-001",
+    "sporingsId": "flyt-1785831413755",
+    "status": "AKTIV",
+    "stegIndex": 5,
+    "svar": {},
+    "resultater": {
+      "fetch-household": {
+        "husstandId": "household-001",
+        "adresse": "Eksempelveien 12",
+        "kommune": "Bergen",
+        "medlemmer": [
+          {
+            "personId": "person-001",
+            "rolle": "foresatt"
+          },
+          {
+            "personId": "person-002",
+            "rolle": "barn"
+          }
+        ],
+        "syntetisk": true
+      },
+      "consent-income": {
+        "samtykkeId": "samtykke-1785832367611-htn1t5",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til redusert foreldrebetaling",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:32:47.611Z",
+        "utloper": "2026-09-03T08:32:47.611Z",
+        "sporingsId": "flyt-1785831413755",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:32:47.611Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:32:47.631Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "fetch-income": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "summary": {
+        "tekst": "Oppsummering:\n\nDemoen for Redusert foreldrebetaling har utført seg uten personopplysninger som kan identifiseres. Demoen viser hvordan kommunen kan bruke husstands- og inntektsinformasjon i en tydelig måte, uten at det direkte identifiserende data behandles. Samtykke fra foreste er registrert og gjenstand av vurdering for å avgjøre rettigheter til redusert betaling. Inntektene brukes kun for å illustrere prosessen, og er syntetiske for å sikre privatlivets skyte.",
+        "syntetisk": true,
+        "modell": "ollama:qwen2.5:7b",
+        "sprak": "nb"
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832367611-htn1t5",
+    "opprettet": "2026-08-04T08:16:53.759Z",
+    "oppdatert": "2026-08-04T08:32:52.418Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785832569044-pjeq2c",
+    "prosessId": "fritidskort-stotte",
+    "personId": "person-001",
+    "sporingsId": "summary-test-1785832569039",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {
+      "behov": "Test fra chatflyt"
+    },
+    "resultater": {
+      "samtykke-inntekt": {
+        "samtykkeId": "samtykke-1785832569088-mx3w6w",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til fritidskort-stotte",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:36:09.088Z",
+        "utloper": "2026-09-03T08:36:09.088Z",
+        "sporingsId": "summary-test-1785832569039",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:36:09.088Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:36:09.104Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "hent-inntekt": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "oppsummering": {
+        "tekst": "Her er en kort oppsummering av saken for Soknad om fritidskort-stotte. Vi fant brukersvar på 1 steg. Nå sender vi inn søknaden for Soknad om fritidskort-stotte med disse opplysningene som grunnlag.",
+        "syntetisk": true,
+        "modell": "mock-ai-gateway",
+        "sprak": "nb"
+      },
+      "send-inn": {
+        "soknadId": "soknad-1785832569140-zgr9re",
+        "personId": "person-001",
+        "prosessId": "fritidskort-stotte",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T08:36:09.140Z",
+        "sporingsId": "summary-test-1785832569039",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785832569148-hfrzn9",
+          "personId": "person-001",
+          "soknadId": "soknad-1785832569140-zgr9re",
+          "tittel": "Behandle Soknad om fritidskort-stotte",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T08:36:09.148Z",
+          "sporingsId": "summary-test-1785832569039",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832569088-mx3w6w",
+    "opprettet": "2026-08-04T08:36:09.044Z",
+    "oppdatert": "2026-08-04T08:36:09.150Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785832829507-phbldq",
+    "prosessId": "reduced-kindergarten-payment",
+    "personId": "person-001",
+    "sporingsId": "flyt-1785832829501",
+    "status": "AKTIV",
+    "stegIndex": 5,
+    "svar": {},
+    "resultater": {
+      "fetch-household": {
+        "husstandId": "household-001",
+        "adresse": "Eksempelveien 12",
+        "kommune": "Bergen",
+        "medlemmer": [
+          {
+            "personId": "person-001",
+            "rolle": "foresatt"
+          },
+          {
+            "personId": "person-002",
+            "rolle": "barn"
+          }
+        ],
+        "syntetisk": true
+      },
+      "consent-income": {
+        "samtykkeId": "samtykke-1785832835625-x7db7s",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til redusert foreldrebetaling",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:40:35.625Z",
+        "utloper": "2026-09-03T08:40:35.625Z",
+        "sporingsId": "flyt-1785832829501",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:40:35.625Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:40:35.645Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "fetch-income": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "summary": {
+        "tekst": "Her er en kort oppsummering av saken for Redusert foreldrebetaling. Vi fant relevante opplysninger i flyten. Nå sender vi inn søknaden for Redusert foreldrebetaling med disse opplysningene som grunnlag.",
+        "syntetisk": true,
+        "modell": "mock-ai-gateway",
+        "sprak": "nb"
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832835625-x7db7s",
+    "opprettet": "2026-08-04T08:40:29.507Z",
+    "oppdatert": "2026-08-04T08:40:36.209Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785832964219-9lnnqg",
+    "prosessId": "fritidskort-stotte",
+    "personId": "person-001",
+    "sporingsId": "t1-1785832964184",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {
+      "behov": "Barnet mitt, fotball"
+    },
+    "resultater": {
+      "samtykke-inntekt": {
+        "samtykkeId": "samtykke-1785832964265-ahb4qu",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til fritidskort-stotte",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:42:44.265Z",
+        "utloper": "2026-09-03T08:42:44.265Z",
+        "sporingsId": "t1-1785832964184",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:42:44.265Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:42:44.283Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "hent-inntekt": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "oppsummering": {
+        "tekst": "Her er en oppsummering av det vi har funnet for «Soknad om fritidskort-stotte»: Inntekt 2025: bruttoinntekt 485 000 kr (40 417 kr/mnd) | behov: \"Barnet mitt, fotball\". Søknaden sendes inn med disse opplysningene som grunnlag.",
+        "syntetisk": true,
+        "modell": "mock-ai-gateway",
+        "sprak": "nb"
+      },
+      "send-inn": {
+        "soknadId": "soknad-1785832964351-7tlnx8",
+        "personId": "person-001",
+        "prosessId": "fritidskort-stotte",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T08:42:44.351Z",
+        "sporingsId": "t1-1785832964184",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785832964356-eh8unb",
+          "personId": "person-001",
+          "soknadId": "soknad-1785832964351-7tlnx8",
+          "tittel": "Behandle Soknad om fritidskort-stotte",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T08:42:44.356Z",
+          "sporingsId": "t1-1785832964184",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832964265-ahb4qu",
+    "opprettet": "2026-08-04T08:42:44.219Z",
+    "oppdatert": "2026-08-04T08:42:44.358Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785832964364-23ezam",
+    "prosessId": "reduced-kindergarten-payment",
+    "personId": "person-001",
+    "sporingsId": "t2-1785832964360",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {},
+    "resultater": {
+      "fetch-household": {
+        "husstandId": "household-001",
+        "adresse": "Eksempelveien 12",
+        "kommune": "Bergen",
+        "medlemmer": [
+          {
+            "personId": "person-001",
+            "rolle": "foresatt"
+          },
+          {
+            "personId": "person-002",
+            "rolle": "barn"
+          }
+        ],
+        "syntetisk": true
+      },
+      "consent-income": {
+        "samtykkeId": "samtykke-1785832964392-nt3nw6",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til redusert foreldrebetaling",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:42:44.392Z",
+        "utloper": "2026-09-03T08:42:44.392Z",
+        "sporingsId": "t2-1785832964360",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:42:44.392Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:42:44.399Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "fetch-income": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "summary": {
+        "tekst": "Her er en oppsummering av det vi har funnet for «Redusert foreldrebetaling»: Husstand: Eksempelveien 12, 1 foresatt (person-001), 1 barn (person-002) | Inntekt 2025: bruttoinntekt 485 000 kr (40 417 kr/mnd). Søknaden sendes inn med disse opplysningene som grunnlag.",
+        "syntetisk": true,
+        "modell": "mock-ai-gateway",
+        "sprak": "nb"
+      },
+      "submit": {
+        "soknadId": "soknad-1785832964431-ukhr3g",
+        "personId": "person-001",
+        "prosessId": "reduced-kindergarten-payment",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T08:42:44.431Z",
+        "sporingsId": "t2-1785832964360",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785832964436-ucglny",
+          "personId": "person-001",
+          "soknadId": "soknad-1785832964431-ukhr3g",
+          "tittel": "Behandle Redusert foreldrebetaling",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T08:42:44.436Z",
+          "sporingsId": "t2-1785832964360",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832964392-nt3nw6",
+    "opprettet": "2026-08-04T08:42:44.364Z",
+    "oppdatert": "2026-08-04T08:42:44.440Z",
+    "syntetisk": true
+  },
+  {
+    "oektsId": "oekt-1785832984969-po8qny",
+    "prosessId": "reduced-kindergarten-payment",
+    "personId": "person-001",
+    "sporingsId": "flyt-1785832984957",
+    "status": "FULLFORT",
+    "stegIndex": 5,
+    "svar": {},
+    "resultater": {
+      "fetch-household": {
+        "husstandId": "household-001",
+        "adresse": "Eksempelveien 12",
+        "kommune": "Bergen",
+        "medlemmer": [
+          {
+            "personId": "person-001",
+            "rolle": "foresatt"
+          },
+          {
+            "personId": "person-002",
+            "rolle": "barn"
+          }
+        ],
+        "syntetisk": true
+      },
+      "consent-income": {
+        "samtykkeId": "samtykke-1785832987272-ecwkx9",
+        "personId": "person-001",
+        "formaal": "Vurdere rett til redusert foreldrebetaling",
+        "dataKilder": [
+          "inntekt"
+        ],
+        "status": "SAMTYKKET",
+        "opprettet": "2026-08-04T08:43:07.272Z",
+        "utloper": "2026-09-03T08:43:07.272Z",
+        "sporingsId": "flyt-1785832984957",
+        "historikk": [
+          {
+            "tidspunkt": "2026-08-04T08:43:07.272Z",
+            "status": "VENTER_PAA_SVAR"
+          },
+          {
+            "tidspunkt": "2026-08-04T08:43:07.291Z",
+            "status": "SAMTYKKET"
+          }
+        ],
+        "syntetisk": true
+      },
+      "fetch-income": {
+        "personId": "person-001",
+        "aar": 2025,
+        "bruttoInntekt": 485000,
+        "manedsInntekt": 40417,
+        "kilde": "syntetisk-inntektsregister",
+        "syntetisk": true
+      },
+      "summary": {
+        "tekst": "Her er en oppsummering av det vi har funnet for «Redusert foreldrebetaling»: Husstand: Eksempelveien 12, 1 foresatt (person-001), 1 barn (person-002) | Inntekt 2025: bruttoinntekt 485 000 kr (40 417 kr/mnd). Søknaden sendes inn med disse opplysningene som grunnlag.",
+        "syntetisk": true,
+        "modell": "mock-ai-gateway",
+        "sprak": "nb"
+      },
+      "submit": {
+        "soknadId": "soknad-1785832995932-27lgen",
+        "personId": "person-001",
+        "prosessId": "reduced-kindergarten-payment",
+        "status": "SENDT_INN",
+        "opprettet": "2026-08-04T08:43:15.932Z",
+        "sporingsId": "flyt-1785832984957",
+        "syntetisk": true,
+        "oppgave": {
+          "oppgaveId": "oppgave-1785832995943-20ddmc",
+          "personId": "person-001",
+          "soknadId": "soknad-1785832995932-27lgen",
+          "tittel": "Behandle Redusert foreldrebetaling",
+          "status": "OPPRETTET",
+          "opprettet": "2026-08-04T08:43:15.943Z",
+          "sporingsId": "flyt-1785832984957",
+          "syntetisk": true
+        }
+      }
+    },
+    "aktivtSamtykkeId": "samtykke-1785832987272-ecwkx9",
+    "opprettet": "2026-08-04T08:43:04.969Z",
+    "oppdatert": "2026-08-04T08:43:15.947Z",
+    "syntetisk": true
   }
 ]

@@ -316,5 +316,189 @@
       }
     ],
     "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785828596684-q4kd5a",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T07:29:56.684Z",
+    "utloper": "2026-09-03T07:29:56.684Z",
+    "sporingsId": "flyt-1785828596572-ljbbzd",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T07:29:56.684Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T07:29:56.703Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785828886491-056ics",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T07:34:46.491Z",
+    "utloper": "2026-09-03T07:34:46.491Z",
+    "sporingsId": "test-chat-1785828886461",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T07:34:46.491Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T07:34:46.501Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832367611-htn1t5",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til redusert foreldrebetaling",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:32:47.611Z",
+    "utloper": "2026-09-03T08:32:47.611Z",
+    "sporingsId": "flyt-1785831413755",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:32:47.611Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:32:47.631Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832569088-mx3w6w",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:36:09.088Z",
+    "utloper": "2026-09-03T08:36:09.088Z",
+    "sporingsId": "summary-test-1785832569039",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:36:09.088Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:36:09.104Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832835625-x7db7s",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til redusert foreldrebetaling",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:40:35.625Z",
+    "utloper": "2026-09-03T08:40:35.625Z",
+    "sporingsId": "flyt-1785832829501",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:40:35.625Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:40:35.645Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832964265-ahb4qu",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:42:44.265Z",
+    "utloper": "2026-09-03T08:42:44.265Z",
+    "sporingsId": "t1-1785832964184",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:42:44.265Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:42:44.283Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832964392-nt3nw6",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til redusert foreldrebetaling",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:42:44.392Z",
+    "utloper": "2026-09-03T08:42:44.392Z",
+    "sporingsId": "t2-1785832964360",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:42:44.392Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:42:44.399Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785832987272-ecwkx9",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til redusert foreldrebetaling",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T08:43:07.272Z",
+    "utloper": "2026-09-03T08:43:07.272Z",
+    "sporingsId": "flyt-1785832984957",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T08:43:07.272Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T08:43:07.291Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
   }
 ]

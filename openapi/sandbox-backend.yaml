@@ -15,14 +15,38 @@ paths:
   /api/prosesser:
     get:
       summary: List prosesser
+      parameters:
+        - name: inkluderMaler
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Returnerer ogsa prosessmaler nar satt til true.
       responses:
         "200":
           description: Prosessliste
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProsessDefinisjon"
     post:
       summary: Opprett prosess
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProsessDefinisjonInput"
       responses:
         "201":
           description: Prosess opprettet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProsessDefinisjon"
   /api/prosesser/{prosessId}:
     get:
       summary: Hent prosess
@@ -35,6 +59,10 @@ paths:
       responses:
         "200":
           description: Prosess returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProsessDefinisjon"
     put:
       summary: Oppdater prosess
       parameters:
@@ -46,6 +74,10 @@ paths:
       responses:
         "200":
           description: Prosess oppdatert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProsessDefinisjon"
   /api/prosessoekter:
     post:
       summary: Opprett prosessøkt
@@ -132,3 +164,61 @@ paths:
           description: Inntekt returnert
         "403":
           description: Samtykke mangler
+
+components:
+  schemas:
+    RedigeringMeta:
+      type: object
+      description: Valgfri metadata for enklere redigering av prosessdefinisjoner.
+      additionalProperties: true
+      properties:
+        status:
+          type: string
+          description: For eksempel publisert eller template.
+        mal:
+          type: boolean
+          description: Marker prosessen som mal i katalogen.
+        eier:
+          type: string
+        hjelpetekst:
+          type: string
+    ProsessSteg:
+      type: object
+      additionalProperties: true
+      required: [id, type]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        tittel:
+          type: string
+        tekst:
+          type: string
+    ProsessDefinisjonInput:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        navn:
+          type: string
+        beskrivelse:
+          type: string
+        versjon:
+          type: string
+        redigering:
+          $ref: "#/components/schemas/RedigeringMeta"
+        steg:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProsessSteg"
+    ProsessDefinisjon:
+      allOf:
+        - $ref: "#/components/schemas/ProsessDefinisjonInput"
+        - type: object
+          required: [id, navn, versjon, steg]
+          properties:
+            syntetisk:
+              type: boolean
+

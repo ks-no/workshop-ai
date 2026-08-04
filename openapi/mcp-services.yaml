@@ -21,7 +21,77 @@ paths:
   /mcp/tools/invoke:
     post:
       summary: Invoke a named tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvokeToolRequest"
       responses:
         "200":
           description: Tool response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvokeToolResponse"
+
+components:
+  schemas:
+    ProsessInfo:
+      type: object
+      required: [id, navn, beskrivelse, antallSteg]
+      properties:
+        id:
+          type: string
+        navn:
+          type: string
+        beskrivelse:
+          type: string
+        antallSteg:
+          type: integer
+    ListProcessesResult:
+      type: object
+      required: [count, prosesser, antallMaler, maler]
+      properties:
+        count:
+          type: integer
+        prosesser:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProsessInfo"
+        antallMaler:
+          type: integer
+        maler:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProsessInfo"
+    InvokeToolRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Tool-navn, for eksempel list_processes.
+        arguments:
+          type: object
+          additionalProperties: true
+        args:
+          type: object
+          additionalProperties: true
+        toolArgs:
+          type: object
+          additionalProperties: true
+    InvokeToolResponse:
+      type: object
+      required: [ok, tool, result]
+      properties:
+        ok:
+          type: boolean
+        tool:
+          type: string
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/ListProcessesResult"
+            - type: object
+              additionalProperties: true
 

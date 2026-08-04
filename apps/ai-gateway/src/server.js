@@ -82,9 +82,60 @@ function docsHtml() {
 
 function byggSvar(type, body) {
   const tjeneste = body?.kontekst?.tjeneste || "kommunal tjeneste";
+  const data = body?.kontekst?.data || {};
+  const svar = body?.kontekst?.svar || {};
+
+  function finnVerdi(predicate) {
+    return Object.values(data || {}).find(predicate) || null;
+  }
+
+  function formaterBelop(tall) {
+    return new Intl.NumberFormat("nb-NO").format(Number(tall || 0));
+  }
+
+  function byggHusstandLinjer() {
+    const husstand = finnVerdi((v) => v?.husstandId && Array.isArray(v?.medlemmer));
+    if (!husstand) return null;
+    const foresatte = husstand.medlemmer.filter((m) => m.rolle === "foresatt");
+    const barn = husstand.medlemmer.filter((m) => m.rolle === "barn");
+    const deler = [`Husstand: ${husstand.adresse || husstand.husstandId}`];
+    if (foresatte.length) deler.push(`${foresatte.length} foresatt${foresatte.length !== 1 ? "e" : ""} (${foresatte.map((m) => m.personId).join(", ")})`);
+    if (barn.length) deler.push(`${barn.length} barn (${barn.map((m) => m.personId).join(", ")})`);
+    return deler.join(", ");
+  }
+
+  function byggInntektLinjer() {
+    const inntekt = finnVerdi((v) => v?.bruttoInntekt !== undefined && v?.aar !== undefined);
+    if (!inntekt) return null;
+    return `Inntekt ${inntekt.aar}: bruttoinntekt ${formaterBelop(inntekt.bruttoInntekt)} kr (${formaterBelop(inntekt.manedsInntekt)} kr/mnd)`;
+  }
+
+  function byggSvarLinjer() {
+    const svarEntries = Object.entries(svar || {});
+    if (!svarEntries.length) return null;
+    return svarEntries.map(([stegId, verdi]) => `${stegId}: "${typeof verdi === "object" ? JSON.stringify(verdi) : verdi}"`).join("; ");
+  }
+
+  function byggOppsummeringstekst() {
+    const husstandLinje = byggHusstandLinjer();
+    const inntektLinje = byggInntektLinjer();
+    const svarLinje = byggSvarLinjer();
+
+    const detaljer = [husstandLinje, inntektLinje, svarLinje].filter(Boolean);
+    const detaljtekst = detaljer.length > 0
+      ? detaljer.join(" | ")
+      : "Vi fant relevante opplysninger i flyten.";
+
+    return [
+      `Her er en oppsummering av det vi har funnet for «${tjeneste}»:`,
+      detaljtekst + ".",
+      `Søknaden sendes inn med disse opplysningene som grunnlag.`
+    ].join(" ");
+  }
+
   const tekster = {
     dialogforslag: `Hei! Jeg kan hjelpe deg med ${tjeneste}. Vi går steg for steg og bruker bare syntetiske opplysninger i denne demoen.`,
-    oppsummering: `Du har gjennomført en demo for ${tjeneste}. Opplysninger om husstand og inntekt brukes kun for å illustrere hvordan kommunen kan forklare databruk tydeligere.`,
+    oppsummering: byggOppsummeringstekst(),
     "forklar-databruk": `Vi bruker opplysningene i denne demoen for å vise hvordan saksflyten kan bli enklere å forstå. Dataene er syntetiske og brukes ikke til reelle vedtak.`,
     klarsprak: "Dette betyr kort fortalt at du får en enklere forklaring på hvilke opplysninger som brukes og hvorfor.",
     risikosjekk: "Ingen kritiske risikoer funnet i denne demoen, men løsningen må fortsatt unngå reelle persondata og automatiserte vedtak."
@@ -103,7 +154,8 @@ function byggPrompt(type, body, fallbackTekst) {
   const sprak = body?.sprak || "nb";
   return [
     "Du er en hjelpsom assistent i en kommunal demosandbox.",
-    `Svar kort pa ${sprak} med klart sprak uten personopplysninger utover det som er gitt.`,
+    `Svar kort på ${sprak} med klart språk uten personopplysninger utover det som er gitt.`,
+    "Når du oppsummerer, si tydelig hva vi fant og hva som sendes inn.",
     `Oppgavetype: ${type}`,
     `Tjeneste: ${kontekst.tjeneste || "ukjent"}`,
     `Steg: ${kontekst.steg?.tittel || kontekst.steg?.type || "ukjent"}`,
@@ -445,6 +497,16 @@ async function tolkSvarMedAi(body) {
 
 async function byggAiSvar(type, body) {
   const mockSvar = byggSvar(type, body);
+
+  if (type === "oppsummering") {
+    return {
+      tekst: mockSvar.tekst,
+      syntetisk: true,
+      modell: "mock-ai-gateway",
+      sprak: body.sprak || "nb"
+    };
+  }
+
   const prompt = byggPrompt(type, body, mockSvar.tekst);
 
   try {

@@ -1,228 +1,321 @@
-[
-  {
-    "id": "reduced-kindergarten-payment",
-    "navn": "Redusert foreldrebetaling",
-    "beskrivelse": "Demo av dialogbasert søknad om redusert foreldrebetaling",
-    "versjon": "0.1.0",
-    "steg": [
-      {
-        "id": "intro",
-        "type": "INFO",
-        "tittel": "Velkommen",
-        "tekst": "Vi hjelper deg å søke redusert foreldrebetaling."
+{
+  "formatVersion": "0.2.0",
+  "beskrivelse": "Prosesskatalog for workshop. Inneholder publiserte prosesser og gjenbrukbare maler.",
+  "prosesser": [
+    {
+      "id": "reduced-kindergarten-payment",
+      "navn": "Redusert foreldrebetaling",
+      "beskrivelse": "Demo av dialogbasert søknad om redusert foreldrebetaling",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Oppvekst"
       },
-      {
-        "id": "fetch-household",
-        "type": "DATA_FETCH",
-        "tittel": "Henter husstandsopplysninger",
-        "api": {
-          "method": "GET",
-          "url": "/api/personer/{personId}/husstand"
-        }
-      },
-      {
-        "id": "consent-income",
-        "type": "CONSENT_REQUEST",
-        "tittel": "Kan vi hente inntektsopplysninger?",
-        "formaal": "Vurdere rett til redusert foreldrebetaling",
-        "dataKilder": ["inntekt"]
-      },
-      {
-        "id": "fetch-income",
-        "type": "DATA_FETCH",
-        "tittel": "Henter inntektsopplysninger",
-        "kreverSamtykke": "inntekt",
-        "api": {
-          "method": "GET",
-          "url": "/api/personer/{personId}/inntekt"
-        }
-      },
-      {
-        "id": "summary",
-        "type": "SUMMARY",
-        "tittel": "Oppsummering"
-      },
-      {
-        "id": "submit",
-        "type": "SUBMIT",
-        "tittel": "Send søknad"
-      }
-    ],
-    "syntetisk": true
-  },
-  {
-    "id": "sfo-moderasjon",
-    "navn": "Redusert betaling i SFO",
-    "beskrivelse": "Demo av dialogbasert søknad om redusert betaling i skolefritidsordningen.",
-    "versjon": "0.1.0",
-    "steg": [
-      {
-        "id": "intro",
-        "type": "INFO",
-        "tittel": "Velkommen",
-        "tekst": "Vi hjelper deg å søke om redusert betaling i SFO."
-      },
-      {
-        "id": "hent-husstand",
-        "type": "DATA_FETCH",
-        "tittel": "Henter husstandsopplysninger",
-        "api": {
-          "method": "GET",
-          "url": "/api/personer/{personId}/husstand"
-        }
-      },
-      {
-        "id": "samtykke-inntekt",
-        "type": "CONSENT_REQUEST",
-        "tittel": "Kan vi hente inntektsopplysninger?",
-        "formaal": "Vurdere rett til redusert betaling i SFO",
-        "dataKilder": ["inntekt"]
-      },
-      {
-        "id": "hent-inntekt",
-        "type": "DATA_FETCH",
-        "tittel": "Henter inntektsopplysninger",
-        "kreverSamtykke": "inntekt",
-        "api": {
-          "method": "GET",
-          "url": "/api/personer/{personId}/inntekt"
-        }
-      },
-      {
-        "id": "oppsummering",
-        "type": "SUMMARY",
-        "tittel": "Oppsummering"
-      },
-      {
-        "id": "send-inn",
-        "type": "SUBMIT",
-        "tittel": "Send søknad"
-      }
-    ],
-    "syntetisk": true
-  },
-  {
-    "id": "stottekontakt-behov",
-    "navn": "Behovsavklaring for støttekontakt",
-    "beskrivelse": "Demo av en innledende dialog som hjelper innbyggeren å forstå hva kommunen trenger.",
-    "versjon": "0.1.0",
-    "steg": [
-      {
-        "id": "intro",
-        "type": "INFO",
-        "tittel": "Velkommen",
-        "tekst": "Vi stiller noen korte spørsmål for å hjelpe deg videre."
-      },
-      {
-        "id": "situasjon",
-        "type": "QUESTION",
-        "tittel": "Hva trenger du hjelp til?",
-        "tekst": "Beskriv kort behovet ditt i egne ord.",
-        "felter": [
-          {
-            "id": "beskrivelse",
-            "label": "Beskriv behovet ditt",
-            "type": "tekst",
-            "placeholder": "Skriv kort hva du trenger hjelp til",
-            "obligatorisk": true
-          },
-          {
-            "id": "onskerKontakt",
-            "label": "Ønsker du at kommunen kontakter deg?",
-            "type": "ja-nei",
-            "obligatorisk": true
-          },
-          {
-            "id": "kontaktkanal",
-            "label": "Hvordan vil du helst kontaktes?",
-            "type": "valg",
-            "alternativer": ["Telefon", "E-post", "Digital melding"],
-            "obligatorisk": false
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Velkommen",
+          "tekst": "Vi hjelper deg å søke redusert foreldrebetaling.",
+          "forfatterhjelp": {
+            "hensikt": "Forklar hva brukeren skal gjøre",
+            "skrivetips": "Hold teksten kort og konkret"
           }
-        ]
-      },
-      {
-        "id": "forklar-data",
-        "type": "CONSENT_REQUEST",
-        "tittel": "Kan vi bruke kontaktopplysningene dine i denne demoen?",
-        "formaal": "Følge opp behovsavklaringen",
-        "dataKilder": ["kontaktinfo"]
-      },
-      {
-        "id": "oppsummering",
-        "type": "SUMMARY",
-        "tittel": "Oppsummering"
-      },
-      {
-        "id": "send-inn",
-        "type": "SUBMIT",
-        "tittel": "Send inn"
-      }
-    ],
-    "syntetisk": true
-  },
-  {
-    "id": "fritidskort-stotte",
-    "navn": "Soknad om fritidskort-stotte",
-    "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-stotte.",
-    "versjon": "0.1.0",
-    "steg": [
-      {
-        "id": "intro",
-        "type": "INFO",
-        "tittel": "Velkommen",
-        "tekst": "Vi hjelper deg med en kort chatbasert soknad om fritidskort-stotte."
-      },
-      {
-        "id": "behov",
-        "type": "QUESTION",
-        "tittel": "Hvem skal bruke fritidskortet?",
-        "tekst": "Svar kort med navn eller relasjon, og hva stotten skal brukes til.",
-        "felter": [
-          {
-            "id": "gjelderFor",
-            "label": "Hvem gjelder soknaden for?",
-            "type": "tekst",
-            "placeholder": "For eksempel barnet mitt i 5. klasse",
-            "obligatorisk": true
-          },
-          {
-            "id": "aktivitet",
-            "label": "Hvilken aktivitet onskes stotte til?",
-            "type": "tekst",
-            "placeholder": "For eksempel fotball, korps eller dans",
-            "obligatorisk": true
+        },
+        {
+          "id": "fetch-household",
+          "type": "DATA_FETCH",
+          "tittel": "Henter husstandsopplysninger",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/husstand"
           }
-        ]
-      },
-      {
-        "id": "samtykke-inntekt",
-        "type": "CONSENT_REQUEST",
-        "tittel": "Kan vi hente inntektsopplysninger?",
-        "formaal": "Vurdere rett til fritidskort-stotte",
-        "dataKilder": ["inntekt"]
-      },
-      {
-        "id": "hent-inntekt",
-        "type": "DATA_FETCH",
-        "tittel": "Henter inntektsopplysninger",
-        "kreverSamtykke": "inntekt",
-        "api": {
-          "method": "GET",
-          "url": "/api/personer/{personId}/inntekt"
+        },
+        {
+          "id": "consent-income",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi hente inntektsopplysninger?",
+          "formaal": "Vurdere rett til redusert foreldrebetaling",
+          "dataKilder": ["inntekt"]
+        },
+        {
+          "id": "fetch-income",
+          "type": "DATA_FETCH",
+          "tittel": "Henter inntektsopplysninger",
+          "kreverSamtykke": "inntekt",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "summary",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "submit",
+          "type": "SUBMIT",
+          "tittel": "Send søknad"
         }
+      ],
+      "syntetisk": true
+    },
+    {
+      "id": "sfo-moderasjon",
+      "navn": "Redusert betaling i SFO",
+      "beskrivelse": "Demo av dialogbasert søknad om redusert betaling i skolefritidsordningen.",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Oppvekst"
       },
-      {
-        "id": "oppsummering",
-        "type": "SUMMARY",
-        "tittel": "Oppsummering"
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Velkommen",
+          "tekst": "Vi hjelper deg å søke om redusert betaling i SFO."
+        },
+        {
+          "id": "hent-husstand",
+          "type": "DATA_FETCH",
+          "tittel": "Henter husstandsopplysninger",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/husstand"
+          }
+        },
+        {
+          "id": "samtykke-inntekt",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi hente inntektsopplysninger?",
+          "formaal": "Vurdere rett til redusert betaling i SFO",
+          "dataKilder": ["inntekt"]
+        },
+        {
+          "id": "hent-inntekt",
+          "type": "DATA_FETCH",
+          "tittel": "Henter inntektsopplysninger",
+          "kreverSamtykke": "inntekt",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send søknad"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "id": "stottekontakt-behov",
+      "navn": "Behovsavklaring for støttekontakt",
+      "beskrivelse": "Demo av en innledende dialog som hjelper innbyggeren å forstå hva kommunen trenger.",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Helse og omsorg"
       },
-      {
-        "id": "send-inn",
-        "type": "SUBMIT",
-        "tittel": "Send inn"
-      }
-    ],
-    "syntetisk": true
-  }
-]
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Velkommen",
+          "tekst": "Vi stiller noen korte spørsmål for å hjelpe deg videre."
+        },
+        {
+          "id": "situasjon",
+          "type": "QUESTION",
+          "tittel": "Hva trenger du hjelp til?",
+          "tekst": "Beskriv kort behovet ditt i egne ord.",
+          "felter": [
+            {
+              "id": "beskrivelse",
+              "label": "Beskriv behovet ditt",
+              "type": "tekst",
+              "placeholder": "Skriv kort hva du trenger hjelp til",
+              "obligatorisk": true
+            },
+            {
+              "id": "onskerKontakt",
+              "label": "Ønsker du at kommunen kontakter deg?",
+              "type": "ja-nei",
+              "obligatorisk": true
+            },
+            {
+              "id": "kontaktkanal",
+              "label": "Hvordan vil du helst kontaktes?",
+              "type": "valg",
+              "alternativer": ["Telefon", "E-post", "Digital melding"],
+              "obligatorisk": false
+            }
+          ]
+        },
+        {
+          "id": "forklar-data",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi bruke kontaktopplysningene dine i denne demoen?",
+          "formaal": "Følge opp behovsavklaringen",
+          "dataKilder": ["kontaktinfo"]
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send inn"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "id": "fritidskort-stotte",
+      "navn": "Soknad om fritidskort-stotte",
+      "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-stotte.",
+      "versjon": "0.1.1",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Oppvekst og kultur",
+        "hjelpetekst": "Bruk korte setninger. Et steg skal ha ett tydelig formål."
+      },
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Velkommen",
+          "tekst": "Vi hjelper deg med en kort chatbasert soknad om fritidskort-stotte.",
+          "forfatterhjelp": {
+            "hensikt": "Forklar prosessen kort før spørsmålene starter",
+            "skrivetips": "Unngå byråkratiske ord"
+          }
+        },
+        {
+          "id": "behov",
+          "type": "QUESTION",
+          "tittel": "Hvem skal bruke fritidskortet?",
+          "tekst": "Svar kort med navn eller relasjon, og hva stotten skal brukes til.",
+          "felter": [
+            {
+              "id": "gjelderFor",
+              "label": "Hvem gjelder soknaden for?",
+              "type": "tekst",
+              "placeholder": "For eksempel barnet mitt i 5. klasse",
+              "obligatorisk": true
+            },
+            {
+              "id": "aktivitet",
+              "label": "Hvilken aktivitet onskes stotte til?",
+              "type": "tekst",
+              "placeholder": "For eksempel fotball, korps eller dans",
+              "obligatorisk": true
+            }
+          ]
+        },
+        {
+          "id": "samtykke-inntekt",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi hente inntektsopplysninger?",
+          "formaal": "Vurdere rett til fritidskort-stotte",
+          "dataKilder": ["inntekt"]
+        },
+        {
+          "id": "hent-inntekt",
+          "type": "DATA_FETCH",
+          "tittel": "Henter inntektsopplysninger",
+          "kreverSamtykke": "inntekt",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send inn"
+        }
+      ],
+      "syntetisk": true
+    }
+  ],
+  "maler": [
+    {
+      "id": "mal-enkel-soknad",
+      "navn": "MAL: Enkel soknad med samtykke",
+      "beskrivelse": "Kopi-mal for nye prosesser. Rediger id, navn, tekster og felter.",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "template",
+        "mal": true,
+        "hjelpetekst": "Kopier denne og lag en ny id før bruk i demo."
+      },
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Velkommen",
+          "tekst": "Vi hjelper deg med soknaden steg for steg."
+        },
+        {
+          "id": "sporsmal-1",
+          "type": "QUESTION",
+          "tittel": "Hva trenger du hjelp til?",
+          "tekst": "Beskriv kort behovet ditt.",
+          "felter": [
+            {
+              "id": "beskrivelse",
+              "label": "Beskriv behov",
+              "type": "tekst",
+              "placeholder": "Skriv kort hva saken gjelder",
+              "obligatorisk": true
+            }
+          ]
+        },
+        {
+          "id": "samtykke",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi hente relevante opplysninger?",
+          "formaal": "Behandle soknaden",
+          "dataKilder": ["inntekt"]
+        },
+        {
+          "id": "hent-data",
+          "type": "DATA_FETCH",
+          "tittel": "Henter opplysninger",
+          "kreverSamtykke": "inntekt",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send inn"
+        }
+      ],
+      "syntetisk": true
+    }
+  ]
+}

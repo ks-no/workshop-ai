@@ -214,5 +214,59 @@
     "opprettet": "2026-08-03T13:22:46.849Z",
     "sporingsId": "flyt-1785762846127-f2j7ze",
     "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785828637299-kb34io",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T07:30:37.299Z",
+    "sporingsId": "flyt-1785828596572-ljbbzd",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785828888922-5h6n0r",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T07:34:48.922Z",
+    "sporingsId": "test-chat-1785828886461",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785832569140-zgr9re",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T08:36:09.140Z",
+    "sporingsId": "summary-test-1785832569039",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785832964351-7tlnx8",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T08:42:44.351Z",
+    "sporingsId": "t1-1785832964184",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785832964431-ukhr3g",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T08:42:44.431Z",
+    "sporingsId": "t2-1785832964360",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785832995932-27lgen",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T08:43:15.932Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
   }
 ]
