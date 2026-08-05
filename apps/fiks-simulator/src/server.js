@@ -85,6 +85,177 @@ async function leggTilRevisjon(hendelse) {
   }
 }
 
+// --------------------------------------------------------------------------
+// Skatte- og inntektsopplysninger: beregning
+//
+// Modellert etter KS Fiks sitt register-API, beregningstype BARNEHAGE_SFO:
+// https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
+//
+// Simulatoren beregner grunnlaget. Inntektsgrensene eies av kommunen og
+// ligger i data/satser.json, som sandbox-backend bruker.
+// --------------------------------------------------------------------------
+
+// Poster som ikke inngår i grunnlaget føres som ADDERE i inntekt og
+// SUBTRAHERE i fradrag. Da blir beregningsbeloep riktig, samtidig som
+// innbyggeren kan se hvilke ytelser som ble holdt utenfor og hvorfor.
+function byggPost(post, identifikator) {
+  return {
+    tekniskNavn: post.tekniskNavn,
+    visningstekst: post.visningstekst,
+    operasjon: "ADDERE",
+    beloep: post.beloep,
+    kilde: post.kilde || "SKATTEETATEN",
+    kanEndreVisningstekst: false,
+    identifikator,
+    ...(post.infotekst ? { infotekst: post.infotekst } : {}),
+    ...(post.referanse ? { referanse: post.referanse } : {})
+  };
+}
+
+function byggBeregning(deltakere) {
+  const inntektsposter = [];
+  const fradragsposter = [];
+
+  for (const d of deltakere) {
+    for (const post of d.poster) {
+      inntektsposter.push(byggPost(post, d.identifikator));
+      if (!post.medregnes) {
+        fradragsposter.push({
+          ...byggPost(post, d.identifikator),
+          operasjon: "SUBTRAHERE",
+          infotekst: post.infotekst || "Inngår ikke i grunnlaget."
+        });
+      }
+    }
+  }
+
+  const sum = (poster) => poster.reduce((t, p) => t + p.beloep, 0);
+  const gruppe = (tekniskNavn, visningstekst, operasjon, poster) => ({
+    tekniskNavn,
+    visningstekst,
+    beloep: sum(poster),
+    operasjon,
+    type: "GRUNNLAG",
+    beregningsposter: poster
+  });
+
+  const inntekt = {
+    beloep: sum(inntektsposter),
+    beregning: [gruppe("samletInntekt", "Samlet innrapportert inntekt", "ADDERE", inntektsposter)]
+  };
+  const fradrag = {
+    beloep: sum(fradragsposter),
+    beregning: [gruppe("ytelserUtenforGrunnlaget", "Ytelser som ikke inngår i grunnlaget", "SUBTRAHERE", fradragsposter)]
+  };
+
+  return { inntekt, fradrag, beregningsbeloep: inntekt.beloep - fradrag.beloep };
+}
+
+// Én visningspost per inntektstype, med beløp fordelt på personene bak.
+// Skjermede personer teller med i totalen, men fordelingen deres vises ikke.
+function byggVisningsposter(deltakere) {
+  const perType = new Map();
+
+  for (const d of deltakere) {
+    for (const post of d.poster) {
+      if (!post.medregnes) continue;
+      if (!perType.has(post.tekniskNavn)) {
+        perType.set(post.tekniskNavn, {
+          tekniskNavn: post.tekniskNavn,
+          visningstekst: post.visningstekst,
+          beloep: 0,
+          personer: []
+        });
+      }
+      const vp = perType.get(post.tekniskNavn);
+      vp.beloep += post.beloep;
+      if (d.skjermet) {
+        vp.infotekst = "Beløpet inkluderer et husstandsmedlem med skjermet identitet, som ikke kan spesifiseres.";
+      } else {
+        vp.personer.push({ identifikator: d.identifikator, beloep: post.beloep });
+      }
+    }
+  }
+
+  return [{ kategori: "INNTEKT", poster: [...perType.values()] }];
+}
+
+function beregnRedusertForeldrebetaling(body, personer, inntekter) {
+  const feilmeldinger = [];
+  const inntektsaar = body.inntektsaar;
+
+  if (!Number.isInteger(inntektsaar)) {
+    feilmeldinger.push({ kode: "INNTEKTSAAR_MANGLER", melding: "inntektsaar må være et heltall." });
+  }
+  if (!Array.isArray(body.personer) || body.personer.length === 0) {
+    feilmeldinger.push({ kode: "PERSONER_MANGLER", melding: "personer må inneholde minst én person." });
+  }
+  if (feilmeldinger.length) {
+    return { feilmeldinger, deltakere: [], svarPersoner: [] };
+  }
+
+  const deltakere = [];
+  const svarPersoner = [];
+
+  for (const forespurt of body.personer) {
+    const type = forespurt.type || "SOEKER";
+    if (!["SOEKER", "ANNET"].includes(type)) {
+      feilmeldinger.push({
+        kode: "UGYLDIG_PERSONTYPE",
+        melding: `type må være SOEKER eller ANNET for beregningstype BARNEHAGE_SFO, fikk ${type}.`
+      });
+      continue;
+    }
+
+    const person = personer.find((p) => p.syntetiskFodselsnummer === forespurt.identifikator);
+    if (!person) {
+      feilmeldinger.push({
+        kode: "PERSON_IKKE_FUNNET",
+        melding: `Fant ingen person med identifikator ${forespurt.identifikator}.`
+      });
+      continue;
+    }
+
+    const rad = inntekter.find(
+      (i) => i.identifikator === forespurt.identifikator && i.inntektsaar === inntektsaar
+    );
+    const ekstraposter = (forespurt.ekstraposter || []).map((e) => ({
+      tekniskNavn: e.tekniskNavn,
+      visningstekst: e.visningstekst || e.tekniskNavn,
+      beloep: e.beloep,
+      kilde: "MANUELL_INPUT",
+      medregnes: true,
+      referanse: e.referanse
+    }));
+
+    if (!rad && ekstraposter.length === 0) {
+      feilmeldinger.push({
+        kode: "INGEN_SKATTEOPPGJOER_FUNNET",
+        melding: `Fant ingen skatteopplysninger for ${forespurt.identifikator} i inntektsåret ${inntektsaar}.`
+      });
+      continue;
+    }
+
+    deltakere.push({
+      identifikator: forespurt.identifikator,
+      skjermet: Boolean(person.skjermet),
+      poster: [...(rad?.poster || []), ...ekstraposter]
+    });
+
+    svarPersoner.push({
+      identifikator: forespurt.identifikator,
+      navn: person.skjermet ? undefined : person.navn,
+      type,
+      skjermet: Boolean(person.skjermet),
+      skatteoppgjoersdato: rad?.skatteoppgjoersdato || undefined,
+      stadie: rad?.stadie || "UKJENT",
+      registreringstidpunkt: new Date().toISOString()
+    });
+  }
+
+  return { feilmeldinger, deltakere, svarPersoner };
+}
+
 function docsHtml() {
   return `
   <!doctype html>
@@ -136,6 +307,44 @@ const server = createServer(async (request, response) => {
     const samtykker = await lesJson("samtykker.json", []);
     const oppgaver = await lesJson("oppgaver.json", []);
     const meldinger = await lesJson("meldinger.json", []);
+
+    // Full Fiks-sti, slik at kall kan kopieres fra Fiks-dokumentasjonen og
+    // senere peke på det ekte API-et ved kun å bytte base-URL.
+    const beregningTreff = url.pathname.match(
+      /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/redusert-foreldrebetaling$/
+    );
+    if (request.method === "POST" && beregningTreff) {
+      const body = await lesBody(request);
+      const { feilmeldinger, deltakere, svarPersoner } = beregnRedusertForeldrebetaling(
+        body, personer, inntekter
+      );
+      const { inntekt, fradrag, beregningsbeloep } = byggBeregning(deltakere);
+      const stadier = svarPersoner.map((p) => p.stadie);
+
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId,
+        handling: "BEREGNING_UTFOERT",
+        ressurs: "skatteoginntektsopplysninger",
+        aktor: { type: "system", id: "fiks-simulator" }
+      });
+
+      jsonSvar(response, 200, {
+        inntektsaar: body.inntektsaar,
+        stadie: stadier.length === 0 || stadier.includes("UKJENT")
+          ? "UKJENT"
+          : stadier.includes("UTKAST") ? "UTKAST" : "OPPGJOER",
+        personer: svarPersoner,
+        visningsposter: byggVisningsposter(deltakere),
+        beregningsbeloep,
+        inntekt,
+        fradrag,
+        soeketidspunkt: new Date().toISOString(),
+        beregningstype: "BARNEHAGE_SFO",
+        feilmeldinger,
+        syntetisk: true
+      });
+      return;
+    }
 
     if (request.method === "POST" && url.pathname === "/fiks/samtykke") {
       const body = await lesBody(request);
