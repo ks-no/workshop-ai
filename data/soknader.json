@@ -268,5 +268,86 @@
     "opprettet": "2026-08-04T08:43:15.932Z",
     "sporingsId": "flyt-1785832984957",
     "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785834020735-ho4i6g",
+    "personId": "person-001",
+    "prosessId": "fartsdempende-tiltak",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T09:00:20.735Z",
+    "sporingsId": "test-1785834020643",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837128474-kdi0h2",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T09:52:08.474Z",
+    "sporingsId": "flyt-1785837128305-6hponi",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837128606-jmztvd",
+    "personId": "person-001",
+    "prosessId": "fartsdempende-tiltak",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T09:52:08.606Z",
+    "sporingsId": "test-1785837128549",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837256911-munla0",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T09:54:16.911Z",
+    "sporingsId": "flyt-1785837256735-xiiuvv",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837257044-0c9mov",
+    "personId": "person-001",
+    "prosessId": "fartsdempende-tiltak",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T09:54:17.044Z",
+    "sporingsId": "polish-1785837256954",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837749620-nj3ozt",
+    "personId": "person-001",
+    "prosessId": "fritidskort-stotte",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T10:02:29.620Z",
+    "sporingsId": "flyt-1785837749436-jf7dvk",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785837749786-kidt7s",
+    "personId": "person-001",
+    "prosessId": "fartsdempende-tiltak",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T10:02:29.786Z",
+    "sporingsId": "enc-1785837749723",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785845615157-cyr3wi",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T12:13:35.157Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
+  },
+  {
+    "soknadId": "soknad-1785845616473-q6iok7",
+    "personId": "person-001",
+    "prosessId": "reduced-kindergarten-payment",
+    "status": "SENDT_INN",
+    "opprettet": "2026-08-04T12:13:36.473Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
   }
 ]

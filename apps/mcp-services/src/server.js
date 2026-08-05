@@ -316,7 +316,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`MCP-services kjorer pa http://localhost:${port}`);
+  console.log(`MCP-services kjører på http://localhost:${port}`);
 });
 
 

@@ -34,8 +34,8 @@ function normalize(text) {
 function listProcessesPrompt(processes) {
   const lines = processes.map((p, i) => `${i + 1}. ${p.navn} (${p.id})`).join("\n");
   return [
-    "Hei! Jeg kan hjelpe deg med a velge prosess og guide deg steg for steg.",
-    "Velg en prosess ved a skrive nummer, navn, eller id:",
+    "Hei! Jeg kan hjelpe deg med å velge prosess og guide deg steg for steg.",
+    "Velg en prosess ved å skrive nummer, navn, eller id:",
     lines
   ].join("\n\n");
 }
@@ -91,7 +91,13 @@ async function advanceAndPrompt(state) {
 
     if (session.status === "FULLFORT") {
       state.awaiting = null;
-      messages.push("Prosessen er fullfort. Soknaden er sendt inn.");
+      messages.push("Prosessen er fullført. Søknaden er sendt inn.");
+      return messages;
+    }
+
+    if (session.status === "AVVIST") {
+      state.awaiting = null;
+      messages.push(session.avvistMelding || "Søknaden ble avvist. Du kan starte en ny prosess om du vil prøve igjen.");
       return messages;
     }
 
@@ -112,7 +118,24 @@ async function advanceAndPrompt(state) {
 
     if (step.type === "DATA_FETCH") {
       await invokeTool("run_current_action", { oektsId: state.oektsId });
-      messages.push("Jeg har hentet opplysningene som trengs i dette steget.");
+      if (step.id === "hent-gate") {
+        messages.push("Jeg har slått opp gaten i matrikkelen.");
+      } else {
+        messages.push("Jeg har hentet opplysningene som trengs i dette steget.");
+      }
+      await tryNextStep(state.oektsId);
+      continue;
+    }
+
+    if (step.type === "SJEKK") {
+      const result = await invokeTool("run_current_action", { oektsId: state.oektsId });
+      const avvist = result?.oekt?.status === "AVVIST" || result?.resultat?.godkjent === false;
+      if (avvist) {
+        state.awaiting = null;
+        messages.push(result?.resultat?.melding || result?.oekt?.avvistMelding || "Søknaden kan ikke behandles videre.");
+        return messages;
+      }
+      messages.push(result?.resultat?.melding || "Sjekken er gjennomført.");
       await tryNextStep(state.oektsId);
       continue;
     }
@@ -132,22 +155,22 @@ async function advanceAndPrompt(state) {
     if (step.type === "QUESTION") {
       state.awaiting = "question";
       state.awaitingStepId = step.id;
-      const prompt = step.tekst || step.tittel || "Kan du svare pa et sporsmal?";
+      const prompt = step.tekst || step.tittel || "Kan du svare på et spørsmål?";
       messages.push(prompt);
       return messages;
     }
 
     if (step.type === "CONSENT_REQUEST") {
       state.awaiting = "consent";
-      const datakilder = (step.dataKilder || []).join(", ") || "nodvendige opplysninger";
+      const datakilder = (step.dataKilder || []).join(", ") || "nødvendige opplysninger";
       const formaal = step.formaal || "behandle saken";
-      messages.push(`For a ga videre trenger jeg samtykke til a hente ${datakilder}. Dette brukes for a ${formaal.toLowerCase()}. Er det greit?`);
+      messages.push(`For å gå videre trenger jeg samtykke til å hente ${datakilder}. Dette brukes for å ${formaal.toLowerCase()}. Er det greit?`);
       return messages;
     }
 
     if (step.type === "SUBMIT") {
       state.awaiting = "submit";
-      messages.push("Alt er klart. Vil du at jeg skal sende inn soknaden na?");
+      messages.push("Alt er klart. Vil du at jeg skal sende inn søknaden nå?");
       return messages;
     }
 
@@ -160,7 +183,7 @@ async function advanceAndPrompt(state) {
 async function handleMessage(state, message) {
   const text = String(message || "").trim();
   if (!text) {
-    return ["Skriv en melding, sa hjelper jeg deg videre."];
+    return ["Skriv en melding, så hjelper jeg deg videre."];
   }
 
   if (!state.selectedProcess) {
@@ -215,10 +238,10 @@ async function handleMessage(state, message) {
     if (intent.intent === "consent_no") {
       await invokeTool("consent_response", { oektsId: state.oektsId, approved: false });
       await tryNextStep(state.oektsId);
-      return ["Skjonner. Jeg har registrert at du ikke vil samtykke na."].concat(await advanceAndPrompt(state));
+      return ["Skjønner. Jeg har registrert at du ikke vil samtykke nå."].concat(await advanceAndPrompt(state));
     }
 
-    return ["Jeg ble litt usikker. Du kan svare for eksempel 'ja, det er greit' eller 'nei, ikke na'."];
+    return ["Jeg ble litt usikker. Du kan svare for eksempel 'ja, det er greit' eller 'nei, ikke nå'."];
   }
 
   if (state.awaiting === "submit") {
@@ -236,14 +259,14 @@ async function handleMessage(state, message) {
 
     if (intent.intent === "submit_yes") {
       await invokeTool("run_current_action", { oektsId: state.oektsId });
-      return ["Da sender jeg inn soknaden."].concat(await advanceAndPrompt(state));
+      return ["Da sender jeg inn søknaden."].concat(await advanceAndPrompt(state));
     }
 
     if (intent.intent === "submit_no") {
-      return ["Helt i orden. Si fra nar du vil sende inn."];
+      return ["Helt i orden. Si fra når du vil sende inn."];
     }
 
-    return ["Jeg ble litt usikker. Du kan svare for eksempel 'ja, send inn' eller 'nei, ikke enna'."];
+    return ["Jeg ble litt usikker. Du kan svare for eksempel 'ja, send inn' eller 'nei, ikke ennå'."];
   }
 
   return advanceAndPrompt(state);
@@ -353,6 +376,6 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`Process-agent kjorer pa http://localhost:${port}`);
+  console.log(`Process-agent kjører på http://localhost:${port}`);
 });
 

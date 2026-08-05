@@ -298,5 +298,95 @@
     "opprettet": "2026-08-04T08:43:15.943Z",
     "sporingsId": "flyt-1785832984957",
     "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785834020740-6cpeci",
+    "personId": "person-001",
+    "soknadId": "soknad-1785834020735-ho4i6g",
+    "tittel": "Behandle Søknad om fartsdempende tiltak",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T09:00:20.740Z",
+    "sporingsId": "test-1785834020643",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837128479-o5xpwb",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837128474-kdi0h2",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T09:52:08.479Z",
+    "sporingsId": "flyt-1785837128305-6hponi",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837128610-tu7pau",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837128606-jmztvd",
+    "tittel": "Behandle Søknad om fartsdempende tiltak",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T09:52:08.610Z",
+    "sporingsId": "test-1785837128549",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837256917-jr7r10",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837256911-munla0",
+    "tittel": "Behandle Soknad om fritidskort-stotte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T09:54:16.917Z",
+    "sporingsId": "flyt-1785837256735-xiiuvv",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837257051-d5ik8p",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837257044-0c9mov",
+    "tittel": "Behandle Søknad om fartsdempende tiltak",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T09:54:17.051Z",
+    "sporingsId": "polish-1785837256954",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837749627-vos43l",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837749620-nj3ozt",
+    "tittel": "Behandle Søknad om fritidskort-støtte",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T10:02:29.627Z",
+    "sporingsId": "flyt-1785837749436-jf7dvk",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785837749791-0mpb1d",
+    "personId": "person-001",
+    "soknadId": "soknad-1785837749786-kidt7s",
+    "tittel": "Behandle Søknad om fartsdempende tiltak",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T10:02:29.791Z",
+    "sporingsId": "enc-1785837749723",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785845615163-oy9673",
+    "personId": "person-001",
+    "soknadId": "soknad-1785845615157-cyr3wi",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T12:13:35.163Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
+  },
+  {
+    "oppgaveId": "oppgave-1785845616480-ofcqca",
+    "personId": "person-001",
+    "soknadId": "soknad-1785845616473-q6iok7",
+    "tittel": "Behandle Redusert foreldrebetaling",
+    "status": "OPPRETTET",
+    "opprettet": "2026-08-04T12:13:36.480Z",
+    "sporingsId": "flyt-1785832984957",
+    "syntetisk": true
   }
 ]

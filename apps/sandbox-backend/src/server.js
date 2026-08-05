@@ -102,6 +102,36 @@ function nyttId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function erstattParametere(url, oekt) {
+  let result = url;
+  result = result.replace(/{personId}/g, encodeURIComponent(oekt.personId));
+  for (const [stegId, svarVerdi] of Object.entries(oekt.svar || {})) {
+    const enkeltMal = new RegExp(`\\{svar\\.${stegId}\\}`, "g");
+    if (typeof svarVerdi === "string") {
+      result = result.replace(enkeltMal, encodeURIComponent(svarVerdi));
+    }
+    if (typeof svarVerdi === "object" && svarVerdi !== null) {
+      for (const [feltId, feltVerdi] of Object.entries(svarVerdi)) {
+        const feltMal = new RegExp(`\\{svar\\.${stegId}\\.${feltId}\\}`, "g");
+        result = result.replace(feltMal, encodeURIComponent(String(feltVerdi)));
+      }
+    }
+  }
+  return result;
+}
+
+function finnGate(tilstand, gateNavn) {
+  if (!gateNavn) return null;
+  const norm = String(gateNavn).toLowerCase().trim();
+  const gater = tilstand.matrikkel?.gater || [];
+  return (
+    gater.find((g) => g.adressenavn.toLowerCase() === norm) ||
+    gater.find((g) => g.adressenavn.toLowerCase().includes(norm)) ||
+    gater.find((g) => norm.includes(g.adressenavn.toLowerCase())) ||
+    null
+  );
+}
+
 function hentSporingsId(url) {
   return url.searchParams.get("sporingsId") || nyttId("flyt");
 }
@@ -117,7 +147,8 @@ async function lesTilstand() {
     informasjonsmodeller,
     samtykker,
     revisjonslogg,
-    prosessoekter
+    prosessoekter,
+    matrikkel
   ] = await Promise.all([
     lesJson("personer.json"),
     lesJson("husstander.json"),
@@ -128,7 +159,8 @@ async function lesTilstand() {
     lesJson("informasjonsmodeller.json"),
     lesJson("samtykker.json"),
     lesJson("revisjonslogg.json"),
-    lesJson("prosessoekter.json")
+    lesJson("prosessoekter.json"),
+    lesJson("matrikkel.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
@@ -146,7 +178,8 @@ async function lesTilstand() {
     informasjonsmodeller,
     samtykker,
     revisjonslogg,
-    prosessoekter
+    prosessoekter,
+    matrikkel
   };
 }
 
@@ -247,7 +280,12 @@ function harGyldigSamtykke(tilstand, personId, datakilde) {
 }
 
 async function hentDataForUrl(tilstand, apiUrl, personId, sporingsId) {
-  if (apiUrl.endsWith(`/api/personer/{personId}/husstand`)) {
+  const matcherPersonUrl = (ressurs) => (
+    apiUrl.endsWith(`/api/personer/{personId}/${ressurs}`) ||
+    apiUrl.endsWith(`/api/personer/${personId}/${ressurs}`)
+  );
+
+  if (matcherPersonUrl("husstand")) {
     const data = hentHusstandForPerson(tilstand, personId);
     await leggTilRevisjon({
       sporingsId,
@@ -258,7 +296,7 @@ async function hentDataForUrl(tilstand, apiUrl, personId, sporingsId) {
     return data;
   }
 
-  if (apiUrl.endsWith(`/api/personer/{personId}/inntekt`)) {
+  if (matcherPersonUrl("inntekt")) {
     const samtykke = harGyldigSamtykke(tilstand, personId, "inntekt");
     if (!samtykke) {
       await leggTilRevisjon({
@@ -282,7 +320,7 @@ async function hentDataForUrl(tilstand, apiUrl, personId, sporingsId) {
     return data;
   }
 
-  if (apiUrl.endsWith(`/api/personer/{personId}/barnehage`)) {
+  if (matcherPersonUrl("barnehage")) {
     const data = hentBarnehageForPerson(tilstand, personId);
     await leggTilRevisjon({
       sporingsId,
@@ -291,6 +329,35 @@ async function hentDataForUrl(tilstand, apiUrl, personId, sporingsId) {
       aktor: { type: "testbruker", id: personId }
     });
     return data;
+  }
+
+  if (apiUrl.includes("/api/matrikkel/")) {
+    const matrikkelUrl = new URL(`http://localhost${apiUrl}`);
+    if (matrikkelUrl.pathname === "/api/matrikkel/gater") {
+      const gateNavn = decodeURIComponent(matrikkelUrl.searchParams.get("gate") || "");
+      const gateData = finnGate(tilstand, gateNavn);
+      if (!gateData) {
+        throw new Error(`Fant ikke gaten "${gateNavn}" i matrikkelen. Tilgjengelige gater: ${(tilstand.matrikkel?.gater || []).map((g) => g.adressenavn).join(", ")}.`);
+      }
+      await leggTilRevisjon({
+        sporingsId,
+        handling: "DATA_LES",
+        ressurs: "matrikkel-gate",
+        aktor: { type: "testbruker", id: personId }
+      });
+      return {
+        gateId: gateData.gateId,
+        adressenavn: gateData.adressenavn,
+        kommune: gateData.kommune,
+        kommunenummer: gateData.kommunenummer,
+        postnummer: gateData.postnummer,
+        poststed: gateData.poststed,
+        antallEiendommer: gateData.antallEiendommer,
+        antallBoligeiendommer: gateData.antallBoligeiendommer,
+        syntetisk: true
+      };
+    }
+    throw new Error(`Ukjent matrikkel-endepunkt: ${apiUrl}`);
   }
 
   throw new Error(`Støtter ikke API-kall for ${apiUrl}`);
@@ -398,9 +465,47 @@ async function utforStegHandling(tilstand, oekt, prosess, body) {
   }
 
   if (steg.type === "DATA_FETCH") {
-    const data = await hentDataForUrl(tilstand, steg.api.url, oekt.personId, oekt.sporingsId);
+    const resolvertUrl = erstattParametere(steg.api.url, oekt);
+    const data = await hentDataForUrl(tilstand, resolvertUrl, oekt.personId, oekt.sporingsId);
     oekt.resultater[steg.id] = data;
     return data;
+  }
+
+  if (steg.type === "SJEKK") {
+    const resolvertUrl = erstattParametere(steg.api.url, oekt);
+    const sjekketUrl = new URL(`http://localhost${resolvertUrl}`);
+    let resultat;
+
+    if (sjekketUrl.pathname === "/api/matrikkel/sjekk/eierforhold") {
+      const gateNavn = decodeURIComponent(sjekketUrl.searchParams.get("gate") || "");
+      const sjekkerPersonId = decodeURIComponent(sjekketUrl.searchParams.get("personId") || oekt.personId);
+      const gateData = finnGate(tilstand, gateNavn);
+      if (!gateData) {
+        resultat = { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
+      } else {
+        const harEiendom = gateData.eiendommer.some(
+          (e) => Array.isArray(e.eiere) && e.eiere.includes(sjekkerPersonId)
+        );
+        resultat = harEiendom
+          ? { godkjent: true, melding: `Eierforhold i ${gateData.adressenavn} bekreftet.` }
+          : { godkjent: false, melding: steg.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.` };
+      }
+    } else {
+      throw new Error(`Ukjent SJEKK-endepunkt: ${sjekketUrl.pathname}`);
+    }
+
+    oekt.resultater[steg.id] = resultat;
+    if (!resultat.godkjent) {
+      oekt.status = "AVVIST";
+      oekt.avvistMelding = resultat.melding;
+    }
+    await leggTilRevisjon({
+      sporingsId: oekt.sporingsId,
+      handling: resultat.godkjent ? "SJEKK_OK" : "SJEKK_AVVIST",
+      ressurs: "prosessoekt",
+      aktor: { type: "testbruker", id: oekt.personId }
+    });
+    return resultat;
   }
 
   if (steg.type === "SUMMARY") {
@@ -581,7 +686,46 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/api/matrikkel/gater") {
+      const gateParam = url.searchParams.get("gate");
+      const gater = tilstand.matrikkel?.gater || [];
+      if (gateParam) {
+        const funnet = finnGate(tilstand, gateParam);
+        if (!funnet) {
+          jsonSvar(response, 404, { feil: `Fant ikke gaten "${gateParam}".`, tilgjengelige: gater.map((g) => g.adressenavn) });
+        } else {
+          jsonSvar(response, 200, funnet);
+        }
+      } else {
+        jsonSvar(response, 200, gater.map((g) => ({
+          gateId: g.gateId,
+          adressenavn: g.adressenavn,
+          kommune: g.kommune,
+          antallEiendommer: g.antallEiendommer,
+          antallBoligeiendommer: g.antallBoligeiendommer
+        })));
+      }
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/matrikkel/sjekk/eierforhold") {
+      const gateParam = url.searchParams.get("gate");
+      const personIdParam = url.searchParams.get("personId");
+      const gateData = finnGate(tilstand, gateParam);
+      if (!gateData) {
+        jsonSvar(response, 404, { feil: `Fant ikke gaten "${gateParam}".` });
+        return;
+      }
+      const harEiendom = gateData.eiendommer.some(
+        (e) => Array.isArray(e.eiere) && e.eiere.includes(personIdParam)
+      );
+      jsonSvar(response, 200, { personId: personIdParam, gate: gateData.adressenavn, harEiendom, godkjent: harEiendom });
+      return;
+    }
+
     const prosessTreff = url.pathname.match(/^\/api\/prosesser\/([^/]+)$/);
+
+
     if (request.method === "GET" && prosessTreff) {
       const prosess = finnProsess(tilstand, prosessTreff[1]);
       jsonSvar(response, prosess ? 200 : 404, prosess || { feil: "Fant ikke prosess." });
@@ -717,6 +861,10 @@ const server = createServer(async (request, response) => {
       const oekt = finnProsessoekt(tilstand, oektNesteTreff[1]);
       if (!oekt) {
         jsonSvar(response, 404, { feil: "Fant ikke prosessøkt." });
+        return;
+      }
+      if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
+        jsonSvar(response, 400, { feil: "Prosessøkten er avsluttet og kan ikke fortsette." });
         return;
       }
       const prosess = finnProsess(tilstand, oekt.prosessId);

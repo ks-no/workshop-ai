@@ -12,7 +12,8 @@ const filer = [
   "data/prosessoekter.json",
   "data/oppgaver.json",
   "data/meldinger.json",
-  "data/revisjonslogg.json"
+  "data/revisjonslogg.json",
+  "data/matrikkel.json"
 ];
 
 for (const fil of filer) {

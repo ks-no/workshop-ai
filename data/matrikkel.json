@@ -1,0 +1,76 @@
+{
+  "gater": [
+    {
+      "gateId": "gate-storgata-bergen",
+      "adressenavn": "Storgata",
+      "kommunenummer": "4601",
+      "kommune": "Bergen",
+      "postnummer": "5003",
+      "poststed": "BERGEN",
+      "antallEiendommer": 26,
+      "antallBoligeiendommer": 24,
+      "eiendommer": [
+        { "matrikkelId": "matr-storg-001", "gnr": 165, "bnr": 1, "adresse": "Storgata 1", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-storg-002", "gnr": 165, "bnr": 2, "adresse": "Storgata 2", "bruksenhetstype": "bolig", "eiere": ["person-002"] },
+        { "matrikkelId": "matr-storg-003", "gnr": 165, "bnr": 3, "adresse": "Storgata 3", "bruksenhetstype": "bolig", "eiere": ["person-001"] },
+        { "matrikkelId": "matr-storg-004", "gnr": 165, "bnr": 4, "adresse": "Storgata 4", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-storg-005", "gnr": 165, "bnr": 5, "adresse": "Storgata 5", "bruksenhetstype": "næring", "eiere": [] },
+        { "matrikkelId": "matr-storg-006", "gnr": 165, "bnr": 6, "adresse": "Storgata 6", "bruksenhetstype": "bolig", "eiere": ["person-003"] },
+        { "matrikkelId": "matr-storg-007", "gnr": 165, "bnr": 7, "adresse": "Storgata 7", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-storg-008", "gnr": 165, "bnr": 8, "adresse": "Storgata 8", "bruksenhetstype": "bolig", "eiere": ["person-004"] },
+        { "matrikkelId": "matr-storg-009", "gnr": 165, "bnr": 9, "adresse": "Storgata 9", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-storg-010", "gnr": 165, "bnr": 10, "adresse": "Storgata 10", "bruksenhetstype": "næring", "eiere": [] }
+      ]
+    },
+    {
+      "gateId": "gate-nordnesveien-bergen",
+      "adressenavn": "Nordnesveien",
+      "kommunenummer": "4601",
+      "kommune": "Bergen",
+      "postnummer": "5005",
+      "poststed": "BERGEN",
+      "antallEiendommer": 14,
+      "antallBoligeiendommer": 14,
+      "eiendommer": [
+        { "matrikkelId": "matr-nord-001", "gnr": 171, "bnr": 1, "adresse": "Nordnesveien 1", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-nord-002", "gnr": 171, "bnr": 2, "adresse": "Nordnesveien 2", "bruksenhetstype": "bolig", "eiere": ["person-004"] },
+        { "matrikkelId": "matr-nord-003", "gnr": 171, "bnr": 3, "adresse": "Nordnesveien 3", "bruksenhetstype": "bolig", "eiere": [] },
+        { "matrikkelId": "matr-nord-007", "gnr": 171, "bnr": 7, "adresse": "Nordnesveien 7", "bruksenhetstype": "bolig", "eiere": ["person-001"] },
+        { "matrikkelId": "matr-nord-012", "gnr": 171, "bnr": 12, "adresse": "Nordnesveien 12", "bruksenhetstype": "bolig", "eiere": ["person-005"] }
+      ]
+    },
+    {
+      "gateId": "gate-fjosangerveien-bergen",
+      "adressenavn": "Fjøsangerveien",
+      "kommunenummer": "4601",
+      "kommune": "Bergen",
+      "postnummer": "5054",
+      "poststed": "BERGEN",
+      "antallEiendommer": 32,
+      "antallBoligeiendommer": 28,
+      "eiendommer": [
+        { "matrikkelId": "matr-fjos-005", "gnr": 130, "bnr": 5, "adresse": "Fjøsangerveien 5", "bruksenhetstype": "bolig", "eiere": ["person-002"] },
+        { "matrikkelId": "matr-fjos-010", "gnr": 130, "bnr": 10, "adresse": "Fjøsangerveien 10", "bruksenhetstype": "bolig", "eiere": ["person-003"] },
+        { "matrikkelId": "matr-fjos-018", "gnr": 130, "bnr": 18, "adresse": "Fjøsangerveien 18", "bruksenhetstype": "bolig", "eiere": ["person-005"] },
+        { "matrikkelId": "matr-fjos-024", "gnr": 130, "bnr": 24, "adresse": "Fjøsangerveien 24", "bruksenhetstype": "næring", "eiere": [] }
+      ]
+    },
+    {
+      "gateId": "gate-laksevagvegen-bergen",
+      "adressenavn": "Laksevågvegen",
+      "kommunenummer": "4601",
+      "kommune": "Bergen",
+      "postnummer": "5164",
+      "poststed": "LAKSEVÅG",
+      "antallEiendommer": 22,
+      "antallBoligeiendommer": 22,
+      "eiendommer": [
+        { "matrikkelId": "matr-laks-008", "gnr": 115, "bnr": 8, "adresse": "Laksevågvegen 8", "bruksenhetstype": "bolig", "eiere": ["person-006"] },
+        { "matrikkelId": "matr-laks-015", "gnr": 115, "bnr": 15, "adresse": "Laksevågvegen 15", "bruksenhetstype": "bolig", "eiere": ["person-001"] },
+        { "matrikkelId": "matr-laks-020", "gnr": 115, "bnr": 20, "adresse": "Laksevågvegen 20", "bruksenhetstype": "bolig", "eiere": ["person-007"] }
+      ]
+    }
+  ],
+  "syntetisk": true
+}
+

@@ -182,8 +182,8 @@
     },
     {
       "id": "fritidskort-stotte",
-      "navn": "Soknad om fritidskort-stotte",
-      "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-stotte.",
+      "navn": "Søknad om fritidskort-støtte",
+      "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-støtte.",
       "versjon": "0.1.1",
       "redigering": {
         "status": "publisert",
@@ -195,7 +195,7 @@
           "id": "intro",
           "type": "INFO",
           "tittel": "Velkommen",
-          "tekst": "Vi hjelper deg med en kort chatbasert soknad om fritidskort-stotte.",
+          "tekst": "Vi hjelper deg med en kort chatbasert søknad om fritidskort-støtte.",
           "forfatterhjelp": {
             "hensikt": "Forklar prosessen kort før spørsmålene starter",
             "skrivetips": "Unngå byråkratiske ord"
@@ -205,18 +205,18 @@
           "id": "behov",
           "type": "QUESTION",
           "tittel": "Hvem skal bruke fritidskortet?",
-          "tekst": "Svar kort med navn eller relasjon, og hva stotten skal brukes til.",
+          "tekst": "Svar kort med navn eller relasjon, og hva støtten skal brukes til.",
           "felter": [
             {
               "id": "gjelderFor",
-              "label": "Hvem gjelder soknaden for?",
+              "label": "Hvem gjelder søknaden for?",
               "type": "tekst",
               "placeholder": "For eksempel barnet mitt i 5. klasse",
               "obligatorisk": true
             },
             {
               "id": "aktivitet",
-              "label": "Hvilken aktivitet onskes stotte til?",
+              "label": "Hvilken aktivitet ønskes støtte til?",
               "type": "tekst",
               "placeholder": "For eksempel fotball, korps eller dans",
               "obligatorisk": true
@@ -227,7 +227,7 @@
           "id": "samtykke-inntekt",
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente inntektsopplysninger?",
-          "formaal": "Vurdere rett til fritidskort-stotte",
+          "formaal": "Vurdere rett til fritidskort-støtte",
           "dataKilder": ["inntekt"]
         },
         {
@@ -249,6 +249,106 @@
           "id": "send-inn",
           "type": "SUBMIT",
           "tittel": "Send inn"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "id": "fartsdempende-tiltak",
+      "navn": "Søknad om fartsdempende tiltak",
+      "beskrivelse": "Søk om fartsreduserende tiltak i en gate der du har registrert eiendom.",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Samferdsel",
+        "hjelpetekst": "Bruker må ha registrert eiendom i gaten. Krever SJEKK-steg for eierforhold."
+      },
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Søknad om fartsdempende tiltak",
+          "tekst": "Hei! Jeg hjelper deg med å søke om fartsdempende tiltak, for eksempel fartshumper, innsnevringer eller 30-sone. For å sende inn søknaden må du ha registrert eiendom i gaten. I denne demoen kan du teste med Storgata, Nordnesveien, Fjøsangerveien eller Laksevågvegen."
+        },
+        {
+          "id": "velg-gate",
+          "type": "QUESTION",
+          "tittel": "Hvilken gate gjelder søknaden?",
+          "tekst": "Hvilken gate ønsker du fartsdempende tiltak i? Skriv inn gatenavnet.",
+          "felter": [
+            {
+              "id": "gatenavn",
+              "label": "Gatenavn",
+              "type": "tekst",
+              "placeholder": "f.eks. Storgata",
+              "obligatorisk": true
+            }
+          ]
+        },
+        {
+          "id": "hent-gate",
+          "type": "DATA_FETCH",
+          "tittel": "Slår opp gate i matrikkelen",
+          "api": {
+            "method": "GET",
+            "url": "/api/matrikkel/gater?gate={svar.velg-gate}"
+          }
+        },
+        {
+          "id": "sjekk-eier",
+          "type": "SJEKK",
+          "tittel": "Sjekker eierforhold i gaten",
+          "feilmelding": "Du kan bare søke om fartsdempende tiltak i gater der du eier eiendom. Vi fant ingen registrert eiendom på deg i denne gaten.",
+          "api": {
+            "method": "GET",
+            "url": "/api/matrikkel/sjekk/eierforhold?personId={personId}&gate={svar.velg-gate}"
+          }
+        },
+        {
+          "id": "boliger-bekreft",
+          "type": "QUESTION",
+          "tittel": "Antall boliger i gaten",
+          "tekst": "Matrikkelen kan være ufullstendig. Er det mer enn 20 boliger i gaten? Dette hjelper oss i vurderingen av søknaden.",
+          "felter": [
+            {
+              "id": "merEnn20Boliger",
+              "label": "Er det mer enn 20 boliger i gaten?",
+              "type": "ja-nei",
+              "obligatorisk": true
+            }
+          ]
+        },
+        {
+          "id": "begrunnelse",
+          "type": "QUESTION",
+          "tittel": "Begrunn søknaden",
+          "tekst": "Beskriv trafikkproblemet og hva slags tiltak du ønsker. Det er fint om du er så konkret som mulig.",
+          "felter": [
+            {
+              "id": "trafikkproblem",
+              "label": "Beskriv trafikkproblemet",
+              "type": "tekst",
+              "placeholder": "f.eks. høy fart, mye gjennomgangstrafikk, utrygt for barn og eldre",
+              "obligatorisk": true
+            },
+            {
+              "id": "oensketTiltak",
+              "label": "Ønsket tiltak",
+              "type": "valg",
+              "alternativer": ["Fartshumper", "Innsnevring av kjørebanen", "Sone med 30 km/t", "Opphøyd gangfelt", "Annet"],
+              "obligatorisk": false
+            }
+          ]
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering av søknad"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send inn søknad"
         }
       ],
       "syntetisk": true

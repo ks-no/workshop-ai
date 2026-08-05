@@ -500,5 +500,120 @@
       }
     ],
     "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785837056304-dz5ahx",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T09:50:56.304Z",
+    "utloper": "2026-09-03T09:50:56.304Z",
+    "sporingsId": "flyt-1785837056213-nkp554",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T09:50:56.304Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T09:50:56.317Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785837069789-gli4db",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T09:51:09.789Z",
+    "utloper": "2026-09-03T09:51:09.789Z",
+    "sporingsId": "trace-1785837069679",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T09:51:09.789Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T09:51:09.800Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785837128394-6z36pn",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T09:52:08.394Z",
+    "utloper": "2026-09-03T09:52:08.394Z",
+    "sporingsId": "flyt-1785837128305-6hponi",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T09:52:08.394Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T09:52:08.405Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785837256824-oplly8",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-stotte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T09:54:16.824Z",
+    "utloper": "2026-09-03T09:54:16.824Z",
+    "sporingsId": "flyt-1785837256735-xiiuvv",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T09:54:16.824Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T09:54:16.836Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "samtykkeId": "samtykke-1785837749528-ppwt4c",
+    "personId": "person-001",
+    "formaal": "Vurdere rett til fritidskort-støtte",
+    "dataKilder": [
+      "inntekt"
+    ],
+    "status": "SAMTYKKET",
+    "opprettet": "2026-08-04T10:02:29.528Z",
+    "utloper": "2026-09-03T10:02:29.528Z",
+    "sporingsId": "flyt-1785837749436-jf7dvk",
+    "historikk": [
+      {
+        "tidspunkt": "2026-08-04T10:02:29.528Z",
+        "status": "VENTER_PAA_SVAR"
+      },
+      {
+        "tidspunkt": "2026-08-04T10:02:29.543Z",
+        "status": "SAMTYKKET"
+      }
+    ],
+    "syntetisk": true
   }
 ]

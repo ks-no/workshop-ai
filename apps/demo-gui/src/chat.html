@@ -37,7 +37,7 @@
     <main>
       <div class="top-links"><a href="/">Åpen klassisk demo</a> &nbsp;|&nbsp; <a href="/agent">AI-agent</a></div>
       <h1>Innbyggerdialog Chat</h1>
-      <p class="muted">Chatten styrer stegene direkte. Hoyre side er fjernet for en renere dialogflyt.</p>
+      <p class="muted">Chatten styrer stegene direkte. Høyre side er fjernet for en renere dialogflyt.</p>
 
       <section class="card">
         <div class="two-col">
@@ -107,6 +107,13 @@
           return "";
         }
 
+        if (steg?.type === "SJEKK") {
+          if (result.godkjent === false) {
+            return result.melding || "Sjekken feilet.";
+          }
+          return result.melding || "Sjekk fullført.";
+        }
+
         if (steg?.type === "CONSENT_REQUEST") {
           if (result.status === "SAMTYKKET") {
             return "Takk. Samtykket er registrert, så da kan vi gå videre.";
@@ -118,6 +125,9 @@
         }
 
         if (steg?.type === "DATA_FETCH") {
+          if (result.adressenavn && result.antallEiendommer !== undefined) {
+            return `Jeg fant gaten ${result.adressenavn} i ${result.kommune}. Matrikkelen viser ${result.antallBoligeiendommer} boligeiendommer og ${result.antallEiendommer} eiendommer totalt.`;
+          }
           if (result.bruttoInntekt) {
             return `Jeg har hentet inntektsopplysningene. Registrert bruttoinntekt for ${result.aar} er ${formatNumber(result.bruttoInntekt)} kroner.`;
           }
@@ -171,7 +181,13 @@
         }
 
         if (steg.type === "DATA_FETCH") {
-          return "Takk. Da henter jeg de opplysningene vi trenger nå.";
+          return steg.id === "hent-gate"
+            ? "Takk. Da slår jeg opp gaten i matrikkelen."
+            : "Takk. Da henter jeg de opplysningene vi trenger nå.";
+        }
+
+        if (steg.type === "SJEKK") {
+          return "Nå sjekker jeg om du har registrert eiendom i gaten.";
         }
 
         if (steg.type === "SUMMARY") {
@@ -310,7 +326,7 @@
       }
 
       async function goNext() {
-        if (!oekt || oekt.status === "FULLFORT") return;
+        if (!oekt || oekt.status === "FULLFORT" || oekt.status === "AVVIST") return;
         if (oekt.stegIndex >= (oekt.totaltAntallSteg - 1)) return;
         oekt = await req(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" });
         updateSessionInfo();
@@ -366,6 +382,10 @@
           addMsg("system", "Ingen aktivt steg.");
           return;
         }
+        if (oekt.status === "AVVIST") {
+          addMsg("error", oekt.avvistMelding || oekt.resultater?.[steg.id]?.melding || "Søknaden ble avvist.");
+          return;
+        }
         if (oekt.status === "FULLFORT") {
           addMsg("assistant", "Da er vi ferdige. Takk for at du gikk gjennom dette sammen med meg.");
           return;
@@ -392,6 +412,11 @@
 
         if (steg.type === "DATA_FETCH") {
           await autoRunStep(steg, "Jeg henter opplysningene nå.");
+          return;
+        }
+
+        if (steg.type === "SJEKK") {
+          await autoRunStep(steg, "Jeg sjekker opplysningene nå.");
           return;
         }
 
@@ -423,6 +448,11 @@
 
         if (!oekt || !oekt.aktivtSteg) {
           addMsg("error", "Start en prosess forst.");
+          return;
+        }
+
+        if (oekt?.status === "AVVIST") {
+          addMsg("error", "Søknaden ble avvist. Start en ny søknad om du vil prøve igjen.");
           return;
         }
 
@@ -513,7 +543,8 @@
 
       async function loadOptions() {
         const personer = await req("/api/personer");
-        prosesser = await req("/api/prosesser");
+        const prosessData = await req("/api/prosesser");
+        prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
         personEl.innerHTML = personer.map((p) => `<option value="${p.personId}">${p.fornavn} ${p.etternavn} (${p.kommune})</option>`).join("");
         prosessEl.innerHTML = prosesser.map((p) => `<option value="${p.id}">${p.navn}</option>`).join("");
       }

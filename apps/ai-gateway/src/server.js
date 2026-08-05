@@ -111,17 +111,79 @@ function byggSvar(type, body) {
   }
 
   function byggSvarLinjer() {
-    const svarEntries = Object.entries(svar || {});
-    if (!svarEntries.length) return null;
-    return svarEntries.map(([stegId, verdi]) => `${stegId}: "${typeof verdi === "object" ? JSON.stringify(verdi) : verdi}"`).join("; ");
+    const deler = [];
+    for (const [, verdi] of Object.entries(svar || {})) {
+      if (typeof verdi === "string" && verdi.trim()) {
+        deler.push(verdi.trim().replace(/[.]+$/g, ""));
+      } else if (typeof verdi === "object" && verdi !== null) {
+        const verdier = Object.values(verdi).filter((v) => v && String(v).trim());
+        if (verdier.length) deler.push(verdier.map((v) => String(v).trim().replace(/[.]+$/g, "")).join(", "));
+      }
+    }
+    return deler.length ? deler.join(" | ") : null;
+  }
+
+  function erJaSvar(verdi) {
+    const tekst = String(verdi || "").toLowerCase().trim();
+    return ["ja", "japp", "yes", "greit", "ok", "okei", "det stemmer", "riktig"].some((ord) => tekst.includes(ord));
+  }
+
+  function byggFartsdempendeOppsummering() {
+    const gateData = finnVerdi((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
+    if (!gateData || !String(tjeneste).toLowerCase().includes("fartsdempende")) {
+      return null;
+    }
+
+    const flereEnn20 = svar["boliger-bekreft"];
+    const begrunnelse = String(svar.begrunnelse || "").trim();
+    const eierSjekk = finnVerdi((v) => v?.godkjent !== undefined && typeof v?.melding === "string");
+
+    const linjer = [
+      `Her er en oppsummering av søknaden om fartsdempende tiltak i ${gateData.adressenavn}, ${gateData.kommune}.`,
+      `Matrikkelen viser ${gateData.antallBoligeiendommer} boligeiendommer og ${gateData.antallEiendommer} eiendommer totalt i gaten.`
+    ];
+
+    if (eierSjekk?.godkjent) {
+      linjer.push("Eierforholdet er kontrollert, og søker har registrert eiendom i gaten.");
+    }
+
+    if (flereEnn20) {
+      linjer.push(
+        erJaSvar(flereEnn20)
+          ? "Søker opplyser at gaten har mer enn 20 boliger."
+          : "Søker opplyser at gaten ikke har mer enn 20 boliger."
+      );
+    }
+
+    if (begrunnelse) {
+      linjer.push(`Begrunnelse fra søker: ${begrunnelse}`);
+    }
+
+    linjer.push("Søknaden sendes inn med disse opplysningene som grunnlag for videre vurdering.");
+    return linjer.join(" ");
+  }
+
+  function byggGateLinje() {
+    const gateData = finnVerdi((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
+    if (!gateData) return null;
+    const boligInfo = gateData.antallBoligeiendommer !== undefined
+      ? `${gateData.antallBoligeiendommer} boligeiendommer av totalt ${gateData.antallEiendommer}`
+      : `${gateData.antallEiendommer} eiendommer`;
+    return `Gate: ${gateData.adressenavn}, ${gateData.kommune || ""} (${boligInfo})`;
   }
 
   function byggOppsummeringstekst() {
+    const fartsdempendeOppsummering = byggFartsdempendeOppsummering();
+    if (fartsdempendeOppsummering) {
+      return fartsdempendeOppsummering;
+    }
+
+    const gateLinje = byggGateLinje();
     const husstandLinje = byggHusstandLinjer();
     const inntektLinje = byggInntektLinjer();
     const svarLinje = byggSvarLinjer();
 
-    const detaljer = [husstandLinje, inntektLinje, svarLinje].filter(Boolean);
+    const detaljer = [gateLinje, husstandLinje, inntektLinje, svarLinje].filter(Boolean);
     const detaljtekst = detaljer.length > 0
       ? detaljer.join(" | ")
       : "Vi fant relevante opplysninger i flyten.";
@@ -206,7 +268,7 @@ function heuristiskTolkning(body) {
     "nei",
     "nei takk",
     "ikke nå",
-    "ikke na",
+    "ikke nå",
     "senere",
     "stopp",
     "vil ikke",

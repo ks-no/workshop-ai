@@ -34,11 +34,11 @@ Pull valgt modell eksplisitt:
 OLLAMA_MODEL=qwen2.5:7b docker compose --profile pull up ollama-pull-selected
 ```
 
-GPU-stotte i Docker (NVIDIA):
+GPU-støtte i Docker (NVIDIA):
 
 - https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
-Start med GPU-override nar Docker GPU-stotte er aktivert:
+Start med GPU-override når Docker GPU-støtte er aktivert:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
