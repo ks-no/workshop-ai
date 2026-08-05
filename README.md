@@ -42,73 +42,106 @@ Applikasjonene finnes nå som en kjørbar, lettvekts MVP med enkle Node-tjeneste
 
 ## Hvordan starte den
 
-Installer avhengigheter:
+Du trenger **Docker** installert og startet. På macOS må du ha [Homebrew](https://brew.sh), så skriptet kan installere Ollama for deg. Node og pnpm trengs ikke for å kjøre sandboxen — bare for testskriptene.
 
 ```bash
-pnpm install
+./start.sh
 ```
 
-Bygg og start alle tjenester:
+Det er alt. Skriptet finner ut hvilken plattform du er på, sørger for at en språkmodell er tilgjengelig, starter tjenestene, og verifiserer at modellen faktisk er koblet på før den melder klar.
+
+Første gang må en språkmodell lastes ned — fra 400 MB til 9 GB avhengig av hvor mye minne maskinen din har. Sett av tid til det; senere oppstarter tar sekunder.
+
+Skriptet spør før det laster ned. På macOS spør det i tillegg før det installerer Ollama, siden den kjører nativt der; på Linux og WSL kjører Ollama i container og installeres ikke. `./start.sh -y` hopper over alle spørsmål.
+
+Stopp med `./start.sh -d`.
+
+På Windows: kjør skriptet fra Git Bash eller WSL.
+
+### Valg
+
+Du skal normalt ikke trenge noen av disse.
+
+| Flagg | |
+|---|---|
+| `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
+| `-y, --yes` | Ikke spør før installasjon eller nedlasting |
+| `--mock` | Kjør uten språkmodell. Redningsflagget når nedlasting ikke er mulig |
+| `-d, --down` | Stopp alt |
+| `-h, --help` | Hjelp |
+
+### Hva skriptet gjør for deg
+
+**Plattform** oppdages automatisk:
+
+| Plattform | Hvordan Ollama kjøres |
+|---|---|
+| macOS | Nativt på verten. Docker Desktop når ikke Metal på Apple Silicon, så Ollama i container ville blitt ren CPU-inferens. |
+| Linux med NVIDIA-GPU | I container, med `docker-compose.gpu.yml` |
+| Linux og WSL ellers | I container, uten GPU |
+
+**Modell** velges ut fra minnet på maskinen: 32 GB RAM eller mer gir `qwen2.5:14b`, 12 GB eller mer gir `qwen2.5:7b`, under det `qwen2.5:0.5b`.
+
+Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjør — en modell som får plass i RAM men ikke i VRAM blir splittet mot CPU og går tregt. Apple Silicon har unified memory, så der er RAM riktig tall.
+
+Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
+
+**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandboxen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+
+### Hvis noe ikke virker
+
+Kontroller at modellen er koblet på:
 
 ```bash
-docker compose up --build
+curl -s -X POST http://localhost:8082/ai/klarsprak \
+  -H "Content-Type: application/json" \
+  -d '{"kontekst":{"tjeneste":"test"},"sprak":"nb"}'
 ```
 
-For GPU-stotte i Docker (NVIDIA), se:
+Svaret skal ha `"modell": "ollama:<modell>"` og **ingen** `advarsel`-felt. Ser du `"mock-ai-gateway (fallback)"`, er ikke modellen tilgjengelig. Grensesnittene viser ikke `advarsel`-feltet, så svarene ser normale ut selv når de kommer fra maler — det er derfor denne sjekken finnes.
 
-- https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+Logger: `docker compose logs -f ai-gateway`.
 
-Nar GPU-stotte er aktivert lokalt kan du starte Ollama med GPU ved a bruke override-filen:
+### Manuell oppstart
+
+`./start.sh` gjør dette for deg. Les skriptet hvis du vil se detaljene — det er kommentert.
+
+macOS, med Ollama nativt på verten:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+brew services start ollama    # ikke "ollama serve" — den dør når terminalen lukkes
+ollama pull qwen2.5:14b
+cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
+docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
+  mcp-services process-agent demo-gui process-builder
 ```
 
-Verifiser at Docker faktisk har GPU-tilgang:
+`--no-deps` hindrer at `depends_on: ollama` i `ai-gateway` drar opp container-Ollama.
+
+Linux og WSL, alt i Docker:
 
 ```bash
-docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+cp .env.example .env          # OLLAMA_BASE_URL=http://ollama:11434
+docker compose up -d
 ```
 
-Hvis denne kommandoen feiler, fullfor NVIDIA Container Toolkit-oppsettet i lenken over for du starter med GPU-override.
+Med NVIDIA-GPU: legg til `-f docker-compose.gpu.yml`. Verifiser at Docker har GPU-tilgang med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` — feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
-Dette starter ogs en lokal `ollama`-tjeneste i Docker Compose.
-
-### Velg modell lokalt (Ollama)
-
-Standardmodell er `qwen2.5:7b`, men modeller pulles kun nar du ber om det.
-
-Pull kun modellen du vil bruke:
-
-```bash
-OLLAMA_MODEL=qwen2.5:7b docker compose --profile pull up ollama-pull-selected
-```
-
-Kjor med en bestemt modell:
-
-```bash
-OLLAMA_MODEL=qwen2.5:14b docker compose up -d --force-recreate ai-gateway mcp-services process-agent
-```
-
-Pull alle anbefalte modeller en gang:
+Forhåndslast alle anbefalte modeller, for eksempel før en workshop med dårlig nett:
 
 ```bash
 docker compose --profile models up ollama-pull-all
 ```
 
-Anbefalte modeller:
-
-- `qwen2.5:0.5b` (raskest)
-- `qwen2.5:7b` (balansert)
-- `qwen2.5:14b` (best kvalitet av Qwen-variantene)
-- `llama3.1:8b` (god generell kvalitet)
-- `mistral-nemo` (god alternativ kvalitet)
+Modellene er `qwen2.5:0.5b` (raskest), `qwen2.5:7b` (balansert), `qwen2.5:14b` (best av Qwen-variantene), `llama3.1:8b` og `mistral-nemo`.
 
 ## Hvordan stoppe den
 
 ```bash
-docker compose down
+./start.sh -d
 ```
+
+Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker og stoppes med `brew services stop ollama` hvis du vil frigjøre minnet.
 
 ## Oversikt over tjenester og porter
 
