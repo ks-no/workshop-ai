@@ -9,3 +9,11 @@ pnpm-lock.yaml
 .idea
 
 state
+
+# Kjoeringstilstand hoerer i state/, ikke i data/. Se docs/syntetiske-data.md.
+data/revisjonslogg.json
+data/prosessoekter.json
+data/samtykker.json
+data/oppgaver.json
+data/soknader.json
+data/meldinger.json
