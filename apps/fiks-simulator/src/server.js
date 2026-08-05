@@ -130,12 +130,14 @@ function byggBeregning(deltakere) {
   }
 
   const sum = (poster) => poster.reduce((t, p) => t + p.beloep, 0);
+  // TypeApiModel forteller hvilken av de to barnelistene som er fylt: POST for
+  // beregningsposter, GRUNNLAG for beregningsgrunnlag. Vi bygger bare poster.
   const gruppe = (tekniskNavn, visningstekst, operasjon, poster) => ({
     tekniskNavn,
     visningstekst,
     beloep: sum(poster),
     operasjon,
-    type: "GRUNNLAG",
+    type: "POST",
     beregningsposter: poster
   });
 
@@ -198,6 +200,16 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
   const svarPersoner = [];
 
   for (const forespurt of body.personer) {
+    // Spec-en krever ^[0-9]{11}$. Uten denne sjekken ga en malformert
+    // identifikator PERSON_IKKE_FUNNET, som antyder at den var velformet.
+    if (!/^[0-9]{11}$/.test(String(forespurt.identifikator || ""))) {
+      feilmeldinger.push({
+        kode: "UGYLDIG_IDENTIFIKATOR",
+        melding: `identifikator må være 11 siffer, fikk ${forespurt.identifikator}.`
+      });
+      continue;
+    }
+
     const type = forespurt.type || "SOEKER";
     if (!["SOEKER", "ANNET"].includes(type)) {
       feilmeldinger.push({
@@ -242,9 +254,17 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
       poster: [...(rad?.poster || []), ...ekstraposter]
     });
 
+    // PersonnavnApiModel har mellomnavn som optional string, ikke nullable, så
+    // et fravaerende mellomnavn utelates framfor å sendes som null.
+    const navn = person.navn && {
+      fornavn: person.navn.fornavn,
+      ...(person.navn.mellomnavn ? { mellomnavn: person.navn.mellomnavn } : {}),
+      etternavn: person.navn.etternavn
+    };
+
     svarPersoner.push({
       identifikator: forespurt.identifikator,
-      navn: person.skjermet ? undefined : person.navn,
+      navn: person.skjermet ? undefined : navn,
       type,
       skjermet: Boolean(person.skjermet),
       skatteoppgjoersdato: rad?.skatteoppgjoersdato || undefined,
