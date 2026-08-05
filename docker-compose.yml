@@ -81,6 +81,8 @@ services:
     image: node:22-alpine
     working_dir: /workspace
     command: ["node", "apps/fiks-simulator/src/server.js"]
+    environment:
+      - BACKEND_BASE_URL=http://sandbox-backend:8080
     ports:
       - "8081:8081"
     volumes:
@@ -94,6 +96,7 @@ services:
       ollama:
         condition: service_healthy
     environment:
+      - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}

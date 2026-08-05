@@ -262,6 +262,16 @@ Anbefalt eierskap:
 - `ai-gateway` eier:
   - KI-kall og eventuell KI-logg
 
+**Status:** revisjonsloggen er nå faktisk eid av `sandbox-backend`. Tidligere skrev
+`sandbox-backend`, `fiks-simulator` og `ai-gateway` alle direkte til
+`revisjonslogg.json` uten låsing, slik at hendelser kunne gå tapt. De to andre
+sender nå hendelser til `POST /api/revisjonslogg`, og backend serialiserer
+skrivingene. Kallet har kort timeout og svelger feil — revisjon skal aldri
+velte operasjonen den revisjonslogger.
+
+Kjøringstilstand er samtidig flyttet ut av `data/` og inn i `state/`, som ikke
+ligger i git. Se `docs/syntetiske-data.md`.
+
 På sikt kan vi flytte data fysisk per tjeneste, men allerede nå bør vi behandle eierskapet slik logisk.
 
 ## Foreslått neste steg i repoet

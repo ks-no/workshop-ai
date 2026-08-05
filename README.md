@@ -67,6 +67,7 @@ Du skal normalt ikke trenge noen av disse.
 | `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
 | `-y, --yes` | Ikke spør før installasjon eller nedlasting |
 | `--mock` | Kjør uten språkmodell. Redningsflagget når nedlasting ikke er mulig |
+| `--reset` | Glem alle tidligere demokjøringer og start fra kildedataene |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 
@@ -87,6 +88,12 @@ Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjø
 Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
 
 **Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandboxen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+
+### Kildedata og kjøringstilstand
+
+`data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner i `state/`, som er gitignorert. En demokjøring skitner derfor ikke til arbeidstreet — kjører du en flyt og deretter `git status`, skal den være ren.
+
+`./start.sh --reset` nullstiller `state/`. Se `docs/syntetiske-data.md`, også for hvordan du deler en prosess du har laget i byggeren.
 
 ### Hvis noe ikke virker
 

@@ -1,11 +1,16 @@
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataMappe = path.resolve(__dirname, "../../../data");
+
+// See the same split in sandbox-backend: data/ is seed and stays untouched,
+// state/ holds everything written at runtime and is gitignored.
+const seedMappe = path.resolve(__dirname, "../../../data");
+const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 const port = 8081;
+const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
 function jsonSvar(response, statusCode, data) {
   response.writeHead(statusCode, {
@@ -25,12 +30,26 @@ function tekstSvar(response, statusCode, data, contentType = "text/html; charset
   response.end(data);
 }
 
-async function lesJson(filnavn) {
-  return JSON.parse(await readFile(path.join(dataMappe, filnavn), "utf8"));
+// Same two-level lookup as sandbox-backend: state/ first, then the seed in
+// data/. Runtime-only datasets have no seed and pass a default; anything
+// without one is required and fails loudly if missing.
+async function lesJson(filnavn, standardverdi) {
+  for (const mappe of [stateMappe, seedMappe]) {
+    try {
+      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  if (standardverdi !== undefined) {
+    return standardverdi;
+  }
+  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
 }
 
 async function skrivJson(filnavn, data) {
-  await writeFile(path.join(dataMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
+  await mkdir(stateMappe, { recursive: true });
+  await writeFile(path.join(stateMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
 }
 
 async function lesBody(request) {
@@ -45,15 +64,25 @@ function nyttId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// sandbox-backend owns the audit log. We send events there instead of writing
+// the file ourselves, so there is only ever one writer.
+//
+// Auditing must never break the operation being audited: if the backend is
+// unavailable we log locally and carry on.
 async function leggTilRevisjon(hendelse) {
-  const revisjonslogg = await lesJson("revisjonslogg.json");
-  revisjonslogg.push({
-    hendelseId: nyttId("revisjon"),
-    tidspunkt: new Date().toISOString(),
-    syntetisk: true,
-    ...hendelse
-  });
-  await skrivJson("revisjonslogg.json", revisjonslogg);
+  try {
+    const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(hendelse),
+      signal: AbortSignal.timeout(2000)
+    });
+    if (!svar.ok) {
+      throw new Error(`status ${svar.status}`);
+    }
+  } catch (error) {
+    console.warn(`Kunne ikke revisjonslogge mot sandbox-backend: ${error.message}`);
+  }
 }
 
 function docsHtml() {
@@ -104,9 +133,9 @@ const server = createServer(async (request, response) => {
     const husstander = await lesJson("husstander.json");
     const inntekter = await lesJson("inntekter.json");
     const barnehageplasser = await lesJson("barnehageplasser.json");
-    const samtykker = await lesJson("samtykker.json");
-    const oppgaver = await lesJson("oppgaver.json");
-    const meldinger = await lesJson("meldinger.json");
+    const samtykker = await lesJson("samtykker.json", []);
+    const oppgaver = await lesJson("oppgaver.json", []);
+    const meldinger = await lesJson("meldinger.json", []);
 
     if (request.method === "POST" && url.pathname === "/fiks/samtykke") {
       const body = await lesBody(request);

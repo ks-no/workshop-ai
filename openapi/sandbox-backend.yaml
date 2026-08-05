@@ -165,6 +165,46 @@ paths:
         "403":
           description: Samtykke mangler
 
+  /api/revisjonslogg:
+    get:
+      summary: Hent hele revisjonsloggen
+      responses:
+        "200":
+          description: Revisjonslogg returnert
+    post:
+      summary: Registrer en revisjonshendelse
+      description: >
+        Denne tjenesten eier revisjonsloggen. Andre tjenester, som
+        fiks-simulator og ai-gateway, sender hendelser hit i stedet for å
+        skrive loggfilen selv, slik at det bare finnes én skriver.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handling]
+              properties:
+                handling:
+                  type: string
+                  example: SAMTYKKE_OPPRETTET
+                ressurs:
+                  type: string
+                sporingsId:
+                  type: string
+                aktor:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    id:
+                      type: string
+      responses:
+        "201":
+          description: Hendelsen er registrert
+        "400":
+          description: Hendelsen mangler handling
+
 components:
   schemas:
     RedigeringMeta:

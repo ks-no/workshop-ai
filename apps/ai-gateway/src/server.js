@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataMappe = path.resolve(__dirname, "../../../data");
 const port = 8082;
+const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
@@ -38,27 +38,29 @@ async function lesBody(request) {
   return deler.length ? JSON.parse(Buffer.concat(deler).toString("utf8")) : {};
 }
 
-async function lesJson(filnavn) {
-  return JSON.parse(await readFile(path.join(dataMappe, filnavn), "utf8"));
-}
-
-async function skrivJson(filnavn, data) {
-  await writeFile(path.join(dataMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
-}
-
 function nyttId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// sandbox-backend owns the audit log. We send events there instead of writing
+// the file ourselves, so there is only ever one writer.
+//
+// Auditing must never break the operation being audited: if the backend is
+// unavailable we log locally and carry on.
 async function leggTilRevisjon(hendelse) {
-  const revisjonslogg = await lesJson("revisjonslogg.json");
-  revisjonslogg.push({
-    hendelseId: nyttId("revisjon"),
-    tidspunkt: new Date().toISOString(),
-    syntetisk: true,
-    ...hendelse
-  });
-  await skrivJson("revisjonslogg.json", revisjonslogg);
+  try {
+    const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(hendelse),
+      signal: AbortSignal.timeout(2000)
+    });
+    if (!svar.ok) {
+      throw new Error(`status ${svar.status}`);
+    }
+  } catch (error) {
+    console.warn(`Kunne ikke revisjonslogge mot sandbox-backend: ${error.message}`);
+  }
 }
 
 function docsHtml() {

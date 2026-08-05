@@ -23,6 +23,7 @@ MODEL=""
 ASSUME_YES=false
 DOWN=false
 MOCK=false
+RESET=false
 PROFILE=""
 COMPOSE_FILES=(-f docker-compose.yml)
 
@@ -42,6 +43,7 @@ Options:
   -m, --model MODEL  Use a specific Ollama model instead of the auto-selected one
   -y, --yes          Do not ask before installing Ollama or downloading a model
       --mock         Run without a language model (AI replies become templates)
+      --reset        Wipe runtime state in state/ and start from the seed data
   -d, --down         Stop and remove all containers
   -h, --help         Show this help
 
@@ -50,6 +52,7 @@ Examples:
   ./start.sh -y               # unattended, including downloads
   ./start.sh -m qwen2.5:7b    # smaller model
   ./start.sh --mock           # no model — useful on a bad connection
+  ./start.sh --reset          # forget every earlier demo run
   ./start.sh -d               # stop everything
 EOF
 }
@@ -61,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" ]] || fail "--model needs a value"; shift 2 ;;
     -y|--yes)   ASSUME_YES=true; shift ;;
     --mock)     MOCK=true; shift ;;
+    --reset)    RESET=true; shift ;;
     -d|--down)  DOWN=true; shift ;;
     -h|--help)  usage; exit 0 ;;
     -g|--gpu|-p|--pull)
@@ -379,6 +383,13 @@ fi
 step "🔎 Checking prerequisites"
 preflight
 ensure_env
+
+if $RESET; then
+  # Services seed themselves from data/ whenever a state file is missing,
+  # so removing the directory is all it takes.
+  rm -rf state
+  info "runtime state cleared — starting from the seed data"
+fi
 
 if ! $MOCK; then
   step "🦙 Preparing the language model"

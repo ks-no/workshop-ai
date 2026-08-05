@@ -1,18 +1,14 @@
 import { readFile } from "node:fs/promises";
 
+// Only seed data. Runtime datasets live in state/, are gitignored, and are
+// created by the services on first write.
 const filer = [
   "data/personer.json",
   "data/husstander.json",
   "data/inntekter.json",
   "data/barnehageplasser.json",
-  "data/soknader.json",
-  "data/samtykker.json",
   "data/prosessdefinisjoner.json",
   "data/informasjonsmodeller.json",
-  "data/prosessoekter.json",
-  "data/oppgaver.json",
-  "data/meldinger.json",
-  "data/revisjonslogg.json",
   "data/matrikkel.json"
 ];
 

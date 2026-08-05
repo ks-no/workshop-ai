@@ -1,10 +1,15 @@
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataMappe = path.resolve(__dirname, "../../../data");
+
+// data/ holds seed data and is tracked in git. Nothing here is ever written
+// to at runtime. Everything the services change lives in state/, which is
+// gitignored, so a demo run never dirties the working tree.
+const seedMappe = path.resolve(__dirname, "../../../data");
+const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 const openapiFil = path.resolve(__dirname, "../../../openapi/sandbox-backend.yaml");
 const port = 8080;
 const fiksBaseUrl = process.env.FIKS_BASE_URL || "http://fiks-simulator:8081";
@@ -30,13 +35,30 @@ function tekstSvar(response, statusCode, data, contentType = "text/html; charset
   response.end(data);
 }
 
-async function lesJson(filnavn) {
-  const innhold = await readFile(path.join(dataMappe, filnavn), "utf8");
-  return JSON.parse(innhold);
+// Reads from state/ once something has been written there, and falls back to
+// the seed in data/. Pure seed files are never written, so they always come
+// from data/.
+//
+// Datasets that only exist at runtime have no seed at all, so they pass a
+// default. Anything called without one is required, and a missing file fails
+// loudly rather than quietly looking empty.
+async function lesJson(filnavn, standardverdi) {
+  for (const mappe of [stateMappe, seedMappe]) {
+    try {
+      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  if (standardverdi !== undefined) {
+    return standardverdi;
+  }
+  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
 }
 
 async function skrivJson(filnavn, data) {
-  await writeFile(path.join(dataMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
+  await mkdir(stateMappe, { recursive: true });
+  await writeFile(path.join(stateMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
 }
 
 async function lesRequestBody(request) {
@@ -154,12 +176,12 @@ async function lesTilstand() {
     lesJson("husstander.json"),
     lesJson("inntekter.json"),
     lesJson("barnehageplasser.json"),
-    lesJson("soknader.json"),
+    lesJson("soknader.json", []),
     lesJson("prosessdefinisjoner.json"),
     lesJson("informasjonsmodeller.json"),
-    lesJson("samtykker.json"),
-    lesJson("revisjonslogg.json"),
-    lesJson("prosessoekter.json"),
+    lesJson("samtykker.json", []),
+    lesJson("revisjonslogg.json", []),
+    lesJson("prosessoekter.json", []),
     lesJson("matrikkel.json")
   ]);
 
@@ -183,15 +205,27 @@ async function lesTilstand() {
   };
 }
 
+// This service is the only writer of the audit log — fiks-simulator posts its
+// events to /api/revisjonslogg rather than touching the file.
+//
+// Writes are chained so that concurrent requests cannot interleave their
+// read-modify-write and drop each other's events.
+let revisjonsKoe = Promise.resolve();
+
 async function leggTilRevisjon(hendelse) {
-  const revisjonslogg = await lesJson("revisjonslogg.json");
-  revisjonslogg.push({
-    hendelseId: nyttId("revisjon"),
-    tidspunkt: new Date().toISOString(),
-    syntetisk: true,
-    ...hendelse
+  revisjonsKoe = revisjonsKoe.then(async () => {
+    const revisjonslogg = await lesJson("revisjonslogg.json", []);
+    revisjonslogg.push({
+      hendelseId: nyttId("revisjon"),
+      tidspunkt: new Date().toISOString(),
+      syntetisk: true,
+      ...hendelse
+    });
+    await skrivJson("revisjonslogg.json", revisjonslogg);
+  }).catch((error) => {
+    console.warn(`Kunne ikke skrive revisjonslogg: ${error.message}`);
   });
-  await skrivJson("revisjonslogg.json", revisjonslogg);
+  return revisjonsKoe;
 }
 
 function docsHtml() {
@@ -913,6 +947,18 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/api/revisjonslogg") {
       jsonSvar(response, 200, tilstand.revisjonslogg);
+      return;
+    }
+
+    // Used by fiks-simulator so this service stays the only writer.
+    if (request.method === "POST" && url.pathname === "/api/revisjonslogg") {
+      const hendelse = await lesRequestBody(request);
+      if (!hendelse.handling) {
+        jsonSvar(response, 400, { feil: "Revisjonshendelse mangler handling." });
+        return;
+      }
+      await leggTilRevisjon(hendelse);
+      jsonSvar(response, 201, { status: "registrert", syntetisk: true });
       return;
     }
 
