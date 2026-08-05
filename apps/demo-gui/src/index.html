@@ -140,7 +140,7 @@
         prosesser = await hentJson("http://localhost:8080/api/prosesser");
 
         personvelger.innerHTML = personer
-          .map((person) => `<option value="${person.personId}">${person.fornavn} ${person.etternavn} (${person.kommune})</option>`)
+          .map((person) => `<option value="${person.personId}">${person.visningsnavn} (${person.bostedsadresse.kommune})</option>`)
           .join("");
 
         prosessvelger.innerHTML = prosesser

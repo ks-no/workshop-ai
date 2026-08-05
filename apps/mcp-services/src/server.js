@@ -97,6 +97,32 @@ const toolDefs = [
     }
   },
   {
+    name: "get_household_income",
+    description: "Get the household income basis for a person, calculated via the Fiks skatte- og inntektsopplysninger API. Shows which amounts count and which are excluded.",
+    inputSchema: {
+      type: "object",
+      required: ["personId"],
+      properties: { personId: { type: "string" } }
+    }
+  },
+  {
+    name: "check_eligibility",
+    description: "Check whether a person's household qualifies for a reduced-payment scheme. Deterministic: compares the income basis against the thresholds in satser.json.",
+    inputSchema: {
+      type: "object",
+      required: ["personId", "ordning"],
+      properties: {
+        personId: { type: "string" },
+        ordning: { type: "string", description: "Scheme id, e.g. redusert-foreldrebetaling-barnehage. Use list_schemes to see all." }
+      }
+    }
+  },
+  {
+    name: "list_schemes",
+    description: "List the reduced-payment schemes with their income thresholds and rules.",
+    inputSchema: { type: "object", properties: {} }
+  },
+  {
     name: "get_audit_log",
     description: "Get audit events by tracking id.",
     inputSchema: {
@@ -179,8 +205,8 @@ async function invokeTool(name, args = {}) {
       count: personer.length,
       personer: personer.map((p) => ({
         personId: p.personId,
-        navn: `${p.fornavn} ${p.etternavn}`,
-        kommune: p.kommune
+        navn: p.visningsnavn,
+        kommune: p.bostedsadresse?.kommune
       }))
     };
   }
@@ -255,6 +281,18 @@ async function invokeTool(name, args = {}) {
       kontekst: args.kontekst || {},
       sporingsId: args.sporingsId
     });
+  }
+
+  if (name === "get_household_income") {
+    return api(`/api/personer/${args.personId}/inntekt`);
+  }
+
+  if (name === "check_eligibility") {
+    return api(`/api/regler/sjekk/foreldrebetaling?personId=${encodeURIComponent(args.personId)}&ordning=${encodeURIComponent(args.ordning)}`);
+  }
+
+  if (name === "list_schemes") {
+    return api("/api/regler/satser");
   }
 
   if (name === "get_audit_log") {
