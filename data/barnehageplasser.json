@@ -1,7 +1,119 @@
 [
-  { "personId": "person-002", "barnehageId": "kg-bergen-001", "barnehagenavn": "Solsiden barnehage", "kommune": "Bergen", "plassprosent": 100, "manedspris": 3200, "syntetisk": true },
-  { "personId": "person-004", "barnehageId": "kg-trondheim-001", "barnehagenavn": "Bakklandet barnehage", "kommune": "Trondheim", "plassprosent": 100, "manedspris": 3300, "syntetisk": true },
-  { "personId": "person-006", "barnehageId": "kg-oslo-001", "barnehagenavn": "Majorstuen barnehage", "kommune": "Oslo", "plassprosent": 80, "manedspris": 2900, "syntetisk": true },
-  { "personId": "person-008", "barnehageId": "kg-stavanger-001", "barnehagenavn": "Fjellhagen barnehage", "kommune": "Stavanger", "plassprosent": 100, "manedspris": 3150, "syntetisk": true },
-  { "personId": "person-010", "barnehageId": "kg-drammen-001", "barnehagenavn": "Stromso barnehage", "kommune": "Drammen", "plassprosent": 60, "manedspris": 2500, "syntetisk": true }
+  {
+    "personId": "person-002",
+    "barnehageId": "kg-bergen-001",
+    "barnehagenavn": "Solsiden barnehage",
+    "kommune": "Bergen",
+    "plassprosent": 100,
+    "manedspris": 3200,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-005",
+    "barnehageId": "kg-trondheim-002",
+    "barnehagenavn": "Bakklandet barnehage",
+    "kommune": "Trondheim",
+    "plassprosent": 100,
+    "manedspris": 3300,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-007",
+    "barnehageId": "kg-oslo-003",
+    "barnehagenavn": "Majorstuen barnehage",
+    "kommune": "Oslo",
+    "plassprosent": 80,
+    "manedspris": 2900,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-010",
+    "barnehageId": "kg-stavanger-004",
+    "barnehagenavn": "Fjellhagen barnehage",
+    "kommune": "Stavanger",
+    "plassprosent": 100,
+    "manedspris": 3150,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-013",
+    "barnehageId": "kg-drammen-005",
+    "barnehagenavn": "Strømsø barnehage",
+    "kommune": "Drammen",
+    "plassprosent": 60,
+    "manedspris": 2500,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-015",
+    "barnehageId": "kg-tromsø-006",
+    "barnehagenavn": "Nordlys barnehage",
+    "kommune": "Tromsø",
+    "plassprosent": 100,
+    "manedspris": 3050,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-018",
+    "barnehageId": "kg-kristiansand-007",
+    "barnehagenavn": "Markens barnehage",
+    "kommune": "Kristiansand",
+    "plassprosent": 100,
+    "manedspris": 3250,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-021",
+    "barnehageId": "kg-bodø-008",
+    "barnehagenavn": "Havna barnehage",
+    "kommune": "Bodø",
+    "plassprosent": 100,
+    "manedspris": 3100,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-023",
+    "barnehageId": "kg-ålesund-009",
+    "barnehagenavn": "Borgund barnehage",
+    "kommune": "Ålesund",
+    "plassprosent": 100,
+    "manedspris": 3000,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-025",
+    "barnehageId": "kg-sandnes-010",
+    "barnehagenavn": "Sandved barnehage",
+    "kommune": "Sandnes",
+    "plassprosent": 80,
+    "manedspris": 2800,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-037",
+    "barnehageId": "kg-stavanger-015",
+    "barnehagenavn": "Løkken barnehage",
+    "kommune": "Stavanger",
+    "plassprosent": 100,
+    "manedspris": 3180,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-039",
+    "barnehageId": "kg-nordre follo-016",
+    "barnehagenavn": "Ski barnehage",
+    "kommune": "Nordre Follo",
+    "plassprosent": 100,
+    "manedspris": 3220,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-041",
+    "barnehageId": "kg-bergen-017",
+    "barnehagenavn": "Kanalen barnehage",
+    "kommune": "Bergen",
+    "plassprosent": 100,
+    "manedspris": 3200,
+    "syntetisk": true
+  }
 ]

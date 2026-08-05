@@ -1,0 +1,66 @@
+{
+  "gjelderFra": "2026-08-01",
+  "kilde": "Forskrift om foreldrebetaling i barnehager, samt kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
+  "merknad": "Syntetiske sandbox-satser. Noen grenser er nasjonale, andre kommunale. Verifiser mot gjeldende forskrift for din kommune før tallene brukes til annet enn demo.",
+  "maksAndelAvInntekt": 0.06,
+  "maanederMedBetaling": 11,
+  "inntektsbegrep": "skattepliktigPersonOgKapitalinntekt",
+  "husholdning": "Ektefeller, registrerte partnere og samboere regnes som én husholdning.",
+  "ordninger": [
+    {
+      "id": "redusert-foreldrebetaling-barnehage",
+      "navn": "Redusert foreldrebetaling i barnehage",
+      "tjeneste": "barnehage",
+      "regel": "MAKS_ANDEL_AV_INNTEKT",
+      "beskrivelse": "Foreldrebetalingen skal maksimalt utgjøre 6 % av husholdningens skattepliktige person- og kapitalinntekt."
+    },
+    {
+      "id": "gratis-kjernetid-barnehage-2-5",
+      "navn": "Gratis kjernetid i barnehage, 2–5 år",
+      "tjeneste": "barnehage",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 692465,
+      "alderFraAar": 2,
+      "alderTilAar": 5,
+      "beskrivelse": "20 timer gratis opphold per uke."
+    },
+    {
+      "id": "gratis-kjernetid-barnehage-1",
+      "navn": "Gratis kjernetid i barnehage, 1 år",
+      "tjeneste": "barnehage",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 220000,
+      "alderFraAar": 1,
+      "alderTilAar": 1,
+      "beskrivelse": "20 timer gratis opphold per uke for ettåringer."
+    },
+    {
+      "id": "gratis-sfo-1-trinn",
+      "navn": "Gratis SFO-plass, 1. trinn",
+      "tjeneste": "sfo",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 350000,
+      "trinnFra": 1,
+      "trinnTil": 1
+    },
+    {
+      "id": "redusert-sfo-2-3-trinn",
+      "navn": "Redusert betaling i SFO, 2.–3. trinn",
+      "tjeneste": "sfo",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 154917,
+      "trinnFra": 2,
+      "trinnTil": 3
+    },
+    {
+      "id": "redusert-sfo-4-trinn",
+      "navn": "Redusert betaling i SFO, 4. trinn",
+      "tjeneste": "sfo",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 651017,
+      "trinnFra": 4,
+      "trinnTil": 4
+    }
+  ],
+  "syntetisk": true
+}
