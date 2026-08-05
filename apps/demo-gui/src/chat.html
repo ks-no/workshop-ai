@@ -182,13 +182,11 @@
         }
 
         if (steg.type === "DATA_FETCH") {
-          return steg.id === "hent-gate"
-            ? "Takk. Da slår jeg opp gaten i matrikkelen."
-            : "Takk. Da henter jeg de opplysningene vi trenger nå.";
+          return steg.tekst || (steg.tittel ? `Takk. ${steg.tittel}.` : "Takk. Da henter jeg de opplysningene vi trenger nå.");
         }
 
         if (steg.type === "SJEKK") {
-          return "Nå sjekker jeg om du har registrert eiendom i gaten.";
+          return steg.tekst || (steg.tittel ? `${steg.tittel}.` : "Nå gjør jeg en sjekk av opplysningene.");
         }
 
         if (steg.type === "SUMMARY") {
