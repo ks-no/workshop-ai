@@ -495,8 +495,22 @@ function validerProsessvalg(data, body) {
   };
 }
 
+// Mønstrene matches mot hele ord, ikke delstrenger. Med tekst.includes() ble
+// "uklart" lest som "klar" og "nok" som "ok", slik at "det er uklart for meg"
+// og "jeg har ikke nok informasjon" begge ble registrert som samtykke.
+// normaliserTekst har alt fjernet tegnsetting, så ordene er mellomromdelte.
+function inneholderUttrykk(ord, uttrykk) {
+  const deler = uttrykk.split(" ");
+  for (let i = 0; i <= ord.length - deler.length; i += 1) {
+    if (deler.every((del, forskyvning) => ord[i + forskyvning] === del)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function heuristiskTolkning(body) {
-  const tekst = normaliserTekst(body?.tekst);
+  const ord = normaliserTekst(body?.tekst).split(" ").filter(Boolean);
   const jaIntent = body?.jaIntent || "ja";
   const neiIntent = body?.neiIntent || "nei";
   const ukjentIntent = body?.ukjentIntent || "ukjent";
@@ -529,7 +543,7 @@ function heuristiskTolkning(body) {
     "nei",
     "nei takk",
     "ikke nå",
-    "ikke nå",
+    "ikke na",
     "senere",
     "stopp",
     "vil ikke",
@@ -539,7 +553,11 @@ function heuristiskTolkning(body) {
     "avsla"
   ];
 
-  if (negativeMonstre.some((monster) => tekst.includes(monster))) {
+  const nektinger = ["ikke", "ikkje", "aldri"];
+
+  const treffer = (monstre) => monstre.some((monster) => inneholderUttrykk(ord, monster));
+
+  if (treffer(negativeMonstre)) {
     return {
       intent: neiIntent,
       confidence: 0.8,
@@ -547,7 +565,17 @@ function heuristiskTolkning(body) {
     };
   }
 
-  if (positiveMonstre.some((monster) => tekst.includes(monster))) {
+  if (treffer(positiveMonstre)) {
+    // "det er ikke greit" treffer "greit". Nekting vi ikke har et eksplisitt
+    // negativt mønster for er for utydelig til å bli lest som samtykke, så den
+    // overlates til modellen framfor å bli gjettet på her.
+    if (ord.some((enkeltord) => nektinger.includes(enkeltord))) {
+      return {
+        intent: ukjentIntent,
+        confidence: 0.2,
+        begrunnelse: "Positivt uttrykk sammen med nekting, for utydelig for heuristikk"
+      };
+    }
     return {
       intent: jaIntent,
       confidence: 0.8,
