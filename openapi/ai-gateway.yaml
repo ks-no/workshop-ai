@@ -30,3 +30,9 @@ paths:
       responses:
         "200":
           description: Intent returned
+  /ai/velg-prosess:
+    post:
+      summary: Match free-text user message to the most likely process
+      responses:
+        "200":
+          description: Process choice interpretation returned

@@ -17,6 +17,7 @@
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
     "test:agent": "node scripts/test-agent-flow.js",
+    "test:agent:nl": "node scripts/test-agent-natural-language.js",
     "lint": "echo \"Ingen linter konfigurert ennå\"",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   }

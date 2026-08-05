@@ -77,6 +77,7 @@ function docsHtml() {
         <li><code>POST /ai/klarsprak</code></li>
         <li><code>POST /ai/risikosjekk</code></li>
         <li><code>POST /ai/tolk-svar</code></li>
+        <li><code>POST /ai/velg-prosess</code></li>
       </ul>
     </body>
   </html>`;
@@ -127,6 +128,13 @@ function byggSvar(type, body) {
 
   function erJaSvar(verdi) {
     const tekst = String(verdi || "").toLowerCase().trim();
+    const tallMatch = tekst.match(/\b(\d{1,4})\b/);
+    if (tallMatch) {
+      const antall = Number.parseInt(tallMatch[1], 10);
+      if (Number.isFinite(antall)) {
+        return antall > 20;
+      }
+    }
     return ["ja", "japp", "yes", "greit", "ok", "okei", "det stemmer", "riktig"].some((ord) => tekst.includes(ord));
   }
 
@@ -234,6 +242,245 @@ function normaliserTekst(tekst) {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const prosessvalgStopOrd = new Set([
+  "eg",
+  "jeg",
+  "vil",
+  "ville",
+  "onsker",
+  "onske",
+  "soke",
+  "soknad",
+  "om",
+  "den",
+  "det",
+  "en",
+  "et",
+  "for",
+  "med",
+  "hjelp"
+]);
+
+function stammeProsessToken(token) {
+  if (!token || token.length <= 3) return token;
+  if (token.endsWith("ende") && token.length > 6) return token.slice(0, -4);
+  if (token.endsWith("ene") && token.length > 5) return token.slice(0, -3);
+  if (token.endsWith("ing") && token.length > 5) return token.slice(0, -3);
+  if (token.endsWith("er") && token.length > 4) return token.slice(0, -2);
+  if (token.endsWith("en") && token.length > 4) return token.slice(0, -2);
+  if (token.endsWith("e") && token.length > 4) return token.slice(0, -1);
+  return token;
+}
+
+function kanoniskProsessToken(token) {
+  if (token.startsWith("fartsdemp") || token.startsWith("fart") || token.startsWith("dump") || token.startsWith("hump")) {
+    return "fartsdemp";
+  }
+  if (token.startsWith("stottekont")) {
+    return "stottekontakt";
+  }
+  return token;
+}
+
+function tokeniserProsessTekst(tekst) {
+  return normaliserTekst(tekst)
+    .split(/[\s-]+/)
+    .map(stammeProsessToken)
+    .map(kanoniskProsessToken)
+    .filter((token) => token && !prosessvalgStopOrd.has(token));
+}
+
+function delteTokenTreff(brukerToken, prosessToken) {
+  const unikeBruker = [...new Set(brukerToken)];
+  const unikeProsess = [...new Set(prosessToken)];
+  let treff = 0;
+  for (const token of unikeBruker) {
+    if (unikeProsess.some((kandidatToken) => kandidatToken === token || kandidatToken.startsWith(token) || token.startsWith(kandidatToken))) {
+      treff += 1;
+    }
+  }
+  return {
+    treff,
+    brukerAntall: unikeBruker.length,
+    prosessAntall: unikeProsess.length
+  };
+}
+
+function heuristiskProsessvalg(body) {
+  const tekst = normaliserTekst(body?.tekst);
+  const prosesser = Array.isArray(body?.prosesser) ? body.prosesser : [];
+
+  if (!tekst || !prosesser.length) {
+    return {
+      intent: "unknown",
+      confidence: 0,
+      begrunnelse: "Mangler tekst eller prosesskandidater",
+      kandidater: []
+    };
+  }
+
+  const nummer = Number.parseInt(tekst, 10);
+  if (Number.isInteger(nummer) && nummer >= 1 && nummer <= prosesser.length) {
+    const valgt = prosesser[nummer - 1];
+    return {
+      intent: "match",
+      prosessId: valgt.id,
+      confidence: 0.99,
+      begrunnelse: "Heuristisk match via nummer",
+      kandidater: [{ id: valgt.id, navn: valgt.navn, score: 1 }]
+    };
+  }
+
+  const byId = prosesser.find((p) => normaliserTekst(p.id) === tekst);
+  if (byId) {
+    return {
+      intent: "match",
+      prosessId: byId.id,
+      confidence: 0.98,
+      begrunnelse: "Heuristisk match via prosess-id",
+      kandidater: [{ id: byId.id, navn: byId.navn, score: 0.98 }]
+    };
+  }
+
+  const byName = prosesser.find((p) => {
+    const navn = normaliserTekst(p.navn);
+    return navn === tekst || navn.includes(tekst) || tekst.includes(navn);
+  });
+  if (byName) {
+    return {
+      intent: "match",
+      prosessId: byName.id,
+      confidence: 0.95,
+      begrunnelse: "Heuristisk match via navn",
+      kandidater: [{ id: byName.id, navn: byName.navn, score: 0.95 }]
+    };
+  }
+
+  const brukerToken = tokeniserProsessTekst(tekst);
+  if (!brukerToken.length) {
+    return {
+      intent: "unknown",
+      confidence: 0.1,
+      begrunnelse: "Ingen tydelige prosessord i meldingen",
+      kandidater: []
+    };
+  }
+
+  const scoredeKandidater = prosesser
+    .map((prosess) => {
+      const prosessToken = tokeniserProsessTekst(`${prosess.navn || ""} ${prosess.id || ""} ${prosess.beskrivelse || ""}`);
+      const overlap = delteTokenTreff(brukerToken, prosessToken);
+      if (!overlap.treff) return null;
+
+      const brukerDekning = overlap.treff / overlap.brukerAntall;
+      const prosessDekning = overlap.treff / overlap.prosessAntall;
+      const score = brukerDekning * 0.7 + prosessDekning * 0.3;
+
+      return {
+        id: prosess.id,
+        navn: prosess.navn,
+        score: Number(score.toFixed(3))
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scoredeKandidater.length) {
+    return {
+      intent: "unknown",
+      confidence: 0.1,
+      begrunnelse: "Fant ingen relevante kandidater heuristisk",
+      kandidater: []
+    };
+  }
+
+  const topp = scoredeKandidater[0];
+  const nest = scoredeKandidater[1];
+  const avstand = nest ? topp.score - nest.score : topp.score;
+
+  if (topp.score >= 0.5 && avstand >= 0.12) {
+    return {
+      intent: "match",
+      prosessId: topp.id,
+      confidence: Math.min(0.95, topp.score + 0.1),
+      begrunnelse: "Heuristisk token-match med tydelig toppkandidat",
+      kandidater: scoredeKandidater.slice(0, 3)
+    };
+  }
+
+  if (topp.score >= 0.35) {
+    return {
+      intent: "ambiguous",
+      confidence: topp.score,
+      begrunnelse: "Flere mulige prosesser, trenger avklaring",
+      kandidater: scoredeKandidater.slice(0, 3)
+    };
+  }
+
+  return {
+    intent: "unknown",
+    confidence: topp.score,
+    begrunnelse: "Lav treffsikkerhet i heuristisk prosessvalg",
+    kandidater: scoredeKandidater.slice(0, 3)
+  };
+}
+
+function byggProsessvalgPrompt(body) {
+  const tekst = body?.tekst || "";
+  const prosesser = Array.isArray(body?.prosesser) ? body.prosesser : [];
+  const historikk = Array.isArray(body?.history) ? body.history.slice(-8) : [];
+  const kandidaterTekst = prosesser
+    .map((p, i) => `${i + 1}. id=${p.id}; navn=${p.navn}; beskrivelse=${p.beskrivelse || ""}`)
+    .join("\n");
+
+  return [
+    "Du mapper brukerens melding til riktig kommunal prosess.",
+    "Svar KUN med gyldig JSON, ingen forklaring utenfor JSON.",
+    'Gyldig schema: {"intent":"match|ambiguous|unknown","prosessId":"string|null","confidence":0.0,"begrunnelse":"kort tekst","kandidater":[{"id":"string","score":0.0}]}',
+    "Regler:",
+    "- intent=match kun hvis en prosess er tydelig mest sannsynlig.",
+    "- intent=ambiguous hvis 2-3 kandidater er plausible.",
+    "- intent=unknown hvis du ikke kan avgjore trygg match.",
+    "- prosessId ma vaere null ved ambiguous/unknown.",
+    "- kandidater ma bruke id-er fra listen under.",
+    `Prosesser:\n${kandidaterTekst}`,
+    `Historikk (eldst -> nyest): ${JSON.stringify(historikk)}`,
+    `Ny brukermelding: ${JSON.stringify(tekst)}`
+  ].join("\n");
+}
+
+function validerProsessvalg(data, body) {
+  const gyldigeIntent = new Set(["match", "ambiguous", "unknown"]);
+  if (!data || !gyldigeIntent.has(data.intent)) {
+    return null;
+  }
+
+  const prosesser = Array.isArray(body?.prosesser) ? body.prosesser : [];
+  const gyldigeProsessIder = new Set(prosesser.map((p) => p.id));
+  const confidence = Number(data.confidence);
+  const kandidater = Array.isArray(data.kandidater)
+    ? data.kandidater
+      .filter((k) => k && gyldigeProsessIder.has(k.id))
+      .map((k) => ({
+        id: k.id,
+        score: Number.isFinite(Number(k.score)) ? Math.max(0, Math.min(1, Number(k.score))) : 0.5
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+    : [];
+
+  const prosessId = typeof data.prosessId === "string" ? data.prosessId : null;
+  const safeProsessId = prosessId && gyldigeProsessIder.has(prosessId) ? prosessId : null;
+
+  return {
+    intent: data.intent,
+    prosessId: data.intent === "match" ? safeProsessId : null,
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.5,
+    begrunnelse: typeof data.begrunnelse === "string" ? data.begrunnelse : "LLM prosessvalg",
+    kandidater
+  };
 }
 
 function heuristiskTolkning(body) {
@@ -483,6 +730,71 @@ async function hentTolkningFraOpenRouter(body) {
   };
 }
 
+async function hentProsessvalgFraOllama(body) {
+  const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: ollamaModel,
+      prompt: byggProsessvalgPrompt(body),
+      stream: false,
+      options: { temperature: 0 }
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`Ollama svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const parsed = validerProsessvalg(parseJsonObjekt(data.response), body);
+  if (!parsed) {
+    throw new Error("Kunne ikke tolke prosessvalg fra Ollama");
+  }
+  return {
+    ...parsed,
+    modell: `ollama:${ollamaModel}`
+  };
+}
+
+async function hentProsessvalgFraOpenRouter(body) {
+  if (!openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY mangler");
+  }
+  const svar = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${openRouterApiKey}`
+    },
+    body: JSON.stringify({
+      model: openRouterModel,
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: "Du returnerer kun gyldig JSON uten kodeblokker eller forklaringer."
+        },
+        {
+          role: "user",
+          content: byggProsessvalgPrompt(body)
+        }
+      ]
+    })
+  });
+  if (!svar.ok) {
+    throw new Error(`OpenRouter svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
+  const parsed = validerProsessvalg(parseJsonObjekt(tekst), body);
+  if (!parsed) {
+    throw new Error("Kunne ikke tolke prosessvalg fra OpenRouter");
+  }
+  return {
+    ...parsed,
+    modell: `openrouter:${openRouterModel}`
+  };
+}
+
 async function tolkSvarMedAi(body) {
   const fallback = heuristiskTolkning(body);
   const ukjentIntent = body?.ukjentIntent || "ukjent";
@@ -556,6 +868,80 @@ async function tolkSvarMedAi(body) {
     ...fallback,
     syntetisk: true,
     modell: "heuristisk-tolkning"
+  };
+}
+
+async function velgProsessMedAi(body) {
+  const fallback = heuristiskProsessvalg(body);
+  if (fallback.intent === "match" && fallback.confidence >= 0.8) {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: "heuristisk-prosessvalg"
+    };
+  }
+
+  try {
+    if (aiProvider === "ollama") {
+      const llmSvar = {
+        ...(await hentProsessvalgFraOllama(body)),
+        syntetisk: true
+      };
+      if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte unknown, brukte heuristisk prosessvalg"
+        };
+      }
+      if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte ugyldig prosess-id, brukte heuristikk"
+        };
+      }
+      return llmSvar;
+    }
+
+    if (aiProvider === "openrouter") {
+      const llmSvar = {
+        ...(await hentProsessvalgFraOpenRouter(body)),
+        syntetisk: true
+      };
+      if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte unknown, brukte heuristisk prosessvalg"
+        };
+      }
+      if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
+        return {
+          ...fallback,
+          syntetisk: true,
+          modell: `${llmSvar.modell} (heuristisk overstyring)`,
+          advarsel: "LLM returnerte ugyldig prosess-id, brukte heuristikk"
+        };
+      }
+      return llmSvar;
+    }
+  } catch (error) {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: `${aiProvider || "mock"}-fallback`,
+      advarsel: `LLM-prosessvalg feilet: ${error.message}`
+    };
+  }
+
+  return {
+    ...fallback,
+    syntetisk: true,
+    modell: "heuristisk-prosessvalg"
   };
 }
 
@@ -642,6 +1028,19 @@ const server = createServer(async (request, response) => {
         sporingsId: body.sporingsId || nyttId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "tolk-svar",
+        aktor: { type: "system", id: "ai-gateway" }
+      });
+      jsonSvar(response, 200, svar);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/ai/velg-prosess") {
+      const body = await lesBody(request);
+      const svar = await velgProsessMedAi(body);
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || nyttId("flyt"),
+        handling: "KI_TOLKNING",
+        ressurs: "velg-prosess",
         aktor: { type: "system", id: "ai-gateway" }
       });
       jsonSvar(response, 200, svar);

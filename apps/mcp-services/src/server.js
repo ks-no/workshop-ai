@@ -81,6 +81,15 @@ const toolDefs = [
     }
   },
   {
+    name: "previous_step",
+    description: "Move process session to previous step.",
+    inputSchema: {
+      type: "object",
+      required: ["oektsId"],
+      properties: { oektsId: { type: "string" } }
+    }
+  },
+  {
     name: "interpret_reply",
     description: "Interpret a user reply into one of three intents.",
     inputSchema: {
@@ -91,6 +100,41 @@ const toolDefs = [
         jaIntent: { type: "string" },
         neiIntent: { type: "string" },
         ukjentIntent: { type: "string" },
+        kontekst: { type: "object" },
+        sporingsId: { type: "string" }
+      }
+    }
+  },
+  {
+    name: "match_process_choice",
+    description: "Match free-text user message to a process candidate list.",
+    inputSchema: {
+      type: "object",
+      required: ["tekst", "prosesser"],
+      properties: {
+        tekst: { type: "string" },
+        prosesser: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "navn"],
+            properties: {
+              id: { type: "string" },
+              navn: { type: "string" },
+              beskrivelse: { type: "string" }
+            }
+          }
+        },
+        history: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              role: { type: "string" },
+              message: { type: "string" }
+            }
+          }
+        },
         kontekst: { type: "object" },
         sporingsId: { type: "string" }
       }
@@ -246,12 +290,29 @@ async function invokeTool(name, args = {}) {
     });
   }
 
+  if (name === "previous_step") {
+    return api(`/api/prosessoekter/${args.oektsId}/forrige`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+  }
+
   if (name === "interpret_reply") {
     return ai("/ai/tolk-svar", {
       tekst: args.tekst,
       jaIntent: args.jaIntent,
       neiIntent: args.neiIntent,
       ukjentIntent: args.ukjentIntent,
+      kontekst: args.kontekst || {},
+      sporingsId: args.sporingsId
+    });
+  }
+
+  if (name === "match_process_choice") {
+    return ai("/ai/velg-prosess", {
+      tekst: args.tekst,
+      prosesser: args.prosesser,
+      history: args.history || [],
       kontekst: args.kontekst || {},
       sporingsId: args.sporingsId
     });

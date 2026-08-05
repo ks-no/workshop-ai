@@ -71,7 +71,7 @@ components:
       properties:
         name:
           type: string
-          description: Tool-navn, for eksempel list_processes.
+          description: Tool-navn, for eksempel list_processes, interpret_reply, match_process_choice eller previous_step.
         arguments:
           type: object
           additionalProperties: true

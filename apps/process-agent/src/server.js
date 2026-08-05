@@ -28,7 +28,120 @@ function newId(prefix) {
 }
 
 function normalize(text) {
-  return String(text || "").toLowerCase().trim();
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const processChoiceStopWords = new Set([
+  "eg",
+  "jeg",
+  "vil",
+  "ville",
+  "onsk",
+  "sok",
+  "soknad",
+  "om",
+  "pa",
+  "for",
+  "den",
+  "det",
+  "en",
+  "et",
+  "hjelp",
+  "med"
+]);
+
+function stemToken(token) {
+  const ord = normalize(token);
+  if (ord.length <= 3) return ord;
+  if (ord.endsWith("ende") && ord.length > 6) return ord.slice(0, -4);
+  if (ord.endsWith("ene") && ord.length > 5) return ord.slice(0, -3);
+  if (ord.endsWith("ing") && ord.length > 5) return ord.slice(0, -3);
+  if (ord.endsWith("er") && ord.length > 4) return ord.slice(0, -2);
+  if (ord.endsWith("en") && ord.length > 4) return ord.slice(0, -2);
+  if (ord.endsWith("e") && ord.length > 4) return ord.slice(0, -1);
+  return ord;
+}
+
+function canonicalizeProcessToken(token) {
+  if (token.startsWith("fartsdemp") || token.startsWith("fart") || token.startsWith("dump") || token.startsWith("hump")) {
+    return "fartsdemp";
+  }
+  if (token.startsWith("stottekont")) {
+    return "stottekontakt";
+  }
+  return token;
+}
+
+function tokenizeForProcessChoice(text) {
+  return normalize(text)
+    .split(/[\s-]+/)
+    .map(stemToken)
+    .map(canonicalizeProcessToken)
+    .filter((token) => token && !processChoiceStopWords.has(token));
+}
+
+function tokenMatches(a, b) {
+  return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+function countTokenOverlap(userTokens, processTokens) {
+  const uniqueUser = [...new Set(userTokens)];
+  const uniqueProcess = [...new Set(processTokens)];
+  let matches = 0;
+
+  for (const userToken of uniqueUser) {
+    if (uniqueProcess.some((processToken) => tokenMatches(userToken, processToken))) {
+      matches += 1;
+    }
+  }
+
+  return {
+    matches,
+    userCount: uniqueUser.length,
+    processCount: uniqueProcess.length
+  };
+}
+
+function parseChoiceIndex(text, max) {
+  const value = normalize(text);
+  if (!value) return null;
+
+  const ordinalMap = {
+    forste: 1,
+    andre: 2,
+    tredje: 3,
+    fjerde: 4,
+    femte: 5
+  };
+
+  if (/^\d+$/.test(value)) {
+    const parsed = Number.parseInt(value, 10);
+    return parsed >= 1 && parsed <= max ? parsed : null;
+  }
+
+  const tokens = value.split(/\s+/);
+  for (const token of tokens) {
+    if (/^\d+$/.test(token)) {
+      const parsed = Number.parseInt(token, 10);
+      if (parsed >= 1 && parsed <= max) {
+        return parsed;
+      }
+    }
+    if (ordinalMap[token]) {
+      const parsed = ordinalMap[token];
+      if (parsed <= max) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
 }
 
 function listProcessesPrompt(processes) {
@@ -56,8 +169,8 @@ async function invokeTool(name, args = {}) {
 function parseProcessChoice(text, processes) {
   const value = normalize(text);
 
-  const number = Number.parseInt(value, 10);
-  if (Number.isInteger(number) && number >= 1 && number <= processes.length) {
+  const number = parseChoiceIndex(value, processes.length);
+  if (number) {
     return processes[number - 1];
   }
 
@@ -67,10 +180,265 @@ function parseProcessChoice(text, processes) {
   const byNameExact = processes.find((p) => normalize(p.navn) === value);
   if (byNameExact) return byNameExact;
 
-  const byNameContains = processes.find((p) => normalize(p.navn).includes(value));
+  const byNameContains = processes.find((p) => {
+    const navn = normalize(p.navn);
+    return navn.includes(value) || value.includes(navn);
+  });
   if (byNameContains) return byNameContains;
 
+  const userTokens = tokenizeForProcessChoice(value);
+  if (userTokens.length > 0) {
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const process of processes) {
+      const processTokens = tokenizeForProcessChoice(`${process.navn || ""} ${process.id || ""}`);
+      if (!processTokens.length) continue;
+
+      const overlap = countTokenOverlap(userTokens, processTokens);
+      if (!overlap.matches) continue;
+
+      const userCoverage = overlap.matches / overlap.userCount;
+      const processCoverage = overlap.matches / overlap.processCount;
+      const score = userCoverage * 0.7 + processCoverage * 0.3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = process;
+      }
+    }
+
+    // Threshold avoids accidentally selecting a process from very weak token overlap.
+    if (bestMatch && bestScore >= 0.4) {
+      return bestMatch;
+    }
+  }
+
   return null;
+}
+
+function formatProcessOptions(processes, title) {
+  const lines = processes.map((process, index) => `${index + 1}. ${process.navn} (${process.id})`).join("\n");
+  return [title, lines].join("\n\n");
+}
+
+function mapCandidateProcesses(allProcesses, candidates = []) {
+  const byId = new Map((allProcesses || []).map((p) => [p.id, p]));
+  return (candidates || [])
+    .map((candidate) => {
+      const process = byId.get(candidate.id);
+      if (!process) return null;
+      return {
+        ...process,
+        score: candidate.score
+      };
+    })
+    .filter(Boolean);
+}
+
+function recentHistory(state, count = 8) {
+  return (state.history || []).slice(-count).map((entry) => ({
+    role: entry.role,
+    message: entry.message
+  }));
+}
+
+function parseNumberFromText(text) {
+  const match = normalize(text).match(/\b(\d{1,4})\b/);
+  if (!match) return null;
+  const value = Number.parseInt(match[1], 10);
+  return Number.isFinite(value) ? value : null;
+}
+
+function normalizeQuestionAnswer(stepId, text) {
+  const value = String(text || "").trim();
+  if (!stepId || !value) {
+    return { answer: value, inferred: false, note: null };
+  }
+
+  if (stepId === "boliger-bekreft") {
+    const lower = normalize(value);
+    const number = parseNumberFromText(value);
+
+    if (number !== null) {
+      return {
+        answer: number > 20 ? "ja" : "nei",
+        inferred: true,
+        note: number > 20
+          ? "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
+          : "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
+      };
+    }
+
+    if (/(flere enn|mer enn|over)\s*20/.test(lower)) {
+      return {
+        answer: "ja",
+        inferred: true,
+        note: "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
+      };
+    }
+
+    if (/(mindre enn|under)\s*20/.test(lower)) {
+      return {
+        answer: "nei",
+        inferred: true,
+        note: "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
+      };
+    }
+  }
+
+  return { answer: value, inferred: false, note: null };
+}
+
+// Per-step guided interview: ordered questions to collect before composing a final answer.
+const guidedInterviewDefinitions = {
+  begrunnelse: [
+    {
+      key: "problem",
+      question: "Hva er selve trafikkproblemet i gaten? (for eksempel høy fart, mye gjennomkjøring, uoversiktlig kryss)"
+    },
+    {
+      key: "tidspunkt",
+      question: "Når på dagen eller uken skjer problemet? (for eksempel rushtid, på skolevei om morgenen, i helgene)"
+    },
+    {
+      key: "berort",
+      question: "Hvem blir berørt? (for eksempel barn på skolevei, eldre fotgjengere, syklister)"
+    },
+    {
+      key: "tiltak",
+      question: "Hva slags tiltak ønsker du? (for eksempel fartshumper, 30-sone, opphøyd gangfelt, innsnevring)"
+    }
+  ]
+};
+
+function composeGuidedAnswer(stepId, answers) {
+  if (stepId === "begrunnelse") {
+    const parts = [];
+    if (answers.problem) {
+      parts.push(String(answers.problem).trim().replace(/\.+$/, ""));
+    }
+    if (answers.tidspunkt) {
+      const t = String(answers.tidspunkt).trim().replace(/\.+$/, "").toLowerCase();
+      parts.push(`Dette skjer ${t}`);
+    }
+    if (answers.berort) {
+      const b = String(answers.berort).trim().replace(/\.+$/, "");
+      parts.push(`${b} blir berørt`);
+    }
+    if (answers.tiltak) {
+      const ti = String(answers.tiltak).trim().replace(/\.+$/, "").toLowerCase();
+      parts.push(`Vi ønsker ${ti}`);
+    }
+    return parts.join(". ") + ".";
+  }
+  return Object.values(answers).filter(Boolean).join(". ");
+}
+
+function looksLikeHelpQuestion(stepId, text) {
+  if (!stepId) return false;
+  const value = String(text || "").trim();
+  if (!value) return false;
+
+  // Only treat as help request when the step has a guided interview defined
+  if (!guidedInterviewDefinitions[stepId]) return false;
+
+  if (value.includes("?")) return true;
+  const lower = normalize(value);
+  return ["hvilke", "hva", "hvordan", "kan du", "eksempel", "tips", "hjelp"].some(
+    (prefix) => lower.startsWith(prefix) || lower.includes(`${prefix} `)
+  );
+}
+
+function fallbackGuidanceForQuestion(stepId) {
+  if (stepId === "boliger-bekreft") {
+    return "Du kan svare med ja/nei eller et tall, for eksempel 'ja', 'nei' eller 'det er 38 boliger'.";
+  }
+  return "Svar gjerne kort med de viktigste opplysningene, så hjelper jeg deg videre.";
+}
+
+function startGuidedInterview(state, stepId) {
+  const questions = guidedInterviewDefinitions[stepId] || [];
+  if (!questions.length) return null;
+
+  state.awaiting = "guided_interview";
+  state.guidedInterviewQueue = questions.slice(1);
+  state.guidedInterviewCurrentKey = questions[0].key;
+  state.guidedInterviewAnswers = {};
+  state.guidedInterviewStepId = stepId;
+  state.guidedInterviewSessionStepId = state.awaitingStepId;
+
+  return [
+    "Bra spørsmål. Jeg stiller deg noen korte spørsmål, så setter jeg sammen en god beskrivelse for deg.",
+    questions[0].question
+  ];
+}
+
+async function resolveProcessChoiceWithAi(state, text, options = {}) {
+  const processes = options.processes || state.processes || [];
+  if (!processes.length) {
+    return { status: "unknown" };
+  }
+
+  const result = await invokeTool("match_process_choice", {
+    tekst: text,
+    prosesser: processes.map((p) => ({
+      id: p.id,
+      navn: p.navn,
+      beskrivelse: p.beskrivelse || ""
+    })),
+    history: recentHistory(state),
+    sporingsId: state.sporingsId || newId("flyt"),
+    kontekst: {
+      stegType: "PROCESS_CHOICE",
+      pendingCandidates: (state.pendingProcessCandidates || []).map((p) => p.id)
+    }
+  });
+
+  if (result.intent === "match" && typeof result.prosessId === "string") {
+    const match = processes.find((p) => p.id === result.prosessId);
+    if (match) {
+      return {
+        status: "matched",
+        process: match,
+        confidence: Number(result.confidence || 0),
+        source: result.modell || "ai"
+      };
+    }
+  }
+
+  const mappedCandidates = mapCandidateProcesses(processes, result.kandidater || []);
+  if (result.intent === "ambiguous" && mappedCandidates.length > 0) {
+    return {
+      status: "ambiguous",
+      candidates: mappedCandidates.slice(0, 3),
+      confidence: Number(result.confidence || 0),
+      source: result.modell || "ai"
+    };
+  }
+
+  return {
+    status: "unknown",
+    candidates: mappedCandidates.slice(0, 3),
+    confidence: Number(result.confidence || 0),
+    source: result.modell || "ai"
+  };
+}
+
+async function startSelectedProcess(state, choice) {
+  const started = await invokeTool("start_process_session", {
+    personId: state.personId,
+    prosessId: choice.id,
+    sporingsId: newId("flyt")
+  });
+
+  state.selectedProcess = choice;
+  state.oektsId = started.oektsId;
+  state.sporingsId = started.sporingsId;
+  state.pendingProcessCandidates = [];
+
+  const intro = [`Supert. Vi starter prosessen: ${choice.navn}.`];
+  return intro.concat(await advanceAndPrompt(state));
 }
 
 async function tryNextStep(oektsId) {
@@ -143,13 +511,15 @@ async function advanceAndPrompt(state) {
     if (step.type === "SUMMARY") {
       const result = await invokeTool("run_current_action", { oektsId: state.oektsId });
       const text = result?.resultat?.tekst;
+      state.latestSummary = text || null;
       if (text) {
         messages.push(`Oppsummering: ${text}`);
       } else {
         messages.push("Jeg har laget en oppsummering av informasjonen.");
       }
-      await tryNextStep(state.oektsId);
-      continue;
+      state.awaiting = "summary_confirm";
+      messages.push("Er du enig i oppsummeringen? Svar ja for a ga videre til innsending, eller nei for a endre beskrivelsen.");
+      return messages;
     }
 
     if (step.type === "QUESTION") {
@@ -187,33 +557,137 @@ async function handleMessage(state, message) {
   }
 
   if (!state.selectedProcess) {
-    const choice = parseProcessChoice(text, state.processes || []);
-    if (!choice) {
-      return ["Jeg fant ikke den prosessen. Skriv nummer, navn, eller id fra listen."];
+    const allProcesses = state.processes || [];
+    if (!allProcesses.length) {
+      return ["Jeg finner ingen tilgjengelige prosesser akkurat na. Prov igjen om litt."];
     }
 
-    const started = await invokeTool("start_process_session", {
-      personId: state.personId,
-      prosessId: choice.id,
-      sporingsId: newId("flyt")
+    const pendingProcesses = state.pendingProcessCandidates || [];
+    if (pendingProcesses.length > 0) {
+      const pendingChoice = parseProcessChoice(text, pendingProcesses);
+      if (pendingChoice) {
+        return startSelectedProcess(state, pendingChoice);
+      }
+    }
+
+    const deterministicChoice = parseProcessChoice(text, allProcesses);
+    if (deterministicChoice) {
+      return startSelectedProcess(state, deterministicChoice);
+    }
+
+    const aiChoice = await resolveProcessChoiceWithAi(state, text, {
+      processes: pendingProcesses.length > 0 ? pendingProcesses : allProcesses
     });
 
-    state.selectedProcess = choice;
-    state.oektsId = started.oektsId;
-    state.sporingsId = started.sporingsId;
+    if (aiChoice.status === "matched") {
+      return startSelectedProcess(state, aiChoice.process);
+    }
 
-    const intro = [`Supert. Vi starter prosessen: ${choice.navn}.`];
-    return intro.concat(await advanceAndPrompt(state));
+    if (aiChoice.status === "ambiguous") {
+      state.pendingProcessCandidates = aiChoice.candidates;
+      return [
+        "Jeg tror dette kan vaere en av disse prosessene. Hvilken mener du?",
+        formatProcessOptions(aiChoice.candidates, "Svar med nummer, navn, eller id:")
+      ];
+    }
+
+    if (pendingProcesses.length > 0) {
+      return [
+        "Jeg er fortsatt usikker pa hvilken av kandidatene du mener.",
+        formatProcessOptions(pendingProcesses, "Svar med nummer, navn, eller id:")
+      ];
+    }
+
+    return ["Jeg fant ikke den prosessen. Skriv nummer, navn, eller id fra listen."];
   }
 
   if (state.awaiting === "question") {
+    const step = state.lastSession?.aktivtSteg;
+    const activeQuestionId = step?.id || state.awaitingStepId || null;
+
+    if (looksLikeHelpQuestion(activeQuestionId, text)) {
+      const interviewReplies = startGuidedInterview(state, activeQuestionId);
+      if (interviewReplies) {
+        return interviewReplies;
+      }
+      return [fallbackGuidanceForQuestion(activeQuestionId), step?.tekst || "Skriv gjerne svaret ditt når du er klar."];
+    }
+
+    const normalizedAnswer = normalizeQuestionAnswer(activeQuestionId, text);
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.awaitingStepId,
-      svar: text
+      svar: normalizedAnswer.answer
     });
     await tryNextStep(state.oektsId);
-    return ["Takk, jeg har lagret svaret ditt."].concat(await advanceAndPrompt(state));
+    const ack = normalizedAnswer.note || "Takk, jeg har lagret svaret ditt.";
+    return [ack].concat(await advanceAndPrompt(state));
+  }
+
+  if (state.awaiting === "guided_interview") {
+    // Store answer to the current question
+    state.guidedInterviewAnswers[state.guidedInterviewCurrentKey] = text;
+
+    if (state.guidedInterviewQueue && state.guidedInterviewQueue.length > 0) {
+      // More questions to ask
+      const next = state.guidedInterviewQueue.shift();
+      state.guidedInterviewCurrentKey = next.key;
+      return [next.question];
+    }
+
+    // All questions answered – compose the full answer and save it
+    const composed = composeGuidedAnswer(state.guidedInterviewStepId, state.guidedInterviewAnswers);
+    await invokeTool("answer_question", {
+      oektsId: state.oektsId,
+      stegId: state.guidedInterviewSessionStepId || state.guidedInterviewStepId,
+      svar: composed
+    });
+
+    // Clean up interview state
+    state.awaiting = "question";
+    state.guidedInterviewQueue = [];
+    state.guidedInterviewAnswers = {};
+    state.guidedInterviewCurrentKey = null;
+    state.guidedInterviewStepId = null;
+    state.guidedInterviewSessionStepId = null;
+
+    await tryNextStep(state.oektsId);
+    return [
+      `Takk. Jeg satte sammen denne beskrivelsen fra svarene dine:`,
+      `«${composed}»`,
+      ...await advanceAndPrompt(state)
+    ];
+  }
+
+  if (state.awaiting === "summary_confirm") {
+    const intent = await invokeTool("interpret_reply", {
+      tekst: text,
+      jaIntent: "summary_yes",
+      neiIntent: "summary_no",
+      ukjentIntent: "unknown",
+      sporingsId: state.sporingsId,
+      kontekst: {
+        prosessId: state.selectedProcess?.id,
+        stegType: "SUMMARY_CONFIRM"
+      }
+    });
+
+    if (intent.intent === "summary_yes") {
+      await tryNextStep(state.oektsId);
+      return ["Flott. Da gar vi videre til innsending."].concat(await advanceAndPrompt(state));
+    }
+
+    if (intent.intent === "summary_no") {
+      await invokeTool("previous_step", { oektsId: state.oektsId });
+      state.awaiting = null;
+      state.awaitingStepId = null;
+      return [
+        "Skjonner. Da gar vi tilbake sa du kan forbedre beskrivelsen av trafikkproblemet.",
+        "Skriv gjerne problemet sa konkret som mulig, og hva slags tiltak du onsker."
+      ].concat(await advanceAndPrompt(state));
+    }
+
+    return ["Jeg ble litt usikker. Svar gjerne 'ja' hvis oppsummeringen stemmer, eller 'nei' hvis du vil endre den."];
   }
 
   if (state.awaiting === "consent") {
@@ -288,7 +762,14 @@ async function createAgentSession(body) {
     awaiting: "process_choice",
     awaitingStepId: null,
     lastSession: null,
-    history: []
+    history: [],
+    pendingProcessCandidates: [],
+    latestSummary: null,
+    guidedInterviewQueue: [],
+    guidedInterviewAnswers: {},
+    guidedInterviewCurrentKey: null,
+    guidedInterviewStepId: null,
+    guidedInterviewSessionStepId: null
   };
 
   sessions.set(session.sessionId, session);
@@ -331,6 +812,7 @@ const server = createServer(async (request, response) => {
         sessionId: session.sessionId,
         personId: session.personId,
         selectedProcess: session.selectedProcess,
+        pendingProcessCandidates: session.pendingProcessCandidates,
         oektsId: session.oektsId,
         sporingsId: session.sporingsId,
         awaiting: session.awaiting,
@@ -363,6 +845,7 @@ const server = createServer(async (request, response) => {
         replies,
         awaiting: session.awaiting,
         selectedProcess: session.selectedProcess,
+        pendingProcessCandidates: session.pendingProcessCandidates,
         oektsId: session.oektsId,
         sporingsId: session.sporingsId
       });

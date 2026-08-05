@@ -176,6 +176,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/ProcessSummary"
             - type: "null"
+        pendingProcessCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProcessSummary"
         oektsId:
           oneOf:
             - type: string
@@ -219,6 +223,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/ProcessSummary"
             - type: "null"
+        pendingProcessCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProcessSummary"
         oektsId:
           oneOf:
             - type: string
