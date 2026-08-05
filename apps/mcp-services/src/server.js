@@ -81,6 +81,15 @@ const toolDefs = [
     }
   },
   {
+    name: "previous_step",
+    description: "Move process session to previous step.",
+    inputSchema: {
+      type: "object",
+      required: ["oektsId"],
+      properties: { oektsId: { type: "string" } }
+    }
+  },
+  {
     name: "interpret_reply",
     description: "Interpret a user reply into one of three intents.",
     inputSchema: {
@@ -121,6 +130,41 @@ const toolDefs = [
     name: "list_schemes",
     description: "List the reduced-payment schemes with their income thresholds and rules.",
     inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "match_process_choice",
+    description: "Match free-text user message to a process candidate list.",
+    inputSchema: {
+      type: "object",
+      required: ["tekst", "prosesser"],
+      properties: {
+        tekst: { type: "string" },
+        prosesser: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "navn"],
+            properties: {
+              id: { type: "string" },
+              navn: { type: "string" },
+              beskrivelse: { type: "string" }
+            }
+          }
+        },
+        history: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              role: { type: "string" },
+              message: { type: "string" }
+            }
+          }
+        },
+        kontekst: { type: "object" },
+        sporingsId: { type: "string" }
+      }
+    }
   },
   {
     name: "get_audit_log",
@@ -272,6 +316,13 @@ async function invokeTool(name, args = {}) {
     });
   }
 
+  if (name === "previous_step") {
+    return api(`/api/prosessoekter/${args.oektsId}/forrige`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+  }
+
   if (name === "interpret_reply") {
     return ai("/ai/tolk-svar", {
       tekst: args.tekst,
@@ -293,6 +344,16 @@ async function invokeTool(name, args = {}) {
 
   if (name === "list_schemes") {
     return api("/api/regler/satser");
+  }
+
+  if (name === "match_process_choice") {
+    return ai("/ai/velg-prosess", {
+      tekst: args.tekst,
+      prosesser: args.prosesser,
+      history: args.history || [],
+      kontekst: args.kontekst || {},
+      sporingsId: args.sporingsId
+    });
   }
 
   if (name === "get_audit_log") {
