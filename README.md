@@ -211,7 +211,8 @@ Andre tilgjengelige demo-case:
 
 - `Redusert betaling i SFO`
 - `Behovsavklaring for støttekontakt`
-- `Soknad om fritidskort-stotte`
+- `Søknad om fritidskort-støtte`
+- `Søknad om fartsdempende tiltak`
 
 Demo-GUI-en er nå prosessdrevet og leser steg direkte fra valgt prosessdefinisjon.
 Demo-GUI-en bruker også prosessøkt-API i backend for å starte flyter, lagre svar og utføre steg.
