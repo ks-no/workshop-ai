@@ -170,7 +170,9 @@ async function lesTilstand() {
     samtykker,
     revisjonslogg,
     prosessoekter,
-    matrikkel
+    matrikkel,
+    satser,
+    sfoplasser
   ] = await Promise.all([
     lesJson("personer.json"),
     lesJson("husstander.json"),
@@ -182,7 +184,9 @@ async function lesTilstand() {
     lesJson("samtykker.json", []),
     lesJson("revisjonslogg.json", []),
     lesJson("prosessoekter.json", []),
-    lesJson("matrikkel.json")
+    lesJson("matrikkel.json"),
+    lesJson("satser.json"),
+    lesJson("sfoplasser.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
@@ -201,7 +205,9 @@ async function lesTilstand() {
     samtykker,
     revisjonslogg,
     prosessoekter,
-    matrikkel
+    matrikkel,
+    satser,
+    sfoplasser
   };
 }
 
@@ -296,12 +302,161 @@ function hentBarnehageForPerson(tilstand, personId) {
   return tilstand.barnehageplasser.filter((plass) => barnIds.includes(plass.personId));
 }
 
-function hentInntektForPerson(tilstand, personId) {
-  const inntekt = tilstand.inntekter.find((kandidat) => kandidat.personId === personId);
-  if (!inntekt) {
-    throw new Error("Fant ikke inntekt.");
+// Syntetisk rolle-id. I ekte Fiks identifiserer den kommunens rolle.
+const fiksRolleId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+
+// Henter inntektsgrunnlaget fra Fiks-simulatoren for hele husholdningen.
+// Ektefeller, registrerte partnere og samboere regnes som én husholdning,
+// jf. forskrift om foreldrebetaling.
+async function hentInntektsgrunnlag(tilstand, personId, inntektsaar) {
+  const husstand = hentHusstandForPerson(tilstand, personId);
+  const personer = husstand.medlemmer
+    .filter((medlem) => medlem.rolle === "foresatt")
+    .map((medlem) => {
+      const person = finnPerson(tilstand, medlem.personId);
+      return {
+        identifikator: person.syntetiskFodselsnummer,
+        type: medlem.personId === personId ? "SOEKER" : "ANNET"
+      };
+    });
+
+  const svar = await fetch(
+    `${fiksBaseUrl}/register/api/v1/ks/${fiksRolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inntektsaar, personer })
+    }
+  );
+  if (!svar.ok) {
+    throw new Error(`Beregning i Fiks-simulatoren feilet med status ${svar.status}.`);
   }
-  return inntekt;
+  return svar.json();
+}
+
+function sisteInntektsaar(tilstand, personId) {
+  const husstand = hentHusstandForPerson(tilstand, personId);
+  const identer = husstand.medlemmer
+    .filter((medlem) => medlem.rolle === "foresatt")
+    .map((medlem) => finnPerson(tilstand, medlem.personId)?.syntetiskFodselsnummer);
+  const aar = tilstand.inntekter
+    .filter((rad) => identer.includes(rad.identifikator))
+    .map((rad) => rad.inntektsaar);
+  return aar.length ? Math.max(...aar) : new Date().getFullYear() - 1;
+}
+
+async function hentInntektForPerson(tilstand, personId) {
+  return hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
+}
+
+function formaterBelop(belop) {
+  return new Intl.NumberFormat("nb-NO").format(Math.round(belop));
+}
+
+// Vurderer én ordning i data/satser.json mot inntektsgrunnlaget fra Fiks.
+// Beregningen er deterministisk og skjer her, ikke i KI-laget — jf.
+// regelen ai-no-decisions i policies/ai-policy.yaml.
+async function vurderOrdning(tilstand, personId, ordningId) {
+  const satser = tilstand.satser;
+  const ordning = satser.ordninger.find((kandidat) => kandidat.id === ordningId);
+  if (!ordning) {
+    throw new Error(`Ukjent ordning: ${ordningId}. Gyldige: ${satser.ordninger.map((o) => o.id).join(", ")}.`);
+  }
+
+  const beregning = await hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
+  if (beregning.feilmeldinger.length > 0) {
+    const feil = beregning.feilmeldinger[0];
+    return {
+      godkjent: false,
+      melding: feil.melding,
+      grunnlag: { ordning: ordning.id, feilkode: feil.kode, stadie: beregning.stadie }
+    };
+  }
+
+  const grunnlag = beregning.beregningsbeloep;
+  const felles = {
+    ordning: ordning.id,
+    ordningNavn: ordning.navn,
+    beregningsbeloep: grunnlag,
+    stadie: beregning.stadie,
+    gjelderFra: satser.gjelderFra,
+    kilde: satser.kilde
+  };
+  const forbehold = beregning.stadie === "UTKAST"
+    ? " Merk at skatteoppgjøret ikke er ferdig, så grunnlaget kan endre seg."
+    : "";
+
+  if (ordning.regel === "INNTEKTSGRENSE") {
+    const godkjent = grunnlag < ordning.inntektsgrense;
+    return {
+      godkjent,
+      melding: godkjent
+        ? `Husholdningens inntektsgrunnlag er ${formaterBelop(grunnlag)} kr, under grensen på ${formaterBelop(ordning.inntektsgrense)} kr for ${ordning.navn}.${forbehold}`
+        : `Husholdningens inntektsgrunnlag er ${formaterBelop(grunnlag)} kr, over grensen på ${formaterBelop(ordning.inntektsgrense)} kr for ${ordning.navn}.${forbehold}`,
+      grunnlag: { ...felles, inntektsgrense: ordning.inntektsgrense }
+    };
+  }
+
+  if (ordning.regel === "MAKS_ANDEL_AV_INNTEKT") {
+    const plasser = ordning.tjeneste === "sfo"
+      ? hentSfoForPerson(tilstand, personId)
+      : hentBarnehageForPerson(tilstand, personId);
+    if (plasser.length === 0) {
+      return {
+        godkjent: false,
+        melding: `Fant ingen ${ordning.tjeneste}-plass registrert på husstanden.`,
+        grunnlag: felles
+      };
+    }
+    const aarspris = plasser.reduce((sum, p) => sum + p.manedspris, 0) * satser.maanederMedBetaling;
+    const tak = satser.maksAndelAvInntekt * grunnlag;
+    const godkjent = aarspris > tak;
+    return {
+      godkjent,
+      melding: godkjent
+        ? `Full pris er ${formaterBelop(aarspris)} kr i året, mer enn ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formaterBelop(grunnlag)} kr (${formaterBelop(tak)} kr). Du har rett til redusert betaling.${forbehold}`
+        : `Full pris er ${formaterBelop(aarspris)} kr i året, som er under ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formaterBelop(grunnlag)} kr (${formaterBelop(tak)} kr). Du har ikke rett til redusert betaling.${forbehold}`,
+      grunnlag: { ...felles, aarspris, maksAndelAvInntekt: satser.maksAndelAvInntekt, tak: Math.round(tak) }
+    };
+  }
+
+  throw new Error(`Ukjent regeltype: ${ordning.regel}.`);
+}
+
+// SJEKK-steg slår opp her på sti. Nye sjekker legges til i tabellen uten at
+// stegutførelsen må røres. Hver håndterer returnerer { godkjent, melding }
+// og kan legge ved et grunnlag som forklarer utfallet.
+const sjekkHandtere = {
+  "/api/matrikkel/sjekk/eierforhold": async (params, oekt, tilstand, steg) => {
+    const gateNavn = decodeURIComponent(params.get("gate") || "");
+    const sjekkerPersonId = decodeURIComponent(params.get("personId") || oekt.personId);
+    const gateData = finnGate(tilstand, gateNavn);
+    if (!gateData) {
+      return { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
+    }
+    const harEiendom = gateData.eiendommer.some(
+      (e) => Array.isArray(e.eiere) && e.eiere.includes(sjekkerPersonId)
+    );
+    return harEiendom
+      ? { godkjent: true, melding: `Eierforhold i ${gateData.adressenavn} bekreftet.` }
+      : {
+          godkjent: false,
+          melding: steg.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`
+        };
+  },
+
+  "/api/regler/sjekk/foreldrebetaling": async (params, oekt, tilstand) => {
+    const personId = decodeURIComponent(params.get("personId") || oekt.personId);
+    const ordning = params.get("ordning");
+    return vurderOrdning(tilstand, personId, ordning);
+  }
+};
+
+function hentSfoForPerson(tilstand, personId) {
+  const person = finnPerson(tilstand, personId);
+  const husstand = tilstand.husstander.find((kandidat) => kandidat.husstandId === person?.husstandId);
+  const barnIds = husstand?.medlemmer.filter((m) => m.rolle === "barn").map((m) => m.personId) || [];
+  return tilstand.sfoplasser.filter((plass) => barnIds.includes(plass.personId));
 }
 
 function harGyldigSamtykke(tilstand, personId, datakilde) {
@@ -342,7 +497,7 @@ async function hentDataForUrl(tilstand, apiUrl, personId, sporingsId) {
       });
       throw new Error("Inntektsdata krever registrert samtykke.");
     }
-    const data = hentInntektForPerson(tilstand, personId);
+    const data = await hentInntektForPerson(tilstand, personId);
     await leggTilRevisjon({
       sporingsId,
       handling: "DATA_LES",
@@ -508,25 +663,13 @@ async function utforStegHandling(tilstand, oekt, prosess, body) {
   if (steg.type === "SJEKK") {
     const resolvertUrl = erstattParametere(steg.api.url, oekt);
     const sjekketUrl = new URL(`http://localhost${resolvertUrl}`);
-    let resultat;
-
-    if (sjekketUrl.pathname === "/api/matrikkel/sjekk/eierforhold") {
-      const gateNavn = decodeURIComponent(sjekketUrl.searchParams.get("gate") || "");
-      const sjekkerPersonId = decodeURIComponent(sjekketUrl.searchParams.get("personId") || oekt.personId);
-      const gateData = finnGate(tilstand, gateNavn);
-      if (!gateData) {
-        resultat = { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
-      } else {
-        const harEiendom = gateData.eiendommer.some(
-          (e) => Array.isArray(e.eiere) && e.eiere.includes(sjekkerPersonId)
-        );
-        resultat = harEiendom
-          ? { godkjent: true, melding: `Eierforhold i ${gateData.adressenavn} bekreftet.` }
-          : { godkjent: false, melding: steg.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.` };
-      }
-    } else {
-      throw new Error(`Ukjent SJEKK-endepunkt: ${sjekketUrl.pathname}`);
+    const handterer = sjekkHandtere[sjekketUrl.pathname];
+    if (!handterer) {
+      throw new Error(
+        `Ukjent SJEKK-endepunkt: ${sjekketUrl.pathname}. Gyldige: ${Object.keys(sjekkHandtere).join(", ")}.`
+      );
     }
+    const resultat = await handterer(sjekketUrl.searchParams, oekt, tilstand, steg);
 
     oekt.resultater[steg.id] = resultat;
     if (!resultat.godkjent) {
@@ -605,7 +748,44 @@ const server = createServer(async (request, response) => {
     const tilstand = await lesTilstand();
 
     if (request.method === "GET" && url.pathname === "/api/personer") {
-      jsonSvar(response, 200, tilstand.personer);
+      // visningsnavn spares klientene for å sette sammen navn selv.
+      jsonSvar(response, 200, tilstand.personer.map((person) => ({
+        ...person,
+        visningsnavn: [person.navn.fornavn, person.navn.mellomnavn, person.navn.etternavn]
+          .filter(Boolean).join(" ")
+      })));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/regler/satser") {
+      jsonSvar(response, 200, tilstand.satser);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/regler/sjekk/foreldrebetaling") {
+      const personId = url.searchParams.get("personId");
+      const ordning = url.searchParams.get("ordning");
+      if (!personId || !ordning) {
+        jsonSvar(response, 400, { feil: "personId og ordning er påkrevd." });
+        return;
+      }
+      try {
+        jsonSvar(response, 200, await vurderOrdning(tilstand, personId, ordning));
+      } catch (error) {
+        jsonSvar(response, 400, { feil: error.message });
+      }
+      return;
+    }
+
+    const inntektsgrunnlagTreff = url.pathname.match(/^\/api\/husstander\/([^/]+)\/inntektsgrunnlag$/);
+    if (request.method === "GET" && inntektsgrunnlagTreff) {
+      const husstand = tilstand.husstander.find((h) => h.husstandId === inntektsgrunnlagTreff[1]);
+      const soeker = husstand?.medlemmer.find((m) => m.rolle === "foresatt");
+      if (!soeker) {
+        jsonSvar(response, 404, { feil: "Fant ikke husstand med en foresatt." });
+        return;
+      }
+      jsonSvar(response, 200, await hentInntektForPerson(tilstand, soeker.personId));
       return;
     }
 
@@ -697,7 +877,7 @@ const server = createServer(async (request, response) => {
         return;
       }
       try {
-        jsonSvar(response, 200, hentInntektForPerson(tilstand, inntektTreff[1]));
+        jsonSvar(response, 200, await hentInntektForPerson(tilstand, inntektTreff[1]));
       } catch (error) {
         jsonSvar(response, 404, { feil: error.message });
       }

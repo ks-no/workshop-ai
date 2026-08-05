@@ -107,9 +107,21 @@ function byggSvar(type, body) {
   }
 
   function byggInntektLinjer() {
-    const inntekt = finnVerdi((v) => v?.bruttoInntekt !== undefined && v?.aar !== undefined);
-    if (!inntekt) return null;
-    return `Inntekt ${inntekt.aar}: bruttoinntekt ${formaterBelop(inntekt.bruttoInntekt)} kr (${formaterBelop(inntekt.manedsInntekt)} kr/mnd)`;
+    const beregning = finnVerdi((v) => v?.beregningsbeloep !== undefined);
+    if (!beregning) return null;
+    const poster = (beregning.visningsposter || [])
+      .flatMap((v) => v.poster || [])
+      .map((p) => `${p.visningstekst} ${formaterBelop(p.beloep)} kr`)
+      .join(", ");
+    const utenfor = (beregning.fradrag?.beregning || [])
+      .flatMap((g) => g.beregningsposter || [])
+      .map((p) => p.visningstekst)
+      .join(", ");
+    const deler = [`Inntektsgrunnlag ${beregning.inntektsaar}: ${formaterBelop(beregning.beregningsbeloep)} kr`];
+    if (poster) deler.push(`bygget av ${poster}`);
+    if (utenfor) deler.push(`holdt utenfor: ${utenfor}`);
+    if (beregning.stadie === "UTKAST") deler.push("skatteoppgjoret er ikke ferdig");
+    return deler.join(". ");
   }
 
   function byggSvarLinjer() {
