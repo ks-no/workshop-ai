@@ -51,7 +51,7 @@ services:
     restart: "no"
 
   process-builder:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/process-builder/src/server.js"]
     ports:
@@ -60,7 +60,7 @@ services:
       - ./:/workspace
 
   demo-gui:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/demo-gui/src/server.js"]
     ports:
@@ -69,16 +69,16 @@ services:
       - ./:/workspace
 
   sandbox-backend:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
-    command: ["node", "apps/sandbox-backend/src/server.js"]
+    command: ["node", "apps/sandbox-backend/src/server.ts"]
     ports:
       - "8080:8080"
     volumes:
       - ./:/workspace
 
   fiks-simulator:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/fiks-simulator/src/server.js"]
     environment:
@@ -89,7 +89,7 @@ services:
       - ./:/workspace
 
   ai-gateway:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/ai-gateway/src/server.js"]
     depends_on:
@@ -108,7 +108,7 @@ services:
       - ./:/workspace
 
   mcp-services:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/mcp-services/src/server.js"]
     depends_on:
@@ -123,7 +123,7 @@ services:
       - ./:/workspace
 
   process-agent:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/process-agent/src/server.js"]
     depends_on:

@@ -9,7 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const seedMappe = path.resolve(__dirname, "../../../data");
 export const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 export const openapiFil = path.resolve(__dirname, "../../../openapi/sandbox-backend.yaml");
-export const port = 8080;
+// PORT lar testskript starte en isolert instans ved siden av docker compose.
+export const port = Number(process.env.PORT) || 8080;
 export const fiksBaseUrl = process.env.FIKS_BASE_URL || "http://fiks-simulator:8081";
 export const aiBaseUrl = process.env.AI_BASE_URL || "http://ai-gateway:8082";
 

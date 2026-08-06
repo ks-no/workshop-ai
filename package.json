@@ -6,7 +6,7 @@
   "description": "Monorepo for hackathon-sandbox for moderne innbyggerdialog i kommunal sektor.",
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "start:backend": "node apps/sandbox-backend/src/server.js",
+    "start:backend": "node apps/sandbox-backend/src/server.ts",
     "start:fiks": "node apps/fiks-simulator/src/server.js",
     "start:ai": "node apps/ai-gateway/src/server.js",
     "start:mcp": "node apps/mcp-services/src/server.js",
@@ -16,9 +16,17 @@
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
+    "test:kontrakt": "node scripts/kontrakt-smoke.js",
     "test:agent": "node scripts/test-agent-flow.js",
     "test:agent:nl": "node scripts/test-agent-natural-language.js",
-    "lint": "echo \"Ingen linter konfigurert ennå\"",
+    "lint": "tsc --noEmit",
     "format": "echo \"Ingen formatter konfigurert ennå\""
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "7.0.2"
   }
 }

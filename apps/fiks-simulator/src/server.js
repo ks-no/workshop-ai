@@ -9,7 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // state/ holds everything written at runtime and is gitignored.
 const seedMappe = path.resolve(__dirname, "../../../data");
 const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
-const port = 8081;
+// PORT lar testskript starte en isolert instans ved siden av docker compose.
+const port = Number(process.env.PORT) || 8081;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
 function jsonSvar(response, statusCode, data) {

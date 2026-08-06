@@ -38,11 +38,58 @@ Tilgjengelige sjekker:
 | `/api/regler/sjekk/foreldrebetaling` | Rett til en moderasjonsordning i `data/satser.json` |
 | `/api/matrikkel/sjekk/eierforhold` | Om søker eier eiendom i en gitt gate |
 
-Nye sjekker legges til i `sjekkHandtere` i `apps/sandbox-backend/src/server.js`.
-Stegutførelsen slår opp på sti og trenger ingen endring.
+Nye sjekker legges til i ressurskatalogen i
+`apps/sandbox-backend/src/ressurser.ts`. Stegutførelsen slår opp på sti og
+trenger ingen endring. `GET /api/katalog/ressurser` lister alt som finnes, så du
+slipper å gjette URL-er.
 
 Beregningen skjer alltid i backend. `ai-gateway` forklarer utfallet, men
 avgjør det aldri — se regelen `ai-no-decisions` i `policies/ai-policy.yaml`.
+
+## Ressurskatalogen
+
+`DATA_FETCH` og `SJEKK` peker begge på en URL. De URL-ene er ikke frittstående
+kode — de er oppføringer i ressurskatalogen, og **én oppføring blir samtidig tre
+ting**: et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål.
+
+Det er dette som gjør at kallet oppfører seg likt uansett hvilken vei det kommer
+inn. Katalogen er også stedet to policyer håndheves, i stedet for én gang per
+kallevei:
+
+- `consent-before-income` — via feltet `kreverSamtykke`
+- `revisjon-av-all-datatilgang` — via feltene `ressurs` og `formaal`
+
+En sjekk er ikke en egen mekanisme. Det er bare en ressurs hvis svar inneholder
+`godkjent`.
+
+## Slik legger du til en ny case
+
+De fleste caser krever ingen kode i det hele tatt.
+
+| Jeg vil… | Rediger | Kode? |
+|---|---|---|
+| lage en ny flyt av eksisterende byggeklosser | `data/prosessdefinisjoner.json` | nei |
+| legge til en ny inntektsgrense eller ordning | `data/satser.json` → `ordninger[]` | nei |
+| hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
+| innføre en ny regeltype | `apps/sandbox-backend/src/regler.ts` → `regelHandtere` | ~20 linjer |
+| innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandtere` | ~20 linjer |
+
+Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
+den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis
+du legger til en steg- eller regeltype uten håndterer.
+
+En ny ressurs ser slik ut:
+
+```ts
+{
+  metode: "GET",
+  sti: "/api/personer/:personId/bibliotek",
+  ressurs: "bibliotekslaan",          // navnet i revisjonsloggen
+  beskrivelse: "Aktive lån for personen.",
+  kreverSamtykke: null,               // eller en datakilde, f.eks. "inntekt"
+  handter: ({ tilstand, personId }) => hentLaan(tilstand, personId)
+}
+```
 
 ## Første demo-prosess
 
@@ -60,8 +107,14 @@ Formålet er å demonstrere:
 
 Repoet inneholder også:
 
-- `sfo-moderasjon`
-- `stottekontakt-behov`
+- `sfo-moderasjon` — samme mønster som barnehage, men mot SFO-satsene.
+  Merk at demo-brukeren `person-001` ikke har barn i SFO. Bruk `person-008`,
+  som har et barn på 3. trinn, for å se et innvilget utfall.
+- `stottekontakt-behov` — ren dialog uten datahenting.
+- `fritidskort-stotte` — spørsmål, samtykke og inntektshenting.
+- `fartsdempende-tiltak` — den eneste casen som kombinerer `SJEKK`,
+  matrikkeloppslag og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et
+  godkjent utfall og `Fjøsangerveien` for et avvist.
 
 ## Redigering i prosessbygger
 

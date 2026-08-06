@@ -150,20 +150,203 @@ paths:
       responses:
         "200":
           description: Personer returnert
+  /api/personer/{personId}:
+    get:
+      summary: Hent én person
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Person returnert
+        "404":
+          description: Fant ikke person
+
+  /api/personer/{personId}/husstand:
+    get:
+      summary: Hent husstanden personen tilhoerer
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Husstand returnert
+        "404":
+          description: Fant ikke person eller husstand
+
   /api/personer/{personId}/inntekt:
     get:
       summary: Hent inntekt for person
+      description: >
+        Krever registrert samtykke for datakilden "inntekt", jf. regelen
+        consent-before-income i policies/access-policy.yaml. Alle treff
+        revisjonslogges, ogsaa naar tilgangen nektes.
       parameters:
-        - name: personId
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Inntekt returnert
+        "403":
+          description: Samtykke mangler
+
+  /api/personer/{personId}/barnehage:
+    get:
+      summary: Hent barnehageplasser for barna i husstanden
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Barnehageplasser returnert
+        "404":
+          description: Fant ikke person
+
+  /api/personer/{personId}/sfo:
+    get:
+      summary: Hent SFO-plasser for barna i husstanden
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: SFO-plasser returnert
+        "404":
+          description: Fant ikke person
+
+  /api/personer/{personId}/soknader:
+    get:
+      summary: List soeknader personen har sendt inn
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Soeknader returnert
+
+  /api/soknader:
+    post:
+      summary: Opprett en soeknad
+      description: Oppretter samtidig en oppgave i fiks-simulator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [personId, prosessId]
+              properties:
+                personId:
+                  type: string
+                prosessId:
+                  type: string
+                prosessNavn:
+                  type: string
+                sporingsId:
+                  type: string
+      responses:
+        "201":
+          description: Soeknad opprettet
+
+  /api/soknader/{soknadId}:
+    get:
+      summary: Hent én soeknad
+      parameters:
+        - name: soknadId
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Inntekt returnert
-        "403":
-          description: Samtykke mangler
+          description: Soeknad returnert
+        "404":
+          description: Fant ikke soeknad
+
+  /api/katalog/datasett:
+    get:
+      summary: List de syntetiske datasettene
+      responses:
+        "200":
+          description: Datasett returnert
+
+  /api/katalog/informasjonsmodeller:
+    get:
+      summary: List informasjonsmodellene datasettene laaner vokabular fra
+      responses:
+        "200":
+          description: Informasjonsmodeller returnert
+
+  /api/katalog/ressurser:
+    get:
+      summary: List ressursene DATA_FETCH- og SJEKK-steg kan peke paa
+      description: >
+        Ressurskatalogen i apps/sandbox-backend/src/ressurser.ts. Hver oppfoering
+        er samtidig et HTTP-endepunkt, et gyldig DATA_FETCH-maal og et gyldig
+        SJEKK-maal. Bruk denne i stedet for aa gjette URL-er naar du skriver et
+        nytt steg.
+      responses:
+        "200":
+          description: Ressurskatalog returnert
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [metode, sti, ressurs]
+                  properties:
+                    metode:
+                      type: string
+                      example: GET
+                    sti:
+                      type: string
+                      example: /api/personer/:personId/inntekt
+                    ressurs:
+                      type: string
+                      description: Navnet ressursen faar i revisjonsloggen.
+                    beskrivelse:
+                      type: string
+                    kreverSamtykke:
+                      type: string
+                      nullable: true
+                      description: Datakilde det maa foreligge samtykke for, eller null.
+
+  /api/matrikkel/gater:
+    get:
+      summary: List gater, eller hent noekkeltall for én gate
+      description: >
+        Uten ?gate returneres en liste. Med ?gate returneres en projeksjon uten
+        eiendomslisten, siden den inneholder personId-ene til andre innbyggere.
+      parameters:
+        - name: gate
+          in: query
+          required: false
+          schema:
+            type: string
+            example: Storgata
+      responses:
+        "200":
+          description: Gate eller gateliste returnert
+        "404":
+          description: Fant ikke gaten
+
+  /api/matrikkel/sjekk/eierforhold:
+    get:
+      summary: Vurder om soekeren eier eiendom i en gitt gate
+      description: Brukes av SJEKK-steg. Foelger samme kontrakt som andre sjekker.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: gate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vurdering utfoert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SjekkResultat"
 
   /api/regler/satser:
     get:
@@ -201,23 +384,21 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [godkjent, melding]
-                properties:
-                  godkjent:
-                    type: boolean
-                  melding:
-                    type: string
-                  grunnlag:
-                    type: object
-                    description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
+                $ref: "#/components/schemas/SjekkResultat"
         "400":
           description: Ukjent ordning eller manglende parameter
+        "403":
+          description: >
+            Samtykke mangler. Vurderingen roeper husholdningens
+            inntektsgrunnlag og er derfor underlagt samme samtykkekrav som
+            /api/personer/{personId}/inntekt.
 
   /api/husstander/{husstandId}/inntektsgrunnlag:
     get:
       summary: Hent husholdningens inntektsgrunnlag
-      description: Henter beregningen fra fiks-simulator for hele husholdningen.
+      description: >
+        Henter beregningen fra fiks-simulator for hele husholdningen. Samme data
+        som personruta, og derfor samme samtykkekrav.
       parameters:
         - name: husstandId
           in: path
@@ -227,6 +408,8 @@ paths:
       responses:
         "200":
           description: Beregning returnert
+        "403":
+          description: Samtykke mangler
         "404":
           description: Fant ikke husstand
 
@@ -270,8 +453,46 @@ paths:
         "400":
           description: Hendelsen mangler handling
 
+  /api/revisjonslogg/{sporingsId}:
+    get:
+      summary: Hent revisjonshendelsene for én flyt
+      parameters:
+        - name: sporingsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Hendelser returnert
+
 components:
+  parameters:
+    PersonId:
+      name: personId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: person-001
+
   schemas:
+    SjekkResultat:
+      type: object
+      description: >
+        Kontrakten et SJEKK-steg maa oppfylle. Er godkjent false, settes
+        prosessoekten til AVVIST og melding blir avvistMelding.
+        Se docs/prosessmodell.md.
+      required: [godkjent, melding]
+      properties:
+        godkjent:
+          type: boolean
+        melding:
+          type: string
+        grunnlag:
+          type: object
+          description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
+
     RedigeringMeta:
       type: object
       description: Valgfri metadata for enklere redigering av prosessdefinisjoner.

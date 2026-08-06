@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+
+    // Ingen byggsteg: Node fjerner typene selv naar filen lastes.
+    // Derfor produserer tsc aldri output her - den bare sjekker.
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+
+    // Hindrer syntaks Node ikke kan fjerne (enum, namespace,
+    // parameter properties). Uten denne oppdages feilen foerst ved
+    // kjoering, som ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+
+    // Inkrementell migrering: .js kjoerer videre uten aa bli sjekket,
+    // og sjekking slaas paa per fil med // @ts-check.
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": ["apps/**/*.ts", "apps/**/*.js", "scripts/**/*.js"],
+  "exclude": ["node_modules"]
+}
