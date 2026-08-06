@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 
-const port = 8084;
+const port = Number(process.env.PORT || 8084);
 const mcpBaseUrl = process.env.MCP_BASE_URL || "http://mcp-services:8083";
 
 const sessions = new Map();
@@ -357,6 +357,77 @@ function fallbackGuidanceForQuestion(stepId) {
   return "Svar gjerne kort med de viktigste opplysningene, så hjelper jeg deg videre.";
 }
 
+// ---------------------------------------------------------------------------
+// Dynamisk verktøyoppdagelse via suggest_step_tools
+// ---------------------------------------------------------------------------
+
+// Decide which step-level tools to run and how: "kontekst", "validering", or both.
+// Returns { kontekst: [{name, args}], validering: [{name, args}] }
+async function discoverStepTools(step) {
+  if (!step || step.type !== "QUESTION") return { kontekst: [], validering: [] };
+  try {
+    const result = await invokeTool("suggest_step_tools", {
+      steg: { id: step.id, tittel: step.tittel, tekst: step.tekst, felter: step.felter || [] }
+    });
+    const verktoy = Array.isArray(result?.verktoy) ? result.verktoy : [];
+    const kontekst = verktoy.filter((v) => v.bruk === "kontekst" || v.bruk === "kontekst_og_validering");
+    const validering = verktoy.filter((v) => v.bruk === "validering" || v.bruk === "kontekst_og_validering");
+    return { kontekst, validering };
+  } catch {
+    return { kontekst: [], validering: [] };
+  }
+}
+
+// Run a single context tool and format its result as a human-readable hint line.
+async function runKontekstTool(toolName, stepAnswer) {
+  if (toolName === "matrikkel_finn_veger") {
+    try {
+      const gater = await invokeTool("matrikkel_finn_veger", {});
+      if (Array.isArray(gater) && gater.length > 0) {
+        const forslag = gater.slice(0, 6).map((g) => g.adressenavn).join(", ");
+        return `Tilgjengelige testgater i matrikkelen: ${forslag}.`;
+      }
+    } catch {
+      // ignore – context hint is optional
+    }
+  }
+  return null;
+}
+
+// Run a single validation tool against the user's raw answer.
+// Returns { answer, inferred, note } on success, or null when the answer is invalid.
+// On invalid input returns { retry, hint } so the agent can ask the user to try again.
+async function runValideringTool(toolName, userText) {
+  if (toolName === "matrikkel_finn_veger") {
+    try {
+      const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: userText });
+      if (gateTreff && gateTreff.adressenavn) {
+        return {
+          answer: gateTreff.adressenavn,
+          inferred: true,
+          note: `Takk, jeg fant ${gateTreff.adressenavn} i matrikkelen og bruker det gatenavnet videre.`
+        };
+      }
+    } catch {
+      // Gate not found – build a retry hint
+    }
+    // Build suggestions for retry
+    try {
+      const gater = await invokeTool("matrikkel_finn_veger", {});
+      const forslag = Array.isArray(gater) ? gater.slice(0, 6).map((g) => g.adressenavn).join(", ") : null;
+      return {
+        retry: true,
+        hint: forslag
+          ? `Jeg fant ikke gaten i matrikkelen med det navnet. Prøv gjerne en av disse: ${forslag}.`
+          : "Jeg fant ikke gaten i matrikkelen med det navnet. Prøv et annet gatenavn."
+      };
+    } catch {
+      return { retry: true, hint: "Jeg fant ikke gaten i matrikkelen. Prøv et annet gatenavn." };
+    }
+  }
+  return null;
+}
+
 function startGuidedInterview(state, stepId) {
   const questions = guidedInterviewDefinitions[stepId] || [];
   if (!questions.length) return null;
@@ -527,6 +598,15 @@ async function advanceAndPrompt(state) {
       state.awaitingStepId = step.id;
       const prompt = step.tekst || step.tittel || "Kan du svare på et spørsmål?";
       messages.push(prompt);
+
+      // Dynamically discover which tools can provide useful context for this step.
+      const { kontekst, validering } = await discoverStepTools(step);
+      state.awaitingValideringTools = validering.map((v) => v.name);
+      for (const v of kontekst) {
+        const hint = await runKontekstTool(v.name);
+        if (hint) messages.push(hint);
+      }
+
       return messages;
     }
 
@@ -605,6 +685,22 @@ async function handleMessage(state, message) {
     const step = state.lastSession?.aktivtSteg;
     const activeQuestionId = step?.id || state.awaitingStepId || null;
 
+    // Give hint suggestions if user asks for help on a step that has context tools.
+    if (!looksLikeHelpQuestion(activeQuestionId, text)) {
+      const lower = normalize(text);
+      const isHelpish = text.includes("?") || ["hjelp", "vet ikke", "usikker", "forslag", "hvilke", "hva kan jeg"].some((ord) => lower.includes(ord));
+      if (isHelpish && (state.awaitingValideringTools || []).length > 0) {
+        const hints = [];
+        for (const toolName of state.awaitingValideringTools) {
+          const hint = await runKontekstTool(toolName);
+          if (hint) hints.push(hint);
+        }
+        if (hints.length > 0) {
+          return [...hints, step?.tekst || "Skriv inn svaret ditt når du er klar."];
+        }
+      }
+    }
+
     if (looksLikeHelpQuestion(activeQuestionId, text)) {
       const interviewReplies = startGuidedInterview(state, activeQuestionId);
       if (interviewReplies) {
@@ -613,7 +709,22 @@ async function handleMessage(state, message) {
       return [fallbackGuidanceForQuestion(activeQuestionId), step?.tekst || "Skriv gjerne svaret ditt når du er klar."];
     }
 
-    const normalizedAnswer = normalizeQuestionAnswer(activeQuestionId, text);
+    let normalizedAnswer = normalizeQuestionAnswer(activeQuestionId, text);
+
+    // Run dynamic validation tools discovered when the step was entered.
+    const valideringsToolNavn = state.awaitingValideringTools || [];
+    for (const toolName of valideringsToolNavn) {
+      const valResult = await runValideringTool(toolName, text);
+      if (!valResult) continue;
+      if (valResult.retry) {
+        return [valResult.hint];
+      }
+      // Successful normalisation – override answer with the canonical value.
+      normalizedAnswer = { answer: valResult.answer, inferred: valResult.inferred, note: valResult.note };
+      state.latestMatrikkelGate = { adressenavn: valResult.answer };
+      break;
+    }
+
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.awaitingStepId,
@@ -761,10 +872,12 @@ async function createAgentSession(body) {
     sporingsId: null,
     awaiting: "process_choice",
     awaitingStepId: null,
+    awaitingValideringTools: [],
     lastSession: null,
     history: [],
     pendingProcessCandidates: [],
     latestSummary: null,
+    latestMatrikkelGate: null,
     guidedInterviewQueue: [],
     guidedInterviewAnswers: {},
     guidedInterviewCurrentKey: null,

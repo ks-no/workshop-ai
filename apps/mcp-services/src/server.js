@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
 
-const port = 8083;
+const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 const aiBaseUrl = process.env.AI_BASE_URL || "http://ai-gateway:8082";
+const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrikkel-mock:8085";
 
 const toolDefs = [
   {
@@ -174,6 +175,66 @@ const toolDefs = [
       required: ["sporingsId"],
       properties: { sporingsId: { type: "string" } }
     }
+  },
+  {
+    name: "matrikkel_finn_veger",
+    description: "Find streets in matrikkel by partial street name.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        gate: { type: "string" }
+      }
+    }
+  },
+  {
+    name: "matrikkel_hent_eiendom",
+    description: "Fetch one property from matrikkel by matrikkelId or by gnr+bnr.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        matrikkelId: { type: "string" },
+        gnr: { type: "integer" },
+        bnr: { type: "integer" }
+      }
+    }
+  },
+  {
+    name: "matrikkel_hent_eiere",
+    description: "Get owners for one property from matrikkel by matrikkelId or by gnr+bnr.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        matrikkelId: { type: "string" },
+        gnr: { type: "integer" },
+        bnr: { type: "integer" }
+      }
+    }
+  },
+  {
+    name: "suggest_step_tools",
+    description: "Ask the AI gateway which MCP tools are relevant for a given process step. Returns tools to call proactively for context and/or to validate user answers.",
+    inputSchema: {
+      type: "object",
+      required: ["steg"],
+      properties: {
+        steg: {
+          type: "object",
+          description: "The active process step definition (id, tittel, tekst, felter).",
+          properties: {
+            id: { type: "string" },
+            tittel: { type: "string" },
+            tekst: { type: "string" },
+            felter: { type: "array" }
+          }
+        },
+        tilgjengeligeVerktoy: {
+          type: "array",
+          description: "Subset of tool names (strings) to consider. Defaults to all Matrikkel tools if omitted.",
+          items: { type: "string" }
+        },
+        sporingsId: { type: "string" }
+      }
+    }
   }
 ];
 
@@ -216,6 +277,15 @@ async function ai(path, payload) {
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.feil || `AI feil ${res.status}`);
+  }
+  return data;
+}
+
+async function matrikkel(path) {
+  const res = await fetch(`${matrikkelBaseUrl}${path}`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.feil || `Matrikkel feil ${res.status}`);
   }
   return data;
 }
@@ -358,6 +428,62 @@ async function invokeTool(name, args = {}) {
 
   if (name === "get_audit_log") {
     return api(`/api/revisjonslogg/${args.sporingsId}`);
+  }
+
+  if (name === "matrikkel_finn_veger") {
+    const gate = args.gate ? `?gate=${encodeURIComponent(args.gate)}` : "";
+    return matrikkel(`/mock/matrikkel/gater${gate}`);
+  }
+
+  if (name === "matrikkel_hent_eiendom") {
+    if (args.matrikkelId) {
+      return matrikkel(`/mock/matrikkel/eiendom/${encodeURIComponent(args.matrikkelId)}`);
+    }
+    if (Number.isInteger(args.gnr) && Number.isInteger(args.bnr)) {
+      const eiendommer = await matrikkel("/mock/matrikkel/eiendommer");
+      const funn = eiendommer.find((e) => Number(e.gnr) === args.gnr && Number(e.bnr) === args.bnr);
+      if (!funn) throw new Error(`Fant ikke matrikkelenhet med gnr=${args.gnr} og bnr=${args.bnr}.`);
+      return funn;
+    }
+    throw new Error("Oppgi enten matrikkelId eller begge feltene gnr og bnr.");
+  }
+
+  if (name === "matrikkel_hent_eiere") {
+    const eiendom = await invokeTool("matrikkel_hent_eiendom", args);
+    return {
+      matrikkelId: eiendom.matrikkelId,
+      gnr: eiendom.gnr,
+      bnr: eiendom.bnr,
+      adresse: eiendom.adresse,
+      eiere: Array.isArray(eiendom.eiere) ? eiendom.eiere : [],
+      antallEiere: Array.isArray(eiendom.eiere) ? eiendom.eiere.length : 0,
+      syntetisk: true
+    };
+  }
+
+  if (name === "suggest_step_tools") {
+    // Build the list of tool descriptors to send to ai-gateway.
+    // If the caller supplies a subset, honour it; otherwise default to matrikkel tools.
+    const verktoyNavn = Array.isArray(args.tilgjengeligeVerktoy) && args.tilgjengeligeVerktoy.length > 0
+      ? args.tilgjengeligeVerktoy
+      : ["matrikkel_finn_veger", "matrikkel_hent_eiendom", "matrikkel_hent_eiere"];
+
+    const verktoyMedBeskrivelse = toolDefs
+      .filter((t) => verktoyNavn.includes(t.name))
+      .map((t) => ({ name: t.name, description: t.description }));
+
+    const res = await fetch(`${aiBaseUrl}/ai/velg-verktoy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        steg: args.steg || {},
+        verktoy: verktoyMedBeskrivelse,
+        sporingsId: args.sporingsId
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.feil || `AI feil ${res.status}`);
+    return data;
   }
 
   throw new Error(`Ukjent tool: ${name}`);

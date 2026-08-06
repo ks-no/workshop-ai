@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: Matrikkel Mock API
+  version: 0.1.0
+  description: |
+    Enkel mock for Matrikkel Geointegrasjon BasisService.
+    SOAP kontrakt eksponeres paa /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl.
+servers:
+  - url: http://localhost:8085
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Tjenesten er oppe
+  /geointegrasjon/matrikkel/wsapi/v1/BasisService:
+    get:
+      summary: Hent mock WSDL
+      parameters:
+        - in: query
+          name: wsdl
+          required: true
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: WSDL
+          content:
+            text/xml:
+              schema:
+                type: string
+    post:
+      summary: SOAP-kall mot BasisService
+      requestBody:
+        required: true
+        content:
+          text/xml:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: SOAP respons
+          content:
+            text/xml:
+              schema:
+                type: string
+  /mock/matrikkel/gater:
+    get:
+      summary: List eller soek i gater
+      parameters:
+        - in: query
+          name: gate
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Treff
+  /mock/matrikkel/eiendommer:
+    get:
+      summary: List eiendommer
+      parameters:
+        - in: query
+          name: gate
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: personId
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Treffliste
+  /mock/matrikkel/eiendom/{matrikkelId}:
+    get:
+      summary: Hent en eiendom
+      parameters:
+        - in: path
+          name: matrikkelId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Treffer
+        "404":
+          description: Ikke funnet
+
+
