@@ -10,7 +10,8 @@ const fakeSession = {
   oektsId: "oekt-1",
   sporingsId: "flyt-1",
   stepIndex: 0,
-  savedAnswer: null
+  savedAnswer: null,
+  savedAnswers: {}
 };
 
 const steps = [
@@ -21,6 +22,18 @@ const steps = [
     tittel: "Hvilken gate gjelder søknaden?",
     tekst: "Hvilken gate ønsker du fartsdempende tiltak i? Skriv inn gatenavnet.",
     felter: [{ id: "gatenavn", label: "Gatenavn", type: "tekst", placeholder: "f.eks. Storgata" }]
+  },
+  {
+    id: "boliger-bekreft",
+    type: "QUESTION",
+    tittel: "Antall boliger i gaten",
+    tekst: "Matrikkelen kan være ufullstendig. Er det mer enn 20 boliger i gaten?"
+  },
+  {
+    id: "begrunnelse",
+    type: "QUESTION",
+    tittel: "Begrunn søknaden",
+    tekst: "Beskriv trafikkproblemet og hva slags tiltak du ønsker."
   }
 ];
 
@@ -54,6 +67,7 @@ function currentSessionPayload() {
     oektsId: fakeSession.oektsId,
     sporingsId: fakeSession.sporingsId,
     status: "AKTIV",
+    stegIndex: fakeSession.stepIndex,
     aktivtSteg: steps[fakeSession.stepIndex]
   };
 }
@@ -113,7 +127,7 @@ function createFakeMcpServer() {
                 id: "fartsdempende-tiltak",
                 navn: "Søknad om fartsdempende tiltak",
                 beskrivelse: "Test",
-                antallSteg: 2
+                antallSteg: 4
               }
             ],
             antallMaler: 0,
@@ -126,6 +140,7 @@ function createFakeMcpServer() {
       if (name === "start_process_session") {
         fakeSession.stepIndex = 0;
         fakeSession.savedAnswer = null;
+        fakeSession.savedAnswers = {};
         json(response, 200, {
           ok: true,
           result: {
@@ -141,15 +156,48 @@ function createFakeMcpServer() {
         return;
       }
 
+      if (name === "get_process_definition") {
+        json(response, 200, {
+          ok: true,
+          result: {
+            id: "fartsdempende-tiltak",
+            navn: "Søknad om fartsdempende tiltak",
+            steg: steps
+          }
+        });
+        return;
+      }
+
       if (name === "next_step") {
         fakeSession.stepIndex += 1;
         json(response, 200, { ok: true, result: currentSessionPayload() });
         return;
       }
 
+      if (name === "previous_step") {
+        fakeSession.stepIndex = Math.max(0, fakeSession.stepIndex - 1);
+        json(response, 200, { ok: true, result: currentSessionPayload() });
+        return;
+      }
+
       if (name === "answer_question") {
         fakeSession.savedAnswer = args.svar;
+        fakeSession.savedAnswers[args.stegId] = args.svar;
         json(response, 200, { ok: true, result: { lagret: true } });
+        return;
+      }
+
+      if (name === "interpret_reply") {
+        const txt = normalize(args.tekst || "");
+        if (["ja", "japp", "yes", "ok"].some((v) => txt.includes(v))) {
+          json(response, 200, { ok: true, result: { intent: args.jaIntent || "ja", confidence: 0.9 } });
+          return;
+        }
+        if (["nei", "no"].some((v) => txt.includes(v))) {
+          json(response, 200, { ok: true, result: { intent: args.neiIntent || "nei", confidence: 0.9 } });
+          return;
+        }
+        json(response, 200, { ok: true, result: { intent: args.ukjentIntent || "unknown", confidence: 0.2 } });
         return;
       }
 
@@ -157,7 +205,7 @@ function createFakeMcpServer() {
       if (name === "suggest_step_tools") {
         const steg = args.steg || {};
         const allText = `${steg.id || ""} ${steg.tittel || ""} ${steg.tekst || ""} ${(steg.felter || []).map((f) => `${f.label || ""} ${f.placeholder || ""}`).join(" ")}`.toLowerCase();
-        const gateRelevant = allText.includes("gate") || allText.includes("gatenavn");
+        const gateRelevant = allText.includes("hvilken gate") || allText.includes("gatenavn");
         json(response, 200, {
           ok: true,
           result: {
@@ -186,6 +234,14 @@ function createFakeMcpServer() {
         const gate = normalize(args.gate);
         if (gate.includes("storg")) {
           json(response, 200, { ok: true, result: { adressenavn: "Storgata", kommunenummer: "4601" } });
+          return;
+        }
+        if (gate.includes("nordnes")) {
+          json(response, 200, { ok: true, result: { adressenavn: "Nordnesveien", kommunenummer: "4601" } });
+          return;
+        }
+        if (gate.includes("fjosanger") || gate.includes("fjøsanger")) {
+          json(response, 200, { ok: true, result: { adressenavn: "Fjøsangerveien", kommunenummer: "4601" } });
           return;
         }
 
@@ -233,6 +289,49 @@ async function run() {
       `Mangler proaktiv matrikkel-gatehjelp. Fikk: ${JSON.stringify(choose.replies)}`
     );
 
+    const offTopicAtGate = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "eg vil gjerne har fartshumper" })
+    });
+    assert(
+      offTopicAtGate.replies.some((r) => r.includes("lagrer dette som utkast")),
+      `Agenten lagret ikke tiltaket som utkast ved gate-spørsmål. Fikk: ${JSON.stringify(offTopicAtGate.replies)}`
+    );
+    assert(
+      offTopicAtGate.replies.some((r) => r.toLowerCase().includes("fant ikke gaten")),
+      `Agenten ba ikke fortsatt om gate etter off-topic svar. Fikk: ${JSON.stringify(offTopicAtGate.replies)}`
+    );
+    assert(!fakeSession.savedAnswers["velg-gate"], "Off-topic svar ved gate-steg skal ikke lagres som gate");
+
+    const metaQuestion = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Hva gjenstår nå?" })
+    });
+    assert(
+      metaQuestion.replies.some((r) => r.includes("gjenstår")),
+      `Agenten svarte ikke på prosess-spørsmål underveis. Fikk: ${JSON.stringify(metaQuestion.replies)}`
+    );
+
+    // Ask a question, do not answer the form yet.
+    const lookupQuestion = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Finnes Storgata 5 ?" })
+    });
+    assert(
+      lookupQuestion.replies.some((r) => r.includes("finnes i matrikkelen")),
+      `Agenten svarte ikke på oppslagsspørsmålet. Fikk: ${JSON.stringify(lookupQuestion.replies)}`
+    );
+    assert(fakeSession.savedAnswer === null, "Lookup-spørsmål skal ikke lagres som endelig stegsvar");
+
+    const lookupNaturalLanguage = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Eg ønsker det i en gante i fjøsanger, finnes den?" })
+    });
+    assert(
+      lookupNaturalLanguage.replies.some((r) => r.includes("Mener du den gaten") || r.includes("finnes i matrikkelen") || r.includes("Fjøsangerveien")),
+      `Naturlig oppslagsspørsmål ga ikke robust svar. Fikk: ${JSON.stringify(lookupNaturalLanguage.replies)}`
+    );
+
     // Enter an unknown gate – agent should reject and offer suggestions
     const invalidGate = await req(`/agent/sessions/${created.sessionId}/messages`, {
       method: "POST",
@@ -243,18 +342,79 @@ async function run() {
       `Mangler feilfeedback for ukjent gate. Fikk: ${JSON.stringify(invalidGate.replies)}`
     );
 
-    // Enter a partial gate name – agent should normalise to canonical name
+    // Enter a partial gate name – agent should ask follow-up before saving
     const validGate = await req(`/agent/sessions/${created.sessionId}/messages`, {
       method: "POST",
       body: JSON.stringify({ message: "storg" })
     });
     assert(
-      validGate.replies.some((r) => r.includes("fant Storgata")),
-      `Mangler bekreftelse av matrikkel-oppslag. Fikk: ${JSON.stringify(validGate.replies)}`
+      validGate.replies.some((r) => r.includes("Mener du den gaten")),
+      `Mangler oppfølgingsspørsmål for usikkert gateoppslag. Fikk: ${JSON.stringify(validGate.replies)}`
     );
     assert(
-      fakeSession.savedAnswer === "Storgata",
-      `Gate ble ikke lagret med kanonisk navn fra matrikkelen. Fikk: ${fakeSession.savedAnswer}`
+      fakeSession.savedAnswer === null,
+      `Delvis treff skal ikke lagres før bekreftelse. Fikk: ${fakeSession.savedAnswer}`
+    );
+
+    // Confirm the suggested gate and ensure it is saved canonically
+    const confirmGate = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "ja" })
+    });
+    assert(
+      confirmGate.replies.some((r) => r.includes("Flott, jeg bruker Storgata")),
+      `Mangler bekreftet lagring av gate. Fikk: ${JSON.stringify(confirmGate.replies)}`
+    );
+    assert(fakeSession.savedAnswers["velg-gate"] === "Storgata", "Gate ble ikke lagret på riktig steg");
+
+    // Mentioning another gate out of order should trigger switch confirmation.
+    const gateSwitchPrompt = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Eg vil søke om dempere i Nordnesveien" })
+    });
+    assert(
+      gateSwitchPrompt.replies.some((r) => r.includes("Vil du bytte gate")),
+      `Mangler gate-bytte bekreftelse. Fikk: ${JSON.stringify(gateSwitchPrompt.replies)}`
+    );
+
+    const gateSwitchYes = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "ja" })
+    });
+    assert(
+      gateSwitchYes.replies.some((r) => r.includes("bytter vi gate til Nordnesveien")),
+      `Mangler bekreftelse etter gate-bytte. Fikk: ${JSON.stringify(gateSwitchYes.replies)}`
+    );
+    assert(fakeSession.savedAnswers["velg-gate"] === "Nordnesveien", "Gate-bytte ble ikke lagret");
+
+    // Now provide out-of-order free text while still at boliger-bekreft.
+    const deferredDraft = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Vi har høy fart og ønsker fartshumper." })
+    });
+    assert(
+      deferredDraft.replies.some((r) => r.includes("lagrer dette som utkast")),
+      `Mangler utkast-lagring for senere fritekststeg. Fikk: ${JSON.stringify(deferredDraft.replies)}`
+    );
+
+    const boligerYes = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "ja" })
+    });
+    assert(fakeSession.savedAnswers["boliger-bekreft"] === "ja", "Boliger-svar ble ikke lagret riktig");
+    assert(
+      boligerYes.replies.some((r) => r.includes("svarte tidligere")),
+      `Agenten ba ikke om bekreftelse av utkast ved neste steg. Fikk: ${JSON.stringify(boligerYes.replies)}`
+    );
+
+    const useDeferred = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "ja" })
+    });
+    assert(fakeSession.savedAnswers.begrunnelse, "Utkast ble ikke brukt som svar på begrunnelse");
+    assert(
+      useDeferred.replies.some((r) => r.includes("bruker svaret du ga tidligere")) || useDeferred.replies.some((r) => r.includes("fullført")),
+      `Manglet bekreftet bruk av utkast. Fikk: ${JSON.stringify(useDeferred.replies)}`
     );
 
     console.log("test:process-agent-matrikkel OK");
@@ -268,6 +428,19 @@ run().catch((error) => {
   console.error(error.message);
   process.exitCode = 1;
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

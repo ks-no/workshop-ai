@@ -253,7 +253,7 @@ function parseNumberFromText(text) {
 function normalizeQuestionAnswer(stepId, text) {
   const value = String(text || "").trim();
   if (!stepId || !value) {
-    return { answer: value, inferred: false, note: null };
+    return { answer: value, inferred: false, note: null, valid: Boolean(value), retryMessage: value ? null : "Svar gjerne med en verdi." };
   }
 
   if (stepId === "boliger-bekreft") {
@@ -264,6 +264,8 @@ function normalizeQuestionAnswer(stepId, text) {
       return {
         answer: number > 20 ? "ja" : "nei",
         inferred: true,
+        valid: true,
+        retryMessage: null,
         note: number > 20
           ? "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
           : "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
@@ -274,6 +276,8 @@ function normalizeQuestionAnswer(stepId, text) {
       return {
         answer: "ja",
         inferred: true,
+        valid: true,
+        retryMessage: null,
         note: "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
       };
     }
@@ -282,12 +286,33 @@ function normalizeQuestionAnswer(stepId, text) {
       return {
         answer: "nei",
         inferred: true,
+        valid: true,
+        retryMessage: null,
         note: "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
       };
     }
+
+    const jaNei = normalize(value);
+    if (["ja", "japp", "yes", "nei", "no"].includes(jaNei)) {
+      return {
+        answer: jaNei.startsWith("ja") || jaNei === "yes" ? "ja" : "nei",
+        inferred: true,
+        valid: true,
+        retryMessage: null,
+        note: null
+      };
+    }
+
+    return {
+      answer: null,
+      inferred: false,
+      valid: false,
+      note: null,
+      retryMessage: "Jeg trenger et ja/nei-svar eller et tall for antall boliger, for eksempel 'ja', 'nei' eller 'det er 24 boliger'."
+    };
   }
 
-  return { answer: value, inferred: false, note: null };
+  return { answer: value, inferred: false, note: null, valid: true, retryMessage: null };
 }
 
 // Per-step guided interview: ordered questions to collect before composing a final answer.
@@ -357,6 +382,63 @@ function fallbackGuidanceForQuestion(stepId) {
   return "Svar gjerne kort med de viktigste opplysningene, så hjelper jeg deg videre.";
 }
 
+function extractLookupCandidate(text) {
+  let value = String(text || "").trim().replace(/[?]+$/g, "").trim();
+  if (!value) return "";
+
+  const lower = normalize(value);
+  const prefixes = [
+    "er det en gate som heter ",
+    "finnes det en gate som heter ",
+    "finnes det gate som heter ",
+    "finnes ",
+    "finns ",
+    "fins ",
+    "er det ",
+    "har dere ",
+    "kan du sjekke ",
+    "kan du finne ",
+    "finn "
+  ];
+
+  for (const prefix of prefixes) {
+    if (lower.startsWith(prefix)) {
+      value = value.slice(prefix.length).trim();
+      break;
+    }
+  }
+
+  value = value.replace(/\bi matrikkelen\b/gi, "").trim();
+  value = value.replace(/^en gate som heter\s+/i, "").trim();
+  value = value.replace(/^gate som heter\s+/i, "").trim();
+  value = value.replace(/\bfinnes\s+den\b/gi, "").trim();
+
+  // Natural language fallback: pick the last "i <sted/gate>" phrase.
+  const iMatches = [...value.matchAll(/\bi\s+([^,?.!]+)/gi)];
+  if (iMatches.length > 0) {
+    value = iMatches[iMatches.length - 1][1].trim();
+  }
+
+  value = value.replace(/^(en|ei|et)\s+/i, "").trim();
+  value = value.replace(/^(gate|gaten|gante|veg|veien|vegen)\s+/i, "").trim();
+  value = value.replace(/[,:;.!]+$/g, "").trim();
+
+  value = value.replace(/^['"`]+|['"`]+$/g, "").trim();
+  return value;
+}
+
+function isLikelyGateQuestionStep(step) {
+  const allText = normalize(`${step?.id || ""} ${step?.tittel || ""} ${step?.tekst || ""}`);
+  return allText.includes("gate") || allText.includes("gatenavn");
+}
+
+function extractPossibleGateMention(text) {
+  const value = String(text || "").trim();
+  if (!value) return null;
+  const match = value.match(/\b([\p{L}][\p{L}-]*(?:gata|gate|veien|vegen))\b/iu);
+  return match?.[1] || null;
+}
+
 // ---------------------------------------------------------------------------
 // Dynamisk verktøyoppdagelse via suggest_step_tools
 // ---------------------------------------------------------------------------
@@ -400,8 +482,24 @@ async function runKontekstTool(toolName, stepAnswer) {
 async function runValideringTool(toolName, userText) {
   if (toolName === "matrikkel_finn_veger") {
     try {
-      const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: userText });
+      const raatekst = String(userText || "").trim();
+      // Many users ask with husnummer (e.g. "Storgata 5"). Matrikkel gate lookup
+      // expects gatenavn, so narrow input to the likely street name first.
+      const gatenavnKandidat = raatekst.replace(/\s+\d+[\p{L}]?$/u, "").trim();
+      const query = gatenavnKandidat || raatekst;
+
+      const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: query });
       if (gateTreff && gateTreff.adressenavn) {
+        const inputNormalisert = normalize(query);
+        const gateNormalisert = normalize(gateTreff.adressenavn);
+        const erEksaktTreff = inputNormalisert === gateNormalisert;
+        if (!erEksaktTreff) {
+          return {
+            confirm: true,
+            proposedAnswer: gateTreff.adressenavn,
+            question: `Jeg fant ${gateTreff.adressenavn} i matrikkelen. Mener du den gaten? Svar ja/nei.`
+          };
+        }
         return {
           answer: gateTreff.adressenavn,
           inferred: true,
@@ -425,6 +523,103 @@ async function runValideringTool(toolName, userText) {
       return { retry: true, hint: "Jeg fant ikke gaten i matrikkelen. Prøv et annet gatenavn." };
     }
   }
+  return null;
+}
+
+async function moveSessionToStepId(state, targetStepId) {
+  const steg = Array.isArray(state.processDefinition?.steg) ? state.processDefinition.steg : [];
+  const targetIndex = steg.findIndex((s) => s.id === targetStepId);
+  if (targetIndex === -1) return false;
+
+  for (let i = 0; i < 30; i += 1) {
+    const session = await invokeTool("get_session", { oektsId: state.oektsId });
+    state.lastSession = session;
+    if (session?.aktivtSteg?.id === targetStepId) return true;
+
+    if (typeof session?.stegIndex === "number") {
+      if (session.stegIndex > targetIndex) {
+        await invokeTool("previous_step", { oektsId: state.oektsId });
+        continue;
+      }
+      if (session.stegIndex < targetIndex) {
+        await invokeTool("next_step", { oektsId: state.oektsId });
+        continue;
+      }
+    }
+
+    // Fallback when stegIndex is unavailable.
+    try {
+      await invokeTool("previous_step", { oektsId: state.oektsId });
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function findProcessStepById(state, stepId) {
+  const steg = state.processDefinition?.steg;
+  if (!Array.isArray(steg) || !stepId) return null;
+  return steg.find((s) => s.id === stepId) || null;
+}
+
+function findNextFreeTextQuestionStep(state, fromStepId) {
+  const steg = state.processDefinition?.steg;
+  if (!Array.isArray(steg)) return null;
+  const fromIndex = steg.findIndex((s) => s.id === fromStepId);
+  if (fromIndex === -1) return null;
+
+  for (let i = fromIndex + 1; i < steg.length; i += 1) {
+    const kandidat = steg[i];
+    if (kandidat.type !== "QUESTION") continue;
+    if (kandidat.id === "boliger-bekreft") continue;
+    return kandidat;
+  }
+  return null;
+}
+
+function maybeCaptureDeferredAnswer(state, currentStepId, text) {
+  const value = String(text || "").trim();
+  if (!value || value.includes("?")) return null;
+  if (value.length < 12) return null;
+
+  const targetStep = findNextFreeTextQuestionStep(state, currentStepId);
+  if (!targetStep) return null;
+
+  state.deferredAnswers[targetStep.id] = value;
+  return {
+    targetStep,
+    message: `Jeg lagrer dette som utkast til «${targetStep.tittel || targetStep.id}».`
+  };
+}
+
+function maybeAnswerProcessMetaQuestion(state, text) {
+  if (!text.includes("?")) return null;
+  const lower = normalize(text);
+  const step = state.lastSession?.aktivtSteg;
+
+  if (["hva skjer", "hvor er vi", "hvilket steg", "hva er neste", "hva gjenstar", "hvor langt"].some((q) => lower.includes(q))) {
+    const navn = step?.tittel || step?.id || "ukjent steg";
+    const steg = Array.isArray(state.processDefinition?.steg) ? state.processDefinition.steg : [];
+    const idx = typeof state.lastSession?.stegIndex === "number" ? state.lastSession.stegIndex : -1;
+    const remaining = idx >= 0 ? Math.max(steg.length - idx - 1, 0) : null;
+    if (remaining === null) {
+      return `Akkurat nå er vi i steget «${navn}».`;
+    }
+    return `Akkurat nå er vi i steget «${navn}». Etter dette gjenstår ${remaining} steg.`;
+  }
+
+  if (["kan jeg bytte gate", "endre gate", "annen gate"].some((q) => lower.includes(q))) {
+    return "Ja. Skriv hvilken gate du vil bruke, så oppdaterer vi det før innsending.";
+  }
+
+  if (["hvorfor", "hvorfor spør", "hva brukes"].some((q) => lower.includes(q))) {
+    const navn = step?.tittel || step?.id;
+    if (navn) {
+      return `Kort forklart: steget «${navn}» trengs for å kunne vurdere søknaden riktig og dokumentere grunnlaget.`;
+    }
+  }
+
   return null;
 }
 
@@ -504,6 +699,11 @@ async function startSelectedProcess(state, choice) {
   });
 
   state.selectedProcess = choice;
+  try {
+    state.processDefinition = await invokeTool("get_process_definition", { prosessId: choice.id });
+  } catch {
+    state.processDefinition = null;
+  }
   state.oektsId = started.oektsId;
   state.sporingsId = started.sporingsId;
   state.pendingProcessCandidates = [];
@@ -596,6 +796,15 @@ async function advanceAndPrompt(state) {
     if (step.type === "QUESTION") {
       state.awaiting = "question";
       state.awaitingStepId = step.id;
+
+      if (state.deferredAnswers[step.id]) {
+        state.awaiting = "deferred_answer_confirm";
+        state.pendingDeferredStepId = step.id;
+        state.pendingValidatedAnswer = state.deferredAnswers[step.id];
+        messages.push(`Du svarte tidligere på dette steget: «${state.pendingValidatedAnswer}». Vil du bruke dette svaret? (ja/nei)`);
+        return messages;
+      }
+
       const prompt = step.tekst || step.tittel || "Kan du svare på et spørsmål?";
       messages.push(prompt);
 
@@ -681,17 +890,66 @@ async function handleMessage(state, message) {
     return ["Jeg fant ikke den prosessen. Skriv nummer, navn, eller id fra listen."];
   }
 
+  const metaSvar = maybeAnswerProcessMetaQuestion(state, text);
+  if (metaSvar) {
+    return [metaSvar];
+  }
+
   if (state.awaiting === "question") {
     const step = state.lastSession?.aktivtSteg;
     const activeQuestionId = step?.id || state.awaitingStepId || null;
+    const valideringsToolNavn = state.awaitingValideringTools || [];
+    const likelyGateStep = isLikelyGateQuestionStep(step);
+
+    if (activeQuestionId !== "velg-gate") {
+      const gateMention = extractPossibleGateMention(text);
+      if (gateMention) {
+        const gateResult = await runValideringTool("matrikkel_finn_veger", gateMention);
+        if (gateResult?.answer || gateResult?.proposedAnswer) {
+          const foreslatt = gateResult.answer || gateResult.proposedAnswer;
+          state.awaiting = "gate_switch_confirm";
+          state.pendingGateSwitch = {
+            gate: foreslatt,
+            returnStepId: activeQuestionId
+          };
+          return [`Du nevner ${foreslatt}. Vil du bytte gate til ${foreslatt} nå? Svar ja/nei.`];
+        }
+      }
+    }
+
+    // If the user asks a lookup question (e.g. "Finnes Storgata?"), answer it
+    // directly and keep the step open so the user can submit a final value.
+    if (text.includes("?") && (valideringsToolNavn.length > 0 || likelyGateStep)) {
+      const lookupText = extractLookupCandidate(text) || text;
+      const lookupTools = valideringsToolNavn.length > 0 ? valideringsToolNavn : (likelyGateStep ? ["matrikkel_finn_veger"] : []);
+      for (const toolName of lookupTools) {
+        const valResult = await runValideringTool(toolName, lookupText);
+        if (!valResult) continue;
+        if (valResult.retry) {
+          return [valResult.hint, step?.tekst || "Skriv inn svaret ditt når du er klar."];
+        }
+        if (valResult.confirm) {
+          state.awaiting = "question_value_confirm";
+          state.pendingValidatedAnswer = valResult.proposedAnswer;
+          return [valResult.question];
+        }
+        if (!valResult.answer) {
+          return ["Jeg ble litt usikker på oppslaget. Kan du skrive gatenavnet en gang til?"];
+        }
+        return [
+          `Ja, ${valResult.answer} finnes i matrikkelen.`,
+          `Hvis du vil bruke den gaten, svar gjerne bare «${valResult.answer}».`
+        ];
+      }
+    }
 
     // Give hint suggestions if user asks for help on a step that has context tools.
     if (!looksLikeHelpQuestion(activeQuestionId, text)) {
       const lower = normalize(text);
       const isHelpish = text.includes("?") || ["hjelp", "vet ikke", "usikker", "forslag", "hvilke", "hva kan jeg"].some((ord) => lower.includes(ord));
-      if (isHelpish && (state.awaitingValideringTools || []).length > 0) {
+      if (isHelpish && valideringsToolNavn.length > 0) {
         const hints = [];
-        for (const toolName of state.awaitingValideringTools) {
+        for (const toolName of valideringsToolNavn) {
           const hint = await runKontekstTool(toolName);
           if (hint) hints.push(hint);
         }
@@ -710,14 +968,29 @@ async function handleMessage(state, message) {
     }
 
     let normalizedAnswer = normalizeQuestionAnswer(activeQuestionId, text);
+    if (!normalizedAnswer.valid) {
+      const deferred = maybeCaptureDeferredAnswer(state, activeQuestionId, text);
+      if (deferred) {
+        return [deferred.message, normalizedAnswer.retryMessage || "Før vi går videre trenger jeg svar på spørsmålet i dette steget."];
+      }
+      return [normalizedAnswer.retryMessage || "Jeg fikk ikke tolket svaret. Kan du prøve igjen?"];
+    }
 
     // Run dynamic validation tools discovered when the step was entered.
-    const valideringsToolNavn = state.awaitingValideringTools || [];
     for (const toolName of valideringsToolNavn) {
       const valResult = await runValideringTool(toolName, text);
       if (!valResult) continue;
       if (valResult.retry) {
+        const deferred = maybeCaptureDeferredAnswer(state, activeQuestionId, text);
+        if (deferred) {
+          return [deferred.message, valResult.hint, step?.tekst || "Kan du skrive svaret på nytt?"];
+        }
         return [valResult.hint];
+      }
+      if (valResult.confirm) {
+        state.awaiting = "question_value_confirm";
+        state.pendingValidatedAnswer = valResult.proposedAnswer;
+        return [valResult.question];
       }
       // Successful normalisation – override answer with the canonical value.
       normalizedAnswer = { answer: valResult.answer, inferred: valResult.inferred, note: valResult.note };
@@ -733,6 +1006,172 @@ async function handleMessage(state, message) {
     await tryNextStep(state.oektsId);
     const ack = normalizedAnswer.note || "Takk, jeg har lagret svaret ditt.";
     return [ack].concat(await advanceAndPrompt(state));
+  }
+
+  if (state.awaiting === "deferred_answer_confirm") {
+    const intent = await invokeTool("interpret_reply", {
+      tekst: text,
+      jaIntent: "confirm_yes",
+      neiIntent: "confirm_no",
+      ukjentIntent: "unknown",
+      sporingsId: state.sporingsId,
+      kontekst: {
+        prosessId: state.selectedProcess?.id,
+        stegType: "DEFERRED_ANSWER_CONFIRM",
+        stegId: state.pendingDeferredStepId,
+        foreslattSvar: state.pendingValidatedAnswer
+      }
+    });
+
+    if (intent.intent === "confirm_yes") {
+      const proposed = state.pendingValidatedAnswer;
+      const stepId = state.pendingDeferredStepId || state.awaitingStepId;
+      if (!proposed || !stepId) {
+        state.awaiting = "question";
+        return ["Jeg mistet forslaget underveis. Kan du skrive svaret på nytt?"];
+      }
+      await invokeTool("answer_question", {
+        oektsId: state.oektsId,
+        stegId: stepId,
+        svar: proposed
+      });
+      delete state.deferredAnswers[stepId];
+      state.pendingDeferredStepId = null;
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      await tryNextStep(state.oektsId);
+      return ["Flott, da bruker jeg svaret du ga tidligere."].concat(await advanceAndPrompt(state));
+    }
+
+    if (intent.intent === "confirm_no") {
+      const stepId = state.pendingDeferredStepId;
+      if (stepId) delete state.deferredAnswers[stepId];
+      state.pendingDeferredStepId = null;
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      return [state.lastSession?.aktivtSteg?.tekst || "Skriv gjerne svaret ditt på nytt."];
+    }
+
+    if (text.trim() && !["ja", "nei", "japp", "yes", "no", "ok"].includes(normalize(text))) {
+      state.pendingDeferredStepId = null;
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      return handleMessage(state, text);
+    }
+
+    return ["Jeg ble litt usikker. Svar gjerne ja eller nei."];
+  }
+
+  if (state.awaiting === "gate_switch_confirm") {
+    const intent = await invokeTool("interpret_reply", {
+      tekst: text,
+      jaIntent: "confirm_yes",
+      neiIntent: "confirm_no",
+      ukjentIntent: "unknown",
+      sporingsId: state.sporingsId,
+      kontekst: {
+        prosessId: state.selectedProcess?.id,
+        stegType: "GATE_SWITCH_CONFIRM",
+        foreslattGate: state.pendingGateSwitch?.gate
+      }
+    });
+
+    if (intent.intent === "confirm_yes") {
+      const nyGate = state.pendingGateSwitch?.gate;
+      const returnStepId = state.pendingGateSwitch?.returnStepId;
+      state.pendingGateSwitch = null;
+      if (!nyGate) {
+        state.awaiting = "question";
+        return ["Jeg mistet hvilken gate som skulle brukes. Kan du skrive gatenavnet på nytt?"];
+      }
+
+      const movedToGateStep = await moveSessionToStepId(state, "velg-gate");
+      if (!movedToGateStep) {
+        state.awaiting = "question";
+        return ["Jeg klarte ikke å hoppe tilbake til gatevalget akkurat nå. Kan du skrive gatenavnet direkte?"].concat(await advanceAndPrompt(state));
+      }
+
+      await invokeTool("answer_question", {
+        oektsId: state.oektsId,
+        stegId: "velg-gate",
+        svar: nyGate
+      });
+      state.latestMatrikkelGate = { adressenavn: nyGate };
+
+      await tryNextStep(state.oektsId);
+      const replies = [`Da bytter vi gate til ${nyGate}.`].concat(await advanceAndPrompt(state));
+
+      // If we still ended up at the same step, keep normal question mode.
+      if (returnStepId && state.lastSession?.aktivtSteg?.id === returnStepId) {
+        state.awaiting = "question";
+      }
+      return replies;
+    }
+
+    if (intent.intent === "confirm_no") {
+      const sammeStegTekst = state.lastSession?.aktivtSteg?.tekst;
+      state.pendingGateSwitch = null;
+      state.awaiting = "question";
+      return ["Greit, vi beholder nåværende gate.", sammeStegTekst || "Fortsett gjerne med svaret ditt på dette steget."];
+    }
+
+    if (text.trim() && !["ja", "nei", "japp", "yes", "no", "ok"].includes(normalize(text))) {
+      state.pendingGateSwitch = null;
+      state.awaiting = "question";
+      return handleMessage(state, text);
+    }
+
+    return ["Jeg ble litt usikker. Svar gjerne ja eller nei."];
+  }
+
+  if (state.awaiting === "question_value_confirm") {
+    const intent = await invokeTool("interpret_reply", {
+      tekst: text,
+      jaIntent: "confirm_yes",
+      neiIntent: "confirm_no",
+      ukjentIntent: "unknown",
+      sporingsId: state.sporingsId,
+      kontekst: {
+        prosessId: state.selectedProcess?.id,
+        stegType: "QUESTION_VALUE_CONFIRM",
+        foreslattSvar: state.pendingValidatedAnswer
+      }
+    });
+
+    if (intent.intent === "confirm_yes") {
+      const proposed = state.pendingValidatedAnswer;
+      if (!proposed) {
+        state.awaiting = "question";
+        return ["Jeg mistet hvilket forslag som skulle bekreftes. Kan du skrive gatenavnet en gang til?"];
+      }
+      await invokeTool("answer_question", {
+        oektsId: state.oektsId,
+        stegId: state.awaitingStepId,
+        svar: proposed
+      });
+      state.latestMatrikkelGate = { adressenavn: proposed };
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      await tryNextStep(state.oektsId);
+      return [`Flott, jeg bruker ${proposed}.`].concat(await advanceAndPrompt(state));
+    }
+
+    if (intent.intent === "confirm_no") {
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      return [
+        "Skjønner. Skriv gjerne gatenavnet på nytt slik du ønsker det registrert.",
+        state.lastSession?.aktivtSteg?.tekst || "Hvilken gate gjelder søknaden?"
+      ];
+    }
+
+    if (text.trim() && !["ja", "nei", "japp", "yes", "no", "ok"].includes(normalize(text))) {
+      state.pendingValidatedAnswer = null;
+      state.awaiting = "question";
+      return handleMessage(state, text);
+    }
+
+    return ["Jeg ble litt usikker. Svar gjerne ja eller nei."];
   }
 
   if (state.awaiting === "guided_interview") {
@@ -868,6 +1307,7 @@ async function createAgentSession(body) {
     updated: new Date().toISOString(),
     processes: processesResult.prosesser,
     selectedProcess: null,
+    processDefinition: null,
     oektsId: null,
     sporingsId: null,
     awaiting: "process_choice",
@@ -878,6 +1318,10 @@ async function createAgentSession(body) {
     pendingProcessCandidates: [],
     latestSummary: null,
     latestMatrikkelGate: null,
+    pendingValidatedAnswer: null,
+    pendingDeferredStepId: null,
+    pendingGateSwitch: null,
+    deferredAnswers: {},
     guidedInterviewQueue: [],
     guidedInterviewAnswers: {},
     guidedInterviewCurrentKey: null,
