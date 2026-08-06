@@ -44,8 +44,10 @@ Minimumslista fra juni er i hovedsak innfridd:
   ble bedre.
 - **`mcp-services` er ikke MCP-protokollen** — REST med `protocol: "mcp-style-http"`.
   Verktøyene har korrekte `inputSchema`, så veien dit er kort.
-- **Windows-oppstart.** `origin/start-og-stop-windows` er basert på pre-TypeScript-treet
-  og må **ikke** merges — skriv `start.bat` på nytt i stedet.
+- **Windows-oppstart.** Batchfiler for ledeteksten er under arbeid i egen pull request
+  (`start-og-stop-windows`). Merk at branchen ble laget før TypeScript-konverteringen, så
+  den trenger en rebase mot `main` før merge. Inntil videre går Windows-brukere via
+  Git Bash eller WSL.
 
 ## Hva som fortsatt kan vente
 

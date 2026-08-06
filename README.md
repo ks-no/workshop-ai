@@ -56,21 +56,9 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-### På Windows
-
-Kjør `start.bat` fra ledeteksten eller PowerShell:
-
-```bat
-start.bat
-```
-
-Den tar de samme flaggene som `start.sh` (`-m`, `--mock`, `--reset`, `-d`, `-h`), og
-verifiserer på samme måte at modellen faktisk svarer før den melder klar. Forskjellen er
-at Ollama kjører i Docker Compose sammen med tjenestene, ikke nativt — så det er ingen
-plattform- eller GPU-deteksjon å gjøre. Stopp med `start.bat -d` eller `stop.bat`.
-
-Har du Git Bash eller WSL, virker `./start.sh` også, og gir deg automatisk modellvalg
-basert på minnet i maskinen.
+På Windows: kjør skriptet fra Git Bash eller WSL. Da får du også automatisk modellvalg
+basert på minnet i maskinen. Egne batchfiler for ledeteksten er under arbeid i en egen
+pull request.
 
 ### Valg
 
