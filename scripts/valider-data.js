@@ -31,7 +31,7 @@ if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
 }
 
-// --- Relasjoner må henge sammen -------------------------------------------
+// --- Relations must hold together ------------------------------------------
 const personIder = new Set(personer.map((p) => p.personId));
 const husstandIder = new Set(husstander.map((h) => h.husstandId));
 
@@ -61,10 +61,10 @@ for (const rad of inntekter) {
   }
 }
 
-// --- Scenariodekning -------------------------------------------------------
-// Uten denne testen råtner variasjonen bort ved neste dataendring: én person
-// som får justert inntekten kan fjerne det eneste tilfellet på én side av en
-// terskel, og da gir alle demoene samme utfall igjen.
+// --- Scenario coverage -----------------------------------------------------
+// Without this test the variation rots away on the next data change: adjusting one
+// person's income can remove the only case on one side of a threshold, and then
+// every demo produces the same outcome again.
 function husstandsgrunnlag(husstand) {
   let sum = 0;
   for (const medlem of husstand.medlemmer) {
@@ -91,10 +91,11 @@ for (const ordning of satser.ordninger) {
   }
 }
 
-// --- Målgruppedekning ------------------------------------------------------
-// Ordningene avgrenser seg på alder (barnehage) eller trinn (SFO). Uten denne
-// testen kan en ordning bli umulig å innvilge fordi ingen husstand har et barn
-// i målgruppen, og da ser regelen ut til å virke mens den bare sier nei.
+// --- Target group coverage -------------------------------------------------
+// The ordninger scope themselves by age (barnehage) or school year (SFO). Without
+// this test an ordning can become impossible to grant because no husstand has a
+// child in the target group — and then the rule looks like it works while it only
+// ever says no.
 const barnehageplasser = await les("data/barnehageplasser.json");
 const sfoplasser = await les("data/sfoplasser.json");
 const plasserPerTjeneste = { barnehage: barnehageplasser, sfo: sfoplasser };
@@ -136,7 +137,7 @@ for (const ordning of satser.ordninger) {
   }
 }
 
-// Edge-casene fra Fiks-modellen må finnes i dataene.
+// The edge cases from the Fiks model must exist in the data.
 if (!inntekter.some((r) => r.stadie === "UTKAST")) {
   throw new Error("Mangler minst én inntektsrad med stadie UTKAST.");
 }

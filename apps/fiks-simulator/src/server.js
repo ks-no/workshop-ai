@@ -89,16 +89,16 @@ async function leggTilRevisjon(hendelse) {
 // --------------------------------------------------------------------------
 // Skatte- og inntektsopplysninger: beregning
 //
-// Modellert etter KS Fiks sitt register-API, beregningstype BARNEHAGE_SFO:
+// Modelled on the KS Fiks register API, beregningstype BARNEHAGE_SFO:
 // https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
 //
-// Simulatoren beregner grunnlaget. Inntektsgrensene eies av kommunen og
-// ligger i data/satser.json, som sandbox-backend bruker.
+// The simulator computes the grunnlag. The income thresholds belong to the
+// municipality and live in data/satser.json, which sandbox-backend reads.
 // --------------------------------------------------------------------------
 
-// Poster som ikke inngår i grunnlaget føres som ADDERE i inntekt og
-// SUBTRAHERE i fradrag. Da blir beregningsbeloep riktig, samtidig som
-// innbyggeren kan se hvilke ytelser som ble holdt utenfor og hvorfor.
+// Entries excluded from the grunnlag are recorded as ADDERE under inntekt and
+// SUBTRAHERE under fradrag. That keeps beregningsbeloep correct while still letting
+// the resident see which benefits were left out, and why.
 function byggPost(post, identifikator) {
   return {
     tekniskNavn: post.tekniskNavn,
@@ -131,8 +131,8 @@ function byggBeregning(deltakere) {
   }
 
   const sum = (poster) => poster.reduce((t, p) => t + p.beloep, 0);
-  // TypeApiModel forteller hvilken av de to barnelistene som er fylt: POST for
-  // beregningsposter, GRUNNLAG for beregningsgrunnlag. Vi bygger bare poster.
+  // TypeApiModel says which of the two child lists is populated: POST for
+  // beregningsposter, GRUNNLAG for beregningsgrunnlag. We only build poster.
   const gruppe = (tekniskNavn, visningstekst, operasjon, poster) => ({
     tekniskNavn,
     visningstekst,
@@ -154,8 +154,9 @@ function byggBeregning(deltakere) {
   return { inntekt, fradrag, beregningsbeloep: inntekt.beloep - fradrag.beloep };
 }
 
-// Én visningspost per inntektstype, med beløp fordelt på personene bak.
-// Skjermede personer teller med i totalen, men fordelingen deres vises ikke.
+// One visningspost per income type, with the amount broken down by the people
+// behind it. Protected individuals count towards the total, but their share is
+// not shown.
 function byggVisningsposter(deltakere) {
   const perType = new Map();
 
@@ -201,8 +202,8 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
   const svarPersoner = [];
 
   for (const forespurt of body.personer) {
-    // Spec-en krever ^[0-9]{11}$. Uten denne sjekken ga en malformert
-    // identifikator PERSON_IKKE_FUNNET, som antyder at den var velformet.
+    // The spec requires ^[0-9]{11}$. Without this check a malformed identifier
+    // returned PERSON_IKKE_FUNNET, which wrongly implies it was well-formed.
     if (!/^[0-9]{11}$/.test(String(forespurt.identifikator || ""))) {
       feilmeldinger.push({
         kode: "UGYLDIG_IDENTIFIKATOR",
@@ -255,8 +256,8 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
       poster: [...(rad?.poster || []), ...ekstraposter]
     });
 
-    // PersonnavnApiModel har mellomnavn som optional string, ikke nullable, så
-    // et fravaerende mellomnavn utelates framfor å sendes som null.
+    // PersonnavnApiModel types mellomnavn as an optional string, not nullable, so
+    // an absent mellomnavn is omitted rather than sent as null.
     const navn = person.navn && {
       fornavn: person.navn.fornavn,
       ...(person.navn.mellomnavn ? { mellomnavn: person.navn.mellomnavn } : {}),
@@ -329,8 +330,8 @@ const server = createServer(async (request, response) => {
     const oppgaver = await readJson("oppgaver.json", []);
     const meldinger = await readJson("meldinger.json", []);
 
-    // Full Fiks-sti, slik at kall kan kopieres fra Fiks-dokumentasjonen og
-    // senere peke på det ekte API-et ved kun å bytte base-URL.
+    // Full Fiks path, so calls can be copied straight from the Fiks documentation
+    // and later point at the real API by changing only the base URL.
     const beregningTreff = url.pathname.match(
       /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/redusert-foreldrebetaling$/
     );

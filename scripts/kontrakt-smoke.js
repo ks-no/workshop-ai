@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
-// Kontrakt-royktest for sandbox-backend.
+// Contract smoke test for sandbox-backend.
 //
-// Starter backend og fiks-simulator mot en fersk, tom STATE_DIR, treffer hvert
-// endepunkt med faste testpersoner og skriver en normalisert JSON-dump. Genererte
-// id-er og tidsstempler byttes ut med plassholdere, saa to kjoeringer av samme kode
-// gir bit-identisk resultat.
+// Starts backend and fiks-simulator against a fresh, empty STATE_DIR, hits every
+// endpoint with fixed test people, and writes a normalised JSON dump. Generated ids
+// and timestamps are replaced with placeholders, so two runs of the same code give
+// a byte-identical result.
 //
-// Bruk:
+// Usage:
 //   node scripts/kontrakt-smoke.js --ut state/kontrakt-foer.json
-//   ... refaktorer ...
+//   ... refactor ...
 //   node scripts/kontrakt-smoke.js --ut state/kontrakt-etter.json
 //   diff state/kontrakt-foer.json state/kontrakt-etter.json
 //
-// Kjoerer paa egne porter mot en egen STATE_DIR, saa den kan kjoere samtidig med
-// docker compose uten aa roere den delte kjoeringstilstanden i state/.
-// AI-gateway trengs ikke: flytene stopper foer SUMMARY-steget med vilje.
+// Runs on its own ports against its own STATE_DIR, so it can run alongside docker
+// compose without touching the shared runtime state in state/.
+// ai-gateway is not needed: the flows deliberately stop before the SUMMARY step.
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
@@ -37,11 +37,11 @@ function argValue(navn) {
   return index === -1 ? null : process.argv[index + 1];
 }
 
-// --- normalisering -------------------------------------------------------
+// --- normalisation --------------------------------------------------------
 
-// nyttId() gir "<prefiks>-<millisekunder>-<seks tegn>". Bade backend og
-// fiks-simulator bruker samme format, saa ett moenster daekker begge.
-// Global, saa id-er byttes ut ogsaa naar de staar inne i en URL eller en melding.
+// newId() produces "<prefix>-<milliseconds>-<six chars>". Backend and
+// fiks-simulator use the same format, so one pattern covers both.
+// Global, so ids are replaced inside URLs and messages too.
 const idMoenster = /([a-z]+)-\d{13}-[a-z0-9]{6}/g;
 const tidsstempelMoenster = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
@@ -63,7 +63,7 @@ function normaliser(verdi) {
   return verdi;
 }
 
-// --- prosessoppstart -----------------------------------------------------
+// --- process startup ------------------------------------------------------
 
 function start(navn, relativSti, miljo) {
   const barn = spawn(process.execPath, [path.join(rot, relativSti)], {
@@ -76,8 +76,8 @@ function start(navn, relativSti, miljo) {
   return barn;
 }
 
-// Uten denne ville et opptatt portnummer gitt en dump mot en fremmed instans med
-// delt state/ i stedet for en tydelig feil.
+// Without this, an occupied port would produce a dump against someone else's
+// instance with shared state/ instead of a clear error.
 async function krevLedigPort(portnummer) {
   await new Promise((klar, avvis) => {
     const proeve = createServer();
@@ -97,14 +97,14 @@ async function ventPaaHelse(basisUrl, tidsfrist = 15000) {
       const svar = await fetch(`${basisUrl}/helse`);
       if (svar.ok) return;
     } catch {
-      // tjenesten er ikke oppe ennaa
+      // service is not up yet
     }
     await new Promise((klar) => setTimeout(klar, 150));
   }
   throw new Error(`${basisUrl} svarte ikke paa /helse innen ${tidsfrist} ms.`);
 }
 
-// --- kall ----------------------------------------------------------------
+// --- calls ----------------------------------------------------------------
 
 const dump = [];
 
@@ -119,7 +119,7 @@ async function kall(navn, sti, valg = {}) {
   try {
     kropp = JSON.parse(rawText);
   } catch {
-    // /docs og /openapi.yaml er ikke JSON. Lengden holder som regresjonsvakt.
+    // /docs and /openapi.yaml are not JSON. Length is enough of a regression guard.
     kropp = { ikkeJson: true, lengde: rawText.length };
   }
   dump.push({
@@ -132,7 +132,7 @@ async function kall(navn, sti, valg = {}) {
   return kropp;
 }
 
-// Statiske oppslag. Daekker alle GET-endepunkter uten sideeffekter.
+// Static lookups. Covers every GET endpoint without side effects.
 async function statiskeOppslag() {
   await kall("helse", "/helse");
   await kall("docs", "/docs");
@@ -142,7 +142,7 @@ async function statiskeOppslag() {
   await kall("person-ukjent", "/api/personer/person-999");
   await kall("husstand", "/api/personer/person-001/husstand");
   await kall("barnehage", "/api/personer/person-001/barnehage");
-  // person-008 er den foresatte som faktisk har et barn i SFO.
+  // person-008 is the guardian who actually has a child in SFO.
   await kall("sfo", "/api/personer/person-008/sfo");
   await kall("sfo-tom", "/api/personer/person-001/sfo");
   await kall("inntektsgrunnlag-uten-samtykke", "/api/husstander/household-001/inntektsgrunnlag");
@@ -167,7 +167,7 @@ async function statiskeOppslag() {
 }
 
 // Foreldrebetaling: INFO -> husstand -> samtykke -> inntekt -> SJEKK.
-// Stopper foer SUMMARY, som ville krevd ai-gateway.
+// Stops before SUMMARY, which would require ai-gateway.
 async function foreldrebetalingsflyt(prosessId, merkelapp) {
   const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
@@ -193,13 +193,13 @@ async function foreldrebetalingsflyt(prosessId, merkelapp) {
   await kall(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 
-  // Naa som samtykket ligger inne skal den direkte inntektsruta svare 200.
+  // With the samtykke registered, the direct income route should now answer 200.
   await kall(`${merkelapp}-inntekt-med-samtykke`, "/api/personer/person-001/inntekt");
   await kall(`${merkelapp}-inntektsgrunnlag`, "/api/husstander/household-001/inntektsgrunnlag");
 }
 
-// Fartsdemping er den eneste casen som treffer SJEKK, matrikkel og
-// {svar.<stegId>}-substitusjon samtidig.
+// Fartsdemping is the only case that exercises SJEKK, matrikkel and
+// {svar.<stegId>} substitution at once.
 async function fartsdempingsflyt(gate, merkelapp) {
   const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
@@ -229,7 +229,7 @@ async function soknadOgRevisjon() {
   await kall("revisjonslogg", "/api/revisjonslogg");
 }
 
-// --- kjoering ------------------------------------------------------------
+// --- run ------------------------------------------------------------------
 
 async function kjoer() {
   await krevLedigPort(backendPort);
