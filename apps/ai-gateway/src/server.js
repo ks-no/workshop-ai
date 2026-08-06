@@ -334,10 +334,23 @@ async function velgVerktoyMedAi(body) {
 function byggPrompt(type, body, fallbackTekst) {
   const kontekst = body?.kontekst || {};
   const sprak = body?.sprak || "nb";
+
+  // Oppsummeringen gjengir beløp og et utfall som allerede er avgjort
+  // deterministisk i sandbox-backend. Modellen skal formulere, ikke regne
+  // eller konkludere — jf. ai-no-decisions i policies/ai-policy.yaml.
+  const sperrer = type === "oppsummering"
+    ? [
+        "Gjenta alle tall, beløp, datoer og navn nøyaktig slik de står i anbefalt innhold.",
+        "Du skal ikke regne ut noe selv, og ikke innvilge eller avslå noe.",
+        "Er et utfall allerede oppgitt, gjengi det uendret."
+      ]
+    : [];
+
   return [
     "Du er en hjelpsom assistent i en kommunal demosandbox.",
     `Svar kort på ${sprak} med klart språk uten personopplysninger utover det som er gitt.`,
     "Når du oppsummerer, si tydelig hva vi fant og hva som sendes inn.",
+    ...sperrer,
     `Oppgavetype: ${type}`,
     `Tjeneste: ${kontekst.tjeneste || "ukjent"}`,
     `Steg: ${kontekst.steg?.tittel || kontekst.steg?.type || "ukjent"}`,
@@ -1085,15 +1098,6 @@ async function velgProsessMedAi(body) {
 
 async function byggAiSvar(type, body) {
   const mockSvar = byggSvar(type, body);
-
-  if (type === "oppsummering") {
-    return {
-      tekst: mockSvar.tekst,
-      syntetisk: true,
-      modell: "mock-ai-gateway",
-      sprak: body.sprak || "nb"
-    };
-  }
 
   const prompt = byggPrompt(type, body, mockSvar.tekst);
 
