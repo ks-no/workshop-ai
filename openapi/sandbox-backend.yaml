@@ -165,6 +165,71 @@ paths:
         "403":
           description: Samtykke mangler
 
+  /api/regler/satser:
+    get:
+      summary: Hent moderasjonsordninger med regler og inntektsgrenser
+      description: >
+        Satsene eies av kommunen og ligger i data/satser.json. Inntektsgrunnlaget
+        beregnes derimot av fiks-simulator.
+      responses:
+        "200":
+          description: Satser returnert
+
+  /api/regler/sjekk/foreldrebetaling:
+    get:
+      summary: Vurder rett til en moderasjonsordning
+      description: >
+        Deterministisk vurdering av inntektsgrunnlaget mot ordningen. Brukes av
+        SJEKK-steg i prosessdefinisjoner. KI forklarer utfallet, men avgjør det
+        aldri, jf. ai-no-decisions i policies/ai-policy.yaml.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: ordning
+          in: query
+          required: true
+          description: Ordnings-id fra /api/regler/satser
+          schema:
+            type: string
+            example: redusert-foreldrebetaling-barnehage
+      responses:
+        "200":
+          description: Vurdering utfoert
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [godkjent, melding]
+                properties:
+                  godkjent:
+                    type: boolean
+                  melding:
+                    type: string
+                  grunnlag:
+                    type: object
+                    description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
+        "400":
+          description: Ukjent ordning eller manglende parameter
+
+  /api/husstander/{husstandId}/inntektsgrunnlag:
+    get:
+      summary: Hent husholdningens inntektsgrunnlag
+      description: Henter beregningen fra fiks-simulator for hele husholdningen.
+      parameters:
+        - name: husstandId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Beregning returnert
+        "404":
+          description: Fant ikke husstand
+
   /api/revisjonslogg:
     get:
       summary: Hent hele revisjonsloggen

@@ -36,7 +36,9 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente inntektsopplysninger?",
           "formaal": "Vurdere rett til redusert foreldrebetaling",
-          "dataKilder": ["inntekt"]
+          "dataKilder": [
+            "inntekt"
+          ]
         },
         {
           "id": "fetch-income",
@@ -46,6 +48,20 @@
           "api": {
             "method": "GET",
             "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "sjekk-rett",
+          "type": "SJEKK",
+          "tittel": "Vurderer om du har rett til redusert foreldrebetaling",
+          "feilmelding": "Ut fra husholdningens inntektsgrunnlag har du ikke rett til redusert foreldrebetaling i barnehage.",
+          "api": {
+            "method": "GET",
+            "url": "/api/regler/sjekk/foreldrebetaling?personId={personId}&ordning=redusert-foreldrebetaling-barnehage"
+          },
+          "forfatterhjelp": {
+            "hensikt": "Deterministisk vurdering mot satsene i data/satser.json. KI forklarer utfallet, men avgjør det ikke.",
+            "skrivetips": "Bytt ordning-parameteren for å vurdere en annen ordning, for eksempel gratis-kjernetid-barnehage-2-5."
           }
         },
         {
@@ -91,7 +107,9 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente inntektsopplysninger?",
           "formaal": "Vurdere rett til redusert betaling i SFO",
-          "dataKilder": ["inntekt"]
+          "dataKilder": [
+            "inntekt"
+          ]
         },
         {
           "id": "hent-inntekt",
@@ -101,6 +119,20 @@
           "api": {
             "method": "GET",
             "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "sjekk-rett",
+          "type": "SJEKK",
+          "tittel": "Vurderer om du har rett til redusert betaling i SFO",
+          "feilmelding": "Ut fra husholdningens inntektsgrunnlag har du ikke rett til redusert betaling i SFO.",
+          "api": {
+            "method": "GET",
+            "url": "/api/regler/sjekk/foreldrebetaling?personId={personId}&ordning=redusert-sfo-2-3-trinn"
+          },
+          "forfatterhjelp": {
+            "hensikt": "Samme mekanisme som i barnehageprosessen, men mot SFO-ordningen.",
+            "skrivetips": "Trinn avgjør hvilken ordning som gjelder. Se data/satser.json."
           }
         },
         {
@@ -155,7 +187,11 @@
               "id": "kontaktkanal",
               "label": "Hvordan vil du helst kontaktes?",
               "type": "valg",
-              "alternativer": ["Telefon", "E-post", "Digital melding"],
+              "alternativer": [
+                "Telefon",
+                "E-post",
+                "Digital melding"
+              ],
               "obligatorisk": false
             }
           ]
@@ -165,7 +201,9 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi bruke kontaktopplysningene dine i denne demoen?",
           "formaal": "Følge opp behovsavklaringen",
-          "dataKilder": ["kontaktinfo"]
+          "dataKilder": [
+            "kontaktinfo"
+          ]
         },
         {
           "id": "oppsummering",
@@ -228,7 +266,9 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente inntektsopplysninger?",
           "formaal": "Vurdere rett til fritidskort-støtte",
-          "dataKilder": ["inntekt"]
+          "dataKilder": [
+            "inntekt"
+          ]
         },
         {
           "id": "hent-inntekt",
@@ -335,7 +375,13 @@
               "id": "oensketTiltak",
               "label": "Ønsket tiltak",
               "type": "valg",
-              "alternativer": ["Fartshumper", "Innsnevring av kjørebanen", "Sone med 30 km/t", "Opphøyd gangfelt", "Annet"],
+              "alternativer": [
+                "Fartshumper",
+                "Innsnevring av kjørebanen",
+                "Sone med 30 km/t",
+                "Opphøyd gangfelt",
+                "Annet"
+              ],
               "obligatorisk": false
             }
           ]
@@ -392,7 +438,9 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente relevante opplysninger?",
           "formaal": "Behandle soknaden",
-          "dataKilder": ["inntekt"]
+          "dataKilder": [
+            "inntekt"
+          ]
         },
         {
           "id": "hent-data",

@@ -3,44 +3,89 @@
     {
       "id": "kindergarten-payment",
       "navn": "Redusert foreldrebetaling",
+      "kilder": [
+        {
+          "navn": "Folkeregisterets informasjonsmodell",
+          "url": "https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/informasjonsmodell/",
+          "bruk": "Vokabular for person, navn, adresse, sivilstand og foreldrebarnrelasjon."
+        },
+        {
+          "navn": "KS Fiks: skatte- og inntektsopplysninger, beregning",
+          "url": "https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json",
+          "bruk": "Modell for inntektsberegning, beregningstype BARNEHAGE_SFO."
+        },
+        {
+          "navn": "Forskrift om foreldrebetaling i barnehager",
+          "bruk": "Regelen om 6 % av husholdningens skattepliktige person- og kapitalinntekt, og inntektsgrensene i data/satser.json."
+        }
+      ],
+      "merknad": "Modellene er spec-inspirerte, ikke spec-komplette. Historikk, kodelister og adressetypevarianter er bevisst utelatt.",
       "begreper": [
         {
           "id": "person",
           "navn": "Person",
-          "beskrivelse": "Syntetisk representasjon av innbygger eller barn"
+          "beskrivelse": "Syntetisk representasjon av innbygger eller barn.",
+          "attributter": [
+            { "navn": "personId", "type": "string", "beskrivelse": "Intern nøkkel i sandboxen." },
+            { "navn": "syntetiskFodselsnummer", "type": "string", "beskrivelse": "11 siffer. Tilsvarer identifikator i Fiks og folkeregisteridentifikator i FREG, men navngitt slik at det er tydelig syntetisk." },
+            { "navn": "navn", "type": "objekt", "beskrivelse": "fornavn, mellomnavn, etternavn." },
+            { "navn": "foedselsdato", "type": "dato" },
+            { "navn": "bostedsadresse", "type": "objekt", "beskrivelse": "adressenavn, husnummer, postnummer, poststed, kommune." },
+            { "navn": "sivilstand", "type": "kodeverdi", "beskrivelse": "GIFT eller UGIFT i denne forenklingen." },
+            { "navn": "foreldrebarnrelasjon", "type": "liste", "beskrivelse": "relatertPersonId og relasjon FORELDER eller BARN." },
+            { "navn": "skjermet", "type": "boolsk", "beskrivelse": "Opplysninger om personen kan ikke vises. Fra Fiks-modellen." }
+          ]
         },
         {
           "id": "household",
           "navn": "Husstand",
-          "beskrivelse": "Personer som inngår i samme økonomiske husholdning"
+          "beskrivelse": "Ektefeller, registrerte partnere og samboere regnes som én husholdning, jf. forskriften.",
+          "attributter": [
+            { "navn": "husstandId", "type": "string" },
+            { "navn": "type", "type": "kodeverdi", "beskrivelse": "EKTEPAR, SAMBOERE eller ENSLIG_FORSORGER." },
+            { "navn": "medlemmer", "type": "liste", "beskrivelse": "personId og rolle foresatt eller barn." },
+            { "navn": "scenario", "type": "string", "beskrivelse": "Hva husstanden er ment å demonstrere. Kun for sandboxen." }
+          ]
         },
         {
           "id": "income",
-          "navn": "Inntekt",
-          "beskrivelse": "Syntetisk inntektsgrunnlag brukt i vurdering"
+          "navn": "Inntektsgrunnlag",
+          "beskrivelse": "Skattepliktig person- og kapitalinntekt, beregnet av Fiks-simulatoren.",
+          "attributter": [
+            { "navn": "inntektsaar", "type": "heltall" },
+            { "navn": "stadie", "type": "kodeverdi", "beskrivelse": "OPPGJOER, UTKAST eller UKJENT." },
+            { "navn": "poster", "type": "liste", "beskrivelse": "tekniskNavn, visningstekst, beloep, kilde og medregnes." },
+            { "navn": "kilde", "type": "kodeverdi", "beskrivelse": "SKATTEETATEN, MANUELL_INPUT eller MELLOMREGNING." },
+            { "navn": "beregningsbeloep", "type": "heltall", "beskrivelse": "Grunnlaget etter at ytelser som ikke medregnes er trukket fra." }
+          ]
+        },
+        {
+          "id": "scheme",
+          "navn": "Ordning",
+          "beskrivelse": "Moderasjonsordning med regel og eventuell inntektsgrense. Ligger i data/satser.json.",
+          "attributter": [
+            { "navn": "id", "type": "string" },
+            { "navn": "regel", "type": "kodeverdi", "beskrivelse": "INNTEKTSGRENSE eller MAKS_ANDEL_AV_INNTEKT." },
+            { "navn": "inntektsgrense", "type": "heltall" },
+            { "navn": "tjeneste", "type": "kodeverdi", "beskrivelse": "barnehage eller sfo." }
+          ]
         },
         {
           "id": "consent",
           "navn": "Samtykke eller bekreftelse",
-          "beskrivelse": "Innbyggerens godkjenning eller bekreftelse av databruk"
+          "beskrivelse": "Innbyggerens godkjenning av databruk. Kreves før inntektsopplysninger kan hentes.",
+          "attributter": [
+            { "navn": "samtykkeId", "type": "string" },
+            { "navn": "status", "type": "kodeverdi", "beskrivelse": "VENTER_PAA_SVAR, SAMTYKKET eller TRUKKET." },
+            { "navn": "dataKilder", "type": "liste" }
+          ]
         }
       ],
       "relasjoner": [
-        {
-          "from": "person",
-          "to": "household",
-          "type": "memberOf"
-        },
-        {
-          "from": "person",
-          "to": "income",
-          "type": "hasIncome"
-        },
-        {
-          "from": "person",
-          "to": "consent",
-          "type": "hasConsent"
-        }
+        { "from": "person", "to": "household", "type": "memberOf" },
+        { "from": "person", "to": "income", "type": "hasIncome" },
+        { "from": "person", "to": "consent", "type": "hasConsent" },
+        { "from": "household", "to": "scheme", "type": "evaluatedAgainst" }
       ]
     }
   ]

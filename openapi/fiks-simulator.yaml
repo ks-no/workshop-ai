@@ -30,3 +30,136 @@ paths:
       responses:
         "200":
           description: Consent returned
+
+  /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling:
+    post:
+      summary: Beregn inntektsgrunnlag for redusert foreldrebetaling
+      description: >
+        Simulerer KS Fiks sitt register-API, beregningstype BARNEHAGE_SFO.
+        Stien og modellen følger
+        https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
+        slik at kall kan kopieres fra Fiks-dokumentasjonen, og slik at et team
+        kan peke på det ekte API-et ved kun å bytte base-URL.
+
+        Simulatoren beregner grunnlaget. Inntektsgrensene eies av kommunen og
+        ligger i data/satser.json.
+      parameters:
+        - name: rolleId
+          in: path
+          required: true
+          description: Kommunens rolle-id. Simulatoren aksepterer enhver verdi.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inntektsaar, personer]
+              properties:
+                inntektsaar:
+                  type: integer
+                  example: 2025
+                personer:
+                  type: array
+                  items:
+                    type: object
+                    required: [identifikator, type]
+                    properties:
+                      identifikator:
+                        type: string
+                        pattern: "^[0-9]{11}$"
+                      type:
+                        type: string
+                        enum: [SOEKER, ANNET]
+                      ekstraposter:
+                        type: array
+                        description: Inntekt innbyggeren oppgir selv. Får kilde MANUELL_INPUT.
+                        items:
+                          type: object
+                          required: [tekniskNavn, beloep]
+                          properties:
+                            tekniskNavn:
+                              type: string
+                            visningstekst:
+                              type: string
+                            beloep:
+                              type: integer
+                              format: int64
+                            referanse:
+                              type: string
+      responses:
+        "200":
+          description: Beregning utfoert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inntektsaar:
+                    type: integer
+                  stadie:
+                    type: string
+                    enum: [OPPGJOER, UTKAST, UKJENT]
+                  personer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifikator:
+                          type: string
+                        navn:
+                          type: object
+                          properties:
+                            fornavn:
+                              type: string
+                            mellomnavn:
+                              type: string
+                            etternavn:
+                              type: string
+                        type:
+                          type: string
+                        skjermet:
+                          type: boolean
+                        skatteoppgjoersdato:
+                          type: string
+                          format: date
+                        stadie:
+                          type: string
+                  visningsposter:
+                    type: array
+                    description: Presentasjonsvennlig oppstilling per inntektstype.
+                    items:
+                      type: object
+                      properties:
+                        kategori:
+                          type: string
+                          enum: [INNTEKT]
+                        poster:
+                          type: array
+                          items:
+                            type: object
+                  beregningsbeloep:
+                    type: integer
+                    format: int64
+                    description: Grunnlaget etter fradrag. Dette er tallet regelsjekken bruker.
+                  inntekt:
+                    type: object
+                    description: Grupper med operasjon ADDERE.
+                  fradrag:
+                    type: object
+                    description: Ytelser som ikke inngaar i grunnlaget, med operasjon SUBTRAHERE.
+                  beregningstype:
+                    type: string
+                    enum: [BARNEHAGE_SFO]
+                  feilmeldinger:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kode:
+                          type: string
+                        melding:
+                          type: string

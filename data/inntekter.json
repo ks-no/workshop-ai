@@ -1,12 +1,780 @@
 [
-  { "personId": "person-001", "aar": 2025, "bruttoInntekt": 485000, "manedsInntekt": 40417, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-003", "aar": 2025, "bruttoInntekt": 512000, "manedsInntekt": 42667, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-005", "aar": 2025, "bruttoInntekt": 468000, "manedsInntekt": 39000, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-007", "aar": 2025, "bruttoInntekt": 598000, "manedsInntekt": 49833, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-009", "aar": 2025, "bruttoInntekt": 451000, "manedsInntekt": 37583, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-011", "aar": 2025, "bruttoInntekt": 430000, "manedsInntekt": 35833, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-013", "aar": 2025, "bruttoInntekt": 539000, "manedsInntekt": 44917, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-015", "aar": 2025, "bruttoInntekt": 476000, "manedsInntekt": 39667, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-017", "aar": 2025, "bruttoInntekt": 421000, "manedsInntekt": 35083, "kilde": "syntetisk-inntektsregister", "syntetisk": true },
-  { "personId": "person-019", "aar": 2025, "bruttoInntekt": 503000, "manedsInntekt": 41917, "kilde": "syntetisk-inntektsregister", "syntetisk": true }
+  {
+    "personId": "person-001",
+    "identifikator": "12018890001",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 456000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 29000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-003",
+    "identifikator": "21068590003",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 481000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 31000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-004",
+    "identifikator": "02118490004",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 602000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 38000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-006",
+    "identifikator": "14099290006",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 183000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 12000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-008",
+    "identifikator": "30038790008",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 562000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 36000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-009",
+    "identifikator": "19088690009",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 52000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 3000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-012",
+    "identifikator": "05129090012",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 424000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 27000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-014",
+    "identifikator": "28029190014",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 205000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 13000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-016",
+    "identifikator": "17078390016",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 376000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 24000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-017",
+    "identifikator": "23018590017",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 268000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 17000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-019",
+    "identifikator": "12048990019",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 404000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 26000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-020",
+    "identifikator": "30069090020",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 254000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 16000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-022",
+    "identifikator": "08119390022",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 143000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 9000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-024",
+    "identifikator": "25058690024",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 327000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 21000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-026",
+    "identifikator": "03089490026",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "sosialhjelp",
+        "visningstekst": "Økonomisk sosialhjelp",
+        "beloep": 96000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Sosialhjelp inngår ikke i grunnlaget."
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-028",
+    "identifikator": "27108990028",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 149000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 9000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-030",
+    "identifikator": "09018290030",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 188000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 12000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-031",
+    "identifikator": "16048390031",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 146000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 9000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-033",
+    "identifikator": "11068090033",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 212000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 13000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-035",
+    "identifikator": "07038490035",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 371000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 24000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-036",
+    "identifikator": "13098590036",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 235000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 15000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-040",
+    "identifikator": "02029090040",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 489000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 31000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-040",
+    "identifikator": "02029090040",
+    "inntektsaar": 2026,
+    "stadie": "UTKAST",
+    "skatteoppgjoersdato": null,
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 169000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 11000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "barnetrygd",
+        "visningstekst": "Barnetrygd",
+        "beloep": 12648,
+        "kilde": "SKATTEETATEN",
+        "medregnes": false,
+        "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-042",
+    "identifikator": "18057590042",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 282000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 18000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "personId": "person-043",
+    "identifikator": "09127790043",
+    "inntektsaar": 2025,
+    "stadie": "OPPGJOER",
+    "skatteoppgjoersdato": "2026-06-15",
+    "poster": [
+      {
+        "tekniskNavn": "loennsinntekt",
+        "visningstekst": "Lønnsinntekt",
+        "beloep": 226000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      },
+      {
+        "tekniskNavn": "renteinntekt",
+        "visningstekst": "Renteinntekter",
+        "beloep": 14000,
+        "kilde": "SKATTEETATEN",
+        "medregnes": true
+      }
+    ],
+    "syntetisk": true
+  }
 ]

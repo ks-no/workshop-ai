@@ -140,7 +140,7 @@
         prosesser = await hentJson("http://localhost:8080/api/prosesser");
 
         personvelger.innerHTML = personer
-          .map((person) => `<option value="${person.personId}">${person.fornavn} ${person.etternavn} (${person.kommune})</option>`)
+          .map((person) => `<option value="${person.personId}">${person.visningsnavn} (${person.bostedsadresse.kommune})</option>`)
           .join("");
 
         prosessvelger.innerHTML = prosesser
@@ -266,6 +266,10 @@
           innhold += `<button id="kjorHandling">Kjør datahenting</button>`;
         }
 
+        if (steg.type === "SJEKK") {
+          innhold += `<button id="kjorHandling">Kjør sjekk</button>`;
+        }
+
         if (steg.type === "SUMMARY") {
           innhold += `<button id="kjorHandling">Lag oppsummering</button>`;
         }
@@ -327,10 +331,11 @@
           };
         }
 
-        if (steg.type === "DATA_FETCH" || steg.type === "SUMMARY" || steg.type === "SUBMIT") {
+        if (steg.type === "DATA_FETCH" || steg.type === "SJEKK" || steg.type === "SUMMARY" || steg.type === "SUBMIT") {
           document.getElementById("kjorHandling").onclick = async () => {
             const meldinger = {
               DATA_FETCH: "Handling kjørt for datahenting.",
+              SJEKK: "Sjekk utført.",
               SUMMARY: "Oppsummering laget.",
               SUBMIT: "Søknad sendt inn."
             };
@@ -344,8 +349,16 @@
           const data = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/handling`, payload);
           oppdaterSessionVisning(data.oekt);
           visning.textContent = JSON.stringify(data.resultat, null, 2);
-          settStatus(statusmelding);
-          logg(statusmelding);
+          // Et SJEKK-steg som ikke godkjennes setter okten til AVVIST og avslutter
+          // flyten. Uten dette ville avslaget sett ut som et vanlig utfort steg.
+          if (data.oekt?.status === "AVVIST") {
+            const avvist = data.oekt.avvistMelding || data.resultat?.melding || "Prosessen ble avvist.";
+            settStatus(`Avvist: ${avvist}`);
+            logg(`Avvist: ${avvist}`);
+          } else {
+            settStatus(statusmelding);
+            logg(statusmelding);
+          }
           tegnAktivtSteg();
         } catch (error) {
           settStatus(error.message);

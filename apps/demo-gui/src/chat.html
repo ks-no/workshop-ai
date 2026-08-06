@@ -128,8 +128,9 @@
           if (result.adressenavn && result.antallEiendommer !== undefined) {
             return `Jeg fant gaten ${result.adressenavn} i ${result.kommune}. Matrikkelen viser ${result.antallBoligeiendommer} boligeiendommer og ${result.antallEiendommer} eiendommer totalt.`;
           }
-          if (result.bruttoInntekt) {
-            return `Jeg har hentet inntektsopplysningene. Registrert bruttoinntekt for ${result.aar} er ${formatNumber(result.bruttoInntekt)} kroner.`;
+          if (result.beregningsbeloep !== undefined) {
+            const utkast = result.stadie === "UTKAST" ? " Skatteoppgjoret er ikke ferdig, sa tallet kan endre seg." : "";
+            return `Jeg har hentet inntektsopplysningene. Husholdningens inntektsgrunnlag for ${result.inntektsaar} er ${formatNumber(result.beregningsbeloep)} kroner.${utkast}`;
           }
           if (result.husstandId && Array.isArray(result.medlemmer)) {
             return `Jeg har hentet husstandsopplysninger for ${result.husstandId}. Husstanden har ${result.medlemmer.length} registrerte medlemmer.`;
@@ -181,13 +182,11 @@
         }
 
         if (steg.type === "DATA_FETCH") {
-          return steg.id === "hent-gate"
-            ? "Takk. Da slår jeg opp gaten i matrikkelen."
-            : "Takk. Da henter jeg de opplysningene vi trenger nå.";
+          return steg.tekst || (steg.tittel ? `Takk. ${steg.tittel}.` : "Takk. Da henter jeg de opplysningene vi trenger nå.");
         }
 
         if (steg.type === "SJEKK") {
-          return "Nå sjekker jeg om du har registrert eiendom i gaten.";
+          return steg.tekst || (steg.tittel ? `${steg.tittel}.` : "Nå gjør jeg en sjekk av opplysningene.");
         }
 
         if (steg.type === "SUMMARY") {
@@ -545,7 +544,7 @@
         const personer = await req("/api/personer");
         const prosessData = await req("/api/prosesser");
         prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
-        personEl.innerHTML = personer.map((p) => `<option value="${p.personId}">${p.fornavn} ${p.etternavn} (${p.kommune})</option>`).join("");
+        personEl.innerHTML = personer.map((p) => `<option value="${p.personId}">${p.visningsnavn} (${p.bostedsadresse.kommune})</option>`).join("");
         prosessEl.innerHTML = prosesser.map((p) => `<option value="${p.id}">${p.navn}</option>`).join("");
       }
 

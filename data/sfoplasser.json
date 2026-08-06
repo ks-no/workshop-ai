@@ -1,0 +1,47 @@
+[
+  {
+    "personId": "person-011",
+    "sfoId": "sfo-stavanger-004",
+    "sfonavn": "Fjellhagen SFO",
+    "kommune": "Stavanger",
+    "trinn": 3,
+    "manedspris": 2100,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-027",
+    "sfoId": "sfo-bergen-011",
+    "sfonavn": "Solbakken SFO",
+    "kommune": "Bergen",
+    "trinn": 1,
+    "manedspris": 1900,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-029",
+    "sfoId": "sfo-trondheim-012",
+    "sfonavn": "Bjørnsen SFO",
+    "kommune": "Trondheim",
+    "trinn": 2,
+    "manedspris": 2000,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-032",
+    "sfoId": "sfo-oslo-013",
+    "sfonavn": "Sinsen SFO",
+    "kommune": "Oslo",
+    "trinn": 3,
+    "manedspris": 2150,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-034",
+    "sfoId": "sfo-stavanger-014",
+    "sfonavn": "Kongsgård SFO",
+    "kommune": "Stavanger",
+    "trinn": 4,
+    "manedspris": 2250,
+    "syntetisk": true
+  }
+]

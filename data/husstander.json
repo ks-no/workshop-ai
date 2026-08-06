@@ -1,12 +1,353 @@
 [
-  { "husstandId": "household-001", "adresse": "Eksempelveien 12", "kommune": "Bergen", "medlemmer": [{ "personId": "person-001", "rolle": "foresatt" }, { "personId": "person-002", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-002", "adresse": "Nordre gate 4", "kommune": "Trondheim", "medlemmer": [{ "personId": "person-003", "rolle": "foresatt" }, { "personId": "person-004", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-003", "adresse": "Pilestredet 18", "kommune": "Oslo", "medlemmer": [{ "personId": "person-005", "rolle": "foresatt" }, { "personId": "person-006", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-004", "adresse": "Fjordveien 7", "kommune": "Stavanger", "medlemmer": [{ "personId": "person-007", "rolle": "foresatt" }, { "personId": "person-008", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-005", "adresse": "Bragernes torg 5", "kommune": "Drammen", "medlemmer": [{ "personId": "person-009", "rolle": "foresatt" }, { "personId": "person-010", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-006", "adresse": "Storgata 33", "kommune": "Tromso", "medlemmer": [{ "personId": "person-011", "rolle": "foresatt" }, { "personId": "person-012", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-007", "adresse": "Markens gate 14", "kommune": "Kristiansand", "medlemmer": [{ "personId": "person-013", "rolle": "foresatt" }, { "personId": "person-014", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-008", "adresse": "Sjogata 11", "kommune": "Bodo", "medlemmer": [{ "personId": "person-015", "rolle": "foresatt" }, { "personId": "person-016", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-009", "adresse": "Apotekergata 9", "kommune": "Alesund", "medlemmer": [{ "personId": "person-017", "rolle": "foresatt" }, { "personId": "person-018", "rolle": "barn" }], "syntetisk": true },
-  { "husstandId": "household-010", "adresse": "Langgata 2", "kommune": "Sandnes", "medlemmer": [{ "personId": "person-019", "rolle": "foresatt" }, { "personId": "person-020", "rolle": "barn" }], "syntetisk": true }
+  {
+    "husstandId": "household-001",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Eksempelveien 12",
+    "kommune": "Bergen",
+    "medlemmer": [
+      {
+        "personId": "person-001",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-002",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Demobruker. Kvalifiserer til både redusert foreldrebetaling og gratis kjernetid."
+  },
+  {
+    "husstandId": "household-002",
+    "type": "EKTEPAR",
+    "adresse": "Nedre gate 4",
+    "kommune": "Trondheim",
+    "medlemmer": [
+      {
+        "personId": "person-003",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-004",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-005",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "To inntekter. Over alle grenser, kvalifiserer ikke til noe."
+  },
+  {
+    "husstandId": "household-003",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Kirkeveien 30",
+    "kommune": "Oslo",
+    "medlemmer": [
+      {
+        "personId": "person-006",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-007",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Ettåring. Under grensen for gratis kjernetid for 1-åringer."
+  },
+  {
+    "husstandId": "household-004",
+    "type": "SAMBOERE",
+    "adresse": "Fjellgata 7",
+    "kommune": "Stavanger",
+    "medlemmer": [
+      {
+        "personId": "person-008",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-009",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-010",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-011",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Søsken i to ordninger. Så vidt over grensen for SFO 4. trinn."
+  },
+  {
+    "husstandId": "household-005",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Elvebakken 18",
+    "kommune": "Drammen",
+    "medlemmer": [
+      {
+        "personId": "person-012",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-013",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true
+  },
+  {
+    "husstandId": "household-006",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Storgata 55",
+    "kommune": "Tromsø",
+    "medlemmer": [
+      {
+        "personId": "person-014",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-015",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt under grensen for gratis kjernetid for 1-åringer."
+  },
+  {
+    "husstandId": "household-007",
+    "type": "EKTEPAR",
+    "adresse": "Markens gate 9",
+    "kommune": "Kristiansand",
+    "medlemmer": [
+      {
+        "personId": "person-016",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-017",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-018",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt under grensen for gratis kjernetid 2–5 år."
+  },
+  {
+    "husstandId": "household-008",
+    "type": "SAMBOERE",
+    "adresse": "Havnegata 21",
+    "kommune": "Bodø",
+    "medlemmer": [
+      {
+        "personId": "person-019",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-020",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-021",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt over grensen for gratis kjernetid 2–5 år."
+  },
+  {
+    "husstandId": "household-009",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Borgundveien 3",
+    "kommune": "Ålesund",
+    "medlemmer": [
+      {
+        "personId": "person-022",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-023",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Svært lav inntekt. Under alle grenser."
+  },
+  {
+    "husstandId": "household-010",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Julie Eges gate 14",
+    "kommune": "Sandnes",
+    "medlemmer": [
+      {
+        "personId": "person-024",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-025",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt under grensen for gratis SFO 1. trinn."
+  },
+  {
+    "husstandId": "household-011",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Solbakken 2",
+    "kommune": "Bergen",
+    "medlemmer": [
+      {
+        "personId": "person-026",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-027",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Har bare inntekt som ikke medregnes. Grunnlaget blir null."
+  },
+  {
+    "husstandId": "household-012",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Bjørnstjerne Bjørnsons gate 41",
+    "kommune": "Trondheim",
+    "medlemmer": [
+      {
+        "personId": "person-028",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-029",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt over grensen for redusert SFO 2.–3. trinn."
+  },
+  {
+    "husstandId": "household-013",
+    "type": "EKTEPAR",
+    "adresse": "Trondheimsveien 88",
+    "kommune": "Oslo",
+    "medlemmer": [
+      {
+        "personId": "person-030",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-031",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-032",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
+  },
+  {
+    "husstandId": "household-014",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Kongens gate 6",
+    "kommune": "Stavanger",
+    "medlemmer": [
+      {
+        "personId": "person-033",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-034",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt over grensen for gratis kjernetid 1 år, men godt under SFO 4. trinn."
+  },
+  {
+    "husstandId": "household-015",
+    "type": "SAMBOERE",
+    "adresse": "Løkkeveien 33",
+    "kommune": "Stavanger",
+    "medlemmer": [
+      {
+        "personId": "person-035",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-036",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-037",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Så vidt under grensen for redusert SFO 4. trinn."
+  },
+  {
+    "husstandId": "household-016",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Gamleveien 19",
+    "kommune": "Nordre Follo",
+    "medlemmer": [
+      {
+        "personId": "person-038",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-039",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Edge case: ingen inntektsopplysninger registrert."
+  },
+  {
+    "husstandId": "household-017",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Kanalveien 27",
+    "kommune": "Bergen",
+    "medlemmer": [
+      {
+        "personId": "person-040",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-041",
+        "rolle": "barn"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Edge case: inntekten falt kraftig, og årets skatteoppgjør er fortsatt UTKAST."
+  },
+  {
+    "husstandId": "household-018",
+    "type": "EKTEPAR",
+    "adresse": "Parkveien 5",
+    "kommune": "Oslo",
+    "medlemmer": [
+      {
+        "personId": "person-042",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-043",
+        "rolle": "foresatt"
+      }
+    ],
+    "syntetisk": true,
+    "scenario": "Edge case: husstand uten barn."
+  }
 ]

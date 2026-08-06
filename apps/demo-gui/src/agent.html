@@ -145,7 +145,7 @@
           const res = await fetch(`${backendBase}/api/personer`);
           const people = await res.json();
           personEl.innerHTML = people
-            .map((p) => `<option value="${p.personId}">${p.fornavn} ${p.etternavn} (${p.kommune})</option>`)
+            .map((p) => `<option value="${p.personId}">${p.visningsnavn} (${p.bostedsadresse.kommune})</option>`)
             .join("");
         } catch {
           addMsg("error", "Kunne ikke laste testbrukere fra backend.");
