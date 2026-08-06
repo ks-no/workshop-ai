@@ -7,6 +7,12 @@ Ansvar:
 - gjøre det lett å forstå prosessdefinisjoner i sandboxen
 - være en enkel inngang for eksterne team
 
-Planlagt stack:
+Stack: statisk HTML og JavaScript, servert av en innebygd Node HTTP-server på `3000`.
+Null avhengigheter.
 
-- Statisk HTML og JavaScript i første MVP
+Prosessene hentes fra `sandbox-backend` (`GET /api/prosesser`). Vil du se malen også:
+`GET /api/prosesser?inkluderMaler=true`.
+
+Dette er et **referanseverktøy, ikke en strategisk binding.** Prosessformatet kan
+erstattes eller adapteres til Altinn Studio senere, og teamene står fritt til å bygge
+egne redigeringsverktøy. Se `docs/architecture.md`.

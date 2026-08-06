@@ -1,75 +1,74 @@
 # Veien videre
 
+> **Merk:** Dette var et overleveringsdokument skrevet i juni 2026, før det meste av
+> arbeidet ble gjort. Statusdelene er oppdatert i august 2026. De åpne arkitekturvalgene
+> lenger ned står fortsatt — de er dokumentets varige verdi.
+
 ## Formål med dette dokumentet
 
-Dette dokumentet er laget for å gjøre det enkelt for en arkitekt eller utvikler å ta over arbeidet og drive sandboxen videre mot en hackathon-klar versjon.
+Å gjøre det enkelt for en arkitekt eller utvikler å ta over arbeidet og drive sandboxen
+videre. Dokumentet er tydelig på hva som er gjort, hva som gjenstår, og hvilke valg som
+fortsatt er åpne og bør eies eksplisitt.
 
-Målet er ikke å beskrive alt i detalj, men å være tydelig på:
+## Hva som er på plass nå (august 2026)
 
-- hva som allerede er på plass
-- hva som bør være ferdig før hackathon
-- hva som kan vente
-- hvilke valg som fortsatt er åpne
-- hvilke beslutninger som bør tas av produkteier eller arkitekt
+Åtte kjørende tjenester: `sandbox-backend` (TypeScript), `fiks-simulator`, `ai-gateway`,
+`mcp-services`, `process-agent`, `matrikkel-mock`, `demo-gui`, `process-builder`.
+Null runtime-avhengigheter i alle.
 
-## Hva som er på plass nå
+Minimumslista fra juni er i hovedsak innfridd:
 
-Repoet inneholder i dag:
+- ✅ stabil oppstart — `./start.sh` med plattformdeteksjon, modellvalg og `--reset`
+- ✅ helse-endepunkter på alle åtte tjenestene
+- ✅ fem komplette demo-case, ikke ett: barnehage, SFO, støttekontakt, fritidskort,
+  fartsdempende tiltak
+- ✅ fungerende samtykkeflyt, med sperre på inntektsdata uten samtykke
+- ✅ revisjonslogg over alle datatilganger
+- ✅ deterministisk vilkårsvurdering mot satser (`SJEKK`)
+- ✅ ressurskatalog som samler domeneoppslag ett sted, slik at samtykke og revisjon
+  håndheves likt uansett hvilken vei man kommer inn
+- ✅ curl-eksempler for sentrale flyter (`examples/curl/`)
+- ✅ tydelig skille mellom referanseimplementasjon og felles kapabilitet
+  (`docs/architecture.md`)
+- ⚠️ API-dokumentasjon — `sandbox-backend` er godt dekket med 28 paths, men
+  `fiks-simulator` har bare 4 av 19 ruter i OpenAPI
 
-- en kjørbar MVP-struktur i monorepo
-- `sandbox-backend`
-- `fiks-simulator`
-- `ai-gateway`
-- `demo-gui`
-- `process-builder`
-- syntetiske datasett
-- policyfiler
-- revisjonslogg
-- OpenAPI-skjeletter
-- eksempelprosesser
+## Hva som gjenstår
 
-Det finnes også:
+- **`fiks-simulator.yaml`** — 15 udokumenterte ruter. Avgrenset og enkel oppgave.
+- **KI-fallback er usynlig.** Faller modellen ut, får du maltekst uten varsel i GUI-et.
+  Dette er den mest sannsynlige kilden til forvirring på en workshop.
+- **Ingen timeout** på kall mot modellen.
+- **Ingen CI.** Tre testskript krever ingen kjørende tjenester og kunne kjørt på PR.
+- **Ingen tester av KI-laget.** Endrer du en prompt, finnes det ingen måte å vite om det
+  ble bedre.
+- **`mcp-services` er ikke MCP-protokollen** — REST med `protocol: "mcp-style-http"`.
+  Verktøyene har korrekte `inputSchema`, så veien dit er kort.
+- **Windows-oppstart.** `origin/start-og-stop-windows` er basert på pre-TypeScript-treet
+  og må **ikke** merges — skriv `start.bat` på nytt i stedet.
 
-- prosessdrevet demo-GUI
-- første versjon av prosessøkt-API
-- enkel prosessredigering
-- første modell for strukturerte `QUESTION`-steg
-
-## Hva som bør være ferdig før hackathon
-
-Dette er min anbefalte minimumsliste for en god hackathon-sandbox.
-
-### Må ha
-
-- stabil oppstart med `docker compose up --build`
-- fungerende helse-endepunkter for alle tjenester
-- tydelig API-dokumentasjon for backend, Fiks-simulator og AI-gateway
-- minst ett komplett demo-case fra start til slutt
-- fungerende samtykkeflyt
-- sperre på inntektsdata uten samtykke
-- revisjonslogg som viser sentrale hendelser
-- nok dokumentasjon til at eksterne team kan komme i gang uten muntlig onboarding
-
-### Bør ha
-
-- minst 2–3 gode demo-case
-- enklere og tydeligere visning av revisjonslogg
-- mer komplette OpenAPI-beskrivelser
-- Postman- eller curl-eksempler for sentrale flyter
-- tydelig beskrivelse av hva som er referanseimplementasjon og hva som er felles kapabilitet
-
-## Hva som kan vente
-
-Dette bør ikke stoppe hackathonet:
+## Hva som fortsatt kan vente
 
 - avansert prosessbygger
 - penere UI
 - produksjonsklar autentisering
-- komplett validering av alle prosessmodeller
 - full versjonering av alle API-er
-- Altinn Studio-integrasjon
-- avanserte adaptere
+- Altinn Studio-integrasjon og avanserte adaptere
 - omfattende testdekning
+
+## Hva som bevisst ikke skal bygges
+
+Teamene har to dager og bygger sin egen KI-logikk. Bygger vi den for dem, tar vi
+oppgaven fra dem. Derfor står følgende **med vilje** åpent:
+
+- kritiker- eller revider-loop over modellsvar
+- ekte tool-calling mot modellen (i dag velges verktøy av en separat prompt)
+- forgrening i prosessmotoren — den er lineær, og det er et ærlig utgangspunkt
+- persistente agent-sesjoner
+- en god samtaleflyt
+
+Rammen: sandboxen er en kommunal tjeneste der rørleggerarbeidet er riktig og samtalen er
+elendig. Oppgaven er å gjøre samtalen god — uten å ødelegge rørleggerarbeidet.
 
 ## Åpne arkitekturvalg
 

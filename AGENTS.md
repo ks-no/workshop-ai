@@ -11,18 +11,33 @@
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Separate Docker image built from `apps/matrikkel-mock/Dockerfile`.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter`). Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
-- `apps/mcp-services` (`8083`): MCP-style tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
+- `apps/mcp-services` (`8083`): 20 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
 - `apps/process-agent` (`8084`): agent API using MCP tools. Dynamically discovers which tools to call per step via `suggest_step_tools` — no hardcoded step names.
 
 ## Data and state model (important)
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
-- Backend code reflects this pattern via JSON read/write helpers in `apps/sandbox-backend/src/server.js`.
+- `lesJson` reads `state/` first and falls back to `data/`. `./start.sh --reset` clears `state/`.
+- `apps/sandbox-backend` is TypeScript, split into modules (`ruter.ts`, `prosess.ts`,
+  `ressurser.ts`, `regler.ts`, `tilstand.ts`, `revisjon.ts`, `typer.ts`, …).
+  There is no `server.js` — `server.ts` only wires up the HTTP server.
+  Node type-strips the `.ts` files directly; there is no build step.
 
 ## Process-engine behavior to preserve
 - Flow is definition-driven (see `data/prosessdefinisjoner.json`), not UI-hardcoded.
-- Typical step sequence in practice: `INFO` -> `QUESTION` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `SUMMARY` -> `SUBMIT`.
+- Seven step types exist (`apps/sandbox-backend/src/typer.ts`): `INFO`, `QUESTION`,
+  `DATA_FETCH`, `CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT`. There is no `CONFIRMATION`.
+- Actual sequence in the flagship case `reduced-kindergarten-payment`:
+  `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
+- The engine is linear: `stegIndex` only counts up. No branching, no conditional jumps.
+- `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
+  reproducible and auditable — never move eligibility logic into the model. The model
+  formulates (`SUMMARY`); it does not compute or decide.
 - Consent gating is enforced before protected data reads; do not bypass this in UI or agent logic.
+- Consent gating and audit are enforced centrally in `utforRessurs()`
+  (`apps/sandbox-backend/src/ressurser.ts`), not per route. One catalog entry is
+  simultaneously an HTTP endpoint, a valid `DATA_FETCH` target and a valid `SJEKK`
+  target. Do not route around this.
 - Audit events are first-class output (`state/revisjonslogg.json`); keep behavior observable.
 
 ## Project conventions you must follow
@@ -41,9 +56,23 @@ docker compose up --build
 ```bash
 docker compose down -t 0
 ```
-- Quick checks:
+- Quick checks that need no running services — run these first:
 ```bash
-pnpm test
+pnpm lint            # tsc --noEmit
+pnpm test            # valider-data.js: referential integrity across all datasets
+pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
+```
+- `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
+  timestamps are replaced with placeholders, so two runs of the same code are
+  byte-identical. Use it as a regression gate around refactors:
+```bash
+pnpm test:kontrakt --ut state/foer.json
+# ...refactor...
+pnpm test:kontrakt --ut state/etter.json
+diff state/foer.json state/etter.json
+```
+- These need the stack running (`./start.sh`):
+```bash
 pnpm test:agent
 pnpm test:agent:nl
 pnpm test:matrikkel-mock
@@ -51,12 +80,27 @@ pnpm test:mcp-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
+- There is no CI. Nothing runs these automatically on push or PR.
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
 - Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `MCP_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `STATE_DIR`.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
-- `ai-gateway` may fall back to mock-like responses if model/provider is unavailable; verify with `/ai/klarsprak` when debugging.
+- `ai-gateway` falls back to template text when the provider is unavailable, setting an
+  `advarsel` field. **The GUIs do not render that field**, so the failure looks like a
+  normal answer — well-formed Norwegian prose from a template. Always verify with:
+```bash
+curl -s -X POST http://localhost:8082/ai/klarsprak -H "Content-Type: application/json" \
+  -d '{"kontekst":{"tjeneste":"barnehage"},"sprak":"nb"}'
+```
+  Expect `modell: "ollama:<name>"` and no `advarsel`. `mock-ai-gateway (fallback)` means
+  the model is not connected.
+- No `fetch` to the model has a timeout; a slow or half-started Ollama hangs indefinitely.
+- `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar`, which
+  takes `tekst` at the top level.
+- `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only
+  call the model when the heuristic does not match. `/ai/dialogforslag` and `/ai/risikosjekk`
+  work but have no callers in the sandbox.
 
 ## Matrikkel integration pattern
 - `apps/matrikkel-mock` owns synthetic matrikkel data (`data/matrikkel.json`) and exposes it over SOAP (Geointegrasjon path) and REST helper endpoints.

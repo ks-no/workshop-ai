@@ -2,14 +2,18 @@
 
 ## MVP-stegtyper
 
+Sju typer, definert i `apps/sandbox-backend/src/typer.ts` og håndtert i `prosess.ts`:
+
 - `INFO`
 - `QUESTION`
 - `DATA_FETCH`
 - `CONSENT_REQUEST`
-- `CONFIRMATION`
 - `SJEKK`
 - `SUMMARY`
 - `SUBMIT`
+
+Motoren er lineær: `stegIndex` teller oppover, og det finnes ingen forgrening eller
+betinget hopping. `SJEKK` kan avvise en økt, men flyten er ellers rett fram.
 
 ## `SJEKK`
 

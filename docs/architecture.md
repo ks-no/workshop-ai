@@ -101,12 +101,36 @@ Det betyr at:
 - prosessformat og GUI-logikk bør holdes enkle nok til at vi kan lage adaptere senere
 - API-ene er mer viktige enn den interne implementasjonen
 
-## Neste implementasjonsrekkefølge
+## Status og kjente avvik
 
-1. `sandbox-backend`
-2. `fiks-simulator`
-3. policy for inntekt og samtykke
-4. revisjonslogg
-5. `demo-gui`
-6. `process-builder`
-7. `ai-gateway`
+Alle åtte tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+deterministisk vilkårsvurdering og fem demo-case er på plass. Det som følger er
+avvik mellom hvordan sandboxen presenterer seg og hva den faktisk gjør — verdt å
+kjenne til før du bygger på den.
+
+**`mcp-services` er ikke MCP-protokollen.** Den svarer `protocol: "mcp-style-http"`
+og eksponerer 20 verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller
+SSE-transport, så en MCP-klient som Claude Code eller Cursor kan ikke koble seg på.
+Verktøyene har derimot korrekt formede `inputSchema`, så veien til ekte MCP er kort.
+
+**KI-fallback er stille.** Når modellen ikke svarer, faller `ai-gateway` tilbake til
+maltekst og setter et `advarsel`-felt. Feltet vises ikke i GUI-ene, så feilmoden ser
+ut som et normalt svar. Verifiser med
+`POST /ai/klarsprak` — svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
+
+**Ingen fetch mot modellen har timeout.** Er Ollama treg eller halvveis oppe, henger
+kallet ubestemt.
+
+**Prosessmotoren er lineær.** `stegIndex` teller oppover; ingen forgrening, ingen
+betinget hopping. Det er et bevisst enkelt utgangspunkt, ikke en mangel som må
+lukkes før hackathonet.
+
+**Agent-sesjoner ligger i minnet** i `process-agent`, uten TTL eller opprydding.
+De forsvinner ved omstart.
+
+**`fiks-simulator` er tynt dokumentert:** 4 av 19 ruter i OpenAPI. Se
+`examples/postman/README.md` for hvilke.
+
+**Ingen autentisering noe sted.** `personId` tas fra requesten uten verifikasjon.
+Det er bevisst i en sandbox med syntetiske data, men det betyr at ingenting her
+kan flyttes til produksjon uten et reelt identitetslag.

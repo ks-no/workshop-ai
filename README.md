@@ -56,7 +56,21 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-På Windows: kjør skriptet fra Git Bash eller WSL.
+### På Windows
+
+Kjør `start.bat` fra ledeteksten eller PowerShell:
+
+```bat
+start.bat
+```
+
+Den tar de samme flaggene som `start.sh` (`-m`, `--mock`, `--reset`, `-d`, `-h`), og
+verifiserer på samme måte at modellen faktisk svarer før den melder klar. Forskjellen er
+at Ollama kjører i Docker Compose sammen med tjenestene, ikke nativt — så det er ingen
+plattform- eller GPU-deteksjon å gjøre. Stopp med `start.bat -d` eller `stop.bat`.
+
+Har du Git Bash eller WSL, virker `./start.sh` også, og gir deg automatisk modellvalg
+basert på minnet i maskinen.
 
 ### Valg
 
@@ -159,16 +173,17 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
 | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
 | `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
-| `ai-gateway` | `8082` | Mock av AI-støtte og forklaringer |
+| `ai-gateway` | `8082` | KI-støtte og forklaringer (Ollama, OpenRouter eller mock) |
 | `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
-| `mcp-services` | `8083` | MCP-style verktøy over backend- og AI-tjenester |
+| `mcp-services` | `8083` | 20 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
 | `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
 
-Planlagte URL-er når tjenestene er implementert:
+Alle tjenestene kjører når `./start.sh` er ferdig:
 
 - [http://localhost:3000](http://localhost:3000)
 - [http://localhost:3001](http://localhost:3001)
 - [http://localhost:3001/chat](http://localhost:3001/chat)
+- [http://localhost:3001/agent](http://localhost:3001/agent)
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
 - [http://localhost:8085/health](http://localhost:8085/health)
