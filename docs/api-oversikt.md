@@ -20,11 +20,27 @@ Forventede hovedendepunkter:
 - `GET /api/personer/{personId}/husstand`
 - `GET /api/personer/{personId}/inntekt`
 - `GET /api/personer/{personId}/barnehage`
+- `GET /api/personer/{personId}/sfo`
 - `GET /api/personer/{personId}/soknader`
+- `GET /api/husstander/{husstandId}/inntektsgrunnlag`
+- `GET /api/regler/satser`
+- `GET /api/regler/sjekk/foreldrebetaling`
+- `GET /api/matrikkel/gater`
+- `GET /api/matrikkel/sjekk/eierforhold`
+- `GET /api/katalog/datasett`
+- `GET /api/katalog/informasjonsmodeller`
+- `GET /api/katalog/ressurser`
 - `POST /api/soknader`
 - `GET /api/soknader/{soknadId}`
 - `GET /api/revisjonslogg`
+- `POST /api/revisjonslogg`
 - `GET /api/revisjonslogg/{sporingsId}`
+
+Ressursene under `/api/personer/{personId}/…`, `/api/husstander/…`,
+`/api/matrikkel/…` og `/api/regler/sjekk/…` kommer fra den delte
+ressurskatalogen. Hver av dem kan brukes både som HTTP-kall og som mål for et
+`DATA_FETCH`- eller `SJEKK`-steg. `GET /api/katalog/ressurser` lister dem med
+samtykkekrav og beskrivelse.
 
 ## Fiks Simulator
 

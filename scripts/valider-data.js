@@ -91,6 +91,51 @@ for (const ordning of satser.ordninger) {
   }
 }
 
+// --- Målgruppedekning ------------------------------------------------------
+// Ordningene avgrenser seg på alder (barnehage) eller trinn (SFO). Uten denne
+// testen kan en ordning bli umulig å innvilge fordi ingen husstand har et barn
+// i målgruppen, og da ser regelen ut til å virke mens den bare sier nei.
+const barnehageplasser = await les("data/barnehageplasser.json");
+const sfoplasser = await les("data/sfoplasser.json");
+const plasserPerTjeneste = { barnehage: barnehageplasser, sfo: sfoplasser };
+
+function alderVed(foedselsdato, referansedato) {
+  const foedt = new Date(foedselsdato);
+  const referanse = new Date(referansedato);
+  const alder = referanse.getFullYear() - foedt.getFullYear();
+  const foerBursdag =
+    referanse.getMonth() < foedt.getMonth() ||
+    (referanse.getMonth() === foedt.getMonth() && referanse.getDate() < foedt.getDate());
+  return foerBursdag ? alder - 1 : alder;
+}
+
+function kvalifiserer(plass, ordning) {
+  if (ordning.trinnFra !== undefined) {
+    const til = ordning.trinnTil ?? ordning.trinnFra;
+    if (typeof plass.trinn !== "number" || plass.trinn < ordning.trinnFra || plass.trinn > til) {
+      return false;
+    }
+  }
+  if (ordning.alderFraAar !== undefined) {
+    const til = ordning.alderTilAar ?? ordning.alderFraAar;
+    const barn = personer.find((p) => p.personId === plass.personId);
+    if (!barn?.foedselsdato) return false;
+    const alder = alderVed(barn.foedselsdato, satser.gjelderFra);
+    if (alder < ordning.alderFraAar || alder > til) return false;
+  }
+  return true;
+}
+
+for (const ordning of satser.ordninger) {
+  const treff = (plasserPerTjeneste[ordning.tjeneste] || []).filter((plass) => kvalifiserer(plass, ordning));
+  if (treff.length === 0) {
+    throw new Error(
+      `Ingen ${ordning.tjeneste}-plass i dataene er i målgruppen for ${ordning.id}. ` +
+      `Ordningen kan da aldri innvilges. Juster data/${ordning.tjeneste}plasser.json eller ordningen i data/satser.json.`
+    );
+  }
+}
+
 // Edge-casene fra Fiks-modellen må finnes i dataene.
 if (!inntekter.some((r) => r.stadie === "UTKAST")) {
   throw new Error("Mangler minst én inntektsrad med stadie UTKAST.");
@@ -104,5 +149,6 @@ if (husstander.every(husstandsgrunnlag)) {
 
 console.log(
   `Validering ok. ${personer.length} personer, ${husstander.length} husstander, ` +
-  `${satser.ordninger.length} ordninger, scenariodekning på alle inntektsgrenser.`
+  `${satser.ordninger.length} ordninger, scenariodekning på alle inntektsgrenser ` +
+  `og målgruppedekning på alle ordninger.`
 );

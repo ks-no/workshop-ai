@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 
-import { port } from "./konfig.js";
-import { handterForespoersel } from "./ruter.js";
+import { port } from "./konfig.ts";
+import { handterForespoersel } from "./ruter.ts";
 
 const server = createServer(handterForespoersel);
 

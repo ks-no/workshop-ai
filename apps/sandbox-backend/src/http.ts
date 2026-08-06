@@ -1,4 +1,6 @@
-export function jsonSvar(response, statusCode, data) {
+import type { IncomingMessage, ServerResponse } from "node:http";
+
+export function jsonSvar(response: ServerResponse, statusCode: number, data: unknown) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
@@ -8,7 +10,7 @@ export function jsonSvar(response, statusCode, data) {
   response.end(JSON.stringify(data, null, 2));
 }
 
-export function tekstSvar(response, statusCode, data, contentType = "text/html; charset=utf-8") {
+export function tekstSvar(response: ServerResponse, statusCode: number, data: string, contentType = "text/html; charset=utf-8") {
   response.writeHead(statusCode, {
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*",
@@ -18,7 +20,7 @@ export function tekstSvar(response, statusCode, data, contentType = "text/html; 
   response.end(data);
 }
 
-export async function lesRequestBody(request) {
+export async function lesRequestBody(request: IncomingMessage): Promise<any> {
   const deler = [];
   for await (const del of request) {
     deler.push(del);
