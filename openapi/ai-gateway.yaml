@@ -1,12 +1,14 @@
 openapi: 3.1.0
 info:
   title: AI Gateway API
-  version: 0.1.0
-  description: Mock-API for dialogforslag, oppsummering og klarspråk.
+  version: 0.2.0
+  description: |
+    AI-abstraksjonslag for dialogforslag, oppsummering, klarspråk, intensjonstolkning og dynamisk verktøyoppdagelse.
+    Støtter mock, Ollama og OpenRouter som provider (AI_PROVIDER-env).
 servers:
   - url: http://localhost:8082
 paths:
-  /helse:
+  /health:
     get:
       summary: Health check
       responses:
@@ -14,25 +16,161 @@ paths:
           description: OK
   /ai/dialogforslag:
     post:
-      summary: Generate mock dialog suggestion
+      summary: Generer dialogforslag
       responses:
         "200":
-          description: Suggestion returned
+          description: Forslag returnert
   /ai/oppsummering:
     post:
-      summary: Generate mock summary
+      summary: Lag oppsummering av prosessøktdata
       responses:
         "200":
-          description: Summary returned
+          description: Oppsummering returnert
+  /ai/forklar-databruk:
+    post:
+      summary: Forklar databruk i klarspråk
+      responses:
+        "200":
+          description: Forklaring returnert
+  /ai/klarsprak:
+    post:
+      summary: Omskriv tekst til klarspråk
+      responses:
+        "200":
+          description: Klarspråk-versjon returnert
+  /ai/risikosjekk:
+    post:
+      summary: Enkel risikovurdering
+      responses:
+        "200":
+          description: Risikovurdering returnert
   /ai/tolk-svar:
     post:
-      summary: Interpret a short user reply into a structured intent
+      summary: Tolk en kort brukermelding til strukturert intent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TolkSvarRequest"
       responses:
         "200":
-          description: Intent returned
+          description: Intent returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TolkSvarResponse"
   /ai/velg-prosess:
     post:
-      summary: Match free-text user message to the most likely process
+      summary: Match fritekstmelding til mest sannsynlig prosess
       responses:
         "200":
-          description: Process choice interpretation returned
+          description: Prosessvalg returnert
+  /ai/velg-verktoy:
+    post:
+      summary: Dynamisk verktøyoppdagelse – hvilke MCP-verktøy er relevante for et prosessteg?
+      description: |
+        Gitt et prosessteg (id, tittel, tekst, felter) og en liste over tilgjengelige verktøy,
+        returnerer et rangert forslag med brukstype (kontekst, validering, kontekst_og_validering).
+        Brukes av mcp-services/suggest_step_tools. Heuristikk-first, LLM-fallback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VelgVerktoyRequest"
+      responses:
+        "200":
+          description: Verktøyforslag returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VelgVerktoyResponse"
+
+components:
+  schemas:
+    TolkSvarRequest:
+      type: object
+      required: [tekst, jaIntent, neiIntent, ukjentIntent]
+      properties:
+        tekst:
+          type: string
+        jaIntent:
+          type: string
+        neiIntent:
+          type: string
+        ukjentIntent:
+          type: string
+        kontekst:
+          type: object
+          additionalProperties: true
+        sporingsId:
+          type: string
+    TolkSvarResponse:
+      type: object
+      required: [intent, confidence]
+      properties:
+        intent:
+          type: string
+        confidence:
+          type: number
+        begrunnelse:
+          type: string
+        modell:
+          type: string
+        syntetisk:
+          type: boolean
+    VelgVerktoyRequest:
+      type: object
+      required: [steg]
+      properties:
+        steg:
+          type: object
+          properties:
+            id:
+              type: string
+            tittel:
+              type: string
+            tekst:
+              type: string
+            felter:
+              type: array
+              items:
+                type: object
+        verktoy:
+          type: array
+          description: Tilgjengelige verktøy med navn og beskrivelse
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+        sporingsId:
+          type: string
+    VelgVerktoyForslag:
+      type: object
+      required: [name, bruk]
+      properties:
+        name:
+          type: string
+        bruk:
+          type: string
+          enum: [kontekst, validering, kontekst_og_validering]
+        begrunnelse:
+          type: string
+    VelgVerktoyResponse:
+      type: object
+      required: [verktoy, modell]
+      properties:
+        verktoy:
+          type: array
+          items:
+            $ref: "#/components/schemas/VelgVerktoyForslag"
+        modell:
+          type: string
+        syntetisk:
+          type: boolean
+        advarsel:
+          type: string

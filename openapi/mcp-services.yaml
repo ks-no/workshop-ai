@@ -71,7 +71,13 @@ components:
       properties:
         name:
           type: string
-          description: Tool-navn, for eksempel list_processes, interpret_reply, match_process_choice eller previous_step.
+          description: |
+            Tool-navn. Gyldige verdier: list_processes, list_people, start_process_session,
+            get_session, answer_question, consent_response, run_current_action,
+            next_step, previous_step, interpret_reply, get_household_income,
+            check_eligibility, list_schemes, match_process_choice, get_audit_log,
+            matrikkel_finn_veger, matrikkel_hent_eiendom, matrikkel_hent_eiere,
+            suggest_step_tools.
         arguments:
           type: object
           additionalProperties: true
@@ -92,6 +98,88 @@ components:
         result:
           oneOf:
             - $ref: "#/components/schemas/ListProcessesResult"
+            - $ref: "#/components/schemas/MatrikkelGate"
+            - $ref: "#/components/schemas/MatrikkelEiendom"
+            - $ref: "#/components/schemas/MatrikkelEiereResult"
+            - $ref: "#/components/schemas/SuggestStepToolsResult"
             - type: object
               additionalProperties: true
+
+    MatrikkelGate:
+      type: object
+      properties:
+        gateId:
+          type: string
+        adressenavn:
+          type: string
+        kommunenummer:
+          type: string
+        kommune:
+          type: string
+        postnummer:
+          type: string
+        poststed:
+          type: string
+
+    MatrikkelEiendom:
+      type: object
+      properties:
+        matrikkelId:
+          type: string
+        gnr:
+          type: integer
+        bnr:
+          type: integer
+        adresse:
+          type: string
+        bruksenhetstype:
+          type: string
+        adressenavn:
+          type: string
+        kommunenummer:
+          type: string
+        kommune:
+          type: string
+        eiere:
+          type: array
+          items:
+            type: string
+
+    MatrikkelEiereResult:
+      type: object
+      properties:
+        matrikkelId:
+          type: string
+        gnr:
+          type: integer
+        bnr:
+          type: integer
+        adresse:
+          type: string
+        eiere:
+          type: array
+          items:
+            type: string
+        antallEiere:
+          type: integer
+
+    SuggestStepToolsResult:
+      type: object
+      properties:
+        verktoy:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              bruk:
+                type: string
+                enum: [kontekst, validering, kontekst_og_validering]
+              begrunnelse:
+                type: string
+        modell:
+          type: string
+        syntetisk:
+          type: boolean
 

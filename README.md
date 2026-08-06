@@ -158,6 +158,7 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 | `demo-gui` | `3001` | Demo-app for innbyggerdialog |
 | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
 | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
+| `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
 | `ai-gateway` | `8082` | Mock av AI-støtte og forklaringer |
 | `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
 | `mcp-services` | `8083` | MCP-style verktøy over backend- og AI-tjenester |
@@ -170,11 +171,13 @@ Planlagte URL-er når tjenestene er implementert:
 - [http://localhost:3001/chat](http://localhost:3001/chat)
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
+- [http://localhost:8085/health](http://localhost:8085/health)
 - [http://localhost:8082/health](http://localhost:8082/health)
 - [http://localhost:8083/health](http://localhost:8083/health)
 - [http://localhost:8084/health](http://localhost:8084/health)
 - [http://localhost:8080/docs](http://localhost:8080/docs)
 - [http://localhost:8081/docs](http://localhost:8081/docs)
+- [http://localhost:8085/docs](http://localhost:8085/docs)
 - [http://localhost:8082/docs](http://localhost:8082/docs)
 
 Nye API-er:
@@ -261,6 +264,27 @@ Liste tilgjengelige MCP-tools:
 
 ```bash
 curl -s http://localhost:8083/mcp/tools
+```
+
+Hent matrikkeldata (REST-hjelpeendepunkt):
+
+```bash
+curl -s "http://localhost:8085/mock/matrikkel/eiendommer?gate=Storgata"
+```
+
+Hent matrikkeldata (SOAP, Geointegrasjon-sti):
+
+```bash
+curl -s -X POST http://localhost:8085/geointegrasjon/matrikkel/wsapi/v1/BasisService \
+  -H "Content-Type: text/xml; charset=utf-8" \
+  -d '<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:mat="http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31">
+  <soapenv:Body>
+    <mat:HentMatrikkelenhet>
+      <matrikkelId>matr-storg-003</matrikkelId>
+    </mat:HentMatrikkelenhet>
+  </soapenv:Body>
+</soapenv:Envelope>'
 ```
 
 Kjor en enkel end-to-end smoke test mot agenten:

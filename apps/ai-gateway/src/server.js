@@ -78,6 +78,7 @@ function docsHtml() {
         <li><code>POST /ai/risikosjekk</code></li>
         <li><code>POST /ai/tolk-svar</code></li>
         <li><code>POST /ai/velg-prosess</code></li>
+        <li><code>POST /ai/velg-verktoy</code></li>
       </ul>
     </body>
   </html>`;
@@ -231,6 +232,103 @@ function byggSvar(type, body) {
     modell: "mock-ai-gateway",
     sprak: body.sprak || "nb"
   };
+}
+
+// ---------------------------------------------------------------------------
+// Verktøyvalg – velger hvilke MCP-verktøy som er relevante for et prosessteg
+// ---------------------------------------------------------------------------
+
+function heuristiskVelgVerktoy(body) {
+  const steg = body?.steg || {};
+  const tilgjengeligeVerktoy = Array.isArray(body?.verktoy) ? body.verktoy : [];
+  const alleStegTekster = normaliserTekst(
+    [steg.id, steg.tittel, steg.tekst, ...(steg.felter || []).map((f) => `${f.id || ""} ${f.label || ""} ${f.placeholder || ""}`)].join(" ")
+  );
+
+  const VERKTOY_HEURISTIKK = [
+    {
+      navn: "matrikkel_finn_veger",
+      bruk: "kontekst_og_validering",
+      nodvenligord: ["gate", "gatenavn", "veg"],
+      begrunnelse: "Steget ber om gatenavn. Matrikkel kan foreslå kjente gater og normalisere svaret."
+    },
+    {
+      navn: "matrikkel_hent_eiendom",
+      bruk: "kontekst",
+      nodvenligord: ["matrikkelenhet", "gnr", "bnr", "matrikkelnummer"],
+      begrunnelse: "Steget refererer til matrikkelenhet. Matrikkel kan slå opp eiendomsdetaljer."
+    }
+  ];
+
+  const forslag = [];
+  for (const regel of VERKTOY_HEURISTIKK) {
+    if (!tilgjengeligeVerktoy.some((v) => v.name === regel.navn || v === regel.navn)) continue;
+    if (regel.nodvenligord.some((ord) => alleStegTekster.includes(ord))) {
+      forslag.push({ name: regel.navn, bruk: regel.bruk, begrunnelse: regel.begrunnelse });
+    }
+  }
+
+  return { verktoy: forslag, modell: "heuristisk-verktoyvalg", syntetisk: true };
+}
+
+function byggVerktoyValgPrompt(body) {
+  const steg = body?.steg || {};
+  const verktoyListe = Array.isArray(body?.verktoy) ? body.verktoy : [];
+  const stegTekst = JSON.stringify({ id: steg.id, tittel: steg.tittel, tekst: steg.tekst, felter: steg.felter });
+  const verktoyTekst = verktoyListe
+    .map((v) => `- ${v.name || v}: ${v.description || ""}`)
+    .join("\n");
+
+  return [
+    "Du velger hvilke verktøy agenten bør bruke for et prosessteg i en kommunal dialogløsning.",
+    "Svar KUN med gyldig JSON-array, ingen annen tekst.",
+    'Hvert element: {"name":"<verktøynavn>","bruk":"kontekst|validering|kontekst_og_validering","begrunnelse":"..."}',
+    '"kontekst" = kall proaktivt før spørsmålet stilles for å gi nyttige hint til brukeren.',
+    '"validering" = kall etter at brukeren har svart, for å normalisere eller validere svaret.',
+    '"kontekst_og_validering" = begge deler.',
+    "Returner tom array [] hvis ingen verktøy er relevante.",
+    `Steget:\n${stegTekst}`,
+    `Tilgjengelige verktøy:\n${verktoyTekst}`
+  ].join("\n");
+}
+
+function validerVerktoyvalg(data, verktoyNavn) {
+  if (!Array.isArray(data)) return null;
+  const gyldige = new Set(Array.isArray(verktoyNavn) ? verktoyNavn : []);
+  const gyldigBruk = new Set(["kontekst", "validering", "kontekst_og_validering"]);
+  return data
+    .filter((v) => v && typeof v.name === "string" && gyldige.has(v.name) && gyldigBruk.has(v.bruk))
+    .map((v) => ({ name: v.name, bruk: v.bruk, begrunnelse: typeof v.begrunnelse === "string" ? v.begrunnelse : "" }));
+}
+
+async function velgVerktoyMedAi(body) {
+  const heuristisk = heuristiskVelgVerktoy(body);
+  if (heuristisk.verktoy.length > 0) {
+    return heuristisk;
+  }
+
+  const verktoyNavn = (body?.verktoy || []).map((v) => v.name || v);
+  const prompt = byggVerktoyValgPrompt(body);
+
+  const forsokLlm = async (hentFn) => {
+    const { tekst, modell } = await hentFn(prompt);
+    const parsed = validerVerktoyvalg(parseJsonObjekt(tekst), verktoyNavn);
+    if (!parsed) throw new Error("Ugyldig JSON fra LLM");
+    return { verktoy: parsed, modell, syntetisk: true };
+  };
+
+  try {
+    if (aiProvider === "ollama") return await forsokLlm(hentFraOllama);
+    if (aiProvider === "openrouter") return await forsokLlm(hentFraOpenRouter);
+  } catch (error) {
+    return {
+      ...heuristisk,
+      modell: `${aiProvider || "mock"}-fallback`,
+      advarsel: `LLM-verktøyvalg feilet: ${error.message}`
+    };
+  }
+
+  return heuristisk;
 }
 
 function byggPrompt(type, body, fallbackTekst) {
@@ -1081,6 +1179,19 @@ const server = createServer(async (request, response) => {
         sporingsId: body.sporingsId || nyttId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "velg-prosess",
+        aktor: { type: "system", id: "ai-gateway" }
+      });
+      jsonSvar(response, 200, svar);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/ai/velg-verktoy") {
+      const body = await lesBody(request);
+      const svar = await velgVerktoyMedAi(body);
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || nyttId("flyt"),
+        handling: "KI_TOLKNING",
+        ressurs: "velg-verktoy",
         aktor: { type: "system", id: "ai-gateway" }
       });
       jsonSvar(response, 200, svar);

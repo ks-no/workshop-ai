@@ -62,6 +62,30 @@ kallevei:
 En sjekk er ikke en egen mekanisme. Det er bare en ressurs hvis svar inneholder
 `godkjent`.
 
+## Dynamisk agentassistanse for `QUESTION`
+
+Når `process-agent` møter et `QUESTION`-steg kaller den `suggest_step_tools`-verktøyet
+i `mcp-services`. Dette kallet sender stegdefinisjonens tekst, tittel og feltlabeler
+til `ai-gateway POST /ai/velg-verktoy`, som bruker heuristikk (og LLM-fallback) til å
+avgjøre hvilke MCP-verktøy som er relevante.
+
+Hvert forslag har ett av tre brukstyper:
+
+| Brukstype | Hva agenten gjør |
+|---|---|
+| `kontekst` | Kall verktøyet proaktivt og vis resultatet som hint i spørsmålet |
+| `validering` | Kall verktøyet når brukeren svarer, og normaliser/valider svaret |
+| `kontekst_og_validering` | Begge deler |
+
+Eksempel: et `QUESTION`-steg med feltlabel «Gatenavn» gir forslaget
+`matrikkel_finn_veger` med brukstype `kontekst_og_validering`. Agenten
+viser da tilgjengelige testgater som hint, og normaliserer brukerens svar
+(f.eks. «storg») til kanonisk «Storgata» fra matrikkelen.
+
+Ingen steg-ID-er er hardkodet i agenten. Ny funksjonalitet kobles inn
+ved å legge til heuristikk i `ai-gateway/src/server.js` (`VERKTOY_HEURISTIKK`-arrayen)
+og/eller et nytt verktøy i `mcp-services`.
+
 ## Slik legger du til en ny case
 
 De fleste caser krever ingen kode i det hele tatt.
@@ -73,6 +97,7 @@ De fleste caser krever ingen kode i det hele tatt.
 | hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
 | innføre en ny regeltype | `apps/sandbox-backend/src/regler.ts` → `regelHandtere` | ~20 linjer |
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandtere` | ~20 linjer |
+| gi agenten et nytt verktøy for `QUESTION`-steg | `mcp-services` + `VERKTOY_HEURISTIKK` i `ai-gateway` | ~20 linjer |
 
 Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
 den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis

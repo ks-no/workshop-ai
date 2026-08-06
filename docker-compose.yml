@@ -88,6 +88,16 @@ services:
     volumes:
       - ./:/workspace
 
+  matrikkel-mock:
+    build:
+      context: .
+      dockerfile: apps/matrikkel-mock/Dockerfile
+    image: workshop-ai/matrikkel-mock:local
+    environment:
+      - PORT=8085
+    ports:
+      - "8085:8085"
+
   ai-gateway:
     image: node:24-alpine
     working_dir: /workspace
@@ -114,9 +124,11 @@ services:
     depends_on:
       - sandbox-backend
       - ai-gateway
+      - matrikkel-mock
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_BASE_URL=http://ai-gateway:8082
+      - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
     ports:
       - "8083:8083"
     volumes:

@@ -2,13 +2,16 @@
 
 ## Målbilde
 
-Sandboxen deles i fem hovedtjenester:
+Sandboxen er delt i følgende tjenester:
 
 - `process-builder`
 - `demo-gui`
 - `sandbox-backend`
 - `fiks-simulator`
+- `matrikkel-mock`
 - `ai-gateway`
+- `mcp-services`
+- `process-agent`
 
 Dette gir en enkel og samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å blokkere hverandre unødvendig.
 
@@ -60,7 +63,10 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 
 - `apps/sandbox-backend`: data, prosess-API, revisjon og policyhåndheving
 - `apps/fiks-simulator`: samtykke, register og oppgaver
-- `apps/ai-gateway`: mockede AI-endepunkter
+- `apps/matrikkel-mock`: Geointegrasjon BasisService og matrikkeldata (SOAP + REST)
+- `apps/ai-gateway`: mockede AI-endepunkter inkl. `velg-verktoy` for dynamisk verktøyoppdagelse
+- `apps/mcp-services`: MCP-stil verktøy over backend, AI og matrikkel
+- `apps/process-agent`: agentdialog med dynamisk steghåndtering via MCP
 - `apps/demo-gui`: innbyggerreisen
 - `apps/process-builder`: definisjon og visualisering av flyter
 
@@ -71,7 +77,18 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 3. `sandbox-backend` henter samtykkestatus fra `fiks-simulator`
 4. `sandbox-backend` blokkerer inntektsdata uten gyldig samtykke
 5. `sandbox-backend` kaller `ai-gateway` for oppsummering og forklaring
-6. alle relevante hendelser sendes til revisjonslogg
+6. `sandbox-backend` slår opp matrikkeldata mot `matrikkel-mock` via `GET /api/matrikkel/gater` og `SJEKK`-steg
+7. `mcp-services` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
+8. `process-agent` bruker `mcp-services` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
+9. alle relevante hendelser sendes til revisjonslogg
+
+## Dynamisk verktøyoppdagelse i agenten
+
+Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `mcp-services`.
+Dette kallet sender stegdefinisjonens tekst og feltlabeler til `ai-gateway /ai/velg-verktoy`,
+som returnerer hvilke MCP-verktøy som er relevante (`kontekst`, `validering` eller begge).
+Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktøy til å normalisere
+brukerens svar. Ingen steg-ID-er er hardkodet i agenten.
 
 ## Utskiftbarhet
 

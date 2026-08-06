@@ -1,0 +1,8 @@
+{
+  "name": "@innbyggerdialog/matrikkel-mock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mock av Kartverket Matrikkel Geointegrasjon API.",
+  "type": "module"
+}
+
