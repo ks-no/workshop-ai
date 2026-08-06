@@ -40,8 +40,39 @@
   target. Do not route around this.
 - Audit events are first-class output (`state/revisjonslogg.json`); keep behavior observable.
 
+## Naming: English for code, Norwegian for domain
+
+This is the rule for every identifier you write in this repo.
+
+**English** for anything technical — the plumbing a developer from any country would
+recognise: `callModel`, `jsonResponse`, `readRequestBody`, `writeTrace`, `buildPrompt`,
+`compilePathPattern`, `HttpError`, `readState`, `errorBody`, `newId`. Verbs are English
+too: `find…`, `read…`, `write…`, `build…`, `validate…`, `check…`.
+
+**Norwegian** for the domain — the words a Norwegian caseworker would use, and which have
+no honest English equivalent in this context: `samtykke`, `inntekt`, `beregning`,
+`prosessoekt`, `revisjonslogg`, `husstand`, `ordning`, `satser`, `foreldrebetaling`,
+`matrikkel`, `soknad`, `steg`, `vilkaar`.
+
+Mixed compounds are expected and correct: `getInntektForPerson`, `validateProsessvalg`,
+`buildBeregning`, `hasValidSamtykke`. English verb, Norwegian domain noun.
+
+**The wire format is frozen and stays Norwegian.** Field names in JSON responses and
+endpoint paths are the contract every team builds against. Never rename these, even
+though they look like ordinary words: `melding`, `feil`, `detalj`, `tekst`, `modell`,
+`advarsel`, `syntetisk`, `godkjent`, `grunnlag`, `svar`, `steg`, `stegId`, `stegIndex`,
+`oektsId`, `sporingsId`, `resultater`, `kontekst`, `intent`, `begrunnelse`, `verktoy`.
+A local variable may be `message`; the response key stays `melding`.
+
+The one place this does not apply is `ai-gateway`'s trace surface (`/trace`,
+`state/ai-trace.jsonl`), which is developer tooling rather than service contract and is
+English throughout: `timestamp`, `task`, `model`, `response`, `durationMs`, `failed`,
+`error`. `sporingsId` is the exception there — it correlates with the domain field.
+
+**Comments are English**, and only where they earn their place. Explain *why*, not *what* —
+if a comment restates the code, delete it instead of translating it.
+
 ## Project conventions you must follow
-- Keep Norwegian domain names/identifiers intact (`samtykke`, `inntekt`, `prosessokt`, etc.).
 - Prefer existing endpoint patterns from current services and examples in `README.md` / `docs/api-oversikt.md`.
 - When API behavior changes, update matching OpenAPI docs in `openapi/*.yaml`.
 - Keep changes scoped to one app unless cross-service change is required.
@@ -94,8 +125,8 @@ pnpm test:agent:matrikkel
   Adding a provider is one function with the signature `(prompt, temperatur, signal)`
   returning `{ tekst, modell }`, plus a branch in `kallModell`. Do not reintroduce
   per-provider copies of each task — that is what this replaced.
-- Every model call is traced to `state/ki-spor.jsonl`: prompt, response, model, duration,
-  and whether it failed. Read it at `GET /spor` (HTML) or `GET /ki-spor` (JSON, filterable
+- Every model call is traced to `state/ai-trace.jsonl`: prompt, response, model, duration,
+  and whether it failed. Read it at `GET /trace` (HTML) or `GET /trace.json` (JSON, filterable
   by `sporingsId`, `oppgave`, `antall`). This is the fastest way to see what the model
   actually received, before heuristics and validation touched it.
 - Model calls time out after `AI_TIMEOUT_MS` (default 180000) and fall back rather than

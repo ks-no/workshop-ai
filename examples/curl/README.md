@@ -331,19 +331,19 @@ sandboxen i dag. De er fritt vilt.
 
 ### Se hva modellen faktisk fikk
 
-Alle modellkall skrives til `state/ki-spor.jsonl` med full prompt og fullt svar — før
+Alle modellkall skrives til `state/ai-trace.jsonl` med full prompt og fullt svar — før
 heuristikk og validering har vært innom.
 
 ```bash
-open http://localhost:8082/spor          # HTML, nyeste øverst, utfellbart
-curl -s "http://localhost:8082/ki-spor"  # samme som JSON
+open http://localhost:8082/trace          # HTML, nyeste øverst, utfellbart
+curl -s "http://localhost:8082/trace.json"  # samme som JSON
 ```
 
 Filtrer på økt, oppgave eller antall:
 
 ```bash
-curl -s "http://localhost:8082/ki-spor?oppgave=oppsummering&antall=1"
-curl -s "http://localhost:8082/ki-spor?sporingsId=flyt-1786042913420-sflos8"
+curl -s "http://localhost:8082/trace.json?task=oppsummering&limit=1"
+curl -s "http://localhost:8082/trace.json?sporingsId=flyt-1786042913420-sflos8"
 ```
 
 Kjører du hele barnehageflyten i seksjon 2, vil du se at den gjør **ett** modellkall —
@@ -433,7 +433,7 @@ bare fra mal. På macOS: `brew services list | grep ollama` skal si `started`.
 **Kall mot `/ai/*` tar lang tid**
 Alle modellkall avbrytes etter `AI_TIMEOUT_MS` (standard 180000 ms) og faller da tilbake
 til maltekst med `advarsel`. Er du på en treg maskin med stor modell, er 10–60 sekunder
-på et `SUMMARY`-steg normalt — se `varighetMs` i `/ki-spor`.
+på et `SUMMARY`-steg normalt — se `durationMs` i `/trace.json`.
 
 **Tom eller rar tilstand**
 `./start.sh --reset` nullstiller `state/`. `data/` er seed og røres ikke.

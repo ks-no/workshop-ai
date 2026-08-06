@@ -35,30 +35,30 @@ paths:
                     description: Kun til stede når modellNaaBar er false.
                     example: "Ollama kjoerer, men modellen qwen2.5:14b er ikke lastet ned"
                   tidspunkt: { type: string, format: date-time }
-  /spor:
+  /trace:
     get:
       summary: KI-spor som HTML — hva modellen faktisk fikk og svarte
       description: |
         Ett kall per linje, nyeste øverst, med full prompt og fullt svar før
         heuristikk og validering har vært innom. Sporet ligger i
-        `state/ki-spor.jsonl` og nullstilles av `./start.sh --reset`.
+        `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
       parameters:
-        - { in: query, name: antall, schema: { type: integer, default: 50 } }
+        - { in: query, name: limit, schema: { type: integer, default: 50 } }
         - { in: query, name: sporingsId, schema: { type: string } }
-        - { in: query, name: oppgave, schema: { type: string } }
+        - { in: query, name: task, schema: { type: string } }
       responses:
         "200":
           description: HTML-visning
           content:
             text/html:
               schema: { type: string }
-  /ki-spor:
+  /trace.json:
     get:
       summary: KI-spor som JSON
       parameters:
-        - { in: query, name: antall, schema: { type: integer, default: 50 } }
+        - { in: query, name: limit, schema: { type: integer, default: 50 } }
         - { in: query, name: sporingsId, schema: { type: string } }
-        - { in: query, name: oppgave, schema: { type: string }, example: oppsummering }
+        - { in: query, name: task, schema: { type: string }, example: oppsummering }
       responses:
         "200":
           description: Sporlinjer, nyeste først
@@ -67,26 +67,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  antall: { type: integer }
-                  spor:
+                  count: { type: integer }
+                  trace:
                     type: array
                     items:
                       type: object
                       properties:
-                        tidspunkt: { type: string, format: date-time }
+                        timestamp: { type: string, format: date-time }
                         sporingsId: { type: string, nullable: true }
-                        oppgave:
+                        task:
                           type: string
                           description: Endepunktet eller oppgavetypen kallet kom fra.
                           example: oppsummering
                         provider: { type: string }
-                        modell: { type: string, nullable: true }
-                        temperatur: { type: number }
+                        model: { type: string, nullable: true }
+                        temperature: { type: number }
                         prompt: { type: string }
-                        svar: { type: string, nullable: true }
-                        varighetMs: { type: integer }
-                        feilet: { type: boolean }
-                        feil: { type: string }
+                        response: { type: string, nullable: true }
+                        durationMs: { type: integer }
+                        failed: { type: boolean }
+                        error: { type: string }
   /ai/dialogforslag:
     post:
       summary: Generer dialogforslag

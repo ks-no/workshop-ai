@@ -1,16 +1,16 @@
-import { aiBaseUrl, fiksBaseUrl } from "./konfig.ts";
-import { FeilMedStatus } from "./feil.ts";
+import { aiBaseUrl, fiksBaseUrl } from "./config.ts";
+import { HttpError } from "./errors.ts";
 import { utforRessurs } from "./ressurser.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
-import { nyttId, skrivJson } from "./tilstand.ts";
+import { newId, writeJson } from "./state.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
   Prosessoekt,
   SjekkResultat,
   Stegtype,
-  Tilstand
-} from "./typer.ts";
+  State
+} from "./types.ts";
 
 function erstattParametere(url: string, oekt: Prosessoekt) {
   let result = url;
@@ -38,10 +38,10 @@ export function byggProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefini
   };
 }
 
-// DATA_FETCH og SJEKK slår begge opp i den delte ressurskatalogen, på nøyaktig
-// samme måte som HTTP-ruteren. Tidligere hadde motoren sin egen kopi av
-// oppslagene, og kopiene hadde rukket å divergere.
-async function hentFraKatalog(tilstand: Tilstand, oekt: Prosessoekt, steg: any) {
+// DATA_FETCH and SJEKK both consult the shared resource catalog, exactly the way
+// the HTTP router does. The engine used to keep its own copy of these lookups,
+// and the copies had drifted apart.
+async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any) {
   const resolvertUrl = erstattParametere(steg.api.url, oekt);
   return utforRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvertUrl}`), {
     oekt,
@@ -50,19 +50,19 @@ async function hentFraKatalog(tilstand: Tilstand, oekt: Prosessoekt, steg: any) 
   });
 }
 
-export async function opprettSoknad(tilstand: Tilstand, body: any) {
+export async function opprettSoknad(tilstand: State, body: any) {
   const nySoknad = {
-    soknadId: nyttId("soknad"),
+    soknadId: newId("soknad"),
     personId: body.personId,
     prosessId: body.prosessId,
     status: "SENDT_INN",
     opprettet: new Date().toISOString(),
-    sporingsId: body.sporingsId || nyttId("flyt"),
+    sporingsId: body.sporingsId || newId("flyt"),
     syntetisk: true
   };
 
   tilstand.soknader.push(nySoknad);
-  await skrivJson("soknader.json", tilstand.soknader);
+  await writeJson("soknader.json", tilstand.soknader);
   await leggTilRevisjon({
     sporingsId: nySoknad.sporingsId,
     handling: "SOKNAD_SENDT_INN",
@@ -93,23 +93,23 @@ export async function opprettSoknad(tilstand: Tilstand, body: any) {
 }
 
 type StegKontekst = {
-  tilstand: Tilstand;
+  tilstand: State;
   oekt: Prosessoekt;
   prosess: ProsessDefinisjon;
   steg: any;
   body: any;
 };
 
-// Én håndterer per stegtype. Ny stegtype = én oppføring her; stegutførelsen
-// under trenger ingen endring. Record<Stegtype, ...> gjør at kompilatoren
-// krever en håndterer så snart en ny stegtype legges til i typer.ts.
+// One handler per step type. A new step type is one entry here; the execution
+// below needs no change. Record<Stegtype, ...> makes the compiler demand a
+// handler as soon as a new step type is added to types.ts.
 export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promise<unknown>> = {
   INFO: () => ({ type: "INFO", melding: "Informasjonssteg krever ingen handling." }),
 
   QUESTION: ({ oekt, steg, body }) => {
     const svar = body.svar ?? oekt.svar[steg.id];
     if (!svar) {
-      throw new FeilMedStatus("Spørsmålssteg krever et svar.", 400);
+      throw new HttpError("Spørsmålssteg krever et svar.", 400);
     }
     oekt.svar[steg.id] = svar;
     return { type: "QUESTION", svar };
@@ -137,7 +137,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
       const status = body.status || "SAMTYKKET";
       const samtykkeId = oekt.aktivtSamtykkeId;
       if (!samtykkeId) {
-        throw new FeilMedStatus("Ingen aktiv samtykkeforespørsel finnes.", 400);
+        throw new HttpError("Ingen aktiv samtykkeforespørsel finnes.", 400);
       }
       const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke/${samtykkeId}/svar`, {
         method: "PUT",
@@ -152,7 +152,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
       return data;
     }
 
-    throw new FeilMedStatus("Samtykkesteg krever handlingen opprett-samtykke eller samtykkesvar.", 400);
+    throw new HttpError("Samtykkesteg krever handlingen opprett-samtykke eller samtykkesvar.", 400);
   },
 
   DATA_FETCH: async ({ tilstand, oekt, steg }) => {
@@ -212,15 +212,15 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
   }
 };
 
-export async function utforStegHandling(tilstand: Tilstand, oekt: Prosessoekt, prosess: ProsessDefinisjon, body: any) {
+export async function utforStegHandling(tilstand: State, oekt: Prosessoekt, prosess: ProsessDefinisjon, body: any) {
   const steg: ProsessSteg | undefined = prosess.steg[oekt.stegIndex];
   if (!steg) {
-    throw new FeilMedStatus("Fant ikke aktivt steg.", 400);
+    throw new HttpError("Fant ikke aktivt steg.", 400);
   }
 
   const handterer = stegHandtere[steg.type as Stegtype];
   if (!handterer) {
-    throw new FeilMedStatus(
+    throw new HttpError(
       `Støtter ikke stegtypen ${steg.type}. Gyldige: ${Object.keys(stegHandtere).join(", ")}.`,
       400
     );

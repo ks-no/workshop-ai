@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-export function jsonSvar(response: ServerResponse, statusCode: number, data: unknown) {
+export function jsonResponse(response: ServerResponse, statusCode: number, data: unknown) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
@@ -10,7 +10,7 @@ export function jsonSvar(response: ServerResponse, statusCode: number, data: unk
   response.end(JSON.stringify(data, null, 2));
 }
 
-export function tekstSvar(response: ServerResponse, statusCode: number, data: string, contentType = "text/html; charset=utf-8") {
+export function textResponse(response: ServerResponse, statusCode: number, data: string, contentType = "text/html; charset=utf-8") {
   response.writeHead(statusCode, {
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*",
@@ -20,12 +20,12 @@ export function tekstSvar(response: ServerResponse, statusCode: number, data: st
   response.end(data);
 }
 
-export async function lesRequestBody(request: IncomingMessage): Promise<any> {
-  const deler = [];
+export async function readRequestBody(request: IncomingMessage): Promise<any> {
+  const chunks = [];
   for await (const del of request) {
-    deler.push(del);
+    chunks.push(del);
   }
-  return deler.length === 0 ? {} : JSON.parse(Buffer.concat(deler).toString("utf8"));
+  return chunks.length === 0 ? {} : JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
 export function docsHtml() {

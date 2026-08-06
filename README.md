@@ -124,12 +124,12 @@ Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarse
 ### Se hva modellen faktisk gjorde
 
 ```
-http://localhost:8082/spor
+http://localhost:8082/trace
 ```
 
-Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom — pluss varighet, modell og om det feilet. Samme data som JSON på `GET /ki-spor`, med `?sporingsId=`, `?oppgave=` og `?antall=`.
+Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom — pluss varighet, modell og om det feilet. Samme data som JSON på `GET /trace.json`, med `?sporingsId=`, `?task=` og `?limit=`.
 
-Sporet ligger i `state/ki-spor.jsonl` og nullstilles av `./start.sh --reset`.
+Sporet ligger i `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
 
 Logger: `docker compose logs -f ai-gateway`.
 

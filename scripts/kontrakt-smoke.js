@@ -30,11 +30,11 @@ const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 
-const utFil = path.resolve(process.cwd(), argVerdi("--ut") || "state/kontrakt-dump.json");
+const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
-function argVerdi(navn) {
-  const indeks = process.argv.indexOf(navn);
-  return indeks === -1 ? null : process.argv[indeks + 1];
+function argValue(navn) {
+  const index = process.argv.indexOf(navn);
+  return index === -1 ? null : process.argv[index + 1];
 }
 
 // --- normalisering -------------------------------------------------------
@@ -114,13 +114,13 @@ async function kall(navn, sti, valg = {}) {
     headers: valg.body ? { "Content-Type": "application/json" } : undefined,
     body: valg.body ? JSON.stringify(valg.body) : undefined
   });
-  const raatekst = await svar.text();
+  const rawText = await svar.text();
   let kropp;
   try {
-    kropp = JSON.parse(raatekst);
+    kropp = JSON.parse(rawText);
   } catch {
     // /docs og /openapi.yaml er ikke JSON. Lengden holder som regresjonsvakt.
-    kropp = { ikkeJson: true, lengde: raatekst.length };
+    kropp = { ikkeJson: true, lengde: rawText.length };
   }
   dump.push({
     navn,
@@ -235,9 +235,9 @@ async function kjoer() {
   await krevLedigPort(backendPort);
   await krevLedigPort(fiksPort);
 
-  const stateMappe = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
+  const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
   const miljo = {
-    STATE_DIR: stateMappe,
+    STATE_DIR: stateDir,
     FIKS_BASE_URL: fiksUrl,
     BACKEND_BASE_URL: backendUrl,
     AI_BASE_URL: "http://127.0.0.1:8082"
@@ -258,14 +258,14 @@ async function kjoer() {
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();
 
-    await mkdir(path.dirname(utFil), { recursive: true });
-    await writeFile(utFil, JSON.stringify(dump, null, 2) + "\n");
-    console.log(`${dump.length} kall skrevet til ${path.relative(rot, utFil)}`);
+    await mkdir(path.dirname(outFile), { recursive: true });
+    await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");
+    console.log(`${dump.length} kall skrevet til ${path.relative(rot, outFile)}`);
   } finally {
     for (const tjeneste of tjenester) {
       tjeneste.kill("SIGTERM");
     }
-    await rm(stateMappe, { recursive: true, force: true });
+    await rm(stateDir, { recursive: true, force: true });
   }
 }
 

@@ -265,19 +265,19 @@ async function readBody(request) {
   return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
 }
 
-// En 400 fra backend er brukerens feil, ikke vaar. Uten statuskoden her ble
-// "Ukjent ordning: ... Gyldige: ..." pakket om til 500 "Intern feil i mcp-services",
-// og den som kalte verktoeyet — menneske eller modell — mistet beskjeden om hva som
-// var galt og kunne ikke rette seg selv.
-function oppstroemsFeil(data, status, kilde) {
+// A 400 from the backend is the caller's fault, not ours. Without the status code
+// here, "Ukjent ordning: ... Gyldige: ..." was repackaged as a 500 "Intern feil i
+// mcp-services", and whoever called the tool — human or model — lost the message
+// about what was wrong and could not correct itself.
+function upstreamError(data, status, kilde) {
   const feil = new Error(data.feil || `${kilde} feil ${status}`);
   feil.status = status;
   return feil;
 }
 
-// Feil i argumentene til et verktoey. Samme begrunnelse som over: den som kalte
-// skal kunne rette seg selv, og da maa den se en 4xx og en presis melding.
-function klientfeil(melding, status = 400) {
+// Bad arguments to a tool. Same reasoning as above: the caller must be able to
+// correct itself, which requires a 4xx and a precise message.
+function clientError(melding, status = 400) {
   const feil = new Error(melding);
   feil.status = status;
   return feil;
@@ -290,7 +290,7 @@ async function api(path, options = {}) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw oppstroemsFeil(data, res.status, "Backend");
+    throw upstreamError(data, res.status, "Backend");
   }
   return data;
 }
@@ -303,7 +303,7 @@ async function ai(path, payload) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw oppstroemsFeil(data, res.status, "AI");
+    throw upstreamError(data, res.status, "AI");
   }
   return data;
 }
@@ -312,7 +312,7 @@ async function matrikkel(path) {
   const res = await fetch(`${matrikkelBaseUrl}${path}`);
   const data = await res.json();
   if (!res.ok) {
-    throw oppstroemsFeil(data, res.status, "Matrikkel");
+    throw upstreamError(data, res.status, "Matrikkel");
   }
   return data;
 }
@@ -473,10 +473,10 @@ async function invokeTool(name, args = {}) {
     if (Number.isInteger(args.gnr) && Number.isInteger(args.bnr)) {
       const eiendommer = await matrikkel("/mock/matrikkel/eiendommer");
       const funn = eiendommer.find((e) => Number(e.gnr) === args.gnr && Number(e.bnr) === args.bnr);
-      if (!funn) throw klientfeil(`Fant ikke matrikkelenhet med gnr=${args.gnr} og bnr=${args.bnr}.`, 404);
+      if (!funn) throw clientError(`Fant ikke matrikkelenhet med gnr=${args.gnr} og bnr=${args.bnr}.`, 404);
       return funn;
     }
-    throw klientfeil("Oppgi enten matrikkelId eller begge feltene gnr og bnr.");
+    throw clientError("Oppgi enten matrikkelId eller begge feltene gnr og bnr.");
   }
 
   if (name === "matrikkel_hent_eiere") {
@@ -517,7 +517,7 @@ async function invokeTool(name, args = {}) {
     return data;
   }
 
-  throw klientfeil(`Ukjent tool: ${name}. Se GET /mcp/tools for gyldige navn.`, 404);
+  throw clientError(`Ukjent tool: ${name}. Se GET /mcp/tools for gyldige navn.`, 404);
 }
 
 const server = createServer(async (request, response) => {
@@ -567,8 +567,8 @@ const server = createServer(async (request, response) => {
 
     json(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    // Klientfeil sendes videre med sin egen kode og melding, saa den som kalte
-    // verktoeyet faar vite hva som var galt. Bare ekte serverfeil blir 500.
+    // Client errors pass through with their own status and message, so the caller
+    // learns what was wrong. Only genuine server errors become 500.
     const status = Number(error.status);
     if (status >= 400 && status < 500) {
       json(response, status, { feil: error.message });

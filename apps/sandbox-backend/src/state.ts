@@ -1,9 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { seedMappe, stateMappe } from "./konfig.ts";
+import { seedDir, stateDir } from "./config.ts";
 
-// Tilstanden er utypet inntil typer.ts kommer i steg 5.
-type Tilstand = any;
+type State = any;
 
 // Reads from state/ once something has been written there, and falls back to
 // the seed in data/. Pure seed files are never written, so they always come
@@ -12,8 +11,8 @@ type Tilstand = any;
 // Datasets that only exist at runtime have no seed at all, so they pass a
 // default. Anything called without one is required, and a missing file fails
 // loudly rather than quietly looking empty.
-export async function lesJson(filnavn: string, standardverdi?: unknown): Promise<any> {
-  for (const mappe of [stateMappe, seedMappe]) {
+export async function readJson(filnavn: string, standardverdi?: unknown): Promise<any> {
+  for (const mappe of [stateDir, seedDir]) {
     try {
       return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
     } catch (error: any) {
@@ -26,9 +25,9 @@ export async function lesJson(filnavn: string, standardverdi?: unknown): Promise
   throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
 }
 
-export async function skrivJson(filnavn: string, data: unknown) {
-  await mkdir(stateMappe, { recursive: true });
-  await writeFile(path.join(stateMappe, filnavn), JSON.stringify(data, null, 2) + "\n");
+export async function writeJson(filnavn: string, data: unknown) {
+  await mkdir(stateDir, { recursive: true });
+  await writeFile(path.join(stateDir, filnavn), JSON.stringify(data, null, 2) + "\n");
 }
 
 export function normaliserProsess(prosess: any) {
@@ -66,15 +65,15 @@ export function erMalProsess(prosess: any) {
   return prosess?.redigering?.mal === true || prosess?.redigering?.status === "template";
 }
 
-export function hentProsesserForVisning(tilstand: Tilstand, inkluderMaler = false) {
+export function hentProsesserForVisning(tilstand: State, inkluderMaler = false) {
   if (inkluderMaler) {
     return [...tilstand.prosesser, ...tilstand.prosessMaler];
   }
   return tilstand.prosesser;
 }
 
-export async function lagreProsessdefinisjoner(tilstand: Tilstand) {
-  await skrivJson("prosessdefinisjoner.json", {
+export async function lagreProsessdefinisjoner(tilstand: State) {
+  await writeJson("prosessdefinisjoner.json", {
     ...tilstand.prosessKatalogMeta,
     formatVersion: tilstand.prosessFormatVersion || "0.2.0",
     prosesser: tilstand.prosesser,
@@ -82,11 +81,11 @@ export async function lagreProsessdefinisjoner(tilstand: Tilstand) {
   });
 }
 
-export function nyttId(prefix: string) {
+export function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function finnGate(tilstand: Tilstand, gateNavn: string | null) {
+export function finnGate(tilstand: State, gateNavn: string | null) {
   if (!gateNavn) return null;
   const norm = String(gateNavn).toLowerCase().trim();
   const gater = tilstand.matrikkel?.gater || [];
@@ -98,7 +97,7 @@ export function finnGate(tilstand: Tilstand, gateNavn: string | null) {
   );
 }
 
-export async function lesTilstand() {
+export async function readState() {
   const [
     personer,
     husstander,
@@ -114,19 +113,19 @@ export async function lesTilstand() {
     satser,
     sfoplasser
   ] = await Promise.all([
-    lesJson("personer.json"),
-    lesJson("husstander.json"),
-    lesJson("inntekter.json"),
-    lesJson("barnehageplasser.json"),
-    lesJson("soknader.json", []),
-    lesJson("prosessdefinisjoner.json"),
-    lesJson("informasjonsmodeller.json"),
-    lesJson("samtykker.json", []),
-    lesJson("revisjonslogg.json", []),
-    lesJson("prosessoekter.json", []),
-    lesJson("matrikkel.json"),
-    lesJson("satser.json"),
-    lesJson("sfoplasser.json")
+    readJson("personer.json"),
+    readJson("husstander.json"),
+    readJson("inntekter.json"),
+    readJson("barnehageplasser.json"),
+    readJson("soknader.json", []),
+    readJson("prosessdefinisjoner.json"),
+    readJson("informasjonsmodeller.json"),
+    readJson("samtykker.json", []),
+    readJson("revisjonslogg.json", []),
+    readJson("prosessoekter.json", []),
+    readJson("matrikkel.json"),
+    readJson("satser.json"),
+    readJson("sfoplasser.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
@@ -151,23 +150,23 @@ export async function lesTilstand() {
   };
 }
 
-export function finnPerson(tilstand: Tilstand, personId: string) {
+export function finnPerson(tilstand: State, personId: string) {
   return tilstand.personer.find((person: any) => person.personId === personId) || null;
 }
 
-export function finnProsess(tilstand: Tilstand, prosessId: string) {
+export function finnProsess(tilstand: State, prosessId: string) {
   return hentProsesserForVisning(tilstand, true).find((prosess: any) => prosess.id === prosessId) || null;
 }
 
-export function finnProsessoekt(tilstand: Tilstand, oektsId: string) {
+export function finnProsessoekt(tilstand: State, oektsId: string) {
   return tilstand.prosessoekter.find((oekt: any) => oekt.oektsId === oektsId) || null;
 }
 
 export async function lagreProsessoekter(prosessoekter: unknown) {
-  await skrivJson("prosessoekter.json", prosessoekter);
+  await writeJson("prosessoekter.json", prosessoekter);
 }
 
-export function hentHusstandForPerson(tilstand: Tilstand, personId: string) {
+export function hentHusstandForPerson(tilstand: State, personId: string) {
   const person = finnPerson(tilstand, personId);
   if (!person) {
     throw new Error("Fant ikke person.");
@@ -179,15 +178,14 @@ export function hentHusstandForPerson(tilstand: Tilstand, personId: string) {
   return husstand;
 }
 
-// Ny tjeneste = én linje her. Barnehage og SFO gjorde tidligere nøyaktig det
-// samme oppslaget i hver sin funksjon, og skilte seg bare på hvilket datasett
-// de filtrerte.
+// A new tjeneste is one line here. Barnehage and SFO used to do the exact same
+// lookup in two separate functions, differing only in which dataset they filtered.
 export const tjenesteDatasett = {
   barnehage: "barnehageplasser",
   sfo: "sfoplasser"
 };
 
-export function hentBarnaIHusstand(tilstand: Tilstand, personId: string): string[] {
+export function hentBarnaIHusstand(tilstand: State, personId: string): string[] {
   const person = finnPerson(tilstand, personId);
   if (!person) {
     throw new Error("Fant ikke person.");
@@ -198,7 +196,7 @@ export function hentBarnaIHusstand(tilstand: Tilstand, personId: string): string
     .map((medlem: any) => medlem.personId) || [person.personId];
 }
 
-export function hentPlasserForTjeneste(tilstand: Tilstand, personId: string, tjeneste: string) {
+export function hentPlasserForTjeneste(tilstand: State, personId: string, tjeneste: string) {
   const datasett = (tjenesteDatasett as Record<string, string>)[tjeneste];
   if (!datasett) {
     throw new Error(`Ukjent tjeneste: ${tjeneste}. Gyldige: ${Object.keys(tjenesteDatasett).join(", ")}.`);

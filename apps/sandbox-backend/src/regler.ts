@@ -1,16 +1,16 @@
-import { fiksBaseUrl, fiksRolleId } from "./konfig.ts";
+import { fiksBaseUrl, fiksRolleId } from "./config.ts";
 import {
   finnPerson,
   hentHusstandForPerson,
   hentPlasserForTjeneste
-} from "./tilstand.ts";
-import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, Tilstand } from "./typer.ts";
+} from "./state.ts";
+import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 
-// Henter inntektsgrunnlaget fra Fiks-simulatoren for hele husholdningen.
-// Ektefeller, registrerte partnere og samboere regnes som én husholdning,
-// jf. forskrift om foreldrebetaling.
-// Returtypen er any inntil Fiks-responsen er modellert i typer.ts.
-async function hentInntektsgrunnlag(tilstand: Tilstand, personId: string, inntektsaar: number): Promise<any> {
+// Fetches the household income basis from the Fiks simulator. Spouses, registered
+// partners and cohabitants count as one household, per forskrift om
+// foreldrebetaling. Return type stays any until the Fiks response is modelled in
+// types.ts.
+async function hentInntektsgrunnlag(tilstand: State, personId: string, inntektsaar: number): Promise<any> {
   const husstand = hentHusstandForPerson(tilstand, personId);
   const personer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
@@ -36,7 +36,7 @@ async function hentInntektsgrunnlag(tilstand: Tilstand, personId: string, inntek
   return svar.json();
 }
 
-function sisteInntektsaar(tilstand: Tilstand, personId: string) {
+function sisteInntektsaar(tilstand: State, personId: string) {
   const husstand = hentHusstandForPerson(tilstand, personId);
   const identer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
@@ -47,16 +47,16 @@ function sisteInntektsaar(tilstand: Tilstand, personId: string) {
   return aar.length ? Math.max(...aar) : new Date().getFullYear() - 1;
 }
 
-export async function hentInntektForPerson(tilstand: Tilstand, personId: string) {
+export async function hentInntektForPerson(tilstand: State, personId: string) {
   return hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
 }
 
-function formaterBelop(belop: number) {
+function formatBelop(belop: number) {
   return new Intl.NumberFormat("nb-NO").format(Math.round(belop));
 }
 
-// Alder regnes ved satsenes ikrafttredelse, ikke ved kalltidspunktet, slik at
-// samme testperson gir samme utfall uansett når demoen kjøres.
+// Age is computed at the rates' effective date, not at call time, so the same test
+// person yields the same outcome whenever the demo runs.
 function alderVed(foedselsdato: string, referansedato: string): number {
   const foedt = new Date(foedselsdato);
   const referanse = new Date(referansedato);
@@ -67,11 +67,11 @@ function alderVed(foedselsdato: string, referansedato: string): number {
   return foerBursdag ? alder - 1 : alder;
 }
 
-// Ordningene i data/satser.json avgrenser hvilke barn de gjelder for, med
-// trinnFra/trinnTil for SFO og alderFraAar/alderTilAar for barnehage. Feltene
-// lå ubrukt til nå, så en husstand kunne få innvilget en ordning på grunnlag av
-// et barn som falt utenfor målgruppen.
-function plasserSomKvalifiserer(tilstand: Tilstand, personId: string, ordning: Ordning, satser: Satser) {
+// The ordninger in data/satser.json scope which children they cover, via
+// trinnFra/trinnTil for SFO and alderFraAar/alderTilAar for barnehage. These
+// fields went unused, so a husstand could be granted an ordning on the basis of a
+// child outside the target group.
+function plasserSomKvalifiserer(tilstand: State, personId: string, ordning: Ordning, satser: Satser) {
   return hentPlasserForTjeneste(tilstand, personId, ordning.tjeneste).filter((plass: Plass) => {
     if (ordning.trinnFra !== undefined || ordning.trinnTil !== undefined) {
       if (typeof plass.trinn !== "number") return false;
@@ -104,22 +104,22 @@ function kriterieTekst(ordning: Ordning): string {
 }
 
 type RegelKontekst = {
-  tilstand: Tilstand;
+  tilstand: State;
   personId: string;
   ordning: Ordning;
   satser: Satser;
-  /** Husholdningens beregningsbeløp fra Fiks-simulatoren. */
+  /** The household's beregningsbeloep from the Fiks simulator. */
   grunnlag: number;
-  /** Feltene alle vurderinger legger ved som forklaring. */
+  /** Fields every assessment attaches as its explanation. */
   felles: Record<string, unknown>;
-  /** Tilføyelse om at skatteoppgjøret ikke er ferdig, eller tom streng. */
+  /** Note that the tax assessment is not final, or an empty string. */
   forbehold: string;
 };
 
-// Én håndterer per regeltype i data/satser.json. Ny regeltype = én oppføring
-// her, på samme måte som en ny ressurs er én oppføring i ressurser.ts.
-// Record<Regeltype, ...> gjør at kompilatoren krever en håndterer så snart
-// en ny regeltype legges til i typer.ts.
+// One handler per rule type in data/satser.json. A new rule type is one entry
+// here, the same way a new resource is one entry in ressurser.ts.
+// Record<Regeltype, ...> makes the compiler demand a handler as soon as a new
+// rule type is added to types.ts.
 export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResultat> = {
   INNTEKTSGRENSE: ({ tilstand, personId, ordning, satser, grunnlag, felles, forbehold }) => {
     const kvalifiserte = plasserSomKvalifiserer(tilstand, personId, ordning, satser);
@@ -135,8 +135,8 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
     return {
       godkjent,
       melding: godkjent
-        ? `Husholdningens inntektsgrunnlag er ${formaterBelop(grunnlag)} kr, under grensen på ${formaterBelop(grense)} kr for ${ordning.navn}.${forbehold}`
-        : `Husholdningens inntektsgrunnlag er ${formaterBelop(grunnlag)} kr, over grensen på ${formaterBelop(grense)} kr for ${ordning.navn}.${forbehold}`,
+        ? `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag)} kr, under grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`
+        : `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag)} kr, over grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`,
       grunnlag: { ...felles, inntektsgrense: grense, antallKvalifiserendePlasser: kvalifiserte.length }
     };
   },
@@ -156,17 +156,17 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
     return {
       godkjent,
       melding: godkjent
-        ? `Full pris er ${formaterBelop(aarspris)} kr i året, mer enn ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formaterBelop(grunnlag)} kr (${formaterBelop(tak)} kr). Du har rett til redusert betaling.${forbehold}`
-        : `Full pris er ${formaterBelop(aarspris)} kr i året, som er under ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formaterBelop(grunnlag)} kr (${formaterBelop(tak)} kr). Du har ikke rett til redusert betaling.${forbehold}`,
+        ? `Full pris er ${formatBelop(aarspris)} kr i året, mer enn ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag)} kr (${formatBelop(tak)} kr). Du har rett til redusert betaling.${forbehold}`
+        : `Full pris er ${formatBelop(aarspris)} kr i året, som er under ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag)} kr (${formatBelop(tak)} kr). Du har ikke rett til redusert betaling.${forbehold}`,
       grunnlag: { ...felles, aarspris, maksAndelAvInntekt: satser.maksAndelAvInntekt, tak: Math.round(tak) }
     };
   }
 };
 
-// Vurderer én ordning i data/satser.json mot inntektsgrunnlaget fra Fiks.
-// Beregningen er deterministisk og skjer her, ikke i KI-laget — jf.
-// regelen ai-no-decisions i policies/ai-policy.yaml.
-export async function vurderOrdning(tilstand: Tilstand, personId: string, ordningId: string | null): Promise<SjekkResultat> {
+// Assesses one ordning in data/satser.json against the income basis from Fiks.
+// The calculation is deterministic and happens here, not in the AI layer — see
+// ai-no-decisions in policies/ai-policy.yaml.
+export async function vurderOrdning(tilstand: State, personId: string, ordningId: string | null): Promise<SjekkResultat> {
   const satser: Satser = tilstand.satser;
   const ordning = satser.ordninger.find((kandidat) => kandidat.id === ordningId);
   if (!ordning) {
@@ -206,7 +206,7 @@ export async function vurderOrdning(tilstand: Tilstand, personId: string, ordnin
   return handterer({ tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
 }
 
-export function harGyldigSamtykke(tilstand: Tilstand, personId: string, datakilde: string) {
+export function harGyldigSamtykke(tilstand: State, personId: string, datakilde: string) {
   return tilstand.samtykker.find((samtykke: any) =>
     samtykke.personId === personId &&
     samtykke.status === "SAMTYKKET" &&

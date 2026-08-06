@@ -62,6 +62,15 @@ pnpm test:agent
 - Preserve the process-driven model; avoid hardcoding flow logic in UI when a process definition should drive behavior.
 - Prefer existing endpoint and payload patterns from current service code.
 - When editing API behavior, update matching specs in `openapi/`.
-- Keep Norwegian domain terms and identifiers intact where they already exist.
+- **Naming: English for code, Norwegian for domain.** Technical identifiers are English
+  (`callModel`, `jsonResponse`, `writeTrace`, `buildPrompt`, `HttpError`), domain terms
+  stay Norwegian (`samtykke`, `inntekt`, `beregning`, `prosessoekt`, `revisjonslogg`,
+  `ordning`, `satser`). Mixed compounds are correct: `getInntektForPerson`.
+- **Never rename wire-format fields.** JSON response keys and endpoint paths are the
+  contract teams build against: `melding`, `feil`, `tekst`, `modell`, `advarsel`,
+  `godkjent`, `svar`, `stegId`, `oektsId`, `sporingsId`, and the rest. A local variable
+  may be `message`; the response key stays `melding`. See AGENTS.md for the full rule.
+- Comments in English, and only where they explain *why*. Delete a comment that merely
+  restates the code rather than translating it.
 - Do not introduce new frameworks or heavy dependencies unless explicitly requested.
 

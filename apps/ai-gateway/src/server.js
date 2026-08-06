@@ -4,10 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Samme skille som i sandbox-backend: alt som skrives i kjoering havner i
-// state/, som er gitignorert og nullstilles av ./start.sh --reset.
-const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
-const sporFil = path.join(stateMappe, "ki-spor.jsonl");
+// Same split as sandbox-backend: everything written at runtime goes to state/,
+// which is gitignored and cleared by ./start.sh --reset.
+const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
+const traceFile = path.join(stateDir, "ai-trace.jsonl");
 const port = Number(process.env.PORT) || 8082;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
@@ -15,12 +15,12 @@ const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
-// En stor modell paa en treg maskin kan bruke godt over et minutt paa et
-// SUMMARY-steg, saa taket er romslig. Poenget er at kallet feiler til slutt
-// i stedet for aa henge for alltid.
-const modellTimeoutMs = Number(process.env.AI_TIMEOUT_MS) || 180000;
+// A large model on a slow machine can spend well over a minute on a SUMMARY
+// step, so the ceiling is generous. The point is that the call eventually fails
+// instead of hanging forever.
+const modelTimeoutMs = Number(process.env.AI_TIMEOUT_MS) || 180000;
 
-function jsonSvar(response, statusCode, data) {
+function jsonResponse(response, statusCode, data) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
@@ -30,7 +30,7 @@ function jsonSvar(response, statusCode, data) {
   response.end(JSON.stringify(data, null, 2));
 }
 
-function tekstSvar(response, statusCode, data, contentType = "text/html; charset=utf-8") {
+function textResponse(response, statusCode, data, contentType = "text/html; charset=utf-8") {
   response.writeHead(statusCode, {
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*"
@@ -38,15 +38,15 @@ function tekstSvar(response, statusCode, data, contentType = "text/html; charset
   response.end(data);
 }
 
-async function lesBody(request) {
-  const deler = [];
-  for await (const del of request) {
-    deler.push(del);
+async function readBody(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
   }
-  return deler.length ? JSON.parse(Buffer.concat(deler).toString("utf8")) : {};
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
 }
 
-function nyttId(prefix) {
+function newId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -90,38 +90,38 @@ function docsHtml() {
       </ul>
       <h2>Innsyn</h2>
       <ul>
-        <li><a href="/spor"><code>GET /spor</code></a> — hva modellen faktisk fikk og svarte</li>
-        <li><code>GET /ki-spor</code> — samme som JSON. <code>?sporingsId=</code>, <code>?oppgave=</code>, <code>?antall=</code></li>
+        <li><a href="/trace"><code>GET /trace</code></a> — hva modellen faktisk fikk og svarte</li>
+        <li><code>GET /trace.json</code> — samme som JSON. <code>?sporingsId=</code>, <code>?task=</code>, <code>?limit=</code></li>
         <li><code>GET /helse</code> — svarer provideren?</li>
       </ul>
     </body>
   </html>`;
 }
 
-// Leser sporet bakfra: nyeste kall foerst, og bare saa mange som trengs.
-async function lesSpor({ antall = 50, sporingsId = null, oppgave = null } = {}) {
-  let raa;
+// Newest first, and only as many as asked for.
+async function readTrace({ limit = 50, sporingsId = null, task = null } = {}) {
+  let raw;
   try {
-    raa = await readFile(sporFil, "utf8");
-  } catch (feil) {
-    if (feil.code === "ENOENT") return [];
-    throw feil;
+    raw = await readFile(traceFile, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
   }
 
-  const linjer = [];
-  for (const linje of raa.split("\n")) {
-    if (!linje.trim()) continue;
+  const entries = [];
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
     try {
-      linjer.push(JSON.parse(linje));
+      entries.push(JSON.parse(line));
     } catch {
-      // En halvskrevet siste linje skal ikke velte hele visningen.
+      // A half-written last line must not break the whole view.
     }
   }
 
-  return linjer
+  return entries
     .filter((l) => !sporingsId || l.sporingsId === sporingsId)
-    .filter((l) => !oppgave || l.oppgave === oppgave)
-    .slice(-antall)
+    .filter((l) => !task || l.task === task)
+    .slice(-limit)
     .reverse();
 }
 
@@ -132,24 +132,24 @@ function escapeHtml(tekst) {
     .replace(/>/g, "&gt;");
 }
 
-function sporHtml(linjer) {
-  const rader = linjer
+function traceHtml(entries) {
+  const rows = entries
     .map((l) => {
-      const merke = l.feilet
+      const badge = l.failed
         ? `<span style="color:#b00">feilet</span>`
-        : `<span style="color:#060">${escapeHtml(l.modell)}</span>`;
+        : `<span style="color:#060">${escapeHtml(l.model)}</span>`;
       return `
       <details style="border:1px solid #ddd; border-radius:6px; margin-bottom:8px; padding:8px 12px;">
         <summary style="cursor:pointer">
-          <code>${escapeHtml(l.oppgave)}</code> &middot; ${merke} &middot;
-          ${l.varighetMs} ms &middot;
-          <span style="color:#666">${escapeHtml(l.tidspunkt)}</span>
+          <code>${escapeHtml(l.task)}</code> &middot; ${badge} &middot;
+          ${l.durationMs} ms &middot;
+          <span style="color:#666">${escapeHtml(l.timestamp)}</span>
           ${l.sporingsId ? `&middot; <span style="color:#666">${escapeHtml(l.sporingsId)}</span>` : ""}
         </summary>
-        ${l.feil ? `<p style="color:#b00"><strong>Feil:</strong> ${escapeHtml(l.feil)}</p>` : ""}
+        ${l.error ? `<p style="color:#b00"><strong>Feil:</strong> ${escapeHtml(l.error)}</p>` : ""}
         <h4>Prompt</h4>
         <pre style="white-space:pre-wrap; background:#f6f6f6; padding:8px; border-radius:4px">${escapeHtml(l.prompt)}</pre>
-        ${l.svar ? `<h4>Svar</h4><pre style="white-space:pre-wrap; background:#f0f7f0; padding:8px; border-radius:4px">${escapeHtml(l.svar)}</pre>` : ""}
+        ${l.response ? `<h4>Svar</h4><pre style="white-space:pre-wrap; background:#f0f7f0; padding:8px; border-radius:4px">${escapeHtml(l.response)}</pre>` : ""}
       </details>`;
     })
     .join("");
@@ -163,15 +163,15 @@ function sporHtml(linjer) {
       <p style="color:#666">
         Ett kall per linje, nyeste øverst. Klikk for å se prompten modellen faktisk fikk
         og hva den svarte — før heuristikk og validering har vært innom.
-        Sporet ligger i <code>state/ki-spor.jsonl</code> og nullstilles av
+        Sporet ligger i <code>state/ai-trace.jsonl</code> og nullstilles av
         <code>./start.sh --reset</code>.
       </p>
-      ${linjer.length ? rader : "<p><em>Ingen modellkall registrert ennå. Kjør en flyt, og last siden på nytt.</em></p>"}
+      ${entries.length ? rows : "<p><em>Ingen modellkall registrert ennå. Kjør en flyt, og last siden på nytt.</em></p>"}
     </body>
   </html>`;
 }
 
-function byggSvar(type, body) {
+function buildTemplateResponse(type, body) {
   const tjeneste = body?.kontekst?.tjeneste || "kommunal tjeneste";
   const data = body?.kontekst?.data || {};
   const svar = body?.kontekst?.svar || {};
@@ -180,7 +180,7 @@ function byggSvar(type, body) {
     return Object.values(data || {}).find(predicate) || null;
   }
 
-  function formaterBelop(tall) {
+  function formatBelop(tall) {
     return new Intl.NumberFormat("nb-NO").format(Number(tall || 0));
   }
 
@@ -189,10 +189,10 @@ function byggSvar(type, body) {
     if (!husstand) return null;
     const foresatte = husstand.medlemmer.filter((m) => m.rolle === "foresatt");
     const barn = husstand.medlemmer.filter((m) => m.rolle === "barn");
-    const deler = [`Husstand: ${husstand.adresse || husstand.husstandId}`];
-    if (foresatte.length) deler.push(`${foresatte.length} foresatt${foresatte.length !== 1 ? "e" : ""} (${foresatte.map((m) => m.personId).join(", ")})`);
-    if (barn.length) deler.push(`${barn.length} barn (${barn.map((m) => m.personId).join(", ")})`);
-    return deler.join(", ");
+    const chunks = [`Husstand: ${husstand.adresse || husstand.husstandId}`];
+    if (foresatte.length) chunks.push(`${foresatte.length} foresatt${foresatte.length !== 1 ? "e" : ""} (${foresatte.map((m) => m.personId).join(", ")})`);
+    if (barn.length) chunks.push(`${barn.length} barn (${barn.map((m) => m.personId).join(", ")})`);
+    return chunks.join(", ");
   }
 
   function byggInntektLinjer() {
@@ -200,33 +200,33 @@ function byggSvar(type, body) {
     if (!beregning) return null;
     const poster = (beregning.visningsposter || [])
       .flatMap((v) => v.poster || [])
-      .map((p) => `${p.visningstekst} ${formaterBelop(p.beloep)} kr`)
+      .map((p) => `${p.visningstekst} ${formatBelop(p.beloep)} kr`)
       .join(", ");
     const utenfor = (beregning.fradrag?.beregning || [])
       .flatMap((g) => g.beregningsposter || [])
       .map((p) => p.visningstekst)
       .join(", ");
-    const deler = [`Inntektsgrunnlag ${beregning.inntektsaar}: ${formaterBelop(beregning.beregningsbeloep)} kr`];
-    if (poster) deler.push(`bygget av ${poster}`);
-    if (utenfor) deler.push(`holdt utenfor: ${utenfor}`);
-    if (beregning.stadie === "UTKAST") deler.push("skatteoppgjoret er ikke ferdig");
-    return deler.join(". ");
+    const chunks = [`Inntektsgrunnlag ${beregning.inntektsaar}: ${formatBelop(beregning.beregningsbeloep)} kr`];
+    if (poster) chunks.push(`bygget av ${poster}`);
+    if (utenfor) chunks.push(`holdt utenfor: ${utenfor}`);
+    if (beregning.stadie === "UTKAST") chunks.push("skatteoppgjoret er ikke ferdig");
+    return chunks.join(". ");
   }
 
   function byggSvarLinjer() {
-    const deler = [];
+    const chunks = [];
     for (const [, verdi] of Object.entries(svar || {})) {
       if (typeof verdi === "string" && verdi.trim()) {
-        deler.push(verdi.trim().replace(/[.]+$/g, ""));
+        chunks.push(verdi.trim().replace(/[.]+$/g, ""));
       } else if (typeof verdi === "object" && verdi !== null) {
-        const verdier = Object.values(verdi).filter((v) => v && String(v).trim());
-        if (verdier.length) deler.push(verdier.map((v) => String(v).trim().replace(/[.]+$/g, "")).join(", "));
+        const values = Object.values(verdi).filter((v) => v && String(v).trim());
+        if (values.length) chunks.push(values.map((v) => String(v).trim().replace(/[.]+$/g, "")).join(", "));
       }
     }
-    return deler.length ? deler.join(" | ") : null;
+    return chunks.length ? chunks.join(" | ") : null;
   }
 
-  function erJaSvar(verdi) {
+  function isAffirmative(verdi) {
     const tekst = String(verdi || "").toLowerCase().trim();
     const tallMatch = tekst.match(/\b(\d{1,4})\b/);
     if (tallMatch) {
@@ -259,7 +259,7 @@ function byggSvar(type, body) {
 
     if (flereEnn20) {
       linjer.push(
-        erJaSvar(flereEnn20)
+        isAffirmative(flereEnn20)
           ? "Søker opplyser at gaten har mer enn 20 boliger."
           : "Søker opplyser at gaten ikke har mer enn 20 boliger."
       );
@@ -322,22 +322,22 @@ function byggSvar(type, body) {
 }
 
 // ---------------------------------------------------------------------------
-// Verktøyvalg – velger hvilke MCP-verktøy som er relevante for et prosessteg
+// Tool selection — which MCP tools are relevant for a given process step
 // ---------------------------------------------------------------------------
 
-function heuristiskVelgVerktoy(body) {
+function heuristicToolChoice(body) {
   const steg = body?.steg || {};
   const tilgjengeligeVerktoy = Array.isArray(body?.verktoy) ? body.verktoy : [];
   const felter = Array.isArray(steg.felter) ? steg.felter : [];
-  const alleStegTekster = normaliserTekst(
+  const alleStegTekster = normalizeText(
     [steg.id, steg.tittel, steg.tekst, ...(steg.felter || []).map((f) => `${f.id || ""} ${f.label || ""} ${f.placeholder || ""}`)].join(" ")
   );
   const gateInnsamling =
     alleStegTekster.includes("hvilken gate") ||
     alleStegTekster.includes("gatenavn") ||
-    felter.some((f) => normaliserTekst(`${f.id || ""} ${f.label || ""}`).includes("gatenavn"));
+    felter.some((f) => normalizeText(`${f.id || ""} ${f.label || ""}`).includes("gatenavn"));
 
-  const VERKTOY_HEURISTIKK = [
+  const TOOL_HEURISTICS = [
     {
       navn: "matrikkel_finn_veger",
       bruk: "kontekst_og_validering",
@@ -353,7 +353,7 @@ function heuristiskVelgVerktoy(body) {
   ];
 
   const forslag = [];
-  for (const regel of VERKTOY_HEURISTIKK) {
+  for (const regel of TOOL_HEURISTICS) {
     if (!tilgjengeligeVerktoy.some((v) => v.name === regel.navn || v === regel.navn)) continue;
     if (regel.navn === "matrikkel_finn_veger" && !gateInnsamling) continue;
     if (regel.nodvenligord.some((ord) => alleStegTekster.includes(ord))) {
@@ -364,7 +364,7 @@ function heuristiskVelgVerktoy(body) {
   return { verktoy: forslag, modell: "heuristisk-verktoyvalg", syntetisk: true };
 }
 
-function byggVerktoyValgPrompt(body) {
+function buildToolChoicePrompt(body) {
   const steg = body?.steg || {};
   const verktoyListe = Array.isArray(body?.verktoy) ? body.verktoy : [];
   const stegTekst = JSON.stringify({ id: steg.id, tittel: steg.tittel, tekst: steg.tekst, felter: steg.felter });
@@ -385,38 +385,38 @@ function byggVerktoyValgPrompt(body) {
   ].join("\n");
 }
 
-function validerVerktoyvalg(data, verktoyNavn) {
+function validateToolChoice(data, verktoyNavn) {
   if (!Array.isArray(data)) return null;
   const gyldige = new Set(Array.isArray(verktoyNavn) ? verktoyNavn : []);
-  const gyldigBruk = new Set(["kontekst", "validering", "kontekst_og_validering"]);
+  const validUsage = new Set(["kontekst", "validering", "kontekst_og_validering"]);
   return data
-    .filter((v) => v && typeof v.name === "string" && gyldige.has(v.name) && gyldigBruk.has(v.bruk))
+    .filter((v) => v && typeof v.name === "string" && gyldige.has(v.name) && validUsage.has(v.bruk))
     .map((v) => ({ name: v.name, bruk: v.bruk, begrunnelse: typeof v.begrunnelse === "string" ? v.begrunnelse : "" }));
 }
 
-async function velgVerktoyMedAi(body) {
-  const heuristisk = heuristiskVelgVerktoy(body);
+async function chooseToolsWithAi(body) {
+  const heuristisk = heuristicToolChoice(body);
   if (heuristisk.verktoy.length > 0) {
     return heuristisk;
   }
 
   const verktoyNavn = (body?.verktoy || []).map((v) => v.name || v);
-  const prompt = byggVerktoyValgPrompt(body);
+  const prompt = buildToolChoicePrompt(body);
 
   if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
     return heuristisk;
   }
 
   try {
-    // Merk: dette steget forventer JSON, men kjoerer paa fritekst-innstillingene
-    // (temperatur 0.2, fritekst-systemmelding). Det er bevart slik det var, ikke
-    // valgt. Om temperatur 0 og JSON-systemmeldingen gir bedre verktoeyvalg er et
-    // empirisk spoersmaal — mål det med evalen framfor aa gjette.
-    const { tekst, modell } = await kallModell(prompt, {
-      oppgave: "velg-verktoy",
+    // This step expects JSON but runs on the free-text settings (temperature 0.2,
+    // free-text system message). That was preserved, not chosen. Whether
+    // temperature 0 and the JSON system message pick better tools is an empirical
+    // question — measure it with the eval rather than guessing.
+    const { tekst, modell } = await callModel(prompt, {
+      task: "velg-verktoy",
       sporingsId: body?.sporingsId
     });
-    const parsed = validerVerktoyvalg(parseJsonObjekt(tekst), verktoyNavn);
+    const parsed = validateToolChoice(parseJsonObject(tekst), verktoyNavn);
     if (!parsed) throw new Error("Ugyldig JSON fra LLM");
     return { verktoy: parsed, modell, syntetisk: true };
   } catch (error) {
@@ -428,13 +428,13 @@ async function velgVerktoyMedAi(body) {
   }
 }
 
-function byggPrompt(type, body, fallbackTekst) {
+function buildPrompt(type, body, fallbackTekst) {
   const kontekst = body?.kontekst || {};
   const sprak = body?.sprak || "nb";
 
-  // Oppsummeringen gjengir beløp og et utfall som allerede er avgjort
-  // deterministisk i sandbox-backend. Modellen skal formulere, ikke regne
-  // eller konkludere — jf. ai-no-decisions i policies/ai-policy.yaml.
+  // The summary restates amounts and an outcome already decided deterministically
+  // in sandbox-backend. The model phrases; it does not compute or conclude.
+  // See ai-no-decisions in policies/ai-policy.yaml.
   const sperrer = type === "oppsummering"
     ? [
         "Gjenta alle tall, beløp, datoer og navn nøyaktig slik de står i anbefalt innhold.",
@@ -456,7 +456,7 @@ function byggPrompt(type, body, fallbackTekst) {
   ].join("\n");
 }
 
-function normaliserTekst(tekst) {
+function normalizeText(tekst) {
   return String(tekst || "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
@@ -483,7 +483,7 @@ const prosessvalgStopOrd = new Set([
   "hjelp"
 ]);
 
-function stammeProsessToken(token) {
+function stemProcessToken(token) {
   if (!token || token.length <= 3) return token;
   if (token.endsWith("ende") && token.length > 6) return token.slice(0, -4);
   if (token.endsWith("ene") && token.length > 5) return token.slice(0, -3);
@@ -494,7 +494,7 @@ function stammeProsessToken(token) {
   return token;
 }
 
-function kanoniskProsessToken(token) {
+function canonicalProcessToken(token) {
   if (token.startsWith("fartsdemp") || token.startsWith("fart") || token.startsWith("dump") || token.startsWith("hump")) {
     return "fartsdemp";
   }
@@ -504,15 +504,15 @@ function kanoniskProsessToken(token) {
   return token;
 }
 
-function tokeniserProsessTekst(tekst) {
-  return normaliserTekst(tekst)
+function tokenizeProcessText(tekst) {
+  return normalizeText(tekst)
     .split(/[\s-]+/)
-    .map(stammeProsessToken)
-    .map(kanoniskProsessToken)
+    .map(stemProcessToken)
+    .map(canonicalProcessToken)
     .filter((token) => token && !prosessvalgStopOrd.has(token));
 }
 
-function delteTokenTreff(brukerToken, prosessToken) {
+function sharedTokenMatches(brukerToken, prosessToken) {
   const unikeBruker = [...new Set(brukerToken)];
   const unikeProsess = [...new Set(prosessToken)];
   let treff = 0;
@@ -528,8 +528,8 @@ function delteTokenTreff(brukerToken, prosessToken) {
   };
 }
 
-function heuristiskProsessvalg(body) {
-  const tekst = normaliserTekst(body?.tekst);
+function heuristicProcessChoice(body) {
+  const tekst = normalizeText(body?.tekst);
   const prosesser = Array.isArray(body?.prosesser) ? body.prosesser : [];
 
   if (!tekst || !prosesser.length) {
@@ -553,7 +553,7 @@ function heuristiskProsessvalg(body) {
     };
   }
 
-  const byId = prosesser.find((p) => normaliserTekst(p.id) === tekst);
+  const byId = prosesser.find((p) => normalizeText(p.id) === tekst);
   if (byId) {
     return {
       intent: "match",
@@ -565,7 +565,7 @@ function heuristiskProsessvalg(body) {
   }
 
   const byName = prosesser.find((p) => {
-    const navn = normaliserTekst(p.navn);
+    const navn = normalizeText(p.navn);
     return navn === tekst || navn.includes(tekst) || tekst.includes(navn);
   });
   if (byName) {
@@ -578,7 +578,7 @@ function heuristiskProsessvalg(body) {
     };
   }
 
-  const brukerToken = tokeniserProsessTekst(tekst);
+  const brukerToken = tokenizeProcessText(tekst);
   if (!brukerToken.length) {
     return {
       intent: "unknown",
@@ -590,8 +590,8 @@ function heuristiskProsessvalg(body) {
 
   const scoredeKandidater = prosesser
     .map((prosess) => {
-      const prosessToken = tokeniserProsessTekst(`${prosess.navn || ""} ${prosess.id || ""} ${prosess.beskrivelse || ""}`);
-      const overlap = delteTokenTreff(brukerToken, prosessToken);
+      const prosessToken = tokenizeProcessText(`${prosess.navn || ""} ${prosess.id || ""} ${prosess.beskrivelse || ""}`);
+      const overlap = sharedTokenMatches(brukerToken, prosessToken);
       if (!overlap.treff) return null;
 
       const brukerDekning = overlap.treff / overlap.brukerAntall;
@@ -647,7 +647,7 @@ function heuristiskProsessvalg(body) {
   };
 }
 
-function byggProsessvalgPrompt(body) {
+function buildProcessChoicePrompt(body) {
   const tekst = body?.tekst || "";
   const prosesser = Array.isArray(body?.prosesser) ? body.prosesser : [];
   const historikk = Array.isArray(body?.history) ? body.history.slice(-8) : [];
@@ -671,7 +671,7 @@ function byggProsessvalgPrompt(body) {
   ].join("\n");
 }
 
-function validerProsessvalg(data, body) {
+function validateProcessChoice(data, body) {
   const gyldigeIntent = new Set(["match", "ambiguous", "unknown"]);
   if (!data || !gyldigeIntent.has(data.intent)) {
     return null;
@@ -703,27 +703,27 @@ function validerProsessvalg(data, body) {
   };
 }
 
-// Mønstrene matches mot hele ord, ikke delstrenger. Med tekst.includes() ble
-// "uklart" lest som "klar" og "nok" som "ok", slik at "det er uklart for meg"
-// og "jeg har ikke nok informasjon" begge ble registrert som samtykke.
-// normaliserTekst har alt fjernet tegnsetting, så ordene er mellomromdelte.
-function inneholderUttrykk(ord, uttrykk) {
-  const deler = uttrykk.split(" ");
-  for (let i = 0; i <= ord.length - deler.length; i += 1) {
-    if (deler.every((del, forskyvning) => ord[i + forskyvning] === del)) {
+// Patterns match whole words, not substrings. With tekst.includes(), "uklart"
+// matched "klar" and "nok" matched "ok", so both "det er uklart for meg" and
+// "jeg har ikke nok informasjon" were recorded as consent.
+// normalizeText has already stripped punctuation, so words are space-separated.
+function containsPhrase(ord, uttrykk) {
+  const chunks = uttrykk.split(" ");
+  for (let i = 0; i <= ord.length - chunks.length; i += 1) {
+    if (chunks.every((del, forskyvning) => ord[i + forskyvning] === del)) {
       return true;
     }
   }
   return false;
 }
 
-function heuristiskTolkning(body) {
-  const ord = normaliserTekst(body?.tekst).split(" ").filter(Boolean);
+function heuristicIntent(body) {
+  const ord = normalizeText(body?.tekst).split(" ").filter(Boolean);
   const jaIntent = body?.jaIntent || "ja";
   const neiIntent = body?.neiIntent || "nei";
   const ukjentIntent = body?.ukjentIntent || "ukjent";
 
-  const positiveMonstre = [
+  const positivePatterns = [
     "ja",
     "japp",
     "yes",
@@ -747,7 +747,7 @@ function heuristiskTolkning(body) {
     "klar"
   ];
 
-  const negativeMonstre = [
+  const negativePatterns = [
     "nei",
     "nei takk",
     "ikke nå",
@@ -761,11 +761,11 @@ function heuristiskTolkning(body) {
     "avsla"
   ];
 
-  const nektinger = ["ikke", "ikkje", "aldri"];
+  const negations = ["ikke", "ikkje", "aldri"];
 
-  const treffer = (monstre) => monstre.some((monster) => inneholderUttrykk(ord, monster));
+  const treffer = (monstre) => monstre.some((monster) => containsPhrase(ord, monster));
 
-  if (treffer(negativeMonstre)) {
+  if (treffer(negativePatterns)) {
     return {
       intent: neiIntent,
       confidence: 0.8,
@@ -773,11 +773,11 @@ function heuristiskTolkning(body) {
     };
   }
 
-  if (treffer(positiveMonstre)) {
-    // "det er ikke greit" treffer "greit". Nekting vi ikke har et eksplisitt
-    // negativt mønster for er for utydelig til å bli lest som samtykke, så den
-    // overlates til modellen framfor å bli gjettet på her.
-    if (ord.some((enkeltord) => nektinger.includes(enkeltord))) {
+  if (treffer(positivePatterns)) {
+    // "det er ikke greit" matches "greit". A negation we have no explicit negative
+    // pattern for is too ambiguous to read as consent, so it goes to the model
+    // rather than being guessed at here.
+    if (ord.some((enkeltord) => negations.includes(enkeltord))) {
       return {
         intent: ukjentIntent,
         confidence: 0.2,
@@ -798,7 +798,7 @@ function heuristiskTolkning(body) {
   };
 }
 
-function byggTolkningsPrompt(body) {
+function buildIntentPrompt(body) {
   const jaIntent = body?.jaIntent || "ja";
   const neiIntent = body?.neiIntent || "nei";
   const ukjentIntent = body?.ukjentIntent || "ukjent";
@@ -816,7 +816,7 @@ function byggTolkningsPrompt(body) {
   ].join("\n");
 }
 
-function parseJsonObjekt(tekst) {
+function parseJsonObject(tekst) {
   const trimmet = String(tekst || "").trim();
   if (!trimmet) {
     return null;
@@ -838,7 +838,7 @@ function parseJsonObjekt(tekst) {
   }
 }
 
-function validerTolkning(data, body) {
+function validateIntent(data, body) {
   const jaIntent = body?.jaIntent || "ja";
   const neiIntent = body?.neiIntent || "nei";
   const ukjentIntent = body?.ukjentIntent || "ukjent";
@@ -856,20 +856,20 @@ function validerTolkning(data, body) {
   };
 }
 
-// --- Ett kallpunkt mot modellen --------------------------------------------
+// --- The single call site for the model -------------------------------------
 //
-// Alle modellkall gaar gjennom kallModell. Foer fantes seks nesten identiske
-// fetch-funksjoner — én per (provider x oppgavetype) — og de hadde allerede
-// rukket aa divergere i systemmelding og feilmeldingstekst. Med ett punkt er
-// det ogsaa ett sted aa legge timeout, logging og en ny provider.
+// Every model call goes through callModel. There used to be six near-identical
+// fetch functions — one per (provider x task) — and they had already drifted
+// apart in system message and error text. One call site is also one place to put
+// the timeout, the trace, and any new provider.
 //
-// Systemmeldingen brukes bare av OpenRouter. Ollamas /api/generate tar en enkelt
-// prompt uten rollestruktur, saa den forblir uendret her.
+// The system message is used only by OpenRouter. Ollama's /api/generate takes a
+// single prompt with no role structure.
 
-const SYSTEM_FRITEKST = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
+const SYSTEM_FREETEXT = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
 const SYSTEM_JSON = "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst.";
 
-async function kallOllama(prompt, temperatur, signal) {
+async function callOllama(prompt, temperature, signal) {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -877,7 +877,7 @@ async function kallOllama(prompt, temperatur, signal) {
       model: ollamaModel,
       prompt,
       stream: false,
-      options: { temperature: temperatur }
+      options: { temperature: temperature }
     }),
     signal
   });
@@ -891,7 +891,7 @@ async function kallOllama(prompt, temperatur, signal) {
   };
 }
 
-async function kallOpenRouter(prompt, temperatur, systemmelding, signal) {
+async function callOpenRouter(prompt, temperature, systemMessage, signal) {
   if (!openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY mangler");
   }
@@ -903,9 +903,9 @@ async function kallOpenRouter(prompt, temperatur, systemmelding, signal) {
     },
     body: JSON.stringify({
       model: openRouterModel,
-      temperature: temperatur,
+      temperature: temperature,
       messages: [
-        { role: "system", content: systemmelding },
+        { role: "system", content: systemMessage },
         { role: "user", content: prompt }
       ]
     }),
@@ -921,25 +921,25 @@ async function kallOpenRouter(prompt, temperatur, systemmelding, signal) {
   };
 }
 
-// --- KI-spor ----------------------------------------------------------------
+// --- Trace ------------------------------------------------------------------
 //
-// Én JSONL-linje per modellkall. Dette er sandboxens svar paa en trace-visning:
-// uten den kan man ikke se hva modellen faktisk fikk og svarte, bare resultatet
-// etter at heuristikk og validering har vaert innom.
+// One JSONL line per model call. Without it you cannot see what the model
+// actually received and answered — only the result after heuristics and
+// validation have been through it.
 //
-// Sporing skal aldri velte et kall. Feiler skrivingen, gaar svaret ut likevel.
-async function skrivSpor(linje) {
+// Tracing must never break a call. If the write fails, the response still goes out.
+async function writeTrace(linje) {
   try {
-    await mkdir(stateMappe, { recursive: true });
-    await appendFile(sporFil, JSON.stringify(linje) + "\n", "utf8");
+    await mkdir(stateDir, { recursive: true });
+    await appendFile(traceFile, JSON.stringify(linje) + "\n", "utf8");
   } catch (feil) {
     console.error(`Kunne ikke skrive KI-spor: ${feil.message}`);
   }
 }
 
-// Billig oppslag mot provideren for /helse. Lister modeller i stedet for aa
-// generere tekst, saa sjekken er rask nok til aa kjoere paa hvert helsekall.
-async function sjekkProvider() {
+// Cheap provider probe for /helse: lists models instead of generating text, so
+// it is fast enough to run on every health call.
+async function checkProvider() {
   if (aiProvider === "mock") {
     return { naaBar: false, modell: "mock-ai-gateway", feil: "AI_PROVIDER=mock: svar er maltekst, ikke en modell" };
   }
@@ -974,95 +974,95 @@ async function sjekkProvider() {
   return { naaBar: false, modell: null, feil: `Ukjent AI_PROVIDER: ${aiProvider}` };
 }
 
-// Returnerer { tekst, modell }. Kaster ved feil, timeout eller ukjent provider —
-// kallerne har allerede fallback-logikk for det.
-async function kallModell(prompt, valg = {}) {
-  const temperatur = valg.temperatur ?? 0.2;
-  const systemmelding = valg.systemmelding || SYSTEM_FRITEKST;
+// Returns { tekst, modell }. Throws on failure, timeout or unknown provider —
+// callers already have fallback logic for that.
+async function callModel(prompt, valg = {}) {
+  const temperature = valg.temperature ?? 0.2;
+  const systemMessage = valg.systemMessage || SYSTEM_FREETEXT;
   const start = Date.now();
 
-  // Uten timeout henger et kall ubestemt naar Ollama er treg eller halvveis oppe,
-  // og det ser ut som at sandboxen har hengt seg.
-  const signal = AbortSignal.timeout(modellTimeoutMs);
+  // Without a timeout a call hangs indefinitely when Ollama is slow or half-started,
+  // and it looks like the sandbox itself has frozen.
+  const signal = AbortSignal.timeout(modelTimeoutMs);
 
-  const grunnlinje = {
-    tidspunkt: new Date().toISOString(),
+  const baseEntry = {
+    timestamp: new Date().toISOString(),
     sporingsId: valg.sporingsId || null,
-    oppgave: valg.oppgave || "ukjent",
+    task: valg.task || "ukjent",
     provider: aiProvider,
-    temperatur,
+    temperature,
     prompt
   };
 
   try {
     let svar;
     if (aiProvider === "ollama") {
-      svar = await kallOllama(prompt, temperatur, signal);
+      svar = await callOllama(prompt, temperature, signal);
     } else if (aiProvider === "openrouter") {
-      svar = await kallOpenRouter(prompt, temperatur, systemmelding, signal);
+      svar = await callOpenRouter(prompt, temperature, systemMessage, signal);
     } else {
       throw new Error(`Ukjent AI_PROVIDER: ${aiProvider}`);
     }
 
-    await skrivSpor({
-      ...grunnlinje,
-      modell: svar.modell,
-      svar: svar.tekst,
-      varighetMs: Date.now() - start,
-      feilet: false
+    await writeTrace({
+      ...baseEntry,
+      model: svar.modell,
+      response: svar.tekst,
+      durationMs: Date.now() - start,
+      failed: false
     });
     return svar;
   } catch (feil) {
     const melding =
       feil?.name === "TimeoutError" || feil?.name === "AbortError"
-        ? `Modellen svarte ikke innen ${modellTimeoutMs} ms`
+        ? `Modellen svarte ikke innen ${modelTimeoutMs} ms`
         : feil.message;
 
-    await skrivSpor({
-      ...grunnlinje,
-      modell: null,
-      svar: null,
-      varighetMs: Date.now() - start,
-      feilet: true,
-      feil: melding
+    await writeTrace({
+      ...baseEntry,
+      model: null,
+      response: null,
+      durationMs: Date.now() - start,
+      failed: true,
+      error: melding
     });
     throw new Error(melding);
   }
 }
 
-// Oppgavespesifikke kall. Hver bygger sin prompt, kaller modellen og validerer
-// svaret mot en whitelist saa hallusinerte id-er ikke slipper gjennom.
+// Task-specific calls. Each builds its prompt, calls the model, and validates the
+// answer against a whitelist so hallucinated ids never get through.
 
-async function hentTolkningFraModell(body) {
-  const { tekst, modell } = await kallModell(byggTolkningsPrompt(body), {
-    temperatur: 0,
-    systemmelding: SYSTEM_JSON,
-    oppgave: "tolk-svar",
+async function getIntentFromModel(body) {
+  const { tekst, modell } = await callModel(buildIntentPrompt(body), {
+    temperature: 0,
+    systemMessage: SYSTEM_JSON,
+    task: "tolk-svar",
     sporingsId: body?.sporingsId
   });
-  const parsed = validerTolkning(parseJsonObjekt(tekst), body);
+  const parsed = validateIntent(parseJsonObject(tekst), body);
   if (!parsed) {
     throw new Error(`Kunne ikke tolke JSON-svar fra ${modell}`);
   }
   return { ...parsed, modell };
 }
 
-async function hentProsessvalgFraModell(body) {
-  const { tekst, modell } = await kallModell(byggProsessvalgPrompt(body), {
-    temperatur: 0,
-    systemmelding: SYSTEM_JSON,
-    oppgave: "velg-prosess",
+async function getProcessChoiceFromModel(body) {
+  const { tekst, modell } = await callModel(buildProcessChoicePrompt(body), {
+    temperature: 0,
+    systemMessage: SYSTEM_JSON,
+    task: "velg-prosess",
     sporingsId: body?.sporingsId
   });
-  const parsed = validerProsessvalg(parseJsonObjekt(tekst), body);
+  const parsed = validateProcessChoice(parseJsonObject(tekst), body);
   if (!parsed) {
     throw new Error(`Kunne ikke tolke prosessvalg fra ${modell}`);
   }
   return { ...parsed, modell };
 }
 
-async function tolkSvarMedAi(body) {
-  const fallback = heuristiskTolkning(body);
+async function interpretReplyWithAi(body) {
+  const fallback = heuristicIntent(body);
   const ukjentIntent = body?.ukjentIntent || "ukjent";
 
   if (fallback.intent !== ukjentIntent && fallback.confidence >= 0.75) {
@@ -1081,9 +1081,9 @@ async function tolkSvarMedAi(body) {
     };
   }
 
-  // Heuristikken vinner over modellen naar modellen er utydelig, men bare hvis
-  // heuristikken selv fant noe. Ellers gaar modellens svar gjennom.
-  const overstyr = (modell, begrunnelse) => ({
+  // The heuristic overrides the model when the model is vague — but only if the
+  // heuristic found something itself.
+  const override = (modell, begrunnelse) => ({
     ...fallback,
     syntetisk: true,
     modell: `${modell} (heuristisk overstyring)`,
@@ -1091,14 +1091,14 @@ async function tolkSvarMedAi(body) {
   });
 
   try {
-    const llmSvar = { ...(await hentTolkningFraModell(body)), syntetisk: true };
+    const llmSvar = { ...(await getIntentFromModel(body)), syntetisk: true };
 
     if (fallback.intent !== ukjentIntent) {
       if (llmSvar.intent === ukjentIntent) {
-        return overstyr(llmSvar.modell, "LLM returnerte ukjent, brukte heuristisk tolkning");
+        return override(llmSvar.modell, "LLM returnerte ukjent, brukte heuristisk tolkning");
       }
       if (llmSvar.confidence < 0.6) {
-        return overstyr(llmSvar.modell, "LLM hadde lav trygghet, brukte heuristisk tolkning");
+        return override(llmSvar.modell, "LLM hadde lav trygghet, brukte heuristisk tolkning");
       }
     }
     return llmSvar;
@@ -1112,8 +1112,8 @@ async function tolkSvarMedAi(body) {
   }
 }
 
-async function velgProsessMedAi(body) {
-  const fallback = heuristiskProsessvalg(body);
+async function chooseProcessWithAi(body) {
+  const fallback = heuristicProcessChoice(body);
   if (fallback.intent === "match" && fallback.confidence >= 0.8) {
     return {
       ...fallback,
@@ -1130,7 +1130,7 @@ async function velgProsessMedAi(body) {
     };
   }
 
-  const overstyr = (modell, begrunnelse) => ({
+  const override = (modell, begrunnelse) => ({
     ...fallback,
     syntetisk: true,
     modell: `${modell} (heuristisk overstyring)`,
@@ -1138,13 +1138,13 @@ async function velgProsessMedAi(body) {
   });
 
   try {
-    const llmSvar = { ...(await hentProsessvalgFraModell(body)), syntetisk: true };
+    const llmSvar = { ...(await getProcessChoiceFromModel(body)), syntetisk: true };
 
     if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
-      return overstyr(llmSvar.modell, "LLM returnerte unknown, brukte heuristisk prosessvalg");
+      return override(llmSvar.modell, "LLM returnerte unknown, brukte heuristisk prosessvalg");
     }
     if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
-      return overstyr(llmSvar.modell, "LLM returnerte ugyldig prosess-id, brukte heuristikk");
+      return override(llmSvar.modell, "LLM returnerte ugyldig prosess-id, brukte heuristikk");
     }
     return llmSvar;
   } catch (error) {
@@ -1157,18 +1157,18 @@ async function velgProsessMedAi(body) {
   }
 }
 
-async function byggAiSvar(type, body) {
-  const mockSvar = byggSvar(type, body);
+async function buildAiResponse(type, body) {
+  const mockSvar = buildTemplateResponse(type, body);
 
-  const prompt = byggPrompt(type, body, mockSvar.tekst);
+  const prompt = buildPrompt(type, body, mockSvar.tekst);
 
   if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
     return mockSvar;
   }
 
   try {
-    const llm = await kallModell(prompt, {
-      oppgave: type,
+    const llm = await callModel(prompt, {
+      task: type,
       sporingsId: body?.sporingsId
     });
     if (!llm.tekst) {
@@ -1193,17 +1193,17 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
   if (request.method === "OPTIONS") {
-    jsonSvar(response, 204, {});
+    jsonResponse(response, 204, {});
     return;
   }
 
   try {
     if (url.pathname === "/helse" || url.pathname === "/health") {
-      // "Tjenesten svarer" er ikke det samme som "modellen svarer". Uten
-      // provider-statusen her ser en gateway med daud modell helt frisk ut,
-      // og feilen dukker foerst opp som maltekst i et svar ingen mistenker.
-      const provider = await sjekkProvider();
-      jsonSvar(response, 200, {
+      // "The service answers" is not "the model answers". Without the provider
+      // status here, a gateway with a dead model looks perfectly healthy, and the
+      // failure first surfaces as template text in a response nobody suspects.
+      const provider = await checkProvider();
+      jsonResponse(response, 200, {
         status: "ok",
         tjeneste: "ai-gateway",
         provider: aiProvider,
@@ -1216,93 +1216,87 @@ const server = createServer(async (request, response) => {
     }
 
     if (url.pathname === "/docs") {
-      tekstSvar(response, 200, docsHtml());
+      textResponse(response, 200, docsHtml());
       return;
     }
 
-    if (url.pathname === "/spor") {
-      const linjer = await lesSpor({
-        antall: Number(url.searchParams.get("antall")) || 50,
+    if (url.pathname === "/trace" || url.pathname === "/trace.json") {
+      const trace = await readTrace({
+        limit: Number(url.searchParams.get("limit")) || 50,
         sporingsId: url.searchParams.get("sporingsId"),
-        oppgave: url.searchParams.get("oppgave")
+        task: url.searchParams.get("task")
       });
-      tekstSvar(response, 200, sporHtml(linjer));
-      return;
-    }
-
-    if (url.pathname === "/ki-spor") {
-      const linjer = await lesSpor({
-        antall: Number(url.searchParams.get("antall")) || 50,
-        sporingsId: url.searchParams.get("sporingsId"),
-        oppgave: url.searchParams.get("oppgave")
-      });
-      jsonSvar(response, 200, { antall: linjer.length, spor: linjer });
+      if (url.pathname === "/trace.json") {
+        jsonResponse(response, 200, { count: trace.length, trace });
+      } else {
+        textResponse(response, 200, traceHtml(trace));
+      }
       return;
     }
 
     if (url.pathname === "/openapi.yaml") {
       const yaml = await readFile(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"), "utf8");
-      tekstSvar(response, 200, yaml, "text/yaml; charset=utf-8");
+      textResponse(response, 200, yaml, "text/yaml; charset=utf-8");
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/ai/tolk-svar") {
-      const body = await lesBody(request);
-      const svar = await tolkSvarMedAi(body);
+      const body = await readBody(request);
+      const svar = await interpretReplyWithAi(body);
       await leggTilRevisjon({
-        sporingsId: body.sporingsId || nyttId("flyt"),
+        sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "tolk-svar",
         aktor: { type: "system", id: "ai-gateway" }
       });
-      jsonSvar(response, 200, svar);
+      jsonResponse(response, 200, svar);
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/ai/velg-prosess") {
-      const body = await lesBody(request);
-      const svar = await velgProsessMedAi(body);
+      const body = await readBody(request);
+      const svar = await chooseProcessWithAi(body);
       await leggTilRevisjon({
-        sporingsId: body.sporingsId || nyttId("flyt"),
+        sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "velg-prosess",
         aktor: { type: "system", id: "ai-gateway" }
       });
-      jsonSvar(response, 200, svar);
+      jsonResponse(response, 200, svar);
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/ai/velg-verktoy") {
-      const body = await lesBody(request);
-      const svar = await velgVerktoyMedAi(body);
+      const body = await readBody(request);
+      const svar = await chooseToolsWithAi(body);
       await leggTilRevisjon({
-        sporingsId: body.sporingsId || nyttId("flyt"),
+        sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "velg-verktoy",
         aktor: { type: "system", id: "ai-gateway" }
       });
-      jsonSvar(response, 200, svar);
+      jsonResponse(response, 200, svar);
       return;
     }
 
     const gyldigeStier = ["/ai/dialogforslag", "/ai/oppsummering", "/ai/forklar-databruk", "/ai/klarsprak", "/ai/risikosjekk"];
     if (request.method === "POST" && gyldigeStier.includes(url.pathname)) {
-      const body = await lesBody(request);
+      const body = await readBody(request);
       const type = url.pathname.replace("/ai/", "");
-      const svar = await byggAiSvar(type, body);
+      const svar = await buildAiResponse(type, body);
       await leggTilRevisjon({
-        sporingsId: body.sporingsId || nyttId("flyt"),
+        sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_KALL",
         ressurs: type,
         aktor: { type: "system", id: "ai-gateway" }
       });
-      jsonSvar(response, 200, svar);
+      jsonResponse(response, 200, svar);
       return;
     }
 
-    jsonSvar(response, 404, { feil: "Fant ikke endepunkt." });
+    jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    jsonSvar(response, 500, { feil: "Intern feil i AI-gateway.", detalj: error.message, syntetisk: true });
+    jsonResponse(response, 500, { feil: "Intern feil i AI-gateway.", detalj: error.message, syntetisk: true });
   }
 });
 

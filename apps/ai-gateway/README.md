@@ -92,18 +92,19 @@ har `advarsel`.
 
 ## KI-spor
 
-Alle modellkall går gjennom én funksjon, `kallModell`, som skriver én JSONL-linje per
-kall til `state/ki-spor.jsonl`: tidspunkt, sporingsId, oppgave, provider, modell,
-temperatur, full prompt, fullt svar, varighet og om det feilet.
+Alle modellkall går gjennom én funksjon, `callModel`, som skriver én JSONL-linje per
+kall til `state/ai-trace.jsonl`. Feltene er engelske, siden sporet er utviklerverktøy
+og ikke tjenestekontrakt: `timestamp`, `sporingsId`, `task`, `provider`, `model`,
+`temperature`, `prompt`, `response`, `durationMs`, `failed`, `error`.
 
-- `http://localhost:8082/spor` — HTML, nyeste øverst, prompt og svar utfellbart
-- `GET /ki-spor` — samme som JSON, med `?sporingsId=`, `?oppgave=` og `?antall=`
+- `http://localhost:8082/trace` — HTML, nyeste øverst, prompt og svar utfellbart
+- `GET /trace.json` — samme som JSON, med `?sporingsId=`, `?task=` og `?limit=`
 
 Dette er der du ser hva modellen faktisk fikk, før heuristikk og validering har vært
 innom. Sporet nullstilles av `./start.sh --reset`.
 
 ```bash
-curl -s "http://localhost:8082/ki-spor?oppgave=oppsummering&antall=1"
+curl -s "http://localhost:8082/trace.json?task=oppsummering&limit=1"
 ```
 
 ## Timeout
