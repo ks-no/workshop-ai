@@ -53,6 +53,10 @@
       <h1>Innbyggerdialog – AI-agent</h1>
       <p style="color:#607181;font-size:14px">Agenten velger og styrer prosessen for deg. Du trenger bare å svare naturlig.</p>
 
+      <!-- Agenten er helt avhengig av modellen for intent-tolkning. Er den nede,
+           faller den tilbake til heuristikk uten å si fra. -->
+      <div id="modellBanner" hidden></div>
+
       <section class="card">
         <div class="row">
           <label for="person">Testbruker</label>
@@ -79,6 +83,7 @@
     <script>
       const agentBase  = "http://localhost:8084";
       const backendBase = "http://localhost:8080";
+      const aiBase = "http://localhost:8082";
 
       const personEl      = document.getElementById("person");
       const chatEl        = document.getElementById("chat");
@@ -236,7 +241,34 @@
         }
       });
 
+      // ── er modellen faktisk koblet på? ───────────────────────────────────────
+      //
+      // ai-gateway svarer med maltekst når modellen er nede. Uten dette banneret
+      // ser et ødelagt oppsett akkurat ut som et fungerende ett.
+      const modellBannerEl = document.getElementById("modellBanner");
+
+      async function sjekkModell() {
+        try {
+          const res = await fetch(`${aiBase}/helse`);
+          const data = await res.json();
+          if (data.modellNaaBar) return;
+          modellBannerEl.hidden = false;
+          modellBannerEl.textContent =
+            `⚠️ Modellen er ikke koblet på (${data.modell || data.provider}). ` +
+            `Agenten faller tilbake til heuristikk og maltekst. ${data.feil || ""}`;
+        } catch {
+          modellBannerEl.hidden = false;
+          modellBannerEl.textContent =
+            "⚠️ Får ikke kontakt med ai-gateway. Agenten faller tilbake til heuristikk.";
+        }
+        modellBannerEl.style.cssText =
+          "background:#fff3cd; border:1px solid #ffe08a; color:#664d03;" +
+          "padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px;";
+      }
+
       // ── bootstrap ────────────────────────────────────────────────────────────
+      sjekkModell();
+
       loadPeople().then(() => {
         addMsg("assistant", "Velg en testbruker og trykk «Start med AI-agent» for å begynne.");
       });

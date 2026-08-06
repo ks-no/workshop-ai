@@ -66,31 +66,63 @@ Valgfrie miljovariabler:
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (standard `mistralai/mistral-7b-instruct:free`)
 
-## ⚠️ Fallback er stille — sjekk alltid
+## Er modellen koblet på?
 
-Ved feil hos provideren faller gatewayen automatisk tilbake til `mock-ai-gateway` og
-setter et `advarsel`-felt. **GUI-ene viser ikke det feltet.** Du får fortsatt velformet
-norsk tekst — bare fra en mal, ikke fra en modell. Dette er den vanligste kilden til
-forvirring i sandboxen.
-
-Verifiser:
+Ved feil hos provideren faller gatewayen tilbake til `mock-ai-gateway` og setter et
+`advarsel`-felt. Du får fortsatt velformet norsk tekst — bare fra en mal. Det er tre
+steder å oppdage det:
 
 ```bash
-curl -s -X POST http://localhost:8082/ai/klarsprak \
-  -H "Content-Type: application/json" \
-  -d '{"kontekst":{"tjeneste":"barnehage"},"sprak":"nb"}'
+curl -s http://localhost:8082/helse
 ```
 
-Riktig: `"modell": "ollama:qwen2.5:14b"`, ingen `advarsel`.
-Galt: `"modell": "mock-ai-gateway (fallback)"` og
-`"advarsel": "Provider ollama feilet: fetch failed"`.
+```json
+{ "provider": "ollama", "modell": "ollama:qwen2.5:14b", "modellNaaBar": true }
+```
+
+`modellNaaBar: false` kommer med et `feil`-felt som sier hvorfor — Ollama er ikke nåbar,
+modellen er ikke lastet ned, `OPENROUTER_API_KEY` mangler, eller `AI_PROVIDER=mock`.
+Merk at status alltid er 200: tjenesten *lever* selv om modellen ikke gjør det.
+
+`demo-gui` sjekker dette ved sidelast og viser en gul stripe på `/chat` og `/agent` når
+modellen ikke er koblet på. Enkeltsvar som faller tilbake vises også i samtalen.
+
+`./start.sh` gjør et ekte `/ai/klarsprak`-kall til slutt og advarer tydelig hvis svaret
+har `advarsel`.
+
+## KI-spor
+
+Alle modellkall går gjennom én funksjon, `kallModell`, som skriver én JSONL-linje per
+kall til `state/ki-spor.jsonl`: tidspunkt, sporingsId, oppgave, provider, modell,
+temperatur, full prompt, fullt svar, varighet og om det feilet.
+
+- `http://localhost:8082/spor` — HTML, nyeste øverst, prompt og svar utfellbart
+- `GET /ki-spor` — samme som JSON, med `?sporingsId=`, `?oppgave=` og `?antall=`
+
+Dette er der du ser hva modellen faktisk fikk, før heuristikk og validering har vært
+innom. Sporet nullstilles av `./start.sh --reset`.
+
+```bash
+curl -s "http://localhost:8082/ki-spor?oppgave=oppsummering&antall=1"
+```
+
+## Timeout
+
+Alle kall mot modellen avbrytes etter `AI_TIMEOUT_MS` (standard 180000). Uten det henger
+et kall ubestemt når Ollama er treg eller halvveis oppe, og det ser ut som at sandboxen
+har hengt seg. Ved timeout får du vanlig fallback med
+`advarsel: "Provider ollama feilet: Modellen svarte ikke innen 180000 ms"`.
 
 Vanligste årsak på macOS: Ollama har stoppet. `ollama serve` kjørt manuelt i en terminal
 dør når vinduet lukkes — bruk `brew services start ollama` og sjekk med
 `brew services list | grep ollama`.
 
-Merk også at ingen `fetch` mot modellen har timeout. Er Ollama treg eller halvveis oppe,
-henger kallet ubestemt i stedet for å feile.
+## Legge til en ny provider
+
+Provider-laget er ett sted. `kallModell` velger mellom `kallOllama` og `kallOpenRouter`,
+som begge tar `(prompt, temperatur, signal)` og returnerer `{ tekst, modell }`. En ny
+provider er én funksjon med den signaturen pluss en gren i `kallModell` — ikke seks
+kopier slik det var før.
 
 ## macOS: kjør Ollama nativt
 

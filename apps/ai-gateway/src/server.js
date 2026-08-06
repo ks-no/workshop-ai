@@ -1,16 +1,24 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const port = 8082;
+// Samme skille som i sandbox-backend: alt som skrives i kjoering havner i
+// state/, som er gitignorert og nullstilles av ./start.sh --reset.
+const stateMappe = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
+const sporFil = path.join(stateMappe, "ki-spor.jsonl");
+const port = Number(process.env.PORT) || 8082;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
+// En stor modell paa en treg maskin kan bruke godt over et minutt paa et
+// SUMMARY-steg, saa taket er romslig. Poenget er at kallet feiler til slutt
+// i stedet for aa henge for alltid.
+const modellTimeoutMs = Number(process.env.AI_TIMEOUT_MS) || 180000;
 
 function jsonSvar(response, statusCode, data) {
   response.writeHead(statusCode, {
@@ -80,6 +88,85 @@ function docsHtml() {
         <li><code>POST /ai/velg-prosess</code></li>
         <li><code>POST /ai/velg-verktoy</code></li>
       </ul>
+      <h2>Innsyn</h2>
+      <ul>
+        <li><a href="/spor"><code>GET /spor</code></a> — hva modellen faktisk fikk og svarte</li>
+        <li><code>GET /ki-spor</code> — samme som JSON. <code>?sporingsId=</code>, <code>?oppgave=</code>, <code>?antall=</code></li>
+        <li><code>GET /helse</code> — svarer provideren?</li>
+      </ul>
+    </body>
+  </html>`;
+}
+
+// Leser sporet bakfra: nyeste kall foerst, og bare saa mange som trengs.
+async function lesSpor({ antall = 50, sporingsId = null, oppgave = null } = {}) {
+  let raa;
+  try {
+    raa = await readFile(sporFil, "utf8");
+  } catch (feil) {
+    if (feil.code === "ENOENT") return [];
+    throw feil;
+  }
+
+  const linjer = [];
+  for (const linje of raa.split("\n")) {
+    if (!linje.trim()) continue;
+    try {
+      linjer.push(JSON.parse(linje));
+    } catch {
+      // En halvskrevet siste linje skal ikke velte hele visningen.
+    }
+  }
+
+  return linjer
+    .filter((l) => !sporingsId || l.sporingsId === sporingsId)
+    .filter((l) => !oppgave || l.oppgave === oppgave)
+    .slice(-antall)
+    .reverse();
+}
+
+function escapeHtml(tekst) {
+  return String(tekst ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sporHtml(linjer) {
+  const rader = linjer
+    .map((l) => {
+      const merke = l.feilet
+        ? `<span style="color:#b00">feilet</span>`
+        : `<span style="color:#060">${escapeHtml(l.modell)}</span>`;
+      return `
+      <details style="border:1px solid #ddd; border-radius:6px; margin-bottom:8px; padding:8px 12px;">
+        <summary style="cursor:pointer">
+          <code>${escapeHtml(l.oppgave)}</code> &middot; ${merke} &middot;
+          ${l.varighetMs} ms &middot;
+          <span style="color:#666">${escapeHtml(l.tidspunkt)}</span>
+          ${l.sporingsId ? `&middot; <span style="color:#666">${escapeHtml(l.sporingsId)}</span>` : ""}
+        </summary>
+        ${l.feil ? `<p style="color:#b00"><strong>Feil:</strong> ${escapeHtml(l.feil)}</p>` : ""}
+        <h4>Prompt</h4>
+        <pre style="white-space:pre-wrap; background:#f6f6f6; padding:8px; border-radius:4px">${escapeHtml(l.prompt)}</pre>
+        ${l.svar ? `<h4>Svar</h4><pre style="white-space:pre-wrap; background:#f0f7f0; padding:8px; border-radius:4px">${escapeHtml(l.svar)}</pre>` : ""}
+      </details>`;
+    })
+    .join("");
+
+  return `
+  <!doctype html>
+  <html lang="nb">
+    <head><meta charset="utf-8"><title>KI-spor</title></head>
+    <body style="font-family: Arial, sans-serif; padding: 24px; max-width: 900px;">
+      <h1>KI-spor</h1>
+      <p style="color:#666">
+        Ett kall per linje, nyeste øverst. Klikk for å se prompten modellen faktisk fikk
+        og hva den svarte — før heuristikk og validering har vært innom.
+        Sporet ligger i <code>state/ki-spor.jsonl</code> og nullstilles av
+        <code>./start.sh --reset</code>.
+      </p>
+      ${linjer.length ? rader : "<p><em>Ingen modellkall registrert ennå. Kjør en flyt, og last siden på nytt.</em></p>"}
     </body>
   </html>`;
 }
@@ -316,16 +403,22 @@ async function velgVerktoyMedAi(body) {
   const verktoyNavn = (body?.verktoy || []).map((v) => v.name || v);
   const prompt = byggVerktoyValgPrompt(body);
 
-  const forsokLlm = async (hentFn) => {
-    const { tekst, modell } = await hentFn(prompt);
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+    return heuristisk;
+  }
+
+  try {
+    // Merk: dette steget forventer JSON, men kjoerer paa fritekst-innstillingene
+    // (temperatur 0.2, fritekst-systemmelding). Det er bevart slik det var, ikke
+    // valgt. Om temperatur 0 og JSON-systemmeldingen gir bedre verktoeyvalg er et
+    // empirisk spoersmaal — mål det med evalen framfor aa gjette.
+    const { tekst, modell } = await kallModell(prompt, {
+      oppgave: "velg-verktoy",
+      sporingsId: body?.sporingsId
+    });
     const parsed = validerVerktoyvalg(parseJsonObjekt(tekst), verktoyNavn);
     if (!parsed) throw new Error("Ugyldig JSON fra LLM");
     return { verktoy: parsed, modell, syntetisk: true };
-  };
-
-  try {
-    if (aiProvider === "ollama") return await forsokLlm(hentFraOllama);
-    if (aiProvider === "openrouter") return await forsokLlm(hentFraOpenRouter);
   } catch (error) {
     return {
       ...heuristisk,
@@ -333,8 +426,6 @@ async function velgVerktoyMedAi(body) {
       advarsel: `LLM-verktøyvalg feilet: ${error.message}`
     };
   }
-
-  return heuristisk;
 }
 
 function byggPrompt(type, body, fallbackTekst) {
@@ -765,7 +856,20 @@ function validerTolkning(data, body) {
   };
 }
 
-async function hentFraOllama(prompt) {
+// --- Ett kallpunkt mot modellen --------------------------------------------
+//
+// Alle modellkall gaar gjennom kallModell. Foer fantes seks nesten identiske
+// fetch-funksjoner — én per (provider x oppgavetype) — og de hadde allerede
+// rukket aa divergere i systemmelding og feilmeldingstekst. Med ett punkt er
+// det ogsaa ett sted aa legge timeout, logging og en ny provider.
+//
+// Systemmeldingen brukes bare av OpenRouter. Ollamas /api/generate tar en enkelt
+// prompt uten rollestruktur, saa den forblir uendret her.
+
+const SYSTEM_FRITEKST = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
+const SYSTEM_JSON = "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst.";
+
+async function kallOllama(prompt, temperatur, signal) {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -773,8 +877,9 @@ async function hentFraOllama(prompt) {
       model: ollamaModel,
       prompt,
       stream: false,
-      options: { temperature: 0.2 }
-    })
+      options: { temperature: temperatur }
+    }),
+    signal
   });
   if (!svar.ok) {
     throw new Error(`Ollama svarte med status ${svar.status}`);
@@ -786,32 +891,7 @@ async function hentFraOllama(prompt) {
   };
 }
 
-async function hentTolkningFraOllama(body) {
-  const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: ollamaModel,
-      prompt: byggTolkningsPrompt(body),
-      stream: false,
-      options: { temperature: 0 }
-    })
-  });
-  if (!svar.ok) {
-    throw new Error(`Ollama svarte med status ${svar.status}`);
-  }
-  const data = await svar.json();
-  const parsed = validerTolkning(parseJsonObjekt(data.response), body);
-  if (!parsed) {
-    throw new Error("Kunne ikke tolke JSON-svar fra Ollama");
-  }
-  return {
-    ...parsed,
-    modell: `ollama:${ollamaModel}`
-  };
-}
-
-async function hentFraOpenRouter(prompt) {
+async function kallOpenRouter(prompt, temperatur, systemmelding, signal) {
   if (!openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY mangler");
   }
@@ -823,133 +903,162 @@ async function hentFraOpenRouter(prompt) {
     },
     body: JSON.stringify({
       model: openRouterModel,
-      temperature: 0.2,
+      temperature: temperatur,
       messages: [
-        {
-          role: "system",
-          content: "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: systemmelding },
+        { role: "user", content: prompt }
       ]
-    })
+    }),
+    signal
   });
   if (!svar.ok) {
     throw new Error(`OpenRouter svarte med status ${svar.status}`);
   }
   const data = await svar.json();
-  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
   return {
-    tekst,
+    tekst: data?.choices?.[0]?.message?.content?.trim() || "",
     modell: `openrouter:${openRouterModel}`
   };
 }
 
-async function hentTolkningFraOpenRouter(body) {
-  if (!openRouterApiKey) {
-    throw new Error("OPENROUTER_API_KEY mangler");
+// --- KI-spor ----------------------------------------------------------------
+//
+// Én JSONL-linje per modellkall. Dette er sandboxens svar paa en trace-visning:
+// uten den kan man ikke se hva modellen faktisk fikk og svarte, bare resultatet
+// etter at heuristikk og validering har vaert innom.
+//
+// Sporing skal aldri velte et kall. Feiler skrivingen, gaar svaret ut likevel.
+async function skrivSpor(linje) {
+  try {
+    await mkdir(stateMappe, { recursive: true });
+    await appendFile(sporFil, JSON.stringify(linje) + "\n", "utf8");
+  } catch (feil) {
+    console.error(`Kunne ikke skrive KI-spor: ${feil.message}`);
   }
-  const svar = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${openRouterApiKey}`
-    },
-    body: JSON.stringify({
-      model: openRouterModel,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst."
-        },
-        {
-          role: "user",
-          content: byggTolkningsPrompt(body)
-        }
-      ]
-    })
+}
+
+// Billig oppslag mot provideren for /helse. Lister modeller i stedet for aa
+// generere tekst, saa sjekken er rask nok til aa kjoere paa hvert helsekall.
+async function sjekkProvider() {
+  if (aiProvider === "mock") {
+    return { naaBar: false, modell: "mock-ai-gateway", feil: "AI_PROVIDER=mock: svar er maltekst, ikke en modell" };
+  }
+
+  if (aiProvider === "ollama") {
+    const modell = `ollama:${ollamaModel}`;
+    try {
+      const svar = await fetch(`${ollamaBaseUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      if (!svar.ok) {
+        return { naaBar: false, modell, feil: `Ollama svarte med status ${svar.status}` };
+      }
+      const data = await svar.json();
+      const finnes = (data?.models || []).some((m) => m.name === ollamaModel || m.model === ollamaModel);
+      if (!finnes) {
+        return { naaBar: false, modell, feil: `Ollama kjoerer, men modellen ${ollamaModel} er ikke lastet ned` };
+      }
+      return { naaBar: true, modell };
+    } catch (feil) {
+      const melding = feil?.name === "TimeoutError" ? "Ollama svarte ikke innen 3000 ms" : feil.message;
+      return { naaBar: false, modell, feil: `Naar ikke Ollama paa ${ollamaBaseUrl}: ${melding}` };
+    }
+  }
+
+  if (aiProvider === "openrouter") {
+    const modell = `openrouter:${openRouterModel}`;
+    if (!openRouterApiKey) {
+      return { naaBar: false, modell, feil: "OPENROUTER_API_KEY mangler" };
+    }
+    return { naaBar: true, modell };
+  }
+
+  return { naaBar: false, modell: null, feil: `Ukjent AI_PROVIDER: ${aiProvider}` };
+}
+
+// Returnerer { tekst, modell }. Kaster ved feil, timeout eller ukjent provider —
+// kallerne har allerede fallback-logikk for det.
+async function kallModell(prompt, valg = {}) {
+  const temperatur = valg.temperatur ?? 0.2;
+  const systemmelding = valg.systemmelding || SYSTEM_FRITEKST;
+  const start = Date.now();
+
+  // Uten timeout henger et kall ubestemt naar Ollama er treg eller halvveis oppe,
+  // og det ser ut som at sandboxen har hengt seg.
+  const signal = AbortSignal.timeout(modellTimeoutMs);
+
+  const grunnlinje = {
+    tidspunkt: new Date().toISOString(),
+    sporingsId: valg.sporingsId || null,
+    oppgave: valg.oppgave || "ukjent",
+    provider: aiProvider,
+    temperatur,
+    prompt
+  };
+
+  try {
+    let svar;
+    if (aiProvider === "ollama") {
+      svar = await kallOllama(prompt, temperatur, signal);
+    } else if (aiProvider === "openrouter") {
+      svar = await kallOpenRouter(prompt, temperatur, systemmelding, signal);
+    } else {
+      throw new Error(`Ukjent AI_PROVIDER: ${aiProvider}`);
+    }
+
+    await skrivSpor({
+      ...grunnlinje,
+      modell: svar.modell,
+      svar: svar.tekst,
+      varighetMs: Date.now() - start,
+      feilet: false
+    });
+    return svar;
+  } catch (feil) {
+    const melding =
+      feil?.name === "TimeoutError" || feil?.name === "AbortError"
+        ? `Modellen svarte ikke innen ${modellTimeoutMs} ms`
+        : feil.message;
+
+    await skrivSpor({
+      ...grunnlinje,
+      modell: null,
+      svar: null,
+      varighetMs: Date.now() - start,
+      feilet: true,
+      feil: melding
+    });
+    throw new Error(melding);
+  }
+}
+
+// Oppgavespesifikke kall. Hver bygger sin prompt, kaller modellen og validerer
+// svaret mot en whitelist saa hallusinerte id-er ikke slipper gjennom.
+
+async function hentTolkningFraModell(body) {
+  const { tekst, modell } = await kallModell(byggTolkningsPrompt(body), {
+    temperatur: 0,
+    systemmelding: SYSTEM_JSON,
+    oppgave: "tolk-svar",
+    sporingsId: body?.sporingsId
   });
-  if (!svar.ok) {
-    throw new Error(`OpenRouter svarte med status ${svar.status}`);
-  }
-  const data = await svar.json();
-  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
   const parsed = validerTolkning(parseJsonObjekt(tekst), body);
   if (!parsed) {
-    throw new Error("Kunne ikke tolke JSON-svar fra OpenRouter");
+    throw new Error(`Kunne ikke tolke JSON-svar fra ${modell}`);
   }
-  return {
-    ...parsed,
-    modell: `openrouter:${openRouterModel}`
-  };
+  return { ...parsed, modell };
 }
 
-async function hentProsessvalgFraOllama(body) {
-  const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: ollamaModel,
-      prompt: byggProsessvalgPrompt(body),
-      stream: false,
-      options: { temperature: 0 }
-    })
+async function hentProsessvalgFraModell(body) {
+  const { tekst, modell } = await kallModell(byggProsessvalgPrompt(body), {
+    temperatur: 0,
+    systemmelding: SYSTEM_JSON,
+    oppgave: "velg-prosess",
+    sporingsId: body?.sporingsId
   });
-  if (!svar.ok) {
-    throw new Error(`Ollama svarte med status ${svar.status}`);
-  }
-  const data = await svar.json();
-  const parsed = validerProsessvalg(parseJsonObjekt(data.response), body);
-  if (!parsed) {
-    throw new Error("Kunne ikke tolke prosessvalg fra Ollama");
-  }
-  return {
-    ...parsed,
-    modell: `ollama:${ollamaModel}`
-  };
-}
-
-async function hentProsessvalgFraOpenRouter(body) {
-  if (!openRouterApiKey) {
-    throw new Error("OPENROUTER_API_KEY mangler");
-  }
-  const svar = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${openRouterApiKey}`
-    },
-    body: JSON.stringify({
-      model: openRouterModel,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: "Du returnerer kun gyldig JSON uten kodeblokker eller forklaringer."
-        },
-        {
-          role: "user",
-          content: byggProsessvalgPrompt(body)
-        }
-      ]
-    })
-  });
-  if (!svar.ok) {
-    throw new Error(`OpenRouter svarte med status ${svar.status}`);
-  }
-  const data = await svar.json();
-  const tekst = data?.choices?.[0]?.message?.content?.trim() || "";
   const parsed = validerProsessvalg(parseJsonObjekt(tekst), body);
   if (!parsed) {
-    throw new Error("Kunne ikke tolke prosessvalg fra OpenRouter");
+    throw new Error(`Kunne ikke tolke prosessvalg fra ${modell}`);
   }
-  return {
-    ...parsed,
-    modell: `openrouter:${openRouterModel}`
-  };
+  return { ...parsed, modell };
 }
 
 async function tolkSvarMedAi(body) {
@@ -964,54 +1073,35 @@ async function tolkSvarMedAi(body) {
     };
   }
 
-  try {
-    if (aiProvider === "ollama") {
-      const llmSvar = {
-        ...(await hentTolkningFraOllama(body)),
-        syntetisk: true
-      };
-      if (llmSvar.intent === ukjentIntent && fallback.intent !== ukjentIntent) {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte ukjent, brukte heuristisk tolkning"
-        };
-      }
-      if (llmSvar.confidence < 0.6 && fallback.intent !== ukjentIntent) {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM hadde lav trygghet, brukte heuristisk tolkning"
-        };
-      }
-      return llmSvar;
-    }
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: "heuristisk-tolkning"
+    };
+  }
 
-    if (aiProvider === "openrouter") {
-      const llmSvar = {
-        ...(await hentTolkningFraOpenRouter(body)),
-        syntetisk: true
-      };
-      if (llmSvar.intent === ukjentIntent && fallback.intent !== ukjentIntent) {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte ukjent, brukte heuristisk tolkning"
-        };
+  // Heuristikken vinner over modellen naar modellen er utydelig, men bare hvis
+  // heuristikken selv fant noe. Ellers gaar modellens svar gjennom.
+  const overstyr = (modell, begrunnelse) => ({
+    ...fallback,
+    syntetisk: true,
+    modell: `${modell} (heuristisk overstyring)`,
+    advarsel: begrunnelse
+  });
+
+  try {
+    const llmSvar = { ...(await hentTolkningFraModell(body)), syntetisk: true };
+
+    if (fallback.intent !== ukjentIntent) {
+      if (llmSvar.intent === ukjentIntent) {
+        return overstyr(llmSvar.modell, "LLM returnerte ukjent, brukte heuristisk tolkning");
       }
-      if (llmSvar.confidence < 0.6 && fallback.intent !== ukjentIntent) {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM hadde lav trygghet, brukte heuristisk tolkning"
-        };
+      if (llmSvar.confidence < 0.6) {
+        return overstyr(llmSvar.modell, "LLM hadde lav trygghet, brukte heuristisk tolkning");
       }
-      return llmSvar;
     }
+    return llmSvar;
   } catch (error) {
     return {
       ...fallback,
@@ -1020,12 +1110,6 @@ async function tolkSvarMedAi(body) {
       advarsel: `LLM-tolkning feilet: ${error.message}`
     };
   }
-
-  return {
-    ...fallback,
-    syntetisk: true,
-    modell: "heuristisk-tolkning"
-  };
 }
 
 async function velgProsessMedAi(body) {
@@ -1038,54 +1122,31 @@ async function velgProsessMedAi(body) {
     };
   }
 
-  try {
-    if (aiProvider === "ollama") {
-      const llmSvar = {
-        ...(await hentProsessvalgFraOllama(body)),
-        syntetisk: true
-      };
-      if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte unknown, brukte heuristisk prosessvalg"
-        };
-      }
-      if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte ugyldig prosess-id, brukte heuristikk"
-        };
-      }
-      return llmSvar;
-    }
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+    return {
+      ...fallback,
+      syntetisk: true,
+      modell: "heuristisk-prosessvalg"
+    };
+  }
 
-    if (aiProvider === "openrouter") {
-      const llmSvar = {
-        ...(await hentProsessvalgFraOpenRouter(body)),
-        syntetisk: true
-      };
-      if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte unknown, brukte heuristisk prosessvalg"
-        };
-      }
-      if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
-        return {
-          ...fallback,
-          syntetisk: true,
-          modell: `${llmSvar.modell} (heuristisk overstyring)`,
-          advarsel: "LLM returnerte ugyldig prosess-id, brukte heuristikk"
-        };
-      }
-      return llmSvar;
+  const overstyr = (modell, begrunnelse) => ({
+    ...fallback,
+    syntetisk: true,
+    modell: `${modell} (heuristisk overstyring)`,
+    advarsel: begrunnelse
+  });
+
+  try {
+    const llmSvar = { ...(await hentProsessvalgFraModell(body)), syntetisk: true };
+
+    if (llmSvar.intent === "unknown" && fallback.intent !== "unknown") {
+      return overstyr(llmSvar.modell, "LLM returnerte unknown, brukte heuristisk prosessvalg");
     }
+    if (llmSvar.intent === "match" && !llmSvar.prosessId && fallback.intent === "match") {
+      return overstyr(llmSvar.modell, "LLM returnerte ugyldig prosess-id, brukte heuristikk");
+    }
+    return llmSvar;
   } catch (error) {
     return {
       ...fallback,
@@ -1094,12 +1155,6 @@ async function velgProsessMedAi(body) {
       advarsel: `LLM-prosessvalg feilet: ${error.message}`
     };
   }
-
-  return {
-    ...fallback,
-    syntetisk: true,
-    modell: "heuristisk-prosessvalg"
-  };
 }
 
 async function byggAiSvar(type, body) {
@@ -1107,41 +1162,31 @@ async function byggAiSvar(type, body) {
 
   const prompt = byggPrompt(type, body, mockSvar.tekst);
 
-  try {
-    if (aiProvider === "ollama") {
-      const llm = await hentFraOllama(prompt);
-      if (llm.tekst) {
-        return {
-          tekst: llm.tekst,
-          syntetisk: true,
-          modell: llm.modell,
-          sprak: body.sprak || "nb"
-        };
-      }
-      throw new Error("Tomt svar fra Ollama");
-    }
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+    return mockSvar;
+  }
 
-    if (aiProvider === "openrouter") {
-      const llm = await hentFraOpenRouter(prompt);
-      if (llm.tekst) {
-        return {
-          tekst: llm.tekst,
-          syntetisk: true,
-          modell: llm.modell,
-          sprak: body.sprak || "nb"
-        };
-      }
-      throw new Error("Tomt svar fra OpenRouter");
+  try {
+    const llm = await kallModell(prompt, {
+      oppgave: type,
+      sporingsId: body?.sporingsId
+    });
+    if (!llm.tekst) {
+      throw new Error(`Tomt svar fra ${llm.modell}`);
     }
+    return {
+      tekst: llm.tekst,
+      syntetisk: true,
+      modell: llm.modell,
+      sprak: body.sprak || "nb"
+    };
   } catch (error) {
     return {
       ...mockSvar,
-      modell: `${mockSvar.modell} (fallback)` ,
+      modell: `${mockSvar.modell} (fallback)`,
       advarsel: `Provider ${aiProvider} feilet: ${error.message}`
     };
   }
-
-  return mockSvar;
 }
 
 const server = createServer(async (request, response) => {
@@ -1154,12 +1199,44 @@ const server = createServer(async (request, response) => {
 
   try {
     if (url.pathname === "/helse" || url.pathname === "/health") {
-      jsonSvar(response, 200, { status: "ok", tjeneste: "ai-gateway", tidspunkt: new Date().toISOString() });
+      // "Tjenesten svarer" er ikke det samme som "modellen svarer". Uten
+      // provider-statusen her ser en gateway med daud modell helt frisk ut,
+      // og feilen dukker foerst opp som maltekst i et svar ingen mistenker.
+      const provider = await sjekkProvider();
+      jsonSvar(response, 200, {
+        status: "ok",
+        tjeneste: "ai-gateway",
+        provider: aiProvider,
+        modell: provider.modell,
+        modellNaaBar: provider.naaBar,
+        ...(provider.feil ? { feil: provider.feil } : {}),
+        tidspunkt: new Date().toISOString()
+      });
       return;
     }
 
     if (url.pathname === "/docs") {
       tekstSvar(response, 200, docsHtml());
+      return;
+    }
+
+    if (url.pathname === "/spor") {
+      const linjer = await lesSpor({
+        antall: Number(url.searchParams.get("antall")) || 50,
+        sporingsId: url.searchParams.get("sporingsId"),
+        oppgave: url.searchParams.get("oppgave")
+      });
+      tekstSvar(response, 200, sporHtml(linjer));
+      return;
+    }
+
+    if (url.pathname === "/ki-spor") {
+      const linjer = await lesSpor({
+        antall: Number(url.searchParams.get("antall")) || 50,
+        sporingsId: url.searchParams.get("sporingsId"),
+        oppgave: url.searchParams.get("oppgave")
+      });
+      jsonSvar(response, 200, { antall: linjer.length, spor: linjer });
       return;
     }
 

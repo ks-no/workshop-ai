@@ -39,6 +39,21 @@ done
 kokeboken:
 
 ```bash
+curl -s http://localhost:8082/helse
+```
+
+```json
+{ "provider": "ollama", "modell": "ollama:qwen2.5:14b", "modellNaaBar": true }
+```
+
+`modellNaaBar: false` kommer med et `feil`-felt som sier hvorfor. Merk at status alltid
+er 200 — tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du
+skal lese, ikke statuskoden.
+
+`demo-gui` viser en gul stripe på `/chat` og `/agent` når modellen ikke er koblet på, og
+`./start.sh` advarer ved oppstart. Men vil du være helt sikker, gjør et ekte kall:
+
+```bash
 curl -s -X POST http://localhost:8082/ai/klarsprak \
   -H "Content-Type: application/json" \
   -d '{"kontekst":{"tjeneste":"barnehage"},"sprak":"nb"}' | node -e '
@@ -314,6 +329,29 @@ curl -s -X POST http://localhost:8082/ai/tolk-svar \
 `/ai/dialogforslag` og `/ai/risikosjekk` finnes og virker, men har ingen kallere i
 sandboxen i dag. De er fritt vilt.
 
+### Se hva modellen faktisk fikk
+
+Alle modellkall skrives til `state/ki-spor.jsonl` med full prompt og fullt svar — før
+heuristikk og validering har vært innom.
+
+```bash
+open http://localhost:8082/spor          # HTML, nyeste øverst, utfellbart
+curl -s "http://localhost:8082/ki-spor"  # samme som JSON
+```
+
+Filtrer på økt, oppgave eller antall:
+
+```bash
+curl -s "http://localhost:8082/ki-spor?oppgave=oppsummering&antall=1"
+curl -s "http://localhost:8082/ki-spor?sporingsId=flyt-1786042913420-sflos8"
+```
+
+Kjører du hele barnehageflyten i seksjon 2, vil du se at den gjør **ett** modellkall —
+`SUMMARY`. Alt annet er deterministisk. Det er verdt å legge merke til: rørleggerarbeidet
+er ferdig, samtalen er det ikke.
+
+Sporet nullstilles av `./start.sh --reset`.
+
 ---
 
 ## 5. MCP-verktøy over HTTP
@@ -392,9 +430,10 @@ Ollama er nede. Feilmoden er usynlig i GUI-ene — du får fortsatt velformet no
 bare fra mal. På macOS: `brew services list | grep ollama` skal si `started`.
 `ollama serve` kjørt manuelt i en terminal dør når vinduet lukkes.
 
-**Alt henger i minuttvis mot `/ai/*`**
-Ingen `fetch` mot modellen har timeout. Er Ollama treg eller halvveis oppe, venter
-kallet ubestemt.
+**Kall mot `/ai/*` tar lang tid**
+Alle modellkall avbrytes etter `AI_TIMEOUT_MS` (standard 180000 ms) og faller da tilbake
+til maltekst med `advarsel`. Er du på en treg maskin med stor modell, er 10–60 sekunder
+på et `SUMMARY`-steg normalt — se `varighetMs` i `/ki-spor`.
 
 **Tom eller rar tilstand**
 `./start.sh --reset` nullstiller `state/`. `data/` er seed og røres ikke.

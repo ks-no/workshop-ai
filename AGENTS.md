@@ -87,15 +87,19 @@ pnpm test:agent:matrikkel
 - Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `MCP_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `STATE_DIR`.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
-  `advarsel` field. **The GUIs do not render that field**, so the failure looks like a
-  normal answer — well-formed Norwegian prose from a template. Always verify with:
-```bash
-curl -s -X POST http://localhost:8082/ai/klarsprak -H "Content-Type: application/json" \
-  -d '{"kontekst":{"tjeneste":"barnehage"},"sprak":"nb"}'
-```
-  Expect `modell: "ollama:<name>"` and no `advarsel`. `mock-ai-gateway (fallback)` means
-  the model is not connected.
-- No `fetch` to the model has a timeout; a slow or half-started Ollama hangs indefinitely.
+  `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string
+  explaining why. Status is always 200: the service is alive even when the model is not.
+  `demo-gui` shows a banner on `/chat` and `/agent`, and `./start.sh` warns on startup.
+- **All model calls go through one function**, `kallModell` in `apps/ai-gateway/src/server.js`.
+  Adding a provider is one function with the signature `(prompt, temperatur, signal)`
+  returning `{ tekst, modell }`, plus a branch in `kallModell`. Do not reintroduce
+  per-provider copies of each task — that is what this replaced.
+- Every model call is traced to `state/ki-spor.jsonl`: prompt, response, model, duration,
+  and whether it failed. Read it at `GET /spor` (HTML) or `GET /ki-spor` (JSON, filterable
+  by `sporingsId`, `oppgave`, `antall`). This is the fastest way to see what the model
+  actually received, before heuristics and validation touched it.
+- Model calls time out after `AI_TIMEOUT_MS` (default 180000) and fall back rather than
+  hanging.
 - `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar`, which
   takes `tekst` at the top level.
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only

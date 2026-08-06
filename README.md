@@ -114,12 +114,22 @@ Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env
 Kontroller at modellen er koblet på:
 
 ```bash
-curl -s -X POST http://localhost:8082/ai/klarsprak \
-  -H "Content-Type: application/json" \
-  -d '{"kontekst":{"tjeneste":"test"},"sprak":"nb"}'
+curl -s http://localhost:8082/helse
 ```
 
-Svaret skal ha `"modell": "ollama:<modell>"` og **ingen** `advarsel`-felt. Ser du `"mock-ai-gateway (fallback)"`, er ikke modellen tilgjengelig. Grensesnittene viser ikke `advarsel`-feltet, så svarene ser normale ut selv når de kommer fra maler — det er derfor denne sjekken finnes.
+`"modellNaaBar": true` betyr at provideren svarer og modellen er lastet ned. Er den `false`, følger et `feil`-felt som sier hvorfor. Merk at status alltid er 200 — tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du skal lese.
+
+Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart — men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
+
+### Se hva modellen faktisk gjorde
+
+```
+http://localhost:8082/spor
+```
+
+Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom — pluss varighet, modell og om det feilet. Samme data som JSON på `GET /ki-spor`, med `?sporingsId=`, `?oppgave=` og `?antall=`.
+
+Sporet ligger i `state/ki-spor.jsonl` og nullstilles av `./start.sh --reset`.
 
 Logger: `docker compose logs -f ai-gateway`.
 
