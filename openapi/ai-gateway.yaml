@@ -10,10 +10,83 @@ servers:
 paths:
   /health:
     get:
-      summary: Health check
+      summary: Health check, inkludert om modellen faktisk er tilgjengelig
+      description: |
+        Svarer alltid 200 så lenge tjenesten kjører. Om modellen er nåbar leses
+        av `modellNaaBar` — ikke av statuskoden. Er den `false`, faller
+        `/ai/*` tilbake til maltekst med et `advarsel`-felt i svaret.
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  tjeneste: { type: string, example: ai-gateway }
+                  provider: { type: string, enum: [mock, ollama, openrouter] }
+                  modell: { type: string, nullable: true, example: "ollama:qwen2.5:14b" }
+                  modellNaaBar:
+                    type: boolean
+                    description: Om provideren svarer og modellen er lastet ned.
+                  feil:
+                    type: string
+                    description: Kun til stede når modellNaaBar er false.
+                    example: "Ollama kjoerer, men modellen qwen2.5:14b er ikke lastet ned"
+                  tidspunkt: { type: string, format: date-time }
+  /trace:
+    get:
+      summary: KI-spor som HTML — hva modellen faktisk fikk og svarte
+      description: |
+        Ett kall per linje, nyeste øverst, med full prompt og fullt svar før
+        heuristikk og validering har vært innom. Sporet ligger i
+        `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, default: 50 } }
+        - { in: query, name: sporingsId, schema: { type: string } }
+        - { in: query, name: task, schema: { type: string } }
+      responses:
+        "200":
+          description: HTML-visning
+          content:
+            text/html:
+              schema: { type: string }
+  /trace.json:
+    get:
+      summary: KI-spor som JSON
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, default: 50 } }
+        - { in: query, name: sporingsId, schema: { type: string } }
+        - { in: query, name: task, schema: { type: string }, example: oppsummering }
+      responses:
+        "200":
+          description: Sporlinjer, nyeste først
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  trace:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp: { type: string, format: date-time }
+                        sporingsId: { type: string, nullable: true }
+                        task:
+                          type: string
+                          description: Endepunktet eller oppgavetypen kallet kom fra.
+                          example: oppsummering
+                        provider: { type: string }
+                        model: { type: string, nullable: true }
+                        temperature: { type: number }
+                        prompt: { type: string }
+                        response: { type: string, nullable: true }
+                        durationMs: { type: integer }
+                        failed: { type: boolean }
+                        error: { type: string }
   /ai/dialogforslag:
     post:
       summary: Generer dialogforslag
@@ -66,6 +139,38 @@ paths:
       responses:
         "200":
           description: Prosessvalg returnert
+  /ai/dommer:
+    post:
+      summary: LLM-as-judge — scorer en tekst mot et kriterium
+      description: |
+        Utviklerverktøy for `scripts/eval.js`. Ligger her og ikke i eval-skriptet,
+        så den bruker konfigurert provider, arver timeouten og spores som `task: dommer`.
+        Dommeren ser bare kriteriet og teksten, aldri forventet svar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kriterium, tekst]
+              properties:
+                kriterium: { type: string, example: "Alle beløp er gjengitt nøyaktig." }
+                tekst: { type: string }
+                sporingsId: { type: string }
+      responses:
+        "200":
+          description: Score returnert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score: { type: number, minimum: 0, maximum: 1 }
+                  begrunnelse: { type: string }
+                  modell: { type: string }
+                  syntetisk: { type: boolean }
+        "400":
+          description: kriterium eller tekst mangler
   /ai/velg-verktoy:
     post:
       summary: Dynamisk verktøyoppdagelse – hvilke MCP-verktøy er relevante for et prosessteg?

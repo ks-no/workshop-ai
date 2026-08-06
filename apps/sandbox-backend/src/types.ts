@@ -1,15 +1,15 @@
-// Domenetypene for sandboxen.
+// Domain types for the sandbox.
 //
-// Skrevet for hånd, ikke generert fra openapi/. Spesifikasjonene der er i dag
-// for tynne til å generere noe brukbart — prosessøkt, sjekkresultat, satser,
-// person, husstand og inntekt har ingen schema i det hele tatt. Riktig retning
-// er derfor motsatt: denne fila er kilden, og hullene i OpenAPI fylles fra den.
+// Hand-written, not generated from openapi/. Those specs are currently too thin to
+// generate anything usable — prosessoekt, sjekkresultat, satser, person, husstand
+// and inntekt have no schema at all. The right direction is the opposite: this file
+// is the source, and the gaps in OpenAPI get filled from it.
 //
-// Ambisjonsnivået er bevisst lavt der dataene er syntetiske og løst formede.
-// Poenget er at stegtyper og regeltyper er lukkede unioner, slik at en ny
-// variant ikke kan legges til uten at kompilatoren krever en håndterer.
+// Ambition is deliberately low where the data is synthetic and loosely shaped. The
+// point is that step types and rule types are closed unions, so a new variant
+// cannot be added without the compiler demanding a handler.
 
-// --- prosessmodell --------------------------------------------------------
+// --- process model --------------------------------------------------------
 
 export type Stegtype =
   | "INFO"
@@ -85,7 +85,7 @@ export type Prosessoekt = {
   syntetisk?: boolean;
 };
 
-// --- regler og satser -----------------------------------------------------
+// --- rules and rates ------------------------------------------------------
 
 export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT";
 
@@ -114,8 +114,8 @@ export type Satser = {
 };
 
 /**
- * Kontrakten et SJEKK-steg må oppfylle. Er `godkjent` false, settes økten til
- * AVVIST og `melding` blir `avvistMelding`. Se docs/prosessmodell.md.
+ * The contract a SJEKK step must satisfy. If `godkjent` is false the oekt becomes
+ * AVVIST and `melding` becomes `avvistMelding`. See docs/prosessmodell.md.
  */
 export type SjekkResultat = {
   godkjent: boolean;
@@ -123,10 +123,10 @@ export type SjekkResultat = {
   grunnlag?: Record<string, unknown>;
 };
 
-// --- data og tilstand -----------------------------------------------------
+// --- data and state -------------------------------------------------------
 
-// Datasettene er syntetiske og løst formede. Vi modellerer feltene koden
-// faktisk leser, og lar resten være åpen.
+// The datasets are synthetic and loosely shaped. We model the fields the code
+// actually reads and leave the rest open.
 type MedFelter = { [key: string]: any };
 
 export type Person = MedFelter & {
@@ -163,7 +163,7 @@ export type Gate = MedFelter & {
   eiendommer: Array<{ eiere?: string[] } & MedFelter>;
 };
 
-export type Tilstand = {
+export type State = {
   personer: Person[];
   husstander: Husstand[];
   inntekter: MedFelter[];

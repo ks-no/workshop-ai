@@ -1,36 +1,35 @@
-import { FeilMedStatus } from "./feil.ts";
+import { HttpError } from "./errors.ts";
 import { harGyldigSamtykke, hentInntektForPerson, vurderOrdning } from "./regler.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
-import { lagStiMonster, stiTreff, type Parametere } from "./sti.ts";
+import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import {
   finnGate,
   finnPerson,
   hentHusstandForPerson,
   hentPlasserForTjeneste
-} from "./tilstand.ts";
+} from "./state.ts";
 
-// DELT RESSURSKATALOG
+// SHARED RESOURCE CATALOG
 //
-// Én oppføring her blir samtidig tre ting: et HTTP-endepunkt, et gyldig
-// DATA_FETCH-mål og et gyldig SJEKK-mål. Før katalogen fantes hadde ruteren og
-// prosessmotoren hver sin implementasjon av de samme oppslagene, og de hadde
-// rukket å divergere — HTTP-veien hoppet over revisjonsloggen, og
-// matrikkeloppslaget lekket eierlister som prosessveien filtrerte bort.
+// One entry here is simultaneously three things: an HTTP endpoint, a valid
+// DATA_FETCH target and a valid SJEKK target. Before the catalog existed, the
+// router and the process engine each had their own implementation of the same
+// lookups, and they had drifted apart — the HTTP path skipped the revisjonslogg,
+// and the matrikkel lookup leaked owner lists that the process path filtered out.
 //
-// Katalogen er også stedet policyene faktisk håndheves, i stedet for én gang per
-// kallevei:
-//   - consent-before-income      (policies/access-policy.yaml) via kreverSamtykke
-//   - revisjon-av-all-datatilgang (samme fil)                  via ressurs/formaal
+// The catalog is also where policy is actually enforced, rather than once per
+// call path:
+//   - consent-before-income       (policies/access-policy.yaml) via kreverSamtykke
+//   - revisjon-av-all-datatilgang (same file)                   via ressurs/formaal
 //
-// Skal du tilby nye data i workshopen: legg til én oppføring nederst. Ingenting
-// annet må røres.
+// To expose new data during the workshop: add one entry at the bottom. Nothing
+// else needs to change.
 
-// Tilstanden er utypet inntil typer.ts kommer i steg 5.
-type Tilstand = any;
+type State = any;
 
 export type RessursKontekst = {
-  tilstand: Tilstand;
-  parametere: Parametere;
+  tilstand: State;
+  parametere: PathParams;
   sok: URLSearchParams;
   personId: string;
   sporingsId: string;
@@ -41,18 +40,18 @@ export type RessursKontekst = {
 export type Ressurs = {
   metode: string;
   sti: string;
-  /** Navnet ressursen får i revisjonsloggen. */
+  /** Name the resource gets in the revisjonslogg. */
   ressurs: string;
   beskrivelse: string;
-  /** Datakilde det må foreligge samtykke for, eller null. */
+  /** Data source that requires samtykke, or null. */
   kreverSamtykke?: string | null;
-  /** Formål som skrives til revisjonsloggen sammen med samtykkegrunnlaget. */
+  /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
-  /** Kjøres før samtykkesjekken, så manglende parametere gir 400 og ikke 403. */
+  /** Runs before the consent check, so missing parameters give 400 and not 403. */
   valider?: (kontekst: RessursKontekst) => void;
-  /** For ressurser der personen ikke ligger i stien, men må finnes før samtykke sjekkes. */
+  /** For resources where the person is not in the path but must be resolved before the consent check. */
   finnPersonId?: (kontekst: RessursKontekst) => string;
-  /** Sett false for oppslag som logges av kalleren i stedet (SJEKK-steget). */
+  /** Set false for lookups the caller logs instead (the SJEKK step). */
   revisjon?: boolean;
   handter: (kontekst: RessursKontekst) => unknown | Promise<unknown>;
 };
@@ -66,7 +65,7 @@ export const ressurser: Ressurs[] = [
     handter: ({ tilstand, personId }) => {
       const person = finnPerson(tilstand, personId);
       if (!person) {
-        throw new FeilMedStatus("Fant ikke person.", 404);
+        throw new HttpError("Fant ikke person.", 404);
       }
       return person;
     }
@@ -80,7 +79,7 @@ export const ressurser: Ressurs[] = [
       try {
         return hentHusstandForPerson(tilstand, personId);
       } catch (error: any) {
-        throw new FeilMedStatus(error.message, 404);
+        throw new HttpError(error.message, 404);
       }
     }
   },
@@ -95,7 +94,7 @@ export const ressurser: Ressurs[] = [
       try {
         return await hentInntektForPerson(tilstand, personId);
       } catch (error: any) {
-        throw new FeilMedStatus(error.message, 404);
+        throw new HttpError(error.message, 404);
       }
     }
   },
@@ -108,13 +107,13 @@ export const ressurser: Ressurs[] = [
       try {
         return hentPlasserForTjeneste(tilstand, personId, "barnehage");
       } catch (error: any) {
-        throw new FeilMedStatus(error.message, 404);
+        throw new HttpError(error.message, 404);
       }
     }
   },
   {
-    // SFO-data fantes tidligere bare indirekte, gjennom regelvurderingen.
-    // Asymmetrien med barnehage var tilfeldig.
+    // SFO data used to be reachable only indirectly, through the rules check.
+    // The asymmetry with barnehage was accidental.
     metode: "GET",
     sti: "/api/personer/:personId/sfo",
     ressurs: "sfoplass",
@@ -123,7 +122,7 @@ export const ressurser: Ressurs[] = [
       try {
         return hentPlasserForTjeneste(tilstand, personId, "sfo");
       } catch (error: any) {
-        throw new FeilMedStatus(error.message, 404);
+        throw new HttpError(error.message, 404);
       }
     }
   },
@@ -132,15 +131,15 @@ export const ressurser: Ressurs[] = [
     sti: "/api/husstander/:husstandId/inntektsgrunnlag",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag slått opp på husstand i stedet for person.",
-    // Samme data som personruta, altså samme samtykkekrav. Søkeren finnes via
-    // husstanden, siden personen ikke står i stien.
+    // Same data as the person route, so the same consent requirement. The applicant
+    // is resolved via the husstand, since the person is not in the path.
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     finnPersonId: ({ tilstand, parametere }) => {
       const husstand = tilstand.husstander.find((h: any) => h.husstandId === parametere.husstandId);
       const soeker = husstand?.medlemmer.find((m: any) => m.rolle === "foresatt");
       if (!soeker) {
-        throw new FeilMedStatus("Fant ikke husstand med en foresatt.", 404);
+        throw new HttpError("Fant ikke husstand med en foresatt.", 404);
       }
       return soeker.personId;
     },
@@ -165,12 +164,12 @@ export const ressurser: Ressurs[] = [
       }
       const gateData = finnGate(tilstand, gateParam);
       if (!gateData) {
-        throw new FeilMedStatus(`Fant ikke gaten "${gateParam}".`, 404, {
+        throw new HttpError(`Fant ikke gaten "${gateParam}".`, 404, {
           tilgjengelige: gater.map((g: any) => g.adressenavn)
         });
       }
-      // Projeksjon med vilje: eiendomslisten inneholder personId-ene til andre
-      // innbyggere, og den hører ikke hjemme i et gateoppslag.
+      // Deliberate projection: the property list contains other residents' personIds,
+      // which have no place in a street lookup.
       return {
         gateId: gateData.gateId,
         adressenavn: gateData.adressenavn,
@@ -189,7 +188,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/sjekk/eierforhold",
     ressurs: "matrikkel-eierforhold",
     beskrivelse: "SJEKK: eier søkeren en eiendom i den oppgitte gaten?",
-    // SJEKK-steget skriver SJEKK_OK/SJEKK_AVVIST selv.
+    // The SJEKK step writes SJEKK_OK/SJEKK_AVVIST itself.
     revisjon: false,
     handter: ({ tilstand, sok, personId, steg }) => {
       const gateNavn = sok.get("gate") || "";
@@ -214,32 +213,32 @@ export const ressurser: Ressurs[] = [
     sti: "/api/regler/sjekk/foreldrebetaling",
     ressurs: "regelvurdering",
     beskrivelse: "SJEKK: rett til en moderasjonsordning i data/satser.json.",
-    // Vurderingen røper husholdningens inntektsgrunnlag, så den er underlagt
-    // samme samtykkekrav som inntektsruta.
+    // The assessment reveals the household's income basis, so it carries the same
+    // consent requirement as the income route.
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     revisjon: false,
     valider: ({ sok, personId }) => {
       if (!personId || !sok.get("ordning")) {
-        throw new FeilMedStatus("personId og ordning er påkrevd.", 400);
+        throw new HttpError("personId og ordning er påkrevd.", 400);
       }
     },
     handter: async ({ tilstand, sok, personId }) => {
       try {
         return await vurderOrdning(tilstand, personId, sok.get("ordning"));
       } catch (error: any) {
-        throw new FeilMedStatus(error.message, 400);
+        throw new HttpError(error.message, 400);
       }
     }
   }
 ];
 
-const kompilerte = ressurser.map((ressurs) => ({ ressurs, monster: lagStiMonster(ressurs.sti) }));
+const kompilerte = ressurser.map((ressurs) => ({ ressurs, monster: compilePathPattern(ressurs.sti) }));
 
 export function finnRessurs(metode: string, sti: string) {
   for (const { ressurs, monster } of kompilerte) {
     if (ressurs.metode !== metode) continue;
-    const parametere = stiTreff(monster, sti);
+    const parametere = matchPath(monster, sti);
     if (parametere) {
       return { ressurs, parametere };
     }
@@ -247,7 +246,7 @@ export function finnRessurs(metode: string, sti: string) {
   return null;
 }
 
-/** Serialiserbar oversikt for GET /api/katalog/ressurser. */
+/** Serialisable overview for GET /api/katalog/ressurser. */
 export function ressurskatalog() {
   return ressurser.map((ressurs) => ({
     metode: ressurs.metode,
@@ -267,7 +266,7 @@ type UtforValg = {
 };
 
 export async function utforRessurs(
-  tilstand: Tilstand,
+  tilstand: State,
   metode: string,
   url: URL,
   valg: UtforValg
@@ -275,7 +274,7 @@ export async function utforRessurs(
   const treff = finnRessurs(metode, url.pathname);
   if (!treff) {
     const gyldige = ressurser.map((r) => `${r.metode} ${r.sti}`).join(", ");
-    throw new FeilMedStatus(`Ukjent ressurs: ${metode} ${url.pathname}. Gyldige: ${gyldige}.`, 404);
+    throw new HttpError(`Ukjent ressurs: ${metode} ${url.pathname}. Gyldige: ${gyldige}.`, 404);
   }
 
   const { ressurs, parametere } = treff;
@@ -313,7 +312,7 @@ export async function utforRessurs(
         formaal: "Mangler samtykke",
         aktor: { type: "testbruker", id: kontekst.personId }
       });
-      throw new FeilMedStatus(
+      throw new HttpError(
         `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
         403,
         { syntetisk: true }

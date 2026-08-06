@@ -1,4 +1,4 @@
-import { lesJson, nyttId, skrivJson } from "./tilstand.ts";
+import { readJson, newId, writeJson } from "./state.ts";
 
 // This service is the only writer of the audit log — fiks-simulator posts its
 // events to /api/revisjonslogg rather than touching the file.
@@ -9,14 +9,14 @@ let revisjonsKoe = Promise.resolve();
 
 export async function leggTilRevisjon(hendelse: Record<string, unknown>) {
   revisjonsKoe = revisjonsKoe.then(async () => {
-    const revisjonslogg = await lesJson("revisjonslogg.json", []);
+    const revisjonslogg = await readJson("revisjonslogg.json", []);
     revisjonslogg.push({
-      hendelseId: nyttId("revisjon"),
+      hendelseId: newId("revisjon"),
       tidspunkt: new Date().toISOString(),
       syntetisk: true,
       ...hendelse
     });
-    await skrivJson("revisjonslogg.json", revisjonslogg);
+    await writeJson("revisjonslogg.json", revisjonslogg);
   }).catch((error: Error) => {
     console.warn(`Kunne ikke skrive revisjonslogg: ${error.message}`);
   });

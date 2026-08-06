@@ -8,7 +8,7 @@ const port = Number(process.env.PORT || 8085);
 const wsPath = "/geointegrasjon/matrikkel/wsapi/v1/BasisService";
 const wsNamespace = "http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31";
 
-async function lesMatrikkelData() {
+async function readMatrikkelData() {
   const kandidatfiler = [
     process.env.MATRIKKEL_DATA_FILE,
     path.resolve(__dirname, "../../../data/matrikkel.json"),
@@ -26,7 +26,7 @@ async function lesMatrikkelData() {
   throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.json i repoet.");
 }
 
-function jsonSvar(response, statusCode, data) {
+function jsonResponse(response, statusCode, data) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
@@ -36,7 +36,7 @@ function jsonSvar(response, statusCode, data) {
   response.end(JSON.stringify(data, null, 2));
 }
 
-function tekstSvar(response, statusCode, data, contentType = "text/plain; charset=utf-8") {
+function textResponse(response, statusCode, data, contentType = "text/plain; charset=utf-8") {
   response.writeHead(statusCode, {
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*",
@@ -60,7 +60,7 @@ function finnTagg(xml, taggnavn) {
   return treff ? treff[1].trim() : null;
 }
 
-function finnOperasjon(xml) {
+function findOperation(xml) {
   const bodyTreff = xml.match(/<(?:\w+:)?Body[^>]*>([\s\S]*?)<\/(?:\w+:)?Body>/i);
   if (!bodyTreff) return null;
   const operasjonTreff = bodyTreff[1].match(/<\s*(?:\w+:)?([A-Za-z0-9_]+)\b[^>]*>/);
@@ -103,7 +103,7 @@ function soapFault(feilkode, melding) {
   return soapEnvelope(`    <soapenv:Fault>\n      <faultcode>${xmlEscape(feilkode)}</faultcode>\n      <faultstring>${xmlEscape(melding)}</faultstring>\n    </soapenv:Fault>`);
 }
 
-function wsdlDokument(baseUrl) {
+function wsdlDocument(baseUrl) {
   const serviceUrl = `${baseUrl}${wsPath}`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <wsdl:definitions
@@ -181,15 +181,15 @@ function byggEiendomReturn(gate, eiendom) {
   ].join("\n");
 }
 
-async function lesBody(request) {
-  const deler = [];
+async function readBody(request) {
+  const chunks = [];
   for await (const del of request) {
-    deler.push(del);
+    chunks.push(del);
   }
-  return Buffer.concat(deler).toString("utf8");
+  return Buffer.concat(chunks).toString("utf8");
 }
 
-function handterSoap(operasjon, xml, matrikkel) {
+function handleSoap(operasjon, xml, matrikkel) {
   if (operasjon === "FinnVeger") {
     const tekst = finnTagg(xml, "soeketekst") || finnTagg(xml, "adressenavn") || "";
     const kommunenummer = finnTagg(xml, "kommunenummer");
@@ -250,15 +250,15 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
   if (request.method === "OPTIONS") {
-    jsonSvar(response, 204, {});
+    jsonResponse(response, 204, {});
     return;
   }
 
   try {
-    const matrikkel = await lesMatrikkelData();
+    const matrikkel = await readMatrikkelData();
 
     if (request.method === "GET" && (url.pathname === "/helse" || url.pathname === "/health")) {
-      jsonSvar(response, 200, {
+      jsonResponse(response, 200, {
         status: "ok",
         tjeneste: "matrikkel-mock",
         wsdl: `${wsPath}?wsdl`,
@@ -271,10 +271,10 @@ const server = createServer(async (request, response) => {
       const gateSoek = url.searchParams.get("gate");
       if (gateSoek) {
         const gate = finnGate(matrikkel, gateSoek);
-        jsonSvar(response, gate ? 200 : 404, gate || { feil: `Fant ikke gate ${gateSoek}.` });
+        jsonResponse(response, gate ? 200 : 404, gate || { feil: `Fant ikke gate ${gateSoek}.` });
         return;
       }
-      jsonSvar(response, 200, matrikkel.gater || []);
+      jsonResponse(response, 200, matrikkel.gater || []);
       return;
     }
 
@@ -282,10 +282,10 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && eiendomTreff) {
       const treff = finnEiendom(matrikkel, decodeURIComponent(eiendomTreff[1]), null, null);
       if (!treff) {
-        jsonSvar(response, 404, { feil: "Fant ikke matrikkelenhet." });
+        jsonResponse(response, 404, { feil: "Fant ikke matrikkelenhet." });
         return;
       }
-      jsonSvar(response, 200, {
+      jsonResponse(response, 200, {
         ...treff.eiendom,
         adressenavn: treff.gate.adressenavn,
         kommunenummer: treff.gate.kommunenummer,
@@ -307,29 +307,29 @@ const server = createServer(async (request, response) => {
         syntetisk: true
       })));
       const filtrert = personId ? funn.filter((eiendom) => (eiendom.eiere || []).includes(personId)) : funn;
-      jsonSvar(response, 200, filtrert);
+      jsonResponse(response, 200, filtrert);
       return;
     }
 
     if (request.method === "GET" && url.pathname === wsPath && url.searchParams.has("wsdl")) {
       const baseUrl = `http://${request.headers.host}`;
-      tekstSvar(response, 200, wsdlDokument(baseUrl), "text/xml; charset=utf-8");
+      textResponse(response, 200, wsdlDocument(baseUrl), "text/xml; charset=utf-8");
       return;
     }
 
     if (request.method === "POST" && url.pathname === wsPath) {
-      const xml = await lesBody(request);
-      const operasjon = finnOperasjon(xml);
+      const xml = await readBody(request);
+      const operasjon = findOperation(xml);
       if (!operasjon) {
-        tekstSvar(response, 400, soapFault("Client.InvalidRequest", "Fant ingen SOAP-operasjon i Body."), "text/xml; charset=utf-8");
+        textResponse(response, 400, soapFault("Client.InvalidRequest", "Fant ingen SOAP-operasjon i Body."), "text/xml; charset=utf-8");
         return;
       }
-      tekstSvar(response, 200, handterSoap(operasjon, xml, matrikkel), "text/xml; charset=utf-8");
+      textResponse(response, 200, handleSoap(operasjon, xml, matrikkel), "text/xml; charset=utf-8");
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/docs") {
-      tekstSvar(
+      textResponse(
         response,
         200,
         [
@@ -350,9 +350,9 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    jsonSvar(response, 404, { feil: "Fant ikke endepunkt." });
+    jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    jsonSvar(response, 500, { feil: "Intern feil i matrikkel-mock.", detalj: error.message, syntetisk: true });
+    jsonResponse(response, 500, { feil: "Intern feil i matrikkel-mock.", detalj: error.message, syntetisk: true });
   }
 });
 

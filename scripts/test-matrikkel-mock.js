@@ -13,7 +13,7 @@ async function ventPaaServer(url, forsok = 30) {
       const svar = await fetch(url);
       if (svar.ok) return;
     } catch {
-      // Server er ikke oppe enda.
+      // Server is not up yet.
     }
     await vent(250);
   }

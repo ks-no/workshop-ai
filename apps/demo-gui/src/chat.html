@@ -39,6 +39,10 @@
       <h1>Innbyggerdialog Chat</h1>
       <p class="muted">Chatten styrer stegene direkte. Høyre side er fjernet for en renere dialogflyt.</p>
 
+      <!-- Uten dette banneret er en daud modell usynlig: ai-gateway faller
+           tilbake til maltekst, og svarene ser helt normale ut. -->
+      <div id="modellBanner" hidden></div>
+
       <section class="card">
         <div class="two-col">
           <div class="row">
@@ -96,6 +100,51 @@
         row.appendChild(bubble);
         chatEl.appendChild(row);
         chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      // --- Er modellen faktisk koblet på? ----------------------------------
+      //
+      // ai-gateway svarer med maltekst når modellen er nede, og setter et
+      // advarsel-felt. Vises ikke det, ser en ødelagt oppsett akkurat ut som
+      // et fungerende ett — velformet norsk prosa, bare fra en mal.
+
+      const modellBannerEl = document.getElementById("modellBanner");
+
+      function visModellBanner(tekst) {
+        if (!tekst) {
+          modellBannerEl.hidden = true;
+          return;
+        }
+        modellBannerEl.hidden = false;
+        modellBannerEl.textContent = tekst;
+        modellBannerEl.style.cssText =
+          "background:#fff3cd; border:1px solid #ffe08a; color:#664d03;" +
+          "padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px;";
+      }
+
+      async function sjekkModell() {
+        try {
+          const res = await fetch(`${aiBase}/helse`);
+          const data = await res.json();
+          if (data.modellNaaBar) {
+            visModellBanner(null);
+          } else {
+            visModellBanner(
+              `⚠️ Modellen er ikke koblet på (${data.modell || data.provider}). ` +
+              `Svarene under kommer fra maler, ikke fra en modell. ${data.feil || ""}`
+            );
+          }
+        } catch {
+          visModellBanner("⚠️ Får ikke kontakt med ai-gateway. KI-svar vil mangle eller være maltekst.");
+        }
+      }
+
+      // Et enkelt svar kan falle tilbake selv om gatewayen så frisk ut ved
+      // oppstart, så advarsel-feltet vises der det oppstår også.
+      function varsleOmFallback(result) {
+        if (result && typeof result.advarsel === "string" && result.advarsel.trim()) {
+          addMsg("system", `⚠️ ${result.advarsel}`);
+        }
       }
 
       function formatNumber(value) {
@@ -345,6 +394,7 @@
         if (summary) {
           addMsg("assistant", summary);
         }
+        varsleOmFallback(result.resultat);
         await goNext();
       }
 
@@ -564,6 +614,8 @@
           sendMessage();
         }
       });
+
+      sjekkModell();
 
       loadOptions()
         .then(() => addMsg("assistant", "Velg en person og en prosess, så kan vi starte når du vil."))

@@ -56,7 +56,9 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-På Windows: kjør skriptet fra Git Bash eller WSL.
+På Windows: kjør skriptet fra Git Bash eller WSL. Da får du også automatisk modellvalg
+basert på minnet i maskinen. Egne batchfiler for ledeteksten er under arbeid i en egen
+pull request.
 
 ### Valg
 
@@ -100,12 +102,22 @@ Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env
 Kontroller at modellen er koblet på:
 
 ```bash
-curl -s -X POST http://localhost:8082/ai/klarsprak \
-  -H "Content-Type: application/json" \
-  -d '{"kontekst":{"tjeneste":"test"},"sprak":"nb"}'
+curl -s http://localhost:8082/helse
 ```
 
-Svaret skal ha `"modell": "ollama:<modell>"` og **ingen** `advarsel`-felt. Ser du `"mock-ai-gateway (fallback)"`, er ikke modellen tilgjengelig. Grensesnittene viser ikke `advarsel`-feltet, så svarene ser normale ut selv når de kommer fra maler — det er derfor denne sjekken finnes.
+`"modellNaaBar": true` betyr at provideren svarer og modellen er lastet ned. Er den `false`, følger et `feil`-felt som sier hvorfor. Merk at status alltid er 200 — tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du skal lese.
+
+Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart — men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
+
+### Se hva modellen faktisk gjorde
+
+```
+http://localhost:8082/trace
+```
+
+Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom — pluss varighet, modell og om det feilet. Samme data som JSON på `GET /trace.json`, med `?sporingsId=`, `?task=` og `?limit=`.
+
+Sporet ligger i `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
 
 Logger: `docker compose logs -f ai-gateway`.
 
@@ -159,16 +171,17 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
 | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
 | `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
-| `ai-gateway` | `8082` | Mock av AI-støtte og forklaringer |
+| `ai-gateway` | `8082` | KI-støtte og forklaringer (Ollama, OpenRouter eller mock) |
 | `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
-| `mcp-services` | `8083` | MCP-style verktøy over backend- og AI-tjenester |
+| `mcp-services` | `8083` | 20 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
 | `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
 
-Planlagte URL-er når tjenestene er implementert:
+Alle tjenestene kjører når `./start.sh` er ferdig:
 
 - [http://localhost:3000](http://localhost:3000)
 - [http://localhost:3001](http://localhost:3001)
 - [http://localhost:3001/chat](http://localhost:3001/chat)
+- [http://localhost:3001/agent](http://localhost:3001/agent)
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
 - [http://localhost:8085/health](http://localhost:8085/health)

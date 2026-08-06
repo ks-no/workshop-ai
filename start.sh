@@ -15,8 +15,11 @@ set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Services that run in Docker on every platform.
-NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway mcp-services process-agent demo-gui process-builder)
-SERVICE_PORTS=(8080 8081 8082 8083 8084 3000 3001)
+# matrikkel-mock must stay in this list: on macOS we start only these by name, and
+# mcp-services proxies its three matrikkel_* tools to it over MATRIKKEL_BASE_URL.
+# Leave it out and those tools fail with "fetch failed" while everything else looks fine.
+NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway mcp-services process-agent matrikkel-mock demo-gui process-builder)
+SERVICE_PORTS=(8080 8081 8082 8083 8084 8085 3000 3001)
 OLLAMA_PORT=11434
 
 MODEL=""
@@ -183,7 +186,7 @@ port_in_use() {
   return 1
 }
 
-# All seven services answer /health with a "tjeneste" field, so this tells
+# All eight services answer /health with a "tjeneste" field, so this tells
 # our own containers apart from an unrelated process on the same port.
 port_is_ours() {
   curl -fsS -m 2 "http://localhost:$1/health" 2>/dev/null | grep -q '"tjeneste"'
@@ -403,7 +406,7 @@ fi
 step "📦 Starting services"
 start_services
 wait_for_services
-info "all seven services are responding"
+info "all eight services are responding"
 
 LLM_OK=false
 if ! $MOCK; then

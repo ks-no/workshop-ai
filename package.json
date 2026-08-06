@@ -14,17 +14,18 @@
     "start:demo": "node apps/demo-gui/src/server.js",
     "start:prosessbygger": "node apps/process-builder/src/server.js",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.js",
-    "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
+    "dev": "echo \"Bruk docker compose up --build for \u00e5 starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
     "test:kontrakt": "node scripts/kontrakt-smoke.js",
+    "test:eval": "node scripts/eval.js",
     "test:agent": "node scripts/test-agent-flow.js",
     "test:agent:nl": "node scripts/test-agent-natural-language.js",
     "test:matrikkel-mock": "node scripts/test-matrikkel-mock.js",
     "test:mcp-matrikkel": "node scripts/test-mcp-matrikkel.js",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.js",
     "lint": "tsc --noEmit",
-    "format": "echo \"Ingen formatter konfigurert ennå\""
+    "format": "echo \"Ingen formatter konfigurert enn\u00e5\""
   },
   "engines": {
     "node": ">=22.18"
