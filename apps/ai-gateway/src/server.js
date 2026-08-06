@@ -241,9 +241,14 @@ function byggSvar(type, body) {
 function heuristiskVelgVerktoy(body) {
   const steg = body?.steg || {};
   const tilgjengeligeVerktoy = Array.isArray(body?.verktoy) ? body.verktoy : [];
+  const felter = Array.isArray(steg.felter) ? steg.felter : [];
   const alleStegTekster = normaliserTekst(
     [steg.id, steg.tittel, steg.tekst, ...(steg.felter || []).map((f) => `${f.id || ""} ${f.label || ""} ${f.placeholder || ""}`)].join(" ")
   );
+  const gateInnsamling =
+    alleStegTekster.includes("hvilken gate") ||
+    alleStegTekster.includes("gatenavn") ||
+    felter.some((f) => normaliserTekst(`${f.id || ""} ${f.label || ""}`).includes("gatenavn"));
 
   const VERKTOY_HEURISTIKK = [
     {
@@ -263,6 +268,7 @@ function heuristiskVelgVerktoy(body) {
   const forslag = [];
   for (const regel of VERKTOY_HEURISTIKK) {
     if (!tilgjengeligeVerktoy.some((v) => v.name === regel.navn || v === regel.navn)) continue;
+    if (regel.navn === "matrikkel_finn_veger" && !gateInnsamling) continue;
     if (regel.nodvenligord.some((ord) => alleStegTekster.includes(ord))) {
       forslag.push({ name: regel.navn, bruk: regel.bruk, begrunnelse: regel.begrunnelse });
     }

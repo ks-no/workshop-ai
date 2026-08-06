@@ -12,6 +12,15 @@ const toolDefs = [
     inputSchema: { type: "object", properties: {} }
   },
   {
+    name: "get_process_definition",
+    description: "Get a full process definition, including all steps.",
+    inputSchema: {
+      type: "object",
+      required: ["prosessId"],
+      properties: { prosessId: { type: "string" } }
+    }
+  },
+  {
     name: "list_people",
     description: "List demo people that can start a process.",
     inputSchema: { type: "object", properties: {} }
@@ -323,6 +332,10 @@ async function invokeTool(name, args = {}) {
         kommune: p.bostedsadresse?.kommune
       }))
     };
+  }
+
+  if (name === "get_process_definition") {
+    return api(`/api/prosesser/${encodeURIComponent(args.prosessId)}`);
   }
 
   if (name === "start_process_session") {
