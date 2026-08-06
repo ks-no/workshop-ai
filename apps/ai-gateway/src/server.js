@@ -1033,6 +1033,47 @@ async function callModel(prompt, valg = {}) {
 // Task-specific calls. Each builds its prompt, calls the model, and validates the
 // answer against a whitelist so hallucinated ids never get through.
 
+// LLM-as-judge for scripts/eval.js. It lives here rather than in the eval script
+// so it uses the configured provider, inherits the timeout, and shows up in the
+// trace like any other model call.
+//
+// The judge never sees the expected answer — only the criterion and the text — so
+// it cannot pattern-match its way to a passing score.
+function buildJudgePrompt(body) {
+  return [
+    "Du er en streng evaluator. Vurder om teksten oppfyller kriteriet.",
+    'Svar med kun JSON: {"score": <tall mellom 0.0 og 1.0>, "begrunnelse": "<kort>"}',
+    "Ingen kodeblokker og ingen tekst utenfor JSON-en.",
+    "1.0 betyr fullt oppfylt, 0.0 betyr ikke oppfylt i det hele tatt.",
+    "Er du i tvil, gi lav score.",
+    "",
+    `Kriterium: ${body?.kriterium || "(mangler)"}`,
+    "",
+    "Tekst som skal vurderes:",
+    String(body?.tekst ?? "")
+  ].join("\n");
+}
+
+async function judgeWithAi(body) {
+  const { tekst, modell } = await callModel(buildJudgePrompt(body), {
+    temperature: 0,
+    systemMessage: SYSTEM_JSON,
+    task: "dommer",
+    sporingsId: body?.sporingsId
+  });
+  const parsed = parseJsonObject(tekst);
+  const score = Number(parsed?.score);
+  if (!Number.isFinite(score)) {
+    throw new Error(`Dommeren ga ikke et tall: ${String(tekst).slice(0, 120)}`);
+  }
+  return {
+    score: Math.max(0, Math.min(1, score)),
+    begrunnelse: typeof parsed.begrunnelse === "string" ? parsed.begrunnelse : "",
+    modell,
+    syntetisk: true
+  };
+}
+
 async function getIntentFromModel(body) {
   const { tekst, modell } = await callModel(buildIntentPrompt(body), {
     temperature: 0,
@@ -1263,6 +1304,18 @@ const server = createServer(async (request, response) => {
         aktor: { type: "system", id: "ai-gateway" }
       });
       jsonResponse(response, 200, svar);
+      return;
+    }
+
+    // Not audited: this is a developer tool scoring text, never a lookup of
+    // anyone's data.
+    if (request.method === "POST" && url.pathname === "/ai/dommer") {
+      const body = await readBody(request);
+      if (!body?.kriterium || typeof body?.tekst !== "string") {
+        jsonResponse(response, 400, { feil: "Krever feltene kriterium og tekst." });
+        return;
+      }
+      jsonResponse(response, 200, await judgeWithAi(body));
       return;
     }
 

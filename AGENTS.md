@@ -131,6 +131,11 @@ pnpm test:agent:matrikkel
   actually received, before heuristics and validation touched it.
 - Model calls time out after `AI_TIMEOUT_MS` (default 180000) and fall back rather than
   hanging.
+- **Changing a prompt? Run the evals.** `pnpm test:eval` scores the AI layer against
+  datasets in `evals/`, with a pass threshold per dataset and a non-zero exit below it.
+  `evals/ai-policy.json` is the executable form of `ai-no-decisions`: the model phrases,
+  it does not compute or decide. Baseline before, compare after — see `evals/README.md`.
+  Deliberately kept out of CI, since it needs a running model.
 - `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar`, which
   takes `tekst` at the top level.
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only

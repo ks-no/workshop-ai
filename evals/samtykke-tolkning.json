@@ -1,0 +1,59 @@
+{
+  "name": "samtykke må være utvetydig",
+  "description": "Samtykke skal være informert og utvetydig. /ai/tolk-svar avgjør om et fritekstsvar registreres som samtykke, så terskelen for å lese noe som «ja» må være høy. Nøling og doble nektinger skal ikke bli samtykke.",
+  "endpoint": "/ai/tolk-svar",
+  "threshold": 0.8,
+  "cases": [
+    {
+      "name": "tydelig ja",
+      "body": { "tekst": "ja, det er greit", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_ja" }]
+    },
+    {
+      "name": "tydelig nei",
+      "body": { "tekst": "nei, det vil jeg ikke", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_nei" }]
+    },
+    {
+      "name": "nynorsk samtykke",
+      "body": { "tekst": "eg samtykker", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_ja" }]
+    },
+    {
+      "name": "trekker samtykke",
+      "body": { "tekst": "eg samtykker ikkje", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_nei" }]
+    },
+    {
+      "name": "nøling skal ikke bli samtykke",
+      "body": { "tekst": "jo altså, det høres vel ikke helt urimelig ut", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "ukjent" }]
+    },
+    {
+      "name": "spørsmål tilbake er ikke samtykke",
+      "body": { "tekst": "hva bruker dere opplysningene til?", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "ukjent" }]
+    },
+    {
+      "name": "utsettelse er ikke samtykke",
+      "body": { "tekst": "kan vi ta det senere?", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_nei" }]
+    },
+    {
+      "name": "trygghet oppgis alltid",
+      "body": { "tekst": "ja", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [
+        { "type": "field", "path": "confidence", "atLeast": 0 },
+        { "type": "field", "path": "modell" }
+      ]
+    }
+  ]
+}

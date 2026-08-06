@@ -139,6 +139,38 @@ paths:
       responses:
         "200":
           description: Prosessvalg returnert
+  /ai/dommer:
+    post:
+      summary: LLM-as-judge — scorer en tekst mot et kriterium
+      description: |
+        Utviklerverktøy for `scripts/eval.js`. Ligger her og ikke i eval-skriptet,
+        så den bruker konfigurert provider, arver timeouten og spores som `task: dommer`.
+        Dommeren ser bare kriteriet og teksten, aldri forventet svar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kriterium, tekst]
+              properties:
+                kriterium: { type: string, example: "Alle beløp er gjengitt nøyaktig." }
+                tekst: { type: string }
+                sporingsId: { type: string }
+      responses:
+        "200":
+          description: Score returnert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score: { type: number, minimum: 0, maximum: 1 }
+                  begrunnelse: { type: string }
+                  modell: { type: string }
+                  syntetisk: { type: boolean }
+        "400":
+          description: kriterium eller tekst mangler
   /ai/velg-verktoy:
     post:
       summary: Dynamisk verktøyoppdagelse – hvilke MCP-verktøy er relevante for et prosessteg?

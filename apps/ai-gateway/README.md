@@ -25,6 +25,7 @@ kalles med rå `fetch`.
 | `/ai/forklar-databruk` | Forklarer hvilke data som brukes | ingen — fritt vilt |
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen — fritt vilt |
 | `/ai/risikosjekk` | Enkel risikovurdering | ingen — fritt vilt |
+| `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.js` |
 
 **Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` som
 tar `tekst` på toppnivå.
