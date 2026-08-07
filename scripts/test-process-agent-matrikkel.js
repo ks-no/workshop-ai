@@ -233,19 +233,66 @@ function createFakeMcpServer() {
 
         const gate = normalize(args.gate);
         if (gate.includes("storg")) {
-          json(response, 200, { ok: true, result: { adressenavn: "Storgata", kommunenummer: "4601" } });
+          json(response, 200, { ok: true, result: [{ adressenavn: "Storgata", kommunenummer: "4601" }] });
           return;
         }
         if (gate.includes("nordnes")) {
-          json(response, 200, { ok: true, result: { adressenavn: "Nordnesveien", kommunenummer: "4601" } });
+          json(response, 200, { ok: true, result: [{ adressenavn: "Nordnesveien", kommunenummer: "4601" }] });
           return;
         }
         if (gate.includes("fjosanger") || gate.includes("fjøsanger")) {
-          json(response, 200, { ok: true, result: { adressenavn: "Fjøsangerveien", kommunenummer: "4601" } });
+          json(response, 200, { ok: true, result: [{ adressenavn: "Fjøsangerveien", kommunenummer: "4601" }] });
+          return;
+        }
+        if (gate.includes("bones") || gate.includes("bønes")) {
+          json(response, 200, { ok: true, result: [{ adressenavn: "Bønesheien", kommunenummer: "4601" }] });
           return;
         }
 
         json(response, 500, { ok: false, detalj: "Fant ikke gate." });
+        return;
+      }
+
+      if (name === "matrikkel_hent_eiendom") {
+        const adresse = normalize(args.adresse || "");
+        if (adresse.includes("storgata 5")) {
+          json(response, 200, {
+            ok: true,
+            result: {
+              matrikkelId: "matr-storg-005",
+              gnr: 165,
+              bnr: 5,
+              adresse: "Storgata 5",
+              adressenavn: "Storgata",
+              postnummer: "5003",
+              poststed: "BERGEN",
+              koordinater: { lat: 60.39, lon: 5.32 }
+            }
+          });
+          return;
+        }
+        json(response, 500, { ok: false, detalj: "Fant ikke eiendom." });
+        return;
+      }
+
+      if (name === "matrikkel_hent_eiere") {
+        const adresse = normalize(args.adresse || "");
+        if (adresse.includes("storgata 5")) {
+          json(response, 200, {
+            ok: true,
+            result: {
+              matrikkelId: "matr-storg-005",
+              gnr: 165,
+              bnr: 5,
+              adresse: "Storgata 5",
+              eiere: ["person-001"],
+              antallEiere: 1,
+              syntetisk: true
+            }
+          });
+          return;
+        }
+        json(response, 500, { ok: false, detalj: "Fant ikke eiere." });
         return;
       }
 
@@ -285,7 +332,7 @@ async function run() {
     });
     // The agent should proactively list available gates (from suggest_step_tools → matrikkel_finn_veger)
     assert(
-      choose.replies.some((r) => r.includes("Tilgjengelige testgater")),
+      choose.replies.some((r) => r.includes("Eksempler på veier i matrikkelen")),
       `Mangler proaktiv matrikkel-gatehjelp. Fikk: ${JSON.stringify(choose.replies)}`
     );
 
@@ -310,6 +357,24 @@ async function run() {
     assert(
       metaQuestion.replies.some((r) => r.includes("gjenstår")),
       `Agenten svarte ikke på prosess-spørsmål underveis. Fikk: ${JSON.stringify(metaQuestion.replies)}`
+    );
+
+    const preciseExists = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Finnes Storgata 5?" })
+    });
+    assert(
+      preciseExists.replies.some((r) => r.includes("Storgata 5 finnes i matrikkelen")),
+      `Agenten svarte ikke presist på adresseoppslag. Fikk: ${JSON.stringify(preciseExists.replies)}`
+    );
+
+    const preciseOwner = await req(`/agent/sessions/${created.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Hvem eier Storgata 5?" })
+    });
+    assert(
+      preciseOwner.replies.some((r) => r.includes("person-001")),
+      `Agenten svarte ikke presist på eierspørsmål. Fikk: ${JSON.stringify(preciseOwner.replies)}`
     );
 
     // Ask a question, do not answer the form yet.
@@ -348,7 +413,7 @@ async function run() {
       body: JSON.stringify({ message: "storg" })
     });
     assert(
-      validGate.replies.some((r) => r.includes("Mener du den gaten")),
+      validGate.replies.some((r) => r.includes("Mener du")),
       `Mangler oppfølgingsspørsmål for usikkert gateoppslag. Fikk: ${JSON.stringify(validGate.replies)}`
     );
     assert(
@@ -416,6 +481,25 @@ async function run() {
       useDeferred.replies.some((r) => r.includes("bruker svaret du ga tidligere")) || useDeferred.replies.some((r) => r.includes("fullført")),
       `Manglet bekreftet bruk av utkast. Fikk: ${JSON.stringify(useDeferred.replies)}`
     );
+
+    // Fresh session: compact gate input with attached house number should still validate gate name.
+    const createdCompact = await req("/agent/sessions", {
+      method: "POST",
+      body: JSON.stringify({ personId: "person-001" })
+    });
+    await req(`/agent/sessions/${createdCompact.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "fartsdempende" })
+    });
+    const compactGateInput = await req(`/agent/sessions/${createdCompact.sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message: "Bønesheien258" })
+    });
+    assert(
+      compactGateInput.replies.some((r) => r.includes("Bønesheien")),
+      `Kompakt gatenavn med husnummer ble ikke tolket riktig. Fikk: ${JSON.stringify(compactGateInput.replies)}`
+    );
+    assert(fakeSession.savedAnswers["velg-gate"] === "Bønesheien", "Kompakt gateinput ble ikke lagret kanonisk");
 
     console.log("test:process-agent-matrikkel OK");
   } finally {

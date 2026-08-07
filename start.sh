@@ -50,10 +50,23 @@ Options:
   -d, --down         Stop and remove all containers
   -h, --help         Show this help
 
+Recommended models:
+  qwen2.5:0.5b       Fastest, lowest quality (about 400 MB)
+  qwen2.5:7b         Best default balance (about 4.7 GB)
+  qwen2.5:14b        Better quality if you have enough RAM/VRAM (about 9 GB)
+  llama3.1:8b        Strong alternative to qwen2.5:7b (about 4.9 GB)
+  mistral-nemo       Good multilingual option (about 7 GB)
+
+Tip:
+  The script auto-selects a model based on RAM/VRAM.
+  Use --model only if you want to override that choice.
+
 Examples:
   ./start.sh                  # just start it
   ./start.sh -y               # unattended, including downloads
   ./start.sh -m qwen2.5:7b    # smaller model
+  ./start.sh -m qwen2.5:14b   # better quality, heavier
+  ./start.sh -m llama3.1:8b   # alternative model family
   ./start.sh --mock           # no model — useful on a bad connection
   ./start.sh --reset          # forget every earlier demo run
   ./start.sh -d               # stop everything

@@ -33,10 +33,31 @@ async function kjor() {
   try {
     await ventPaaServer(`${baseUrl}/health`);
 
+    const alleGaterSvar = await fetch(`${baseUrl}/mock/matrikkel/gater`);
+    assert(alleGaterSvar.ok, "Kunne ikke hente gateoversikt");
+    const alleGater = await alleGaterSvar.json();
+    assert(Array.isArray(alleGater) && alleGater.length >= 5, `Forventet seed-basert gateoversikt, fikk ${alleGater.length} gater`);
+    assert(alleGater.some((g) => g.adressenavn === "Bønesheien"), "Forventet Bønesheien i seed-basert gateoversikt");
+
     const gateSvar = await fetch(`${baseUrl}/mock/matrikkel/gater?gate=Storgata`);
     assert(gateSvar.ok, "Gate-oppslag feilet");
     const gateJson = await gateSvar.json();
-    assert(gateJson.adressenavn === "Storgata", "Feil gate returnert");
+    const gateTreff = Array.isArray(gateJson) ? gateJson : gateJson.items;
+    assert(Array.isArray(gateTreff) && gateTreff.some((g) => g.adressenavn === "Storgata"), "Feil gate returnert");
+
+    const fjosSvar = await fetch(`${baseUrl}/mock/matrikkel/gater?gate=Fjøsanger`);
+    assert(fjosSvar.ok, "Fjøsanger-oppslag feilet");
+    const fjosJson = await fjosSvar.json();
+    const fjosTreff = Array.isArray(fjosJson) ? fjosJson : fjosJson.items;
+    assert(Array.isArray(fjosTreff) && fjosTreff.some((g) => g.adressenavn.includes("Fj")), "Forventet Fjøsangerveien i oppslag");
+
+    const adresseSvar = await fetch(`${baseUrl}/mock/matrikkel/eiendom-oppslag?adresse=${encodeURIComponent("Storgata 5")}`);
+    assert(adresseSvar.ok, "Eksakt adresseoppslag feilet");
+    const adresseJson = await adresseSvar.json();
+    assert(adresseJson.adresse === "Storgata 5", "Feil adresse returnert fra eiendom-oppslag");
+    assert(typeof adresseJson.husnummer === "number", "Mangler husnummer i rik eiendomsrespons");
+    assert(adresseJson.postnummer, "Mangler postnummer i rik eiendomsrespons");
+    assert(adresseJson.koordinater && typeof adresseJson.koordinater.lat === "number", "Mangler koordinater i rik eiendomsrespons");
 
     const soapPayload = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:mat="http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31">

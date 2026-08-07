@@ -11,7 +11,7 @@ const filer = [
   "data/satser.json",
   "data/prosessdefinisjoner.json",
   "data/informasjonsmodeller.json",
-  "data/matrikkel.json"
+  "data/matrikkel.seed.json"
 ];
 
 async function les(fil) {

@@ -296,7 +296,7 @@
     {
       "id": "fartsdempende-tiltak",
       "navn": "Søknad om fartsdempende tiltak",
-      "beskrivelse": "Søk om fartsreduserende tiltak i en gate der du har registrert eiendom.",
+      "beskrivelse": "Søk om fartsreduserende tiltak i en gate der du har registrert eiendom. Du kan søke på alle veier i matrikkelen.",
       "versjon": "0.1.0",
       "redigering": {
         "status": "publisert",
@@ -308,13 +308,13 @@
           "id": "intro",
           "type": "INFO",
           "tittel": "Søknad om fartsdempende tiltak",
-          "tekst": "Hei! Jeg hjelper deg med å søke om fartsdempende tiltak, for eksempel fartshumper, innsnevringer eller 30-sone. For å sende inn søknaden må du ha registrert eiendom i gaten. I denne demoen kan du teste med Storgata, Nordnesveien, Fjøsangerveien eller Laksevågvegen."
+          "tekst": "Hei! Jeg hjelper deg med å søke om fartsdempende tiltak, for eksempel fartshumper, innsnevringer eller 30-sone. For å sende inn søknaden må du ha registrert eiendom i gaten. Du kan søke på alle veier i matrikkelen ved å skrive hele eller deler av gatenavnet."
         },
         {
           "id": "velg-gate",
           "type": "QUESTION",
           "tittel": "Hvilken gate gjelder søknaden?",
-          "tekst": "Hvilken gate ønsker du fartsdempende tiltak i? Skriv inn gatenavnet.",
+          "tekst": "Hvilken gate ønsker du fartsdempende tiltak i? Skriv hele eller deler av gatenavnet, så søker vi i alle veier.",
           "felter": [
             {
               "id": "gatenavn",

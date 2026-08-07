@@ -73,6 +73,8 @@ English throughout: `timestamp`, `task`, `model`, `response`, `durationMs`, `fai
 if a comment restates the code, delete it instead of translating it.
 
 ## Project conventions you must follow
+- Keep Norwegian domain names/identifiers intact (`samtykke`, `inntekt`, `prosessokt`, etc.).
+- Use UTF-8 Unicode encoding for code, JSON, YAML, Markdown, and script files in the repo.
 - Prefer existing endpoint patterns from current services and examples in `README.md` / `docs/api-oversikt.md`.
 - When API behavior changes, update matching OpenAPI docs in `openapi/*.yaml`.
 - Keep changes scoped to one app unless cross-service change is required.
@@ -107,6 +109,7 @@ diff state/foer.json state/etter.json
 pnpm test:agent
 pnpm test:agent:nl
 pnpm test:matrikkel-mock
+pnpm test:bergen-matrikkel
 pnpm test:mcp-matrikkel
 pnpm test:agent:matrikkel
 ```
@@ -141,15 +144,21 @@ pnpm test:agent:matrikkel
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only
   call the model when the heuristic does not match. `/ai/dialogforslag` and `/ai/risikosjekk`
   work but have no callers in the sandbox.
+- `MATRIKKEL_DATA_FILE` kan settes for `matrikkel-mock` ved behov, men standard er `data/matrikkel.seed.json`.
+- `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock-oppslag, og `MATRIKKEL_MODE=live|mock|hybrid` for gateoppslag.
+- `ai-gateway` may fall back to mock-like responses if model/provider is unavailable; verify with `/ai/klarsprak` when debugging.
 
 ## Matrikkel integration pattern
-- `apps/matrikkel-mock` owns synthetic matrikkel data (`data/matrikkel.json`) and exposes it over SOAP (Geointegrasjon path) and REST helper endpoints.
+- `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.seed.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
+- `data/matrikkel.seed.json` is the stable curated base dataset; keep it small, readable, and deterministic.
+- `mcp-services` kan gjore direkte gateoppslag mot Geonorge adresse-API i `live`-modus, uten lokal Norges-kopi.
 - `apps/mcp-services` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
+- `matrikkel_hent_eiendom` og `matrikkel_hent_eiere` kan brukes med eksakt adresse, for eksempel `Storgata 5`.
 - `apps/mcp-services` also exposes `suggest_step_tools`: given a process step definition, calls `ai-gateway /ai/velg-verktoy` and returns which tools are relevant (context and/or validation).
 - `apps/process-agent` calls `suggest_step_tools` on every QUESTION step to discover tools dynamically — no step IDs are hardcoded in the agent.
 
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
 - Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/mcp-services.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
-- End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-mcp-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`.
+- End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-mcp-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`, `scripts/test-bergen-matrikkel-bulk.js`.
 

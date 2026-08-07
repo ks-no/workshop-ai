@@ -72,5 +72,7 @@ pnpm test:agent
   may be `message`; the response key stays `melding`. See AGENTS.md for the full rule.
 - Comments in English, and only where they explain *why*. Delete a comment that merely
   restates the code rather than translating it.
+- Keep Norwegian domain terms and identifiers intact where they already exist.
+- Use UTF-8 Unicode encoding for all created/edited code, data, and documentation files.
 - Do not introduce new frameworks or heavy dependencies unless explicitly requested.
 

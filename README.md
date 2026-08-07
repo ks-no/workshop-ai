@@ -279,10 +279,31 @@ Liste tilgjengelige MCP-tools:
 curl -s http://localhost:8083/mcp/tools
 ```
 
+Gateoppslag kan kjore direkte mot Geonorge fra `mcp-services`, og `matrikkel-mock` starter fra seed-datasettet ved oppstart:
+
+```bash
+MATRIKKEL_MODE=live pnpm start:mcp
+```
+
+Sjekk hvilken datakilde `matrikkel-mock` faktisk bruker akkurat naa:
+
+```bash
+pnpm check:matrikkel-source
+```
+
+I `docker compose` er `mcp-services` satt opp med `MATRIKKEL_MODE=live` som standard,
+mens `matrikkel-mock` starter fra `data/matrikkel.seed.json` og faller tilbake til live Geonorge-oppslag ved manglende treff.
+
 Hent matrikkeldata (REST-hjelpeendepunkt):
 
 ```bash
 curl -s "http://localhost:8085/mock/matrikkel/eiendommer?gate=Storgata"
+```
+
+Hent én konkret adresse i matrikkel-mocken:
+
+```bash
+curl -s "http://localhost:8085/mock/matrikkel/eiendom-oppslag?adresse=Storgata%205"
 ```
 
 Hent matrikkeldata (SOAP, Geointegrasjon-sti):
@@ -304,6 +325,12 @@ Kjor en enkel end-to-end smoke test mot agenten:
 
 ```bash
 npx pnpm test:agent
+```
+
+Kjor Bergen bulk-smoke test mot matrikkel-mocken:
+
+```bash
+npx pnpm test:bergen-matrikkel
 ```
 
 ## Hvor syntetiske data ligger
@@ -333,6 +360,7 @@ Syntetiske data ligger under `data/`:
 2. Beskriv datasettet i `docs/syntetiske-data.md`
 3. Oppdater katalog- eller API-dokumentasjon i `docs/api-oversikt.md`
 4. Marker alle poster med `syntetisk: true` der det er relevant
+5. Lagre filer som UTF-8 (Unicode) slik at norske tegn bevares korrekt
 
 ## Samarbeid
 

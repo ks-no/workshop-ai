@@ -161,7 +161,7 @@ async function invokeTool(name, args = {}) {
   });
   const data = await res.json();
   if (!res.ok || !data.ok) {
-    throw new Error(data.feil || data.detalj || `Tool call feilet: ${name}`);
+    throw new Error(data.detalj || data.feil || `Tool call feilet: ${name}`);
   }
   return data.result;
 }
@@ -435,8 +435,58 @@ function isLikelyGateQuestionStep(step) {
 function extractPossibleGateMention(text) {
   const value = String(text || "").trim();
   if (!value) return null;
-  const match = value.match(/\b([\p{L}][\p{L}-]*(?:gata|gate|veien|vegen))\b/iu);
+  const renset = value.replace(/\d+[\p{L}]?$/u, "").trim();
+  const match = renset.match(/\b([\p{L}][\p{L}-]*(?:gata|gate|veien|vegen))\b/iu);
   return match?.[1] || null;
+}
+
+function utledGateSoeketekst(rawText) {
+  const raatekst = String(rawText || "").trim();
+  if (!raatekst) return "";
+
+  // Accept both "Storgata 5" and compact forms like "Bønesheien258".
+  const utenHusnummer = raatekst.replace(/[\s,]*\d+[\p{L}]?$/u, "").trim();
+  if (utenHusnummer) return utenHusnummer;
+
+  return extractPossibleGateMention(raatekst) || raatekst;
+}
+
+function extractPossibleAdresseMention(text) {
+  const value = String(text || "").trim();
+  if (!value) return null;
+  const direkte = value.match(/\b([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)\b/iu);
+  if (direkte?.[1]) {
+    return direkte[1].replace(/\s+/g, " ").trim();
+  }
+
+  const lookup = extractLookupCandidate(value);
+  const medNummer = lookup.match(/([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
+  return medNummer?.[1]?.replace(/\s+/g, " ").trim() || null;
+}
+
+async function maybeAnswerPreciseMatrikkelQuestion(text) {
+  if (!text.includes("?")) return null;
+  const lower = normalize(text);
+  const adresse = extractPossibleAdresseMention(text);
+  if (!adresse) return null;
+
+  try {
+    const eiendom = await invokeTool("matrikkel_hent_eiendom", { adresse });
+    if (lower.includes("hvem eier") || lower.includes("kven eig") || lower.includes("eier")) {
+      const eiere = await invokeTool("matrikkel_hent_eiere", { adresse });
+      if (!eiere.eiere?.length) {
+        if (eiere.syntetisk === false) {
+          return `Jeg finner eiendommen ${eiendom.adresse}, men den offentlige adressekilden inneholder ikke eierinformasjon.`;
+        }
+        return `Jeg finner eiendommen ${eiendom.adresse}, men mocken har ingen registrerte eiere på den akkurat nå.`;
+      }
+      return `${eiendom.adresse} er registrert med eier${eiere.eiere.length > 1 ? "e" : ""}: ${eiere.eiere.join(", ")}.`;
+    }
+
+    return `Ja, ${eiendom.adresse} finnes i matrikkelen. Den har gnr ${eiendom.gnr} og bnr ${eiendom.bnr}.`;
+  } catch {
+    return `Jeg fant ikke adressen ${adresse} i matrikkelen.`;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -464,10 +514,10 @@ async function discoverStepTools(step) {
 async function runKontekstTool(toolName, stepAnswer) {
   if (toolName === "matrikkel_finn_veger") {
     try {
-      const gater = await invokeTool("matrikkel_finn_veger", {});
+      const gater = await invokeTool("matrikkel_finn_veger", { all: true, limit: 12, offset: 0 });
       if (Array.isArray(gater) && gater.length > 0) {
         const forslag = gater.slice(0, 6).map((g) => g.adressenavn).join(", ");
-        return `Tilgjengelige testgater i matrikkelen: ${forslag}.`;
+        return `Eksempler på veier i matrikkelen: ${forslag}. Du kan søke på alle veier ved å skrive hele eller deler av gatenavnet.`;
       }
     } catch {
       // ignore – context hint is optional
@@ -482,28 +532,33 @@ async function runKontekstTool(toolName, stepAnswer) {
 async function runValideringTool(toolName, userText) {
   if (toolName === "matrikkel_finn_veger") {
     try {
-      const raatekst = String(userText || "").trim();
-      // Many users ask with husnummer (e.g. "Storgata 5"). Matrikkel gate lookup
-      // expects gatenavn, so narrow input to the likely street name first.
-      const gatenavnKandidat = raatekst.replace(/\s+\d+[\p{L}]?$/u, "").trim();
-      const query = gatenavnKandidat || raatekst;
+      const query = utledGateSoeketekst(userText);
 
-      const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: query });
-      if (gateTreff && gateTreff.adressenavn) {
+      const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: query, all: true, limit: 10, offset: 0 });
+      const treffliste = Array.isArray(gateTreff) ? gateTreff : [];
+      if (treffliste.length > 0) {
+        const kandidat = treffliste[0];
+        if (!kandidat?.adressenavn) {
+          return { retry: true, hint: "Jeg fant ikke et gyldig gatenavn. Prøv et annet søk." };
+        }
+        const fraOffentligKilde = typeof kandidat.gateId === "string" && kandidat.gateId.startsWith("geo-");
         const inputNormalisert = normalize(query);
-        const gateNormalisert = normalize(gateTreff.adressenavn);
+        const gateNormalisert = normalize(kandidat.adressenavn);
         const erEksaktTreff = inputNormalisert === gateNormalisert;
         if (!erEksaktTreff) {
+          const forslag = treffliste.slice(0, 5).map((g) => g.adressenavn).join(", ");
           return {
             confirm: true,
-            proposedAnswer: gateTreff.adressenavn,
-            question: `Jeg fant ${gateTreff.adressenavn} i matrikkelen. Mener du den gaten? Svar ja/nei.`
+            proposedAnswer: kandidat.adressenavn,
+            question: `Jeg fant flere treff i matrikkelen (${forslag}). Mener du ${kandidat.adressenavn}? Svar ja/nei.`
           };
         }
         return {
-          answer: gateTreff.adressenavn,
+          answer: kandidat.adressenavn,
           inferred: true,
-          note: `Takk, jeg fant ${gateTreff.adressenavn} i matrikkelen og bruker det gatenavnet videre.`
+          note: fraOffentligKilde
+            ? `Takk, jeg fant ${kandidat.adressenavn} i offentlig adressekilde og bruker det gatenavnet videre.`
+            : `Takk, jeg fant ${kandidat.adressenavn} i matrikkelen og bruker det gatenavnet videre.`
         };
       }
     } catch {
@@ -511,7 +566,7 @@ async function runValideringTool(toolName, userText) {
     }
     // Build suggestions for retry
     try {
-      const gater = await invokeTool("matrikkel_finn_veger", {});
+      const gater = await invokeTool("matrikkel_finn_veger", { all: true, limit: 12, offset: 0 });
       const forslag = Array.isArray(gater) ? gater.slice(0, 6).map((g) => g.adressenavn).join(", ") : null;
       return {
         retry: true,
@@ -756,9 +811,14 @@ async function advanceAndPrompt(state) {
     }
 
     if (step.type === "DATA_FETCH") {
-      await invokeTool("run_current_action", { oektsId: state.oektsId });
+      const dataFetchResult = await invokeTool("run_current_action", { oektsId: state.oektsId });
+      const data = dataFetchResult?.resultat || dataFetchResult?.oekt?.resultater?.[step.id] || null;
       if (step.id === "hent-gate") {
-        messages.push("Jeg har slått opp gaten i matrikkelen.");
+        if (data?.funnetILokaltMatrikkel === false) {
+          messages.push(`Jeg fant ${data?.adressenavn || "gaten"} i offentlig adressekilde, men den finnes ikke i lokal matrikkel for eierkontroll.`);
+        } else {
+          messages.push("Jeg har slått opp gaten i matrikkelen.");
+        }
       } else {
         messages.push("Jeg har hentet opplysningene som trengs i dette steget.");
       }
@@ -893,6 +953,11 @@ async function handleMessage(state, message) {
   const metaSvar = maybeAnswerProcessMetaQuestion(state, text);
   if (metaSvar) {
     return [metaSvar];
+  }
+
+  const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(text);
+  if (presisMatrikkelSvar) {
+    return [presisMatrikkelSvar];
   }
 
   if (state.awaiting === "question") {

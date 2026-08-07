@@ -4,6 +4,16 @@ import { seedDir, stateDir } from "./config.ts";
 
 type State = any;
 
+const universellEierPersonId = "person-001";
+
+function normaliserTekst(verdi: string) {
+  return String(verdi || "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .trim()
+    .toLowerCase();
+}
+
 // Reads from state/ once something has been written there, and falls back to
 // the seed in data/. Pure seed files are never written, so they always come
 // from data/.
@@ -97,6 +107,44 @@ export function finnGate(tilstand: State, gateNavn: string | null) {
   );
 }
 
+function leggTilUniversellEierIAlleEiendommer(matrikkel: any) {
+  for (const gate of matrikkel?.gater || []) {
+    for (const eiendom of gate.eiendommer || []) {
+      const eiere = Array.isArray(eiendom.eiere) ? eiendom.eiere : [];
+      if (!eiere.includes(universellEierPersonId)) {
+        eiendom.eiere = [...eiere, universellEierPersonId];
+      }
+    }
+  }
+}
+
+function leggTilBonesheienHvisMangler(matrikkel: any) {
+  const gater = Array.isArray(matrikkel?.gater) ? matrikkel.gater : [];
+  const finnesAllerede = gater.some((gate: any) => normaliserTekst(gate.adressenavn) === normaliserTekst("Bønesheien"));
+  if (finnesAllerede) return;
+
+  gater.push({
+    gateId: "gate-bonesheien-bergen",
+    adressenavn: "Bønesheien",
+    kommunenummer: "4601",
+    kommune: "Bergen",
+    postnummer: "5154",
+    poststed: "BØNES",
+    antallEiendommer: 1,
+    antallBoligeiendommer: 1,
+    eiendommer: [
+      {
+        matrikkelId: "matr-bonesheien-258",
+        gnr: 20,
+        bnr: 258,
+        adresse: "Bønesheien 258",
+        bruksenhetstype: "bolig",
+        eiere: [universellEierPersonId]
+      }
+    ]
+  });
+}
+
 export async function readState() {
   const [
     personer,
@@ -123,12 +171,15 @@ export async function readState() {
     readJson("samtykker.json", []),
     readJson("revisjonslogg.json", []),
     readJson("prosessoekter.json", []),
-    readJson("matrikkel.json"),
+    readJson("matrikkel.seed.json"),
     readJson("satser.json"),
     readJson("sfoplasser.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
+
+  leggTilUniversellEierIAlleEiendommer(matrikkel);
+  leggTilBonesheienHvisMangler(matrikkel);
 
   return {
     personer,

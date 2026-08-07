@@ -54,6 +54,25 @@ paths:
           required: false
           schema:
             type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Returner paginert respons naar limit/offset brukes
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: includeEiendommer
+          required: false
+          schema:
+            type: boolean
+          description: Inkluder eiendomsliste per gate (kan bli stor)
       responses:
         "200":
           description: Treff
@@ -71,9 +90,55 @@ paths:
           required: false
           schema:
             type: string
+        - in: query
+          name: adresse
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: gnr
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: bnr
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: matrikkelId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
       responses:
         "200":
           description: Treffliste
+  /mock/matrikkel/eiendom-oppslag:
+    get:
+      summary: Hent eiendom via eksakt adresse
+      parameters:
+        - in: query
+          name: adresse
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Treffer
+        "404":
+          description: Ikke funnet
   /mock/matrikkel/eiendom/{matrikkelId}:
     get:
       summary: Hent en eiendom

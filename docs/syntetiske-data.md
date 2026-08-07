@@ -44,7 +44,7 @@ Kildedata i `data/`:
 | `inntekter.json` | Poster som mater beregningen, med `kilde` og `medregnes`. Har `stadie` (`OPPGJOER`/`UTKAST`) |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
-| `matrikkel.json` | Gater, eiendommer og eierforhold |
+| `matrikkel.seed.json` | Gater, eiendommer og eierforhold |
 | `informasjonsmodeller.json` | Begreper og attributter, med lenker til kildespesifikasjonene |
 | `prosessdefinisjoner.json` | Prosesskatalog med publiserte prosesser og maler |
 
@@ -92,6 +92,7 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 - eksempelpersoner skal være enkle å bruke i demo
 - nye datasett skal dokumenteres før de tas i bruk
 - tjenester skriver aldri i `data/`
+- filer i `data/` og `state/` skal lagres som UTF-8 (Unicode)
 
 ## Nåværende innhold
 

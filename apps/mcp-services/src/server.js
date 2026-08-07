@@ -4,6 +4,9 @@ const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 const aiBaseUrl = process.env.AI_BASE_URL || "http://ai-gateway:8082";
 const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrikkel-mock:8085";
+const matrikkelMode = String(process.env.MATRIKKEL_MODE || "mock").toLowerCase();
+const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
+const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
 
 const toolDefs = [
   {
@@ -187,21 +190,25 @@ const toolDefs = [
   },
   {
     name: "matrikkel_finn_veger",
-    description: "Find streets in matrikkel by partial street name.",
+    description: "Find streets in matrikkel by partial street name. Can return either first match or all matches.",
     inputSchema: {
       type: "object",
       properties: {
-        gate: { type: "string" }
+        gate: { type: "string" },
+        all: { type: "boolean", description: "Return all matches when true. Defaults to false for backward compatibility." },
+        limit: { type: "integer", minimum: 1, description: "Optional page size when all=true." },
+        offset: { type: "integer", minimum: 0, description: "Optional page offset when all=true." }
       }
     }
   },
   {
     name: "matrikkel_hent_eiendom",
-    description: "Fetch one property from matrikkel by matrikkelId or by gnr+bnr.",
+    description: "Fetch one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text such as 'Storgata 5'. In live/hybrid mode, exact address lookups can use Geonorge.",
     inputSchema: {
       type: "object",
       properties: {
         matrikkelId: { type: "string" },
+        adresse: { type: "string" },
         gnr: { type: "integer" },
         bnr: { type: "integer" }
       }
@@ -209,11 +216,12 @@ const toolDefs = [
   },
   {
     name: "matrikkel_hent_eiere",
-    description: "Get owners for one property from matrikkel by matrikkelId or by gnr+bnr.",
+    description: "Get owners for one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text. Live public address sources may return no owner information.",
     inputSchema: {
       type: "object",
       properties: {
         matrikkelId: { type: "string" },
+        adresse: { type: "string" },
         gnr: { type: "integer" },
         bnr: { type: "integer" }
       }
@@ -315,6 +323,281 @@ async function matrikkel(path) {
     throw upstreamError(data, res.status, "Matrikkel");
   }
   return data;
+}
+
+function normaliser(verdi) {
+  return String(verdi || "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeInt(verdi, fallback = 0) {
+  const n = Number.parseInt(String(verdi ?? ""), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clampInt(verdi, min, max) {
+  return Math.max(min, Math.min(max, safeInt(verdi, min)));
+}
+
+function geonorgeQueryVariants(query) {
+  const tekst = String(query || "").trim();
+  if (!tekst) return [];
+  const varianter = new Set([tekst]);
+  // Handle common keyboard fallbacks for Norwegian letters.
+  varianter.add(tekst.replaceAll("ae", "æ").replaceAll("oe", "ø").replaceAll("aa", "å"));
+  varianter.add(tekst.replaceAll("Ae", "Æ").replaceAll("Oe", "Ø").replaceAll("Aa", "Å"));
+  return [...varianter].filter(Boolean);
+}
+
+async function fetchJson(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), matrikkelHttpTimeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "workshop-ai-mcp/0.1 (+local sandbox)" }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.feilmelding || data?.feil || `HTTP ${res.status}`);
+    }
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Timeout mot matrikkel-kilde etter ${matrikkelHttpTimeoutMs} ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function geonorgeAdresseTilGate(adresse) {
+  return {
+    gateId: `geo-${adresse.kommunenummer || ""}-${normaliser(adresse.adressenavn)}`,
+    adressenavn: String(adresse.adressenavn || ""),
+    kommunenummer: String(adresse.kommunenummer || ""),
+    kommune: String(adresse.kommunenavn || ""),
+    postnummer: String(adresse.postnummer || ""),
+    poststed: String(adresse.poststed || ""),
+    antallEiendommer: 1
+  };
+}
+
+function geonorgeAdresseTekst(adresse) {
+  if (adresse?.adressetekst) return String(adresse.adressetekst).replace(/\s+/g, " ").trim();
+  const navn = String(adresse?.adressenavn || "").trim();
+  const nummer = safeInt(adresse?.nummer, 0);
+  const bokstav = String(adresse?.bokstav || "").trim().toUpperCase();
+  return [navn, nummer ? `${nummer}${bokstav}` : ""].filter(Boolean).join(" ").trim();
+}
+
+function normaliserAdresseTekst(verdi) {
+  return normaliser(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function byggAdressekjerne(verdi) {
+  const tekst = normaliserAdresseTekst(verdi)
+    .replace(/\b(norge|norway)\b/gu, " ")
+    .replace(/\b\d{4}\s+[\p{L}\s-]+$/u, " ")
+    .replace(/\b[\p{L}\s-]+\s+\d{4}$/u, " ")
+    .replace(/\b[\p{L}\s-]+$/u, (match) => (/\d/.test(match) ? match : " "))
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const treff = tekst.match(/([\p{L}][\p{L}\s.-]*?(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
+  return treff?.[1] ? normaliserAdresseTekst(treff[1]) : tekst;
+}
+
+function geonorgeAdresseTilEiendom(adresse) {
+  const husnummer = safeInt(adresse?.nummer, 0);
+  const husbokstav = String(adresse?.bokstav || "").trim().toUpperCase() || null;
+  const adressetekst = geonorgeAdresseTekst(adresse);
+  const kommunenummer = String(adresse?.kommunenummer || "");
+  const adressekode = safeInt(adresse?.adressekode, 0);
+  const gnr = safeInt(adresse?.gardsnummer, 0);
+  const bnr = safeInt(adresse?.bruksnummer, 0);
+  const fnr = safeInt(adresse?.festenummer, 0);
+  const undernummer = safeInt(adresse?.undernummer, 0) || null;
+  return {
+    matrikkelId: `geo-${kommunenummer}-${adressekode}-${husnummer}${husbokstav || ""}-${gnr}-${bnr}`,
+    gnr,
+    bnr,
+    festenummer: fnr,
+    undernummer,
+    adressekode,
+    adresse: adressetekst,
+    husnummer,
+    husbokstav,
+    bruksenhetstype: "ukjent",
+    adressenavn: String(adresse?.adressenavn || ""),
+    kommunenummer,
+    kommune: String(adresse?.kommunenavn || ""),
+    postnummer: String(adresse?.postnummer || ""),
+    poststed: String(adresse?.poststed || ""),
+    objtype: String(adresse?.objtype || "Vegadresse"),
+    koordinater: adresse?.representasjonspunkt
+      ? {
+          lat: Number(adresse.representasjonspunkt.lat || 0),
+          lon: Number(adresse.representasjonspunkt.lon || 0),
+          epsg: String(adresse.representasjonspunkt.epsg || "EPSG:4258")
+        }
+      : null,
+    eiere: [],
+    syntetisk: false,
+    kilde: {
+      navn: "Geonorge adresser v1",
+      type: "offentlig-adressegrunnlag"
+    }
+  };
+}
+
+function velgBesteLiveAdresse(adresser, query) {
+  if (!Array.isArray(adresser) || !adresser.length) return null;
+  const soek = normaliserAdresseTekst(query);
+  const soekKjerne = byggAdressekjerne(query);
+  const eksakt = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)) === soek);
+  if (eksakt) return eksakt;
+  const eksaktKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)) === soekKjerne);
+  if (eksaktKjerne) return eksaktKjerne;
+  const starterMed = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)).startsWith(soek));
+  if (starterMed) return starterMed;
+  const starterMedKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)).startsWith(soekKjerne));
+  if (starterMedKjerne) return starterMedKjerne;
+  const inneholder = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)).includes(soek));
+  if (inneholder) return inneholder;
+  const inneholderKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)).includes(soekKjerne));
+  return inneholderKjerne || adresser[0] || null;
+}
+
+function paginerListe(liste, args = {}) {
+  const offset = Math.max(0, safeInt(args.offset, 0));
+  const limit = Number.isInteger(args.limit)
+    ? clampInt(args.limit, 1, 1000)
+    : Math.max(1, liste.length || 1);
+  return liste.slice(offset, offset + limit);
+}
+
+async function finnVegerLive(args = {}) {
+  const gate = String(args.gate || "").trim();
+  if (!gate) return [];
+
+  const offset = Math.max(0, safeInt(args.offset, 0));
+  const requestedLimit = Number.isInteger(args.limit) ? args.limit : (args.all ? 20 : 1);
+  const limit = clampInt(requestedLimit, 1, 200);
+  const treffPerSide = clampInt(offset + limit, 10, 1000);
+
+  const perGate = new Map();
+  for (const variant of geonorgeQueryVariants(gate)) {
+    const params = new URLSearchParams({
+      sok: variant,
+      treffPerSide: String(treffPerSide),
+      side: "0"
+    });
+    const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`);
+    const adresser = Array.isArray(data?.adresser) ? data.adresser : [];
+    for (const adresse of adresser) {
+      if (!adresse?.adressenavn) continue;
+      const key = `${adresse.kommunenummer || ""}|${normaliser(adresse.adressenavn)}`;
+      if (!perGate.has(key)) {
+        perGate.set(key, geonorgeAdresseTilGate(adresse));
+      } else {
+        const eksisterende = perGate.get(key);
+        eksisterende.antallEiendommer += 1;
+      }
+    }
+  }
+
+  const liste = [...perGate.values()].sort((a, b) => {
+    const navn = a.adressenavn.localeCompare(b.adressenavn, "nb");
+    return navn !== 0 ? navn : String(a.kommunenummer).localeCompare(String(b.kommunenummer), "nb");
+  });
+  return paginerListe(liste, { offset, limit });
+}
+
+async function finnEiendomLive(args = {}) {
+  const adresse = String(args.adresse || "").trim();
+  if (!adresse) return null;
+
+  const adresseKjerne = byggAdressekjerne(adresse);
+  const soeketermer = new Set([
+    adresse,
+    adresseKjerne,
+    adresseKjerne.replace(/\s*,\s*/g, " ").trim()
+  ].filter(Boolean));
+
+  const kandidater = [];
+  for (const term of soeketermer) {
+    for (const variant of geonorgeQueryVariants(term)) {
+    const params = new URLSearchParams({
+      sok: variant,
+      treffPerSide: "20",
+      side: "0"
+    });
+    const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`);
+    kandidater.push(...(Array.isArray(data?.adresser) ? data.adresser : []));
+    }
+  }
+
+  const adresseTreff = velgBesteLiveAdresse(kandidater, adresse);
+  return adresseTreff ? geonorgeAdresseTilEiendom(adresseTreff) : null;
+}
+
+async function finnVegerMock(args = {}) {
+  const params = new URLSearchParams();
+  if (args.gate) params.set("gate", String(args.gate));
+  if (Number.isInteger(args.limit)) params.set("limit", String(args.limit));
+  if (Number.isInteger(args.offset)) params.set("offset", String(args.offset));
+  const suffix = params.size ? `?${params.toString()}` : "";
+  const result = await matrikkel(`/mock/matrikkel/gater${suffix}`);
+  return Array.isArray(result)
+    ? result
+    : (Array.isArray(result?.items) ? result.items : (result ? [result] : []));
+}
+
+function matrikkelVegerSvar(liste, args = {}) {
+  if (args.all) return liste;
+  if (!liste.length) {
+    throw new Error(`Fant ingen gater for soeket ${args.gate || ""}.`);
+  }
+  return liste[0];
+}
+
+function damerauLevenshtein(a, b) {
+  const s = String(a || "");
+  const t = String(b || "");
+  const d = Array.from({ length: s.length + 1 }, () => Array(t.length + 1).fill(0));
+  for (let i = 0; i <= s.length; i += 1) d[i][0] = i;
+  for (let j = 0; j <= t.length; j += 1) d[0][j] = j;
+  for (let i = 1; i <= s.length; i += 1) {
+    for (let j = 1; j <= t.length; j += 1) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(
+        d[i - 1][j] + 1,
+        d[i][j - 1] + 1,
+        d[i - 1][j - 1] + cost
+      );
+      if (i > 1 && j > 1 && s[i - 1] === t[j - 2] && s[i - 2] === t[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + cost);
+      }
+    }
+  }
+  return d[s.length][t.length];
+}
+
+function fuzzyGateTreff(gater, gateSoek, limit = 10) {
+  const soek = normaliser(gateSoek);
+  if (!soek) return [];
+  return [...gater]
+    .map((gate) => ({ gate, distanse: damerauLevenshtein(soek, normaliser(gate.adressenavn)) }))
+    .filter((entry) => entry.distanse <= 2)
+    .sort((a, b) => a.distanse - b.distanse || a.gate.adressenavn.localeCompare(b.gate.adressenavn, "nb"))
+    .slice(0, Math.max(1, limit))
+    .map((entry) => entry.gate);
 }
 
 async function invokeTool(name, args = {}) {
@@ -462,13 +745,54 @@ async function invokeTool(name, args = {}) {
   }
 
   if (name === "matrikkel_finn_veger") {
-    const gate = args.gate ? `?gate=${encodeURIComponent(args.gate)}` : "";
-    return matrikkel(`/mock/matrikkel/gater${gate}`);
+    const kanBrukeLive = (matrikkelMode === "live" || matrikkelMode === "hybrid") && args.gate;
+    if (kanBrukeLive) {
+      try {
+        const liveTreff = await finnVegerLive(args);
+        if (liveTreff.length || matrikkelMode === "live") {
+          return matrikkelVegerSvar(liveTreff, args);
+        }
+      } catch (error) {
+        if (matrikkelMode === "live") {
+          throw error;
+        }
+      }
+    }
+
+    const mockTreff = await finnVegerMock(args);
+    if (mockTreff.length || !args.gate) {
+      return matrikkelVegerSvar(mockTreff, args);
+    }
+
+    // Last fallback: typo-tolerant match over the full mock list.
+    const alleMockTreff = await finnVegerMock({ all: true, limit: 5000, offset: 0 });
+    const fuzzyTreff = fuzzyGateTreff(alleMockTreff, args.gate, Number.isInteger(args.limit) ? args.limit : 10);
+    return matrikkelVegerSvar(fuzzyTreff, args);
   }
 
   if (name === "matrikkel_hent_eiendom") {
+    const kanBrukeLiveAdresse = (matrikkelMode === "live" || matrikkelMode === "hybrid") && args.adresse;
+    if (kanBrukeLiveAdresse) {
+      try {
+        const liveEiendom = await finnEiendomLive(args);
+        if (liveEiendom || matrikkelMode === "live") {
+          if (!liveEiendom) {
+            throw new Error(`Fant ikke adressen ${args.adresse} i offentlig adressekilde.`);
+          }
+          return liveEiendom;
+        }
+      } catch (error) {
+        if (matrikkelMode === "live") {
+          throw error;
+        }
+      }
+    }
+
     if (args.matrikkelId) {
       return matrikkel(`/mock/matrikkel/eiendom/${encodeURIComponent(args.matrikkelId)}`);
+    }
+    if (args.adresse) {
+      return matrikkel(`/mock/matrikkel/eiendom-oppslag?adresse=${encodeURIComponent(args.adresse)}`);
     }
     if (Number.isInteger(args.gnr) && Number.isInteger(args.bnr)) {
       const eiendommer = await matrikkel("/mock/matrikkel/eiendommer");
@@ -476,19 +800,23 @@ async function invokeTool(name, args = {}) {
       if (!funn) throw clientError(`Fant ikke matrikkelenhet med gnr=${args.gnr} og bnr=${args.bnr}.`, 404);
       return funn;
     }
-    throw clientError("Oppgi enten matrikkelId eller begge feltene gnr og bnr.");
+    throw clientError("Oppgi enten matrikkelId, adresse eller begge feltene gnr og bnr.");
   }
 
   if (name === "matrikkel_hent_eiere") {
     const eiendom = await invokeTool("matrikkel_hent_eiendom", args);
+    const syntetisk = eiendom?.syntetisk !== false;
+    const eiere = Array.isArray(eiendom.eiere) ? eiendom.eiere : [];
     return {
       matrikkelId: eiendom.matrikkelId,
       gnr: eiendom.gnr,
       bnr: eiendom.bnr,
       adresse: eiendom.adresse,
-      eiere: Array.isArray(eiendom.eiere) ? eiendom.eiere : [],
-      antallEiere: Array.isArray(eiendom.eiere) ? eiendom.eiere.length : 0,
-      syntetisk: true
+      eiere,
+      antallEiere: eiere.length,
+      syntetisk,
+      kilde: eiendom.kilde,
+      merknad: syntetisk ? undefined : "Offentlig adressekilde inneholder ikke eierinformasjon."
     };
   }
 

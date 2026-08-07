@@ -12,7 +12,7 @@ This service exposes tool endpoints a generic agent can call to:
 - handle consent steps
 - run action steps and move to next step
 - interpret user replies through `ai-gateway`
-- look up matrikkel streets, properties, and owners through `matrikkel-mock`
+- look up matrikkel streets, properties, and owners through `matrikkel-mock` and optional live gate lookup
 - **dynamically discover which tools are relevant for any given process step** via `suggest_step_tools`
 
 ## Tool list
@@ -34,8 +34,8 @@ This service exposes tool endpoints a generic agent can call to:
 | `match_process_choice` | Match free text to process via AI |
 | `get_audit_log` | Fetch audit events by tracking id |
 | `matrikkel_finn_veger` | Search streets in matrikkel |
-| `matrikkel_hent_eiendom` | Fetch property by matrikkelId or gnr+bnr |
-| `matrikkel_hent_eiere` | Fetch owners for a property |
+| `matrikkel_hent_eiendom` | Fetch property by matrikkelId, gnr+bnr, or exact address |
+| `matrikkel_hent_eiere` | Fetch owners for a property by matrikkelId, gnr+bnr, or exact address |
 | `suggest_step_tools` | Ask AI gateway which tools are relevant for a step |
 
 ## Matrikkel tools
@@ -58,6 +58,12 @@ This service exposes tool endpoints a generic agent can call to:
 - `BACKEND_BASE_URL` (default `http://sandbox-backend:8080`)
 - `AI_BASE_URL` (default `http://ai-gateway:8082`)
 - `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`)
+- `MATRIKKEL_MODE` (default `mock`; `live` or `hybrid` enables direct gate lookup via Geonorge)
+- `GEONORGE_ADRESSE_API_BASE_URL` (default `https://ws.geonorge.no/adresser/v1`)
+- `MATRIKKEL_HTTP_TIMEOUT_MS` (default `6000`)
+
+I `live`/`hybrid` brukes Geonorge også for eksakte adresseoppslag i `matrikkel_hent_eiendom`.
+`matrikkel_hent_eiere` kan da returnere tom eierliste med en forklarende `merknad`, siden den offentlige adressekilden ikke inneholder eierinformasjon.
 
 ## Example
 
@@ -99,3 +105,15 @@ curl -s -X POST http://localhost:8083/mcp/tools/invoke \
     }
   }'
 ```
+
+```bash
+curl -s -X POST http://localhost:8083/mcp/tools/invoke \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "matrikkel_hent_eiendom",
+    "arguments": {
+      "adresse": "Storgata 5"
+    }
+  }'
+```
+

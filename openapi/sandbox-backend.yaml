@@ -348,6 +348,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/SjekkResultat"
 
+  /api/matrikkel/gater:
+    get:
+      summary: Søk i tilgjengelige gater i matrikkeldata
+      description: Returnerer alle tilgjengelige gater, eller alle treff som matcher hele eller deler av et gatenavn.
+      parameters:
+        - name: gate
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Hele eller deler av gatenavn.
+      responses:
+        "200":
+          description: Liste over gater eller treff.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatrikkelGateSummary"
+        "404":
+          description: Fant ingen matchende gate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/matrikkel/sjekk/eierforhold:
+    get:
+      summary: Sjekk om en person er registrert som eier i en gate
+      parameters:
+        - name: gate
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Eierforhold vurdert.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatrikkelEierforholdSjekk"
+        "404":
+          description: Fant ikke gaten.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/regler/satser:
     get:
       summary: Hent moderasjonsordninger med regler og inntektsgrenser
@@ -492,7 +547,41 @@ components:
         grunnlag:
           type: object
           description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
-
+    ErrorResponse:
+      type: object
+      properties:
+        feil:
+          type: string
+        tilgjengelige:
+          type: array
+          items:
+            type: string
+    MatrikkelGateSummary:
+      type: object
+      required: [gateId, adressenavn, kommune, antallEiendommer, antallBoligeiendommer]
+      properties:
+        gateId:
+          type: string
+        adressenavn:
+          type: string
+        kommune:
+          type: string
+        antallEiendommer:
+          type: integer
+        antallBoligeiendommer:
+          type: integer
+    MatrikkelEierforholdSjekk:
+      type: object
+      required: [personId, gate, harEiendom, godkjent]
+      properties:
+        personId:
+          type: string
+        gate:
+          type: string
+        harEiendom:
+          type: boolean
+        godkjent:
+          type: boolean
     RedigeringMeta:
       type: object
       description: Valgfri metadata for enklere redigering av prosessdefinisjoner.

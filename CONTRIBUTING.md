@@ -46,6 +46,7 @@ En endring er ikke ferdig før:
 
 - språk i kode: engelsk
 - språk i dokumentasjon: norsk er ok, engelsk er også greit hvis teamet trenger det
+- filencoding: bruk UTF-8 (Unicode) for kode, dokumentasjon og datafiler
 - API-felter: bruk konsistente navn og eksplisitt `syntetisk: true` der det passer
 - ikke introduser tunge plattformer før behovet er reelt
 - unngå å gjøre midlertidige referanseløsninger til harde krav for andre team

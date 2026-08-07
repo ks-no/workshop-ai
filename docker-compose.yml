@@ -129,6 +129,8 @@ services:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_BASE_URL=http://ai-gateway:8082
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
+      - MATRIKKEL_MODE=${MATRIKKEL_MODE:-live}
+      - GEONORGE_ADRESSE_API_BASE_URL=${GEONORGE_ADRESSE_API_BASE_URL:-https://ws.geonorge.no/adresser/v1}
     ports:
       - "8083:8083"
     volumes:

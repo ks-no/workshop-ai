@@ -99,6 +99,9 @@ components:
           oneOf:
             - $ref: "#/components/schemas/ListProcessesResult"
             - $ref: "#/components/schemas/MatrikkelGate"
+            - type: array
+              items:
+                $ref: "#/components/schemas/MatrikkelGate"
             - $ref: "#/components/schemas/MatrikkelEiendom"
             - $ref: "#/components/schemas/MatrikkelEiereResult"
             - $ref: "#/components/schemas/SuggestStepToolsResult"
@@ -107,6 +110,7 @@ components:
 
     MatrikkelGate:
       type: object
+      description: Street match returned from matrikkel_finn_veger (from mock or live Geonorge lookup depending on MATRIKKEL_MODE).
       properties:
         gateId:
           type: string
@@ -120,9 +124,12 @@ components:
           type: string
         poststed:
           type: string
+        antallEiendommer:
+          type: integer
 
     MatrikkelEiendom:
       type: object
+      description: Property result from matrikkel_hent_eiendom. In live/hybrid mode, exact address lookups may come from Geonorge instead of the local mock.
       properties:
         matrikkelId:
           type: string
@@ -130,7 +137,17 @@ components:
           type: integer
         bnr:
           type: integer
+        festenummer:
+          type: integer
+        undernummer:
+          type: integer
+        adressekode:
+          type: integer
         adresse:
+          type: string
+        husnummer:
+          type: integer
+        husbokstav:
           type: string
         bruksenhetstype:
           type: string
@@ -140,10 +157,21 @@ components:
           type: string
         kommune:
           type: string
+        postnummer:
+          type: string
+        poststed:
+          type: string
+        objtype:
+          type: string
         eiere:
           type: array
           items:
             type: string
+        syntetisk:
+          type: boolean
+        kilde:
+          type: object
+          additionalProperties: true
 
     MatrikkelEiereResult:
       type: object
@@ -162,6 +190,13 @@ components:
             type: string
         antallEiere:
           type: integer
+        syntetisk:
+          type: boolean
+        kilde:
+          type: object
+          additionalProperties: true
+        merknad:
+          type: string
 
     SuggestStepToolsResult:
       type: object
