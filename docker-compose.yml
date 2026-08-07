@@ -98,6 +98,28 @@ services:
     ports:
       - "8085:8085"
 
+  brreg-mcp:
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["node", "apps/brreg-mcp/src/server.js"]
+    environment:
+      - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/workspace
+
+  folkeregister-mcp:
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["node", "apps/folkeregister-mcp/src/server.js"]
+    environment:
+      - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/workspace
+
   ai-gateway:
     image: node:24-alpine
     working_dir: /workspace
@@ -125,12 +147,16 @@ services:
       - sandbox-backend
       - ai-gateway
       - matrikkel-mock
+      - brreg-mcp
+      - folkeregister-mcp
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_BASE_URL=http://ai-gateway:8082
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
       - MATRIKKEL_MODE=${MATRIKKEL_MODE:-live}
       - GEONORGE_ADRESSE_API_BASE_URL=${GEONORGE_ADRESSE_API_BASE_URL:-https://ws.geonorge.no/adresser/v1}
+      - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
+      - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
     ports:
       - "8083:8083"
     volumes:

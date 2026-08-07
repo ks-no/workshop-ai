@@ -77,7 +77,8 @@ components:
             next_step, previous_step, interpret_reply, get_household_income,
             check_eligibility, list_schemes, match_process_choice, get_audit_log,
             matrikkel_finn_veger, matrikkel_hent_eiendom, matrikkel_hent_eiere,
-            suggest_step_tools.
+            brreg_search_organisations, brreg_get_organisation,
+            folkeregister_search_persons, folkeregister_get_person, suggest_step_tools.
         arguments:
           type: object
           additionalProperties: true
@@ -104,9 +105,135 @@ components:
                 $ref: "#/components/schemas/MatrikkelGate"
             - $ref: "#/components/schemas/MatrikkelEiendom"
             - $ref: "#/components/schemas/MatrikkelEiereResult"
+            - $ref: "#/components/schemas/BrregOrganisation"
+            - $ref: "#/components/schemas/BrregSearchResult"
+            - $ref: "#/components/schemas/FolkeregisterPerson"
+            - $ref: "#/components/schemas/FolkeregisterSearchResult"
             - $ref: "#/components/schemas/SuggestStepToolsResult"
             - type: object
               additionalProperties: true
+
+    BrregOrganisation:
+      type: object
+      properties:
+        organisasjonsnummer:
+          type: string
+        navn:
+          type: string
+        organisasjonsform:
+          type: object
+          properties:
+            kode:
+              type: string
+              nullable: true
+            beskrivelse:
+              type: string
+              nullable: true
+        naeringKode:
+          type: array
+          items:
+            type: string
+        naeringBeskrivelse:
+          type: array
+          items:
+            type: string
+        registrertIForetaksregisteret:
+          type: boolean
+        registrertIMvaregisteret:
+          type: boolean
+        antallUnderenheter:
+          type: integer
+          nullable: true
+        forretningsadresse:
+          type: object
+          additionalProperties: true
+          nullable: true
+        postadresse:
+          type: object
+          additionalProperties: true
+          nullable: true
+        telefonnummer:
+          type: string
+          nullable: true
+        nettside:
+          type: string
+          nullable: true
+
+    BrregSearchResult:
+      type: object
+      properties:
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+        count:
+          type: integer
+        organisasjoner:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrregOrganisation"
+
+    FolkeregisterPerson:
+      type: object
+      properties:
+        foedselsEllerDNummer:
+          type: string
+        personnavn:
+          type: object
+          properties:
+            fornavn: { type: string, nullable: true }
+            mellomnavn: { type: string, nullable: true }
+            etternavn: { type: string, nullable: true }
+        foedselsdato:
+          type: string
+          format: date
+        kjoenn:
+          type: string
+          nullable: true
+          enum: [MANN, KVINNE, null]
+        sivilstand:
+          type: string
+          nullable: true
+        bostedsadresse:
+          type: object
+          additionalProperties: true
+          nullable: true
+        forelderbarnrelasjon:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        skjermet:
+          type: boolean
+        kontakt:
+          type: object
+          additionalProperties: true
+        _sandbox:
+          type: object
+          properties:
+            personId: { type: string }
+            husstandId: { type: string }
+            rolle: { type: string }
+            visningsnavn: { type: string }
+        syntetisk:
+          type: boolean
+
+    FolkeregisterSearchResult:
+      type: object
+      properties:
+        total: { type: integer }
+        offset: { type: integer }
+        limit: { type: integer }
+        count: { type: integer }
+        personer:
+          type: array
+          items:
+            $ref: "#/components/schemas/FolkeregisterPerson"
+        merknad:
+          type: string
+          nullable: true
 
     MatrikkelGate:
       type: object

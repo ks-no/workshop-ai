@@ -464,6 +464,181 @@ function extractPossibleAdresseMention(text) {
   return medNummer?.[1]?.replace(/\s+/g, " ").trim() || null;
 }
 
+function extractPossibleOrgnr(text) {
+  const match = String(text || "").match(/\b(\d{9})\b/);
+  return match?.[1] || null;
+}
+
+function extractBrregQuery(text) {
+  let value = String(text || "").trim().replace(/[?]+$/g, "").trim();
+  if (!value) return "";
+
+  const quoted = value.match(/["'`“”]([^"'`“”]{2,})["'`“”]/);
+  if (quoted?.[1]) return quoted[1].trim();
+
+  const prefixes = [
+    /^hva vet du om\s+/i,
+    /^kan du finne\s+/i,
+    /^kan du sjekke\s+/i,
+    /^finn\s+/i,
+    /^sok opp\s+/i,
+    /^sok\s+/i,
+    /^hvem er\s+/i,
+    /^hva er\s+/i,
+    /^oppslag\s+pa\s+/i,
+    /^brreg\s+/i,
+    /^enhetsregisteret\s+/i
+  ];
+
+  for (const pattern of prefixes) {
+    value = value.replace(pattern, "").trim();
+  }
+
+  value = value
+    .replace(/\b(i|fra)\s+brreg\b/gi, "")
+    .replace(/\b(i|fra)\s+enhetsregisteret\b/gi, "")
+    .replace(/\borganisasjon(en)?\b/gi, "")
+    .replace(/\bbedrift(en)?\b/gi, "")
+    .replace(/\bfirma(et)?\b/gi, "")
+    .replace(/\borg\.?(nr|nummer)?\b/gi, "")
+    .replace(/[,:;.!]+$/g, "")
+    .trim();
+
+  return value;
+}
+
+function extractPossibleFnr(text) {
+  const match = String(text || "").match(/\b(\d{11})\b/);
+  return match?.[1] || null;
+}
+
+function extractFolkeregisterQuery(text) {
+  let value = String(text || "").trim().replace(/[?]+$/g, "").trim();
+  const quoted = value.match(/["'`""]([^"'`""]{2,})["'`""]/);
+  if (quoted?.[1]) return quoted[1].trim();
+
+  const prefixes = [
+    /^hva vet du om\s+/i,
+    /^hvem er\s+/i,
+    /^finn\s+/i,
+    /^kan du finne\s+/i,
+    /^sok\s+/i,
+    /^sok opp\s+/i,
+    /^folkeregister(et)?\s*/i,
+    /^person(en)?\s+/i
+  ];
+  for (const pattern of prefixes) {
+    value = value.replace(pattern, "").trim();
+  }
+  return value
+    .replace(/\bi\s+folkeregister(et)?\b/gi, "")
+    .replace(/\bfolkeregister(et)?\b/gi, "")
+    .replace(/[,:;.!]+$/g, "")
+    .trim();
+}
+
+async function maybeAnswerFolkeregisterQuestion(text) {
+  const lower = normalize(text);
+  const mentionsPerson = [
+    "folkeregister",
+    "person",
+    "fodselsnummer",
+    "fnr",
+    "bosatt",
+    "registrert",
+    "hvem bor"
+  ].some((term) => lower.includes(term));
+  if (!mentionsPerson) return null;
+
+  // 11-digit fnr takes priority
+  const fnr = extractPossibleFnr(text);
+  if (fnr) {
+    try {
+      const person = await invokeTool("folkeregister_get_person", { foedselsEllerDNummer: fnr });
+      const navn = person.personnavn;
+      const fullNavn = [navn?.fornavn, navn?.mellomnavn, navn?.etternavn].filter(Boolean).join(" ");
+      const kommune = person.bostedsadresse?.kommune || "ukjent kommune";
+      return `${fullNavn} (${fnr}) er registrert bosatt i ${kommune}.`;
+    } catch {
+      return `Jeg fant ingen person med fødselsnummer ${fnr} i folkeregisteret (testdata).`;
+    }
+  }
+
+  const query = extractFolkeregisterQuery(text);
+  if (!query || query.length < 2) {
+    return "Jeg kan slå opp personer i folkeregisteret (testdata). Oppgi navn eller fødselsnummer.";
+  }
+
+  try {
+    const result = await invokeTool("folkeregister_search_persons", { query, limit: 5 });
+    const treff = Array.isArray(result?.personer) ? result.personer : [];
+    if (!treff.length) {
+      return `Jeg fant ingen personer som matcher «${query}» i folkeregisteret (testdata).`;
+    }
+    if (treff.length === 1) {
+      const p = treff[0];
+      const navn = p.personnavn;
+      const fullNavn = [navn?.fornavn, navn?.mellomnavn, navn?.etternavn].filter(Boolean).join(" ");
+      const kommune = p.bostedsadresse?.kommune || "ukjent";
+      return `Jeg fant ${fullNavn} (fnr: ${p.foedselsEllerDNummer}) registrert i ${kommune}.`;
+    }
+    const liste = treff.slice(0, 5).map((p) => {
+      const navn = p.personnavn;
+      return [navn?.fornavn, navn?.mellomnavn, navn?.etternavn].filter(Boolean).join(" ");
+    }).join(", ");
+    return `Jeg fant flere treff i folkeregisteret (testdata): ${liste}.`;
+  } catch {
+    return "Jeg klarte ikke gjøre folkeregister-oppslaget akkurat nå. Prøv igjen om litt.";
+  }
+}
+
+async function maybeAnswerBrregQuestion(text) {
+  const lower = normalize(text);
+  const mentionsBrreg = [
+    "brreg",
+    "enhetsregister",
+    "organisasjon",
+    "orgnr",
+    "organisasjonsnummer",
+    "bedrift",
+    "firma"
+  ].some((term) => lower.includes(term));
+  if (!mentionsBrreg) return null;
+
+  const organisasjonsnummer = extractPossibleOrgnr(text);
+  if (organisasjonsnummer) {
+    try {
+      const org = await invokeTool("brreg_get_organisation", { organisasjonsnummer });
+      const kommune = org?.forretningsadresse?.kommune || org?.postadresse?.kommune || "ukjent kommune";
+      const form = org?.organisasjonsform?.kode || org?.organisasjonsform?.beskrivelse || "ukjent organisasjonsform";
+      return `${org.navn} (${org.organisasjonsnummer}) er registrert som ${form} i ${kommune}.`;
+    } catch {
+      return `Jeg fant ingen organisasjon med organisasjonsnummer ${organisasjonsnummer} i BRREG-testdata.`;
+    }
+  }
+
+  const query = extractBrregQuery(text);
+  if (!query || query.length < 2) {
+    return "Jeg kan slå opp organisasjoner i BRREG-testdata. Oppgi gjerne organisasjonsnummer (9 siffer) eller navn.";
+  }
+
+  try {
+    const result = await invokeTool("brreg_search_organisations", { query, limit: 5, offset: 0 });
+    const treff = Array.isArray(result?.organisasjoner) ? result.organisasjoner : [];
+    if (!treff.length) {
+      return `Jeg fant ingen organisasjoner som matcher «${query}» i BRREG-testdata.`;
+    }
+    if (treff.length === 1) {
+      const org = treff[0];
+      const kommune = org?.forretningsadresse?.kommune || "ukjent kommune";
+      return `Jeg fant ${org.navn} (${org.organisasjonsnummer}) i ${kommune}.`;
+    }
+    return `Jeg fant flere treff i BRREG-testdata: ${treff.slice(0, 5).map((org) => `${org.navn} (${org.organisasjonsnummer})`).join(", ")}.`;
+  } catch {
+    return "Jeg klarte ikke gjøre BRREG-oppslaget akkurat nå. Prøv igjen om litt.";
+  }
+}
+
 async function maybeAnswerPreciseMatrikkelQuestion(text) {
   if (!text.includes("?")) return null;
   const lower = normalize(text);
@@ -958,6 +1133,16 @@ async function handleMessage(state, message) {
   const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(text);
   if (presisMatrikkelSvar) {
     return [presisMatrikkelSvar];
+  }
+
+  const brregSvar = await maybeAnswerBrregQuestion(text);
+  if (brregSvar) {
+    return [brregSvar];
+  }
+
+  const folkeregisterSvar = await maybeAnswerFolkeregisterQuestion(text);
+  if (folkeregisterSvar) {
+    return [folkeregisterSvar];
   }
 
   if (state.awaiting === "question") {

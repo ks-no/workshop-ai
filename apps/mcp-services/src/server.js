@@ -1,4 +1,7 @@
 import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
@@ -7,6 +10,11 @@ const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrikkel-moc
 const matrikkelMode = String(process.env.MATRIKKEL_MODE || "mock").toLowerCase();
 const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const brregDataFile = process.env.BRREG_DATA_FILE || path.resolve(__dirname, "../../../data/brreg.seed.json");
+const folkeregisterDataFile = process.env.FOLKEREGISTER_DATA_FILE || path.resolve(__dirname, "../../../data/folkeregister.seed.json");
+let brregRegisterPromise = null;
+let folkeregisterRegisterPromise = null;
 
 const toolDefs = [
   {
@@ -228,6 +236,60 @@ const toolDefs = [
     }
   },
   {
+    name: "brreg_search_organisations",
+    description: "Search BRREG Enhetsregisteret testdata for organisations by name/orgnr and optional filters.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free text search over orgnr, navn, and naering info." },
+        kommune: { type: "string", description: "Optional municipality filter." },
+        organisasjonsform: { type: "string", description: "Optional organisation form filter (for example AS)." },
+        limit: { type: "integer", minimum: 1, maximum: 100 },
+        offset: { type: "integer", minimum: 0 }
+      }
+    }
+  },
+  {
+    name: "brreg_get_organisation",
+    description: "Get one organisation by organisasjonsnummer from BRREG Enhetsregisteret testdata.",
+    inputSchema: {
+      type: "object",
+      required: ["organisasjonsnummer"],
+      properties: {
+        organisasjonsnummer: { type: "string" }
+      }
+    }
+  },
+  {
+    name: "folkeregister_search_persons",
+    description: "Search Folkeregisteret syntetiske testdata for persons by name, fødselsnummer, or municipality.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free text over name, fnr, personId, commune." },
+        foedselsEllerDNummer: { type: "string" },
+        fnr: { type: "string", description: "Alias for foedselsEllerDNummer." },
+        kommune: { type: "string" },
+        includeSkjermet: { type: "boolean", default: false },
+        limit: { type: "integer", minimum: 1, maximum: 100 },
+        offset: { type: "integer", minimum: 0 }
+      }
+    }
+  },
+  {
+    name: "folkeregister_get_person",
+    description: "Get one person from Folkeregisteret by fødselsnummer or sandbox personId.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        foedselsEllerDNummer: { type: "string" },
+        fnr: { type: "string", description: "Alias for foedselsEllerDNummer." },
+        personId: { type: "string", description: "Sandbox personId, e.g. person-001." },
+        includeSkjermet: { type: "boolean", default: false }
+      }
+    }
+  },
+  {
     name: "suggest_step_tools",
     description: "Ask the AI gateway which MCP tools are relevant for a given process step. Returns tools to call proactively for context and/or to validate user answers.",
     inputSchema: {
@@ -341,6 +403,124 @@ function safeInt(verdi, fallback = 0) {
 
 function clampInt(verdi, min, max) {
   return Math.max(min, Math.min(max, safeInt(verdi, min)));
+}
+
+function parseEmbeddedMetadata(doc) {
+  const raw = doc?.tenorMetadata?.kildedata;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function toBrregOrganisation(doc) {
+  const embedded = parseEmbeddedMetadata(doc);
+  const orgForm = embedded?.organisasjonsform || {};
+  const addr = doc?.forretningsadresse || embedded?.forretningsadresse || null;
+  const postAddr = doc?.postadresse || embedded?.postadresse || null;
+  return {
+    organisasjonsnummer: String(doc?.organisasjonsnummer || embedded?.organisasjonsnummer || ""),
+    navn: String(doc?.navn || embedded?.navn || ""),
+    organisasjonsform: {
+      kode: orgForm?.kode ? String(orgForm.kode) : null,
+      beskrivelse: orgForm?.beskrivelse ? String(orgForm.beskrivelse) : null
+    },
+    naeringKode: Array.isArray(doc?.naeringKode) ? doc.naeringKode.map(String) : [],
+    naeringBeskrivelse: Array.isArray(doc?.naeringBeskrivelse) ? doc.naeringBeskrivelse.map(String) : [],
+    registrertIForetaksregisteret: Boolean(doc?.registrertIForetaksregisteret),
+    registrertIMvaregisteret: Boolean(doc?.registrertIMvaregisteret),
+    antallUnderenheter: doc?.antallUnderenheter ?? null,
+    forretningsadresse: addr,
+    postadresse: postAddr,
+    telefonnummer: doc?.telefonnummer ? String(doc.telefonnummer) : null,
+    nettside: doc?.hjemmeside ? String(doc.hjemmeside) : null,
+    _search: normaliser([
+      doc?.organisasjonsnummer,
+      doc?.navn,
+      orgForm?.kode,
+      orgForm?.beskrivelse,
+      addr?.kommune,
+      addr?.poststed,
+      postAddr?.kommune,
+      postAddr?.poststed,
+      ...(Array.isArray(doc?.naeringKode) ? doc.naeringKode : []),
+      ...(Array.isArray(doc?.naeringBeskrivelse) ? doc.naeringBeskrivelse : [])
+    ].filter(Boolean).join(" "))
+  };
+}
+
+async function loadBrregRegister() {
+  const raw = await readFile(brregDataFile, "utf8");
+  const parsed = JSON.parse(raw);
+  const list = Array.isArray(parsed?.dokumentListe) ? parsed.dokumentListe : [];
+  const organisations = list
+    .map(toBrregOrganisation)
+    .filter((org) => org.organisasjonsnummer && org.navn);
+  return {
+    organisations,
+    byOrgnr: new Map(organisations.map((org) => [org.organisasjonsnummer, org]))
+  };
+}
+
+async function getBrregRegister() {
+  if (!brregRegisterPromise) {
+    brregRegisterPromise = loadBrregRegister();
+  }
+  return brregRegisterPromise;
+}
+
+function buildFrSearchIndex(person) {
+  const navn = person.personnavn;
+  return normaliser([
+    person.foedselsEllerDNummer,
+    navn?.fornavn,
+    navn?.mellomnavn,
+    navn?.etternavn,
+    navn?.fornavn && navn?.etternavn ? `${navn.fornavn} ${navn.etternavn}` : null,
+    person.bostedsadresse?.kommune,
+    person.bostedsadresse?.poststed,
+    person._sandbox?.personId,
+    person._sandbox?.husstandId,
+    person._sandbox?.rolle
+  ].filter(Boolean).join(" "));
+}
+
+async function loadFolkeregisterRegister() {
+  const raw = await readFile(folkeregisterDataFile, "utf8");
+  const parsed = JSON.parse(raw);
+  const persons = Array.isArray(parsed?.personer) ? parsed.personer : [];
+
+  const sandboxIdToFnr = new Map(
+    persons
+      .filter((p) => p._sandbox?.personId && p.foedselsEllerDNummer)
+      .map((p) => [p._sandbox.personId, p.foedselsEllerDNummer])
+  );
+
+  for (const person of persons) {
+    person._searchIndex = buildFrSearchIndex(person);
+    for (const rel of person.forelderbarnrelasjon || []) {
+      if (!rel.relatertPersonsIdent && rel._sandboxRelatertPersonId) {
+        rel.relatertPersonsIdent = sandboxIdToFnr.get(rel._sandboxRelatertPersonId) || null;
+      }
+    }
+  }
+
+  return {
+    persons,
+    byFnr: new Map(persons.map((p) => [p.foedselsEllerDNummer, p])),
+    byPersonId: new Map(
+      persons.filter((p) => p._sandbox?.personId).map((p) => [p._sandbox.personId, p])
+    )
+  };
+}
+
+async function getFolkeregisterRegister() {
+  if (!folkeregisterRegisterPromise) {
+    folkeregisterRegisterPromise = loadFolkeregisterRegister();
+  }
+  return folkeregisterRegisterPromise;
 }
 
 function geonorgeQueryVariants(query) {
@@ -820,12 +1000,140 @@ async function invokeTool(name, args = {}) {
     };
   }
 
+  if (name === "brreg_search_organisations") {
+    const register = await getBrregRegister();
+    const query = normaliser(args.query || args.q || "");
+    const kommune = normaliser(args.kommune || "");
+    const organisasjonsform = normaliser(args.organisasjonsform || "");
+    const offset = Math.max(0, safeInt(args.offset, 0));
+    const limit = clampInt(args.limit ?? 10, 1, 100);
+
+    const filtered = register.organisations.filter((org) => {
+      if (query && !org._search.includes(query)) return false;
+      if (kommune) {
+        const kommuneValues = [org.forretningsadresse?.kommune, org.postadresse?.kommune]
+          .filter(Boolean)
+          .map((value) => normaliser(String(value)));
+        if (!kommuneValues.some((value) => value.includes(kommune))) return false;
+      }
+      if (organisasjonsform) {
+        const formSearch = normaliser(`${org.organisasjonsform?.kode || ""} ${org.organisasjonsform?.beskrivelse || ""}`);
+        if (!formSearch.includes(organisasjonsform)) return false;
+      }
+      return true;
+    });
+
+    const organisasjoner = filtered.slice(offset, offset + limit).map((org) => ({
+      organisasjonsnummer: org.organisasjonsnummer,
+      navn: org.navn,
+      organisasjonsform: org.organisasjonsform,
+      naeringKode: org.naeringKode,
+      registrertIForetaksregisteret: org.registrertIForetaksregisteret,
+      registrertIMvaregisteret: org.registrertIMvaregisteret,
+      forretningsadresse: org.forretningsadresse
+    }));
+
+    return {
+      total: filtered.length,
+      offset,
+      limit,
+      count: organisasjoner.length,
+      organisasjoner
+    };
+  }
+
+  if (name === "brreg_get_organisation") {
+    const organisasjonsnummer = String(args.organisasjonsnummer || "").trim();
+    if (!organisasjonsnummer) {
+      throw clientError("Oppgi organisasjonsnummer.");
+    }
+    const register = await getBrregRegister();
+    const org = register.byOrgnr.get(organisasjonsnummer);
+    if (!org) {
+      throw clientError(`Fant ikke organisasjon med organisasjonsnummer ${organisasjonsnummer}.`, 404);
+    }
+    const { _search, ...result } = org;
+    return result;
+  }
+
+  if (name === "folkeregister_search_persons") {
+    const register = await getFolkeregisterRegister();
+    const query = normaliser(args.query || args.q || "");
+    const fnr = String(args.foedselsEllerDNummer || args.fnr || "").trim();
+    const kommune = normaliser(args.kommune || "");
+    const offset = Math.max(0, safeInt(args.offset, 0));
+    const limit = clampInt(args.limit ?? 10, 1, 100);
+    const includeSkjermet = Boolean(args.includeSkjermet);
+
+    if (fnr) {
+      const person = register.byFnr.get(fnr);
+      if (!person) return { total: 0, offset, limit, count: 0, personer: [] };
+      if (person.skjermet && !includeSkjermet) {
+        return { total: 0, offset, limit, count: 0, personer: [], merknad: "Skjermet person." };
+      }
+      const { _searchIndex, ...safe } = person;
+      return { total: 1, offset: 0, limit, count: 1, personer: [safe] };
+    }
+
+    const filtered = register.persons.filter((person) => {
+      if (person.skjermet && !includeSkjermet) return false;
+      if (query && !person._searchIndex.includes(query)) return false;
+      if (kommune) {
+        const komVal = normaliser(String(person.bostedsadresse?.kommune || ""));
+        if (!komVal.includes(kommune)) return false;
+      }
+      return true;
+    });
+
+    const personer = filtered.slice(offset, offset + limit).map((person) => ({
+      foedselsEllerDNummer: person.foedselsEllerDNummer,
+      personnavn: person.personnavn,
+      foedselsdato: person.foedselsdato,
+      kjoenn: person.kjoenn,
+      sivilstand: person.sivilstand,
+      bostedsadresse: person.bostedsadresse,
+      skjermet: person.skjermet,
+      _sandbox: person._sandbox
+    }));
+
+    return { total: filtered.length, offset, limit, count: personer.length, personer };
+  }
+
+  if (name === "folkeregister_get_person") {
+    const fnr = String(args.foedselsEllerDNummer || args.fnr || "").trim();
+    const personId = String(args.personId || "").trim();
+    if (!fnr && !personId) {
+      throw clientError("Oppgi foedselsEllerDNummer eller personId.");
+    }
+    const register = await getFolkeregisterRegister();
+    const person = fnr ? register.byFnr.get(fnr) : register.byPersonId.get(personId);
+    if (!person) {
+      throw clientError(
+        `Fant ikke person med ${fnr ? `foedselsEllerDNummer ${fnr}` : `personId ${personId}`}.`,
+        404
+      );
+    }
+    if (person.skjermet && !args.includeSkjermet) {
+      throw clientError("Personen er skjermet.", 403);
+    }
+    const { _searchIndex, ...result } = person;
+    return result;
+  }
+
   if (name === "suggest_step_tools") {
     // Build the list of tool descriptors to send to ai-gateway.
     // If the caller supplies a subset, honour it; otherwise default to matrikkel tools.
     const verktoyNavn = Array.isArray(args.tilgjengeligeVerktoy) && args.tilgjengeligeVerktoy.length > 0
       ? args.tilgjengeligeVerktoy
-      : ["matrikkel_finn_veger", "matrikkel_hent_eiendom", "matrikkel_hent_eiere"];
+      : [
+          "matrikkel_finn_veger",
+          "matrikkel_hent_eiendom",
+          "matrikkel_hent_eiere",
+          "brreg_search_organisations",
+          "brreg_get_organisation",
+          "folkeregister_search_persons",
+          "folkeregister_get_person"
+        ];
 
     const verktoyMedBeskrivelse = toolDefs
       .filter((t) => verktoyNavn.includes(t.name))

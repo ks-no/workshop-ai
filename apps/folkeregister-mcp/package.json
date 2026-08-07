@@ -1,0 +1,8 @@
+{
+  "name": "@innbyggerdialog/folkeregister-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "True MCP service for querying Folkeregisteret syntetiske testdata.",
+  "type": "module"
+}
+

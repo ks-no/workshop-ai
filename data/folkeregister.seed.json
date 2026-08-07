@@ -1,0 +1,1707 @@
+{
+  "kilde": "syntetisk",
+  "versjon": "1.6.2",
+  "beskrivelse": "Syntetiske testpersoner fra workshop-ai personas kombinert med Folkeregisteret-format",
+  "antall": 43,
+  "personer": [
+    {
+      "foedselsEllerDNummer": "12018890001",
+      "personnavn": {
+        "fornavn": "Maja",
+        "mellomnavn": null,
+        "etternavn": "Solberg"
+      },
+      "foedselsdato": "1988-01-12",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Eksempelveien",
+        "husnummer": 12,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-002"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "maja.solberg@example.test",
+        "telefon": "+4799990001"
+      },
+      "_sandbox": {
+        "personId": "person-001",
+        "husstandId": "household-001",
+        "rolle": "foresatt",
+        "visningsnavn": "Maja Solberg"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "03042290002",
+      "personnavn": {
+        "fornavn": "Ella",
+        "mellomnavn": null,
+        "etternavn": "Solberg"
+      },
+      "foedselsdato": "2022-04-03",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Eksempelveien",
+        "husnummer": 12,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-001"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-002",
+        "husstandId": "household-001",
+        "rolle": "barn",
+        "visningsnavn": "Ella Solberg"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "21068590003",
+      "personnavn": {
+        "fornavn": "Jonas",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "1985-06-21",
+      "kjoenn": "MANN",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Nedre gate",
+        "husnummer": 4,
+        "postnummer": "7013",
+        "poststed": "Trondheim",
+        "kommunenummer": null,
+        "kommune": "Trondheim"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-005"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "jonas.nilsen@example.test",
+        "telefon": "+4799990003"
+      },
+      "_sandbox": {
+        "personId": "person-003",
+        "husstandId": "household-002",
+        "rolle": "foresatt",
+        "visningsnavn": "Jonas Nilsen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "02118490004",
+      "personnavn": {
+        "fornavn": "Petter",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "1984-11-02",
+      "kjoenn": "MANN",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Nedre gate",
+        "husnummer": 4,
+        "postnummer": "7013",
+        "poststed": "Trondheim",
+        "kommunenummer": null,
+        "kommune": "Trondheim"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-005"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "petter.nilsen@example.test",
+        "telefon": "+4799990004"
+      },
+      "_sandbox": {
+        "personId": "person-004",
+        "husstandId": "household-002",
+        "rolle": "foresatt",
+        "visningsnavn": "Petter Nilsen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "17022390005",
+      "personnavn": {
+        "fornavn": "Leah",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "2023-02-17",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Nedre gate",
+        "husnummer": 4,
+        "postnummer": "7013",
+        "poststed": "Trondheim",
+        "kommunenummer": null,
+        "kommune": "Trondheim"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-003"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-004"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-005",
+        "husstandId": "household-002",
+        "rolle": "barn",
+        "visningsnavn": "Leah Nilsen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "14099290006",
+      "personnavn": {
+        "fornavn": "Amir",
+        "mellomnavn": null,
+        "etternavn": "Hassan"
+      },
+      "foedselsdato": "1992-09-14",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kirkeveien",
+        "husnummer": 30,
+        "postnummer": "0364",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-007"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "amir.hassan@example.test",
+        "telefon": "+4799990006"
+      },
+      "_sandbox": {
+        "personId": "person-006",
+        "husstandId": "household-003",
+        "rolle": "foresatt",
+        "visningsnavn": "Amir Hassan"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "08032590007",
+      "personnavn": {
+        "fornavn": "Sara",
+        "mellomnavn": null,
+        "etternavn": "Hassan"
+      },
+      "foedselsdato": "2025-03-08",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kirkeveien",
+        "husnummer": 30,
+        "postnummer": "0364",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-006"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-007",
+        "husstandId": "household-003",
+        "rolle": "barn",
+        "visningsnavn": "Sara Hassan"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "30038790008",
+      "personnavn": {
+        "fornavn": "Ingrid",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "1987-03-30",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Fjellgata",
+        "husnummer": 7,
+        "postnummer": "4010",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-010"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-011"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "ingrid.dahl@example.test",
+        "telefon": "+4799990008"
+      },
+      "_sandbox": {
+        "personId": "person-008",
+        "husstandId": "household-004",
+        "rolle": "foresatt",
+        "visningsnavn": "Ingrid Dahl"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "19088690009",
+      "personnavn": {
+        "fornavn": "Marius",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "1986-08-19",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Fjellgata",
+        "husnummer": 7,
+        "postnummer": "4010",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-010"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-011"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "marius.dahl@example.test",
+        "telefon": "+4799990009"
+      },
+      "_sandbox": {
+        "personId": "person-009",
+        "husstandId": "household-004",
+        "rolle": "foresatt",
+        "visningsnavn": "Marius Dahl"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "11102190010",
+      "personnavn": {
+        "fornavn": "Noah",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2021-10-11",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Fjellgata",
+        "husnummer": 7,
+        "postnummer": "4010",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-008"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-009"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-010",
+        "husstandId": "household-004",
+        "rolle": "barn",
+        "visningsnavn": "Noah Dahl"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "22051990011",
+      "personnavn": {
+        "fornavn": "Iben",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2019-05-22",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Fjellgata",
+        "husnummer": 7,
+        "postnummer": "4010",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-008"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-009"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-011",
+        "husstandId": "household-004",
+        "rolle": "barn",
+        "visningsnavn": "Iben Dahl"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "05129090012",
+      "personnavn": {
+        "fornavn": "Kari",
+        "mellomnavn": null,
+        "etternavn": "Johansen"
+      },
+      "foedselsdato": "1990-12-05",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Elvebakken",
+        "husnummer": 18,
+        "postnummer": "3045",
+        "poststed": "Drammen",
+        "kommunenummer": null,
+        "kommune": "Drammen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-013"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "kari.johansen@example.test",
+        "telefon": "+4799990012"
+      },
+      "_sandbox": {
+        "personId": "person-012",
+        "husstandId": "household-005",
+        "rolle": "foresatt",
+        "visningsnavn": "Kari Johansen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "26072390013",
+      "personnavn": {
+        "fornavn": "Mikkel",
+        "mellomnavn": null,
+        "etternavn": "Johansen"
+      },
+      "foedselsdato": "2023-07-26",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Elvebakken",
+        "husnummer": 18,
+        "postnummer": "3045",
+        "poststed": "Drammen",
+        "kommunenummer": null,
+        "kommune": "Drammen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-012"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-013",
+        "husstandId": "household-005",
+        "rolle": "barn",
+        "visningsnavn": "Mikkel Johansen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "28029190014",
+      "personnavn": {
+        "fornavn": "Lina",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "1991-02-28",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommunenummer": null,
+        "kommune": "Tromsø"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-015"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "lina.berg@example.test",
+        "telefon": "+4799990014"
+      },
+      "_sandbox": {
+        "personId": "person-014",
+        "husstandId": "household-006",
+        "rolle": "foresatt",
+        "visningsnavn": "Lina Berg"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "09092290015",
+      "personnavn": {
+        "fornavn": "Oskar",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "2022-09-09",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommunenummer": null,
+        "kommune": "Tromsø"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-014"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-015",
+        "husstandId": "household-006",
+        "rolle": "barn",
+        "visningsnavn": "Oskar Berg"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "17078390016",
+      "personnavn": {
+        "fornavn": "Henrik",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "1983-07-17",
+      "kjoenn": "MANN",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": null,
+        "kommune": "Kristiansand"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-018"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "henrik.lie@example.test",
+        "telefon": "+4799990016"
+      },
+      "_sandbox": {
+        "personId": "person-016",
+        "husstandId": "household-007",
+        "rolle": "foresatt",
+        "visningsnavn": "Henrik Lie"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "23018590017",
+      "personnavn": {
+        "fornavn": "Tone",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "1985-01-23",
+      "kjoenn": "KVINNE",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": null,
+        "kommune": "Kristiansand"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-018"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "tone.lie@example.test",
+        "telefon": "+4799990017"
+      },
+      "_sandbox": {
+        "personId": "person-017",
+        "husstandId": "household-007",
+        "rolle": "foresatt",
+        "visningsnavn": "Tone Lie"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "01122190018",
+      "personnavn": {
+        "fornavn": "Selma",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "2021-12-01",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": null,
+        "kommune": "Kristiansand"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-016"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-017"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-018",
+        "husstandId": "household-007",
+        "rolle": "barn",
+        "visningsnavn": "Selma Lie"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "12048990019",
+      "personnavn": {
+        "fornavn": "Thomas",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "1989-04-12",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 21,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": null,
+        "kommune": "Bodø"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-021"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "thomas.nguyen@example.test",
+        "telefon": "+4799990019"
+      },
+      "_sandbox": {
+        "personId": "person-019",
+        "husstandId": "household-008",
+        "rolle": "foresatt",
+        "visningsnavn": "Thomas Nguyen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "30069090020",
+      "personnavn": {
+        "fornavn": "Ida",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "1990-06-30",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 21,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": null,
+        "kommune": "Bodø"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-021"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "ida.nguyen@example.test",
+        "telefon": "+4799990020"
+      },
+      "_sandbox": {
+        "personId": "person-020",
+        "husstandId": "household-008",
+        "rolle": "foresatt",
+        "visningsnavn": "Ida Nguyen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "19012490021",
+      "personnavn": {
+        "fornavn": "Mina",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "2024-01-19",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 21,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": null,
+        "kommune": "Bodø"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-019"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-020"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-021",
+        "husstandId": "household-008",
+        "rolle": "barn",
+        "visningsnavn": "Mina Nguyen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "08119390022",
+      "personnavn": {
+        "fornavn": "Fatima",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "1993-11-08",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Borgundveien",
+        "husnummer": 3,
+        "postnummer": "6008",
+        "poststed": "Ålesund",
+        "kommunenummer": null,
+        "kommune": "Ålesund"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-023"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "fatima.ali@example.test",
+        "telefon": "+4799990022"
+      },
+      "_sandbox": {
+        "personId": "person-022",
+        "husstandId": "household-009",
+        "rolle": "foresatt",
+        "visningsnavn": "Fatima Ali"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "14062290023",
+      "personnavn": {
+        "fornavn": "Yusuf",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "2022-06-14",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Borgundveien",
+        "husnummer": 3,
+        "postnummer": "6008",
+        "poststed": "Ålesund",
+        "kommunenummer": null,
+        "kommune": "Ålesund"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-022"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-023",
+        "husstandId": "household-009",
+        "rolle": "barn",
+        "visningsnavn": "Yusuf Ali"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "25058690024",
+      "personnavn": {
+        "fornavn": "Sofie",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "1986-05-25",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommunenummer": null,
+        "kommune": "Sandnes"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-025"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "sofie.eide@example.test",
+        "telefon": "+4799990024"
+      },
+      "_sandbox": {
+        "personId": "person-024",
+        "husstandId": "household-010",
+        "rolle": "foresatt",
+        "visningsnavn": "Sofie Eide"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "30112390025",
+      "personnavn": {
+        "fornavn": "Emil",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "2023-11-30",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommunenummer": null,
+        "kommune": "Sandnes"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-024"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-025",
+        "husstandId": "household-010",
+        "rolle": "barn",
+        "visningsnavn": "Emil Eide"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "03089490026",
+      "personnavn": {
+        "fornavn": "Randi",
+        "mellomnavn": null,
+        "etternavn": "Ås"
+      },
+      "foedselsdato": "1994-08-03",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Solbakken",
+        "husnummer": 2,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-027"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "randi.as@example.test",
+        "telefon": "+4799990026"
+      },
+      "_sandbox": {
+        "personId": "person-026",
+        "husstandId": "household-011",
+        "rolle": "foresatt",
+        "visningsnavn": "Randi Ås"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "15032090027",
+      "personnavn": {
+        "fornavn": "Theo",
+        "mellomnavn": null,
+        "etternavn": "Ås"
+      },
+      "foedselsdato": "2020-03-15",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Solbakken",
+        "husnummer": 2,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-026"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-027",
+        "husstandId": "household-011",
+        "rolle": "barn",
+        "visningsnavn": "Theo Ås"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "27108990028",
+      "personnavn": {
+        "fornavn": "Nora",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "1989-10-27",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Bjørnstjerne Bjørnsons gate",
+        "husnummer": 41,
+        "postnummer": "7052",
+        "poststed": "Trondheim",
+        "kommunenummer": null,
+        "kommune": "Trondheim"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-029"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "nora.fjeld@example.test",
+        "telefon": "+4799990028"
+      },
+      "_sandbox": {
+        "personId": "person-028",
+        "husstandId": "household-012",
+        "rolle": "foresatt",
+        "visningsnavn": "Nora Fjeld"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "04081990029",
+      "personnavn": {
+        "fornavn": "Jakob",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "2019-08-04",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Bjørnstjerne Bjørnsons gate",
+        "husnummer": 41,
+        "postnummer": "7052",
+        "poststed": "Trondheim",
+        "kommunenummer": null,
+        "kommune": "Trondheim"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-028"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-029",
+        "husstandId": "household-012",
+        "rolle": "barn",
+        "visningsnavn": "Jakob Fjeld"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "09018290030",
+      "personnavn": {
+        "fornavn": "Olav",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "1982-01-09",
+      "kjoenn": "MANN",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 88,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-032"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "olav.rustad@example.test",
+        "telefon": "+4799990030"
+      },
+      "_sandbox": {
+        "personId": "person-030",
+        "husstandId": "household-013",
+        "rolle": "foresatt",
+        "visningsnavn": "Olav Rustad"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "16048390031",
+      "personnavn": {
+        "fornavn": "Siri",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "1983-04-16",
+      "kjoenn": "KVINNE",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 88,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-032"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": true,
+      "kontakt": {
+        "epost": "siri.rustad@example.test",
+        "telefon": "+4799990031"
+      },
+      "_sandbox": {
+        "personId": "person-031",
+        "husstandId": "household-013",
+        "rolle": "foresatt",
+        "visningsnavn": "Siri Rustad"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "26021890032",
+      "personnavn": {
+        "fornavn": "Live",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "2018-02-26",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 88,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-030"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-031"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-032",
+        "husstandId": "household-013",
+        "rolle": "barn",
+        "visningsnavn": "Live Rustad"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "11068090033",
+      "personnavn": {
+        "fornavn": "Bjørn",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "1980-06-11",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kongens gate",
+        "husnummer": 6,
+        "postnummer": "4005",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-034"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "bjorn.haugen@example.test",
+        "telefon": "+4799990033"
+      },
+      "_sandbox": {
+        "personId": "person-033",
+        "husstandId": "household-014",
+        "rolle": "foresatt",
+        "visningsnavn": "Bjørn Haugen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "21091790034",
+      "personnavn": {
+        "fornavn": "Aksel",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "2017-09-21",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kongens gate",
+        "husnummer": 6,
+        "postnummer": "4005",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-033"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-034",
+        "husstandId": "household-014",
+        "rolle": "barn",
+        "visningsnavn": "Aksel Haugen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "07038490035",
+      "personnavn": {
+        "fornavn": "Even",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "1984-03-07",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-037"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "even.moen@example.test",
+        "telefon": "+4799990035"
+      },
+      "_sandbox": {
+        "personId": "person-035",
+        "husstandId": "household-015",
+        "rolle": "foresatt",
+        "visningsnavn": "Even Moen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "13098590036",
+      "personnavn": {
+        "fornavn": "Hilde",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "1985-09-13",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-037"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "hilde.moen@example.test",
+        "telefon": "+4799990036"
+      },
+      "_sandbox": {
+        "personId": "person-036",
+        "husstandId": "household-015",
+        "rolle": "foresatt",
+        "visningsnavn": "Hilde Moen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "05112290037",
+      "personnavn": {
+        "fornavn": "Vilde",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "2022-11-05",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": null,
+        "kommune": "Stavanger"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-035"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-036"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-037",
+        "husstandId": "household-015",
+        "rolle": "barn",
+        "visningsnavn": "Vilde Moen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "19079190038",
+      "personnavn": {
+        "fornavn": "Mona",
+        "mellomnavn": null,
+        "etternavn": "Strand"
+      },
+      "foedselsdato": "1991-07-19",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Gamleveien",
+        "husnummer": 19,
+        "postnummer": "1400",
+        "poststed": "Ski",
+        "kommunenummer": null,
+        "kommune": "Nordre Follo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-039"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "mona.strand@example.test",
+        "telefon": "+4799990038"
+      },
+      "_sandbox": {
+        "personId": "person-038",
+        "husstandId": "household-016",
+        "rolle": "foresatt",
+        "visningsnavn": "Mona Strand"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "12052390039",
+      "personnavn": {
+        "fornavn": "Filip",
+        "mellomnavn": null,
+        "etternavn": "Strand"
+      },
+      "foedselsdato": "2023-05-12",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Gamleveien",
+        "husnummer": 19,
+        "postnummer": "1400",
+        "poststed": "Ski",
+        "kommunenummer": null,
+        "kommune": "Nordre Follo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-038"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-039",
+        "husstandId": "household-016",
+        "rolle": "barn",
+        "visningsnavn": "Filip Strand"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "02029090040",
+      "personnavn": {
+        "fornavn": "Yara",
+        "mellomnavn": null,
+        "etternavn": "Osman"
+      },
+      "foedselsdato": "1990-02-02",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kanalveien",
+        "husnummer": 27,
+        "postnummer": "5068",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "BARN",
+          "_sandboxRelatertPersonId": "person-041"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "yara.osman@example.test",
+        "telefon": "+4799990040"
+      },
+      "_sandbox": {
+        "personId": "person-040",
+        "husstandId": "household-017",
+        "rolle": "foresatt",
+        "visningsnavn": "Yara Osman"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "28042190041",
+      "personnavn": {
+        "fornavn": "Adam",
+        "mellomnavn": null,
+        "etternavn": "Osman"
+      },
+      "foedselsdato": "2021-04-28",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kanalveien",
+        "husnummer": 27,
+        "postnummer": "5068",
+        "poststed": "Bergen",
+        "kommunenummer": null,
+        "kommune": "Bergen"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-040"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-041",
+        "husstandId": "household-017",
+        "rolle": "barn",
+        "visningsnavn": "Adam Osman"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "18057590042",
+      "personnavn": {
+        "fornavn": "Erik",
+        "mellomnavn": null,
+        "etternavn": "Sandvik"
+      },
+      "foedselsdato": "1975-05-18",
+      "kjoenn": "MANN",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Parkveien",
+        "husnummer": 5,
+        "postnummer": "0350",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "erik.sandvik@example.test",
+        "telefon": "+4799990042"
+      },
+      "_sandbox": {
+        "personId": "person-042",
+        "husstandId": "household-018",
+        "rolle": "foresatt",
+        "visningsnavn": "Erik Sandvik"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "09127790043",
+      "personnavn": {
+        "fornavn": "Anne",
+        "mellomnavn": null,
+        "etternavn": "Sandvik"
+      },
+      "foedselsdato": "1977-12-09",
+      "kjoenn": "KVINNE",
+      "sivilstand": "GIFT",
+      "bostedsadresse": {
+        "adressenavn": "Parkveien",
+        "husnummer": 5,
+        "postnummer": "0350",
+        "poststed": "Oslo",
+        "kommunenummer": null,
+        "kommune": "Oslo"
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {
+        "epost": "anne.sandvik@example.test",
+        "telefon": "+4799990043"
+      },
+      "_sandbox": {
+        "personId": "person-043",
+        "husstandId": "household-018",
+        "rolle": "foresatt",
+        "visningsnavn": "Anne Sandvik"
+      },
+      "syntetisk": true
+    }
+  ]
+}
