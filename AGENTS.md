@@ -12,20 +12,22 @@
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Separate Docker image built from `apps/matrikkel-mock/Dockerfile`.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter`). Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/mcp-services` (`8083`): 20 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
-- `apps/process-agent` (`8084`): agent API using MCP tools. Dynamically discovers which tools to call per step via `suggest_step_tools` — no hardcoded step names.
+- `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
-- `lesJson` reads `state/` first and falls back to `data/`. `./start.sh --reset` clears `state/`.
-- `apps/sandbox-backend` is TypeScript, split into modules (`ruter.ts`, `prosess.ts`,
-  `ressurser.ts`, `regler.ts`, `tilstand.ts`, `revisjon.ts`, `typer.ts`, …).
+- `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
+  `./start.sh --reset` clears `state/`.
+- `apps/sandbox-backend` is TypeScript, split into modules (`routes.ts`, `prosess.ts`,
+  `ressurser.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
+  `errors.ts`, `config.ts`, `http.ts`).
   There is no `server.js` — `server.ts` only wires up the HTTP server.
   Node type-strips the `.ts` files directly; there is no build step.
 
 ## Process-engine behavior to preserve
 - Flow is definition-driven (see `data/prosessdefinisjoner.json`), not UI-hardcoded.
-- Seven step types exist (`apps/sandbox-backend/src/typer.ts`): `INFO`, `QUESTION`,
+- Seven step types exist (`apps/sandbox-backend/src/types.ts`): `INFO`, `QUESTION`,
   `DATA_FETCH`, `CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT`. There is no `CONFIRMATION`.
 - Actual sequence in the flagship case `reduced-kindergarten-payment`:
   `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
@@ -114,7 +116,13 @@ pnpm test:mcp-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
-- There is no CI. Nothing runs these automatically on push or PR.
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test` and `test:kontrakt` on every PR
+  and on push to main, and uploads the contract dump as an artifact. It deliberately
+  does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
+  (need the compose stack up) — run those locally.
+- All eight services have a `healthcheck` in `docker-compose.yml`, and `mcp-services`
+  and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
+  `/health` itself, since the macOS path uses `--no-deps`.
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
@@ -124,13 +132,13 @@ pnpm test:agent:matrikkel
   `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string
   explaining why. Status is always 200: the service is alive even when the model is not.
   `demo-gui` shows a banner on `/chat` and `/agent`, and `./start.sh` warns on startup.
-- **All model calls go through one function**, `kallModell` in `apps/ai-gateway/src/server.js`.
+- **All model calls go through one function**, `callModel` in `apps/ai-gateway/src/server.js`.
   Adding a provider is one function with the signature `(prompt, temperatur, signal)`
-  returning `{ tekst, modell }`, plus a branch in `kallModell`. Do not reintroduce
+  returning `{ tekst, modell }`, plus a branch in `callModel`. Do not reintroduce
   per-provider copies of each task — that is what this replaced.
 - Every model call is traced to `state/ai-trace.jsonl`: prompt, response, model, duration,
   and whether it failed. Read it at `GET /trace` (HTML) or `GET /trace.json` (JSON, filterable
-  by `sporingsId`, `oppgave`, `antall`). This is the fastest way to see what the model
+  by `sporingsId`, `task`, `limit`). This is the fastest way to see what the model
   actually received, before heuristics and validation touched it.
 - Model calls time out after `AI_TIMEOUT_MS` (default 180000) and fall back rather than
   hanging.
@@ -142,11 +150,18 @@ pnpm test:agent:matrikkel
 - `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar`, which
   takes `tekst` at the top level.
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only
-  call the model when the heuristic does not match. `/ai/dialogforslag` and `/ai/risikosjekk`
-  work but have no callers in the sandbox.
-- `MATRIKKEL_DATA_FILE` kan settes for `matrikkel-mock` ved behov, men standard er `data/matrikkel.seed.json`.
-- `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock-oppslag, og `MATRIKKEL_MODE=live|mock|hybrid` for gateoppslag.
-- `ai-gateway` may fall back to mock-like responses if model/provider is unavailable; verify with `/ai/klarsprak` when debugging.
+  call the model when the heuristic does not match. Four endpoints work but have no code
+  callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only
+  `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
+- `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
+  `data/matrikkel.seed.json`. Note that `data/matrikkel.json` (5.9 MB of downloaded
+  Geonorge addresses) is read by nothing at all.
+- `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
+  lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **The default is
+  `live`**, so the sandbox calls `https://ws.geonorge.no/adresser/v1` out of the box.
+  `MATRIKKEL_MODE` is read only by `mcp-services`; `matrikkel-mock` always falls back to
+  live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
+  is down.
 
 ## Matrikkel integration pattern
 - `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.seed.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
@@ -155,7 +170,10 @@ pnpm test:agent:matrikkel
 - `apps/mcp-services` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
 - `matrikkel_hent_eiendom` og `matrikkel_hent_eiere` kan brukes med eksakt adresse, for eksempel `Storgata 5`.
 - `apps/mcp-services` also exposes `suggest_step_tools`: given a process step definition, calls `ai-gateway /ai/velg-verktoy` and returns which tools are relevant (context and/or validation).
-- `apps/process-agent` calls `suggest_step_tools` on every QUESTION step to discover tools dynamically — no step IDs are hardcoded in the agent.
+- `apps/process-agent` calls `suggest_step_tools` on every QUESTION step to discover tools
+  dynamically. It *additionally* hardcodes step ids and one tool name for the
+  `fartsdempende-tiltak` case — see the service map above. Improving that agent is a
+  hackathon task, not a bug to fix before the event.
 
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.

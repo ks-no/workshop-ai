@@ -17,8 +17,11 @@ driver fra koden. Importer i stedet.
 | `openapi/process-agent.yaml` | Agent i naturlig språk | 8084 |
 | `openapi/matrikkel-mock.yaml` | Kartverket Matrikkel-mock | 8085 |
 
-Hver tjeneste serverer også sin egen spesifikasjon mens den kjører — f.eks.
-`http://localhost:8080/openapi.yaml` — så du kan importere via URL og få dem oppdatert.
+Tre av tjenestene serverer også sin egen spesifikasjon mens de kjører, så du kan
+importere via URL: `sandbox-backend` (`http://localhost:8080/openapi.yaml`),
+`fiks-simulator` (`:8081`) og `ai-gateway` (`:8082`). `mcp-services`,
+`process-agent` og `matrikkel-mock` gjør det ikke — for dem må du importere fila
+fra `openapi/` direkte.
 
 Sett en environment-variabel `basisUrl` per tjeneste, eller bruk `http://localhost:<port>`
 direkte.

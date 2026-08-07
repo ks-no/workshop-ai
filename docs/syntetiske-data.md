@@ -96,8 +96,13 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 
 ## Nåværende innhold
 
-- 20 syntetiske personer
-- 10 husstander
-- inntektsdata for foresatte
-- barnehagedata for et utvalg barn
-- matrikkeldata med gater, eiendommer og eierforhold
+- 43 syntetiske personer
+- 18 husstander
+- 25 inntektsposter
+- 13 barnehageplasser og 5 SFO-plasser
+- 6 ordninger med satser
+- matrikkeldata med 4 gater, eiendommer og eierforhold
+- 5 prosessdefinisjoner + 1 mal
+
+`pnpm test` skriver de faktiske tallene ut ved hver kjøring, så bruk den som
+kilde hvis lista over har rukket å bli gammel.

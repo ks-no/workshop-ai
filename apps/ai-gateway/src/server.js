@@ -87,6 +87,7 @@ function docsHtml() {
         <li><code>POST /ai/tolk-svar</code></li>
         <li><code>POST /ai/velg-prosess</code></li>
         <li><code>POST /ai/velg-verktoy</code></li>
+        <li><code>POST /ai/dommer</code> — LLM-dommer for <code>pnpm test:eval</code>. Revisjonslogges ikke.</li>
       </ul>
       <h2>Innsyn</h2>
       <ul>
@@ -1208,8 +1209,13 @@ async function buildAiResponse(type, body) {
   }
 
   try {
+    // Temperature 0, not the 0.2 default. These tasks reproduce amounts, dates and
+    // an outcome that sandbox-backend already decided — there is nothing to be
+    // creative about, and evals/ai-policy.json needs the same input to give the
+    // same answer twice.
     const llm = await callModel(prompt, {
       task: type,
+      temperature: 0,
       sporingsId: body?.sporingsId
     });
     if (!llm.tekst) {

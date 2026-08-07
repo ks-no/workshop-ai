@@ -2,7 +2,7 @@
 
 ## MVP-stegtyper
 
-Sju typer, definert i `apps/sandbox-backend/src/typer.ts` og håndtert i `prosess.ts`:
+Sju typer, definert i `apps/sandbox-backend/src/types.ts` og håndtert i `prosess.ts`:
 
 - `INFO`
 - `QUESTION`
@@ -86,9 +86,15 @@ Eksempel: et `QUESTION`-steg med feltlabel «Gatenavn» gir forslaget
 viser da tilgjengelige testgater som hint, og normaliserer brukerens svar
 (f.eks. «storg») til kanonisk «Storgata» fra matrikkelen.
 
-Ingen steg-ID-er er hardkodet i agenten. Ny funksjonalitet kobles inn
-ved å legge til heuristikk i `ai-gateway/src/server.js` (`VERKTOY_HEURISTIKK`-arrayen)
-og/eller et nytt verktøy i `mcp-services`.
+Den dynamiske veien er reell, men den er ikke den eneste: `process-agent`
+har i tillegg hardkodede snarveier for `fartsdempende-tiltak` — steg-ID-ene
+`velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, pluss
+verktøynavnet `matrikkel_finn_veger`. Å rydde det opp er en hackathon-oppgave,
+ikke noe som skal fikses først.
+
+Ny funksjonalitet kobles inn ved å legge til heuristikk i
+`ai-gateway/src/server.js` (`VERKTOY_HEURISTIKK`-arrayen) og/eller et nytt
+verktøy i `mcp-services`.
 
 ## Slik legger du til en ny case
 

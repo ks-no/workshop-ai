@@ -29,16 +29,18 @@ Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal d
 
 ## Status
 
-Dette repoet inneholder første versjon av:
+Åtte kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På plass:
 
-- monorepo-struktur
-- dokumentasjonsgrunnlag
-- policyfiler
-- syntetiske eksempeldata med norske filnavn og norske felt
-- OpenAPI-skjeletter
-- app-mapper og ansvar per tjeneste
+- samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
+- revisjonslogg over all datatilgang
+- deterministisk vilkårsvurdering mot satser (`SJEKK`) — utenfor modellen, med vilje
+- syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
+- KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
+- evals av KI-laget: `pnpm test:eval`
+- OpenAPI for alle seks tjenester — `sandbox-backend` med 28 av 31 stier, `process-agent`
+  komplett, `fiks-simulator` fortsatt bare 4 av 20
 
-Applikasjonene finnes nå som en kjørbar, lettvekts MVP med enkle Node-tjenester og statiske grensesnitt. Neste steg er å videreutvikle funksjonalitet, kvalitet og utvikleropplevelse.
+Se `docs/veien-videre.md` for hva som gjenstår og hvilke arkitekturvalg som er åpne.
 
 ## Hvordan starte den
 
@@ -132,8 +134,12 @@ brew services start ollama    # ikke "ollama serve" — den dør når terminalen
 ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  mcp-services process-agent demo-gui process-builder
+  mcp-services process-agent matrikkel-mock demo-gui process-builder
 ```
+
+`matrikkel-mock` må være med. `--no-deps` hopper over `mcp-services`' `depends_on`,
+så uten den feiler alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen
+med «fetch failed» mens alt annet ser normalt ut.
 
 `--no-deps` hindrer at `depends_on: ollama` i `ai-gateway` drar opp container-Ollama.
 
@@ -321,30 +327,76 @@ curl -s -X POST http://localhost:8085/geointegrasjon/matrikkel/wsapi/v1/BasisSer
 </soapenv:Envelope>'
 ```
 
-Kjor en enkel end-to-end smoke test mot agenten:
+Kjør en enkel end-to-end smoke test mot agenten:
 
 ```bash
 npx pnpm test:agent
 ```
 
-Kjor Bergen bulk-smoke test mot matrikkel-mocken:
+## Sjekker du kan kjøre
+
+Disse krever ingen kjørende tjenester og ingen modell:
+
+```bash
+pnpm lint            # tsc --noEmit
+pnpm test            # referanseintegritet og scenariodekning i datasettene
+pnpm test:kontrakt   # starter egen backend + fiks og skriver en deterministisk dump
+```
+
+`pnpm test:kontrakt` normaliserer id-er og tidsstempler, så to kjøringer av samme
+kode gir bit-identisk resultat. Bruk den som regresjonsport rundt refaktoreringer:
+
+```bash
+pnpm test:kontrakt --ut state/foer.json
+# ...endre noe...
+pnpm test:kontrakt --ut state/etter.json
+diff state/foer.json state/etter.json
+```
+
+**Endrer du en prompt, kjør evalene.** `pnpm test:eval` scorer KI-laget mot
+datasettene i `evals/`, med terskel per datasett og exit≠0 under. Den krever en
+kjørende modell og nekter å score maltekst. Ta en baseline før du endrer, og
+sammenlign etterpå — se `evals/README.md`.
+
+Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl`,
+`test:matrikkel-mock`, `test:mcp-matrikkel`, `test:agent:matrikkel`,
+`test:bergen-matrikkel`.
+
+Bulk-smoketesten mot matrikkel-mocken sampler 40 gater og 25 adresser fra
+seed-datasettet:
 
 ```bash
 npx pnpm test:bergen-matrikkel
+```
+
+Den krever **nett**: adresser som bommer i seed-fila slår over på live
+Geonorge-oppslag, og uten nett svarer matrikkel-mock 500.
+
+De to MCP-serverne testes hver for seg, og de krever verken nett eller kjørende
+stack — de spawnes som subprosess:
+
+```bash
+pnpm test:brreg-mcp
+pnpm test:folkeregister-mcp
 ```
 
 ## Hvor syntetiske data ligger
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json`
-- `data/husstander.json`
+- `data/personer.json` — 43 personer
+- `data/husstander.json` — 18 husstander
 - `data/inntekter.json`
 - `data/barnehageplasser.json`
-- `data/soknader.json`
-- `data/samtykker.json`
+- `data/sfoplasser.json`
+- `data/satser.json`
+- `data/matrikkel.json`
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`
+
+Søknader, samtykker, oppgaver, meldinger, prosessøkter og revisjonslogg har **ingen**
+fil i `data/`. De oppstår først under kjøring og finnes bare i `state/`, som er
+gitignorert. Se `docs/syntetiske-data.md`.
 
 ## Hvordan legge til nye prosesser
 
@@ -384,10 +436,15 @@ Anbefalt arbeidsform:
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
-- Docker Compose starter tjenestene, men løsningen mangler fortsatt robust feilhåndtering, tester og persistensstrategi
-- OpenAPI-filene er fortsatt enklere skjeletter enn full API-dokumentasjon
+- CI kjører `pnpm lint`, `pnpm test` og `pnpm test:kontrakt` på PR. Evalene og
+  stack-testene gjør den ikke — de krever en modell eller en kjørende stack
+- `openapi/fiks-simulator.yaml` dokumenterer 4 av 20 ruter. De øvrige spesifikasjonene
+  er stort sett komplette
+- Ingen persistensstrategi utover flate JSON-filer. `process-agent` holder sesjoner i
+  minnet og mister dem ved restart
 - Datasett og policyer er laget for demo og hackathon, ikke produksjon
 - Ingen ekte integrasjoner mot Altinn, Fiks, ID-porten eller Maskinporten
+- `mcp-services` er **ikke** MCP-protokollen, tross navnet. Se `docs/architecture.md`
 
 ## Viktige filer
 

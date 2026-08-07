@@ -1,365 +1,207 @@
 # API-først integrasjoner
 
-## Hvorfor dette er viktig
+## Hva dette dokumentet er
 
-Ja — vi bør absolutt lage tilkoblingene som API-er.
+Dette var opprinnelig et forslagsdokument fra juni 2026, skrevet i normativ tone før
+mesteparten av koden fantes. Det er nå delt i to: **hva som faktisk gjelder** og
+**hva som fortsatt bare er forslag**. Skillet er viktig — koder du mot forslagene,
+får du noe annet enn det tjenestene svarer.
 
-Det gir oss:
+---
 
-- tydelige kontrakter mellom team
-- enklere utskifting av simulatorer senere
-- bedre dokumentasjon for eksterne hackathon-team
-- mindre kobling mellom GUI, prosessbygger og backend
-- enklere overgang fra sandbox til mer produksjonsnære integrasjoner
+# Del 1: Slik er det
 
-For denne sandboxen betyr det at **alle koblinger mellom komponenter bør behandles som eksterne integrasjoner**, selv når de kjører i samme Docker Compose-oppsett.
+## Prinsippet holder
 
-Samtidig må vi ikke bruke API-strategien til å redusere teamenes frihet unødvendig. Målet er å gi teamene felles kapabiliteter, ikke å tvinge alle inn i samme applikasjonsmønster.
+Alle koblinger mellom komponenter behandles som eksterne integrasjoner, selv om de
+kjører i samme Docker Compose-oppsett. Det gir tydelige kontrakter mellom team,
+utskiftbare simulatorer, og lavere kobling mellom GUI, prosessbygger og backend.
 
-## Anbefalt prinsipp
+Regelen i praksis:
 
-Bruk følgende tommelfingerregel:
+> Trenger en komponent data eller en handling fra en annen, skjer det via et
+> dokumentert API — ikke ved direkte filtilgang eller intern funksjonskall-kobling
+> på tvers av tjenester.
 
-> Hvis en komponent trenger data eller en handling fra en annen komponent, skal det skje via et dokumentert API — ikke ved direkte filtilgang eller intern funksjonskall-kobling på tvers av tjenester.
+Dette er innfridd, med **ett dokumentert unntak**: `sandbox-backend` leser
+`data/matrikkel.json` direkte i stedet for å kalle `matrikkel-mock`. Samme fil har
+derfor to uavhengige lesestier. Se `docs/architecture.md`.
 
-Det betyr:
+## Datastier og eierskap
 
-- `demo-gui` snakker kun med API-er
-- `prosessbygger` snakker kun med API-er
-- `sandbox-backend` snakker med `fiks-simulator` og `ai-gateway` via API-er
-- datafiler er kun en intern implementasjonsdetalj i den tjenesten som eier dem
+| Eier | Eier disse dataene |
+|---|---|
+| `sandbox-backend` | prosessdefinisjoner, søknader, prosessøkter, kataloger, **revisjonsloggen** |
+| `fiks-simulator` | samtykker, oppgaver, meldinger, registersvar |
+| `ai-gateway` | KI-kall og KI-sporet (`state/ai-trace.jsonl`) |
 
-Det betyr også:
+Revisjonsloggen er faktisk eid av `sandbox-backend`. Tidligere skrev alle tre
+tjenestene direkte til `revisjonslogg.json` uten låsing, slik at hendelser kunne gå
+tapt. `fiks-simulator` og `ai-gateway` sender nå hendelser til
+`POST /api/revisjonslogg`, og backend serialiserer skrivingene. Kallet har kort
+timeout og svelger feil — revisjon skal aldri velte operasjonen den revisjonslogger.
 
-- teamene kan bygge egne klienter så lenge de følger API-kontraktene
-- referanseimplementasjonene våre er støtteverktøy, ikke tvang
-- vi kan bytte ut `process-builder` med `Altinn Studio` eller lignende senere uten å rive hele sandboxen
+Kjøringstilstand ligger i `state/` (gitignorert), kildedata i `data/`. Se
+`docs/syntetiske-data.md`.
 
-## Foreslått API-modell
+## API-flatene som finnes
 
-Vi kan dele API-landskapet i fem tydelige flater.
+### Opplevelses- og prosess-API — `sandbox-backend` (8080)
 
-### 1. Opplevelses-API
+31 stier. Prosessøkt-API-et er implementert og er `demo-gui`s primære inngang:
 
-Dette er API-et som frontendene bruker.
+- `POST /api/prosessoekter`, `GET /api/prosessoekter/{oektsId}`
+- `POST /api/prosessoekter/{oektsId}/svar`, `/handling`, `/neste`, `/forrige`
+- `GET /api/prosesser`, `GET /api/prosesser/{prosessId}`, `POST`, `PUT`
+- `GET /api/personer`, `GET /api/personer/{personId}/soknader`
+- `POST /api/soknader`, `GET /api/soknader/{soknadId}`
+- `GET /api/revisjonslogg`, `GET /api/revisjonslogg/{sporingsId}`, `POST`
 
-Eier:
+Dataoppslagene kommer fra **ressurskatalogen** (`src/ressurser.ts`), der én oppføring
+samtidig er et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål.
+Samtykkesperre og revisjon håndheves der, én gang, uansett hvilken vei kallet kommer:
 
-- `sandbox-backend`
+- `GET /api/personer/{personId}` · `/husstand` · `/inntekt` · `/barnehage` · `/sfo`
+- `GET /api/husstander/{husstandId}/inntektsgrunnlag`
+- `GET /api/matrikkel/gater` · `GET /api/matrikkel/sjekk/eierforhold`
+- `GET /api/regler/sjekk/foreldrebetaling` · `GET /api/regler/satser`
 
-Klienter:
+### Samtykke- og register-API — `fiks-simulator` (8081)
 
-- `demo-gui`
-- `prosessbygger`
+Alle disse er implementert:
 
-Ansvar:
-
-- eksponere prosesser
-- eksponere testbrukere
-- eksponere stegdata for demo
-- håndtere innsending av søknader
-- eksponere revisjonslogg
-- samle underliggende kall mot samtykke, register og KI
-
-Eksempel:
-
-- `GET /api/prosesser`
-- `GET /api/personer`
-- `GET /api/personer/{personId}/husstand`
-- `GET /api/personer/{personId}/inntekt`
-- `POST /api/soknader`
-- `GET /api/revisjonslogg/{sporingsId}`
-
-### 2. Prosess-API
-
-Dette kan være en egen flate i `sandbox-backend`, eller etter hvert en egen tjeneste hvis behovet vokser.
-
-Eier:
-
-- `sandbox-backend` i første omgang
-
-Klienter:
-
-- `prosessbygger`
-- `demo-gui`
-
-Ansvar:
-
-- opprette prosessdefinisjoner
-- oppdatere prosessdefinisjoner
-- versjonere prosessdefinisjoner
-- validere prosessdefinisjoner
-
-Anbefalte endepunkter:
-
-- `GET /api/prosesser`
-- `GET /api/prosesser/{prosessId}`
-- `POST /api/prosesser`
-- `PUT /api/prosesser/{prosessId}`
-- `POST /api/prosesser/{prosessId}/valider`
-
-### 3. Samtykke- og register-API
-
-Dette eies av `fiks-simulator` og skal alltid behandles som en separat integrasjon.
-
-Eier:
-
-- `fiks-simulator`
-
-Klienter:
-
-- `sandbox-backend`
-
-Ansvar:
-
-- opprette samtykkeforespørsler
-- registrere svar
-- trekke samtykker
-- eksponere samtykkehistorikk
-- eksponere syntetiske registerdata
-- opprette oppgaver og meldinger
-
-Anbefalte endepunkter:
-
-- `POST /fiks/samtykke`
-- `GET /fiks/samtykke/{samtykkeId}`
-- `PUT /fiks/samtykke/{samtykkeId}/svar`
-- `PUT /fiks/samtykke/{samtykkeId}/trekk`
+- `POST /fiks/samtykke`, `GET /fiks/samtykke/{samtykkeId}`
+- `PUT /fiks/samtykke/{samtykkeId}/svar` · `/trekk` · `GET .../historikk`
 - `GET /fiks/personer/{personId}/samtykker`
-- `GET /fiks/register/person/{personId}`
-- `GET /fiks/register/husstand/{personId}`
-- `GET /fiks/register/inntekt/{personId}`
-- `POST /fiks/oppgaver`
+- `GET /fiks/register/person/{personId}` · `/husstand` · `/inntekt` · `/barnehage` · `/kontaktinfo`
+- `POST /fiks/oppgaver`, `GET /fiks/oppgaver/{id}`
+- `POST /fiks/meldinger`, `GET /fiks/meldinger/{id}`
+- `GET /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
 
-### 4. KI-støtte-API
+Det siste ligger på den **ekte** Fiks-stien, så kall kan kopieres rett fra
+KS-dokumentasjonen. Det er den eneste flaten som speiler et reelt KS-API.
 
-Dette eies av `ai-gateway`.
+⚠️ `openapi/fiks-simulator.yaml` dokumenterer bare 4 av 20 ruter. Det er den største
+kontraktsgjelden i repoet.
 
-Eier:
+### KI-støtte-API — `ai-gateway` (8082)
 
-- `ai-gateway`
+Ni `POST /ai/*`-endepunkter. Fem formulerer (`oppsummering`, `klarsprak`,
+`forklar-databruk`, `dialogforslag`, `risikosjekk`), tre klassifiserer
+(`tolk-svar`, `velg-prosess`, `velg-verktoy`), én er dommer for evalene (`dommer`).
+Fire har ingen kodekallere i sandboxen og står til teamenes disposisjon.
 
-Klienter:
+Pluss innsyn: `GET /trace`, `GET /trace.json`, `GET /helse` med `modellNaaBar`.
 
-- `sandbox-backend`
-
-Ansvar:
-
-- oppsummering
-- klarspråk
-- forklaring av databruk
-- dialogforslag
-- enkel risikovurdering
-
-Anbefalte endepunkter:
-
-- `POST /ai/dialogforslag`
-- `POST /ai/oppsummering`
-- `POST /ai/forklar-databruk`
-- `POST /ai/klarsprak`
-- `POST /ai/risikosjekk`
-
-### 5. Metadata- og katalog-API
-
-Dette er nyttig for hackathon-team, fordi de raskt kan oppdage hvilke datasett, prosesser og modeller som finnes.
-
-Eier:
-
-- `sandbox-backend`
-
-Klienter:
-
-- `demo-gui`
-- `prosessbygger`
-- eksterne utviklere
-
-Anbefalte endepunkter:
+### Metadata- og katalog-API — `sandbox-backend`
 
 - `GET /api/katalog/datasett`
 - `GET /api/katalog/informasjonsmodeller`
-- `GET /api/katalog/tjenester`
-- `GET /api/katalog/policyer`
+- `GET /api/katalog/ressurser` — maskinlesbar liste over gyldige `DATA_FETCH`- og
+  `SJEKK`-mål, med `kreverSamtykke`. Slår du opp her, trenger du ikke gjette URL-er.
 
-## Viktig designgrep: API som kontrakt, ikke bare transport
+## Formatene som faktisk gjelder
 
-Det viktigste er ikke bare å ha HTTP-endepunkter. Det viktige er at API-ene blir **kontraktene mellom teamene**.
-
-Derfor bør hver API-flate ha:
-
-- OpenAPI-beskrivelse
-- eksempelrequester og eksempelsvar
-- tydelige feilresponser
-- tydelig sporings-ID
-- versjonering
-
-## Konkrete anbefalinger for denne sandboxen
-
-### A. Innfør en standard for alle requester
-
-Alle kall mellom tjenester bør støtte:
-
-- `X-SporingsId`
-- `X-KildeSystem`
-- `X-DemoBruker`
-
-Hvis vi ikke vil bruke headere i første omgang, kan vi støtte disse feltene i request body eller query-parametere, men målet bør være faste headere.
-
-Forslag:
-
-- `X-SporingsId`: brukes til revisjonslogg og sporing
-- `X-KildeSystem`: f.eks. `demo-gui`, `prosessbygger`, `sandbox-backend`
-- `X-DemoBruker`: f.eks. `person-001`
-
-### B. Innfør en standard for alle responser
-
-Alle responser bør ha et noenlunde likt mønster:
+**Feil er en flat streng, ikke et objekt** (`src/errors.ts`):
 
 ```json
-{
-  "data": {},
-  "metadata": {
-    "syntetisk": true,
-    "sporingsId": "flyt-123",
-    "kilde": "sandbox-backend",
-    "tidspunkt": "2026-06-10T10:00:00Z"
-  }
-}
+{ "feil": "Inntektsdata krever registrert samtykke." }
 ```
 
-Dette gjør GUI og eksterne team enklere å implementere.
+Ved intern feil følger `detalj` og `syntetisk` med. `HttpError` kan legge på ekstra
+felter via `extra`. Det finnes **ingen** `kode`-enum.
 
-### C. Innfør en standard for feil
+**Ingen respons-envelope.** Svaret *er* objektet. `syntetisk: true` ligger på
+postene selv, ikke i en `metadata`-blokk.
 
-Alle API-er bør returnere samme feilformat:
+**`sporingsId` leses fra query, ikke fra en header:**
+
+```bash
+curl "http://localhost:8080/api/personer/person-001/inntekt?sporingsId=flyt-123"
+```
+
+Mangler den, genereres en. Den korrelerer revisjonslogg og KI-spor, så sett den
+selv når du vil følge en flyt gjennom begge.
+
+**Ingen versjonering.** Stiene er `/api/...`, ikke `/api/v1/...`. `/register/api/v1/...`
+i `fiks-simulator` er versjonering *arvet fra det ekte Fiks-API-et*, ikke sandboxens
+eget mønster.
+
+**Wire format er frosset og norsk.** `melding`, `feil`, `detalj`, `tekst`, `modell`,
+`advarsel`, `syntetisk`, `godkjent`, `grunnlag`, `svar`, `stegId`, `stegIndex`,
+`oektsId`, `sporingsId`, `resultater`, `kontekst`, `intent`, `begrunnelse`, `verktoy`.
+Aldri omdøp disse — de er kontrakten alle team bygger mot. Se `AGENTS.md`.
+
+---
+
+# Del 2: Forslag som ikke er implementert
+
+Ingenting under dette punktet finnes i koden. Det er bevart fordi vurderingene er
+gode, men **ikke kod mot det.**
+
+## Standard headere
+
+Forslaget var `X-SporingsId`, `X-KildeSystem` og `X-DemoBruker` på alle kall mellom
+tjenester. Ingen av dem leses i dag. `sporingsId` gikk i stedet til query.
+
+*Vurdering:* headere er riktigere for tverrsnittsdata, men query er synlig i
+curl-eksempler og lettere å demonstrere. Lav gevinst ved å bytte nå.
+
+## Respons-envelope
 
 ```json
-{
-  "feil": {
-    "kode": "SAMTYKKE_MANGLER",
-    "melding": "Inntektsdata krever registrert samtykke.",
-    "sporingsId": "flyt-123"
-  }
-}
+{ "data": {}, "metadata": { "syntetisk": true, "sporingsId": "flyt-123", "kilde": "sandbox-backend", "tidspunkt": "..." } }
 ```
 
-Det gir mer stabil frontend-logikk enn fritekst alene.
+*Vurdering:* ville brutt frosset wire format og krevd ny `test:kontrakt`-baseline
+og endringer i alle klienter. Ikke verdt det før hackathonet.
 
-### D. Eierskap til data må være tydelig
+## Strukturert feilformat
 
-Vi bør unngå at flere tjenester leser og skriver samme filer direkte.
+```json
+{ "feil": { "kode": "SAMTYKKE_MANGLER", "melding": "...", "sporingsId": "flyt-123" } }
+```
 
-Anbefalt eierskap:
+*Vurdering:* dette er det mest attraktive av forslagene — en `kode` gir stabil
+frontend-logikk der fritekst ikke gjør det. Men `feil` er frosset wire format som
+flat streng, så endringen er ikke bakoverkompatibel. Et mulig kompromiss er å legge
+`kode` *ved siden av* `feil` gjennom `HttpError.extra`, uten å endre `feil` selv.
 
-- `sandbox-backend` eier:
-  - prosessdefinisjoner
-  - søknader
-  - kataloger
-- `fiks-simulator` eier:
-  - samtykker
-  - oppgaver
-  - meldinger
-  - registersvar
-- `ai-gateway` eier:
-  - KI-kall og eventuell KI-logg
+## Versjonering
 
-**Status:** revisjonsloggen er nå faktisk eid av `sandbox-backend`. Tidligere skrev
-`sandbox-backend`, `fiks-simulator` og `ai-gateway` alle direkte til
-`revisjonslogg.json` uten låsing, slik at hendelser kunne gå tapt. De to andre
-sender nå hendelser til `POST /api/revisjonslogg`, og backend serialiserer
-skrivingene. Kallet har kort timeout og svelger feil — revisjon skal aldri
-velte operasjonen den revisjonslogger.
+`/api/v1/prosesser`, `/fiks/v1/samtykke`, `/ai/v1/oppsummering`.
 
-Kjøringstilstand er samtidig flyttet ut av `data/` og inn i `state/`, som ikke
-ligger i git. Se `docs/syntetiske-data.md`.
+*Vurdering:* nyttig når flere generasjoner skal leve side om side. Sandboxen har
+ingen eksterne konsumenter å bevare bakoverkompatibilitet for, så det er ren
+kostnad nå.
 
-På sikt kan vi flytte data fysisk per tjeneste, men allerede nå bør vi behandle eierskapet slik logisk.
+## Endepunkter som ikke finnes
 
-## Foreslått neste steg i repoet
+- `GET /api/katalog/tjenester` — bruk tjenestetabellen i `README.md`
+- `GET /api/katalog/policyer` — les `policies/*.yaml` direkte. Merk at policyfilene
+  ikke leses av noen kode; de er kontrakt for mennesker, håndhevet i
+  `ressurser.ts` og i promptsperrene
+- `POST /api/prosesser/{prosessId}/valider` — validering skjer i dag implisitt ved
+  `POST`/`PUT`
 
-Hvis vi skal gjøre dette skikkelig, anbefaler jeg følgende rekkefølge:
+---
 
-### Steg 1: Stabiliser API-kontrakter
+# Del 3: Praktisk balanse for hackathonet
 
-- utvid OpenAPI-filene
-- dokumenter request/response-eksempler
-- dokumenter feilformater
-- dokumenter standard headere
+Dette står seg, og er den varige verdien i dokumentet:
 
-### Steg 2: Gjør backend til tydelig API-gateway
+1. API-er og syntetiske data er **obligatorisk felles grunnlag**
+2. Referanse-GUI og prosessbygger er **valgfrie**
+3. Teamene får minst ett fungerende eksempel å bygge videre på
+4. Ingen tvinges til å bruke sandboxens prosessformat internt
+5. Adaptere og dokumentasjon prioriteres over tunge plattformvalg
 
-- `demo-gui` skal ikke vite om interne datafiler
-- `prosessbygger` skal ikke vite om interne datafiler
-- begge skal kun snakke med `sandbox-backend`
+Det gir nok struktur til at teamene kommer raskt i gang, nok frihet til å utforske
+ulike retninger, og lav risiko for at sandboxen låser oss til dagens verktøyvalg.
 
-### Steg 3: Flytt mer funksjonalitet bak API
+Ubevegelige rammer, uansett hva teamene bygger:
 
-I dag er dette allerede delvis på plass, men vi kan gå lenger:
-
-- opprett eget API for validering av prosessdefinisjoner
-- opprett eget API for å starte en prosessøkt
-- opprett eget API for å lagre svar på steg
-- opprett eget API for å hente prosessstatus
-
-Foreslåtte nye endepunkter:
-
-- `POST /api/prosessoekter`
-- `GET /api/prosessoekter/{oektsId}`
-- `POST /api/prosessoekter/{oektsId}/svar`
-- `POST /api/prosessoekter/{oektsId}/neste`
-
-Status i repoet nå:
-
-- første versjon av prosessøkt-API er implementert i `sandbox-backend`
-- `demo-gui` bruker prosessøkt-API-et som primær inngang til sandboxen
-
-Dette vil gjøre `demo-gui` enda mindre spesialtilpasset.
-
-### Steg 4: Innfør versjonering
-
-For hackathon er det veldig nyttig å være eksplisitt:
-
-- `/api/v1/prosesser`
-- `/api/v1/personer`
-- `/fiks/v1/samtykke`
-- `/ai/v1/oppsummering`
-
-Vi trenger ikke bygge om alt med en gang, men det er lurt å bestemme mønsteret nå.
-
-## Foreslått målbilde
-
-Et godt mål for sandboxen er:
-
-- frontendene kjenner kun dokumenterte API-er
-- alle simulatorer skjules bak API-kontrakter
-- alle viktige flyter kan testes med curl eller Postman
-- alle team kan jobbe parallelt uten å måtte lese hverandres kode
-
-Det vil være spesielt verdifullt i et hackathon med flere virksomheter og leverandører.
-
-## Kort anbefaling
-
-Hvis vi skal være pragmatiske, ville jeg gjort dette nå:
-
-1. Behandle `sandbox-backend` som eneste inngang for GUI-ene
-2. Utvide OpenAPI for alle tjenester
-3. Standardisere respons-, feil- og sporingsformat
-4. Lage API for prosessøkter som neste steg
-5. Flytte all stegstyring gradvis fra GUI til backend
-
-Da får vi en sandbox som både er pedagogisk, delbar og arkitekturmessig ryddig.
-
-## Praktisk balanse for hackathonet
-
-For å balansere frihet og faktisk leveringsevne anbefaler jeg:
-
-1. Gjør API-er og syntetiske data obligatoriske som felles grunnlag
-2. Gjør referanse-GUI og prosessbygger valgfrie
-3. Gi teamene minst ett fungerende eksempel de kan bygge videre på
-4. Unngå å kreve at alle bruker samme prosessformat internt
-5. Prioriter adaptere og dokumentasjon over tunge plattformvalg
-
-Da får vi:
-
-- nok struktur til at teamene kommer raskt i gang
-- nok frihet til at de kan utforske ulike løsningsretninger
-- lavere risiko for at sandboxen låser oss til dagens verktøyvalg
+- **vilkårsvurderingen skal ikke inn i modellen** — vedtak må være reproduserbare og
+  etterprøvbare (`regler.ts`, `SJEKK`)
+- **revisjonssporet skal forbli intakt**
+- **samtykke må være informert og utvetydig**

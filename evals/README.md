@@ -33,12 +33,20 @@ så en promptendring kan stoppes på samme måte som en kodeendring.
 ```
 
 «jo altså, det høres vel **ikke helt urimelig** ut» blir lest som utvetydig samtykke med
-`confidence: 1`. En dobbel nekting tolket som fullt ja. Reproduserbart — temperaturen er
-0, så du får samme svar hver gang.
+`confidence: 1`. En dobbel nekting tolket som fullt ja. Reproduserbart: `/ai/tolk-svar`
+kjører på temperatur 0, så du får samme svar hver gang.
 
-Heuristikken i `ai-gateway` fanger dette riktig (den returnerer `ukjent` når et positivt
-uttrykk står sammen med en nekting), men treffer ikke her, så spørsmålet går videre til
-modellen — og modellen tar feil.
+Rotårsaken er delegeringsregelen, ikke heuristikken. Heuristikken svarer faktisk
+*riktig*: ingen av de positive mønstrene matcher helord her, så den faller til
+`intent: "ukjent"` med `confidence: 0.2`. Men `interpretReplyWithAi` returnerer
+heuristikken direkte bare når `confidence >= 0.75`, og overstyringsblokken etter
+modellkallet gjelder bare når heuristikken *ikke* er `ukjent`. Så det riktige svaret
+forkastes, spørsmålet går til modellen, og modellen tar feil.
+
+Både `/ai/tolk-svar` og `/ai/oppsummering` kjører på temperatur 0, så begge datasett
+er reproduserbare. Oppsummeringen har ingenting å være kreativ om — den gjengir beløp,
+datoer og et utfall `sandbox-backend` allerede har avgjort. Default for øvrige
+modellkall er `0.2`.
 
 Dette er en god førsteoppgave: samtykke må være informert og utvetydig, og her er et
 målbart avvik med en test som allerede beviser når du har fikset det. Skjerp terskelen
@@ -119,7 +127,7 @@ Baseline før du endrer en prompt, og samme kommando etterpå:
 
 ```bash
 pnpm test:eval --json > /tmp/foer.json
-# ...endre byggPrompt i apps/ai-gateway/src/server.js...
+# ...endre buildPrompt i apps/ai-gateway/src/server.js...
 pnpm test:eval --json > /tmp/etter.json
 ```
 
