@@ -17,6 +17,33 @@ Tjenestene leser fra `state/` hvis fila finnes der, og faller ellers tilbake på
 
 Konsekvensen er at en demokjøring aldri endrer arbeidstreet. Kjører du en flyt og deretter `git status`, skal den være ren.
 
+### Fella: `state/` skygger for `data/`
+
+Dette koster folk mye tid, så les det før du begynner å redigere.
+
+I det øyeblikket du lagrer noe i prosessbyggeren, skrives
+`state/prosessdefinisjoner.json`. Fra da av leses **den**, og alt du redigerer for
+hånd i `data/prosessdefinisjoner.json` blir ignorert. Ingen feilmelding, ingen
+forskjell i UI-et — endringen din slår bare ikke gjennom.
+
+`sandbox-backend` sier fra i loggen ved oppstart når det skjer:
+
+```
+Merk: prosessdefinisjoner.json finnes i state/ og skygger for data/.
+Endringer du gjør i data/ blir ignorert til du kjører ./start.sh --reset.
+```
+
+Ser du den linja og lurer på hvorfor redigeringene dine ikke virker: enten
+`./start.sh --reset` (sletter *all* kjøringstilstand, inkludert prosesser du har
+laget i byggeren), eller slett bare den ene fila:
+
+```bash
+rm state/prosessdefinisjoner.json
+```
+
+Vil du beholde arbeidet fra byggeren, kopier det til `data/` først — se
+«Å dele en prosess du har laget» under.
+
 Nullstill all kjøringstilstand med:
 
 ```bash
@@ -96,8 +123,13 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 
 ## Nåværende innhold
 
-- 20 syntetiske personer
-- 10 husstander
-- inntektsdata for foresatte
-- barnehagedata for et utvalg barn
-- matrikkeldata med gater, eiendommer og eierforhold
+- 43 syntetiske personer
+- 18 husstander
+- 25 inntektsposter
+- 13 barnehageplasser og 5 SFO-plasser
+- 6 ordninger med satser
+- matrikkeldata med 4 gater, eiendommer og eierforhold
+- 5 prosessdefinisjoner + 1 mal
+
+`pnpm test` skriver de faktiske tallene ut ved hver kjøring, så bruk den som
+kilde hvis lista over har rukket å bli gammel.

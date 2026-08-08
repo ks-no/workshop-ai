@@ -6,14 +6,32 @@ rules:
     enforcement: technical-and-manual
 
   - id: ai-explain-only
-    description: KI kan brukes til forklaring, oppsummering, klarspråk og dialogforslag.
+    description: >-
+      KI kan brukes til forklaring, oppsummering, klarspråk og dialogforslag —
+      altså til å formulere. I tillegg brukes KI til klassifisering: å tolke
+      brukerens svar og velge prosess eller verktøy. Klassifisering er tillatt
+      fordi utfallet alltid valideres mot en hviteliste i ai-gateway, slik at en
+      hallusinert id aldri slipper gjennom.
     allowedUse:
       - dialogforslag
       - oppsummering
       - forklaring-av-databruk
       - klarsprak
       - risikosjekk
+    allowedClassification:
+      - tolk-svar
+      - velg-prosess
+      - velg-verktoy
+      - dommer
 
   - id: revisjon-av-alle-ki-kall
-    description: Alle kall til AI-gateway skal logges i revisjonsloggen.
+    description: >-
+      Alle kall til AI-gateway skal logges i revisjonsloggen. Ett unntak:
+      /ai/dommer, som bare kalles fra evalene (scripts/eval.js) og ikke er en
+      del av en innbyggerflyt. Den logges derfor ikke — se kommentaren i
+      apps/ai-gateway/src/server.js. Loggingen er også best-effort: kallet mot
+      backend har kort timeout og svelger feil, fordi revisjon aldri skal velte
+      operasjonen den revisjonslogger.
     enforcement: technical
+    exemptions:
+      - dommer

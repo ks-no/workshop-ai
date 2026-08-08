@@ -13,7 +13,7 @@ kalles med rå `fetch`.
 
 ## Endepunkter
 
-Åtte, alle `POST`:
+Ni, alle `POST`:
 
 | Endepunkt | Bruk | Kalles av |
 |---|---|---|
@@ -44,21 +44,25 @@ curl -s -X POST http://localhost:8082/ai/tolk-svar \
 
 `tolk-svar`, `velg-prosess` og `velg-verktoy` kjører en heuristikk **først** og går bare
 til modellen når den ikke treffer med nok trygghet. Alle modellsvar går gjennom
-`parseJsonObjekt` og en `validerX`-whitelist som avviser hallusinerte id-er. Det er
+`parseJsonObject` og en `validate*`-whitelist som avviser hallusinerte id-er. Det er
 derfor `"ja"` svarer med `modell: "heuristisk-tolkning"` uten å røre modellen i det hele tatt.
 
 ## Modellen tar ikke avgjørelser
 
-`byggPrompt` legger inn eksplisitte sperrer for `oppsummering`: gjengi tall, beløp,
+`buildPrompt` legger inn eksplisitte sperrer for `oppsummering`: gjengi tall, beløp,
 datoer og navn nøyaktig, ikke regn ut noe selv, ikke innvilg eller avslå. Vilkårs-
 vurderingen er `SJEKK`-steget i `sandbox-backend`, deterministisk og etterprøvbart.
 Se `ai-no-decisions` i `policies/ai-policy.yaml`.
 
 Provider-modus:
 
-- `AI_PROVIDER=mock` (standard, ingen ekstern modell)
-- `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjrt i Docker Compose)
+- `AI_PROVIDER=mock` (kodens default, ingen ekstern modell — men se under)
+- `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjørt i Docker Compose)
 - `AI_PROVIDER=openrouter` (billige/gratis modeller via OpenRouter)
+
+Merk at kodens default er `mock`, men både `.env.example` og `docker-compose.yml`
+setter `ollama`. Siden `./start.sh` kopierer `.env.example` til `.env`, er den
+effektive standarden i en kjørende sandbox `ollama`.
 
 Valgfrie miljovariabler:
 
@@ -121,9 +125,9 @@ dør når vinduet lukkes — bruk `brew services start ollama` og sjekk med
 
 ## Legge til en ny provider
 
-Provider-laget er ett sted. `kallModell` velger mellom `kallOllama` og `kallOpenRouter`,
+Provider-laget er ett sted. `callModel` velger mellom `callOllama` og `callOpenRouter`,
 som begge tar `(prompt, temperatur, signal)` og returnerer `{ tekst, modell }`. En ny
-provider er én funksjon med den signaturen pluss en gren i `kallModell` — ikke seks
+provider er én funksjon med den signaturen pluss en gren i `callModel` — ikke seks
 kopier slik det var før.
 
 ## macOS: kjør Ollama nativt

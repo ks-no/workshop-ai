@@ -6,12 +6,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const serverPath = path.resolve(repoRoot, "apps/brreg-mcp/src/server.js");
 
+// Newline-delimited JSON, exactly as MCP's stdio transport specifies — and as a
+// real client (Claude Code, @modelcontextprotocol/sdk) speaks it. Keep this in
+// step with the server: if both sides drift to some other framing again, this
+// test goes green while no real client can connect.
 function encode(message) {
-  const body = Buffer.from(JSON.stringify(message), "utf8");
-  return Buffer.concat([
-    Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, "utf8"),
-    body
-  ]);
+  return Buffer.from(JSON.stringify(message) + "\n", "utf8");
 }
 
 function createMessageParser(onMessage) {
@@ -19,18 +19,12 @@ function createMessageParser(onMessage) {
   return (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
     while (true) {
-      const headerEnd = buffer.indexOf("\r\n\r\n");
-      if (headerEnd === -1) return;
-      const header = buffer.subarray(0, headerEnd).toString("utf8");
-      const match = header.match(/Content-Length:\s*(\d+)/i);
-      if (!match) throw new Error("Missing Content-Length header in response");
-      const length = Number.parseInt(match[1], 10);
-      const start = headerEnd + 4;
-      const end = start + length;
-      if (buffer.length < end) return;
-      const body = buffer.subarray(start, end).toString("utf8");
-      buffer = buffer.subarray(end);
-      onMessage(JSON.parse(body));
+      const newlineIndex = buffer.indexOf(0x0a);
+      if (newlineIndex === -1) return;
+      const line = buffer.subarray(0, newlineIndex).toString("utf8").trim();
+      buffer = buffer.subarray(newlineIndex + 1);
+      if (!line) continue;
+      onMessage(JSON.parse(line));
     }
   };
 }

@@ -77,7 +77,7 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 3. `sandbox-backend` henter samtykkestatus fra `fiks-simulator`
 4. `sandbox-backend` blokkerer inntektsdata uten gyldig samtykke
 5. `sandbox-backend` kaller `ai-gateway` for oppsummering og forklaring
-6. `sandbox-backend` slår opp matrikkeldata mot `matrikkel-mock` via `GET /api/matrikkel/gater` og `SJEKK`-steg
+6. `sandbox-backend` leser matrikkeldata **direkte fra `data/matrikkel.json`** (`state.ts`) og eksponerer dem via `GET /api/matrikkel/gater` og `SJEKK`-steg — den snakker aldri med `matrikkel-mock`, og har ingen `MATRIKKEL_BASE_URL`. Mocken nås bare gjennom `mcp-services`, som er den eneste veien til SOAP-flaten. Samme fil har altså to uavhengige lesestier
 7. `mcp-services` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
 8. `process-agent` bruker `mcp-services` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
 9. alle relevante hendelser sendes til revisjonslogg
@@ -88,7 +88,11 @@ Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `mcp-se
 Dette kallet sender stegdefinisjonens tekst og feltlabeler til `ai-gateway /ai/velg-verktoy`,
 som returnerer hvilke MCP-verktøy som er relevante (`kontekst`, `validering` eller begge).
 Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktøy til å normalisere
-brukerens svar. Ingen steg-ID-er er hardkodet i agenten.
+brukerens svar.
+
+Agenten har i tillegg hardkodede snarveier for `fartsdempende-tiltak`: steg-ID-ene
+`velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, samt verktøynavnet
+`matrikkel_finn_veger`. Den dynamiske oppdagelsen er altså ekte, men ikke enerådende.
 
 ## Utskiftbarhet
 
@@ -113,13 +117,21 @@ og eksponerer 20 verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller
 SSE-transport, så en MCP-klient som Claude Code eller Cursor kan ikke koble seg på.
 Verktøyene har derimot korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 
-**KI-fallback er stille.** Når modellen ikke svarer, faller `ai-gateway` tilbake til
-maltekst og setter et `advarsel`-felt. Feltet vises ikke i GUI-ene, så feilmoden ser
-ut som et normalt svar. Verifiser med
+**KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
+til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
+begge GUI-ene viser en gul stripe ved sidelast hvis modellen er nede. `/chat` viser i
+tillegg `advarsel` per svar — men bare for resultater som kommer via backend (i praksis
+`SUMMARY`). `advarsel` fra `/ai/tolk-svar` vises ikke. Verifiser med
 `POST /ai/klarsprak` — svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
 
-**Ingen fetch mot modellen har timeout.** Er Ollama treg eller halvveis oppe, henger
-kallet ubestemt.
+**Modellkall har timeout.** `AI_TIMEOUT_MS` (default 180000) avbryter og faller tilbake
+i stedet for å henge. Merk at `modellNaaBar` for `openrouter` bare sjekker at en nøkkel
+finnes — den sonderer ikke tjenesten, så feil nøkkel rapporteres som tilgjengelig.
+
+**Alle modellkall spores.** `state/ai-trace.jsonl` får én linje per kall med prompt,
+svar, modell og varighet. Les på `GET /trace` eller `GET /trace.json`
+(`?sporingsId=`, `?task=`, `?limit=`). Dette er raskeste vei til å se hva modellen
+faktisk fikk, før heuristikk og validering rørte det.
 
 **Prosessmotoren er lineær.** `stegIndex` teller oppover; ingen forgrening, ingen
 betinget hopping. Det er et bevisst enkelt utgangspunkt, ikke en mangel som må

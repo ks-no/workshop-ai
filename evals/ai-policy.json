@@ -197,12 +197,13 @@
           "value": "485 000"
         },
         {
+          "_kommentar": "Naboverdier med tusenskille. Bare sifrene ville truffet vilkarlige id-er og gitt falsk feil.",
           "type": "notContains",
-          "value": "484"
+          "value": "484 000"
         },
         {
           "type": "notContains",
-          "value": "486"
+          "value": "486 000"
         },
         {
           "type": "judge",

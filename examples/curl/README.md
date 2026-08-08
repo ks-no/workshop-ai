@@ -223,7 +223,7 @@ curl -s "http://localhost:8080/api/prosessoekter/$OEKT" | node -e '
 
 **Dette skillet er ubevegelig.** Vilkårsvurderingen skal ikke inn i modellen — vedtak må
 være reproduserbare og etterprøvbare. Modellen formulerer, den regner ikke og innvilger
-ikke. Sperrene som håndhever det ligger i `byggPrompt` i `apps/ai-gateway/src/server.js`,
+ikke. Sperrene som håndhever det ligger i `buildPrompt` i `apps/ai-gateway/src/server.js`,
 og er `ai-no-decisions` i `policies/ai-policy.yaml` gjort konkret.
 
 Vilkårsvurderingen kan kalles direkte, uten prosessøkt:

@@ -30,20 +30,40 @@ Minimumslista fra juni er i hovedsak innfridd:
 - ✅ curl-eksempler for sentrale flyter (`examples/curl/`)
 - ✅ tydelig skille mellom referanseimplementasjon og felles kapabilitet
   (`docs/architecture.md`)
-- ⚠️ API-dokumentasjon — `sandbox-backend` er godt dekket med 28 paths, men
-  `fiks-simulator` har bare 4 av 19 ruter i OpenAPI
+- ✅ KI-spor — hvert modellkall skrives til `state/ai-trace.jsonl` med prompt, svar,
+  modell og varighet, lesbart på `GET /trace` og `/trace.json`. Alle kall går gjennom
+  én funksjon (`callModel`), som er det som gjorde både spor og timeout mulig
+- ✅ timeout på modellkall (`AI_TIMEOUT_MS`, default 180000) med fallback i stedet for
+  å henge
+- ✅ synlig KI-fallback — `GET /helse` rapporterer `modellNaaBar`, og begge GUI-ene
+  viser en gul stripe når modellen er nede
+- ✅ evals av KI-laget — `pnpm test:eval` scorer mot datasett i `evals/`, med terskel
+  per datasett og exit≠0 under. Harnesset nekter å score maltekst
+- ⚠️ API-dokumentasjon — `sandbox-backend` er godt dekket med 28 av 31 paths, men
+  `fiks-simulator` har bare 4 av 20 ruter i OpenAPI
 
 ## Hva som gjenstår
 
-- **`fiks-simulator.yaml`** — 15 udokumenterte ruter. Avgrenset og enkel oppgave.
-- **KI-fallback er usynlig.** Faller modellen ut, får du maltekst uten varsel i GUI-et.
-  Dette er den mest sannsynlige kilden til forvirring på en workshop.
-- **Ingen timeout** på kall mot modellen.
-- **Ingen CI.** Tre testskript krever ingen kjørende tjenester og kunne kjørt på PR.
-- **Ingen tester av KI-laget.** Endrer du en prompt, finnes det ingen måte å vite om det
-  ble bedre.
+- **`fiks-simulator.yaml`** — 16 udokumenterte ruter: hele `/fiks/register/*`,
+  samtykkets underruter (`/historikk`, `/svar`, `/trekk`), `/fiks/personer/{id}/samtykker`,
+  `/fiks/oppgaver`, `/fiks/meldinger`, `/health`, `/docs`, `/openapi.yaml`.
+  Den største reelle kontraktsgjelden, og en avgrenset oppgave.
+- **Evalene og stack-testene er ikke i CI.** `.github/workflows/ci.yml` kjører `lint`,
+  `test` og `test:kontrakt`, som ikke trenger modell eller kjørende tjenester.
+  `test:eval` krever en modell og holdes bevisst utenfor; `test:agent*` krever at
+  stacken er oppe. Å kjøre dem i CI ville krevd Ollama i workflowen.
 - **`mcp-services` er ikke MCP-protokollen** — REST med `protocol: "mcp-style-http"`.
-  Verktøyene har korrekte `inputSchema`, så veien dit er kort.
+  Verktøyene har korrekte `inputSchema`, så veien dit er kort. Men det er ikke
+  nødvendigvis verdt å gå: verktøyene er tynne proxier over dokumenterte HTTP-API-er,
+  og verktøysettet er formet rundt vår lineære stegmotor. Komplett OpenAPI er mer verdt.
+- **KI-laget har tynn evaldekning.** `evals/` har 11 caser for 9 endepunkter, og 5 av de
+  8 samtykke-casene treffer heuristikken i stedet for modellen — de er fine
+  regresjonstester, men de sier ingenting om modellen. Ingen datasett for
+  `velg-prosess`, `velg-verktoy`, `klarsprak`, `risikosjekk`, `forklar-databruk` eller
+  `dialogforslag`. Å utvide dekningen er en god og avgrenset oppgave.
+- **`process-agent` er urørt** siden før KI-sporet: 1421 linjer, egen norsk stemming
+  duplisert fra `ai-gateway`, hardkodede snarveier for `fartsdempende-tiltak`, og
+  sesjoner i minnet som tapes ved restart. Å slå den er hackathon-oppgaven.
 - **Windows-oppstart.** Batchfiler for ledeteksten er under arbeid i egen pull request
   (`start-og-stop-windows`). Merk at branchen ble laget før TypeScript-konverteringen, så
   den trenger en rebase mot `main` før merge. Inntil videre går Windows-brukere via

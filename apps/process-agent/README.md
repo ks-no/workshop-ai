@@ -22,8 +22,14 @@ step definition to return which tools are relevant and how to use them:
 - `validering` — the agent calls the tool against the user's answer to normalize or reject it
 - `kontekst_og_validering` — both
 
-No step IDs or field names are hardcoded in the agent. New data sources are wired in by adding
-heuristics in `ai-gateway` and a tool in `mcp-services`.
+The dynamic discovery above is real, but it is **not the only path**. The agent also
+carries hardcoded shortcuts for the `fartsdempende-tiltak` case: step ids `velg-gate`,
+`hent-gate`, `boliger-bekreft` and `begrunnelse`, the tool name `matrikkel_finn_veger`,
+and a step-keyed interview script in `guidedInterviewDefinitions`. Cleaning that up —
+or replacing this agent entirely — is a hackathon task, not a bug to fix first.
+
+New data sources are wired in by adding heuristics in `ai-gateway` and a tool in
+`mcp-services`.
 
 ## Endpoints
 

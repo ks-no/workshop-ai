@@ -22,13 +22,13 @@ direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22
 | Fil | Ansvar |
 |---|---|
 | `server.ts` | Oppstart. Ingenting annet. |
-| `ruter.ts` | Rutetabell for orkestrering: prosessøkter, prosess-CRUD, revisjonslogg. Delegerer alt dataoppslag til `ressurser.ts`. |
+| `routes.ts` | Rutetabell for orkestrering: prosessøkter, prosess-CRUD, revisjonslogg. Delegerer alt dataoppslag til `ressurser.ts`. |
 | `ressurser.ts` | **Den delte ressurskatalogen.** Én oppføring blir samtidig et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål. |
 | `prosess.ts` | Stegmotoren. `stegHandtere` har én håndterer per stegtype. |
 | `regler.ts` | Vilkårsvurdering mot `data/satser.json`. `regelHandtere` har én håndterer per regeltype. |
-| `tilstand.ts` | Lesing og skriving av datasett, og oppslagshjelpere. |
-| `typer.ts` | Domenetypene. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. |
-| `sti.ts`, `feil.ts`, `http.ts`, `konfig.ts`, `revisjon.ts` | Småting. |
+| `state.ts` | Lesing og skriving av datasett, og oppslagshjelpere. `readJson` leser `state/` først med `data/` som fallback. |
+| `types.ts` | Domenetypene. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. |
+| `routing.ts`, `errors.ts`, `http.ts`, `config.ts`, `revisjon.ts` | Småting. |
 
 ## Utvidelsespunkter
 

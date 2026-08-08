@@ -1,3 +1,13 @@
+# Every Node service answers /health with a "tjeneste" field. Without a
+# healthcheck, depends_on only waits for the container to start — not for the
+# server inside it to accept connections, which is where startup races come from.
+# Node is present in all these images, so fetch is the cheapest probe available.
+x-helsesjekk: &helsesjekk
+  interval: 5s
+  timeout: 3s
+  retries: 12
+  start_period: 3s
+
 services:
   ollama:
     image: ollama/ollama:latest
@@ -51,6 +61,9 @@ services:
     restart: "no"
 
   process-builder:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/process-builder/src/server.js"]
@@ -60,6 +73,9 @@ services:
       - ./:/workspace
 
   demo-gui:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/demo-gui/src/server.js"]
@@ -69,6 +85,9 @@ services:
       - ./:/workspace
 
   sandbox-backend:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/sandbox-backend/src/server.ts"]
@@ -78,6 +97,9 @@ services:
       - ./:/workspace
 
   fiks-simulator:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/fiks-simulator/src/server.js"]
@@ -89,6 +111,9 @@ services:
       - ./:/workspace
 
   matrikkel-mock:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8085/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     build:
       context: .
       dockerfile: apps/matrikkel-mock/Dockerfile
@@ -121,6 +146,9 @@ services:
       - ./:/workspace
 
   ai-gateway:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8082/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/ai-gateway/src/server.js"]
@@ -140,20 +168,36 @@ services:
       - ./:/workspace
 
   mcp-services:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8083/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/mcp-services/src/server.js"]
+    # service_healthy, not just service_started: mcp-services proxies straight
+    # through to all three on the first request.
+    #
+    # brreg-mcp and folkeregister-mcp are deliberately NOT listed. mcp-services
+    # never calls them — it reads data/brreg.seed.json and
+    # data/folkeregister.seed.json straight off disk (see src/server.js) and
+    # exposes its own REST equivalents. They are standalone stdio MCP servers for
+    # external clients, with no HTTP surface, so service_healthy could never be
+    # satisfied for them either.
     depends_on:
-      - sandbox-backend
-      - ai-gateway
-      - matrikkel-mock
-      - brreg-mcp
-      - folkeregister-mcp
+      sandbox-backend:
+        condition: service_healthy
+      ai-gateway:
+        condition: service_healthy
+      matrikkel-mock:
+        condition: service_healthy
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_BASE_URL=http://ai-gateway:8082
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
-      - MATRIKKEL_MODE=${MATRIKKEL_MODE:-live}
+      # hybrid, not live: live rethrows on network failure, so a bad conference
+      # wifi turns every street lookup into a 500. hybrid tries Geonorge first and
+      # falls back to the seed data. Set MATRIKKEL_MODE=live to force live only.
+      - MATRIKKEL_MODE=${MATRIKKEL_MODE:-hybrid}
       - GEONORGE_ADRESSE_API_BASE_URL=${GEONORGE_ADRESSE_API_BASE_URL:-https://ws.geonorge.no/adresser/v1}
       - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
       - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
@@ -163,11 +207,15 @@ services:
       - ./:/workspace
 
   process-agent:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8084/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/process-agent/src/server.js"]
     depends_on:
-      - mcp-services
+      mcp-services:
+        condition: service_healthy
     environment:
       - MCP_BASE_URL=http://mcp-services:8083
     ports:

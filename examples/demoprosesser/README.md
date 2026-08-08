@@ -22,7 +22,7 @@ curl -s "http://localhost:8080/api/prosesser?inkluderMaler=true" # + mal-enkel-s
 
 ## Stegtyper motoren faktisk støtter
 
-Sju, definert i `apps/sandbox-backend/src/typer.ts` og håndtert i `prosess.ts`:
+Sju, definert i `apps/sandbox-backend/src/types.ts` og håndtert i `prosess.ts`:
 
 `INFO` · `QUESTION` · `DATA_FETCH` · `CONSENT_REQUEST` · `SJEKK` · `SUMMARY` · `SUBMIT`
 

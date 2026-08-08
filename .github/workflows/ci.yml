@@ -1,0 +1,51 @@
+# Only the checks that need neither a running stack nor a language model.
+#
+# Deliberately excluded: pnpm test:eval (needs a live model — see evals/README.md)
+# and the test:agent* / test:*-matrikkel scripts (need the compose stack up).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  sjekker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Type-checks the .ts modules in sandbox-backend. checkJs is off, so the
+      # .js services are not covered — see tsconfig.json.
+      - name: Typesjekk
+        run: pnpm lint
+
+      # Referential integrity plus scenario and target-group coverage across the
+      # datasets. Catches a dataset that has quietly lost a threshold case.
+      - name: Valider syntetiske data
+        run: pnpm test
+
+      # Starts its own backend + fiks on 18080/18081 against a temp STATE_DIR and
+      # writes a normalised dump. Two runs of the same code are byte-identical, so
+      # a diff here means the wire contract moved.
+      - name: Kontraktsdump
+        run: pnpm test:kontrakt --ut kontrakt-ci.json
+
+      - name: Last opp kontraktsdump
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kontraktsdump
+          path: kontrakt-ci.json
+          if-no-files-found: warn
