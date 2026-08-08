@@ -1,23 +1,28 @@
 # BRREG MCP Service
 
-True MCP (Model Context Protocol) service for BRREG Enhetsregisteret testdata.
+A real Model Context Protocol server for BRREG Enhetsregisteret test data —
+JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
+to it. Unlike `apps/mcp-services`, which is REST that only borrows the name.
 
 ## What it does
 
-This service exposes two MCP tools over **stdio**:
+Two MCP tools:
 
-- `brreg_search_organisations`: Search organisations by name/orgnr with optional filters.
-- `brreg_get_organisation`: Fetch one organisation by organisation number.
+- `brreg_search_organisations` — search by name or organisation number, with
+  optional `kommune` and `organisasjonsform` filters, paged via `offset`/`limit`.
+- `brreg_get_organisation` — fetch one organisation by `organisasjonsnummer`.
 
 ## Data source
 
-By default, it reads:
+Reads `data/brreg.seed.json` (200 synthetic organisations from Tenor). Override
+with an absolute path:
 
-- `eksport-brreg-er-fr-2026-08-07T13_05_45.656Z.json`
+```bash
+BRREG_DATA_FILE=/absolute/path/to/export.json node apps/brreg-mcp/src/server.js
+```
 
-Override with:
-
-- `BRREG_DATA_FILE=/absolute/path/to/export.json`
+The server resolves the default relative to its own location, so it works no
+matter where you start it from.
 
 ## Run
 
@@ -25,11 +30,31 @@ Override with:
 node apps/brreg-mcp/src/server.js
 ```
 
-## Quick local test
+It speaks stdio, so on its own it just waits. Point a client at it.
+
+## Verify
+
+The bundled script spawns the server and drives it end to end:
 
 ```bash
 pnpm test:brreg-mcp
 ```
+
+That test implements the client side itself, so it proves the two halves agree —
+not that the framing matches the MCP spec. **When you touch the transport, check
+against a real client too:**
+
+```bash
+npx -y @modelcontextprotocol/inspector --cli \
+  node apps/brreg-mcp/src/server.js --method tools/list
+```
+
+Both tools should be listed. `Connection timed out` means the framing broke.
+
+> This is not hypothetical. The first version framed messages with LSP's
+> `Content-Length` header instead of MCP's newline-delimited JSON. `pnpm
+> test:brreg-mcp` passed — because the test used the same wrong framing — while
+> every real client hung on `initialize`.
 
 ## MCP client config example
 
@@ -39,9 +64,14 @@ pnpm test:brreg-mcp
     "brreg": {
       "command": "node",
       "args": ["apps/brreg-mcp/src/server.js"],
-      "cwd": "/home/idar/work/workshop-ai"
+      "cwd": "/absolute/path/to/workshop-ai"
     }
   }
 }
 ```
 
+Or, in Claude Code, from the repo root:
+
+```bash
+claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.js"
+```

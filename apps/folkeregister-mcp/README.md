@@ -1,10 +1,12 @@
 # Folkeregister MCP Service
 
-True MCP (Model Context Protocol) service for Folkeregisteret syntetiske testdata.
+A real Model Context Protocol server for synthetic Folkeregisteret test data —
+JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
+to it. Unlike `apps/mcp-services`, which is REST that only borrows the name.
 
 ## What it does
 
-Exposes two MCP tools over **stdio**:
+Two MCP tools:
 
 - `folkeregister_search_persons`: Search persons by name, fnr, or municipality.
 - `folkeregister_get_person`: Fetch one person by fødselsnummer.
@@ -28,11 +30,23 @@ FOLKEREGISTER_DATA_FILE=/absolute/path/to/seed.json
 node apps/folkeregister-mcp/src/server.js
 ```
 
-## Quick test
+## Verify
 
 ```bash
 pnpm test:folkeregister-mcp
 ```
+
+That test implements the client side itself, so it proves the two halves agree —
+not that the framing matches the MCP spec. **When you touch the transport, check
+against a real client too:**
+
+```bash
+npx -y @modelcontextprotocol/inspector --cli \
+  node apps/folkeregister-mcp/src/server.js --method tools/list
+```
+
+Both tools should be listed. `Connection timed out` means the framing broke. See
+`apps/brreg-mcp/README.md` for the time that actually happened.
 
 ## MCP client config example
 
@@ -42,9 +56,15 @@ pnpm test:folkeregister-mcp
     "folkeregister": {
       "command": "node",
       "args": ["apps/folkeregister-mcp/src/server.js"],
-      "cwd": "/home/idar/work/workshop-ai"
+      "cwd": "/absolute/path/to/workshop-ai"
     }
   }
 }
+```
+
+Or, in Claude Code, from the repo root:
+
+```bash
+claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.js"
 ```
 

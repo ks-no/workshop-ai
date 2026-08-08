@@ -12,6 +12,7 @@
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Separate Docker image built from `apps/matrikkel-mock/Dockerfile`.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter`). Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/mcp-services` (`8083`): 20 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
+- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `mcp-services` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
@@ -116,6 +117,13 @@ pnpm test:mcp-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
+- **Touching either MCP server's transport? Verify against a real client, not the
+  test script.** `scripts/test-brreg-mcp.js` and `test-folkeregister-mcp.js`
+  implement the client side themselves, so they prove the two halves agree — not
+  that the framing matches the spec. The first version used LSP `Content-Length`
+  framing instead of MCP's newline-delimited JSON: both tests passed while every
+  real client hung on `initialize`. Check with
+  `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts

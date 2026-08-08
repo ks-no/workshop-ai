@@ -194,10 +194,16 @@ function createSuccessResponse(id, result) {
   };
 }
 
+// MCP's stdio transport is newline-delimited JSON: one message per line, no
+// headers. An earlier version framed messages with LSP's `Content-Length`
+// header, which made every real MCP client hang — the client writes `{...}\n`,
+// and this server waited forever for a header that never arrived. The bundled
+// test script repeated the same framing, so it passed while nothing else could
+// connect.
 function encodeMessage(message) {
-  const body = Buffer.from(JSON.stringify(message), "utf8");
-  const header = `Content-Length: ${body.length}\r\n\r\n`;
-  return Buffer.concat([Buffer.from(header, "utf8"), body]);
+  // JSON.stringify escapes newlines inside strings, so the payload can never
+  // contain a raw \n and break the framing.
+  return Buffer.from(JSON.stringify(message) + "\n", "utf8");
 }
 
 function createMessageReader(onMessage) {
@@ -207,27 +213,19 @@ function createMessageReader(onMessage) {
     buffer = Buffer.concat([buffer, chunk]);
 
     while (true) {
-      const headerEnd = buffer.indexOf("\r\n\r\n");
-      if (headerEnd === -1) return;
+      const newlineIndex = buffer.indexOf(0x0a);
+      if (newlineIndex === -1) return;
 
-      const headerText = buffer.subarray(0, headerEnd).toString("utf8");
-      const match = headerText.match(/Content-Length:\s*(\d+)/i);
-      if (!match) {
-        buffer = Buffer.alloc(0);
-        return;
-      }
+      // Split on the byte, then decode — a multi-byte character straddling two
+      // chunks would be corrupted if we decoded first.
+      // trim() also drops the \r a CRLF client leaves behind.
+      const line = buffer.subarray(0, newlineIndex).toString("utf8").trim();
+      buffer = buffer.subarray(newlineIndex + 1);
 
-      const contentLength = Number.parseInt(match[1], 10);
-      const messageStart = headerEnd + 4;
-      const messageEnd = messageStart + contentLength;
-      if (buffer.length < messageEnd) return;
-
-      const bodyText = buffer.subarray(messageStart, messageEnd).toString("utf8");
-      buffer = buffer.subarray(messageEnd);
+      if (!line) continue;
 
       try {
-        const parsed = JSON.parse(bodyText);
-        onMessage(parsed);
+        onMessage(JSON.parse(line));
       } catch (error) {
         const response = createErrorResponse(null, -32700, "Parse error", error.message);
         process.stdout.write(encodeMessage(response));
