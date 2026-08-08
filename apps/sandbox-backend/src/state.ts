@@ -35,6 +35,27 @@ export async function readJson(filnavn: string, standardverdi?: unknown): Promis
   throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
 }
 
+// Which seed files are currently shadowed by a copy in state/.
+//
+// The shadowing itself is by design — it is what keeps a demo run from dirtying
+// the work tree. The trap is that it is silent: the moment anyone saves in the
+// process builder, state/prosessdefinisjoner.json appears, and every later hand
+// edit to data/prosessdefinisjoner.json is ignored with no signal at all. People
+// lose a lot of time to that.
+export async function findShadowedSeeds(): Promise<string[]> {
+  const skygget: string[] = [];
+  for (const filnavn of ["prosessdefinisjoner.json", "personer.json", "satser.json"]) {
+    try {
+      await readFile(path.join(stateDir, filnavn), "utf8");
+      await readFile(path.join(seedDir, filnavn), "utf8");
+      skygget.push(filnavn);
+    } catch {
+      // Missing in either place means no shadowing. Nothing to report.
+    }
+  }
+  return skygget;
+}
+
 export async function writeJson(filnavn: string, data: unknown) {
   await mkdir(stateDir, { recursive: true });
   await writeFile(path.join(stateDir, filnavn), JSON.stringify(data, null, 2) + "\n");

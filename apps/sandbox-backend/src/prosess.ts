@@ -21,9 +21,24 @@ function erstattParametere(url: string, oekt: Prosessoekt) {
       result = result.replace(enkeltMal, encodeURIComponent(svarVerdi));
     }
     if (typeof svarVerdi === "object" && svarVerdi !== null) {
-      for (const [feltId, feltVerdi] of Object.entries(svarVerdi)) {
+      const felter = Object.entries(svarVerdi);
+      for (const [feltId, feltVerdi] of felter) {
         const feltMal = new RegExp(`\\{svar\\.${stegId}\\.${feltId}\\}`, "g");
         result = result.replace(feltMal, encodeURIComponent(String(feltVerdi)));
+      }
+      // A one-field answer also satisfies the short form {svar.<stegId>}.
+      //
+      // The two reference clients disagree on shape for the same step: a QUESTION
+      // with `felter` makes demo-gui's step-by-step page post an object
+      // ({gatenavn: "Storgata"}), while /chat posts the raw string. Without this,
+      // `fartsdempende-tiltak` worked in /chat and via curl but left a literal
+      // "{svar.velg-gate}" in the URL on localhost:3001 — surfacing as
+      // `Fant ikke gaten "{svar.velg-gate}"`, which reads like a typo by the user.
+      //
+      // Only when there is exactly one field: with several, the short form is
+      // genuinely ambiguous and should stay unsubstituted.
+      if (felter.length === 1) {
+        result = result.replace(enkeltMal, encodeURIComponent(String(felter[0][1])));
       }
     }
   }

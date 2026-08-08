@@ -46,13 +46,30 @@ Se `docs/veien-videre.md` for hva som gjenstår og hvilke arkitekturvalg som er 
 
 Du trenger **Docker** installert og startet. På macOS må du ha [Homebrew](https://brew.sh), så skriptet kan installere Ollama for deg. Node og pnpm trengs ikke for å kjøre sandboxen — bare for testskriptene.
 
+**Vil du bare se noe kjøre? Start her:**
+
+```bash
+./start.sh --mock
+```
+
+Fire til sju minutter. Alt fungerer bortsett fra at KI-svarene er maltekst i
+stedet for modellgenerert — flyten, samtykkesperren, revisjonsloggen og alle
+API-ene er de samme. Dette er den riktige veien inn første gang, og den eneste
+som ikke krever nedlasting av flere gigabyte.
+
+Når du vil ha den ekte modellen:
+
 ```bash
 ./start.sh
 ```
 
-Det er alt. Skriptet finner ut hvilken plattform du er på, sørger for at en språkmodell er tilgjengelig, starter tjenestene, og verifiserer at modellen faktisk er koblet på før den melder klar.
+Skriptet finner ut hvilken plattform du er på, velger modell ut fra minnet i
+maskinen, starter tjenestene, og verifiserer at modellen faktisk svarer før den
+melder klar.
 
-Første gang må en språkmodell lastes ned — fra 400 MB til 9 GB avhengig av hvor mye minne maskinen din har. Sett av tid til det; senere oppstarter tar sekunder.
+**Sett av tid første gang: 12–25 minutter**, mer med en stor modell, og vesentlig
+mer på delt konferansenett. Språkmodellen er fra 400 MB til 9 GB avhengig av hvor
+mye minne du har. Senere oppstarter tar sekunder.
 
 Skriptet spør før det laster ned. På macOS spør det i tillegg før det installerer Ollama, siden den kjører nativt der; på Linux og WSL kjører Ollama i container og installeres ikke. `./start.sh -y` hopper over alle spørsmål.
 
@@ -70,7 +87,7 @@ Du skal normalt ikke trenge noen av disse.
 |---|---|
 | `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
 | `-y, --yes` | Ikke spør før installasjon eller nedlasting |
-| `--mock` | Kjør uten språkmodell. Redningsflagget når nedlasting ikke er mulig |
+| `--mock` | Kjør uten språkmodell. Raskeste vei inn, og redningen når nedlasting ikke er mulig |
 | `--reset` | Glem alle tidligere demokjøringer og start fra kildedataene |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
