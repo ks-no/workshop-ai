@@ -7,37 +7,33 @@ This monorepo is a local sandbox for modern, dialog-based municipal services usi
 
 ## How to run
 
-### Recommended (all services)
+### Recommended
 ```bash
-pnpm install
-docker compose up --build
+./start.sh --mock     # fastest way in, no model download
+./start.sh            # with the real model
+./start.sh -d         # stop
 ```
 
-### Stop
+`./start.sh` handles platform detection, model selection by available memory, and
+verifies the model actually answers. Prefer it over raw `docker compose` — on macOS
+in particular, plain `docker compose up` starts Ollama in a container where it cannot
+reach Metal, and `--no-deps` is required. Run `./start.sh --help` for all flags.
+
+### Basic checks (no running services needed)
 ```bash
-docker compose down -t 0
+pnpm lint            # tsc --noEmit
+pnpm test            # referential integrity across datasets
+pnpm test:kontrakt   # deterministic contract dump
 ```
 
-### Optional GPU Ollama setup
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
-```
-
-### Basic checks
-```bash
-pnpm test
-pnpm test:agent
-```
+`pnpm test:agent` and the other `test:agent*` / `test:*-matrikkel` scripts need the
+stack up; `pnpm test:eval` needs a live model.
 
 ## Components and ports
-- `apps/process-builder` (`3000`): process builder UI for defining dialog flows.
-- `apps/demo-gui` (`3001`): reference citizen-facing demo UI.
-- `apps/sandbox-backend` (`8080`): process orchestration, synthetic data APIs, policy checks, and audit trail.
-- `apps/fiks-simulator` (`8081`): mock external services (consent, tasks, register-like behavior).
-- `apps/ai-gateway` (`8082`): AI abstraction layer (mock/Ollama/OpenRouter modes).
-- `apps/mcp-services` (`8083`): MCP-style tools exposed over HTTP.
-- `apps/process-agent` (`8084`): generic agent that guides users through process definitions.
-- `ollama` (`11434`, Docker): local LLM runtime used by AI-related services.
+
+See the service map in `AGENTS.md` — it is the maintained one, and it covers
+`matrikkel-mock`, the two real MCP servers, and which services are core versus
+ignorable. Do not duplicate it here; a second copy is how it went stale before.
 
 ## How it works (end-to-end)
 1. User starts in `demo-gui` and selects a test person and process.

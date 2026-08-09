@@ -27,11 +27,20 @@ mot de dokumenterte API-ene.
 
 ## Kjent svakhet
 
-Sidene viser **ikke** `advarsel`-feltet fra `ai-gateway`. Når modellen er nede får du
-maltekst som ser helt normal ut, uten noe varsel i grensesnittet. Sjekk med
-`POST /ai/klarsprak` hvis du er i tvil om modellen faktisk er koblet på — se
-`apps/ai-gateway/README.md`.
+**Den klassiske siden (`/`, `index.html`) varsler ikke om at modellen er nede.** Den
+sjekker verken `modellNaaBar` eller `advarsel`, så når modellen er borte får du
+maltekst som ser helt normal ut, uten noe varsel i grensesnittet.
 
-Backend-URL-ene er dessuten hardkodet til `http://localhost:...` i `chat.html` og
-`agent.html`, så sidene virker bare når du åpner dem fra samme maskin.
+`/chat` og `/agent` gjør det derimot: begge henter `ai-gateway /helse` ved sidelast og
+viser en gul stripe når `modellNaaBar` er falsk (`chat.html:128-142`,
+`agent.html:254-271`). `/chat` viser i tillegg `advarsel` per svar
+(`chat.html:147-150`) — men bare for resultater som kommer via backend, i praksis
+`SUMMARY`. `advarsel` fra `/ai/tolk-svar` vises ikke.
+
+Er du i tvil om modellen faktisk er koblet på, sjekk `GET /helse` på `ai-gateway`, eller
+`POST /ai/klarsprak` — se `apps/ai-gateway/README.md`.
+
+Backend-URL-ene er dessuten hardkodet til `http://localhost:...` i alle tre sidene
+(`index.html`, `chat.html` og `agent.html`), så de virker bare når du åpner dem fra
+samme maskin.
 

@@ -93,8 +93,9 @@ verktøynavnet `matrikkel_finn_veger`. Å rydde det opp er en hackathon-oppgave,
 ikke noe som skal fikses først.
 
 Ny funksjonalitet kobles inn ved å legge til heuristikk i
-`ai-gateway/src/server.js` (`VERKTOY_HEURISTIKK`-arrayen) og/eller et nytt
-verktøy i `mcp-services`.
+`apps/ai-gateway/src/server.js` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
+i funksjonen `heuristicToolChoice` og ikke på toppnivå — og/eller et nytt verktøy i
+`mcp-services`.
 
 ## Slik legger du til en ny case
 
@@ -107,7 +108,7 @@ De fleste caser krever ingen kode i det hele tatt.
 | hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
 | innføre en ny regeltype | `apps/sandbox-backend/src/regler.ts` → `regelHandtere` | ~20 linjer |
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandtere` | ~20 linjer |
-| gi agenten et nytt verktøy for `QUESTION`-steg | `mcp-services` + `VERKTOY_HEURISTIKK` i `ai-gateway` | ~20 linjer |
+| gi agenten et nytt verktøy for `QUESTION`-steg | `mcp-services` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.js` | ~20 linjer |
 
 Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
 den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis

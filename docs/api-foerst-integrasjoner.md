@@ -24,8 +24,9 @@ Regelen i praksis:
 > på tvers av tjenester.
 
 Dette er innfridd, med **ett dokumentert unntak**: `sandbox-backend` leser
-`data/matrikkel.json` direkte i stedet for å kalle `matrikkel-mock`. Samme fil har
-derfor to uavhengige lesestier. Se `docs/architecture.md`.
+`data/matrikkel.seed.json` direkte i stedet for å kalle `matrikkel-mock`. Samme fil har
+derfor to uavhengige lesestier — backend fra disk, mocken som seed ved oppstart.
+Se `docs/architecture.md`.
 
 ## Datastier og eierskap
 

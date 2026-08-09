@@ -4,6 +4,11 @@ En samarbeidsvennlig sandbox for hackathon og utforskning av moderne innbyggerdi
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype dialogbaserte tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner.
 
+> **Deltaker på hackathon? Start med [`docs/deltakerstart.md`](docs/deltakerstart.md).**
+> Én side med det du trenger den første timen: én kommando, fire URL-er, hvilken
+> demobruker som hører til hvilken case, og tre feilsjekker. Kom tilbake hit når du
+> vil ha hele bildet.
+
 ## Hva sandkassen er
 
 Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen gjennom en dialogbasert flyt i stedet for tradisjonelle skjemaer.
@@ -75,9 +80,14 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-På Windows: kjør skriptet fra Git Bash eller WSL. Da får du også automatisk modellvalg
-basert på minnet i maskinen. Egne batchfiler for ledeteksten er under arbeid i en egen
-pull request.
+På Windows: kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
+automatisk modellvalg basert på minnet i maskinen, og verifisering av at modellen
+faktisk svarer.
+
+`start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
+ekvivalent: `start.bat` kjører blankt `docker compose up -d` og venter 15 sekunder.
+Den tar ingen flagg — heller ikke `--mock` — laster ikke ned modell, og sjekker ikke
+at noe faktisk kom opp. Foretrekk Git Bash eller WSL hvis du har valget.
 
 ### Valg
 
@@ -187,17 +197,34 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 
 ## Oversikt over tjenester og porter
 
-| Tjeneste | Port | Rolle |
-|---|---:|---|
-| `process-builder` | `3000` | Prosessbygger for dialogflyter |
-| `demo-gui` | `3001` | Demo-app for innbyggerdialog |
-| `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
-| `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
-| `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
-| `ai-gateway` | `8082` | KI-støtte og forklaringer (Ollama, OpenRouter eller mock) |
-| `ollama` | `11434` | Lokal LLM-runtime for billige/gratis modeller |
-| `mcp-services` | `8083` | 20 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
-| `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
+`./start.sh` starter alle sammen, så du trenger ikke velge. Kolonnen til venstre sier
+hva du må bry deg om hvis noe feiler.
+
+| | Tjeneste | Port | Rolle |
+|---|---|---:|---|
+| **Kjerne** | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
+| **Kjerne** | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
+| **Kjerne** | `ai-gateway` | `8082` | KI-støtte og forklaringer (Ollama, OpenRouter eller mock) |
+| **Kjerne** | `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
+| **Kjerne** | `demo-gui` | `3001` | Demo-app for innbyggerdialog |
+| Nyttig | `process-builder` | `3000` | Prosessbygger for dialogflyter |
+| Nyttig | `mcp-services` | `8083` | 20 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
+| Nyttig | `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
+| Støtte | `ollama` | `11434` | Lokal LLM-runtime. Kjører ikke med `--mock`, og på macOS kjører den nativt utenfor Docker |
+| Til editoren din | `brreg-mcp` | — | Ekte MCP (stdio) — oppslag i Enhetsregisteret |
+| Til editoren din | `folkeregister-mcp` | — | Ekte MCP (stdio) — oppslag i Folkeregisteret |
+
+**De to siste er ikke en del av demoflyten.** Ingenting i sandboxen snakker med dem —
+de er ekte MCP-servere som en klient som Claude Code eller Cursor starter selv. De
+fire verktøyene deres finnes også i `mcp-services` over REST, mot de samme
+seed-filene, så de utvider ikke sandboxen. Vil du ha dem i editoren, se
+`## Koble MCP-serverne til editoren din` under.
+
+Ikke forveksle `mcp-services` med disse: den er REST, ikke MCP-protokollen, tross navnet.
+
+**`matrikkel-mock` er kjerne, selv om den ser valgfri ut.** Uten den feiler alle
+`matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed», mens
+alt annet ser normalt ut.
 
 Alle tjenestene kjører når `./start.sh` er ferdig:
 
@@ -220,6 +247,20 @@ Nye API-er:
 
 - `GET /mcp/tools` pa `http://localhost:8083`
 - `POST /agent/sessions` pa `http://localhost:8084`
+
+## Koble MCP-serverne til editoren din
+
+`brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
+oppslagsverktøy mot registerdataene — de samme oppslagene `mcp-services` allerede
+eksponerer over REST, så de utvider ikke sandboxen. I Claude Code, fra repo-roten:
+
+```bash
+claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.js"
+claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.js"
+```
+
+Detaljer, klientkonfigurasjon for andre editorer og verifisering med
+`@modelcontextprotocol/inspector`: `apps/brreg-mcp/README.md`.
 
 ## Demo-bruker
 
@@ -314,8 +355,14 @@ Sjekk hvilken datakilde `matrikkel-mock` faktisk bruker akkurat naa:
 pnpm check:matrikkel-source
 ```
 
-I `docker compose` er `mcp-services` satt opp med `MATRIKKEL_MODE=live` som standard,
-mens `matrikkel-mock` starter fra `data/matrikkel.seed.json` og faller tilbake til live Geonorge-oppslag ved manglende treff.
+I `docker compose` er `mcp-services` satt opp med `MATRIKKEL_MODE=hybrid` som standard —
+ikke `live`. `live` kaster videre ved nettfeil, så dårlig konferansenett gjør hvert
+gateoppslag til en 500. `hybrid` prøver Geonorge først og faller tilbake til seed-dataene.
+Kodens egen default uten miljøvariabel er `mock`, men den ser du bare hvis du starter
+`mcp-services` utenfor compose.
+
+`matrikkel-mock` starter uansett fra `data/matrikkel.seed.json` og faller tilbake til
+live Geonorge-oppslag ved manglende treff.
 
 Hent matrikkeldata (REST-hjelpeendepunkt):
 
@@ -407,9 +454,12 @@ Syntetiske data ligger under `data/`:
 - `data/barnehageplasser.json`
 - `data/sfoplasser.json`
 - `data/satser.json`
-- `data/matrikkel.json`
+- `data/matrikkel.seed.json` — lest av både `sandbox-backend` og `matrikkel-mock`
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`
+
+`data/matrikkel.json` ligger også der — 5,9 MB nedlastede Geonorge-adresser — men den
+leses av ingenting. Ikke bygg på den.
 
 Søknader, samtykker, oppgaver, meldinger, prosessøkter og revisjonslogg har **ingen**
 fil i `data/`. De oppstår først under kjøring og finnes bare i `state/`, som er

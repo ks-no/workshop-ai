@@ -165,8 +165,12 @@ pnpm test:agent:matrikkel
   `data/matrikkel.seed.json`. Note that `data/matrikkel.json` (5.9 MB of downloaded
   Geonorge addresses) is read by nothing at all.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
-  lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **The default is
-  `live`**, so the sandbox calls `https://ws.geonorge.no/adresser/v1` out of the box.
+  lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **Two different
+  defaults, and the distinction matters:** the code default is `mock`
+  (`apps/mcp-services/src/server.js:10`), but compose sets `hybrid`
+  (`docker-compose.yml:200`) — so `hybrid` is what you actually run. Not `live`: `live`
+  rethrows on network failure, so bad conference wifi turns every street lookup into a
+  500. `hybrid` tries Geonorge first and falls back to the seed data.
   `MATRIKKEL_MODE` is read only by `mcp-services`; `matrikkel-mock` always falls back to
   live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
   is down.

@@ -1,0 +1,102 @@
+# Deltakerstart
+
+Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan vente.
+
+## 1. Start sandboxen
+
+Du trenger **Docker** installert og startet. Så:
+
+```bash
+./start.sh --mock
+```
+
+Fire til sju minutter. `--mock` kjører uten språkmodell, så KI-svarene er maltekst i
+stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjonsloggen
+og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
+krever nedlasting av flere gigabyte.
+
+Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12–25
+minutter til det, mer på delt konferansenett.
+
+På Windows: kjør fra Git Bash eller WSL.
+
+Stopp alt med `./start.sh -d`.
+
+## 2. Fire URL-er som betyr noe
+
+| URL | Hva det er |
+|---|---|
+| <http://localhost:3001> | Demo-app, klassisk stegvis flyt |
+| <http://localhost:3001/chat> | Samme prosesser, som chat |
+| <http://localhost:3001/agent> | Agent i naturlig språk |
+| <http://localhost:3000> | Prosessbygger — lag eller endre en flyt |
+
+De øvrige tjenestene (`:8080`–`:8085`) er API-er du kan bygge mot, men du trenger ikke
+åpne noen av dem for å se sandboxen virke. Se `README.md` når du kommer dit.
+
+## 3. Hvilken bruker til hvilken case
+
+Fem demo-case er publisert. Velg bruker etter case — **det er ikke én bruker som
+passer alle:**
+
+| Case | Bruk denne brukeren |
+|---|---|
+| Redusert foreldrebetaling (barnehage) | `person-001` **Maja Solberg** |
+| Redusert betaling i SFO | `person-008` **Ingrid Dahl** |
+| Behovsavklaring for støttekontakt | hvem som helst — ingen datahenting |
+| Søknad om fritidskort-støtte | `person-001` |
+| Søknad om fartsdempende tiltak | `person-001` |
+
+> **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO. Prøver du
+> SFO-casen med henne, får du et avslag som ser ut som en feil, men er riktig.
+> Bruk `person-008`, som har et barn på 3. trinn.
+
+For **fartsdempende tiltak** avgjør gatenavnet utfallet: `Storgata` gir godkjent,
+`Fjøsangerveien` gir avvist.
+
+## 4. Tre sjekker når noe ser rart ut
+
+**Er modellen koblet på?**
+
+```bash
+curl -s http://localhost:8082/helse
+```
+
+Les `modellNaaBar`. Er den `false`, forklarer et `feil`-felt hvorfor. Merk at status
+alltid er 200 — tjenesten lever selv om modellen ikke gjør det. Kjørte du med
+`--mock`, skal den være `false`, og det er som forventet.
+
+**Hva fikk modellen egentlig?**
+
+<http://localhost:8082/trace>
+
+Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og
+validering har vært innom. Dette er raskeste vei til å forstå et rart KI-svar.
+
+**Kjører alle tjenestene?**
+
+```bash
+docker compose ps
+```
+
+Ser du «fetch failed» på matrikkel-oppslag eller i `fartsdempende-tiltak`-casen, er
+det nesten alltid `matrikkel-mock` som ikke er oppe.
+
+## 5. Nullstille
+
+```bash
+./start.sh --reset
+```
+
+`data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner
+i `state/`, som er gitignorert — en demokjøring skitner ikke til arbeidstreet.
+`--reset` tømmer `state/`.
+
+---
+
+**Vil du vite mer?** `README.md` har hele bildet: alle flagg, porter, API-eksempler og
+kjente begrensninger.
+
+**Skal du bygge noe?** Start med `docs/architecture.md`, og `docs/prosessmodell.md`
+hvis du skal lage en ny case. `examples/curl/README.md` har ferdige kall for hele
+flyten.

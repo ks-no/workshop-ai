@@ -58,7 +58,9 @@ This service exposes tool endpoints a generic agent can call to:
 - `BACKEND_BASE_URL` (default `http://sandbox-backend:8080`)
 - `AI_BASE_URL` (default `http://ai-gateway:8082`)
 - `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`)
-- `MATRIKKEL_MODE` (default `mock`; `live` or `hybrid` enables direct gate lookup via Geonorge)
+- `MATRIKKEL_MODE` (kodedefault `mock`, men `docker compose` setter `hybrid` — se
+  `docker-compose.yml:200`. `live` og `hybrid` slår opp gater direkte via Geonorge;
+  `live` kaster videre ved nettfeil, `hybrid` faller tilbake til seed-dataene)
 - `GEONORGE_ADRESSE_API_BASE_URL` (default `https://ws.geonorge.no/adresser/v1`)
 - `MATRIKKEL_HTTP_TIMEOUT_MS` (default `6000`)
 
