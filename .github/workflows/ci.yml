@@ -36,6 +36,13 @@ jobs:
       - name: Valider syntetiske data
         run: pnpm test
 
+      # The guardrails on /ai/sporsmaal as pure functions: decision language,
+      # ungrounded amounts, false completion claims, prompt injection, and the
+      # projection that keeps identifiers out of a prompt. No model needed, so
+      # unlike test:eval it can gate every PR.
+      - name: Sperrer på frie spørsmål
+        run: pnpm test:sperrer
+
       # Starts its own backend + fiks on 18080/18081 against a temp STATE_DIR and
       # writes a normalised dump. Two runs of the same code are byte-identical, so
       # a diff here means the wire contract moved.

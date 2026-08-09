@@ -431,11 +431,12 @@ if ! $MOCK; then
 fi
 
 printf '\n✅ Ready\n'
+printf '   🧭 Start here:      http://localhost:3001\n'
 printf '   🌐 Chat:            http://localhost:3001/chat\n'
 printf '   🧠 Agent:           http://localhost:3001/agent\n'
-printf '   📝 Step-by-step UI: http://localhost:3001\n'
+printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
 printf '   🔧 Process Builder: http://localhost:3000\n'
-printf '   📦 Sandbox Backend: http://localhost:8080\n'
+printf '   🔍 AI trace:        http://localhost:8082/trace\n'
 printf '   📚 API docs:        http://localhost:8080/docs\n'
 
 if $MOCK; then

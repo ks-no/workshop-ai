@@ -4,13 +4,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const sharedUiDir = path.join(__dirname, "..", "..", "shared-ui");
 const port = 3001;
 
-async function sendHtml(response, filename) {
-  const filsti = path.join(__dirname, filename);
-  const innhold = await readFile(filsti, "utf8");
-  send(response, 200, innhold);
-}
+// Whitelisted, because the filename comes from the URL. Never join user input
+// onto a directory path without one.
+const ASSETS = {
+  "felles.css": "text/css; charset=utf-8",
+  "felles.js": "text/javascript; charset=utf-8"
+};
 
 function send(response, statusCode, body, contentType = "text/html; charset=utf-8") {
   response.writeHead(statusCode, {
@@ -20,24 +22,51 @@ function send(response, statusCode, body, contentType = "text/html; charset=utf-
   response.end(body);
 }
 
+async function sendFile(response, filsti, contentType) {
+  try {
+    send(response, 200, await readFile(filsti, "utf8"), contentType);
+  } catch (error) {
+    send(response, 500, `Kunne ikke lese ${path.basename(filsti)}: ${error.message}`, "text/plain; charset=utf-8");
+  }
+}
+
+function sendHtml(response, filename) {
+  return sendFile(response, path.join(__dirname, filename), "text/html; charset=utf-8");
+}
+
+const sider = {
+  "/": "dashboard.html",
+  "/dashboard": "dashboard.html",
+  "/stegvis": "index.html",
+  "/index.html": "index.html",
+  "/chat": "chat.html",
+  "/chat.html": "chat.html",
+  "/agent": "agent.html",
+  "/agent.html": "agent.html"
+};
+
 const server = createServer(async (request, response) => {
-  if (request.url === "/helse" || request.url === "/health") {
+  const sti = (request.url || "/").split("?")[0];
+
+  if (sti === "/helse" || sti === "/health") {
     send(response, 200, JSON.stringify({ status: "ok", tjeneste: "demo-gui" }), "application/json; charset=utf-8");
     return;
   }
 
-  if (request.url === "/" || request.url === "/index.html") {
-    await sendHtml(response, "index.html");
+  if (sti.startsWith("/assets/")) {
+    const navn = sti.slice("/assets/".length);
+    const contentType = ASSETS[navn];
+    if (!contentType) {
+      send(response, 404, "Fant ikke fil.", "text/plain; charset=utf-8");
+      return;
+    }
+    await sendFile(response, path.join(sharedUiDir, navn), contentType);
     return;
   }
 
-  if (request.url === "/chat" || request.url === "/chat.html") {
-    await sendHtml(response, "chat.html");
-    return;
-  }
-
-  if (request.url === "/agent" || request.url === "/agent.html") {
-    await sendHtml(response, "agent.html");
+  const side = sider[sti];
+  if (side) {
+    await sendHtml(response, side);
     return;
   }
 

@@ -4,65 +4,61 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Innbyggerdialog Demo</title>
+    <link rel="stylesheet" href="/assets/felles.css" />
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #eef3f8; color: #17232f; }
-      main { max-width: 1280px; margin: 0 auto; padding: 24px; }
-      .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
-      .kort { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-      button, select, textarea, input { padding: 10px 12px; border-radius: 8px; border: 1px solid #ccd6e0; font: inherit; }
-      button { background: #1459c7; color: white; border: 0; cursor: pointer; }
-      button.sekundar { background: #6a7786; }
-      pre { white-space: pre-wrap; background: #0f1724; color: #d8e2ef; padding: 16px; border-radius: 8px; min-height: 140px; overflow: auto; }
-      textarea, input, select.feltsvar { width: 100%; box-sizing: border-box; min-height: 44px; }
-      .rad { margin-bottom: 12px; }
-      .etikett { font-size: 14px; color: #526171; margin-bottom: 6px; }
-      .linje { padding: 10px 0; border-bottom: 1px solid #edf2f7; }
-      .handlinger { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-      .status { padding: 12px; background: #eef4ff; border-radius: 8px; color: #1f3f78; margin-bottom: 12px; }
-      .stegkort { border: 1px solid #e6edf5; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
-      .stegtype { display: inline-block; font-size: 12px; background: #eaf1ff; color: #2250a8; padding: 4px 8px; border-radius: 999px; margin-bottom: 8px; }
-      .aktiv { border-left: 4px solid #1459c7; padding-left: 12px; }
-      .ferdig { color: #2f6f3e; }
-      .muted { color: #617182; }
+      .grid { grid-template-columns: 1.3fr 1fr; }
+      pre { min-height: 140px; }
+      textarea, input, select.field-answer { width: 100%; min-height: 44px; }
+      .actions { margin-bottom: 12px; }
     </style>
   </head>
   <body>
     <main>
+      <div class="top-links">
+        <a href="/">Oversikt</a>
+        <a href="/chat">Chat-demo</a>
+        <a href="/agent">AI-agent</a>
+      </div>
       <h1>Innbyggerdialog Demo — stegvis</h1>
       <p><strong>Du er her:</strong> ett steg av gangen, med rå JSON og revisjonslogg synlig.
         Bruk denne når du vil <em>se hva som skjer under panseret</em>.</p>
       <p>De to andre: <a href="/chat">Chat</a> — samme prosessmotor, pakket som dialog.
         <a href="/agent">AI-agent</a> — agenten velger prosess og styrer flyten selv.
         Alle tre kaller de samme API-ene; ingen av dem er den «riktige» måten.</p>
+
+      <!-- Uten dette banneret ser maltekst fra en daud modell ut som et
+           helt normalt KI-svar. -->
+      <div id="modellBanner" hidden></div>
+
       <div class="grid">
-        <section class="kort">
-          <div class="rad">
-            <div class="etikett">Testbruker</div>
+        <section class="card">
+          <div class="row">
+            <label for="personvelger">Testbruker</label>
             <select id="personvelger"></select>
           </div>
-          <div class="rad">
-            <div class="etikett">Prosess</div>
+          <div class="row">
+            <label for="prosessvelger">Prosess</label>
             <select id="prosessvelger"></select>
           </div>
-          <div class="handlinger">
+          <div class="actions">
             <button id="start">Start prosess</button>
-            <button id="forrige" class="sekundar">Forrige steg</button>
-            <button id="neste" class="sekundar">Neste steg</button>
-            <button id="hentLogg" class="sekundar">Hent revisjonslogg</button>
+            <button id="forrige" class="secondary">Forrige steg</button>
+            <button id="neste" class="secondary">Neste steg</button>
+            <button id="hentLogg" class="secondary">Hent revisjonslogg</button>
           </div>
           <div id="status" class="status">Velg testbruker og prosess for å starte.</div>
-          <div id="aktivtSteg" class="stegkort">
+          <div id="aktivtSteg" class="step-card">
             <div class="muted">Ingen aktiv prosess ennå.</div>
           </div>
           <h3>Visning</h3>
           <pre id="visning">Prosessdata og API-svar vises her.</pre>
         </section>
-        <section class="kort">
+        <section class="card">
           <h2>Flyt og spor</h2>
-          <div class="linje"><strong>Sporings-ID:</strong> <span id="sporingsId"></span></div>
-          <div class="linje"><strong>Aktiv prosessøkt:</strong> <span id="oektsId">ikke opprettet</span></div>
-          <div class="linje"><strong>Aktivt samtykke:</strong> <span id="samtykkeId">ikke opprettet</span></div>
-          <div class="linje"><strong>Prosess-steg:</strong> <span id="stegTeller">0 / 0</span></div>
+          <div class="line"><strong>Sporings-ID:</strong> <span id="sporingsId"></span></div>
+          <div class="line"><strong>Aktiv prosessøkt:</strong> <span id="oektsId">ikke opprettet</span></div>
+          <div class="line"><strong>Aktivt samtykke:</strong> <span id="samtykkeId">ikke opprettet</span></div>
+          <div class="line"><strong>Prosess-steg:</strong> <span id="stegTeller">0 / 0</span></div>
           <h3>Prosessoversikt</h3>
           <div id="prosessOversikt"></div>
           <h3>Hendelser</h3>
@@ -70,7 +66,9 @@
         </section>
       </div>
     </main>
+    <script src="/assets/felles.js"></script>
     <script>
+      const aiBase = "http://localhost:8082";
       const personvelger = document.getElementById("personvelger");
       const prosessvelger = document.getElementById("prosessvelger");
       const statusEl = document.getElementById("status");
@@ -96,7 +94,7 @@
 
       function logg(tekst) {
         const node = document.createElement("div");
-        node.className = "linje";
+        node.className = "line";
         node.textContent = tekst;
         hendelser.prepend(node);
       }
@@ -111,14 +109,6 @@
 
       function prosessFraId(prosessId) {
         return prosesser.find((prosess) => prosess.id === prosessId) || null;
-      }
-
-      function htmlEscape(tekst) {
-        return String(tekst ?? "")
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;");
       }
 
       async function hentJson(url, valg = {}) {
@@ -143,11 +133,11 @@
         prosesser = await hentJson("http://localhost:8080/api/prosesser");
 
         personvelger.innerHTML = personer
-          .map((person) => `<option value="${person.personId}">${person.visningsnavn} (${person.bostedsadresse.kommune})</option>`)
+          .map((person) => `<option value="${htmlEscape(person.personId)}">${htmlEscape(person.visningsnavn)} (${htmlEscape(person.bostedsadresse.kommune)})</option>`)
           .join("");
 
         prosessvelger.innerHTML = prosesser
-          .map((prosess) => `<option value="${prosess.id}">${prosess.navn}</option>`)
+          .map((prosess) => `<option value="${htmlEscape(prosess.id)}">${htmlEscape(prosess.navn)}</option>`)
           .join("");
 
         tegnProsessOversikt();
@@ -165,12 +155,12 @@
         stegTeller.textContent = `${Math.max(aktivIndex + 1, 0)} / ${prosess.steg.length}`;
         prosessOversikt.innerHTML = prosess.steg.map((steg, indeks) => {
           const klasser = [];
-          if (indeks === aktivIndex) klasser.push("aktiv");
-          if (indeks < aktivIndex) klasser.push("ferdig");
+          if (indeks === aktivIndex) klasser.push("active");
+          if (indeks < aktivIndex) klasser.push("done");
           return `
-            <div class="stegkort ${klasser.join(" ")}">
-              <div class="stegtype">${steg.type}</div>
-              <div><strong>${indeks + 1}. ${steg.tittel}</strong></div>
+            <div class="step-card ${klasser.join(" ")}">
+              <div class="step-type">${htmlEscape(steg.type)}</div>
+              <div><strong>${indeks + 1}. ${htmlEscape(steg.tittel)}</strong></div>
             </div>
           `;
         }).join("");
@@ -197,9 +187,9 @@
         tegnProsessOversikt();
 
         let innhold = `
-          <div class="stegtype">${steg.type}</div>
-          <h2>${steg.tittel}</h2>
-          ${steg.tekst ? `<p>${steg.tekst}</p>` : ""}
+          <div class="step-type">${htmlEscape(steg.type)}</div>
+          <h2>${htmlEscape(steg.tittel)}</h2>
+          ${steg.tekst ? `<p>${htmlEscape(steg.tekst)}</p>` : ""}
         `;
 
         if (steg.type === "QUESTION") {
@@ -207,11 +197,13 @@
             const svar = aktivProsessoekt.svar?.[steg.id] || {};
             const feltHtml = steg.felter.map((felt) => {
               const svarverdi = svar[felt.id] ?? "";
+              const feltId = `felt-${htmlEscape(felt.id)}`;
+              const labelHtml = `<label for="${feltId}">${htmlEscape(felt.label)}${felt.obligatorisk ? " *" : ""}</label>`;
               if (felt.type === "ja-nei") {
                 return `
-                  <div class="rad">
-                    <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
-                    <select class="feltsvar" data-felt-id="${felt.id}">
+                  <div class="row">
+                    ${labelHtml}
+                    <select id="${feltId}" class="field-answer" data-felt-id="${htmlEscape(felt.id)}">
                       <option value="">Velg</option>
                       <option value="Ja" ${svarverdi === "Ja" ? "selected" : ""}>Ja</option>
                       <option value="Nei" ${svarverdi === "Nei" ? "selected" : ""}>Nei</option>
@@ -224,9 +216,9 @@
                   `<option value="${htmlEscape(alternativ)}" ${svarverdi === alternativ ? "selected" : ""}>${htmlEscape(alternativ)}</option>`
                 ).join("");
                 return `
-                  <div class="rad">
-                    <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
-                    <select class="feltsvar" data-felt-id="${felt.id}">
+                  <div class="row">
+                    ${labelHtml}
+                    <select id="${feltId}" class="field-answer" data-felt-id="${htmlEscape(felt.id)}">
                       <option value="">Velg</option>
                       ${alternativer}
                     </select>
@@ -234,9 +226,9 @@
                 `;
               }
               return `
-                <div class="rad">
-                  <div class="etikett">${felt.label}${felt.obligatorisk ? " *" : ""}</div>
-                  <textarea class="feltsvar" data-felt-id="${felt.id}" placeholder="${htmlEscape(felt.placeholder || "")}">${htmlEscape(svarverdi)}</textarea>
+                <div class="row">
+                  ${labelHtml}
+                  <textarea id="${feltId}" class="field-answer" data-felt-id="${htmlEscape(felt.id)}" placeholder="${htmlEscape(felt.placeholder || "")}">${htmlEscape(svarverdi)}</textarea>
                 </div>
               `;
             }).join("");
@@ -244,9 +236,9 @@
           } else {
             const svar = aktivProsessoekt.svar?.[steg.id] || "";
             innhold += `
-              <div class="rad">
-                <div class="etikett">Ditt svar</div>
-                <textarea id="fritekstSvar" placeholder="Skriv svaret ditt her...">${svar}</textarea>
+              <div class="row">
+                <label for="fritekstSvar">Ditt svar</label>
+                <textarea id="fritekstSvar" placeholder="Skriv svaret ditt her...">${htmlEscape(svar)}</textarea>
               </div>
               <button id="lagreSvar">Lagre svar</button>
             `;
@@ -255,12 +247,12 @@
 
         if (steg.type === "CONSENT_REQUEST") {
           innhold += `
-            <p><strong>Formål:</strong> ${steg.formaal || "Ikke oppgitt"}</p>
-            <p><strong>Datakilder:</strong> ${(steg.dataKilder || []).join(", ") || "Ingen"}</p>
-            <div class="handlinger">
+            <p><strong>Formål:</strong> ${htmlEscape(steg.formaal || "Ikke oppgitt")}</p>
+            <p><strong>Datakilder:</strong> ${htmlEscape((steg.dataKilder || []).join(", ") || "Ingen")}</p>
+            <div class="actions">
               <button id="opprettSamtykke">Opprett samtykke</button>
               <button id="samtykk">Gi samtykke</button>
-              <button id="ikkeSamtykk" class="sekundar">Ikke samtykk</button>
+              <button id="ikkeSamtykk" class="secondary">Ikke samtykk</button>
             </div>
           `;
         }
@@ -422,6 +414,10 @@
           tegnProsessOversikt();
         }
       };
+
+      sjekkModell(aiBase, {
+        konsekvens: "Oppsummeringen under kommer fra maler, ikke fra en modell."
+      });
 
       lastInnGrunnlag().then(() => {
         settStatus("Demo-GUI klar.");

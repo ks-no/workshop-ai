@@ -208,7 +208,7 @@ hva du må bry deg om hvis noe feiler.
 | **Kjerne** | `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
 | **Kjerne** | `demo-gui` | `3001` | Demo-app for innbyggerdialog |
 | Nyttig | `process-builder` | `3000` | Prosessbygger for dialogflyter |
-| Nyttig | `mcp-services` | `8083` | 20 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
+| Nyttig | `mcp-services` | `8083` | 25 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
 | Nyttig | `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
 | Støtte | `ollama` | `11434` | Lokal LLM-runtime. Kjører ikke med `--mock`, og på macOS kjører den nativt utenfor Docker |
 | Til editoren din | `brreg-mcp` | — | Ekte MCP (stdio) — oppslag i Enhetsregisteret |
@@ -228,10 +228,11 @@ alt annet ser normalt ut.
 
 Alle tjenestene kjører når `./start.sh` er ferdig:
 
-- [http://localhost:3000](http://localhost:3000)
-- [http://localhost:3001](http://localhost:3001)
+- [http://localhost:3001](http://localhost:3001) — oversikt, start her
 - [http://localhost:3001/chat](http://localhost:3001/chat)
 - [http://localhost:3001/agent](http://localhost:3001/agent)
+- [http://localhost:3001/stegvis](http://localhost:3001/stegvis)
+- [http://localhost:3000](http://localhost:3000) — prosessbygger
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
 - [http://localhost:8085/health](http://localhost:8085/health)

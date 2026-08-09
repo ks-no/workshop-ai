@@ -4,82 +4,87 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Prosessbygger</title>
+    <link rel="stylesheet" href="/assets/felles.css" />
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #16202a; line-height: 1.45; }
-      header, main { max-width: 1360px; margin: 0 auto; padding: 28px; }
-      header { padding-bottom: 12px; }
-      h1, h2, h3, h4 { margin-top: 0; }
+      :root { --sidebredde: 1360px; --farge-bakgrunn: #f4f7fb; }
+      header, main { padding: 28px; }
       h2 { margin-bottom: 16px; }
-      .kort { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
-      .grid { display: grid; grid-template-columns: minmax(240px, 300px) minmax(360px, 1fr) minmax(320px, 1fr); gap: 28px; align-items: start; }
-      button { border: 0; background: #1459c7; color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
-      button.sekundar { background: #6a7786; }
+      .card { padding: 24px; margin-bottom: 20px; }
+      .grid { grid-template-columns: minmax(240px, 300px) minmax(360px, 1fr) minmax(320px, 1fr); gap: 28px; }
       ul { padding-left: 20px; margin: 0; }
       li + li { margin-top: 8px; }
-      pre, textarea { white-space: pre-wrap; background: #0e1726; color: #d9e3f0; padding: 16px; border-radius: 8px; overflow: auto; }
-      textarea, input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccd6e0; border-radius: 8px; margin-bottom: 14px; font: inherit; background: white; color: #16202a; }
-      textarea.mork { background: #0e1726; color: #d9e3f0; min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-      .liten { color: #506070; }
-      .rad { margin-bottom: 14px; }
-      .handlinger { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-      .status { padding: 12px 14px; background: #eef4ff; border-radius: 8px; color: #1f3f78; }
+      textarea, input { width: 100%; margin-bottom: 14px; background: #fff; }
+      .row { margin-bottom: 14px; }
+      .actions { gap: 10px; margin-bottom: 16px; }
+
+      /* Prosesslista er valg, ikke fem primærhandlinger. */
+      #prosesser { list-style: none; padding: 0; }
+      #prosesser button {
+        background: none;
+        color: var(--farge-primar);
+        text-align: left;
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: var(--radius);
+      }
+      #prosesser button:hover { background: #eef4ff; }
       @media (max-width: 1200px) {
         .grid { grid-template-columns: minmax(280px, 320px) 1fr; }
       }
       @media (max-width: 900px) {
-        header, main { padding: 20px; }
-        .grid { grid-template-columns: 1fr; gap: 20px; }
-        .kort { padding: 20px; }
+        .card { padding: 20px; }
       }
     </style>
   </head>
   <body>
     <header>
+      <div class="top-links"><a href="http://localhost:3001/">Tilbake til oversikten</a></div>
       <h1>Prosessbygger</h1>
-      <p class="liten">Lag, rediger og del prosessdefinisjoner med norske begreper for hackathon-sandboxen.</p>
+      <p class="small">Lag, rediger og del prosessdefinisjoner med norske begreper for hackathon-sandboxen.</p>
     </header>
     <main class="grid">
-      <section class="kort">
+      <section class="card">
         <h2>Prosesser</h2>
-        <div class="handlinger">
+        <div class="actions">
           <button id="oppdater">Hent prosesser</button>
-          <button id="nyProsess" class="sekundar">Ny prosess</button>
+          <button id="nyProsess" class="secondary">Ny prosess</button>
         </div>
         <ul id="prosesser"></ul>
       </section>
-      <section class="kort">
+      <section class="card">
         <h2>Redigering</h2>
-        <div class="rad">
+        <div class="row">
           <label for="prosessId">Prosess-ID</label>
           <input id="prosessId" placeholder="f.eks. bostotte-veiledning" />
         </div>
-        <div class="rad">
+        <div class="row">
           <label for="prosessNavn">Navn</label>
           <input id="prosessNavn" placeholder="Navn på prosessen" />
         </div>
-        <div class="rad">
+        <div class="row">
           <label for="prosessVersjon">Versjon</label>
           <input id="prosessVersjon" value="0.1.0" />
         </div>
-        <div class="rad">
+        <div class="row">
           <label for="prosessBeskrivelse">Beskrivelse</label>
           <textarea id="prosessBeskrivelse" rows="4" placeholder="Kort beskrivelse av prosessen"></textarea>
         </div>
-        <div class="rad">
+        <div class="row">
           <label for="prosessSteg">Steg (JSON)</label>
-          <textarea id="prosessSteg" class="mork" spellcheck="false"></textarea>
+          <textarea id="prosessSteg" class="dark" spellcheck="false"></textarea>
         </div>
-        <div class="handlinger">
+        <div class="actions">
           <button id="lagreProsess">Lagre prosess</button>
-          <button id="lastInnEksempel" class="sekundar">Last inn eksempelsteg</button>
+          <button id="lastInnEksempel" class="secondary">Last inn eksempelsteg</button>
         </div>
         <div id="status" class="status">Velg en prosess eller opprett en ny.</div>
       </section>
-      <section class="kort">
+      <section class="card">
         <h2>Forhåndsvisning</h2>
-        <div id="detaljer" class="liten">Velg en prosess for å se steg og rådata.</div>
+        <div id="detaljer" class="small">Velg en prosess for å se steg og rådata.</div>
       </section>
     </main>
+    <script src="/assets/felles.js"></script>
     <script>
       const prosessListe = document.getElementById("prosesser");
       const detaljer = document.getElementById("detaljer");

@@ -6,12 +6,14 @@
 
 ## Service map (compose defaults)
 - `apps/process-builder` (`3000`): process definition UI.
-- `apps/demo-gui` (`3001`): citizen-facing demo flow.
+- `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances —
+  `/chat`, `/agent` and `/stegvis`. Shares `apps/shared-ui/felles.css` and `felles.js`
+  with `process-builder`, both served at `/assets/*`.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Separate Docker image built from `apps/matrikkel-mock/Dockerfile`.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter`). Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
-- `apps/mcp-services` (`8083`): 20 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
+- `apps/mcp-services` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
 - `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `mcp-services` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
@@ -37,6 +39,12 @@
   reproducible and auditable — never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
 - Consent gating is enforced before protected data reads; do not bypass this in UI or agent logic.
+- A citizen may ask a free question at any point (`POST /ai/sporsmaal`). That path is
+  **stateless by design**: it never calls `/svar`, `/handling` or `/neste`, and it never
+  changes `stegIndex`. The flow pauses and is redisplayed; it does not move. Keep it that
+  way — the engine is linear, so a question mistaken for an answer is unrecoverable.
+- The audit entry for a consented read records the purpose from the **consent**, not the
+  catalogue label. Purpose limitation is the reason consent was asked for.
 - Consent gating and audit are enforced centrally in `utforRessurs()`
   (`apps/sandbox-backend/src/ressurser.ts`), not per route. One catalog entry is
   simultaneously an HTTP endpoint, a valid `DATA_FETCH` target and a valid `SJEKK`
@@ -96,6 +104,7 @@ docker compose down -t 0
 ```bash
 pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.js: referential integrity across all datasets
+pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
@@ -124,7 +133,7 @@ pnpm test:agent:matrikkel
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test` and `test:kontrakt` on every PR
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) — run those locally.
@@ -150,13 +159,25 @@ pnpm test:agent:matrikkel
   actually received, before heuristics and validation touched it.
 - Model calls time out after `AI_TIMEOUT_MS` (default 180000) and fall back rather than
   hanging.
+- **`/ai/sporsmaal` is the one endpoint where a citizen writes free text and gets free
+  text back, so its guardrails run in code, not only in the prompt.** They live in
+  `apps/ai-gateway/src/sporsmaalsperrer.js`, a dependency-free module kept separate from
+  `server.js` because that file calls `server.listen` at the top level and cannot be
+  imported by a test. `pnpm test:sperrer` covers them and runs in CI — it needs neither
+  the stack nor a model. The endpoint has no data access of its own: it answers only from
+  the grounding the caller sends, which is what makes it structurally unable to reach
+  consent-gated data. Do not give it a backend data client.
+  Two topics never reach the model at all: prompt-injection attempts, and privacy
+  questions, which are answered from `PERSONVERN` in that module. An invented privacy
+  claim has no tell a code check can find — no number, no decision — so it gets a fixed
+  answer instead.
 - **Changing a prompt? Run the evals.** `pnpm test:eval` scores the AI layer against
   datasets in `evals/`, with a pass threshold per dataset and a non-zero exit below it.
   `evals/ai-policy.json` is the executable form of `ai-no-decisions`: the model phrases,
   it does not compute or decide. Baseline before, compare after — see `evals/README.md`.
   Deliberately kept out of CI, since it needs a running model.
-- `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar`, which
-  takes `tekst` at the top level.
+- `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar` and
+  `/ai/sporsmaal`, which take `tekst` at the top level.
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only
   call the model when the heuristic does not match. Four endpoints work but have no code
   callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only

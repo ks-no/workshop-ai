@@ -18,11 +18,39 @@ rules:
       - forklaring-av-databruk
       - klarsprak
       - risikosjekk
+      - sporsmaal
     allowedClassification:
       - tolk-svar
       - velg-prosess
       - velg-verktoy
       - dommer
+
+  - id: ai-svar-fra-grunnlag
+    description: >-
+      /ai/sporsmaal er det eneste stedet en innbygger skriver fritekst og får
+      fritekst tilbake. Alle andre KI-svar gjengir enten en verdi sandbox-backend
+      allerede har avgjort, eller er en klassifisering som valideres mot en
+      hviteliste. Her komponerer modellen, og da er promptinstrukser alene ingen
+      sperre.
+
+      Derfor gjelder følgende, håndhevet i kode i
+      apps/ai-gateway/src/sporsmaalsperrer.js og dekket av pnpm test:sperrer:
+
+      1. Endepunktet har ingen egen dataadgang. Det slår ingenting opp og kaller
+         ikke sandbox-backend for data, og kan derfor ikke omgå samtykkesperren i
+         utforRessurs(). Det svarer bare fra grunnlaget kalleren sender med.
+      2. Grunnlaget projiseres ned før det når modellen. Fødselsnummer, navn og
+         inntektsposter fra prosessøkten strippes bort.
+      3. Svaret valideres etter modellkallet. Beslutningsspråk, beløp som ikke
+         finnes i grunnlaget, påstander om at noe er utført som ikke er det, og
+         identifikatorer utenfor grunnlaget gir et trygt standardsvar med advarsel.
+      4. Prompt injection avvises før modellen kalles.
+      5. Personvernspørsmål besvares fra vår egen tekst, ikke modellens. En
+         oppdiktet personvernpåstand har ingen kjennetegn en kodesjekk kan finne
+         — verken tall eller beslutning — så den får et fast svar.
+      6. Slår en sperre inn, beholdes ekte modell-id med suffikset «(sperret)»,
+         slik at KI-sporet fortsatt viser hva modellen faktisk sa.
+    enforcement: technical
 
   - id: revisjon-av-alle-ki-kall
     description: >-

@@ -22,13 +22,18 @@ På Windows: kjør fra Git Bash eller WSL.
 
 Stopp alt med `./start.sh -d`.
 
-## 2. Fire URL-er som betyr noe
+## 2. Én URL du trenger, og fire du kommer til å bruke
+
+Start på **<http://localhost:3001>**. Det er oversikten: den viser hvordan tjenestene
+henger sammen, om alle kjører, om modellen er koblet på, og hvilken testbruker som
+hører til hvilken case. Går noe galt senere, er det den siden du går tilbake til.
 
 | URL | Hva det er |
 |---|---|
-| <http://localhost:3001> | Demo-app, klassisk stegvis flyt |
-| <http://localhost:3001/chat> | Samme prosesser, som chat |
-| <http://localhost:3001/agent> | Agent i naturlig språk |
+| <http://localhost:3001> | **Oversikt** — arkitektur, helsestatus, modellstatus, casetabell |
+| <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis |
+| <http://localhost:3001/agent> | Agent i naturlig språk. Den velger prosess selv |
+| <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
 | <http://localhost:3000> | Prosessbygger — lag eller endre en flyt |
 
 De øvrige tjenestene (`:8080`–`:8085`) er API-er du kan bygge mot, men du trenger ikke

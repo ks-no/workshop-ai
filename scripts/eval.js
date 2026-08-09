@@ -120,7 +120,14 @@ async function runCase(dataset, testCase) {
 
   // A fallback answer is template text. Scoring it would report a healthy pass
   // rate for a setup where the model never ran.
-  if (body?.advarsel) {
+  //
+  // But advarsel alone is the wrong signal: a guardrail firing and a heuristic
+  // overriding a vague model answer both set it, and in both cases the model
+  // *did* run and the replacement is the behaviour under test. ai-gateway marks
+  // a genuine provider fallback in `modell` ("…-fallback"), so that is the
+  // discriminator; `sperre` covers the guardrails on /ai/sporsmaal.
+  const providerFallback = String(body?.modell || "").includes("fallback");
+  if (body?.advarsel && providerFallback && !body?.sperre) {
     return {
       name: testCase.name,
       passed: false,

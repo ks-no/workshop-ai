@@ -117,6 +117,41 @@ paths:
       responses:
         "200":
           description: Risikovurdering returnert
+  /ai/sporsmaal:
+    post:
+      summary: Svar på et fritt spørsmål fra innbygger, midt i en prosessflyt
+      description: >-
+        Besvarer et fritt spørsmål ut fra grunnlaget kalleren sender med — satser,
+        prosessdefinisjonen, hvor i flyten økten står, og det økten allerede har
+        hentet. Endepunktet har ingen dataadgang av seg selv: det slår ingenting
+        opp og kaller ikke sandbox-backend for data, og kan derfor ikke omgå
+        samtykkesperren i `utforRessurs()`.
+
+
+        Sperrer kjøres i kode etter modellkallet, ikke bare i prompten: svar som
+        avgjør saken, oppgir beløp som ikke finnes i grunnlaget, påstår at noe er
+        utført som ikke er det, eller gjengir fødselsnummer, erstattes av et trygt
+        standardsvar. Prompt injection og personvernspørsmål avvises eller besvares
+        uten å spørre modellen i det hele tatt. Slår en sperre inn, settes `sperre`
+        og `advarsel`, og `modell` får suffikset `(sperret)` slik at KI-sporet
+        fortsatt viser hva modellen faktisk sa.
+
+
+        Merk at `tekst` ligger på toppnivå her, som i `/ai/tolk-svar` — ikke under
+        `kontekst`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SporsmaalRequest"
+      responses:
+        "200":
+          description: Svar returnert, eventuelt erstattet av en sperre
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SporsmaalResponse"
   /ai/tolk-svar:
     post:
       summary: Tolk en kort brukermelding til strukturert intent
@@ -194,6 +229,133 @@ paths:
 
 components:
   schemas:
+    SporsmaalRequest:
+      type: object
+      required: [tekst]
+      properties:
+        tekst:
+          type: string
+          description: Innbyggerens spørsmål, ordrett. Behandles som data, aldri som instruksjoner.
+          example: hvorfor trenger dere skattedataene mine?
+        sprak:
+          type: string
+          default: nb
+        sporingsId:
+          type: string
+        kontekst:
+          type: object
+          description: >-
+            Grunnlaget svaret skal bygge på. Alt utenfor hvitelisten strippes bort
+            før prompten bygges, så fødselsnummer, navn og inntektsposter fra økten
+            når aldri modellen.
+          properties:
+            tjeneste:
+              type: string
+            satser:
+              type: object
+              description: Svaret på `GET /api/regler/satser`. Uten den avvises spørsmål om satser og inntektsgrenser.
+              additionalProperties: true
+            prosess:
+              type: object
+              description: Prosessdefinisjonen. Bare id, type, tittel, formaal og dataKilder per steg beholdes.
+              additionalProperties: true
+            steg:
+              type: object
+              additionalProperties: true
+            flyt:
+              type: object
+              description: >-
+                Hvor økten faktisk står. Uten denne leser modellen stegnavnet
+                «Send søknad» i prosessdefinisjonen og rapporterer det som utført.
+              properties:
+                staarPaa:
+                  type: string
+                stegNummer:
+                  type: integer
+                avTotalt:
+                  type: integer
+                status:
+                  type: string
+                fullforteSteg:
+                  type: array
+                  items:
+                    type: string
+                gjenstaaendeSteg:
+                  type: array
+                  items:
+                    type: string
+                soknadSendt:
+                  type: boolean
+                  description: Alt annet enn `true` tolkes som ikke sendt.
+            samtykke:
+              type: object
+              properties:
+                status:
+                  type: string
+                formaal:
+                  type: string
+                dataKilder:
+                  type: array
+                  items:
+                    type: string
+            resultater:
+              type: object
+              description: Resultater per steg. Bare godkjent, melding, grunnlag, tekst og status beholdes.
+              additionalProperties: true
+            samtale:
+              type: array
+              description: Siste turer i samtalen, så oppfølgingsspørsmål virker. Kappes til seks.
+              items:
+                type: object
+                properties:
+                  rolle:
+                    type: string
+                    enum: [innbygger, assistent]
+                  tekst:
+                    type: string
+    SporsmaalResponse:
+      type: object
+      required: [tekst, grunnlag, modell, syntetisk]
+      properties:
+        tekst:
+          type: string
+        grunnlag:
+          type: object
+          description: Hvilke kilder svaret bygger på. Vises for innbygger i referanse-GUI-et.
+          properties:
+            kilder:
+              type: array
+              items:
+                type: string
+            verdier:
+              type: object
+              additionalProperties: true
+        modell:
+          type: string
+          description: >-
+            Modell-id, `fast-tekst` for personvernsvar, `sperre` når spørsmålet ble
+            avvist uten modellkall, eller modell-id med suffikset `(sperret)` når
+            svaret ble erstattet etter kallet.
+        sperre:
+          type: string
+          description: Satt bare når en sperre slo inn.
+          enum:
+            - injeksjon
+            - tomt-sporsmaal
+            - manglende-grunnlag
+            - beslutning
+            - ikke-utfort
+            - tall
+            - identifikator
+            - promptlekkasje
+            - lengde
+            - tomt
+        advarsel:
+          type: string
+        syntetisk:
+          type: boolean
+        sprak:
+          type: string
     TolkSvarRequest:
       type: object
       required: [tekst, jaIntent, neiIntent, ukjentIntent]

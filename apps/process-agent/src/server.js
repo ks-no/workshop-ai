@@ -828,7 +828,9 @@ function maybeAnswerProcessMetaQuestion(state, text) {
   const lower = normalize(text);
   const step = state.lastSession?.aktivtSteg;
 
-  if (["hva skjer", "hvor er vi", "hvilket steg", "hva er neste", "hva gjenstar", "hvor langt"].some((q) => lower.includes(q))) {
+  // "hva skjer" alone was too greedy: it swallowed "hva skjer med opplysningene
+  // mine?", which maybeAnswerCitizenQuestion can actually answer.
+  if (["hva skjer na", "hva skjer videre", "hvor er vi", "hvilket steg", "hva er neste", "hva gjenstar", "hvor langt"].some((q) => lower.includes(q))) {
     const navn = step?.tittel || step?.id || "ukjent steg";
     const steg = Array.isArray(state.processDefinition?.steg) ? state.processDefinition.steg : [];
     const idx = typeof state.lastSession?.stegIndex === "number" ? state.lastSession.stegIndex : -1;
@@ -843,14 +845,102 @@ function maybeAnswerProcessMetaQuestion(state, text) {
     return "Ja. Skriv hvilken gate du vil bruke, så oppdaterer vi det før innsending.";
   }
 
-  if (["hvorfor", "hvorfor spør", "hva brukes"].some((q) => lower.includes(q))) {
-    const navn = step?.tittel || step?.id;
-    if (navn) {
-      return `Kort forklart: steget «${navn}» trengs for å kunne vurdere søknaden riktig og dokumentere grunnlaget.`;
-    }
-  }
+  // A "hvorfor"-clause used to live here and returned a generic non-answer for
+  // every why-question. It was removed rather than kept as a fallback: it sat
+  // ahead of every other handler, so maybeAnswerCitizenQuestion — which has the
+  // schemes and the process definition to answer from — never saw one.
 
   return null;
+}
+
+/*
+ * Last stop in the detour chain: a question the precise register lookups above
+ * could not answer. Grounded in the schemes, the process definition and what
+ * this session has already fetched, with the guardrails in ai-gateway on top.
+ *
+ * Never touches state.awaiting. The flow is paused, not moved — an answer here
+ * costs the citizen one turn, and losing their place would cost far more.
+ */
+/*
+ * Says explicitly what has *not* happened yet. Without it the model reads the
+ * step named "Send søknad" in the process definition and reports it as done.
+ */
+function byggFlyt(state) {
+  const oekt = state.lastSession;
+  if (!oekt) return null;
+  const steg = state.processDefinition?.steg || [];
+  const submitSteg = steg.find((s) => s.type === "SUBMIT");
+  const index = typeof oekt.stegIndex === "number" ? oekt.stegIndex : 0;
+
+  return {
+    staarPaa: oekt.aktivtSteg?.tittel || oekt.aktivtSteg?.type || null,
+    stegNummer: index + 1,
+    avTotalt: oekt.totaltAntallSteg ?? steg.length,
+    status: oekt.status,
+    fullforteSteg: steg.slice(0, index).map((s) => s.tittel || s.id),
+    gjenstaaendeSteg: steg.slice(index).map((s) => s.tittel || s.id),
+    soknadSendt: Boolean(submitSteg && oekt.resultater?.[submitSteg.id])
+  };
+}
+
+async function maybeAnswerCitizenQuestion(state, text) {
+  // On a QUESTION step the citizen's text carries a value we would lose by
+  // treating it as a side question, so the bar is higher there. Everywhere else
+  // they can only say yes, no or nothing, and a stray reply is already a dead
+  // end today.
+  if (!looksLikeCitizenQuestion(text, state.awaiting === "question")) return null;
+
+  try {
+    const svar = await invokeTool("answer_citizen_question", {
+      tekst: text,
+      sporingsId: state.lastSession?.sporingsId,
+      kontekst: {
+        tjeneste: state.processDefinition?.navn || state.selectedProcess?.navn,
+        prosess: state.processDefinition || null,
+        steg: state.lastSession?.aktivtSteg || null,
+        flyt: byggFlyt(state),
+        resultater: state.lastSession?.resultater || null,
+        samtale: recentHistory(state, 6).map((entry) => ({
+          rolle: entry.role === "assistant" ? "assistent" : "innbygger",
+          tekst: entry.message
+        }))
+      }
+    });
+    return svar?.tekst ? { tekst: svar.tekst, grunnlag: svar.grunnlag, sperre: svar.sperre } : null;
+  } catch {
+    // A failed side question must never break the flow the citizen is in.
+    return null;
+  }
+}
+
+const SPORREORD = [
+  "hva", "hvorfor", "hvordan", "hvem", "hvor", "nar", "kan jeg", "ma jeg", "far jeg", "hvilke", "hvilken"
+];
+
+// Closed list on purpose. A side question that is not about the service is
+// better left to the flow than answered from a grounding that does not cover it.
+const SIDESPORSMAALSTEMA = [
+  "inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern",
+  "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak",
+  "syntetisk", "ekte", "personvernerklaring", "behandler"
+];
+
+function looksLikeCitizenQuestion(text, streng = false) {
+  const lower = normalize(text);
+  if (!lower) return false;
+
+  // startsWith, not includes: "jeg lurte på hva du mente med Storgata" is an
+  // answer with a question word in the middle of it.
+  const starterMedSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
+  const harSporsmaalstegn = String(text).includes("?");
+
+  if (!streng) {
+    return starterMedSporreord || harSporsmaalstegn;
+  }
+
+  return starterMedSporreord
+    && harSporsmaalstegn
+    && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
 }
 
 function startGuidedInterview(state, stepId) {
@@ -1143,6 +1233,17 @@ async function handleMessage(state, message) {
   const folkeregisterSvar = await maybeAnswerFolkeregisterQuestion(text);
   if (folkeregisterSvar) {
     return [folkeregisterSvar];
+  }
+
+  // Last in the chain, so the precise register lookups above still win. The
+  // flow is left exactly where it was — see maybeAnswerCitizenQuestion.
+  const sidesvar = await maybeAnswerCitizenQuestion(state, text);
+  if (sidesvar) {
+    const step = state.lastSession?.aktivtSteg;
+    const tilbake = step?.tekst || step?.tittel;
+    return tilbake
+      ? [sidesvar.tekst, `Tilbake til der vi var: ${tilbake}`]
+      : [sidesvar.tekst];
   }
 
   if (state.awaiting === "question") {

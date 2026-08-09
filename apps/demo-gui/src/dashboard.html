@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innbyggerdialog-sandbox</title>
+    <link rel="stylesheet" href="/assets/felles.css" />
+    <style>
+      /*
+       * Vertikal rytme settes på seksjonsnivå, ikke med `.card + .card`.
+       * Den regelen traff ikke .grid-2-wrapperen, så kortene rundt den klistret
+       * seg sammen mens resten hadde luft.
+       */
+      main { padding: 32px 28px 72px; }
+      main > h1 { margin-bottom: 10px; }
+      main > h1 + p { margin: 0 0 32px 0; max-width: 90ch; }
+      main > .card,
+      main > .grid-2 { margin-bottom: 28px; }
+
+      .card { padding: 28px 32px; }
+      /* Ingressen under en h2 hører til overskriften og skal ligge tett på.
+         Alt annet — knappekort, diagram, tabell — trenger full luft. */
+      .card > h2 { margin-bottom: 6px; }
+      .card > h2 + p { margin: 0 0 24px 0; max-width: 85ch; }
+      .card > h2 + :not(p) { margin-top: 22px; }
+      .card > p:last-child { margin-bottom: 0; }
+
+      .grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: start; }
+
+      table { border-collapse: collapse; width: 100%; font-size: 14px; }
+      th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--farge-kant-svak); vertical-align: top; }
+      /* Kantstilte celler flukter med kortets padding i stedet for å skyve innover. */
+      th:first-child, td:first-child { padding-left: 0; }
+      th:last-child, td:last-child { padding-right: 0; }
+      tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+      th { color: var(--farge-tekst-dempet); font-weight: 600; font-size: 13px; }
+      td code { font-family: var(--skrift-kode); font-size: 13px; }
+
+      .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #c8d2dd; margin-right: 8px; vertical-align: baseline; }
+      .dot.opp { background: #2f9e5a; }
+      .dot.ned { background: #d33c3c; }
+
+      .entrances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .entrance { display: block; text-decoration: none; color: inherit; border: 1px solid var(--farge-kant-svak); border-radius: 10px; padding: 22px 24px; background: var(--farge-flate); }
+      .entrance:hover { border-color: var(--farge-primar); box-shadow: var(--skygge); }
+      .entrance h3 { margin-bottom: 8px; color: var(--farge-primar); }
+      .entrance p { margin: 0; font-size: 14px; color: var(--farge-tekst-dempet); line-height: 1.5; }
+
+      .links { display: flex; flex-wrap: wrap; gap: 14px 26px; font-size: 14px; }
+
+      .diagram { overflow-x: auto; padding: 6px 0 22px 0; }
+      svg text { font-family: var(--skrift); }
+
+      @media (max-width: 900px) {
+        main { padding: 24px 20px 56px; }
+        .card { padding: 22px 20px; }
+        .grid-2, .entrances { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Innbyggerdialog-sandbox</h1>
+      <p>En kommunal tjeneste i miniatyr: prosessdrevne dialoger over <strong>syntetiske</strong>
+        data, med eksplisitt samtykke, deterministisk vilkårsvurdering og revisjonslogg.
+        Alt du ser her kaller de samme åpne API-ene som du selv kan bygge mot.</p>
+
+      <div id="modellBanner" hidden></div>
+
+      <section class="card">
+        <h2>Kom i gang</h2>
+        <div class="entrances">
+          <a class="entrance" href="/chat">
+            <h3>Chat</h3>
+            <p>Du velger prosess, og svarer i fritekst. Kan svare på spørsmål underveis
+              uten å miste flyten. Kaller <code>sandbox-backend</code> og <code>ai-gateway</code>.</p>
+          </a>
+          <a class="entrance" href="/agent">
+            <h3>AI-agent</h3>
+            <p>Du beskriver hva du trenger med egne ord, og agenten finner prosessen og
+              styrer flyten. Kaller <code>process-agent</code>.</p>
+          </a>
+          <a class="entrance" href="/stegvis">
+            <h3>Stegvis</h3>
+            <p>Ett steg av gangen med rå JSON og revisjonslogg synlig. Bruk denne når du
+              vil se hva som faktisk skjer under panseret.</p>
+          </a>
+        </div>
+        <p class="muted small" style="margin-top:20px">Ingen av de tre er den «riktige»
+          måten. De er referanseimplementasjoner — bygg gjerne din egen klient mot de
+          samme API-ene.</p>
+      </section>
+
+      <section class="card">
+        <h2>Slik henger tjenestene sammen</h2>
+        <div class="diagram">
+          <svg viewBox="0 0 760 300" width="760" height="300" role="img"
+               aria-label="Arkitektur: nettleseren snakker med sandbox-backend, som er eneste vei til fiks-simulator og matrikkel-mock. ai-gateway, mcp-services og process-agent ligger ved siden av.">
+            <defs>
+              <marker id="pil" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8695a6" />
+              </marker>
+            </defs>
+
+            <!-- Nettleseren -->
+            <rect x="20" y="122" width="130" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
+            <text x="85" y="146" text-anchor="middle" font-size="14" font-weight="600" fill="#17232f">Nettleser</text>
+            <text x="85" y="164" text-anchor="middle" font-size="11" fill="#5b6a7a">3000 / 3001</text>
+
+            <!-- Kjernen -->
+            <rect x="230" y="112" width="150" height="76" rx="8" fill="#e9f1ff" stroke="#1459c7" stroke-width="2" />
+            <text x="305" y="138" text-anchor="middle" font-size="14" font-weight="600" fill="#153d80">sandbox-backend</text>
+            <text x="305" y="156" text-anchor="middle" font-size="11" fill="#2250a8">8080</text>
+            <text x="305" y="174" text-anchor="middle" font-size="10" fill="#2250a8">samtykke · regler · revisjon</text>
+
+            <!-- Registre -->
+            <rect x="470" y="52" width="150" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
+            <text x="545" y="76" text-anchor="middle" font-size="13" fill="#17232f">fiks-simulator</text>
+            <text x="545" y="94" text-anchor="middle" font-size="11" fill="#5b6a7a">8081</text>
+
+            <rect x="470" y="192" width="150" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
+            <text x="545" y="216" text-anchor="middle" font-size="13" fill="#17232f">matrikkel-mock</text>
+            <text x="545" y="234" text-anchor="middle" font-size="11" fill="#5b6a7a">8085</text>
+
+            <!-- KI-siden -->
+            <rect x="230" y="18" width="150" height="52" rx="8" fill="#f7fafd" stroke="#ccd6e0" />
+            <text x="305" y="40" text-anchor="middle" font-size="13" fill="#17232f">ai-gateway</text>
+            <text x="305" y="58" text-anchor="middle" font-size="11" fill="#5b6a7a">8082</text>
+
+            <rect x="230" y="230" width="150" height="52" rx="8" fill="#f7fafd" stroke="#ccd6e0" />
+            <text x="305" y="252" text-anchor="middle" font-size="13" fill="#17232f">mcp-services</text>
+            <text x="305" y="270" text-anchor="middle" font-size="11" fill="#5b6a7a">8083</text>
+
+            <rect x="30" y="230" width="150" height="52" rx="8" fill="#f7fafd" stroke="#ccd6e0" />
+            <text x="105" y="252" text-anchor="middle" font-size="13" fill="#17232f">process-agent</text>
+            <text x="105" y="270" text-anchor="middle" font-size="11" fill="#5b6a7a">8084</text>
+
+            <g stroke="#8695a6" stroke-width="1.6" fill="none" marker-end="url(#pil)">
+              <path d="M152 150 H226" />
+              <path d="M382 140 L466 90" />
+              <path d="M382 162 L466 212" />
+              <path d="M305 110 V74" />
+              <path d="M182 254 H226" />
+              <path d="M330 228 V194" />
+              <path d="M352 228 L352 74" stroke-dasharray="4 3" />
+            </g>
+
+            <text x="700" y="150" text-anchor="middle" font-size="11" fill="#5b6a7a">Alt er</text>
+            <text x="700" y="166" text-anchor="middle" font-size="11" fill="#5b6a7a">syntetisk</text>
+          </svg>
+        </div>
+        <p class="muted small"><strong>Poenget med bildet:</strong> samtykkesperren og
+          revisjonsloggen ligger i <code>sandbox-backend</code>, og det finnes ingen vei
+          rundt den. <code>ai-gateway</code> har ingen dataadgang av seg selv — den
+          formulerer, den henter ikke.</p>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2>Kjører alt?</h2>
+          <p class="muted small">Hentes direkte fra hver tjenestes <code>/helse</code>.
+            Er noe rødt, er det nesten alltid forklaringen på en «fetch failed».</p>
+          <table>
+            <thead>
+              <tr><th>Tjeneste</th><th>Port</th><th>Status</th><th>Dokumentasjon</th></tr>
+            </thead>
+            <tbody id="helseTabell"></tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Er modellen koblet på?</h2>
+          <p class="muted small">Uten modell svarer <code>ai-gateway</code> med maltekst
+            som ser helt normal ut. Dette er den eneste måten å se forskjell på.</p>
+          <table>
+            <tbody id="modellTabell">
+              <tr><td>Laster…</td></tr>
+            </tbody>
+          </table>
+          <p class="muted small" style="margin-top:20px">Kjørte du med
+            <code>./start.sh --mock</code>, skal den være av — og det er som forventet.
+            Se hva modellen faktisk fikk i <a href="http://localhost:8082/trace">KI-sporet</a>.</p>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Hvilken bruker til hvilken case</h2>
+        <p class="muted small">Det er <strong>ikke</strong> én bruker som passer alle.</p>
+        <table>
+          <thead>
+            <tr><th>Case</th><th>Bruk denne brukeren</th><th>Merk</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Redusert foreldrebetaling (barnehage)</td>
+              <td><code>person-001</code> Maja Solberg</td>
+              <td class="muted">Flaggskip-caset</td>
+            </tr>
+            <tr>
+              <td>Redusert betaling i SFO</td>
+              <td><code>person-008</code> Ingrid Dahl</td>
+              <td class="muted"><strong>Vanligste snublestein:</strong> <code>person-001</code>
+                har ikke barn i SFO. Bruker du henne, får du et avslag som ser ut som en
+                feil, men er riktig.</td>
+            </tr>
+            <tr>
+              <td>Behovsavklaring for støttekontakt</td>
+              <td>hvem som helst</td>
+              <td class="muted">Ingen datahenting</td>
+            </tr>
+            <tr>
+              <td>Søknad om fritidskort-støtte</td>
+              <td><code>person-001</code></td>
+              <td class="muted"></td>
+            </tr>
+            <tr>
+              <td>Søknad om fartsdempende tiltak</td>
+              <td><code>person-001</code></td>
+              <td class="muted">Gatenavnet avgjør utfallet: <code>Storgata</code> gir
+                godkjent, <code>Fjøsangerveien</code> gir avvist.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Verktøy og kontrakter</h2>
+        <div class="links">
+          <a href="http://localhost:3000">Prosessbygger</a>
+          <a href="http://localhost:8082/trace">KI-spor — hva modellen faktisk fikk</a>
+          <a href="http://localhost:8080/docs">API-oversikt (backend)</a>
+          <a href="http://localhost:8080/openapi.yaml">OpenAPI: sandbox-backend</a>
+          <a href="http://localhost:8082/openapi.yaml">OpenAPI: ai-gateway</a>
+          <a href="http://localhost:8083/mcp/tools">Verktøykatalog (mcp-services)</a>
+        </div>
+        <p class="muted small" style="margin-top:20px">Revisjonsloggen ligger på
+          <code>GET /api/revisjonslogg/{sporingsId}</code>. Hver økt viser sin
+          <code>sporingsId</code>, og den korrelerer med KI-sporet.</p>
+      </section>
+    </main>
+
+    <script src="/assets/felles.js"></script>
+    <script>
+      const aiBase = "http://localhost:8082";
+
+      // Rekkefølgen speiler bildet over: kjernen først, så registrene, så KI-siden.
+      const tjenester = [
+        { navn: "sandbox-backend", port: 8080, docs: "/docs", rolle: "Prosessmotor, samtykke, regler, revisjon" },
+        { navn: "fiks-simulator", port: 8081, docs: "/docs", rolle: "Mock av KS Fiks" },
+        { navn: "ai-gateway", port: 8082, docs: "/docs", rolle: "Modellkall og KI-spor" },
+        { navn: "mcp-services", port: 8083, docs: "/mcp/tools", rolle: "Verktøykatalog over de andre" },
+        { navn: "process-agent", port: 8084, docs: null, rolle: "Agent-API" },
+        { navn: "matrikkel-mock", port: 8085, docs: "/docs", rolle: "Mock av Kartverket Matrikkel" },
+        { navn: "demo-gui", port: 3001, docs: null, rolle: "Denne siden" },
+        { navn: "process-builder", port: 3000, docs: null, rolle: "Prosessbygger" }
+      ];
+
+      const helseTabell = document.getElementById("helseTabell");
+
+      function tegnHelserad(tjeneste) {
+        const rad = document.createElement("tr");
+
+        const navn = document.createElement("td");
+        navn.innerHTML = `<code>${htmlEscape(tjeneste.navn)}</code><br><span class="muted small">${htmlEscape(tjeneste.rolle)}</span>`;
+
+        const port = document.createElement("td");
+        port.textContent = tjeneste.port;
+
+        const status = document.createElement("td");
+        status.innerHTML = '<span class="dot"></span>sjekker…';
+
+        const docs = document.createElement("td");
+        if (tjeneste.docs) {
+          const lenke = document.createElement("a");
+          lenke.href = `http://localhost:${tjeneste.port}${tjeneste.docs}`;
+          lenke.textContent = tjeneste.docs;
+          docs.appendChild(lenke);
+        } else {
+          docs.innerHTML = '<span class="muted">–</span>';
+        }
+
+        rad.append(navn, port, status, docs);
+        helseTabell.appendChild(rad);
+        return status;
+      }
+
+      async function sjekkTjeneste(tjeneste, statusCelle) {
+        try {
+          const res = await fetch(`http://localhost:${tjeneste.port}/helse`, {
+            signal: AbortSignal.timeout(4000)
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          statusCelle.innerHTML = '<span class="dot opp"></span>oppe';
+        } catch {
+          statusCelle.innerHTML = '<span class="dot ned"></span>svarer ikke';
+        }
+      }
+
+      for (const tjeneste of tjenester) {
+        const statusCelle = tegnHelserad(tjeneste);
+        sjekkTjeneste(tjeneste, statusCelle);
+      }
+
+      async function tegnModellstatus() {
+        const tabell = document.getElementById("modellTabell");
+        const data = await sjekkModell(aiBase, {
+          konsekvens: "KI-svar i demoene blir maltekst, ikke modellgenerert."
+        });
+
+        if (!data) {
+          tabell.innerHTML = '<tr><td><span class="dot ned"></span>Får ikke kontakt med ai-gateway.</td></tr>';
+          return;
+        }
+
+        const rader = [
+          ["Modell tilgjengelig", data.modellNaaBar ? "ja" : "nei"],
+          ["Provider", data.provider || "ukjent"],
+          ["Modell", data.modell || "–"]
+        ];
+        if (data.feil) {
+          rader.push(["Forklaring", data.feil]);
+        }
+
+        tabell.innerHTML = "";
+        for (const [navn, verdi] of rader) {
+          const rad = document.createElement("tr");
+          const nokkel = document.createElement("th");
+          nokkel.textContent = navn;
+          const celle = document.createElement("td");
+          if (navn === "Modell tilgjengelig") {
+            celle.innerHTML = `<span class="dot ${data.modellNaaBar ? "opp" : "ned"}"></span>${htmlEscape(verdi)}`;
+          } else {
+            celle.textContent = verdi;
+          }
+          rad.append(nokkel, celle);
+          tabell.appendChild(rad);
+        }
+      }
+
+      tegnModellstatus();
+    </script>
+  </body>
+</html>

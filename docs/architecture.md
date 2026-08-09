@@ -113,7 +113,7 @@ avvik mellom hvordan sandboxen presenterer seg og hva den faktisk gjør — verd
 kjenne til før du bygger på den.
 
 **`mcp-services` er ikke MCP-protokollen.** Den svarer `protocol: "mcp-style-http"`
-og eksponerer 20 verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller
+og eksponerer 25 verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller
 SSE-transport, så en MCP-klient som Claude Code eller Cursor kan ikke koble seg på.
 Verktøyene har derimot korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 

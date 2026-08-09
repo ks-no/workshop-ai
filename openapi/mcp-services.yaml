@@ -72,13 +72,20 @@ components:
         name:
           type: string
           description: |
-            Tool-navn. Gyldige verdier: list_processes, list_people, start_process_session,
-            get_session, answer_question, consent_response, run_current_action,
-            next_step, previous_step, interpret_reply, get_household_income,
-            check_eligibility, list_schemes, match_process_choice, get_audit_log,
-            matrikkel_finn_veger, matrikkel_hent_eiendom, matrikkel_hent_eiere,
-            brreg_search_organisations, brreg_get_organisation,
-            folkeregister_search_persons, folkeregister_get_person, suggest_step_tools.
+            Tool-navn. Gyldige verdier: list_processes, get_process_definition,
+            list_people, start_process_session, get_session, answer_question,
+            consent_response, run_current_action, next_step, previous_step,
+            interpret_reply, get_household_income, check_eligibility, list_schemes,
+            match_process_choice, get_audit_log, matrikkel_finn_veger,
+            matrikkel_hent_eiendom, matrikkel_hent_eiere, brreg_search_organisations,
+            brreg_get_organisation, folkeregister_search_persons,
+            folkeregister_get_person, suggest_step_tools, answer_citizen_question.
+
+
+            answer_citizen_question besvarer et fritt spørsmål fra innbygger midt i
+            en flyt. Den henter satser selv når kontekst.satser mangler, og kaller
+            ai-gateway /ai/sporsmaal, som kjører sperrene. Den har ingen egen
+            dataadgang og kan ikke nå samtykkesperret data.
         arguments:
           type: object
           additionalProperties: true

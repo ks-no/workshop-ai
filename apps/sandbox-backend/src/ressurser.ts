@@ -323,11 +323,18 @@ export async function utforRessurs(
   const data = await ressurs.handter(kontekst);
 
   if (ressurs.revisjon !== false) {
+    // Purpose limitation is the point of asking for consent, so the audit entry
+    // records the purpose the person actually consented to. The catalogue label
+    // is a generic fallback for reads with no consent behind them; logging it
+    // for a consented read would say the data was used for something other than
+    // what was agreed.
+    const formaal = samtykke?.formaal || ressurs.formaal;
+
     await leggTilRevisjon({
       sporingsId: kontekst.sporingsId,
       handling: "DATA_LES",
       ressurs: ressurs.ressurs,
-      ...(ressurs.formaal ? { formaal: ressurs.formaal } : {}),
+      ...(formaal ? { formaal } : {}),
       ...(samtykke ? { grunnlag: { type: "samtykke", id: samtykke.samtykkeId, status: samtykke.status } } : {}),
       aktor: { type: "testbruker", id: kontekst.personId }
     });

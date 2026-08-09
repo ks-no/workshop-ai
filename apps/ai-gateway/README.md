@@ -7,13 +7,14 @@ Ansvar:
 - forklare databruk
 - gi klarspråk og enkel risikosjekk
 - velge prosess og verktøy, og tolke fritekstsvar
+- svare på frie spørsmål fra innbygger, med sperrer som kjører i kode
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK — providerne
 kalles med rå `fetch`.
 
 ## Endepunkter
 
-Ni, alle `POST`:
+Ti, alle `POST`:
 
 | Endepunkt | Bruk | Kalles av |
 |---|---|---|
@@ -25,10 +26,11 @@ Ni, alle `POST`:
 | `/ai/forklar-databruk` | Forklarer hvilke data som brukes | ingen — fritt vilt |
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen — fritt vilt |
 | `/ai/risikosjekk` | Enkel risikovurdering | ingen — fritt vilt |
+| `/ai/sporsmaal` | Fritt spørsmål fra innbygger, midt i en flyt | `demo-gui /chat`, `mcp-services` |
 | `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.js` |
 
-**Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` som
-tar `tekst` på toppnivå.
+**Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` og
+`/ai/sporsmaal`, som tar `tekst` på toppnivå.
 
 ```bash
 curl -s -X POST http://localhost:8082/ai/klarsprak \
@@ -38,7 +40,50 @@ curl -s -X POST http://localhost:8082/ai/klarsprak \
 curl -s -X POST http://localhost:8082/ai/tolk-svar \
   -H "Content-Type: application/json" \
   -d '{"tekst":"ja, det er greit"}'
+
+# Uten satser i kontekst avvises spørsmål om inntektsgrenser i stedet for å gjettes på.
+curl -s -X POST http://localhost:8082/ai/sporsmaal \
+  -H "Content-Type: application/json" \
+  -d "{\"tekst\":\"hva er inntektsgrensen for gratis kjernetid?\",\"sprak\":\"nb\",
+       \"kontekst\":{\"tjeneste\":\"Redusert foreldrebetaling\",
+       \"satser\":$(curl -s http://localhost:8080/api/regler/satser)}}"
 ```
+
+## Sperrene på `/ai/sporsmaal`
+
+Dette er det eneste endepunktet der en innbygger skriver fritekst og får fritekst
+tilbake. Alle andre KI-svar gjengir enten en verdi `sandbox-backend` allerede har
+avgjort, eller er en klassifisering som valideres mot en hviteliste. Her komponerer
+modellen, og da er promptinstrukser alene ingen sperre.
+
+Sperrene ligger i `src/sporsmaalsperrer.js` — en modul uten avhengigheter, holdt utenfor
+`server.js` fordi den fila kaller `server.listen` på toppnivå og derfor ikke kan
+importeres av en test. `pnpm test:sperrer` dekker dem og kjører i CI uten stack og uten
+modell.
+
+| Sperre | Fanger |
+|---|---|
+| `injeksjon` | «ignorer instruksjonene», rolleovertakelse, kodeblokker, over 500 tegn. Modellen kalles ikke |
+| `manglende-grunnlag:<tema>` | Spørsmål om et tema det ikke finnes kilde for. Modellen kalles ikke |
+| `beslutning` | «du har rett til», «jeg innvilger», «avslag» — med unntak for å gjengi et utfall som står ordrett i grunnlaget |
+| `ikke-utfort` | «søknaden er sendt inn» når `flyt.soknadSendt` er `false` |
+| `tall` | Beløp som ikke finnes i grunnlaget. Bare tall ≥ 1000 eller merket med `kr`/`%` sjekkes, så årstall og stegtellere gir ikke falske treff |
+| `identifikator` | Fødselsnummer eller orgnr som ikke står i grunnlaget |
+| `promptlekkasje` | Svaret gjengir promptstrukturen |
+| `lengde` | Over 800 tegn |
+
+Personvernspørsmål går ikke til modellen i det hele tatt. De besvares fra `PERSONVERN` i
+samme modul. En oppdiktet personvernpåstand har ingen kjennetegn en kodesjekk kan finne —
+verken tall eller beslutning — og «opplysningene lagres ikke uten samtykke» er flytende,
+troverdig og ikke sant om dette systemet.
+
+**Endepunktet har ingen dataadgang av seg selv.** Det slår ingenting opp og kaller ikke
+`sandbox-backend` for data. Derfor kan det ikke omgå samtykkesperren i `utforRessurs()` —
+det finnes ikke noe å omgå. Ikke gi det en dataklient mot backend.
+
+Slår en sperre inn, beholdes ekte modell-id med suffikset `(sperret)`, slik at
+`GET /trace` fortsatt viser hva modellen faktisk svarte. En sperre som skjuler
+bevismaterialet er verre enn ingen.
 
 ## Heuristikk først, modell som fallback
 

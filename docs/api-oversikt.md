@@ -64,6 +64,11 @@ samtykkekrav og beskrivelse.
 - `POST /ai/klarsprak`
 - `POST /ai/risikosjekk`
 - `POST /ai/tolk-svar`
+- `POST /ai/sporsmaal` – Fritt spørsmål fra innbygger, midt i en prosessflyt. Svarer bare
+  fra grunnlaget kalleren sender med, har ingen egen dataadgang, og kjører sperrer i kode
+  på svaret. `tekst` ligger på toppnivå, som i `/ai/tolk-svar`. Se
+  `apps/ai-gateway/README.md`.
+- `POST /ai/dommer` – LLM-as-judge for `scripts/eval.js`. Ikke en del av en innbyggerflyt.
 - `POST /ai/velg-prosess`
 - `POST /ai/velg-verktoy` – Gitt et prosessteg og liste over tilgjengelige MCP-verktøy, returnerer hvilke som er relevante (`kontekst`, `validering`, eller `kontekst_og_validering`). Brukes av `mcp-services/suggest_step_tools`.
 
@@ -95,6 +100,12 @@ samtykkekrav og beskrivelse.
 | `matrikkel_hent_eiendom` | Hent matrikkelenhet via id eller gnr+bnr |
 | `matrikkel_hent_eiere` | Hent eiere for en matrikkelenhet |
 | `suggest_step_tools` | Dynamisk verktøyoppdagelse for et prosessteg |
+| `answer_citizen_question` | Fritt spørsmål fra innbygger midt i en flyt. Henter satser selv og kaller `/ai/sporsmaal` |
+| `get_process_definition` | Hent én prosessdefinisjon |
+| `brreg_search_organisations` | Søk i enhetsregisteret |
+| `brreg_get_organisation` | Hent organisasjon på orgnr |
+| `folkeregister_search_persons` | Søk i folkeregisteret |
+| `folkeregister_get_person` | Hent person på fødselsnummer |
 
 ## Matrikkel Mock (port 8085)
 

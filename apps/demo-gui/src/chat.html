@@ -4,42 +4,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Innbyggerdialog Chat</title>
+    <link rel="stylesheet" href="/assets/felles.css" />
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #eef3f8; color: #17232f; }
-      main { max-width: 920px; margin: 0 auto; padding: 24px; }
-      .card { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 18px; }
+      main { max-width: 920px; }
+      .card { padding: 18px; }
       .row { margin-bottom: 10px; }
-      .label { font-size: 13px; color: #556575; margin-bottom: 5px; }
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      button, select, textarea { font: inherit; border: 1px solid #ccdae8; border-radius: 8px; padding: 10px 12px; }
-      button { background: #1459c7; color: #fff; border: 0; cursor: pointer; }
-      button.secondary { background: #667788; }
-      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-      #chat { background: #f7fafd; border: 1px solid #e3e9f0; border-radius: 10px; min-height: 460px; max-height: 620px; overflow: auto; padding: 14px; }
-      .msg { margin-bottom: 12px; display: flex; }
-      .bubble { border-radius: 12px; padding: 10px 12px; max-width: 85%; white-space: pre-wrap; line-height: 1.35; }
-      .assistant { justify-content: flex-start; }
-      .assistant .bubble { background: #e9f1ff; color: #153d80; }
-      .user { justify-content: flex-end; }
-      .user .bubble { background: #1459c7; color: #fff; }
-      .system { justify-content: center; }
-      .system .bubble { background: #eff5df; color: #3e5c1d; }
-      .error .bubble { background: #ffe6e6; color: #812222; }
-      .muted { color: #607181; font-size: 13px; }
-      .top-links { margin-bottom: 10px; }
-      .top-links a { color: #1459c7; text-decoration: none; }
-      .top-links a:hover { text-decoration: underline; }
-      textarea { width: 100%; min-height: 90px; box-sizing: border-box; }
+      .chat { min-height: 460px; max-height: 620px; }
+      textarea { min-height: 90px; }
       #sessionInfo { margin: 8px 0 10px 0; }
+      #oektStatus { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; margin: 0 0 10px 0; }
+      #oektStatus span { color: var(--farge-tekst-dempet); }
+      @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main>
-      <div class="top-links"><a href="/">Åpen klassisk demo</a> &nbsp;|&nbsp; <a href="/agent">AI-agent</a></div>
+      <div class="top-links">
+        <a href="/">Oversikt</a>
+        <a href="/stegvis">Stegvis demo</a>
+        <a href="/agent">AI-agent</a>
+      </div>
       <h1>Innbyggerdialog Chat</h1>
-      <p class="muted"><strong>Du er her:</strong> samme prosessmotor som den stegvise
-        demoen, pakket som dialog. Du velger prosess selv.
-        <a href="/">Stegvis</a> viser rå JSON og revisjonslogg;
+      <p class="muted small"><strong>Du er her:</strong> samme prosessmotor som den stegvise
+        demoen, pakket som dialog. Du velger prosess selv, og kan stille spørsmål
+        underveis uten å miste flyten.
+        <a href="/stegvis">Stegvis</a> viser rå JSON og revisjonslogg;
         <a href="/agent">AI-agenten</a> velger prosess for deg.</p>
 
       <!-- Uten dette banneret er en daud modell usynlig: ai-gateway faller
@@ -63,14 +53,19 @@
           <button id="reset" class="secondary">Nullstill chat</button>
         </div>
 
-        <div id="sessionInfo" class="muted">Ingen aktiv prosess.</div>
-        <div id="chat" aria-live="polite"></div>
+        <div id="sessionInfo" class="muted small">Ingen aktiv prosess.</div>
+
+        <!-- Samtykke, syntetisk-merking og sporet er selve poenget med sandboxen.
+             Ligger de bare i API-svaret, ser ingen dem under en demo. -->
+        <p id="oektStatus"></p>
+
+        <div id="chat" class="chat" aria-live="polite"></div>
 
         <div class="actions" id="quickActions"></div>
 
         <div class="row" style="margin-top:12px">
-          <label for="input" class="label">Skriv melding</label>
-          <textarea id="input" placeholder="Skriv svaret ditt her... (Enter for send, Shift+Enter for ny linje)"></textarea>
+          <label for="input">Skriv melding</label>
+          <textarea id="input" placeholder="Skriv svaret ditt her, eller still et spørsmål... (Enter for send, Shift+Enter for ny linje)"></textarea>
         </div>
         <div class="actions">
           <button id="send">Send</button>
@@ -78,6 +73,7 @@
       </section>
     </main>
 
+    <script src="/assets/felles.js"></script>
     <script>
       const backendBase = "http://localhost:8080";
       const aiBase = "http://localhost:8082";
@@ -88,71 +84,21 @@
       const inputEl = document.getElementById("input");
       const quickActionsEl = document.getElementById("quickActions");
       const sessionInfoEl = document.getElementById("sessionInfo");
+      const oektStatusEl = document.getElementById("oektStatus");
+
+      initChat(chatEl);
 
       let prosesser = [];
       let oekt = null;
       let aktivProsess = null;
       let aktivAutoHandling = null;
 
-      function addMsg(role, text) {
-        const row = document.createElement("div");
-        row.className = `msg ${role}`;
-        const bubble = document.createElement("div");
-        bubble.className = "bubble";
-        bubble.textContent = text;
-        row.appendChild(bubble);
-        chatEl.appendChild(row);
-        chatEl.scrollTop = chatEl.scrollHeight;
-      }
-
-      // --- Er modellen faktisk koblet på? ----------------------------------
-      //
-      // ai-gateway svarer med maltekst når modellen er nede, og setter et
-      // advarsel-felt. Vises ikke det, ser en ødelagt oppsett akkurat ut som
-      // et fungerende ett — velformet norsk prosa, bare fra en mal.
-
-      const modellBannerEl = document.getElementById("modellBanner");
-
-      function visModellBanner(tekst) {
-        if (!tekst) {
-          modellBannerEl.hidden = true;
-          return;
-        }
-        modellBannerEl.hidden = false;
-        modellBannerEl.textContent = tekst;
-        modellBannerEl.style.cssText =
-          "background:#fff3cd; border:1px solid #ffe08a; color:#664d03;" +
-          "padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px;";
-      }
-
-      async function sjekkModell() {
-        try {
-          const res = await fetch(`${aiBase}/helse`);
-          const data = await res.json();
-          if (data.modellNaaBar) {
-            visModellBanner(null);
-          } else {
-            visModellBanner(
-              `⚠️ Modellen er ikke koblet på (${data.modell || data.provider}). ` +
-              `Svarene under kommer fra maler, ikke fra en modell. ${data.feil || ""}`
-            );
-          }
-        } catch {
-          visModellBanner("⚠️ Får ikke kontakt med ai-gateway. KI-svar vil mangle eller være maltekst.");
-        }
-      }
-
-      // Et enkelt svar kan falle tilbake selv om gatewayen så frisk ut ved
-      // oppstart, så advarsel-feltet vises der det oppstår også.
-      function varsleOmFallback(result) {
-        if (result && typeof result.advarsel === "string" && result.advarsel.trim()) {
-          addMsg("system", `⚠️ ${result.advarsel}`);
-        }
-      }
-
-      function formatNumber(value) {
-        return new Intl.NumberFormat("nb-NO").format(Number(value || 0));
-      }
+      // Grunnlag for frie spørsmål. satser er offentlig og krever ikke samtykke;
+      // den hentes én gang og gjenbrukes.
+      let satser = null;
+      let sisteSamtykke = null;
+      let ventendeOppfolging = [];
+      const samtale = [];
 
       function summarizeResult(steg, result) {
         if (!result) {
@@ -228,9 +174,30 @@
           return `${intro}\n\n${byggSporsmalsHjelp(steg)}`;
         }
 
+        /*
+         * Samtykketeksten er deterministisk og skal forbli det. Et samtykke må
+         * være informert og utvetydig, så modellen får ikke skrive om selve
+         * spørsmålet — bare svare på oppfølgingsspørsmål om det, gjennom
+         * /ai/sporsmaal med sine sperrer.
+         *
+         * Det som er nytt her er ikke tonen, men at spørsmålet faktisk sier
+         * hva et informert samtykke krever: hva, hvorfor, hvor fra, hva om du
+         * sier nei, og at du kan ombestemme deg.
+         */
         if (steg.type === "CONSENT_REQUEST") {
           const dataKilder = (steg.dataKilder || []).join(", ") || "nødvendige opplysninger";
-          return `For å komme videre trenger jeg ditt samtykke til å hente ${dataKilder}. Dette bruker vi for å ${String(steg.formaal || "behandle saken").toLowerCase()}. Er det greit for deg?`;
+          const formaal = String(steg.formaal || "behandle saken").toLowerCase();
+          return [
+            `For å komme videre trenger jeg samtykke fra deg til å hente ${dataKilder}.`,
+            "",
+            `• Hva vi henter: ${dataKilder}`,
+            `• Hvorfor: for å ${formaal}`,
+            "• Hvor fra: Skatteetaten, via KS Fiks — her simulert med syntetiske data",
+            "• Sier du nei: da henter vi ingenting, og vi kan ikke vurdere saken videre nå",
+            "• Du kan ombestemme deg og trekke samtykket etterpå",
+            "",
+            "Er det greit for deg? Spør gjerne først hvis noe er uklart."
+          ].join("\n");
         }
 
         if (steg.type === "DATA_FETCH") {
@@ -255,9 +222,63 @@
       function updateSessionInfo() {
         if (!oekt) {
           sessionInfoEl.textContent = "Ingen aktiv prosess.";
+          oektStatusEl.textContent = "";
           return;
         }
         sessionInfoEl.textContent = `Du er i ${aktivProsess?.navn || oekt.prosessId}. Steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`;
+        tegnOektStatus();
+      }
+
+      /*
+       * Samtykkestatus, syntetisk-merking og sporet, synlig hele veien.
+       * Ligger de bare i API-svaret, ser ingen dem under en demo.
+       */
+      function tegnOektStatus() {
+        oektStatusEl.innerHTML = "";
+        if (!oekt) return;
+
+        // Samtykkeobjektet opprettes først når innbygger svarer, så statusen må
+        // også lese hvilket steg vi står på. Ellers står det «ikke spurt om
+        // samtykke ennå» midt i samtykkespørsmålet.
+        const staarPaaSamtykke = oekt.aktivtSteg?.type === "CONSENT_REQUEST";
+        const samtykketekst = {
+          SAMTYKKET: "samtykke gitt",
+          IKKE_SAMTYKKET: "samtykke ikke gitt",
+          TRUKKET: "samtykke trukket",
+          VENTER_PAA_SVAR: "venter på ditt samtykke"
+        }[sisteSamtykke?.status]
+          || (staarPaaSamtykke ? "venter på ditt samtykke" : null)
+          || (oekt.aktivtSamtykkeId ? "samtykke opprettet" : "ikke spurt om samtykke ennå");
+
+        const merker = [`🔒 ${samtykketekst}`, "🧪 syntetiske data"];
+        for (const merke of merker) {
+          const span = document.createElement("span");
+          span.textContent = merke;
+          oektStatusEl.appendChild(span);
+        }
+
+        if (oekt.sporingsId) {
+          for (const [tekst, url] of [
+            ["KI-spor", `${aiBase}/trace?sporingsId=${encodeURIComponent(oekt.sporingsId)}`],
+            ["revisjonslogg", `${backendBase}/api/revisjonslogg/${encodeURIComponent(oekt.sporingsId)}`]
+          ]) {
+            const lenke = document.createElement("a");
+            lenke.href = url;
+            lenke.target = "_blank";
+            lenke.rel = "noopener";
+            lenke.textContent = tekst;
+            oektStatusEl.appendChild(lenke);
+          }
+        }
+      }
+
+      // «Takk, det har jeg notert» sa ingenting om hva som ble notert.
+      function kvitterForSvar(steg, tekst) {
+        const kort = tekst.length > 90 ? `${tekst.slice(0, 90).trim()}…` : tekst;
+        if (Array.isArray(steg.felter) && steg.felter.length > 0) {
+          return `Takk. Jeg har notert svaret ditt på «${steg.tittel || steg.id}».`;
+        }
+        return `Takk. Jeg har notert: «${kort}»`;
       }
 
       function setQuickActions(buttons = []) {
@@ -276,6 +297,129 @@
       function valgtPerson() {
         const option = personEl.selectedOptions?.[0];
         return option ? option.textContent : "deg";
+      }
+
+      /* ── Sidespørsmål ──────────────────────────────────────────────────────
+       *
+       * Flyten er ryggraden, men et spørsmål underveis skal sette den på pause
+       * i stedet for å bli avvist. Ruten er tilstandsfri med vilje: den kaller
+       * aldri /svar, /handling eller /neste. Motoren er lineær, så et svar som
+       * feilaktig ble lest som spørsmål koster én tur — mens et spørsmål som
+       * ble lagret som svar er stille og ugjenkallelig.
+       */
+
+      const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "kan jeg", "må jeg", "ma jeg", "får jeg", "far jeg", "hvilke", "hvilken"];
+
+      // Lukket liste. Brukes bare på QUESTION-steg, der terskelen må være høy.
+      const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
+
+      function erSidesporsmaal(text, steg) {
+        const lower = normalize(text);
+        if (!lower) return false;
+
+        // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
+        // er et svar med et spørreord midt inni.
+        const starterMedSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
+        const harSporsmaalstegn = text.includes("?");
+
+        // På QUESTION bærer teksten en verdi vi mister ved feilruting, så her
+        // kreves alle tre. Ellers kan innbygger uansett bare si ja eller nei.
+        if (steg?.type === "QUESTION") {
+          return starterMedSporreord && harSporsmaalstegn && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
+        }
+
+        return starterMedSporreord || harSporsmaalstegn;
+      }
+
+      /*
+       * Flyt-blokken er ikke pynt. Uten den leste modellen stegnavnet «Send
+       * søknad» i prosessdefinisjonen og svarte «nå har søknaden blitt sendt
+       * inn» mens vi fortsatt sto og ventet på bekreftelse. Grunnlaget må si
+       * hva som *ikke* har skjedd, ikke bare hva som finnes.
+       */
+      function byggFlyt() {
+        if (!oekt) return null;
+        const steg = aktivProsess?.steg || [];
+        const submitSteg = steg.find((s) => s.type === "SUBMIT");
+        return {
+          staarPaa: oekt.aktivtSteg?.tittel || oekt.aktivtSteg?.type || null,
+          stegNummer: oekt.stegIndex + 1,
+          avTotalt: oekt.totaltAntallSteg,
+          status: oekt.status,
+          fullforteSteg: steg.slice(0, oekt.stegIndex).map((s) => s.tittel || s.id),
+          gjenstaaendeSteg: steg.slice(oekt.stegIndex).map((s) => s.tittel || s.id),
+          soknadSendt: Boolean(submitSteg && oekt.resultater?.[submitSteg.id])
+        };
+      }
+
+      function byggSporsmaalsKontekst() {
+        return {
+          tjeneste: aktivProsess?.navn || "ukjent prosess",
+          prosess: aktivProsess || null,
+          steg: oekt?.aktivtSteg || null,
+          flyt: byggFlyt(),
+          satser: satser,
+          // Står vi på samtykkesteget uten svar ennå, er «venter» sannere enn
+          // ingenting — og det er nettopp da innbygger spør hvorfor.
+          samtykke: sisteSamtykke || (oekt?.aktivtSteg?.type === "CONSENT_REQUEST"
+            ? {
+                status: "VENTER_PAA_SVAR",
+                formaal: oekt.aktivtSteg.formaal,
+                dataKilder: oekt.aktivtSteg.dataKilder
+              }
+            : null),
+          resultater: oekt?.resultater || null,
+          samtale: samtale.slice(-6)
+        };
+      }
+
+      // fraKnapp: et forslag innbygger trykket på var aldri et feilrutet svar,
+      // så da skal rømningsknappen ikke tilbys.
+      async function svarPaaSidesporsmaal(text, fraKnapp = false) {
+        addTyping();
+        try {
+          const res = await fetch(`${aiBase}/ai/sporsmaal`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tekst: text,
+              sporingsId: oekt?.sporingsId,
+              kontekst: byggSporsmaalsKontekst(),
+              sprak: "nb"
+            })
+          });
+          const data = await res.json();
+          removeTyping();
+          if (!res.ok) {
+            throw new Error(data.feil || `Feil ${res.status}`);
+          }
+
+          // En sperre som ikke synes, er ikke demonstrerbar.
+          addMsg(data.sperre ? "guardrail" : "assistant", data.tekst);
+          addGrunnlagsfot(data.grunnlag);
+          samtale.push({ rolle: "assistent", tekst: data.tekst });
+
+          if (data.sperre) {
+            addMsg("system", `Sperre «${data.sperre}»: ${data.advarsel || "svaret ble erstattet."}`);
+          } else if (data.advarsel) {
+            addMsg("system", `⚠️ ${data.advarsel}`);
+          }
+        } catch (error) {
+          removeTyping();
+          addMsg("error", `Fikk ikke svar på spørsmålet: ${error.message}`);
+        }
+
+        gjenopptaFlyt(fraKnapp ? null : text);
+      }
+
+      // Flyten gjenopptas eksplisitt. stegIndex er ikke rørt — vi viser bare
+      // hvor vi står, og gir en vei ut av en feilruting.
+      function gjenopptaFlyt(opprinneligTekst) {
+        const steg = oekt?.aktivtSteg;
+        if (!steg) return;
+        addMsg("system", `Sidespørsmål — flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
+        addMsg("assistant", promptForStep(steg));
+        renderQuickActionsFor(steg, opprinneligTekst);
       }
 
       async function req(path, options = {}) {
@@ -386,18 +530,46 @@
 
       async function runHandling(payload, successText) {
         const steg = oekt?.aktivtSteg;
-        const result = await req(`/api/prosessoekter/${oekt.oektsId}/handling`, {
-          method: "POST",
-          body: JSON.stringify(payload || {})
-        });
+        addTyping();
+        let result;
+        try {
+          result = await req(`/api/prosessoekter/${oekt.oektsId}/handling`, {
+            method: "POST",
+            body: JSON.stringify(payload || {})
+          });
+        } finally {
+          removeTyping();
+        }
         oekt = result.oekt;
+
+        // Samtykkestatus vises i statusstripa og sendes med som grunnlag når
+        // innbygger spør om databruk.
+        if (steg?.type === "CONSENT_REQUEST" && result.resultat?.status) {
+          sisteSamtykke = {
+            status: result.resultat.status,
+            formaal: result.resultat.formaal,
+            dataKilder: result.resultat.dataKilder
+          };
+        }
+
         updateSessionInfo();
         addMsg("system", successText);
         const summary = summarizeResult(steg, result.resultat);
         if (summary) {
           addMsg("assistant", summary);
+          samtale.push({ rolle: "assistent", tekst: summary });
         }
         varsleOmFallback(result.resultat);
+
+        // Et utfall reiser spørsmål. Å tilby dem er billigere enn å håpe at
+        // innbygger vet at de kan spørre. Settes her, men tegnes av
+        // renderQuickActionsFor — goNext() tegner knappene på nytt rett etter.
+        if (steg?.type === "SJEKK") {
+          ventendeOppfolging = ["Hvorfor ble det slik?", "Hvilke opplysninger brukte dere?", "Hva skjer med opplysningene mine?"];
+        } else if (steg?.type === "SUMMARY") {
+          ventendeOppfolging = ["Hva skjer videre nå?", "Hvilke opplysninger brukte dere?"];
+        }
+
         await goNext();
       }
 
@@ -444,23 +616,7 @@
         }
 
         addMsg("assistant", promptForStep(steg));
-
-        if (steg.type === "INFO") {
-          setQuickActions([{ label: "Start", onClick: () => goNext() }]);
-          return;
-        }
-
-        if (steg.type === "QUESTION") {
-          return;
-        }
-
-        if (steg.type === "CONSENT_REQUEST") {
-          setQuickActions([
-            { label: "Ja, det går fint", onClick: () => ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.") },
-            { label: "Nei, ikke nå", onClick: () => ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden."), secondary: true }
-          ]);
-          return;
-        }
+        renderQuickActionsFor(steg);
 
         if (steg.type === "DATA_FETCH") {
           await autoRunStep(steg, "Jeg henter opplysningene nå.");
@@ -477,26 +633,74 @@
           return;
         }
 
-        if (steg.type === "SUBMIT") {
-          setQuickActions([
-            { label: "Ja, send inn", onClick: () => runHandling({}, "Da sender jeg inn søknaden.") },
-            { label: "Ikke ennå", onClick: () => addMsg("assistant", "Helt i orden. Gi beskjed når du vil sende den inn."), secondary: true }
-          ]);
-          return;
+        if (!["INFO", "QUESTION", "CONSENT_REQUEST", "SUBMIT"].includes(steg.type)) {
+          addMsg("error", `Ukjent stegtype: ${steg.type}`);
+        }
+      }
+
+      /*
+       * Knappene for et steg. Egen funksjon fordi et sidespørsmål må kunne
+       * tegne dem på nytt uten å kjøre steget om igjen.
+       *
+       * feilrutetTekst er rømningsveien: ble en melding lest som spørsmål når
+       * den var et svar, sender knappen den inn som svar med ett trykk.
+       */
+      function renderQuickActionsFor(steg, feilrutetTekst = null) {
+        const knapper = [];
+
+        if (steg.type === "INFO") {
+          knapper.push({ label: "Start", onClick: () => goNext() });
         }
 
-        addMsg("error", `Ukjent stegtype: ${steg.type}`);
+        if (steg.type === "CONSENT_REQUEST") {
+          knapper.push(
+            { label: "Ja, det går fint", onClick: () => ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.") },
+            { label: "Nei, ikke nå", onClick: () => ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden."), secondary: true }
+          );
+        }
+
+        if (steg.type === "SUBMIT") {
+          knapper.push(
+            { label: "Ja, send inn", onClick: () => runHandling({}, "Da sender jeg inn søknaden.") },
+            { label: "Ikke ennå", onClick: () => addMsg("assistant", "Helt i orden. Gi beskjed når du vil sende den inn."), secondary: true }
+          );
+        }
+
+        for (const sporsmaal of ventendeOppfolging) {
+          knapper.push({
+            label: sporsmaal,
+            secondary: true,
+            onClick: () => {
+              addMsg("user", sporsmaal);
+              samtale.push({ rolle: "innbygger", tekst: sporsmaal });
+              svarPaaSidesporsmaal(sporsmaal, true);
+            }
+          });
+        }
+
+        if (feilrutetTekst) {
+          knapper.push({
+            label: "Nei, dette var svaret mitt",
+            secondary: true,
+            onClick: () => sendMessage(feilrutetTekst, { hoppOverSporsmaalsruting: true })
+          });
+        }
+
+        setQuickActions(knapper);
       }
 
       function normalize(text) {
         return text.toLowerCase().trim();
       }
 
-      async function sendMessage() {
-        const text = inputEl.value.trim();
+      async function sendMessage(overstyrtTekst = null, valg = {}) {
+        const text = typeof overstyrtTekst === "string" ? overstyrtTekst : inputEl.value.trim();
         if (!text) return;
-        inputEl.value = "";
+        if (typeof overstyrtTekst !== "string") {
+          inputEl.value = "";
+        }
         addMsg("user", text);
+        samtale.push({ rolle: "innbygger", tekst: text });
 
         if (!oekt || !oekt.aktivtSteg) {
           addMsg("error", "Start en prosess forst.");
@@ -510,9 +714,20 @@
 
         const steg = oekt.aktivtSteg;
         const lower = normalize(text);
+
+        // Eksplisitt rømningsvei begge veier: «svar:» tvinger teksten inn som
+        // svar på steget, og knappen fra gjenopptaFlyt setter samme flagg.
+        const tvungetSvar = valg.hoppOverSporsmaalsruting || lower.startsWith("svar:");
+        const reellTekst = lower.startsWith("svar:") ? text.slice(4).trim() : text;
+
+        if (!tvungetSvar && erSidesporsmaal(text, steg)) {
+          await svarPaaSidesporsmaal(text);
+          return;
+        }
+
         try {
           if (steg.type === "INFO") {
-            if (lower.includes("fortsett") || lower.includes("neste") || lower.includes("start") || lower.includes("klar") || erJaSvar(text)) {
+            if (lower.includes("fortsett") || lower.includes("neste") || lower.includes("start") || lower.includes("klar") || erJaSvar(reellTekst)) {
               await goNext();
             } else {
               addMsg("assistant", "Bare si fra når du er klar, så går vi videre.");
@@ -523,16 +738,17 @@
           if (steg.type === "QUESTION") {
             oekt = await req(`/api/prosessoekter/${oekt.oektsId}/svar`, {
               method: "POST",
-              body: JSON.stringify({ stegId: steg.id, svar: text })
+              body: JSON.stringify({ stegId: steg.id, svar: reellTekst })
             });
-            addMsg("assistant", "Takk, det har jeg notert.");
+            addMsg("assistant", kvitterForSvar(steg, reellTekst));
             updateSessionInfo();
             await goNext();
             return;
           }
 
           if (steg.type === "CONSENT_REQUEST") {
-            const tolkning = await tolkBrukersvar(text, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
+            const tolkning = await tolkBrukersvar(reellTekst, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
+            varsleOmFallback(tolkning);
             if (tolkning.intent === "samtykke-ja") {
               await ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.");
               return;
@@ -541,22 +757,24 @@
               await ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden.");
               return;
             }
-            addMsg("assistant", "Du kan svare helt naturlig, for eksempel 'ja, det går fint' eller 'nei, ikke nå'.");
+            // Uklart svar på et samtykkespørsmål skal aldri gjettes på. Var det
+            // egentlig et spørsmål, svarer vi på det i stedet for å mase.
+            if (!tvungetSvar) {
+              await svarPaaSidesporsmaal(reellTekst);
+              return;
+            }
+            addMsg("assistant", "Jeg vil være sikker på at jeg forstod deg riktig. Svar gjerne «ja» eller «nei» — samtykke må være utvetydig.");
             return;
           }
 
-          if (steg.type === "DATA_FETCH") {
-            addMsg("assistant", "Jeg holder allerede på å hente opplysningene.");
-            return;
-          }
-
-          if (steg.type === "SUMMARY") {
-            addMsg("assistant", "Jeg holder på med oppsummeringen nå.");
+          if (steg.type === "DATA_FETCH" || steg.type === "SJEKK" || steg.type === "SUMMARY") {
+            addMsg("assistant", "Jeg holder på med dette steget nå — men spør gjerne om noe imens.");
             return;
           }
 
           if (steg.type === "SUBMIT") {
-            const tolkning = await tolkBrukersvar(text, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
+            const tolkning = await tolkBrukersvar(reellTekst, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
+            varsleOmFallback(tolkning);
             if (tolkning.intent === "send-ja") {
               await runHandling({}, "Da sender jeg inn søknaden.");
               return;
@@ -565,7 +783,11 @@
               addMsg("assistant", "Helt i orden. Vi kan vente med innsendingen til du er klar.");
               return;
             }
-            addMsg("assistant", "Du kan for eksempel svare 'ja, send inn' eller 'nei, ikke ennå'.");
+            if (!tvungetSvar) {
+              await svarPaaSidesporsmaal(reellTekst);
+              return;
+            }
+            addMsg("assistant", "Du kan for eksempel svare «ja, send inn» eller «nei, ikke ennå».");
             return;
           }
 
@@ -580,6 +802,9 @@
           const personId = personEl.value;
           const prosessId = prosessEl.value;
           aktivProsess = prosesser.find((p) => p.id === prosessId) || null;
+          sisteSamtykke = null;
+          ventendeOppfolging = [];
+          samtale.length = 0;
           oekt = await req("/api/prosessoekter", {
             method: "POST",
             body: JSON.stringify({ personId, prosessId, sporingsId: `flyt-${Date.now()}` })
@@ -596,9 +821,12 @@
       async function loadOptions() {
         const personer = await req("/api/personer");
         const prosessData = await req("/api/prosesser");
+        // Offentlig ressurs, ingen samtykke. Dette er grunnlaget frie spørsmål
+        // om satser og inntektsgrenser besvares fra.
+        satser = await req("/api/regler/satser").catch(() => null);
         prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
-        personEl.innerHTML = personer.map((p) => `<option value="${p.personId}">${p.visningsnavn} (${p.bostedsadresse.kommune})</option>`).join("");
-        prosessEl.innerHTML = prosesser.map((p) => `<option value="${p.id}">${p.navn}</option>`).join("");
+        personEl.innerHTML = personer.map((p) => `<option value="${htmlEscape(p.personId)}">${htmlEscape(p.visningsnavn)} (${htmlEscape(p.bostedsadresse.kommune)})</option>`).join("");
+        prosessEl.innerHTML = prosesser.map((p) => `<option value="${htmlEscape(p.id)}">${htmlEscape(p.navn)}</option>`).join("");
       }
 
       document.getElementById("start").onclick = () => startChat();
@@ -606,6 +834,9 @@
       document.getElementById("reset").onclick = () => {
         oekt = null;
         aktivProsess = null;
+        sisteSamtykke = null;
+        ventendeOppfolging = [];
+        samtale.length = 0;
         chatEl.innerHTML = "";
         setQuickActions([]);
         updateSessionInfo();
@@ -618,7 +849,9 @@
         }
       });
 
-      sjekkModell();
+      sjekkModell(aiBase, {
+        konsekvens: "Svarene under kommer fra maler, ikke fra en modell."
+      });
 
       loadOptions()
         .then(() => addMsg("assistant", "Velg en person og en prosess, så kan vi starte når du vil."))
@@ -626,12 +859,4 @@
     </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
 

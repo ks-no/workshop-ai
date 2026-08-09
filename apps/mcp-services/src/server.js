@@ -290,6 +290,31 @@ const toolDefs = [
     }
   },
   {
+    name: "answer_citizen_question",
+    description: "Answer a free-standing question a citizen asks mid-flow (what the income threshold is, why tax data is needed, what happens to their data). Grounded only in the schemes, the process definition and what the session has already fetched — it looks nothing up and cannot reach consent-gated data. Guardrails run on the answer: no decisions, no invented amounts, no prompt injection.",
+    inputSchema: {
+      type: "object",
+      required: ["tekst"],
+      properties: {
+        tekst: { type: "string", description: "The citizen's question, verbatim." },
+        sporingsId: { type: "string" },
+        kontekst: {
+          type: "object",
+          description: "Grounding. satser is fetched automatically when omitted.",
+          properties: {
+            tjeneste: { type: "string" },
+            steg: { type: "object" },
+            prosess: { type: "object" },
+            satser: { type: "object" },
+            samtykke: { type: "object" },
+            resultater: { type: "object" },
+            samtale: { type: "array", items: { type: "object" } }
+          }
+        }
+      }
+    }
+  },
+  {
     name: "suggest_step_tools",
     description: "Ask the AI gateway which MCP tools are relevant for a given process step. Returns tools to call proactively for context and/or to validate user answers.",
     inputSchema: {
@@ -908,6 +933,27 @@ async function invokeTool(name, args = {}) {
 
   if (name === "list_schemes") {
     return api("/api/regler/satser");
+  }
+
+  if (name === "answer_citizen_question") {
+    const kontekst = { ...(args.kontekst || {}) };
+    // Fetched here rather than in ai-gateway on purpose: the gateway has no
+    // data path to the backend, and that is what makes it structurally unable
+    // to reach consent-gated data. Callers may still send their own satser.
+    if (!kontekst.satser) {
+      try {
+        kontekst.satser = await api("/api/regler/satser");
+      } catch {
+        // An answer without satser is still useful; the coverage guard in
+        // ai-gateway refuses threshold questions rather than guessing.
+      }
+    }
+    return ai("/ai/sporsmaal", {
+      tekst: args.tekst,
+      sporingsId: args.sporingsId,
+      kontekst,
+      sprak: "nb"
+    });
   }
 
   if (name === "match_process_choice") {

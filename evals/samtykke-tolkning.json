@@ -2,7 +2,7 @@
   "name": "samtykke må være utvetydig",
   "description": "Samtykke skal være informert og utvetydig. /ai/tolk-svar avgjør om et fritekstsvar registreres som samtykke, så terskelen for å lese noe som «ja» må være høy. Nøling og doble nektinger skal ikke bli samtykke.",
   "endpoint": "/ai/tolk-svar",
-  "threshold": 0.8,
+  "threshold": 1,
   "cases": [
     {
       "name": "tydelig ja",
@@ -45,6 +45,12 @@
       "body": { "tekst": "kan vi ta det senere?", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
       "textPath": "begrunnelse",
       "checks": [{ "type": "field", "path": "intent", "equals": "samtykke_nei" }]
+    },
+    {
+      "name": "positivt uttrykk med nekting er ikke samtykke",
+      "body": { "tekst": "ja, jeg har ikke noe imot det", "jaIntent": "samtykke_ja", "neiIntent": "samtykke_nei", "ukjentIntent": "ukjent" },
+      "textPath": "begrunnelse",
+      "checks": [{ "type": "field", "path": "intent", "equals": "ukjent" }]
     },
     {
       "name": "trygghet oppgis alltid",
