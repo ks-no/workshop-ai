@@ -15,17 +15,28 @@ const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
+const openAiApiKey = process.env.OPENAI_API_KEY || "";
+const openAiDefaultModel = process.env.OPENAI_MODEL || "";
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || "";
+const anthropicDefaultModel = process.env.ANTHROPIC_MODEL || "";
+const traceMode = (process.env.AI_TRACE_MODE || "metadata").toLowerCase();
+const authEnabled = String(process.env.AI_AUTH_ENABLED || "false").toLowerCase() === "true";
+const rateLimitRpm = Number(process.env.AI_RATE_LIMIT_RPM) || 60;
+const dailyRequestLimit = Number(process.env.AI_TEAM_DAILY_REQUEST_LIMIT) || 0;
+const maxInputChars = Number(process.env.AI_MAX_INPUT_CHARS) || 50000;
 // A large model on a slow machine can spend well over a minute on a SUMMARY
 // step, so the ceiling is generous. The point is that the call eventually fails
 // instead of hanging forever.
 const modelTimeoutMs = Number(process.env.AI_TIMEOUT_MS) || 180000;
+const rateLimits = new Map();
+const dailyLimits = new Map();
 
 function jsonResponse(response, statusCode, data) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
 }
@@ -46,8 +57,164 @@ async function readBody(request) {
   return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
 }
 
+async function readLimitedBody(request, maxCharsForBody) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > maxCharsForBody) {
+      const feil = new Error(`Request er stoerre enn ${maxCharsForBody} tegn`);
+      feil.statusCode = 413;
+      feil.code = "AI_INPUT_TOO_LARGE";
+      throw feil;
+    }
+    chunks.push(chunk);
+  }
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+}
+
 function newId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function providerDefaultModel(provider) {
+  if (provider === "ollama") return ollamaModel;
+  if (provider === "openrouter") return openRouterModel;
+  if (provider === "openai") return openAiDefaultModel;
+  if (provider === "anthropic") return anthropicDefaultModel;
+  if (provider === "mock") return "mock-ai-gateway";
+  return "";
+}
+
+function providerApiKeyConfigured(provider) {
+  if (provider === "openrouter") return Boolean(openRouterApiKey);
+  if (provider === "openai") return Boolean(openAiApiKey);
+  if (provider === "anthropic") return Boolean(anthropicApiKey);
+  return true;
+}
+
+function supportsExternalModel(provider) {
+  return ["ollama", "openrouter", "openai", "anthropic"].includes(provider);
+}
+
+function normalizeModelClass(modelClass) {
+  const value = String(modelClass || "standard").toLowerCase();
+  if (["fast", "standard", "advanced"].includes(value)) return value;
+  const feil = new Error("Ugyldig modellklasse. Bruk fast, standard eller advanced.");
+  feil.statusCode = 400;
+  feil.code = "AI_INVALID_MODEL_CLASS";
+  throw feil;
+}
+
+function envNameForModelClass(modelClass, suffix) {
+  return `AI_MODEL_${modelClass.toUpperCase()}${suffix}`;
+}
+
+function resolveModelRoute(modelClass = "standard") {
+  const safeModelClass = normalizeModelClass(modelClass);
+  const provider = String(process.env[envNameForModelClass(safeModelClass, "_PROVIDER")] || aiProvider).toLowerCase();
+  const model = process.env[envNameForModelClass(safeModelClass, "")] || providerDefaultModel(provider);
+  return { provider, model, modelClass: safeModelClass };
+}
+
+function modelNameForResponse(modell) {
+  const text = String(modell || "");
+  const index = text.indexOf(":");
+  return index === -1 ? text : text.slice(index + 1);
+}
+
+function providerFromModelName(modell) {
+  const text = String(modell || "");
+  const index = text.indexOf(":");
+  return index === -1 ? text : text.slice(0, index);
+}
+
+function sanitizeProviderError(error) {
+  let message = String(error?.message || error || "Provider-feil");
+  for (const secret of [openRouterApiKey, openAiApiKey, anthropicApiKey]) {
+    if (secret) {
+      message = message.replaceAll(secret, "[redacted]");
+    }
+  }
+  return message;
+}
+
+function parseTeamTokens() {
+  const raw = process.env.AI_TEAM_TOKENS_JSON || "";
+  if (!raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function authenticateRequest(request) {
+  if (!authEnabled) {
+    return { teamId: "local-dev", authenticated: false };
+  }
+
+  const authHeader = request.headers.authorization || "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    const feil = new Error("Mangler Authorization: Bearer <team-token>.");
+    feil.statusCode = 401;
+    feil.code = "AI_AUTH_REQUIRED";
+    throw feil;
+  }
+
+  const token = match[1].trim();
+  const teamTokens = parseTeamTokens();
+  for (const [teamId, configuredToken] of Object.entries(teamTokens)) {
+    if (token && token === configuredToken) {
+      return { teamId, authenticated: true };
+    }
+  }
+
+  const feil = new Error("Ugyldig team-token.");
+  feil.statusCode = 403;
+  feil.code = "AI_AUTH_FORBIDDEN";
+  throw feil;
+}
+
+function checkRateLimit(teamId) {
+  if (!rateLimitRpm || rateLimitRpm < 1) return;
+
+  const now = Date.now();
+  const minute = Math.floor(now / 60000);
+  const current = rateLimits.get(teamId);
+  const next = current && current.minute === minute
+    ? { minute, count: current.count + 1 }
+    : { minute, count: 1 };
+  rateLimits.set(teamId, next);
+  if (next.count > rateLimitRpm) {
+    const feil = new Error("Rate limit er overskredet.");
+    feil.statusCode = 429;
+    feil.code = "AI_RATE_LIMIT_EXCEEDED";
+    throw feil;
+  }
+
+  if (dailyRequestLimit > 0) {
+    const day = new Date(now).toISOString().slice(0, 10);
+    const key = `${teamId}:${day}`;
+    const dailyCount = (dailyLimits.get(key) || 0) + 1;
+    dailyLimits.set(key, dailyCount);
+    if (dailyCount > dailyRequestLimit) {
+      const feil = new Error("Daglig kvote er overskredet.");
+      feil.statusCode = 429;
+      feil.code = "AI_DAILY_QUOTA_EXCEEDED";
+      throw feil;
+    }
+  }
+}
+
+function validateTotalInputChars(text, limit = maxInputChars) {
+  if (String(text || "").length <= limit) return;
+  const feil = new Error(`Samlet modellinput er stoerre enn ${limit} tegn.`);
+  feil.statusCode = 413;
+  feil.code = "AI_INPUT_TOO_LARGE";
+  throw feil;
 }
 
 // sandbox-backend owns the audit log. We send events there instead of writing
@@ -80,6 +247,7 @@ function docsHtml() {
       <h1>AI Gateway API</h1>
       <ul>
         <li><code>POST /ai/dialogforslag</code></li>
+        <li><code>POST /ai/chat</code></li>
         <li><code>POST /ai/oppsummering</code></li>
         <li><code>POST /ai/forklar-databruk</code></li>
         <li><code>POST /ai/klarsprak</code></li>
@@ -145,10 +313,10 @@ function traceHtml(entries) {
           ${l.durationMs} ms &middot;
           <span style="color:#666">${escapeHtml(l.timestamp)}</span>
           ${l.sporingsId ? `&middot; <span style="color:#666">${escapeHtml(l.sporingsId)}</span>` : ""}
+          ${l.modelClass ? `&middot; <span style="color:#666">${escapeHtml(l.modelClass)}</span>` : ""}
         </summary>
         ${l.error ? `<p style="color:#b00"><strong>Feil:</strong> ${escapeHtml(l.error)}</p>` : ""}
-        <h4>Prompt</h4>
-        <pre style="white-space:pre-wrap; background:#f6f6f6; padding:8px; border-radius:4px">${escapeHtml(l.prompt)}</pre>
+        ${l.prompt ? `<h4>Prompt</h4><pre style="white-space:pre-wrap; background:#f6f6f6; padding:8px; border-radius:4px">${escapeHtml(l.prompt)}</pre>` : "<p style=\"color:#666\"><em>Trace metadata-modus lagrer ikke prompt eller modellrespons.</em></p>"}
         ${l.response ? `<h4>Svar</h4><pre style="white-space:pre-wrap; background:#f0f7f0; padding:8px; border-radius:4px">${escapeHtml(l.response)}</pre>` : ""}
       </details>`;
     })
@@ -161,8 +329,8 @@ function traceHtml(entries) {
     <body style="font-family: Arial, sans-serif; padding: 24px; max-width: 900px;">
       <h1>KI-spor</h1>
       <p style="color:#666">
-        Ett kall per linje, nyeste øverst. Klikk for å se prompten modellen faktisk fikk
-        og hva den svarte — før heuristikk og validering har vært innom.
+        Ett kall per linje, nyeste øverst. Med <code>AI_TRACE_MODE=full</code> kan du se prompten
+        og svaret. Standard er <code>metadata</code>, som ikke lagrer prompt eller modellrespons.
         Sporet ligger i <code>state/ai-trace.jsonl</code> og nullstilles av
         <code>./start.sh --reset</code>.
       </p>
@@ -403,7 +571,7 @@ async function chooseToolsWithAi(body) {
   const verktoyNavn = (body?.verktoy || []).map((v) => v.name || v);
   const prompt = buildToolChoicePrompt(body);
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (!supportsExternalModel(aiProvider)) {
     return heuristisk;
   }
 
@@ -412,7 +580,8 @@ async function chooseToolsWithAi(body) {
     // free-text system message). That was preserved, not chosen. Whether
     // temperature 0 and the JSON system message pick better tools is an empirical
     // question — measure it with the eval rather than guessing.
-    const { tekst, modell } = await callModel(prompt, {
+    const { tekst, modell } = await callModel({
+      prompt,
       task: "velg-verktoy",
       sporingsId: body?.sporingsId
     });
@@ -869,12 +1038,12 @@ function validateIntent(data, body) {
 const SYSTEM_FREETEXT = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
 const SYSTEM_JSON = "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst.";
 
-async function callOllama(prompt, temperature, signal) {
+async function callOllama({ prompt, temperature, signal, model }) {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: ollamaModel,
+      model,
       prompt,
       stream: false,
       options: { temperature: temperature }
@@ -887,11 +1056,11 @@ async function callOllama(prompt, temperature, signal) {
   const data = await svar.json();
   return {
     tekst: data.response?.trim() || "",
-    modell: `ollama:${ollamaModel}`
+    modell: `ollama:${model}`
   };
 }
 
-async function callOpenRouter(prompt, temperature, systemMessage, signal) {
+async function callOpenRouter({ prompt, temperature, systemPrompt, signal, model }) {
   if (!openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY mangler");
   }
@@ -902,10 +1071,10 @@ async function callOpenRouter(prompt, temperature, systemMessage, signal) {
       Authorization: `Bearer ${openRouterApiKey}`
     },
     body: JSON.stringify({
-      model: openRouterModel,
+      model,
       temperature: temperature,
       messages: [
-        { role: "system", content: systemMessage },
+        { role: "system", content: systemPrompt },
         { role: "user", content: prompt }
       ]
     }),
@@ -917,7 +1086,92 @@ async function callOpenRouter(prompt, temperature, systemMessage, signal) {
   const data = await svar.json();
   return {
     tekst: data?.choices?.[0]?.message?.content?.trim() || "",
-    modell: `openrouter:${openRouterModel}`
+    modell: `openrouter:${model}`,
+    usage: {
+      inputTokens: data?.usage?.prompt_tokens,
+      outputTokens: data?.usage?.completion_tokens
+    }
+  };
+}
+
+async function callOpenAI({ prompt, temperature, systemPrompt, signal, model }) {
+  if (!openAiApiKey) {
+    throw new Error("OPENAI_API_KEY mangler");
+  }
+  if (!model) {
+    throw new Error("OpenAI-modell mangler. Sett AI_MODEL_* eller OPENAI_MODEL.");
+  }
+
+  const svar = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${openAiApiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      temperature,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ]
+    }),
+    signal
+  });
+  if (!svar.ok) {
+    throw new Error(`OpenAI svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  return {
+    tekst: data?.choices?.[0]?.message?.content?.trim() || "",
+    modell: `openai:${model}`,
+    usage: {
+      inputTokens: data?.usage?.prompt_tokens,
+      outputTokens: data?.usage?.completion_tokens
+    }
+  };
+}
+
+async function callAnthropic({ prompt, temperature, systemPrompt, signal, model }) {
+  if (!anthropicApiKey) {
+    throw new Error("ANTHROPIC_API_KEY mangler");
+  }
+  if (!model) {
+    throw new Error("Anthropic-modell mangler. Sett AI_MODEL_* eller ANTHROPIC_MODEL.");
+  }
+
+  const svar = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2048,
+      temperature,
+      system: systemPrompt,
+      messages: [{ role: "user", content: prompt }]
+    }),
+    signal
+  });
+  if (!svar.ok) {
+    throw new Error(`Anthropic svarte med status ${svar.status}`);
+  }
+  const data = await svar.json();
+  const tekst = (data?.content || [])
+    .filter((part) => part?.type === "text" && typeof part?.text === "string")
+    .map((part) => part.text)
+    .join("\n")
+    .trim();
+  return {
+    tekst,
+    modell: `anthropic:${model}`,
+    usage: {
+      inputTokens: data?.usage?.input_tokens,
+      outputTokens: data?.usage?.output_tokens
+    }
   };
 }
 
@@ -929,12 +1183,41 @@ async function callOpenRouter(prompt, temperature, systemMessage, signal) {
 //
 // Tracing must never break a call. If the write fails, the response still goes out.
 async function writeTrace(linje) {
+  if (traceMode === "off") return;
   try {
     await mkdir(stateDir, { recursive: true });
     await appendFile(traceFile, JSON.stringify(linje) + "\n", "utf8");
   } catch (feil) {
     console.error(`Kunne ikke skrive KI-spor: ${feil.message}`);
   }
+}
+
+function buildTraceEntry({ baseEntry, svar = null, error = null, durationMs, failed }) {
+  const usage = svar?.usage || {};
+  const metadata = {
+    timestamp: baseEntry.timestamp,
+    sporingsId: baseEntry.sporingsId,
+    task: baseEntry.task,
+    provider: baseEntry.provider,
+    model: svar?.modell || null,
+    modelClass: baseEntry.modelClass,
+    temperature: baseEntry.temperature,
+    durationMs,
+    failed,
+    ...(usage.inputTokens !== undefined ? { inputTokens: usage.inputTokens } : {}),
+    ...(usage.outputTokens !== undefined ? { outputTokens: usage.outputTokens } : {}),
+    ...(error ? { error: sanitizeProviderError(error) } : {})
+  };
+
+  if (traceMode === "full") {
+    return {
+      ...metadata,
+      prompt: baseEntry.prompt,
+      response: svar?.tekst || null
+    };
+  }
+
+  return metadata;
 }
 
 // Cheap provider probe for /helse: lists models instead of generating text, so
@@ -971,61 +1254,200 @@ async function checkProvider() {
     return { naaBar: true, modell };
   }
 
+  if (aiProvider === "openai") {
+    const modell = openAiDefaultModel ? `openai:${openAiDefaultModel}` : null;
+    if (!openAiApiKey) {
+      return { naaBar: false, modell, feil: "OPENAI_API_KEY mangler" };
+    }
+    if (!openAiDefaultModel) {
+      return { naaBar: false, modell, feil: "OpenAI-modell mangler. Sett OPENAI_MODEL eller AI_MODEL_*." };
+    }
+    return { naaBar: true, modell };
+  }
+
+  if (aiProvider === "anthropic") {
+    const modell = anthropicDefaultModel ? `anthropic:${anthropicDefaultModel}` : null;
+    if (!anthropicApiKey) {
+      return { naaBar: false, modell, feil: "ANTHROPIC_API_KEY mangler" };
+    }
+    if (!anthropicDefaultModel) {
+      return { naaBar: false, modell, feil: "Anthropic-modell mangler. Sett ANTHROPIC_MODEL eller AI_MODEL_*." };
+    }
+    return { naaBar: true, modell };
+  }
+
   return { naaBar: false, modell: null, feil: `Ukjent AI_PROVIDER: ${aiProvider}` };
+}
+
+function modelClassHealth() {
+  const result = {};
+  for (const modelClass of ["fast", "standard", "advanced"]) {
+    try {
+      const route = resolveModelRoute(modelClass);
+      result[modelClass] = {
+        provider: route.provider,
+        configured: supportsExternalModel(route.provider) && Boolean(route.model) && providerApiKeyConfigured(route.provider)
+      };
+    } catch {
+      result[modelClass] = {
+        provider: null,
+        configured: false
+      };
+    }
+  }
+  return result;
+}
+
+function validateChatBody(body) {
+  const modelClass = normalizeModelClass(body?.modellklasse || "standard");
+  if (!Array.isArray(body?.meldinger) || body.meldinger.length === 0) {
+    const feil = new Error("Krever meldinger med minst én melding.");
+    feil.statusCode = 400;
+    feil.code = "AI_CHAT_INVALID_REQUEST";
+    throw feil;
+  }
+  if (Object.hasOwn(body, "provider") || Object.hasOwn(body, "model")) {
+    const feil = new Error("Klienten kan bare angi modellklasse, ikke provider eller modellnavn.");
+    feil.statusCode = 400;
+    feil.code = "AI_CHAT_MODEL_NOT_ALLOWED";
+    throw feil;
+  }
+
+  const validRoles = new Set(["system", "user", "assistant"]);
+  const messages = body.meldinger.map((melding) => {
+    const role = String(melding?.rolle || "").toLowerCase();
+    const content = String(melding?.innhold ?? "");
+    if (!validRoles.has(role) || !content.trim()) {
+      const feil = new Error("Hver melding må ha gyldig rolle og innhold.");
+      feil.statusCode = 400;
+      feil.code = "AI_CHAT_INVALID_MESSAGE";
+      throw feil;
+    }
+    return { role, content };
+  });
+
+  const systemPrompt = messages
+    .filter((melding) => melding.role === "system")
+    .map((melding) => melding.content)
+    .join("\n\n") || SYSTEM_FREETEXT;
+  const prompt = messages
+    .filter((melding) => melding.role !== "system")
+    .map((melding) => `${melding.role.toUpperCase()}: ${melding.content}`)
+    .join("\n\n");
+
+  validateTotalInputChars(`${systemPrompt}\n\n${prompt}`);
+  return {
+    modelClass,
+    systemPrompt,
+    prompt,
+    sporingsId: typeof body?.sporingsId === "string" && body.sporingsId.trim() ? body.sporingsId.trim() : newId("chat")
+  };
+}
+
+function buildMockChatResponse({ modelClass, sporingsId, advarsel = null }) {
+  return {
+    tekst: "Dette er et mock-svar fra AI-gatewayen. Sett opp en ekstern modellprovider for reelle språkmodellsvar.",
+    provider: "mock",
+    modell: "mock-ai-gateway",
+    modellklasse: modelClass,
+    sporingsId,
+    ...(advarsel ? { advarsel } : {})
+  };
+}
+
+async function handleChat(body, teamId) {
+  const chat = validateChatBody(body);
+  checkRateLimit(teamId);
+  const route = resolveModelRoute(chat.modelClass);
+
+  if (!supportsExternalModel(route.provider)) {
+    return buildMockChatResponse({ modelClass: chat.modelClass, sporingsId: chat.sporingsId });
+  }
+
+  try {
+    const llm = await callModel({
+      prompt: chat.prompt,
+      systemPrompt: chat.systemPrompt,
+      task: "chat",
+      modelClass: chat.modelClass,
+      sporingsId: chat.sporingsId,
+      route
+    });
+    return {
+      tekst: llm.tekst,
+      provider: providerFromModelName(llm.modell),
+      modell: modelNameForResponse(llm.modell),
+      modellklasse: chat.modelClass,
+      sporingsId: chat.sporingsId
+    };
+  } catch (error) {
+    return buildMockChatResponse({
+      modelClass: chat.modelClass,
+      sporingsId: chat.sporingsId,
+      advarsel: "Ekstern modell var ikke tilgjengelig. Svaret er generert av mock-provider."
+    });
+  }
 }
 
 // Returns { tekst, modell }. Throws on failure, timeout or unknown provider —
 // callers already have fallback logic for that.
-async function callModel(prompt, valg = {}) {
-  const temperature = valg.temperature ?? 0.2;
-  const systemMessage = valg.systemMessage || SYSTEM_FREETEXT;
+async function callModel(options = {}) {
+  const prompt = options.prompt || "";
+  const temperature = options.temperature ?? options.temperatur ?? 0.2;
+  const systemPrompt = options.systemPrompt || options.systemMessage || SYSTEM_FREETEXT;
+  const route = options.route || resolveModelRoute(options.modelClass || "standard");
   const start = Date.now();
 
   // Without a timeout a call hangs indefinitely when Ollama is slow or half-started,
   // and it looks like the sandbox itself has frozen.
-  const signal = AbortSignal.timeout(modelTimeoutMs);
+  const signal = options.signal || AbortSignal.timeout(modelTimeoutMs);
 
   const baseEntry = {
     timestamp: new Date().toISOString(),
-    sporingsId: valg.sporingsId || null,
-    task: valg.task || "ukjent",
-    provider: aiProvider,
+    sporingsId: options.sporingsId || null,
+    task: options.task || "ukjent",
+    provider: route.provider,
+    modelClass: route.modelClass,
     temperature,
     prompt
   };
 
   try {
-    let svar;
-    if (aiProvider === "ollama") {
-      svar = await callOllama(prompt, temperature, signal);
-    } else if (aiProvider === "openrouter") {
-      svar = await callOpenRouter(prompt, temperature, systemMessage, signal);
-    } else {
-      throw new Error(`Ukjent AI_PROVIDER: ${aiProvider}`);
+    if (!supportsExternalModel(route.provider)) {
+      throw new Error(`Ukjent AI_PROVIDER: ${route.provider}`);
     }
 
-    await writeTrace({
-      ...baseEntry,
-      model: svar.modell,
-      response: svar.tekst,
+    let svar;
+    const providerOptions = { prompt, temperature, systemPrompt, signal, model: route.model };
+    if (route.provider === "ollama") {
+      svar = await callOllama(providerOptions);
+    } else if (route.provider === "openrouter") {
+      svar = await callOpenRouter(providerOptions);
+    } else if (route.provider === "openai") {
+      svar = await callOpenAI(providerOptions);
+    } else if (route.provider === "anthropic") {
+      svar = await callAnthropic(providerOptions);
+    }
+
+    await writeTrace(buildTraceEntry({
+      baseEntry,
+      svar,
       durationMs: Date.now() - start,
       failed: false
-    });
+    }));
     return svar;
   } catch (feil) {
     const melding =
       feil?.name === "TimeoutError" || feil?.name === "AbortError"
         ? `Modellen svarte ikke innen ${modelTimeoutMs} ms`
-        : feil.message;
+        : sanitizeProviderError(feil);
 
-    await writeTrace({
-      ...baseEntry,
-      model: null,
-      response: null,
+    await writeTrace(buildTraceEntry({
+      baseEntry,
+      error: melding,
       durationMs: Date.now() - start,
-      failed: true,
-      error: melding
-    });
+      failed: true
+    }));
     throw new Error(melding);
   }
 }
@@ -1055,9 +1477,10 @@ function buildJudgePrompt(body) {
 }
 
 async function judgeWithAi(body) {
-  const { tekst, modell } = await callModel(buildJudgePrompt(body), {
+  const { tekst, modell } = await callModel({
+    prompt: buildJudgePrompt(body),
     temperature: 0,
-    systemMessage: SYSTEM_JSON,
+    systemPrompt: SYSTEM_JSON,
     task: "dommer",
     sporingsId: body?.sporingsId
   });
@@ -1075,9 +1498,10 @@ async function judgeWithAi(body) {
 }
 
 async function getIntentFromModel(body) {
-  const { tekst, modell } = await callModel(buildIntentPrompt(body), {
+  const { tekst, modell } = await callModel({
+    prompt: buildIntentPrompt(body),
     temperature: 0,
-    systemMessage: SYSTEM_JSON,
+    systemPrompt: SYSTEM_JSON,
     task: "tolk-svar",
     sporingsId: body?.sporingsId
   });
@@ -1089,9 +1513,10 @@ async function getIntentFromModel(body) {
 }
 
 async function getProcessChoiceFromModel(body) {
-  const { tekst, modell } = await callModel(buildProcessChoicePrompt(body), {
+  const { tekst, modell } = await callModel({
+    prompt: buildProcessChoicePrompt(body),
     temperature: 0,
-    systemMessage: SYSTEM_JSON,
+    systemPrompt: SYSTEM_JSON,
     task: "velg-prosess",
     sporingsId: body?.sporingsId
   });
@@ -1114,7 +1539,7 @@ async function interpretReplyWithAi(body) {
     };
   }
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (!supportsExternalModel(aiProvider)) {
     return {
       ...fallback,
       syntetisk: true,
@@ -1163,7 +1588,7 @@ async function chooseProcessWithAi(body) {
     };
   }
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (!supportsExternalModel(aiProvider)) {
     return {
       ...fallback,
       syntetisk: true,
@@ -1203,12 +1628,13 @@ async function buildAiResponse(type, body) {
 
   const prompt = buildPrompt(type, body, mockSvar.tekst);
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (!supportsExternalModel(aiProvider)) {
     return mockSvar;
   }
 
   try {
-    const llm = await callModel(prompt, {
+    const llm = await callModel({
+      prompt,
       task: type,
       sporingsId: body?.sporingsId
     });
@@ -1250,6 +1676,7 @@ const server = createServer(async (request, response) => {
         provider: aiProvider,
         modell: provider.modell,
         modellNaaBar: provider.naaBar,
+        modellklasser: modelClassHealth(),
         ...(provider.feil ? { feil: provider.feil } : {}),
         tidspunkt: new Date().toISOString()
       });
@@ -1278,6 +1705,14 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/openapi.yaml") {
       const yaml = await readFile(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"), "utf8");
       textResponse(response, 200, yaml, "text/yaml; charset=utf-8");
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/ai/chat") {
+      const auth = authenticateRequest(request);
+      const body = await readLimitedBody(request, maxInputChars + 4096);
+      const svar = await handleChat(body, auth.teamId);
+      jsonResponse(response, 200, svar);
       return;
     }
 
@@ -1349,7 +1784,16 @@ const server = createServer(async (request, response) => {
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    jsonResponse(response, 500, { feil: "Intern feil i AI-gateway.", detalj: error.message, syntetisk: true });
+    const statusCode = error.statusCode || 500;
+    if (error.code && error.code.startsWith("AI_")) {
+      jsonResponse(response, statusCode, {
+        error: error.code,
+        message: sanitizeProviderError(error),
+        syntetisk: true
+      });
+      return;
+    }
+    jsonResponse(response, statusCode, { feil: "Intern feil i AI-gateway.", detalj: sanitizeProviderError(error), syntetisk: true });
   }
 });
 

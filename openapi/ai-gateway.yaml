@@ -3,8 +3,9 @@ info:
   title: AI Gateway API
   version: 0.2.0
   description: |
-    AI-abstraksjonslag for dialogforslag, oppsummering, klarspråk, intensjonstolkning og dynamisk verktøyoppdagelse.
-    Støtter mock, Ollama og OpenRouter som provider (AI_PROVIDER-env).
+    AI-abstraksjonslag for dialogforslag, oppsummering, klarspråk, intensjonstolkning,
+    generell chat og dynamisk verktøyoppdagelse.
+    Støtter mock, Ollama, OpenRouter, OpenAI og Anthropic som provider.
 servers:
   - url: http://localhost:8082
 paths:
@@ -25,11 +26,20 @@ paths:
                 properties:
                   status: { type: string, example: ok }
                   tjeneste: { type: string, example: ai-gateway }
-                  provider: { type: string, enum: [mock, ollama, openrouter] }
+                  provider: { type: string, enum: [mock, ollama, openrouter, openai, anthropic] }
                   modell: { type: string, nullable: true, example: "ollama:qwen2.5:14b" }
                   modellNaaBar:
                     type: boolean
                     description: Om provideren svarer og modellen er lastet ned.
+                  modellklasser:
+                    type: object
+                    properties:
+                      fast:
+                        $ref: "#/components/schemas/ModellklasseStatus"
+                      standard:
+                        $ref: "#/components/schemas/ModellklasseStatus"
+                      advanced:
+                        $ref: "#/components/schemas/ModellklasseStatus"
                   feil:
                     type: string
                     description: Kun til stede når modellNaaBar er false.
@@ -37,11 +47,11 @@ paths:
                   tidspunkt: { type: string, format: date-time }
   /trace:
     get:
-      summary: KI-spor som HTML — hva modellen faktisk fikk og svarte
+      summary: KI-spor som HTML
       description: |
-        Ett kall per linje, nyeste øverst, med full prompt og fullt svar før
-        heuristikk og validering har vært innom. Sporet ligger i
-        `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
+        Ett kall per linje, nyeste øverst. Standard `AI_TRACE_MODE=metadata`
+        lagrer ikke prompt eller modellrespons. `full` lagrer prompt og respons,
+        mens `off` ikke skriver trace.
       parameters:
         - { in: query, name: limit, schema: { type: integer, default: 50 } }
         - { in: query, name: sporingsId, schema: { type: string } }
@@ -81,12 +91,48 @@ paths:
                           example: oppsummering
                         provider: { type: string }
                         model: { type: string, nullable: true }
+                        modelClass: { type: string, enum: [fast, standard, advanced] }
                         temperature: { type: number }
-                        prompt: { type: string }
+                        prompt: { type: string, description: "Kun ved AI_TRACE_MODE=full" }
                         response: { type: string, nullable: true }
+                        inputTokens: { type: integer }
+                        outputTokens: { type: integer }
                         durationMs: { type: integer }
                         failed: { type: boolean }
                         error: { type: string }
+  /ai/chat:
+    post:
+      summary: Generell LLM-chat via gatewayens modellrouting
+      description: |
+        Kontrollert hackathon-tilgang til språkmodell. Klienten kan bare velge
+        abstrakt modellklasse (`fast`, `standard`, `advanced`), ikke provider eller
+        faktisk modellnavn. Kan beskyttes med `Authorization: Bearer <team-token>`
+        når `AI_AUTH_ENABLED=true`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Chat-svar returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
+          description: Ugyldig request eller modellklasse
+        "401":
+          description: Authorization mangler når auth er aktivert
+        "403":
+          description: Team-token er ugyldig
+        "413":
+          description: Samlet modellinput er for stort
+        "429":
+          description: Rate limit eller kvote er overskredet
   /ai/dialogforslag:
     post:
       summary: Generer dialogforslag
@@ -193,7 +239,67 @@ paths:
                 $ref: "#/components/schemas/VelgVerktoyResponse"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
+    ModellklasseStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+          nullable: true
+          enum: [mock, ollama, openrouter, openai, anthropic]
+        configured:
+          type: boolean
+    ChatMessage:
+      type: object
+      required: [rolle, innhold]
+      properties:
+        rolle:
+          type: string
+          enum: [system, user, assistant]
+        innhold:
+          type: string
+    ChatRequest:
+      type: object
+      required: [meldinger]
+      properties:
+        meldinger:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        modellklasse:
+          type: string
+          enum: [fast, standard, advanced]
+          default: standard
+        sporingsId:
+          type: string
+      not:
+        anyOf:
+          - required: [provider]
+          - required: [model]
+    ChatResponse:
+      type: object
+      required: [tekst, provider, modell, modellklasse, sporingsId]
+      properties:
+        tekst:
+          type: string
+        provider:
+          type: string
+          enum: [mock, ollama, openrouter, openai, anthropic]
+        modell:
+          type: string
+          description: Modellnavn uten provider-prefiks.
+        modellklasse:
+          type: string
+          enum: [fast, standard, advanced]
+        sporingsId:
+          type: string
+        advarsel:
+          type: string
     TolkSvarRequest:
       type: object
       required: [tekst, jaIntent, neiIntent, ukjentIntent]

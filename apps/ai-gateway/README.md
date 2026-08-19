@@ -7,13 +7,14 @@ Ansvar:
 - forklare databruk
 - gi klarspråk og enkel risikosjekk
 - velge prosess og verktøy, og tolke fritekstsvar
+- tilby kontrollert generell LLM-chat for hackathon-team
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK — providerne
 kalles med rå `fetch`.
 
 ## Endepunkter
 
-Åtte, alle `POST`:
+Alle AI-endepunkter er `POST`:
 
 | Endepunkt | Bruk | Kalles av |
 |---|---|---|
@@ -26,6 +27,7 @@ kalles med rå `fetch`.
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen — fritt vilt |
 | `/ai/risikosjekk` | Enkel risikovurdering | ingen — fritt vilt |
 | `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.js` |
+| `/ai/chat` | Generell LLM-tilgang via modellklasse | hackathon-applikasjoner |
 
 **Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` som
 tar `tekst` på toppnivå.
@@ -38,6 +40,24 @@ curl -s -X POST http://localhost:8082/ai/klarsprak \
 curl -s -X POST http://localhost:8082/ai/tolk-svar \
   -H "Content-Type: application/json" \
   -d '{"tekst":"ja, det er greit"}'
+```
+
+`/ai/chat` tar meldinger med rollene `system`, `user` og `assistant`. Klienten kan
+bare angi abstrakt `modellklasse`: `fast`, `standard` eller `advanced`. Provider og
+faktisk modellnavn velges av gatewayen, ikke av klienten.
+
+```bash
+curl -s -X POST http://localhost:8082/ai/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer secret-token-1" \
+  -d '{
+    "meldinger":[
+      {"rolle":"system","innhold":"Du hjelper en innbygger med kommunale tjenester."},
+      {"rolle":"user","innhold":"Hvordan søker jeg om barnehageplass?"}
+    ],
+    "modellklasse":"standard",
+    "sporingsId":"team-01-demo"
+  }'
 ```
 
 ## Heuristikk først, modell som fallback
@@ -59,6 +79,8 @@ Provider-modus:
 - `AI_PROVIDER=mock` (standard, ingen ekstern modell)
 - `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjrt i Docker Compose)
 - `AI_PROVIDER=openrouter` (billige/gratis modeller via OpenRouter)
+- `AI_PROVIDER=openai`
+- `AI_PROVIDER=anthropic`
 
 Valgfrie miljovariabler:
 
@@ -66,6 +88,35 @@ Valgfrie miljovariabler:
 - `OLLAMA_MODEL` (standard `qwen2.5:7b`)
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (standard `mistralai/mistral-7b-instruct:free`)
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_MODEL`
+
+Modellklasser rutes sentralt:
+
+- `AI_MODEL_FAST_PROVIDER`, `AI_MODEL_FAST`
+- `AI_MODEL_STANDARD_PROVIDER`, `AI_MODEL_STANDARD`
+- `AI_MODEL_ADVANCED_PROVIDER`, `AI_MODEL_ADVANCED`
+
+Hvis modellklasse ikke er oppgitt brukes `standard`. Hvis en klasse ikke er konfigurert,
+faller den tilbake til `AI_PROVIDER` og providerens standard modellvariabel.
+
+## Auth, rate limit og inputgrenser
+
+`/ai/chat` kan beskyttes med enkel team-token-auth:
+
+- `AI_AUTH_ENABLED=false` er lokal standard
+- `AI_TEAM_TOKENS_JSON='{"team-01":"secret-token-1"}'`
+
+Token sendes som `Authorization: Bearer <team-token>` og mappes til intern team-ID.
+Rå token skrives ikke til trace.
+
+Enkel in-memory rate limit gjelder per team:
+
+- `AI_RATE_LIMIT_RPM=60`
+- `AI_TEAM_DAILY_REQUEST_LIMIT=` valgfri dagskvote
+- `AI_MAX_INPUT_CHARS=50000`
 
 ## Er modellen koblet på?
 
@@ -82,7 +133,7 @@ curl -s http://localhost:8082/helse
 ```
 
 `modellNaaBar: false` kommer med et `feil`-felt som sier hvorfor — Ollama er ikke nåbar,
-modellen er ikke lastet ned, `OPENROUTER_API_KEY` mangler, eller `AI_PROVIDER=mock`.
+modellen er ikke lastet ned, API-nøkkel mangler, modellnavn mangler, eller `AI_PROVIDER=mock`.
 Merk at status alltid er 200: tjenesten *lever* selv om modellen ikke gjør det.
 
 `demo-gui` sjekker dette ved sidelast og viser en gul stripe på `/chat` og `/agent` når
@@ -93,16 +144,23 @@ har `advarsel`.
 
 ## KI-spor
 
-Alle modellkall går gjennom én funksjon, `callModel`, som skriver én JSONL-linje per
-kall til `state/ai-trace.jsonl`. Feltene er engelske, siden sporet er utviklerverktøy
-og ikke tjenestekontrakt: `timestamp`, `sporingsId`, `task`, `provider`, `model`,
-`temperature`, `prompt`, `response`, `durationMs`, `failed`, `error`.
+Alle modellkall går gjennom én funksjon, `callModel`. Trace styres med
+`AI_TRACE_MODE`:
 
-- `http://localhost:8082/trace` — HTML, nyeste øverst, prompt og svar utfellbart
+- `metadata` er standard og lagrer ikke prompt eller modellrespons
+- `full` lagrer prompt og respons, omtrent som tidligere
+- `off` skriver ikke trace
+
+Trace skrives som JSONL til `state/ai-trace.jsonl`. Feltene er engelske, siden sporet
+er utviklerverktøy og ikke tjenestekontrakt: `timestamp`, `sporingsId`, `task`,
+`provider`, `model`, `modelClass`, `temperature`, `durationMs`, `failed`, `error`,
+og eventuelt `inputTokens`/`outputTokens`.
+
+- `http://localhost:8082/trace` — HTML, nyeste øverst
 - `GET /trace.json` — samme som JSON, med `?sporingsId=`, `?task=` og `?limit=`
 
-Dette er der du ser hva modellen faktisk fikk, før heuristikk og validering har vært
-innom. Sporet nullstilles av `./start.sh --reset`.
+Med `AI_TRACE_MODE=full` ser du hva modellen faktisk fikk, før heuristikk og validering
+har vært innom. Sporet nullstilles av `./start.sh --reset`.
 
 ```bash
 curl -s "http://localhost:8082/trace.json?task=oppsummering&limit=1"
@@ -121,10 +179,10 @@ dør når vinduet lukkes — bruk `brew services start ollama` og sjekk med
 
 ## Legge til en ny provider
 
-Provider-laget er ett sted. `kallModell` velger mellom `kallOllama` og `kallOpenRouter`,
-som begge tar `(prompt, temperatur, signal)` og returnerer `{ tekst, modell }`. En ny
-provider er én funksjon med den signaturen pluss en gren i `kallModell` — ikke seks
-kopier slik det var før.
+Provider-laget er ett sted. `callModel` tar en objektkontrakt med blant annet `prompt`,
+`systemPrompt`, `temperature`, `task`, `modelClass`, `sporingsId` og `signal`.
+Provider-funksjonene returnerer samme interne format: `{ tekst, modell, usage? }`.
+Provider-spesifikke responser lekker ikke videre i systemet.
 
 ## macOS: kjør Ollama nativt
 
@@ -174,4 +232,3 @@ Eksempel p modellvalg:
 - `OLLAMA_MODEL=qwen2.5:14b`
 - `OLLAMA_MODEL=llama3.1:8b`
 - `OLLAMA_MODEL=mistral-nemo`
-
