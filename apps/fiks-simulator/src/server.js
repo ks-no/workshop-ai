@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,16 @@ const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../stat
 // PORT lar testskript starte en isolert instans ved siden av docker compose.
 const port = Number(process.env.PORT) || 8081;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
+
+// Its only call to the backend is the audit log, so its hjemmel is exactly that
+// and nothing more. Three machines, three different scopes, none of them "admin".
+const TOKEN = {
+  digdirBaseUrl: process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086",
+  issuer: process.env.DIGDIR_ISSUER || "http://localhost:8086",
+  clientId: "fiks-simulator",
+  scope: "ks:innbyggerdialog:revisjon",
+  resource: "sandbox-backend"
+};
 
 function jsonResponse(response, statusCode, data) {
   response.writeHead(statusCode, {
@@ -74,7 +85,7 @@ async function leggTilRevisjon(hendelse) {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await maskinportenHeader(TOKEN)) },
       body: JSON.stringify(hendelse),
       signal: AbortSignal.timeout(2000)
     });

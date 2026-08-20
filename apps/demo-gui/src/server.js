@@ -42,7 +42,10 @@ const sider = {
   "/chat": "chat.html",
   "/chat.html": "chat.html",
   "/agent": "agent.html",
-  "/agent.html": "agent.html"
+  "/agent.html": "agent.html",
+  // The redirect_uri registered with ID-porten. Same path for every page: the page
+  // to return to travels in `state`, not in the callback URL.
+  "/callback": "callback.html"
 };
 
 const server = createServer(async (request, response) => {

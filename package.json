@@ -19,6 +19,7 @@
     "start:digdir": "node apps/digdir-mock/src/server.ts",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.js",
     "data:tenor": "node scripts/importer-tenor.js",
+    "token": "node scripts/token.ts",
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",

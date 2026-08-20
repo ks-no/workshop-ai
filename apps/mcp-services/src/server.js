@@ -1,10 +1,29 @@
 import { createServer } from "node:http";
+import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
+
+// Imported across the app boundary on purpose: klient.ts is where the token
+// protocol is defined, and a copy per service is how four subtly different token
+// clients happen. Node loads the .ts directly.
+const digdirBaseUrl = process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086";
+const digdirIssuer = process.env.DIGDIR_ISSUER || "http://localhost:8086";
+
+// This service is a machine with its own hjemmel, not the citizen. It reads person
+// data on behalf of whichever test person the agent is working with, so the audit
+// log records it as `system` with `paaVegneAv` — never as the person. A service
+// that can hand itself a citizen's identity is the opposite of the lesson.
+const TOKEN = {
+  digdirBaseUrl,
+  issuer: digdirIssuer,
+  clientId: "mcp-services",
+  scope: "ks:innbyggerdialog:les",
+  resource: "sandbox-backend"
+};
 const aiBaseUrl = process.env.AI_BASE_URL || "http://ai-gateway:8082";
 const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrikkel-mock:8085";
 const matrikkelMode = String(process.env.MATRIKKEL_MODE || "mock").toLowerCase();
@@ -380,7 +399,11 @@ function clientError(melding, status = 400) {
 
 async function api(path, options = {}) {
   const res = await fetch(`${backendBaseUrl}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(await maskinportenHeader(TOKEN)),
+      ...(options.headers || {})
+    },
     ...options
   });
   const data = await res.json();

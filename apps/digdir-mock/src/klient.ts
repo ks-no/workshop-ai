@@ -220,6 +220,44 @@ async function slaaOppPid(digdirBaseUrl: string, personId?: string): Promise<str
   return treff;
 }
 
+// Warned about once per process per client, so a missing issuer is visible without
+// a line per request.
+const advart = new Set<string>();
+
+/**
+ * The Authorization header for a machine client — or an empty object if the issuer
+ * cannot be reached.
+ *
+ * Degrading rather than throwing is deliberate, and the policy lives here so all
+ * four machine clients share it. Two reasons:
+ *
+ *  - The resource server is where the decision belongs. Without a token the backend
+ *    answers 401 saying exactly that, which is a far better error than "fetch
+ *    failed" from a token endpoint three services away — the failure mode Del A
+ *    already paid for once, when a matrikkel problem surfaced as a 500 in an
+ *    unrelated LLM step.
+ *  - It mirrors leggTilRevisjon: infrastructure being down must not turn into a
+ *    different, more confusing error somewhere else.
+ *
+ * The warning is what keeps this from being silent.
+ */
+export async function maskinportenHeader(valg: MaskinportenValg): Promise<Record<string, string>> {
+  try {
+    return { Authorization: `Bearer ${await hentMaskinportenToken(valg)}` };
+  } catch (feil) {
+    const noekkel = `${valg.clientId}:${valg.scope}`;
+    if (!advart.has(noekkel)) {
+      advart.add(noekkel);
+      console.warn(
+        `Kunne ikke hente Maskinporten-token for ${valg.clientId} ` +
+        `(${(feil as Error).message}). Kaller videre uten token — ` +
+        `ressursserveren svarer 401 hvis den håndhever.`
+      );
+    }
+    return {};
+  }
+}
+
 /** The pid in a token, without verifying it. For logging and test assertions only. */
 export function pidI(token: string): string | null {
   try {

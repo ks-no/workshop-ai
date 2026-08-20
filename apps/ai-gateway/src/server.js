@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
 import { readFile, appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,16 @@ const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../stat
 const traceFile = path.join(stateDir, "ai-trace.jsonl");
 const port = Number(process.env.PORT) || 8082;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
+
+// The AI layer touches the backend for one thing only — writing audit events — so
+// that is the whole of its hjemmel. It never reads person data, and the scope says so.
+const TOKEN = {
+  digdirBaseUrl: process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086",
+  issuer: process.env.DIGDIR_ISSUER || "http://localhost:8086",
+  clientId: "ai-gateway",
+  scope: "ks:innbyggerdialog:revisjon",
+  resource: "sandbox-backend"
+};
 const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
@@ -69,7 +80,7 @@ async function leggTilRevisjon(hendelse) {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await maskinportenHeader(TOKEN)) },
       body: JSON.stringify(hendelse),
       signal: AbortSignal.timeout(2000)
     });

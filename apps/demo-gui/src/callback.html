@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8">
+    <title>Logger inn …</title>
+    <link rel="stylesheet" href="/assets/felles.css">
+  </head>
+  <body>
+    <main style="max-width: 34rem; margin: 4rem auto; padding: 0 1rem;">
+      <h1 id="tittel">Logger inn …</h1>
+      <p id="melding">Veksler engangskoden fra ID-porten mot et token.</p>
+      <p id="tilbake" hidden><a href="/">Tilbake til oversikten</a></p>
+    </main>
+    <script src="/assets/felles.js"></script>
+    <script>
+      // The redirect target from ID-porten. Its only job is to swap the code for a
+      // token and send the browser back where it came from — the return path rode
+      // along in `state`.
+      (async () => {
+        try {
+          const tilbakeTil = await fullfoerInnlogging();
+          location.replace(tilbakeTil);
+        } catch (feil) {
+          document.getElementById("tittel").textContent = "Innloggingen gikk ikke gjennom";
+          document.getElementById("melding").textContent = feil.message;
+          document.getElementById("tilbake").hidden = false;
+        }
+      })();
+    </script>
+  </body>
+</html>

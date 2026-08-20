@@ -1,4 +1,5 @@
-import { fiksBaseUrl, fiksRolleId } from "./config.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+import { digdirBaseUrl, digdirIssuer, fiksBaseUrl, fiksRolleId } from "./config.ts";
 import {
   finnPerson,
   hentHusstandForPerson,
@@ -10,6 +11,17 @@ import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, State } from "./
 // partners and cohabitants count as one household, per forskrift om
 // foreldrebetaling. Return type stays any until the Fiks response is modelled in
 // types.ts.
+// The register surface in Fiks is behind Maskinporten, so this service needs its
+// own token to reach it. `resource: "fiks-simulator"` matters: a token minted for
+// this backend is rejected there, which is what audience restriction is for.
+const FIKS_TOKEN = {
+  digdirBaseUrl,
+  issuer: digdirIssuer,
+  clientId: "sandbox-backend",
+  scope: "ks:fiks:register",
+  resource: "fiks-simulator"
+};
+
 async function hentInntektsgrunnlag(tilstand: State, personId: string, inntektsaar: number): Promise<any> {
   const husstand = hentHusstandForPerson(tilstand, personId);
   const personer = husstand.medlemmer
@@ -26,7 +38,10 @@ async function hentInntektsgrunnlag(tilstand: State, personId: string, inntektsa
     `${fiksBaseUrl}/register/api/v1/ks/${fiksRolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await maskinportenHeader(FIKS_TOKEN))
+      },
       body: JSON.stringify({ inntektsaar, personer })
     }
   );
