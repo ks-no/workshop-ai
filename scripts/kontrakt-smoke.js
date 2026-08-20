@@ -155,6 +155,18 @@ async function statiskeOppslag() {
   await kall("person", "/api/personer/person-001");
   await kall("person-ukjent", "/api/personer/person-999");
   await kall("husstand", "/api/personer/person-001/husstand");
+  // Address protection on the wire. Without these the dump never touches a
+  // protected person: /api/personer is dumped with form: 3 and the first three are
+  // all UGRADERT, so masking would not show up in a diff at all.
+  //
+  // person-031 is STRENGT_FORTROLIG (name and address masked), person-194 is
+  // FORTROLIG (address masked, name kept) — the two levels must stay observably
+  // different. household-093 holds only protected people so its adresse is masked;
+  // household-013 has three unprotected residents and deliberately keeps its own.
+  await kall("person-strengt-fortrolig", "/api/personer/person-031");
+  await kall("person-fortrolig", "/api/personer/person-194");
+  await kall("husstand-helt-skjermet", "/api/personer/person-218/husstand");
+  await kall("husstand-delvis-skjermet", "/api/personer/person-030/husstand");
   await kall("barnehage", "/api/personer/person-001/barnehage");
   // person-008 is the guardian who actually has a child in SFO.
   await kall("sfo", "/api/personer/person-008/sfo");
@@ -182,10 +194,12 @@ async function statiskeOppslag() {
 
 // Foreldrebetaling: INFO -> husstand -> samtykke -> inntekt -> SJEKK.
 // Stops before SUMMARY, which would require ai-gateway.
-async function foreldrebetalingsflyt(prosessId, merkelapp) {
+async function foreldrebetalingsflyt(prosessId, merkelapp, hvem = {}) {
+  const personId = hvem.personId || "person-001";
+  const husstandId = hvem.husstandId || "household-001";
   const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
-    body: { personId: "person-001", prosessId }
+    body: { personId, prosessId }
   });
   const id = oekt.oektsId;
 
@@ -208,8 +222,8 @@ async function foreldrebetalingsflyt(prosessId, merkelapp) {
   await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 
   // With the samtykke registered, the direct income route should now answer 200.
-  await kall(`${merkelapp}-inntekt-med-samtykke`, "/api/personer/person-001/inntekt");
-  await kall(`${merkelapp}-inntektsgrunnlag`, "/api/husstander/household-001/inntektsgrunnlag");
+  await kall(`${merkelapp}-inntekt-med-samtykke`, `/api/personer/${personId}/inntekt`);
+  await kall(`${merkelapp}-inntektsgrunnlag`, `/api/husstander/${husstandId}/inntektsgrunnlag`);
 }
 
 // Fritidskort is the only ordning outside barnehage and SFO, and the only one that
@@ -339,6 +353,20 @@ async function kjoer() {
     await statiskeOppslag();
     await foreldrebetalingsflyt("reduced-kindergarten-payment", "barnehage");
     await foreldrebetalingsflyt("sfo-moderasjon", "sfo");
+    // household-013 is the only household with both a protected guardian
+    // (person-031, kode 6) and an unprotected one (person-030). It is therefore the
+    // only case that reaches the infotekst in fiks-simulator's byggVisningsposter:
+    // "Beløpet inkluderer et husstandsmedlem med skjermet identitet, som ikke kan
+    // spesifiseres."
+    //
+    // That branch had no test anywhere before this. Note that the protected
+    // person's amount still counts towards beregningsbeloep by design — only their
+    // share is withheld. If the total ever drops here, something started masking
+    // money instead of identity.
+    await foreldrebetalingsflyt("sfo-moderasjon", "sfo-skjermet-medlem", {
+      personId: "person-030",
+      husstandId: "household-013"
+    });
     await fritidskortflyt("person-028", "fritidskort-innvilget");
     await fritidskortflyt("person-008", "fritidskort-avslag");
     await stottekontaktflyt("person-001", "stottekontakt-innvilget");

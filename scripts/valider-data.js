@@ -376,6 +376,33 @@ if (!personer.some((p) => p.adressebeskyttelse === "FORTROLIG")) {
   throw new Error("Mangler minst én person med FORTROLIG adressebeskyttelse.");
 }
 
+// The seed must NOT be masked. Masking is a runtime concern, applied on the way out
+// of readState() in apps/sandbox-backend/src/skjerming.ts.
+//
+// This looks backwards until you see the failure mode: someone finds a protected
+// person's name in data/personer.json, reads it as the leak, and empties the field.
+// That breaks two things at once. The grading has nothing left to protect, so the
+// lesson the sandbox teaches disappears — and the masking has no input, so its
+// tests pass against empty strings and stop meaning anything.
+//
+// kontakt is exempt: Tenor-imported people carry `kontakt: {}` and never had an
+// address or phone number to begin with.
+for (const person of personer.filter((p) => p.adressebeskyttelse !== "UGRADERT")) {
+  const paakrevd = {
+    "navn.fornavn": person.navn?.fornavn,
+    "navn.etternavn": person.navn?.etternavn,
+    "bostedsadresse.adressenavn": person.bostedsadresse?.adressenavn
+  };
+  for (const [felt, verdi] of Object.entries(paakrevd)) {
+    if (!verdi) {
+      throw new Error(
+        `${person.personId} (${person.adressebeskyttelse}) mangler ${felt} i seeden. ` +
+        `Skjerming skjer ved innlasting i skjerming.ts — seeden skal ikke maskeres.`
+      );
+    }
+  }
+}
+
 // --- Every SJEKK step must point at an ordning that exists ------------------
 // fritidskort-stotte fetched income for a long time without an ordning to measure
 // it against. Nothing caught it, because the coverage checks only iterate over

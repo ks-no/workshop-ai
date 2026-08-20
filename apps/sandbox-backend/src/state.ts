@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { seedDir, stateDir } from "./config.ts";
+import { maskerBefolkning } from "./skjerming.ts";
 
 type State = any;
 
@@ -143,9 +144,16 @@ export async function readState() {
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
 
+  // Address protection is applied here, after the state/ fallback, so a shadowed
+  // state/personer.json is masked too. This is the single place the population is
+  // assembled, and every reader downstream goes through it — finnPerson,
+  // hentHusstandForPerson, ressurser.ts, regler.ts, prosess.ts. readJson itself is
+  // generic and also serves revisjon.ts, so it is the wrong altitude for this.
+  const maskert = maskerBefolkning(personer, husstander);
+
   return {
-    personer,
-    husstander,
+    personer: maskert.personer,
+    husstander: maskert.husstander,
     inntekter,
     barnehageplasser,
     soknader,

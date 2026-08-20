@@ -135,12 +135,25 @@ export type SjekkResultat = {
 // actually reads and leave the rest open.
 type MedFelter = { [key: string]: any };
 
+// FREG grades address protection: kode 7 (FORTROLIG) and kode 6
+// (STRENGT_FORTROLIG), plus the ungraded majority. Closed, so the masking rules in
+// skjerming.ts must cover every grade the compiler knows about. The boolean
+// `skjermet` is derived from this field and never the other way round — the same
+// invariant scripts/valider-data.js enforces on the seed.
+export type Adressegradering = "UGRADERT" | "FORTROLIG" | "STRENGT_FORTROLIG";
+
+// mellomnavn is null rather than absent throughout the seed, and masking writes
+// null too. Typing it as string only would reject both.
+export type Personnavn = { fornavn: string; mellomnavn?: string | null; etternavn: string };
+
 export type Person = MedFelter & {
   personId: string;
   husstandId: string;
   syntetiskFodselsnummer: string;
   foedselsdato?: string;
-  navn: { fornavn: string; mellomnavn?: string; etternavn: string };
+  navn: Personnavn;
+  adressebeskyttelse: Adressegradering;
+  skjermet: boolean;
 };
 
 export type Husstandsmedlem = { personId: string; rolle: "foresatt" | "barn" | string };

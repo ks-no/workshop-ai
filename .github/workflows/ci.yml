@@ -43,6 +43,12 @@ jobs:
       - name: Sperrer på frie spørsmål
         run: pnpm test:sperrer
 
+      # Address-protection masking as pure functions against the real seed. The
+      # kontrakt dump below records the masked shape on the wire, but a dump can
+      # only differ — it cannot fail. This step can.
+      - name: Skjerming av adressebeskyttede
+        run: pnpm test:skjerming
+
       # Starts its own backend + fiks on 18080/18081 against a temp STATE_DIR and
       # writes a normalised dump. Two runs of the same code are byte-identical, so
       # a diff here means the wire contract moved.

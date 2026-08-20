@@ -23,6 +23,7 @@
     "test": "node scripts/valider-data.js",
     "test:kontrakt": "node scripts/kontrakt-smoke.js",
     "test:sperrer": "node scripts/test-sporsmaalsperrer.js",
+    "test:skjerming": "node scripts/test-skjerming.js",
     "test:eval": "node scripts/eval.js",
     "test:agent": "node scripts/test-agent-flow.js",
     "test:agent:nl": "node scripts/test-agent-natural-language.js",
