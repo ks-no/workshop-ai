@@ -43,6 +43,13 @@ pnpm check:matrikkel-source -- --url=http://localhost:18085/health
 
 ## Bygg og kjor egen Docker-image
 
+Sandkassens `docker-compose.yml` bruker **ikke** denne Dockerfilen. Der kjorer mocken fra
+`node:24-alpine` med `./:/workspace` montert inn, som alle de andre tjenestene, slik at
+`data/matrikkel.json` i arbeidstreet alltid er kilden.
+
+Dockerfilen finnes for a kjore mocken frittstaende, uten resten av sandkassen. Da bakes
+matrikkelen inn i imaget, og du ma bygge pa nytt hver gang `data/matrikkel.json` endrer seg:
+
 ```bash
 docker build -t workshop-ai/matrikkel-mock:local -f apps/matrikkel-mock/Dockerfile .
 docker run --rm -p 8085:8085 workshop-ai/matrikkel-mock:local

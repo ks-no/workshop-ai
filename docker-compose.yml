@@ -121,14 +121,15 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8085/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    build:
-      context: .
-      dockerfile: apps/matrikkel-mock/Dockerfile
-    image: workshop-ai/matrikkel-mock:local
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["node", "apps/matrikkel-mock/src/server.js"]
     environment:
       - PORT=8085
     ports:
       - "8085:8085"
+    volumes:
+      - ./:/workspace
 
   brreg-mcp:
     image: node:24-alpine

@@ -1,3 +1,10 @@
+# Standalone image for running the mock without the rest of the sandbox.
+#
+# docker-compose.yml does NOT use this file. It used to, and that was a trap: the
+# matrikkel is baked in below, so `docker compose up -d` reused a stale layer and
+# served the four-street fixture for two weeks after the 221-street extract landed.
+# Compose now mounts the working tree like every other service. Anything you change
+# in data/matrikkel.json needs a rebuild here, but nowhere else.
 FROM node:22-alpine
 
 WORKDIR /app
