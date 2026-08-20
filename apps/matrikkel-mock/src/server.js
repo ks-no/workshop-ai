@@ -205,7 +205,7 @@ function jsonResponse(response, statusCode, data) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,SOAPAction"
+    "Access-Control-Allow-Headers": "Content-Type,SOAPAction,Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
 }
@@ -215,7 +215,7 @@ function textResponse(response, statusCode, data, contentType = "text/plain; cha
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,SOAPAction"
+    "Access-Control-Allow-Headers": "Content-Type,SOAPAction,Authorization"
   });
   response.end(data);
 }

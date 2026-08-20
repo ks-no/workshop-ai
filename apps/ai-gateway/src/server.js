@@ -35,7 +35,7 @@ function jsonResponse(response, statusCode, data) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type,Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
 }

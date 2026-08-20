@@ -1,12 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
-import { errorBody, HttpError, statusFor } from "./errors.ts";
+import { errorBody, headersFor, HttpError, statusFor } from "./errors.ts";
 import {
   docsHtml,
   jsonResponse,
   readRequestBody,
   textResponse
 } from "./http.ts";
+import { aktorFor, klassifiserKaller, type Kaller } from "./autentisering.ts";
 import { openapiFile } from "./config.ts";
 import { byggProsessoektRespons, opprettSoknad, utforStegHandling } from "./prosess.ts";
 import { finnRessurs, ressurskatalog, utforRessurs } from "./ressurser.ts";
@@ -34,6 +35,8 @@ type Kontekst = {
   url: URL;
   parametere: PathParams;
   tilstand: State;
+  /** Who is calling, from the token. See autentisering.ts. */
+  kaller: Kaller;
 };
 
 type Rute = {
@@ -224,7 +227,7 @@ const ruter: Rute[] = [
   {
     metode: "POST",
     sti: "/api/prosessoekter",
-    handter: async ({ request, response, tilstand }) => {
+    handter: async ({ request, response, tilstand, kaller }) => {
       const body = await readRequestBody(request);
       const prosess = tilstand.prosesser.find((kandidat: any) => kandidat.id === body.prosessId) || null;
       const person = finnPerson(tilstand, body.personId);
@@ -252,7 +255,7 @@ const ruter: Rute[] = [
         sporingsId: nyOekt.sporingsId,
         handling: "PROSESSOEKT_OPPRETTET",
         ressurs: "prosessoekt",
-        aktor: { type: "testbruker", id: nyOekt.personId }
+        aktor: aktorFor(kaller, nyOekt.personId)
       });
       jsonResponse(response, 201, byggProsessoektRespons(nyOekt, prosess));
     }
@@ -272,7 +275,7 @@ const ruter: Rute[] = [
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/svar",
-    handter: async ({ request, response, parametere, tilstand }) => {
+    handter: async ({ request, response, parametere, tilstand, kaller }) => {
       const body = await readRequestBody(request);
       const oekt = finnProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
@@ -292,7 +295,7 @@ const ruter: Rute[] = [
         sporingsId: oekt.sporingsId,
         handling: "STEG_SVAR_LAGRET",
         ressurs: "prosessoekt",
-        aktor: { type: "testbruker", id: oekt.personId }
+        aktor: aktorFor(kaller, oekt.personId)
       });
       jsonResponse(response, 200, byggProsessoektRespons(oekt, prosess));
     }
@@ -300,7 +303,7 @@ const ruter: Rute[] = [
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/handling",
-    handter: async ({ request, response, parametere, tilstand }) => {
+    handter: async ({ request, response, parametere, tilstand, kaller }) => {
       const body = await readRequestBody(request);
       const oekt = finnProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
@@ -308,7 +311,7 @@ const ruter: Rute[] = [
         return;
       }
       const prosess = finnProsess(tilstand, oekt.prosessId);
-      const resultat = await utforStegHandling(tilstand, oekt, prosess, body);
+      const resultat = await utforStegHandling(tilstand, oekt, prosess, body, kaller);
       oekt.oppdatert = new Date().toISOString();
       await lagreProsessoekter(tilstand.prosessoekter);
       jsonResponse(response, 200, {
@@ -364,9 +367,9 @@ const ruter: Rute[] = [
   {
     metode: "POST",
     sti: "/api/soknader",
-    handter: async ({ request, response, tilstand }) => {
+    handter: async ({ request, response, tilstand, kaller }) => {
       const body = await readRequestBody(request);
-      jsonResponse(response, 201, await opprettSoknad(tilstand, body));
+      jsonResponse(response, 201, await opprettSoknad(tilstand, body, kaller));
     }
   },
   {
@@ -438,16 +441,27 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     const treff = findRoute(request.method!, url.pathname);
 
     // System routes answer without state, so /helse still works if a dataset
-    // is corrupt.
+    // is corrupt. They also answer without a token: a health probe that needs
+    // credentials cannot tell you the service is unhealthy.
     if (treff && systemstier.has(treff.rute.sti)) {
-      await treff.rute.handter({ request, response, url, parametere: treff.parametere, tilstand: null });
+      await treff.rute.handter({
+        request, response, url, parametere: treff.parametere, tilstand: null,
+        kaller: { type: "anonym" }
+      });
       return;
     }
+
+    // Once per request, before anything reads state. A broken token is a 401 here
+    // and never reaches a handler; a missing one is `anonym`, and what that is
+    // worth is decided per route and per resource.
+    const kaller = await klassifiserKaller(request);
 
     const tilstand = await readState();
 
     if (treff) {
-      await treff.rute.handter({ request, response, url, parametere: treff.parametere, tilstand });
+      await treff.rute.handter({
+        request, response, url, parametere: treff.parametere, tilstand, kaller
+      });
       return;
     }
 
@@ -455,7 +469,8 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     // process engine consults in exactly the same way.
     if (finnRessurs(request.method!, url.pathname)) {
       const data = await utforRessurs(tilstand, request.method!, url, {
-        sporingsId: hentSporingsId(url)
+        sporingsId: hentSporingsId(url),
+        kaller
       });
       jsonResponse(response, 200, data);
       return;
@@ -463,7 +478,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    jsonResponse(response, statusFor(error), errorBody(error));
+    jsonResponse(response, statusFor(error), errorBody(error), headersFor(error));
   }
 }
 

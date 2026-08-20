@@ -1,3 +1,4 @@
+import { aktorFor, type Kaller } from "./autentisering.ts";
 import { HttpError } from "./errors.ts";
 import {
   harGyldigSamtykke,
@@ -57,6 +58,8 @@ export type RessursKontekst = {
   sporingsId: string;
   oekt: any | null;
   steg: any | null;
+  /** Who is calling, from the token. See autentisering.ts. */
+  kaller: Kaller;
 };
 
 export type Ressurs = {
@@ -340,6 +343,7 @@ type UtforValg = {
   steg?: any | null;
   personId?: string | null;
   sporingsId: string;
+  kaller?: Kaller;
 };
 
 export async function utforRessurs(
@@ -369,7 +373,8 @@ export async function utforRessurs(
       "",
     sporingsId: valg.sporingsId,
     oekt: valg.oekt ?? null,
-    steg: valg.steg ?? null
+    steg: valg.steg ?? null,
+    kaller: valg.kaller ?? { type: "anonym" }
   };
 
   ressurs.valider?.(kontekst);
@@ -391,7 +396,7 @@ export async function utforRessurs(
         handling: "DATA_NEKTET",
         ressurs: ressurs.ressurs,
         formaal: "Mangler samtykke",
-        aktor: { type: "testbruker", id: kontekst.personId }
+        aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
       throw new HttpError(
         `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
@@ -417,7 +422,7 @@ export async function utforRessurs(
       ressurs: ressurs.ressurs,
       ...(formaal ? { formaal } : {}),
       ...(samtykke ? { grunnlag: { type: "samtykke", id: samtykke.samtykkeId, status: samtykke.status } } : {}),
-      aktor: { type: "testbruker", id: kontekst.personId }
+      aktor: aktorFor(kontekst.kaller, kontekst.personId)
     });
   }
 

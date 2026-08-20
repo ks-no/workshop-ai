@@ -1,3 +1,4 @@
+import { aktorFor, type Kaller } from "./autentisering.ts";
 import { aiBaseUrl, fiksBaseUrl } from "./config.ts";
 import { HttpError } from "./errors.ts";
 import { utforRessurs } from "./ressurser.ts";
@@ -56,16 +57,17 @@ export function byggProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefini
 // DATA_FETCH and SJEKK both consult the shared resource catalog, exactly the way
 // the HTTP router does. The engine used to keep its own copy of these lookups,
 // and the copies had drifted apart.
-async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any) {
+async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Kaller) {
   const resolvertUrl = erstattParametere(steg.api.url, oekt);
   return utforRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvertUrl}`), {
     oekt,
     steg,
-    sporingsId: oekt.sporingsId
+    sporingsId: oekt.sporingsId,
+    kaller
   });
 }
 
-export async function opprettSoknad(tilstand: State, body: any) {
+export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -82,7 +84,7 @@ export async function opprettSoknad(tilstand: State, body: any) {
     sporingsId: nySoknad.sporingsId,
     handling: "SOKNAD_SENDT_INN",
     ressurs: "soknad",
-    aktor: { type: "testbruker", id: nySoknad.personId }
+    aktor: aktorFor(kaller, nySoknad.personId)
   });
 
   let oppgave = null;
@@ -113,6 +115,8 @@ type StegKontekst = {
   prosess: ProsessDefinisjon;
   steg: any;
   body: any;
+  /** Who is calling, from the token. See autentisering.ts. */
+  kaller: Kaller;
 };
 
 // One handler per step type. A new step type is one entry here; the execution
@@ -170,14 +174,14 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     throw new HttpError("Samtykkesteg krever handlingen opprett-samtykke eller samtykkesvar.", 400);
   },
 
-  DATA_FETCH: async ({ tilstand, oekt, steg }) => {
-    const data = await hentFraKatalog(tilstand, oekt, steg);
+  DATA_FETCH: async ({ tilstand, oekt, steg, kaller }) => {
+    const data = await hentFraKatalog(tilstand, oekt, steg, kaller);
     oekt.resultater[steg.id] = data;
     return data;
   },
 
-  SJEKK: async ({ tilstand, oekt, steg }) => {
-    const resultat = await hentFraKatalog(tilstand, oekt, steg) as SjekkResultat;
+  SJEKK: async ({ tilstand, oekt, steg, kaller }) => {
+    const resultat = await hentFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
 
     oekt.resultater[steg.id] = resultat;
     if (!resultat.godkjent) {
@@ -188,7 +192,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
       sporingsId: oekt.sporingsId,
       handling: resultat.godkjent ? "SJEKK_OK" : "SJEKK_AVVIST",
       ressurs: "prosessoekt",
-      aktor: { type: "testbruker", id: oekt.personId }
+      aktor: aktorFor(kaller, oekt.personId)
     });
     return resultat;
   },
@@ -214,20 +218,26 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     return data;
   },
 
-  SUBMIT: async ({ tilstand, oekt, prosess, steg }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
     const data = await opprettSoknad(tilstand, {
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
-    });
+    }, kaller);
     oekt.resultater[steg.id] = data;
     oekt.status = "FULLFORT";
     return data;
   }
 };
 
-export async function utforStegHandling(tilstand: State, oekt: Prosessoekt, prosess: ProsessDefinisjon, body: any) {
+export async function utforStegHandling(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon,
+  body: any,
+  kaller: Kaller
+) {
   const steg: ProsessSteg | undefined = prosess.steg[oekt.stegIndex];
   if (!steg) {
     throw new HttpError("Fant ikke aktivt steg.", 400);
@@ -241,5 +251,5 @@ export async function utforStegHandling(tilstand: State, oekt: Prosessoekt, pros
     );
   }
 
-  return handterer({ tilstand, oekt, prosess, steg, body });
+  return handterer({ tilstand, oekt, prosess, steg, body, kaller });
 }

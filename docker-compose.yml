@@ -84,6 +84,27 @@ services:
     volumes:
       - ./:/workspace
 
+  digdir-mock:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8086/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    # Node strips the types on load, so .ts runs with no build step — the same
+    # way sandbox-backend does. See tsconfig.json.
+    command: ["node", "apps/digdir-mock/src/server.ts"]
+    environment:
+      - PORT=8086
+      # The logical issuer name, which goes into `iss`. It is the address the
+      # *browser* uses, not the one services use inside the network: demo-gui gets
+      # its token from localhost:8086, and sandbox-backend must accept that same
+      # `iss` when it verifies it. DIGDIR_BASE_URL is the dial address instead.
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./:/workspace
+
   sandbox-backend:
     healthcheck:
       <<: *helsesjekk
@@ -95,8 +116,16 @@ services:
       # The backend no longer reads the matrikkel seed off disk. One matrikkel in
       # the sandbox, and it is the one that also speaks SOAP.
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
+      # Two settings, deliberately: where we dial the issuer, and what we accept in
+      # `iss`. Inside the network the issuer is digdir-mock:8086; the token a
+      # browser holds says localhost:8086. Conflating them is an issuer mismatch.
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
+      - AUTH_ENFORCE=${AUTH_ENFORCE:-true}
     depends_on:
       matrikkel-mock:
+        condition: service_healthy
+      digdir-mock:
         condition: service_healthy
     ports:
       - "8080:8080"
@@ -112,6 +141,9 @@ services:
     command: ["node", "apps/fiks-simulator/src/server.js"]
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
+      - AUTH_ENFORCE=${AUTH_ENFORCE:-true}
     ports:
       - "8081:8081"
     volumes:
@@ -163,8 +195,12 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      digdir-mock:
+        condition: service_healthy
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
@@ -198,10 +234,14 @@ services:
         condition: service_healthy
       matrikkel-mock:
         condition: service_healthy
+      digdir-mock:
+        condition: service_healthy
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - AI_BASE_URL=http://ai-gateway:8082
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
       # hybrid, not live: live rethrows on network failure, so a bad conference
       # wifi turns every street lookup into a 500. hybrid tries Geonorge first and
       # falls back to the seed data. Set MATRIKKEL_MODE=live to force live only.

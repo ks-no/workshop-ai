@@ -16,6 +16,7 @@
     "start:demo": "node apps/demo-gui/src/server.js",
     "start:prosessbygger": "node apps/process-builder/src/server.js",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.js",
+    "start:digdir": "node apps/digdir-mock/src/server.ts",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.js",
     "data:tenor": "node scripts/importer-tenor.js",
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
