@@ -71,7 +71,8 @@ Kildedata i `data/`:
 | `inntekter.json` | Poster som mater beregningen, med `kilde` og `medregnes`. Har `stadie` (`OPPGJOER`/`UTKAST`) |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
-| `matrikkel.seed.json` | Gater, eiendommer og eierforhold |
+| `matrikkel.json` | Gater, eiendommer og eierforhold. Seed for `matrikkel-mock` |
+| `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
 | `informasjonsmodeller.json` | Begreper og attributter, med lenker til kildespesifikasjonene |
 | `prosessdefinisjoner.json` | Prosesskatalog med publiserte prosesser og maler |
 
@@ -123,12 +124,12 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 
 ## Nåværende innhold
 
-- 43 syntetiske personer
+- 51 syntetiske personer
 - 18 husstander
 - 25 inntektsposter
-- 13 barnehageplasser og 5 SFO-plasser
+- 15 barnehageplasser og 11 SFO-plasser
 - 6 ordninger med satser
-- matrikkeldata med 4 gater, eiendommer og eierforhold
+- matrikkeldata med 220 Bergen-gater og 8202 eiendommer, pluss injisert Bønesheien
 - 5 prosessdefinisjoner + 1 mal
 
 `pnpm test` skriver de faktiske tallene ut ved hver kjøring, så bruk den som

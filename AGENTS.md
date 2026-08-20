@@ -183,8 +183,9 @@ pnpm test:agent:matrikkel
   callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only
   `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
 - `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
-  `data/matrikkel.seed.json`. Note that `data/matrikkel.json` (5.9 MB of downloaded
-  Geonorge addresses) is read by nothing at all.
+  `data/matrikkel.json` — the full Bergen extract, 220 streets and 8202 properties with
+  coordinates. `data/matrikkel.seed.json` remains as the small four-street fixture the
+  mock's own tests point at.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
   lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **Two different
   defaults, and the distinction matters:** the code default is `mock`
@@ -192,13 +193,16 @@ pnpm test:agent:matrikkel
   (`docker-compose.yml:200`) — so `hybrid` is what you actually run. Not `live`: `live`
   rethrows on network failure, so bad conference wifi turns every street lookup into a
   500. `hybrid` tries Geonorge first and falls back to the seed data.
+  Compose now defaults to `mock`, because the seed holds every Bergen street and a live
+  lookup has nothing left to add.
   `MATRIKKEL_MODE` is read only by `mcp-services`; `matrikkel-mock` always falls back to
   live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
   is down.
 
 ## Matrikkel integration pattern
-- `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.seed.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
-- `data/matrikkel.seed.json` is the stable curated base dataset; keep it small, readable, and deterministic.
+- `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
+- **It is the only reader of the matrikkel seed.** `sandbox-backend` reaches it over HTTP via `MATRIKKEL_BASE_URL`; nothing else opens the file. Keeping two read paths meant keeping two copies of the same post-processing in step by hand.
+- `data/matrikkel.seed.json` is the small curated fixture; keep it small, readable, and deterministic.
 - `mcp-services` kan gjore direkte gateoppslag mot Geonorge adresse-API i `live`-modus, uten lokal Norges-kopi.
 - `apps/mcp-services` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
 - `matrikkel_hent_eiendom` og `matrikkel_hent_eiere` kan brukes med eksakt adresse, for eksempel `Storgata 5`.

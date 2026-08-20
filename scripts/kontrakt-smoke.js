@@ -13,6 +13,9 @@
 //   node scripts/kontrakt-smoke.js --ut state/kontrakt-etter.json
 //   diff state/kontrakt-foer.json state/kontrakt-etter.json
 //
+// matrikkel-mock is started too: the backend no longer reads the matrikkel seed
+// off disk, so the street lookup and the ownership SJEKK go over HTTP.
+//
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.
 // ai-gateway is not needed: the flows deliberately stop before the SUMMARY step.
@@ -27,8 +30,10 @@ import { fileURLToPath } from "node:url";
 const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;
 const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
+const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
+const matrikkelUrl = `http://127.0.0.1:${matrikkelPort}`;
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
@@ -234,22 +239,29 @@ async function soknadOgRevisjon() {
 async function kjoer() {
   await krevLedigPort(backendPort);
   await krevLedigPort(fiksPort);
+  await krevLedigPort(matrikkelPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
   const miljo = {
     STATE_DIR: stateDir,
     FIKS_BASE_URL: fiksUrl,
     BACKEND_BASE_URL: backendUrl,
-    AI_BASE_URL: "http://127.0.0.1:8082"
+    AI_BASE_URL: "http://127.0.0.1:8082",
+    MATRIKKEL_BASE_URL: matrikkelUrl
   };
 
   const tjenester = [
     start("backend", "apps/sandbox-backend/src/server.ts", { ...miljo, PORT: String(backendPort) }),
-    start("fiks", "apps/fiks-simulator/src/server.js", { ...miljo, PORT: String(fiksPort) })
+    start("fiks", "apps/fiks-simulator/src/server.js", { ...miljo, PORT: String(fiksPort) }),
+    start("matrikkel", "apps/matrikkel-mock/src/server.js", { ...miljo, PORT: String(matrikkelPort) })
   ];
 
   try {
-    await Promise.all([ventPaaHelse(backendUrl), ventPaaHelse(fiksUrl)]);
+    await Promise.all([
+      ventPaaHelse(backendUrl),
+      ventPaaHelse(fiksUrl),
+      ventPaaHelse(matrikkelUrl)
+    ]);
 
     await statiskeOppslag();
     await foreldrebetalingsflyt("reduced-kindergarten-payment", "barnehage");

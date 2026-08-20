@@ -77,7 +77,7 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 3. `sandbox-backend` henter samtykkestatus fra `fiks-simulator`
 4. `sandbox-backend` blokkerer inntektsdata uten gyldig samtykke
 5. `sandbox-backend` kaller `ai-gateway` for oppsummering og forklaring
-6. `sandbox-backend` leser matrikkeldata **direkte fra `data/matrikkel.seed.json`** (`state.ts:195`) og eksponerer dem via `GET /api/matrikkel/gater` og `SJEKK`-steg — den snakker aldri med `matrikkel-mock`, og har ingen `MATRIKKEL_BASE_URL`. Mocken nås bare gjennom `mcp-services`, som er den eneste veien til SOAP-flaten. Samme fil har altså to uavhengige lesestier: backend leser den fra disk, mocken seeder fra den ved oppstart
+6. `sandbox-backend` henter matrikkeldata fra `matrikkel-mock` over HTTP (`MATRIKKEL_BASE_URL`, se `apps/sandbox-backend/src/matrikkel.ts`) og eksponerer dem via `GET /api/matrikkel/gater` og `SJEKK`-steg. Mocken er eneste leser av seeden, og eneste vei til SOAP-flaten
 7. `mcp-services` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
 8. `process-agent` bruker `mcp-services` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
 9. alle relevante hendelser sendes til revisjonslogg

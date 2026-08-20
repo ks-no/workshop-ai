@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY apps/matrikkel-mock/package.json ./package.json
 COPY apps/matrikkel-mock/src ./src
+# The full Bergen extract is the seed; the small file stays as a test fixture.
+COPY data/matrikkel.json ./data/matrikkel.json
 COPY data/matrikkel.seed.json ./data/matrikkel.seed.json
 
 ENV PORT=8085

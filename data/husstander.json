@@ -78,10 +78,14 @@
       {
         "personId": "person-011",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-044",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Søsken i to ordninger. Så vidt over grensen for SFO 4. trinn."
+    "scenario": "Tre søsken i tre ordninger. Så vidt over grensen for redusert SFO 4. trinn."
   },
   {
     "husstandId": "household-005",
@@ -98,7 +102,8 @@
         "rolle": "barn"
       }
     ],
-    "syntetisk": true
+    "syntetisk": true,
+    "scenario": "Grensetilfelle for 6 %-regelen: full pris ligger så vidt over taket, så husstanden har akkurat rett til redusert foreldrebetaling."
   },
   {
     "husstandId": "household-006",
@@ -113,10 +118,14 @@
       {
         "personId": "person-015",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-045",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for gratis kjernetid for 1-åringer."
+    "scenario": "To barn i barnehage. Så vidt under grensen for gratis kjernetid for 1-åringer."
   },
   {
     "husstandId": "household-007",
@@ -175,10 +184,14 @@
       {
         "personId": "person-023",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-046",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Svært lav inntekt. Under alle grenser."
+    "scenario": "Søsken i barnehage og SFO. Svært lav inntekt — så vidt under grensen for redusert SFO 2.–3. trinn, og under alle andre grenser."
   },
   {
     "husstandId": "household-010",
@@ -193,10 +206,14 @@
       {
         "personId": "person-025",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-047",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for gratis SFO 1. trinn."
+    "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for gratis SFO 1. trinn."
   },
   {
     "husstandId": "household-011",
@@ -229,10 +246,14 @@
       {
         "personId": "person-029",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-048",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for redusert SFO 2.–3. trinn."
+    "scenario": "To barn i SFO. Så vidt over grensen for redusert SFO 2.–3. trinn."
   },
   {
     "husstandId": "household-013",
@@ -251,10 +272,14 @@
       {
         "personId": "person-032",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-049",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
+    "scenario": "Søsken på 1. og 3. trinn. Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
   },
   {
     "husstandId": "household-014",
@@ -269,10 +294,14 @@
       {
         "personId": "person-034",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-050",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for gratis kjernetid 1 år, men godt under SFO 4. trinn."
+    "scenario": "Ettåring i barnehage og barn på 3. trinn. Så vidt over grensen for gratis kjernetid for 1-åringer."
   },
   {
     "husstandId": "household-015",
@@ -291,10 +320,14 @@
       {
         "personId": "person-037",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-051",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for redusert SFO 4. trinn."
+    "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for redusert SFO 4. trinn."
   },
   {
     "husstandId": "household-016",

@@ -115,5 +115,23 @@
     "plassprosent": 100,
     "manedspris": 3200,
     "syntetisk": true
+  },
+  {
+    "personId": "person-045",
+    "barnehageId": "kg-tromsø-006",
+    "barnehagenavn": "Nordlys barnehage",
+    "kommune": "Tromsø",
+    "plassprosent": 100,
+    "manedspris": 3050,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-050",
+    "barnehageId": "kg-stavanger-014",
+    "barnehagenavn": "Kongsgård barnehage",
+    "kommune": "Stavanger",
+    "plassprosent": 100,
+    "manedspris": 3120,
+    "syntetisk": true
   }
 ]

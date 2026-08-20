@@ -91,6 +91,13 @@ services:
     image: node:24-alpine
     working_dir: /workspace
     command: ["node", "apps/sandbox-backend/src/server.ts"]
+    environment:
+      # The backend no longer reads the matrikkel seed off disk. One matrikkel in
+      # the sandbox, and it is the one that also speaks SOAP.
+      - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
+    depends_on:
+      matrikkel-mock:
+        condition: service_healthy
     ports:
       - "8080:8080"
     volumes:
@@ -197,7 +204,10 @@ services:
       # hybrid, not live: live rethrows on network failure, so a bad conference
       # wifi turns every street lookup into a 500. hybrid tries Geonorge first and
       # falls back to the seed data. Set MATRIKKEL_MODE=live to force live only.
-      - MATRIKKEL_MODE=${MATRIKKEL_MODE:-hybrid}
+      # Default is mock: the seed now holds all 220 Bergen streets, so there is
+      # nothing left for a live lookup to add, and the conference network stops
+      # being able to break a street lookup.
+      - MATRIKKEL_MODE=${MATRIKKEL_MODE:-mock}
       - GEONORGE_ADRESSE_API_BASE_URL=${GEONORGE_ADRESSE_API_BASE_URL:-https://ws.geonorge.no/adresser/v1}
       - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
       - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json

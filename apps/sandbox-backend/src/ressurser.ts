@@ -2,8 +2,8 @@ import { HttpError } from "./errors.ts";
 import { harGyldigSamtykke, hentInntektForPerson, vurderOrdning } from "./regler.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
+import { eiendommerForPersonIGate, finnGate, hentGater } from "./matrikkel.ts";
 import {
-  finnGate,
   finnPerson,
   hentHusstandForPerson,
   hentPlasserForTjeneste
@@ -150,11 +150,10 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/gater",
     ressurs: "matrikkel-gate",
     beskrivelse: "Gater i matrikkelen. Med ?gate= gis nøkkeltall for én gate.",
-    handter: ({ tilstand, sok }) => {
-      const gater = tilstand.matrikkel?.gater || [];
+    handter: async ({ sok }) => {
       const gateParam = sok.get("gate");
       if (!gateParam) {
-        return gater.map((g: any) => ({
+        return (await hentGater()).map((g) => ({
           gateId: g.gateId,
           adressenavn: g.adressenavn,
           kommune: g.kommune,
@@ -162,14 +161,16 @@ export const ressurser: Ressurs[] = [
           antallBoligeiendommer: g.antallBoligeiendommer
         }));
       }
-      const gateData = finnGate(tilstand, gateParam);
+      const gateData = await finnGate(gateParam);
       if (!gateData) {
+        // 221 street names is too many to hand back on a typo, so point at the list
+        // instead. The matrikkel already does prefix and substring matching, so a
+        // miss here means the name really is not there.
         throw new HttpError(`Fant ikke gaten "${gateParam}".`, 404, {
-          tilgjengelige: gater.map((g: any) => g.adressenavn)
+          hint: "Se GET /api/matrikkel/gater for hele lista over gater.",
+          syntetisk: true
         });
       }
-      // Deliberate projection: the property list contains other residents' personIds,
-      // which have no place in a street lookup.
       return {
         gateId: gateData.gateId,
         adressenavn: gateData.adressenavn,
@@ -190,21 +191,21 @@ export const ressurser: Ressurs[] = [
     beskrivelse: "SJEKK: eier søkeren en eiendom i den oppgitte gaten?",
     // The SJEKK step writes SJEKK_OK/SJEKK_AVVIST itself.
     revisjon: false,
-    handter: ({ tilstand, sok, personId, steg }) => {
+    handter: async ({ sok, personId, steg }) => {
       const gateNavn = sok.get("gate") || "";
-      const gateData = finnGate(tilstand, gateNavn);
+      const gateData = await finnGate(gateNavn);
       if (!gateData) {
         return { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
       }
-      const harEiendom = gateData.eiendommer.some(
-        (e: any) => Array.isArray(e.eiere) && e.eiere.includes(personId)
-      );
+      // Filtered in the matrikkel, so no other resident's ownership is ever sent here.
+      const egne = await eiendommerForPersonIGate(gateData.adressenavn, personId);
+      const harEiendom = egne.length > 0;
       return {
         godkjent: harEiendom,
         melding: harEiendom
           ? `Eierforhold i ${gateData.adressenavn} bekreftet.`
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
-        grunnlag: { personId, gate: gateData.adressenavn, harEiendom }
+        grunnlag: { personId, gate: gateData.adressenavn, harEiendom, antallEiendommer: egne.length }
       };
     }
   },

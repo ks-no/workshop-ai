@@ -2,7 +2,7 @@
   "kilde": "syntetisk",
   "versjon": "1.6.2",
   "beskrivelse": "Syntetiske testpersoner fra workshop-ai personas kombinert med Folkeregisteret-format",
-  "antall": 43,
+  "antall": 51,
   "personer": [
     {
       "foedselsEllerDNummer": "12018890001",
@@ -1700,6 +1700,317 @@
         "husstandId": "household-018",
         "rolle": "foresatt",
         "visningsnavn": "Anne Sandvik"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "14031790044",
+      "personnavn": {
+        "fornavn": "Sverre",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2017-03-14",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Fjellgata",
+        "husnummer": 7,
+        "postnummer": "4010",
+        "poststed": "Stavanger",
+        "kommune": "Stavanger",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-008"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-009"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-044",
+        "husstandId": "household-004",
+        "rolle": "barn",
+        "visningsnavn": "Sverre Dahl"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "11022590045",
+      "personnavn": {
+        "fornavn": "Vilja",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "2025-02-11",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommune": "Tromsø",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-014"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-045",
+        "husstandId": "household-006",
+        "rolle": "barn",
+        "visningsnavn": "Vilja Berg"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "04061990046",
+      "personnavn": {
+        "fornavn": "Omar",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "2019-06-04",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Borgundveien",
+        "husnummer": 3,
+        "postnummer": "6008",
+        "poststed": "Ålesund",
+        "kommune": "Ålesund",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-022"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-046",
+        "husstandId": "household-009",
+        "rolle": "barn",
+        "visningsnavn": "Omar Ali"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "30012090047",
+      "personnavn": {
+        "fornavn": "Amalie",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "2020-01-30",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommune": "Sandnes",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-024"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-047",
+        "husstandId": "household-010",
+        "rolle": "barn",
+        "visningsnavn": "Amalie Eide"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "09111890048",
+      "personnavn": {
+        "fornavn": "Håkon",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "2018-11-09",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Bjørnstjerne Bjørnsons gate",
+        "husnummer": 41,
+        "postnummer": "7052",
+        "poststed": "Trondheim",
+        "kommune": "Trondheim",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-028"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-048",
+        "husstandId": "household-012",
+        "rolle": "barn",
+        "visningsnavn": "Håkon Fjeld"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "17091990049",
+      "personnavn": {
+        "fornavn": "Frida",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "2019-09-17",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 88,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommune": "Oslo",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-030"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-031"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-049",
+        "husstandId": "household-013",
+        "rolle": "barn",
+        "visningsnavn": "Frida Rustad"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "05122490050",
+      "personnavn": {
+        "fornavn": "Iver",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "2024-12-05",
+      "kjoenn": "MANN",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Kongens gate",
+        "husnummer": 6,
+        "postnummer": "4005",
+        "poststed": "Stavanger",
+        "kommune": "Stavanger",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-033"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-050",
+        "husstandId": "household-014",
+        "rolle": "barn",
+        "visningsnavn": "Iver Haugen"
+      },
+      "syntetisk": true
+    },
+    {
+      "foedselsEllerDNummer": "23101690051",
+      "personnavn": {
+        "fornavn": "Solveig",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "2016-10-23",
+      "kjoenn": "KVINNE",
+      "sivilstand": "UGIFT",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommune": "Stavanger",
+        "kommunenummer": null
+      },
+      "kontaktadresse": null,
+      "forelderbarnrelasjon": [
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-035"
+        },
+        {
+          "relatertPersonsIdent": null,
+          "relatertPersonsRolle": "FORELDER",
+          "_sandboxRelatertPersonId": "person-036"
+        }
+      ],
+      "sivilstandDetalj": null,
+      "skjermet": false,
+      "kontakt": {},
+      "_sandbox": {
+        "personId": "person-051",
+        "husstandId": "household-015",
+        "rolle": "barn",
+        "visningsnavn": "Solveig Moen"
       },
       "syntetisk": true
     }

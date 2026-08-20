@@ -23,10 +23,10 @@ Regelen i praksis:
 > dokumentert API — ikke ved direkte filtilgang eller intern funksjonskall-kobling
 > på tvers av tjenester.
 
-Dette er innfridd, med **ett dokumentert unntak**: `sandbox-backend` leser
-`data/matrikkel.seed.json` direkte i stedet for å kalle `matrikkel-mock`. Samme fil har
-derfor to uavhengige lesestier — backend fra disk, mocken som seed ved oppstart.
-Se `docs/architecture.md`.
+Dette er innfridd uten unntak. `sandbox-backend` leste tidligere
+`data/matrikkel.seed.json` rett fra disk i stedet for å kalle `matrikkel-mock`, slik at
+samme fil hadde to uavhengige lesestier med hver sin kopi av etterbehandlingen. Backend
+går nå over HTTP via `MATRIKKEL_BASE_URL`. Se `docs/architecture.md`.
 
 ## Datastier og eierskap
 

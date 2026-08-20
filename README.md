@@ -362,8 +362,9 @@ gateoppslag til en 500. `hybrid` prøver Geonorge først og faller tilbake til s
 Kodens egen default uten miljøvariabel er `mock`, men den ser du bare hvis du starter
 `mcp-services` utenfor compose.
 
-`matrikkel-mock` starter uansett fra `data/matrikkel.seed.json` og faller tilbake til
-live Geonorge-oppslag ved manglende treff.
+`matrikkel-mock` starter fra `data/matrikkel.json` — 220 Bergen-gater med koordinater —
+og faller tilbake til live Geonorge-oppslag ved manglende treff. Den er den eneste
+leseren av matrikkelseeden; `sandbox-backend` går over HTTP via `MATRIKKEL_BASE_URL`.
 
 Hent matrikkeldata (REST-hjelpeendepunkt):
 
@@ -449,18 +450,20 @@ pnpm test:folkeregister-mcp
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json` — 43 personer
+- `data/personer.json` — 51 personer
 - `data/husstander.json` — 18 husstander
+- `data/forventet-utfall.json` — hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
 - `data/inntekter.json`
 - `data/barnehageplasser.json`
 - `data/sfoplasser.json`
 - `data/satser.json`
-- `data/matrikkel.seed.json` — lest av både `sandbox-backend` og `matrikkel-mock`
+- `data/matrikkel.json` — 220 gater og 8202 eiendommer, lest av `matrikkel-mock`
+- `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`
 
-`data/matrikkel.json` ligger også der — 5,9 MB nedlastede Geonorge-adresser — men den
-leses av ingenting. Ikke bygg på den.
+`matrikkel-mock` er eneste leser av matrikkeldataene. `sandbox-backend` kaller den over
+HTTP, så det finnes bare én matrikkel i sandkassen — den som også snakker SOAP.
 
 Søknader, samtykker, oppgaver, meldinger, prosessøkter og revisjonslogg har **ingen**
 fil i `data/`. De oppstår først under kjøring og finnes bare i `state/`, som er

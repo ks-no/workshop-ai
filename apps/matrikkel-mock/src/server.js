@@ -14,7 +14,11 @@ const wsNamespace = "http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.
 const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
 const maksSideStoerrelse = Number(process.env.MATRIKKEL_PAGE_MAX || 5000);
-const universellEierPersonId = "person-001";
+// Bønesheien is injected below for the fartsdempende case, and this is its owner.
+// It is deliberately NOT applied to every property: doing that used to make
+// person-001 a co-owner of all 8202 of them, so every ownership check said yes
+// and the documented "Fjøsangerveien gives a rejection" could never happen.
+const bonesheienEierPersonId = "person-001";
 
 function normaliser(verdi) {
   return String(verdi || "")
@@ -73,8 +77,14 @@ function lagTomtRegister(kilde) {
 }
 
 async function readMatrikkelData() {
+  // matrikkel.json is the full Bergen extract: 220 streets, 8202 properties with
+  // coordinates. It was 5.9 MB of dead weight that no code read, while the case
+  // that needs streets had four to choose from. matrikkel.seed.json stays as the
+  // small fixture the mock's own tests point at via MATRIKKEL_DATA_FILE.
   const kandidatfiler = [
     process.env.MATRIKKEL_DATA_FILE,
+    path.resolve(__dirname, "../../../data/matrikkel.json"),
+    path.resolve(__dirname, "../data/matrikkel.json"),
     path.resolve(__dirname, "../../../data/matrikkel.seed.json"),
     path.resolve(__dirname, "../data/matrikkel.seed.json")
   ].filter(Boolean);
@@ -90,7 +100,7 @@ async function readMatrikkelData() {
     }
   }
 
-  throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.seed.json i repoet.");
+  throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.json i repoet.");
 }
 
 function leggTilPrefixIndeks(register, prefix, matrikkelId) {
@@ -147,15 +157,6 @@ function normaliserTekst(verdi) {
     .trim();
 }
 
-function gjørMajaTilEierIAlleEiendommer(register) {
-  for (const eiendom of register.eiendommer) {
-    const eiere = Array.isArray(eiendom.eiere) ? eiendom.eiere : [];
-    if (!eiere.includes(universellEierPersonId)) {
-      eiendom.eiere = [...eiere, universellEierPersonId];
-    }
-  }
-}
-
 function leggTilBonesheienHvisMangler(register) {
   const finnesAllerede = register.gater.some((gate) => normaliserTekst(gate.adressenavn) === normaliserTekst("Bønesheien"));
   if (finnesAllerede) return;
@@ -174,7 +175,7 @@ function leggTilBonesheienHvisMangler(register) {
     bnr: 258,
     adresse: "Bønesheien 258",
     bruksenhetstype: "bolig",
-    eiere: [universellEierPersonId],
+    eiere: [bonesheienEierPersonId],
     postnummer: "5154",
     poststed: "BØNES"
   });
@@ -283,7 +284,6 @@ function leggTilEiendom(register, gate, eiendomInput = {}) {
 }
 
 function ferdigstillRegister(register) {
-  gjørMajaTilEierIAlleEiendommer(register);
   leggTilBonesheienHvisMangler(register);
   register.gater.sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
   for (const gate of register.gater) {

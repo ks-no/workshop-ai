@@ -1,0 +1,247 @@
+{
+  "beskrivelse": "Hva hver husstand er ment å demonstrere. Pinnet slik at en endret inntekt eller et flyttet trinn brekker pnpm test, i stedet for at en case stille blir noe annet enn scenario-teksten sier.",
+  "merknad": "Denne fila lastes ikke av noen tjeneste. Den er kun grunnlag for scripts/valider-data.js, og holdes derfor utenfor wire-formatet.",
+  "husstander": [
+    {
+      "husstandId": "household-001",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-002",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": false
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-003",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-1",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-004",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": false
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        },
+        {
+          "ordning": "redusert-sfo-2-3-trinn",
+          "godkjent": false
+        },
+        {
+          "ordning": "redusert-sfo-4-trinn",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-005",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-006",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-1",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-007",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": false
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-008",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": false
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-009",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        },
+        {
+          "ordning": "redusert-sfo-2-3-trinn",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-010",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-sfo-1-trinn",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-011",
+      "utfall": [
+        {
+          "ordning": "gratis-sfo-1-trinn",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-012",
+      "utfall": [
+        {
+          "ordning": "gratis-sfo-1-trinn",
+          "godkjent": true
+        },
+        {
+          "ordning": "redusert-sfo-2-3-trinn",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-013",
+      "utfall": [
+        {
+          "ordning": "gratis-sfo-1-trinn",
+          "godkjent": false
+        },
+        {
+          "ordning": "redusert-sfo-2-3-trinn",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-014",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-1",
+          "godkjent": false
+        },
+        {
+          "ordning": "redusert-sfo-2-3-trinn",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-015",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": false
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        },
+        {
+          "ordning": "redusert-sfo-4-trinn",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-016",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-017",
+      "utfall": [
+        {
+          "ordning": "redusert-foreldrebetaling-barnehage",
+          "godkjent": true
+        },
+        {
+          "ordning": "gratis-kjernetid-barnehage-2-5",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-018",
+      "utfall": []
+    }
+  ],
+  "syntetisk": true
+}
