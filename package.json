@@ -17,6 +17,7 @@
     "start:prosessbygger": "node apps/process-builder/src/server.js",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.js",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.js",
+    "data:tenor": "node scripts/importer-tenor.js",
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
@@ -32,7 +33,7 @@
     "test:folkeregister-mcp": "node scripts/test-folkeregister-mcp.js",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.js",
     "lint": "tsc --noEmit",
-    "format": "echo \"Ingen formatter konfigurert enn\u00e5\""
+    "format": "echo \"Ingen formatter konfigurert ennå\""
   },
   "engines": {
     "node": ">=22.18"

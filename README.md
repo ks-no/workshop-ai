@@ -450,8 +450,9 @@ pnpm test:folkeregister-mcp
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json` — 51 personer
-- `data/husstander.json` — 18 husstander
+- `data/personer.json` — 369 personer
+- `data/husstander.json` — 200 husstander
+- `data/tenor/` — rå uttrekk fra Tenor, kilden importen bygger på
 - `data/forventet-utfall.json` — hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
 - `data/inntekter.json`
 - `data/barnehageplasser.json`

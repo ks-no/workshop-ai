@@ -124,10 +124,44 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 
 ## Nåværende innhold
 
-- 51 syntetiske personer
-- 18 husstander
-- 25 inntektsposter
+- 369 syntetiske personer
+- 200 husstander
+- 273 inntektsposter
 - 15 barnehageplasser og 11 SFO-plasser
+
+Befolkningen er todelt. **De 51 første personene og 18 første husstandene er
+håndkuraterte terskelfixturer** — de eier casene, og hver av dem har et pinnet utfall
+i `data/forventet-utfall.json`. Resten er importert fra Tenor for bredde, har ingen
+barnehage- eller SFO-plass, og er derfor ikke knyttet til noen ordning.
+
+Aldersfordelingen dekker nå 0 til 113 år. Før importen fantes ingen personer mellom
+8 og 32 år, så ordninger for ungdom hadde ingen befolkning å hvile på.
+
+## Import fra Tenor
+
+`data/tenor/` inneholder rå uttrekk fra Skatteetatens Tenor testdatasøk, ett per
+aldersbånd. Hver fil bærer sin egen `seed` og `treff`; det er provenansen som gjør
+uttrekket reproduserbart, så filene skal ikke slås sammen.
+
+```bash
+pnpm data:tenor          # bygger personer, husstander, folkeregister og inntekter
+node scripts/importer-tenor.js --tørrkjør   # viser hva som ville blitt lagt til
+```
+
+Importen er idempotent og additiv. Et fødselsnummer som allerede har fått en
+`personId` beholder den, så et nytt uttrekk kan slippes inn i mappa og importen
+kjøres på nytt uten at noen blir omnummerert. Den rører aldri de kuraterte
+fixturene.
+
+To ting er verdt å vite om de importerte dataene:
+
+- **Inntekten er forfattet, ikke hentet.** Tenor hadde inntektsdata for 6 av 120
+  hoveddokumenter og ingen av de 224 foreldrene. Beløpene utledes deterministisk fra
+  fødselsnummeret. Terskelscenarioene ligger uansett hos de 18 kuraterte husstandene,
+  der de kan kontrolleres.
+- **`kommune` er et visningsnavn, `kommunenummer` er nøkkelen.** Tenor oppgir bare
+  nummeret. Der `data/brreg.seed.json` kjenner navnet, brukes det; ellers står
+  poststedsnavnet — et ekte sted i riktig område, men ikke nødvendigvis kommunenavnet.
 - 6 ordninger med satser
 - matrikkeldata med 220 Bergen-gater og 8202 eiendommer, pluss injisert Bønesheien
 - 5 prosessdefinisjoner + 1 mal

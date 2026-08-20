@@ -113,6 +113,15 @@ async function ventPaaHelse(basisUrl, tidsfrist = 15000) {
 
 const dump = [];
 
+// Long list endpoints are contract-checked by shape, not by volume. /api/personer
+// returns 369 people and /api/matrikkel/gater 221 streets; dumping them whole made
+// the file mostly data, so every added test person produced a huge diff and buried
+// the contract change the diff exists to reveal.
+function bareForm(kropp, antallViste) {
+  if (!Array.isArray(kropp)) return kropp;
+  return { antall: kropp.length, foerste: kropp.slice(0, antallViste) };
+}
+
 async function kall(navn, sti, valg = {}) {
   const svar = await fetch(`${backendUrl}${sti}`, {
     method: valg.method || "GET",
@@ -132,7 +141,7 @@ async function kall(navn, sti, valg = {}) {
     metode: valg.method || "GET",
     sti: normaliser(sti),
     status: svar.status,
-    kropp: normaliser(kropp)
+    kropp: normaliser(valg.form ? bareForm(kropp, valg.form) : kropp)
   });
   return kropp;
 }
@@ -142,7 +151,7 @@ async function statiskeOppslag() {
   await kall("helse", "/helse");
   await kall("docs", "/docs");
   await kall("openapi", "/openapi.yaml");
-  await kall("personer", "/api/personer");
+  await kall("personer", "/api/personer", { form: 3 });
   await kall("person", "/api/personer/person-001");
   await kall("person-ukjent", "/api/personer/person-999");
   await kall("husstand", "/api/personer/person-001/husstand");
@@ -161,7 +170,7 @@ async function statiskeOppslag() {
   await kall("datasett", "/api/katalog/datasett");
   await kall("informasjonsmodeller", "/api/katalog/informasjonsmodeller");
   await kall("ressurskatalog", "/api/katalog/ressurser");
-  await kall("gater", "/api/matrikkel/gater");
+  await kall("gater", "/api/matrikkel/gater", { form: 3 });
   await kall("gate-treff", "/api/matrikkel/gater?gate=Storgata");
   await kall("gate-bom", "/api/matrikkel/gater?gate=Finnesikkegata");
   await kall("eierforhold-ja", "/api/matrikkel/sjekk/eierforhold?personId=person-001&gate=Storgata");

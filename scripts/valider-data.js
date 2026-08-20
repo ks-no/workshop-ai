@@ -298,6 +298,32 @@ for (const plass of sfoplasser) {
   }
 }
 
+// --- Adressebeskyttelse is a kodeverk, not a boolean ------------------------
+// `skjermet: true` said nothing about which level applied. FREG grades it, and
+// the two levels behave differently, so the code is the field and the boolean is
+// derived from it — never the other way round.
+const GRADERINGER = new Set(["UGRADERT", "FORTROLIG", "STRENGT_FORTROLIG"]);
+for (const person of personer) {
+  const grad = person.adressebeskyttelse;
+  if (!GRADERINGER.has(grad)) {
+    throw new Error(
+      `${person.personId} har adressebeskyttelse "${grad}". Gyldige: ${[...GRADERINGER].join(", ")}.`
+    );
+  }
+  if (person.skjermet !== (grad !== "UGRADERT")) {
+    throw new Error(
+      `${person.personId} har skjermet=${person.skjermet} men adressebeskyttelse=${grad}. ` +
+      `skjermet skal følge av graderingen.`
+    );
+  }
+}
+if (!personer.some((p) => p.adressebeskyttelse === "STRENGT_FORTROLIG")) {
+  throw new Error("Mangler minst én person med STRENGT_FORTROLIG adressebeskyttelse.");
+}
+if (!personer.some((p) => p.adressebeskyttelse === "FORTROLIG")) {
+  throw new Error("Mangler minst én person med FORTROLIG adressebeskyttelse.");
+}
+
 // --- Every SJEKK step must point at an ordning that exists ------------------
 // fritidskort-stotte fetched income for a long time without an ordning to measure
 // it against. Nothing caught it, because the coverage checks only iterate over
