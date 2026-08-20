@@ -49,12 +49,16 @@ passer alle:**
 | Redusert foreldrebetaling (barnehage) | `person-001` **Maja Solberg** |
 | Redusert betaling i SFO | `person-008` **Ingrid Dahl** |
 | Behovsavklaring for støttekontakt | hvem som helst — ingen datahenting |
-| Søknad om fritidskort-støtte | `person-001` |
+| Søknad om fritidskort-støtte | `person-028` **Håkon Fjeld** |
 | Søknad om fartsdempende tiltak | `person-001` |
 
-> **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO. Prøver du
-> SFO-casen med henne, får du et avslag som ser ut som en feil, men er riktig.
-> Bruk `person-008`, som har et barn på 3. trinn.
+> **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO, og heller
+> ikke barn i fritidskortets aldersgruppe. Prøver du de casene med henne, får du et
+> avslag som ser ut som en feil, men er riktig. Bruk `person-008` for SFO og
+> `person-028` for fritidskort.
+
+For **fritidskort** avgjør husholdningens inntekt: `person-028` ligger på 158 000 og
+får innvilget, mens `person-008` ligger på 653 000 og får avslag. Grensen er 360 000.
 
 For **fartsdempende tiltak** avgjør gatenavnet utfallet: `Storgata` gir godkjent,
 `Fjøsangerveien` gir avvist.

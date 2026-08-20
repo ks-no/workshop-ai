@@ -119,7 +119,9 @@ export async function readState() {
     revisjonslogg,
     prosessoekter,
     satser,
-    sfoplasser
+    sfoplasser,
+    fritidsdeltakelse,
+    fritidsaktiviteter
   ] = await Promise.all([
     readJson("personer.json"),
     readJson("husstander.json"),
@@ -132,7 +134,9 @@ export async function readState() {
     readJson("revisjonslogg.json", []),
     readJson("prosessoekter.json", []),
     readJson("satser.json"),
-    readJson("sfoplasser.json")
+    readJson("sfoplasser.json"),
+    readJson("fritidsdeltakelse.json"),
+    readJson("fritidsaktiviteter.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
@@ -152,7 +156,9 @@ export async function readState() {
     revisjonslogg,
     prosessoekter,
     satser,
-    sfoplasser
+    sfoplasser,
+    fritidsdeltakelse,
+    fritidsaktiviteter
   };
 }
 
@@ -188,7 +194,8 @@ export function hentHusstandForPerson(tilstand: State, personId: string) {
 // lookup in two separate functions, differing only in which dataset they filtered.
 export const tjenesteDatasett = {
   barnehage: "barnehageplasser",
-  sfo: "sfoplasser"
+  sfo: "sfoplasser",
+  fritid: "fritidsdeltakelse"
 };
 
 export function hentBarnaIHusstand(tilstand: State, personId: string): string[] {

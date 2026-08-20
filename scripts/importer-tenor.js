@@ -493,7 +493,7 @@ function byggScenario(type, medlemmer, personer, antallBarn) {
   if (medlemmer.some((f) => (personer.get(f) || {}).adresseBeskyttelse)) {
     deler.push("Én person har adressebeskyttelse.");
   }
-  deler.push("Fra Tenor, for bredde — ingen ordning er knyttet til denne husstanden.");
+  deler.push("Fra Tenor, for bredde.");
   return deler.join(" ");
 }
 

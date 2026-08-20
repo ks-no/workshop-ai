@@ -458,6 +458,7 @@ Syntetiske data ligger under `data/`:
 - `data/barnehageplasser.json`
 - `data/sfoplasser.json`
 - `data/satser.json`
+- `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` — grunnlaget for fritidskort
 - `data/matrikkel.json` — 220 gater og 8202 eiendommer, lest av `matrikkel-mock`
 - `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`

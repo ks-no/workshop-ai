@@ -212,6 +212,38 @@ async function foreldrebetalingsflyt(prosessId, merkelapp) {
   await kall(`${merkelapp}-inntektsgrunnlag`, "/api/husstander/household-001/inntektsgrunnlag");
 }
 
+// Fritidskort is the only ordning outside barnehage and SFO, and the only one that
+// scopes by the child's age rather than by school year. Two people, so the dump
+// carries both outcomes: person-028 is under the threshold, person-008 over it.
+async function fritidskortflyt(personId, merkelapp) {
+  const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
+    method: "POST",
+    body: { personId, prosessId: "fritidskort-stotte" }
+  });
+  const id = oekt.oektsId;
+
+  await kall(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await kall(`${merkelapp}-svar-behov`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: { stegId: "behov", svar: { gjelderFor: "barnet mitt", aktivitet: "fotball" } }
+  });
+  await kall(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await kall(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  await kall(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "SAMTYKKET" }
+  });
+  await kall(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await kall(`${merkelapp}-inntekt`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await kall(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await kall(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  await kall(`${merkelapp}-fritid`, `/api/personer/${personId}/fritid`);
+}
+
 // Fartsdemping is the only case that exercises SJEKK, matrikkel and
 // {svar.<stegId>} substitution at once.
 async function fartsdempingsflyt(gate, merkelapp) {
@@ -275,6 +307,8 @@ async function kjoer() {
     await statiskeOppslag();
     await foreldrebetalingsflyt("reduced-kindergarten-payment", "barnehage");
     await foreldrebetalingsflyt("sfo-moderasjon", "sfo");
+    await fritidskortflyt("person-028", "fritidskort-innvilget");
+    await fritidskortflyt("person-008", "fritidskort-avslag");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();

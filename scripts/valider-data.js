@@ -13,6 +13,8 @@ const filer = [
   "data/informasjonsmodeller.json",
   "data/matrikkel.seed.json",
   "data/matrikkel.json",
+  "data/fritidsaktiviteter.json",
+  "data/fritidsdeltakelse.json",
   "data/forventet-utfall.json"
 ];
 
@@ -100,7 +102,14 @@ for (const ordning of satser.ordninger) {
 // ever says no.
 const barnehageplasser = await les("data/barnehageplasser.json");
 const sfoplasser = await les("data/sfoplasser.json");
-const plasserPerTjeneste = { barnehage: barnehageplasser, sfo: sfoplasser };
+const fritidsdeltakelse = await les("data/fritidsdeltakelse.json");
+// Mirrors tjenesteDatasett in apps/sandbox-backend/src/state.ts. A new tjeneste is
+// one line there and one line here.
+const plasserPerTjeneste = {
+  barnehage: barnehageplasser,
+  sfo: sfoplasser,
+  fritid: fritidsdeltakelse
+};
 
 function alderVed(foedselsdato, referansedato) {
   const foedt = new Date(foedselsdato);
@@ -334,11 +343,22 @@ const alleProsesser = [
   ...(prosesskatalog.maler || [])
 ];
 const ordningIder = new Set(satser.ordninger.map((o) => o.id));
+const tjenester = new Set(satser.ordninger.map((o) => o.tjeneste));
 for (const prosess of alleProsesser) {
   for (const steg of prosess.steg || []) {
     if (steg.type !== "SJEKK") continue;
     const url = steg.api?.url || steg.ressurs || "";
-    const ordning = steg.ordning || new URLSearchParams(url.split("?")[1] || "").get("ordning");
+    const parametere = new URLSearchParams(url.split("?")[1] || "");
+    // A SJEKK can name an ordning outright, or name a tjeneste and let the child's
+    // trinn decide. Both must resolve to something that exists in data/satser.json.
+    const tjeneste = parametere.get("tjeneste");
+    if (tjeneste && !tjenester.has(tjeneste)) {
+      throw new Error(
+        `Prosessen ${prosess.id}, steg ${steg.id}, sjekker mot tjenesten ${tjeneste}, ` +
+        `som ingen ordning i data/satser.json tilbyr. Gyldige: ${[...tjenester].join(", ")}.`
+      );
+    }
+    const ordning = steg.ordning || parametere.get("ordning");
     if (!ordning || ordning.startsWith("{")) continue;
     if (!ordningIder.has(ordning)) {
       throw new Error(

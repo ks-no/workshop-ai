@@ -1,5 +1,10 @@
 import { HttpError } from "./errors.ts";
-import { harGyldigSamtykke, hentInntektForPerson, vurderOrdning } from "./regler.ts";
+import {
+  harGyldigSamtykke,
+  hentInntektForPerson,
+  velgOrdningForTjeneste,
+  vurderOrdning
+} from "./regler.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import { eiendommerForPersonIGate, finnGate, hentGater } from "./matrikkel.ts";
@@ -128,6 +133,20 @@ export const ressurser: Ressurs[] = [
   },
   {
     metode: "GET",
+    sti: "/api/personer/:personId/fritid",
+    ressurs: "fritidsdeltakelse",
+    beskrivelse: "Fritidsaktiviteter barna i husstanden deltar i.",
+    formaal: "Vise fritidsaktiviteter i husstanden",
+    handter: ({ tilstand, personId }) => {
+      try {
+        return hentPlasserForTjeneste(tilstand, personId, "fritid");
+      } catch (error: any) {
+        throw new HttpError(error.message, 404);
+      }
+    }
+  },
+  {
+    metode: "GET",
     sti: "/api/husstander/:husstandId/inntektsgrunnlag",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag slått opp på husstand i stedet for person.",
@@ -211,22 +230,54 @@ export const ressurser: Ressurs[] = [
   },
   {
     metode: "GET",
+    sti: "/api/regler/sjekk/ordning",
+    ressurs: "regelvurdering",
+    beskrivelse: "SJEKK: rett til en ordning i data/satser.json.",
+    kreverSamtykke: "inntekt",
+    formaal: "Vurdere rett til dialogrelatert tjeneste",
+    revisjon: false,
+    valider: ({ sok, personId }) => {
+      if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
+        throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
+      }
+    },
+    handter: async ({ tilstand, sok, personId }) => {
+      try {
+        // `tjeneste` lets a process say "assess SFO" and leave the choice of ordning
+        // to the child's actual trinn, instead of naming one and being wrong for
+        // every household outside it.
+        const ordning = sok.get("ordning")
+          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await vurderOrdning(tilstand, personId, ordning);
+      } catch (error: any) {
+        throw new HttpError(error.message, 400);
+      }
+    }
+  },
+  {
+    metode: "GET",
+    // Alias of /api/regler/sjekk/ordning. The name says foreldrebetaling, but the
+    // route has always taken any ordning id — including fritidskort, which is not a
+    // parental payment at all. Process definitions, the curl cookbook and the
+    // OpenAPI spec all point here, so the path stays.
     sti: "/api/regler/sjekk/foreldrebetaling",
     ressurs: "regelvurdering",
-    beskrivelse: "SJEKK: rett til en moderasjonsordning i data/satser.json.",
+    beskrivelse: "SJEKK: alias for /api/regler/sjekk/ordning.",
     // The assessment reveals the household's income basis, so it carries the same
     // consent requirement as the income route.
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     revisjon: false,
     valider: ({ sok, personId }) => {
-      if (!personId || !sok.get("ordning")) {
-        throw new HttpError("personId og ordning er påkrevd.", 400);
+      if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
+        throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
       }
     },
     handter: async ({ tilstand, sok, personId }) => {
       try {
-        return await vurderOrdning(tilstand, personId, sok.get("ordning"));
+        const ordning = sok.get("ordning")
+          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await vurderOrdning(tilstand, personId, ordning);
       } catch (error: any) {
         throw new HttpError(error.message, 400);
       }

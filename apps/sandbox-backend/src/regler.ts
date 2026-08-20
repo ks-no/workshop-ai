@@ -89,6 +89,18 @@ function plasserSomKvalifiserer(tilstand: State, personId: string, ordning: Ordn
   });
 }
 
+// "Fant ingen fritid-plass" is not Norwegian. The tjeneste key is an identifier;
+// what the citizen reads needs its own word.
+const plassbetegnelse: Record<string, string> = {
+  barnehage: "barnehageplass",
+  sfo: "SFO-plass",
+  fritid: "fritidsaktivitet"
+};
+
+function betegnelse(ordning: Ordning): string {
+  return plassbetegnelse[ordning.tjeneste] || `${ordning.tjeneste}-plass`;
+}
+
 function kriterieTekst(ordning: Ordning): string {
   if (ordning.trinnFra !== undefined) {
     return ordning.trinnTil !== undefined && ordning.trinnTil !== ordning.trinnFra
@@ -126,7 +138,7 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
     if (kvalifiserte.length === 0) {
       return {
         godkjent: false,
-        melding: `Fant ingen ${ordning.tjeneste}-plass${kriterieTekst(ordning)} registrert på husstanden.`,
+        melding: `Fant ingen ${betegnelse(ordning)}${kriterieTekst(ordning)} registrert på husstanden.`,
         grunnlag: felles
       };
     }
@@ -146,7 +158,7 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
     if (plasser.length === 0) {
       return {
         godkjent: false,
-        melding: `Fant ingen ${ordning.tjeneste}-plass${kriterieTekst(ordning)} registrert på husstanden.`,
+        melding: `Fant ingen ${betegnelse(ordning)}${kriterieTekst(ordning)} registrert på husstanden.`,
         grunnlag: felles
       };
     }
@@ -162,6 +174,29 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
     };
   }
 };
+
+// Picks the ordning within a tjeneste that the household can actually be assessed
+// for. sfo-moderasjon used to hardcode redusert-sfo-2-3-trinn, so a household whose
+// only child is in first or fourth grade was told "no SFO place in 2nd-3rd grade" —
+// true, but it reads as a bug, and it hides that the child qualifies elsewhere.
+export function velgOrdningForTjeneste(
+  tilstand: State,
+  personId: string,
+  tjeneste: string
+): string {
+  const satser: Satser = tilstand.satser;
+  const kandidater = satser.ordninger.filter((o) => o.tjeneste === tjeneste);
+  if (kandidater.length === 0) {
+    const gyldige = [...new Set(satser.ordninger.map((o) => o.tjeneste))].join(", ");
+    throw new Error(`Ingen ordning for tjenesten ${tjeneste}. Gyldige: ${gyldige}.`);
+  }
+  const treff = kandidater.find(
+    (ordning) => plasserSomKvalifiserer(tilstand, personId, ordning, satser).length > 0
+  );
+  // No match still returns an ordning, so the citizen gets the ordinary "no place in
+  // the target group" message rather than a 400 about routing.
+  return (treff || kandidater[0]).id;
+}
 
 // Assesses one ordning in data/satser.json against the income basis from Fiks.
 // The calculation is deterministic and happens here, not in the AI layer — see

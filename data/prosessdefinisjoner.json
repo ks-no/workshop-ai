@@ -81,7 +81,7 @@
       "id": "sfo-moderasjon",
       "navn": "Redusert betaling i SFO",
       "beskrivelse": "Demo av dialogbasert søknad om redusert betaling i skolefritidsordningen.",
-      "versjon": "0.1.0",
+      "versjon": "0.2.0",
       "redigering": {
         "status": "publisert",
         "eier": "Oppvekst"
@@ -128,11 +128,11 @@
           "feilmelding": "Ut fra husholdningens inntektsgrunnlag har du ikke rett til redusert betaling i SFO.",
           "api": {
             "method": "GET",
-            "url": "/api/regler/sjekk/foreldrebetaling?personId={personId}&ordning=redusert-sfo-2-3-trinn"
+            "url": "/api/regler/sjekk/ordning?personId={personId}&tjeneste=sfo"
           },
           "forfatterhjelp": {
-            "hensikt": "Samme mekanisme som i barnehageprosessen, men mot SFO-ordningen.",
-            "skrivetips": "Trinn avgjør hvilken ordning som gjelder. Se data/satser.json."
+            "hensikt": "Deterministisk vurdering mot satsene i data/satser.json. Ordningen velges ut fra hvilket trinn barnet faktisk går på.",
+            "skrivetips": "Bruk tjeneste=sfo når trinnet skal avgjøre ordningen, eller ordning=<id> for å låse den til én."
           }
         },
         {
@@ -222,7 +222,7 @@
       "id": "fritidskort-stotte",
       "navn": "Søknad om fritidskort-støtte",
       "beskrivelse": "Demo av chatbasert dialog for vurdering av fritidskort-støtte.",
-      "versjon": "0.1.1",
+      "versjon": "0.2.0",
       "redigering": {
         "status": "publisert",
         "eier": "Oppvekst og kultur",
@@ -278,6 +278,20 @@
           "api": {
             "method": "GET",
             "url": "/api/personer/{personId}/inntekt"
+          }
+        },
+        {
+          "id": "sjekk-rett",
+          "type": "SJEKK",
+          "tittel": "Vurderer om barnet har rett til fritidskort-støtte",
+          "feilmelding": "Ut fra husholdningens inntektsgrunnlag har dere ikke rett til fritidskort-støtte.",
+          "api": {
+            "method": "GET",
+            "url": "/api/regler/sjekk/ordning?personId={personId}&ordning=fritidskort-stotte"
+          },
+          "forfatterhjelp": {
+            "hensikt": "Deterministisk vurdering mot inntektsgrensen i data/satser.json. KI forklarer utfallet, men avgjør det ikke.",
+            "skrivetips": "Ordningen gjelder barn mellom 6 og 18 år som deltar i en registrert fritidsaktivitet."
           }
         },
         {

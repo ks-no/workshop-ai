@@ -59,6 +59,10 @@
         {
           "ordning": "redusert-sfo-4-trinn",
           "godkjent": false
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
         }
       ]
     },
@@ -132,6 +136,10 @@
         {
           "ordning": "redusert-sfo-2-3-trinn",
           "godkjent": true
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
         }
       ]
     },
@@ -149,6 +157,10 @@
         {
           "ordning": "gratis-sfo-1-trinn",
           "godkjent": true
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
         }
       ]
     },
@@ -157,6 +169,10 @@
       "utfall": [
         {
           "ordning": "gratis-sfo-1-trinn",
+          "godkjent": true
+        },
+        {
+          "ordning": "fritidskort-stotte",
           "godkjent": true
         }
       ]
@@ -171,6 +187,10 @@
         {
           "ordning": "redusert-sfo-2-3-trinn",
           "godkjent": false
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
         }
       ]
     },
@@ -184,6 +204,10 @@
         {
           "ordning": "redusert-sfo-2-3-trinn",
           "godkjent": false
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
         }
       ]
     },
@@ -201,6 +225,10 @@
         {
           "ordning": "redusert-sfo-2-3-trinn",
           "godkjent": false
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
         }
       ]
     },
@@ -218,6 +246,10 @@
         {
           "ordning": "redusert-sfo-4-trinn",
           "godkjent": true
+        },
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
         }
       ]
     },
@@ -240,6 +272,849 @@
     },
     {
       "husstandId": "household-018",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-019",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-020",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-021",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-022",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-023",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-024",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-025",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-026",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-027",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-028",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": true
+        }
+      ]
+    },
+    {
+      "husstandId": "household-029",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-030",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-031",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-032",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-033",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-034",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-035",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-036",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-037",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-038",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-039",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-040",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-041",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-042",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-043",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-044",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-045",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-046",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-047",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-048",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-049",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-050",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-051",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-052",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-053",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-054",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-055",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-056",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-057",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-058",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-059",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-060",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-061",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-062",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-063",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-064",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-065",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-066",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-067",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-068",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-069",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-070",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-071",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-072",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-073",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-074",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-075",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-076",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-077",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-078",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-079",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-080",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-081",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-082",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-083",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-084",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-085",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-086",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-087",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-088",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-089",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-090",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-091",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-092",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-093",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-094",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-095",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-096",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-097",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-098",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-099",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-100",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-101",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-102",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-103",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-104",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-105",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-106",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-107",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-108",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-109",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-110",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-111",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-112",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-113",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-114",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-115",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-116",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-117",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-118",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-119",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-120",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-121",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-122",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-123",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-124",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-125",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-126",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-127",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-128",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-129",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-130",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-131",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-132",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-133",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-134",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-135",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-136",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-137",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-138",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-139",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-140",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-141",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-142",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-143",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-144",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-145",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-146",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-147",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-148",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-149",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-150",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-151",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-152",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-153",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-154",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-155",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-156",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-157",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-158",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-159",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-160",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-161",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-162",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-163",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-164",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-165",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-166",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-167",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-168",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-169",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-170",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-171",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-172",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-173",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-174",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-175",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-176",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-177",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-178",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-179",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-180",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-181",
+      "utfall": [
+        {
+          "ordning": "fritidskort-stotte",
+          "godkjent": false
+        }
+      ]
+    },
+    {
+      "husstandId": "household-182",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-183",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-184",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-185",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-186",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-187",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-188",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-189",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-190",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-191",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-192",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-193",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-194",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-195",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-196",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-197",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-198",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-199",
+      "utfall": []
+    },
+    {
+      "husstandId": "household-200",
       "utfall": []
     }
   ],
