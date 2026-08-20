@@ -2,6 +2,7 @@ import { HttpError } from "./errors.ts";
 import {
   harGyldigSamtykke,
   hentInntektForPerson,
+  regelKreverInntekt,
   velgOrdningForTjeneste,
   vurderOrdning
 } from "./regler.ts";
@@ -32,6 +33,22 @@ import {
 
 type State = any;
 
+// The rule type decides. An ordning assessed on need and capacity — støttekontakt —
+// never reads income, so demanding consent for income would collect a basis the
+// decision does not use. Anything unresolvable keeps the strict requirement.
+function samtykkeForOrdningssjekk(kontekst: RessursKontekst): string | null {
+  try {
+    const ordningId =
+      kontekst.sok.get("ordning") ||
+      velgOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
+    const ordning = kontekst.tilstand.satser.ordninger.find((o: any) => o.id === ordningId);
+    if (!ordning) return "inntekt";
+    return regelKreverInntekt[ordning.regel as keyof typeof regelKreverInntekt] ? "inntekt" : null;
+  } catch {
+    return "inntekt";
+  }
+}
+
 export type RessursKontekst = {
   tilstand: State;
   parametere: PathParams;
@@ -48,8 +65,14 @@ export type Ressurs = {
   /** Name the resource gets in the revisjonslogg. */
   ressurs: string;
   beskrivelse: string;
-  /** Data source that requires samtykke, or null. */
+  /** Data source that requires samtykke, or null. Shown in the resource catalogue. */
   kreverSamtykke?: string | null;
+  /**
+   * Resolves the consent requirement per request, for resources where it depends on
+   * what is being asked for. Overrides kreverSamtykke when present. Fails closed:
+   * if the request cannot be resolved, the strictest requirement stands.
+   */
+  kreverSamtykkeFor?: (kontekst: RessursKontekst) => string | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
   /** Runs before the consent check, so missing parameters give 400 and not 403. */
@@ -232,8 +255,11 @@ export const ressurser: Ressurs[] = [
     metode: "GET",
     sti: "/api/regler/sjekk/ordning",
     ressurs: "regelvurdering",
-    beskrivelse: "SJEKK: rett til en ordning i data/satser.json.",
+    beskrivelse:
+      "SJEKK: rett til en ordning i data/satser.json. Krever samtykke til inntekt " +
+      "kun for ordninger som faktisk vurderes mot inntekt.",
     kreverSamtykke: "inntekt",
+    kreverSamtykkeFor: samtykkeForOrdningssjekk,
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     revisjon: false,
     valider: ({ sok, personId }) => {
@@ -263,9 +289,8 @@ export const ressurser: Ressurs[] = [
     sti: "/api/regler/sjekk/foreldrebetaling",
     ressurs: "regelvurdering",
     beskrivelse: "SJEKK: alias for /api/regler/sjekk/ordning.",
-    // The assessment reveals the household's income basis, so it carries the same
-    // consent requirement as the income route.
     kreverSamtykke: "inntekt",
+    kreverSamtykkeFor: samtykkeForOrdningssjekk,
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     revisjon: false,
     valider: ({ sok, personId }) => {
@@ -353,9 +378,13 @@ export async function utforRessurs(
     kontekst.personId = ressurs.finnPersonId(kontekst);
   }
 
+  const kreverSamtykke = ressurs.kreverSamtykkeFor
+    ? ressurs.kreverSamtykkeFor(kontekst)
+    : ressurs.kreverSamtykke;
+
   let samtykke = null;
-  if (ressurs.kreverSamtykke) {
-    samtykke = harGyldigSamtykke(tilstand, kontekst.personId, ressurs.kreverSamtykke);
+  if (kreverSamtykke) {
+    samtykke = harGyldigSamtykke(tilstand, kontekst.personId, kreverSamtykke);
     if (!samtykke) {
       await leggTilRevisjon({
         sporingsId: kontekst.sporingsId,

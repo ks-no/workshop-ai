@@ -87,9 +87,13 @@ export type Prosessoekt = {
 
 // --- rules and rates ------------------------------------------------------
 
-export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT";
+// A closed union so the compiler demands a handler in regelHandtere the moment a
+// new rule type appears. TJENESTEBEHOV is the first one that is not about money:
+// støttekontakt is assessed on need and capacity, and must not drag an income
+// lookup — and its consent — along with it.
+export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT" | "TJENESTEBEHOV";
 
-export type Tjeneste = "barnehage" | "sfo";
+export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt";
 
 export type Ordning = {
   id: string;
@@ -102,6 +106,8 @@ export type Ordning = {
   alderTilAar?: number;
   trinnFra?: number;
   trinnTil?: number;
+  /** TJENESTEBEHOV: which dataset of tjenestetilbud the ordning is assessed against. */
+  tilbudsdatasett?: string;
 };
 
 export type Satser = {
@@ -157,12 +163,6 @@ export type Samtykke = MedFelter & {
   dataKilder: string[];
 };
 
-export type Gate = MedFelter & {
-  gateId: string;
-  adressenavn: string;
-  eiendommer: Array<{ eiere?: string[] } & MedFelter>;
-};
-
 export type State = {
   personer: Person[];
   husstander: Husstand[];
@@ -178,7 +178,6 @@ export type State = {
   samtykker: Samtykke[];
   revisjonslogg: MedFelter[];
   prosessoekter: Prosessoekt[];
-  matrikkel: { gater: Gate[] } & MedFelter;
   satser: Satser;
   [datasett: string]: any;
 };

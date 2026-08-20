@@ -13,6 +13,7 @@
       "husnummer": 12,
       "postnummer": "5003",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -46,6 +47,7 @@
       "husnummer": 12,
       "postnummer": "5003",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -76,6 +78,7 @@
       "husnummer": 4,
       "postnummer": "7013",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "GIFT",
@@ -109,6 +112,7 @@
       "husnummer": 4,
       "postnummer": "7013",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "GIFT",
@@ -142,6 +146,7 @@
       "husnummer": 4,
       "postnummer": "7013",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "UGIFT",
@@ -176,6 +181,7 @@
       "husnummer": 30,
       "postnummer": "0364",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "UGIFT",
@@ -209,6 +215,7 @@
       "husnummer": 30,
       "postnummer": "0364",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "UGIFT",
@@ -239,6 +246,7 @@
       "husnummer": 7,
       "postnummer": "4010",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -276,6 +284,7 @@
       "husnummer": 7,
       "postnummer": "4010",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -313,6 +322,7 @@
       "husnummer": 7,
       "postnummer": "4010",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -347,6 +357,7 @@
       "husnummer": 7,
       "postnummer": "4010",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -381,6 +392,7 @@
       "husnummer": 18,
       "postnummer": "3045",
       "poststed": "Drammen",
+      "kommunenummer": "3301",
       "kommune": "Drammen"
     },
     "sivilstand": "UGIFT",
@@ -414,6 +426,7 @@
       "husnummer": 18,
       "postnummer": "3045",
       "poststed": "Drammen",
+      "kommunenummer": "3301",
       "kommune": "Drammen"
     },
     "sivilstand": "UGIFT",
@@ -444,6 +457,7 @@
       "husnummer": 55,
       "postnummer": "9008",
       "poststed": "Tromsø",
+      "kommunenummer": "5501",
       "kommune": "Tromsø"
     },
     "sivilstand": "UGIFT",
@@ -477,6 +491,7 @@
       "husnummer": 55,
       "postnummer": "9008",
       "poststed": "Tromsø",
+      "kommunenummer": "5501",
       "kommune": "Tromsø"
     },
     "sivilstand": "UGIFT",
@@ -507,6 +522,7 @@
       "husnummer": 9,
       "postnummer": "4611",
       "poststed": "Kristiansand",
+      "kommunenummer": "4204",
       "kommune": "Kristiansand"
     },
     "sivilstand": "GIFT",
@@ -540,6 +556,7 @@
       "husnummer": 9,
       "postnummer": "4611",
       "poststed": "Kristiansand",
+      "kommunenummer": "4204",
       "kommune": "Kristiansand"
     },
     "sivilstand": "GIFT",
@@ -573,6 +590,7 @@
       "husnummer": 9,
       "postnummer": "4611",
       "poststed": "Kristiansand",
+      "kommunenummer": "4204",
       "kommune": "Kristiansand"
     },
     "sivilstand": "UGIFT",
@@ -607,6 +625,7 @@
       "husnummer": 21,
       "postnummer": "8006",
       "poststed": "Bodø",
+      "kommunenummer": "1804",
       "kommune": "Bodø"
     },
     "sivilstand": "UGIFT",
@@ -640,6 +659,7 @@
       "husnummer": 21,
       "postnummer": "8006",
       "poststed": "Bodø",
+      "kommunenummer": "1804",
       "kommune": "Bodø"
     },
     "sivilstand": "UGIFT",
@@ -673,6 +693,7 @@
       "husnummer": 21,
       "postnummer": "8006",
       "poststed": "Bodø",
+      "kommunenummer": "1804",
       "kommune": "Bodø"
     },
     "sivilstand": "UGIFT",
@@ -707,6 +728,7 @@
       "husnummer": 3,
       "postnummer": "6008",
       "poststed": "Ålesund",
+      "kommunenummer": "1508",
       "kommune": "Ålesund"
     },
     "sivilstand": "UGIFT",
@@ -740,6 +762,7 @@
       "husnummer": 3,
       "postnummer": "6008",
       "poststed": "Ålesund",
+      "kommunenummer": "1508",
       "kommune": "Ålesund"
     },
     "sivilstand": "UGIFT",
@@ -770,6 +793,7 @@
       "husnummer": 14,
       "postnummer": "4307",
       "poststed": "Sandnes",
+      "kommunenummer": "1108",
       "kommune": "Sandnes"
     },
     "sivilstand": "UGIFT",
@@ -803,6 +827,7 @@
       "husnummer": 14,
       "postnummer": "4307",
       "poststed": "Sandnes",
+      "kommunenummer": "1108",
       "kommune": "Sandnes"
     },
     "sivilstand": "UGIFT",
@@ -833,6 +858,7 @@
       "husnummer": 2,
       "postnummer": "5003",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -866,6 +892,7 @@
       "husnummer": 2,
       "postnummer": "5003",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -896,6 +923,7 @@
       "husnummer": 41,
       "postnummer": "7052",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "UGIFT",
@@ -929,6 +957,7 @@
       "husnummer": 41,
       "postnummer": "7052",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "UGIFT",
@@ -959,6 +988,7 @@
       "husnummer": 88,
       "postnummer": "0565",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "GIFT",
@@ -992,6 +1022,7 @@
       "husnummer": 88,
       "postnummer": "0565",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "GIFT",
@@ -1025,6 +1056,7 @@
       "husnummer": 88,
       "postnummer": "0565",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "UGIFT",
@@ -1059,6 +1091,7 @@
       "husnummer": 6,
       "postnummer": "4005",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1092,6 +1125,7 @@
       "husnummer": 6,
       "postnummer": "4005",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1122,6 +1156,7 @@
       "husnummer": 33,
       "postnummer": "4008",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1155,6 +1190,7 @@
       "husnummer": 33,
       "postnummer": "4008",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1188,6 +1224,7 @@
       "husnummer": 33,
       "postnummer": "4008",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1222,6 +1259,7 @@
       "husnummer": 19,
       "postnummer": "1400",
       "poststed": "Ski",
+      "kommunenummer": "3207",
       "kommune": "Nordre Follo"
     },
     "sivilstand": "UGIFT",
@@ -1255,6 +1293,7 @@
       "husnummer": 19,
       "postnummer": "1400",
       "poststed": "Ski",
+      "kommunenummer": "3207",
       "kommune": "Nordre Follo"
     },
     "sivilstand": "UGIFT",
@@ -1285,6 +1324,7 @@
       "husnummer": 27,
       "postnummer": "5068",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -1318,6 +1358,7 @@
       "husnummer": 27,
       "postnummer": "5068",
       "poststed": "Bergen",
+      "kommunenummer": "4601",
       "kommune": "Bergen"
     },
     "sivilstand": "UGIFT",
@@ -1348,6 +1389,7 @@
       "husnummer": 5,
       "postnummer": "0350",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "GIFT",
@@ -1376,6 +1418,7 @@
       "husnummer": 5,
       "postnummer": "0350",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "GIFT",
@@ -1404,6 +1447,7 @@
       "husnummer": 7,
       "postnummer": "4010",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1438,6 +1482,7 @@
       "husnummer": 55,
       "postnummer": "9008",
       "poststed": "Tromsø",
+      "kommunenummer": "5501",
       "kommune": "Tromsø"
     },
     "sivilstand": "UGIFT",
@@ -1468,6 +1513,7 @@
       "husnummer": 3,
       "postnummer": "6008",
       "poststed": "Ålesund",
+      "kommunenummer": "1508",
       "kommune": "Ålesund"
     },
     "sivilstand": "UGIFT",
@@ -1498,6 +1544,7 @@
       "husnummer": 14,
       "postnummer": "4307",
       "poststed": "Sandnes",
+      "kommunenummer": "1108",
       "kommune": "Sandnes"
     },
     "sivilstand": "UGIFT",
@@ -1528,6 +1575,7 @@
       "husnummer": 41,
       "postnummer": "7052",
       "poststed": "Trondheim",
+      "kommunenummer": "5001",
       "kommune": "Trondheim"
     },
     "sivilstand": "UGIFT",
@@ -1558,6 +1606,7 @@
       "husnummer": 88,
       "postnummer": "0565",
       "poststed": "Oslo",
+      "kommunenummer": "0301",
       "kommune": "Oslo"
     },
     "sivilstand": "UGIFT",
@@ -1592,6 +1641,7 @@
       "husnummer": 6,
       "postnummer": "4005",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",
@@ -1622,6 +1672,7 @@
       "husnummer": 33,
       "postnummer": "4008",
       "poststed": "Stavanger",
+      "kommunenummer": "1103",
       "kommune": "Stavanger"
     },
     "sivilstand": "UGIFT",

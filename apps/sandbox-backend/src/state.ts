@@ -121,7 +121,8 @@ export async function readState() {
     satser,
     sfoplasser,
     fritidsdeltakelse,
-    fritidsaktiviteter
+    fritidsaktiviteter,
+    tjenestetilbud
   ] = await Promise.all([
     readJson("personer.json"),
     readJson("husstander.json"),
@@ -136,7 +137,8 @@ export async function readState() {
     readJson("satser.json"),
     readJson("sfoplasser.json"),
     readJson("fritidsdeltakelse.json"),
-    readJson("fritidsaktiviteter.json")
+    readJson("fritidsaktiviteter.json"),
+    readJson("tjenestetilbud.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
@@ -158,7 +160,8 @@ export async function readState() {
     satser,
     sfoplasser,
     fritidsdeltakelse,
-    fritidsaktiviteter
+    fritidsaktiviteter,
+    tjenestetilbud
   };
 }
 

@@ -120,12 +120,21 @@ type RegelKontekst = {
   personId: string;
   ordning: Ordning;
   satser: Satser;
-  /** The household's beregningsbeloep from the Fiks simulator. */
-  grunnlag: number;
+  /** The household's beregningsbeloep from Fiks, or null for rules that do not use income. */
+  grunnlag: number | null;
   /** Fields every assessment attaches as its explanation. */
   felles: Record<string, unknown>;
   /** Note that the tax assessment is not final, or an empty string. */
   forbehold: string;
+};
+
+// Whether a rule type needs the income basis at all. Record<Regeltype, boolean>
+// makes the compiler demand an answer for every new rule type, so nobody adds one
+// that quietly triggers an income lookup it does not use.
+export const regelKreverInntekt: Record<Regeltype, boolean> = {
+  INNTEKTSGRENSE: true,
+  MAKS_ANDEL_AV_INNTEKT: true,
+  TJENESTEBEHOV: false
 };
 
 // One handler per rule type in data/satser.json. A new rule type is one entry
@@ -133,6 +142,58 @@ type RegelKontekst = {
 // Record<Regeltype, ...> makes the compiler demand a handler as soon as a new
 // rule type is added to types.ts.
 export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResultat> = {
+  // Need and capacity, not money. The applicant is assessed against the municipality's
+  // own tilbud, so the answer depends on where they live and how old they are — never
+  // on what they earn.
+  TJENESTEBEHOV: ({ tilstand, personId, ordning, satser, felles }) => {
+    const person = finnPerson(tilstand, personId);
+    if (!person?.foedselsdato) {
+      return { godkjent: false, melding: "Fant ikke fødselsdato for søkeren.", grunnlag: felles };
+    }
+    const alder = alderVed(person.foedselsdato, satser.gjelderFra);
+    const kommunenummer = person.bostedsadresse?.kommunenummer || null;
+    const alle = tilstand[ordning.tilbudsdatasett || "tjenestetilbud"] || [];
+    const iKommunen = alle.filter(
+      (tilbud: any) => tilbud.tjeneste === ordning.tjeneste && tilbud.kommunenummer === kommunenummer
+    );
+    const felles2 = { ...felles, alder, kommunenummer };
+
+    if (iKommunen.length === 0) {
+      return {
+        godkjent: false,
+        melding: `${person.bostedsadresse?.kommune || "Kommunen din"} har ikke registrert et tilbud om ${ordning.navn.toLowerCase()} i denne sandkassen.`,
+        grunnlag: felles2
+      };
+    }
+    const iMaalgruppe = iKommunen.filter(
+      (tilbud: any) => alder >= tilbud.malgruppeFraAar && alder <= tilbud.malgruppeTilAar
+    );
+    if (iMaalgruppe.length === 0) {
+      const baand = iKommunen
+        .map((t: any) => `${t.malgruppeFraAar}–${t.malgruppeTilAar} år`)
+        .join(", ");
+      return {
+        godkjent: false,
+        melding: `Søkeren er ${alder} år. Tilbudene i kommunen gjelder ${baand}.`,
+        grunnlag: felles2
+      };
+    }
+    const medLedig = iMaalgruppe.filter((tilbud: any) => tilbud.ledigePlasser > 0);
+    if (medLedig.length === 0) {
+      return {
+        godkjent: false,
+        melding: `${iMaalgruppe[0].navn} passer for søkeren, men har ingen ledige plasser nå.`,
+        grunnlag: { ...felles2, tilbud: iMaalgruppe[0].tilbudId, ledigePlasser: 0 }
+      };
+    }
+    const valgt = medLedig[0];
+    return {
+      godkjent: true,
+      melding: `${valgt.navn} passer for søkeren på ${alder} år, og har ${valgt.ledigePlasser} ${valgt.ledigePlasser === 1 ? "ledig plass" : "ledige plasser"}.`,
+      grunnlag: { ...felles2, tilbud: valgt.tilbudId, ledigePlasser: valgt.ledigePlasser }
+    };
+  },
+
   INNTEKTSGRENSE: ({ tilstand, personId, ordning, satser, grunnlag, felles, forbehold }) => {
     const kvalifiserte = plasserSomKvalifiserer(tilstand, personId, ordning, satser);
     if (kvalifiserte.length === 0) {
@@ -143,12 +204,12 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
       };
     }
     const grense = ordning.inntektsgrense!;
-    const godkjent = grunnlag < grense;
+    const godkjent = grunnlag! < grense;
     return {
       godkjent,
       melding: godkjent
-        ? `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag)} kr, under grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`
-        : `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag)} kr, over grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`,
+        ? `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag!)} kr, under grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`
+        : `Husholdningens inntektsgrunnlag er ${formatBelop(grunnlag!)} kr, over grensen på ${formatBelop(grense)} kr for ${ordning.navn}.${forbehold}`,
       grunnlag: { ...felles, inntektsgrense: grense, antallKvalifiserendePlasser: kvalifiserte.length }
     };
   },
@@ -163,13 +224,13 @@ export const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResulta
       };
     }
     const aarspris = plasser.reduce((sum: number, p: any) => sum + p.manedspris, 0) * satser.maanederMedBetaling;
-    const tak = satser.maksAndelAvInntekt * grunnlag;
+    const tak = satser.maksAndelAvInntekt * grunnlag!;
     const godkjent = aarspris > tak;
     return {
       godkjent,
       melding: godkjent
-        ? `Full pris er ${formatBelop(aarspris)} kr i året, mer enn ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag)} kr (${formatBelop(tak)} kr). Du har rett til redusert betaling.${forbehold}`
-        : `Full pris er ${formatBelop(aarspris)} kr i året, som er under ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag)} kr (${formatBelop(tak)} kr). Du har ikke rett til redusert betaling.${forbehold}`,
+        ? `Full pris er ${formatBelop(aarspris)} kr i året, mer enn ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag!)} kr (${formatBelop(tak)} kr). Du har rett til redusert betaling.${forbehold}`
+        : `Full pris er ${formatBelop(aarspris)} kr i året, som er under ${Math.round(satser.maksAndelAvInntekt * 100)} % av inntektsgrunnlaget på ${formatBelop(grunnlag!)} kr (${formatBelop(tak)} kr). Du har ikke rett til redusert betaling.${forbehold}`,
       grunnlag: { ...felles, aarspris, maksAndelAvInntekt: satser.maksAndelAvInntekt, tak: Math.round(tak) }
     };
   }
@@ -208,8 +269,15 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
     throw new Error(`Ukjent ordning: ${ordningId}. Gyldige: ${satser.ordninger.map((o) => o.id).join(", ")}.`);
   }
 
-  const beregning = await hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
-  if (beregning.feilmeldinger.length > 0) {
+  // Only fetch income for rules that actually use it. Asking for an income basis to
+  // assess støttekontakt would pull data the decision never touches, and drag the
+  // consent for it along — the opposite of what consent-before-income is for.
+  const brukerInntekt = regelKreverInntekt[ordning.regel as Regeltype];
+  const beregning = brukerInntekt
+    ? await hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
+    : null;
+
+  if (beregning && beregning.feilmeldinger.length > 0) {
     const feil = beregning.feilmeldinger[0];
     return {
       godkjent: false,
@@ -218,16 +286,15 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
     };
   }
 
-  const grunnlag = beregning.beregningsbeloep;
+  const grunnlag = beregning ? beregning.beregningsbeloep : null;
   const felles = {
     ordning: ordning.id,
     ordningNavn: ordning.navn,
-    beregningsbeloep: grunnlag,
-    stadie: beregning.stadie,
+    ...(beregning ? { beregningsbeloep: grunnlag, stadie: beregning.stadie } : {}),
     gjelderFra: satser.gjelderFra,
     kilde: satser.kilde
   };
-  const forbehold = beregning.stadie === "UTKAST"
+  const forbehold = beregning?.stadie === "UTKAST"
     ? " Merk at skatteoppgjøret ikke er ferdig, så grunnlaget kan endre seg."
     : "";
 

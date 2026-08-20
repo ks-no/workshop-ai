@@ -15,6 +15,7 @@ const filer = [
   "data/matrikkel.json",
   "data/fritidsaktiviteter.json",
   "data/fritidsdeltakelse.json",
+  "data/tjenestetilbud.json",
   "data/forventet-utfall.json"
 ];
 
@@ -139,6 +140,9 @@ function kvalifiserer(plass, ordning) {
 }
 
 for (const ordning of satser.ordninger) {
+  // Needs-based ordninger have no plass dataset. Their target group is the
+  // applicant's own age, checked against data/tjenestetilbud.json further down.
+  if (ordning.regel === "TJENESTEBEHOV") continue;
   const treff = (plasserPerTjeneste[ordning.tjeneste] || []).filter((plass) => kvalifiserer(plass, ordning));
   if (treff.length === 0) {
     throw new Error(
@@ -177,6 +181,9 @@ function plasserIMaalgruppe(husstand, ordning) {
 // Mirrors regelHandtere in apps/sandbox-backend/src/regler.ts. Returns null when
 // the ordning cannot be assessed at all for this husstand.
 function vurder(husstand, ordning) {
+  // TJENESTEBEHOV is assessed per person, not per household, so it has its own
+  // coverage check further down and is deliberately invisible here.
+  if (ordning.regel === "TJENESTEBEHOV") return null;
   const plasser = plasserIMaalgruppe(husstand, ordning);
   if (plasser.length === 0) return null;
   const g = husstandsgrunnlag(husstand);
@@ -187,6 +194,7 @@ function vurder(husstand, ordning) {
 }
 
 for (const ordning of satser.ordninger) {
+  if (ordning.regel === "TJENESTEBEHOV") continue;
   const utfall = husstander
     .map((h) => ({ id: h.husstandId, godkjent: vurder(h, ordning) }))
     .filter((r) => r.godkjent !== null);
@@ -304,6 +312,41 @@ for (const plass of sfoplasser) {
       `${plass.personId} er ${alderVed(barn.foedselsdato, satser.gjelderFra)} år ved ` +
       `${satser.gjelderFra} og skal da gå på ${forventetTrinn}. trinn, ikke ${plass.trinn}.`
     );
+  }
+}
+
+// --- Needs-based ordninger, assessed per person -----------------------------
+// The applicant's age and municipality decide, so the dataset has to contain
+// someone the tilbud fits and someone it does not. Three distinct rejection
+// reasons exist, and all three must be reachable — otherwise the branches that
+// produce them are dead code nobody notices.
+const tjenestetilbud = await les("data/tjenestetilbud.json");
+for (const ordning of satser.ordninger) {
+  if (ordning.regel !== "TJENESTEBEHOV") continue;
+  const utfall = { innvilget: 0, ingenTilbud: 0, utenforMaalgruppe: 0, fullt: 0 };
+  for (const person of personer) {
+    if (!person.foedselsdato) continue;
+    const alder = alderVed(person.foedselsdato, satser.gjelderFra);
+    const iKommunen = tjenestetilbud.filter(
+      (t) => t.tjeneste === ordning.tjeneste &&
+        t.kommunenummer === person.bostedsadresse?.kommunenummer
+    );
+    if (iKommunen.length === 0) { utfall.ingenTilbud++; continue; }
+    const passer = iKommunen.filter(
+      (t) => alder >= t.malgruppeFraAar && alder <= t.malgruppeTilAar
+    );
+    if (passer.length === 0) { utfall.utenforMaalgruppe++; continue; }
+    if (passer.some((t) => t.ledigePlasser > 0)) utfall.innvilget++;
+    else utfall.fullt++;
+  }
+  for (const [grunn, antall] of Object.entries(utfall)) {
+    if (antall === 0) {
+      throw new Error(
+        `${ordning.id}: ingen person i datasettet gir utfallet "${grunn}". ` +
+        `Alle fire utfallene må være nåbare, ellers er grenen død kode. ` +
+        `Juster data/tjenestetilbud.json.`
+      );
+    }
   }
 }
 

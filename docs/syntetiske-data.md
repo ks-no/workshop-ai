@@ -71,6 +71,7 @@ Kildedata i `data/`:
 | `inntekter.json` | Poster som mater beregningen, med `kilde` og `medregnes`. Har `stadie` (`OPPGJOER`/`UTKAST`) |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
+| `tjenestetilbud.json` | Kommunale tilbud med målgruppe og ledige plasser. Grunnlaget for behovsavklaring |
 | `fritidsaktiviteter.json` | Katalog over fritidsaktiviteter med aldersgrenser |
 | `fritidsdeltakelse.json` | Hvilke barn som deltar i hvilken aktivitet, og til hvilken pris |
 | `matrikkel.json` | Gater, eiendommer og eierforhold. Seed for `matrikkel-mock` |
@@ -164,7 +165,8 @@ To ting er verdt å vite om de importerte dataene:
 - **`kommune` er et visningsnavn, `kommunenummer` er nøkkelen.** Tenor oppgir bare
   nummeret. Der `data/brreg.seed.json` kjenner navnet, brukes det; ellers står
   poststedsnavnet — et ekte sted i riktig område, men ikke nødvendigvis kommunenavnet.
-- 7 ordninger med satser, inkludert fritidskort for barn 6–18 år
+- 8 ordninger, inkludert fritidskort for barn 6–18 år og støttekontakt
+- 237 tjenestetilbud fordelt på kommuner, med målgruppe og kapasitet
 - matrikkeldata med 220 Bergen-gater og 8202 eiendommer, pluss injisert Bønesheien
 - 5 prosessdefinisjoner + 1 mal
 

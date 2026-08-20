@@ -459,6 +459,7 @@ Syntetiske data ligger under `data/`:
 - `data/sfoplasser.json`
 - `data/satser.json`
 - `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` — grunnlaget for fritidskort
+- `data/tjenestetilbud.json` — kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
 - `data/matrikkel.json` — 220 gater og 8202 eiendommer, lest av `matrikkel-mock`
 - `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`
