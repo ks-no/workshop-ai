@@ -68,6 +68,42 @@ export type RessursKontekst = {
   kaller: Kaller;
 };
 
+// The foresatte whose income the calculation combines — the same set regler.ts
+// sends to Fiks. Derived here rather than read back off the response so the audit
+// entry is written even when the lookup fails.
+function foresatteIHusstand(kontekst: RessursKontekst): string[] {
+  try {
+    const husstand = hentHusstandForPerson(kontekst.tilstand, kontekst.personId);
+    return husstand.medlemmer
+      .filter((medlem: any) => medlem.rolle === "foresatt")
+      .map((medlem: any) => medlem.personId);
+  } catch {
+    // A household we cannot resolve means the lookup will fail too. Fall back to
+    // the applicant rather than dropping the field.
+    return [kontekst.personId];
+  }
+}
+
+function alleIHusstand(kontekst: RessursKontekst): string[] {
+  try {
+    return hentHusstandForPerson(kontekst.tilstand, kontekst.personId)
+      .medlemmer.map((medlem: any) => medlem.personId);
+  } catch {
+    return [kontekst.personId];
+  }
+}
+
+// A plass belongs to a child, not to the applicant. Both are recorded: the parent
+// asked, the child's data answered.
+function barnMedPlass(kontekst: RessursKontekst, tjeneste: string): string[] {
+  try {
+    const plasser = hentPlasserForTjeneste(kontekst.tilstand, kontekst.personId, tjeneste);
+    return [...new Set([kontekst.personId, ...plasser.map((plass: any) => plass.personId)])];
+  } catch {
+    return [kontekst.personId];
+  }
+}
+
 export type Ressurs = {
   metode: string;
   sti: string;
@@ -91,6 +127,18 @@ export type Ressurs = {
   kreverSamtykkeFor?: (kontekst: RessursKontekst) => string | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
+  /**
+   * Whose data this lookup actually touched, as personIds. Omitted means the one
+   * person the request was about.
+   *
+   * This exists because the two are not the same, and the difference is the
+   * interesting part. Reading "your" income runs a household calculation: for the
+   * 68 of 200 households with two foresatte, a partner's tax data is read on the
+   * strength of the applicant's samtykke, and the partner never agreed to anything.
+   * An audit log that records only the actor cannot answer the question a person
+   * actually asks it — whose data was read — so it records both.
+   */
+  omfatter?: (kontekst: RessursKontekst) => string[];
   /** Runs before the consent check, so missing parameters give 400 and not 403. */
   valider?: (kontekst: RessursKontekst) => void;
   /** For resources where the person is not in the path but must be resolved before the consent check. */
@@ -119,6 +167,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/husstand",
     ressurs: "husstand",
     beskrivelse: "Husstanden personen tilhører, med roller for foresatte og barn.",
+    omfatter: alleIHusstand,
     handter: ({ tilstand, personId }) => {
       try {
         return hentHusstandForPerson(tilstand, personId);
@@ -132,6 +181,9 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/inntekt",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag for husholdningen, beregnet av Fiks-simulatoren.",
+    // The calculation combines every foresatt in the household, so a two-parent
+    // household means a second person's tax data is read here.
+    omfatter: foresatteIHusstand,
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: async ({ tilstand, personId }) => {
@@ -147,6 +199,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/barnehage",
     ressurs: "barnehageplass",
     beskrivelse: "Barnehageplasser registrert på barna i husstanden.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "barnehage"),
     handter: ({ tilstand, personId }) => {
       try {
         return hentPlasserForTjeneste(tilstand, personId, "barnehage");
@@ -162,6 +215,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/sfo",
     ressurs: "sfoplass",
     beskrivelse: "SFO-plasser registrert på barna i husstanden.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "sfo"),
     handter: ({ tilstand, personId }) => {
       try {
         return hentPlasserForTjeneste(tilstand, personId, "sfo");
@@ -175,6 +229,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/fritid",
     ressurs: "fritidsdeltakelse",
     beskrivelse: "Fritidsaktiviteter barna i husstanden deltar i.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "fritid"),
     formaal: "Vise fritidsaktiviteter i husstanden",
     handter: ({ tilstand, personId }) => {
       try {
@@ -189,6 +244,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/husstander/:husstandId/inntektsgrunnlag",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag slått opp på husstand i stedet for person.",
+    omfatter: foresatteIHusstand,
     // Same data as the person route, so the same consent requirement. The applicant
     // is resolved via the husstand, since the person is not in the path.
     kreverSamtykke: "inntekt",
@@ -436,19 +492,36 @@ export async function utforRessurs(
     throw feil;
   }
 
+  // Computed once, before the handler, so a DATA_LES and a DATA_NEKTET for the same
+  // request describe the same set of people.
+  const omfatter = ressurs.omfatter ? ressurs.omfatter(kontekst) : [];
+  // Only recorded when it says more than `aktor` already does. A single-subject
+  // read where the subject is the caller needs no second field.
+  const omfatterFelt = omfatter.length > 1 || (omfatter.length === 1 && omfatter[0] !== kontekst.personId)
+    ? { omfatter }
+    : {};
+
   const kreverSamtykke = ressurs.kreverSamtykkeFor
     ? ressurs.kreverSamtykkeFor(kontekst)
     : ressurs.kreverSamtykke;
 
   let samtykke = null;
   if (kreverSamtykke) {
-    samtykke = harGyldigSamtykke(tilstand, kontekst.personId, kreverSamtykke);
+    // The session knows which consent it just created. Prefer it, so the basis in
+    // the audit log is the one the citizen actually gave in this flow.
+    samtykke = harGyldigSamtykke(
+      tilstand,
+      kontekst.personId,
+      kreverSamtykke,
+      kontekst.oekt?.aktivtSamtykkeId
+    );
     if (!samtykke) {
       await leggTilRevisjon({
         sporingsId: kontekst.sporingsId,
         handling: "DATA_NEKTET",
         ressurs: ressurs.ressurs,
         formaal: "Mangler samtykke",
+        ...omfatterFelt,
         aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
       throw new HttpError(
@@ -477,6 +550,7 @@ export async function utforRessurs(
       ressurs: ressurs.ressurs,
       ...(formaal ? { formaal } : {}),
       ...(samtykke ? { grunnlag: { type: "samtykke", id: samtykke.samtykkeId, status: samtykke.status } } : {}),
+      ...omfatterFelt,
       aktor: aktorFor(kontekst.kaller, kontekst.personId)
     });
   }

@@ -323,11 +323,45 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
   return handterer({ tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
 }
 
-export function harGyldigSamtykke(tilstand: State, personId: string, datakilde: string) {
-  return tilstand.samtykker.find((samtykke: any) =>
+/**
+ * The samtykke that authorises reading `datakilde` for `personId`, or null.
+ *
+ * `foretrukketId` is the consent the current process session just created. It
+ * matters because a person can hold several valid consents for the same source,
+ * and the audit log records *which* one justified the read — that is the whole
+ * point of writing `grunnlag`. Picking the first match meant a flow could log a
+ * consent from a previous run as the basis for this read, and then the trail
+ * could not be followed back to the moment the citizen agreed.
+ *
+ * Without a preference, the most recently created one wins. An arbitrary order is
+ * the one thing an audit basis must not be.
+ *
+ * Expiry is deliberately still not checked here. `utloper` is set 30 days out and
+ * nothing reads it; making it real belongs with the samtykke state machine in Del
+ * D, together with TRUKKET and UTLOEPT, rather than half-done here.
+ */
+export function harGyldigSamtykke(
+  tilstand: State,
+  personId: string,
+  datakilde: string,
+  foretrukketId?: string | null
+) {
+  const gyldige = tilstand.samtykker.filter((samtykke: any) =>
     samtykke.personId === personId &&
     samtykke.status === "SAMTYKKET" &&
     Array.isArray(samtykke.dataKilder) &&
     samtykke.dataKilder.includes(datakilde)
-  ) || null;
+  );
+  if (gyldige.length === 0) {
+    return null;
+  }
+  const foretrukket = foretrukketId
+    ? gyldige.find((samtykke: any) => samtykke.samtykkeId === foretrukketId)
+    : null;
+  if (foretrukket) {
+    return foretrukket;
+  }
+  return gyldige.reduce((nyeste: any, kandidat: any) =>
+    String(kandidat.opprettet || "") > String(nyeste.opprettet || "") ? kandidat : nyeste
+  );
 }
