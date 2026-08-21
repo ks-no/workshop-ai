@@ -1,4 +1,10 @@
-import { aktorFor, type Kaller } from "./autentisering.ts";
+import {
+  aktorFor,
+  krevTilgang,
+  SCOPE_LES,
+  type Kaller,
+  type Tilgang
+} from "./autentisering.ts";
 import { HttpError } from "./errors.ts";
 import {
   harGyldigSamtykke,
@@ -68,6 +74,13 @@ export type Ressurs = {
   /** Name the resource gets in the revisjonslogg. */
   ressurs: string;
   beskrivelse: string;
+  /**
+   * Which authorisation this resource requires. Omitted means the closed value,
+   * "egne-data" — a resource added during the hackathon is protected by default.
+   */
+  tilgang?: Tilgang;
+  /** Scope a machine caller must hold. Defaults to SCOPE_LES. */
+  scope?: string;
   /** Data source that requires samtykke, or null. Shown in the resource catalogue. */
   kreverSamtykke?: string | null;
   /**
@@ -195,6 +208,9 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/gater",
     ressurs: "matrikkel-gate",
     beskrivelse: "Gater i matrikkelen. Med ?gate= gis nøkkeltall for én gate.",
+    // The street register is public and has no person subject — there is no one
+    // whose data this is. That is why its revisjonslogg rows say aktor: ukjent.
+    tilgang: "aapen",
     handter: async ({ sok }) => {
       const gateParam = sok.get("gate");
       if (!gateParam) {
@@ -333,6 +349,7 @@ export function ressurskatalog() {
     sti: ressurs.sti,
     ressurs: ressurs.ressurs,
     beskrivelse: ressurs.beskrivelse,
+    tilgang: ressurs.tilgang || "egne-data",
     kreverSamtykke: ressurs.kreverSamtykke || null,
     syntetisk: true
   }));
@@ -383,6 +400,42 @@ export async function utforRessurs(
     kontekst.personId = ressurs.finnPersonId(kontekst);
   }
 
+  // Authorisation goes here, after valider() and after finnPersonId() resolved who
+  // the request is about, and before the samtykke check. That order is what makes
+  // the four outcomes distinguishable:
+  //
+  //   400  a parameter is missing            (valider)
+  //   401  we do not know who you are        (no token)
+  //   403  we know, and you have no hjemmel  (wrong pid, or missing scope)
+  //   403  you have hjemmel but no samtykke  (below, and a different grunn)
+  //
+  // syntetiskFodselsnummer survives A2's masking precisely so this lookup works for
+  // an address-protected person too. See skjerming.ts.
+  try {
+    krevTilgang({
+      kaller: kontekst.kaller,
+      tilgang: ressurs.tilgang ?? "egne-data",
+      scope: ressurs.scope ?? SCOPE_LES,
+      pid: kontekst.personId
+        ? finnPerson(tilstand, kontekst.personId)?.syntetiskFodselsnummer ?? null
+        : null,
+      hva: `å lese ${ressurs.ressurs}`
+    });
+  } catch (feil) {
+    // A refused attempt is exactly what an audit log is for. TILGANG_NEKTET, not
+    // DATA_NEKTET: that one means "had hjemmel, lacked samtykke", and conflating
+    // the two would erase the distinction Del B exists to teach.
+    await leggTilRevisjon({
+      sporingsId: kontekst.sporingsId,
+      handling: "TILGANG_NEKTET",
+      ressurs: ressurs.ressurs,
+      formaal: "Mangler hjemmel",
+      ...(kontekst.personId ? { gjaldt: kontekst.personId } : {}),
+      aktor: aktorFor(kontekst.kaller, kontekst.personId)
+    });
+    throw feil;
+  }
+
   const kreverSamtykke = ressurs.kreverSamtykkeFor
     ? ressurs.kreverSamtykkeFor(kontekst)
     : ressurs.kreverSamtykke;
@@ -401,7 +454,9 @@ export async function utforRessurs(
       throw new HttpError(
         `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
         403,
-        { syntetisk: true }
+        // Both 403s carry a machine-readable grunn, so a client can tell "you may
+        // not" from "you may, but nobody has consented yet" without parsing prose.
+        { syntetisk: true, grunn: "mangler_samtykke" }
       );
     }
   }

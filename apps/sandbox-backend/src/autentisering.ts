@@ -24,6 +24,7 @@
 import type { IncomingMessage } from "node:http";
 import { createPublicKey, createVerify } from "node:crypto";
 import {
+  authEnforce,
   digdirBaseUrl,
   idportenIssuer,
   maskinportenIssuer,
@@ -229,6 +230,110 @@ export function aktorFor(kaller: Kaller, personId?: string | null): Record<strin
   // Honest about not knowing. This appears only with AUTH_ENFORCE=false, and it is
   // meant to look wrong in the log — an unauthenticated read has no actor.
   return { type: "ukjent", id: null };
+}
+
+// --- autorisasjon: may they? ----------------------------------------------
+
+/**
+ * Which authorisation a route or resource requires. The default everywhere is the
+ * closed value, so a route added during the hackathon is protected unless someone
+ * opens it deliberately.
+ *
+ *   "aapen"      No token. Health, docs, the catalogues, the rates, the street
+ *                register — nothing about a person.
+ *   "egne-data"  Your own data. An ID-porten token whose `pid` resolves to the
+ *                subject, or a machine holding the scope.
+ *
+ *                When a route under this band has NO single subject, an ID-porten
+ *                token is still accepted — and the handler is then responsible for
+ *                narrowing the answer to the caller. /api/personer is the one such
+ *                route: a citizen may look themselves up there, which is how
+ *                demo-gui learns who it is logged in as, but may not list the
+ *                population.
+ *
+ *   "bred"       Crosses people, so no citizen token can justify it. Machine with
+ *                the scope only. The full revisjonslogg is the example.
+ */
+export type Tilgang = "aapen" | "egne-data" | "bred";
+
+/** Default scope for a machine caller. Reading person data on someone's behalf. */
+export const SCOPE_LES = "ks:innbyggerdialog:les";
+/** Writing to the audit log. fiks-simulator and ai-gateway hold this one. */
+export const SCOPE_REVISJON = "ks:innbyggerdialog:revisjon";
+
+function manglerToken(hva: string): HttpError {
+  // 401, not 403: we do not know who this is. The distinction is the whole point —
+  // authentication is "who are you", hjemmel is "may you".
+  return new HttpError(
+    `Dette kallet krever innlogging. ${hva} er ikke åpent uten token. ` +
+    `Hent et med scripts/token.ts.`,
+    401,
+    { syntetisk: true },
+    { "WWW-Authenticate": 'Bearer realm="sandbox-backend", error="invalid_token"' }
+  );
+}
+
+function manglerHjemmel(melding: string): HttpError {
+  // 403: we know exactly who this is, and they still may not. Deliberately a
+  // different message from the 403 for missing samtykke — see utforRessurs.
+  return new HttpError(melding, 403, { syntetisk: true, grunn: "mangler_hjemmel" });
+}
+
+/**
+ * The one authorisation decision, shared by both boundaries: utforRessurs for data
+ * resources, and handleRequest for the orchestration routes.
+ *
+ * Throws, or returns having said nothing. Never returns a boolean — a caller that
+ * forgets to check a boolean fails open, and this must fail closed.
+ */
+export function krevTilgang(valg: {
+  kaller: Kaller;
+  tilgang: Tilgang;
+  /** Scope a machine caller must hold. */
+  scope: string;
+  /** The subject's fødselsnummer, or null when the route has no single subject. */
+  pid: string | null;
+  /** Named in the error message, so a 403 says what was refused. */
+  hva: string;
+}): void {
+  const { kaller, tilgang, scope, pid, hva } = valg;
+
+  if (tilgang === "aapen") return;
+  // The escape hatch. Off by default; it exists so the whole test tail can be
+  // bisected during a migration, not as a setting anyone should leave flipped.
+  if (!authEnforce) return;
+
+  if (kaller.type === "anonym") {
+    throw manglerToken(hva);
+  }
+
+  if (kaller.type === "system") {
+    if (!kaller.scope.includes(scope)) {
+      throw manglerHjemmel(
+        `${kaller.clientId} har ikke hjemmel til ${hva}. ` +
+        `Tokenet mangler scope ${scope} (har: ${kaller.scope.join(" ") || "ingen"}).`
+      );
+    }
+    return;
+  }
+
+  // An ID-porten token proves who a person is. It cannot justify reading across
+  // people, however high the acr.
+  if (tilgang === "bred") {
+    throw manglerHjemmel(
+      `${hva} går på tvers av personer, og et personlig ID-porten-token gir ikke ` +
+      `hjemmel til det. Dette krever en maskinklient med scope ${scope}.`
+    );
+  }
+
+  // The pid binding. `pid` is null only where the route has no single subject, and
+  // there the handler narrows the answer instead.
+  if (pid && kaller.pid !== pid) {
+    throw manglerHjemmel(
+      `Du er innlogget som ${kaller.pid}, og ${hva} gjelder en annen person. ` +
+      `Du har bare tilgang til dine egne data.`
+    );
+  }
 }
 
 /** For log lines and error messages. Never for an access decision. */

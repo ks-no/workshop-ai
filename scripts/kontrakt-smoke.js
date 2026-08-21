@@ -162,6 +162,7 @@ function personIdFor(sti) {
 }
 
 async function autorisasjon(sti, valg) {
+  if (valg.utenToken) return null;
   if (valg.somMaskin) {
     return `Bearer ${await hentMaskinportenToken({
       digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
@@ -379,7 +380,12 @@ async function soknadOgRevisjon() {
     body: { personId: "person-001", prosessId: "reduced-kindergarten-payment", prosessNavn: "Royktest" }
   });
   await kall("soknad-hent", `/api/soknader/${soknad.soknadId}`);
-  await kall("soknad-ukjent", "/api/soknader/finnes-ikke");
+  // With hjemmel, so the dump still records the 404 for an unknown id. Without a
+  // token this is a 401 instead: authentication is settled before we say whether
+  // something exists, so an anonymous caller cannot probe for valid ids.
+  await kall("soknad-ukjent", "/api/soknader/finnes-ikke", { somMaskin: "ks:innbyggerdialog:les" });
+  // And the 401 itself, pinned deliberately rather than arrived at by accident.
+  await kall("uten-token", "/api/personer/person-001", { utenToken: true });
   await kall("revisjonslogg", "/api/revisjonslogg", { somMaskin: "ks:innbyggerdialog:les" });
 }
 
