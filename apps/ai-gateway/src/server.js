@@ -609,15 +609,27 @@ function buildPrompt(type, body, fallbackTekst) {
   }
 
   if (type === "sporsmaal") {
-    return [
+    const linjer = [
       "Du er en hjelpsom kommunal veileder i en demosandbox.",
       `Svar på ${sprak}.`,
       ...sperrer,
       `Tjeneste: ${kontekst.tjeneste || "ukjent"}`,
-      `Steg vi står på: ${kontekst.steg?.tittel || kontekst.steg?.type || "ingen"}`,
+      `Steg vi står på: ${kontekst.steg?.tittel || kontekst.steg?.type || "ingen"}`
+    ];
+
+    // Lift mineEiendommer out of the JSON blob and present it as plain text so
+    // the model does not have to locate it inside a large nested structure.
+    const eiendommer = kontekst.mineEiendommer?.eiendommer;
+    if (Array.isArray(eiendommer) && eiendommer.length > 0) {
+      const liste = eiendommer.map(e => `${e.adresse} (${e.bruksenhetstype}, ${e.kommune})`).join(", ");
+      linjer.push(`Søkerens registrerte eiendommer i matrikkelen: ${liste}`);
+    }
+
+    linjer.push(
       `Grunnlag JSON: ${JSON.stringify(kontekst)}`,
       `<sporsmaal>${body?.tekst || ""}</sporsmaal>`
-    ].join("\n");
+    );
+    return linjer.join("\n");
   }
 
   return [

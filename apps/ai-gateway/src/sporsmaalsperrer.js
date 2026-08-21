@@ -573,6 +573,19 @@ export function sanitizeSporsmaalKontekst(kontekst) {
       .map((tur) => ({ rolle: tur.rolle === "assistent" ? "assistent" : "innbygger", tekst: tur.tekst.slice(0, 400) }));
   }
 
+  // Property ownership data fetched by the caller and included for grounding.
+  // Project to address + type only — never expose personIds of other owners.
+  if (inn.mineEiendommer?.eiendommer && Array.isArray(inn.mineEiendommer.eiendommer)) {
+    ut.mineEiendommer = {
+      eiendommer: inn.mineEiendommer.eiendommer.map((e) => ({
+        adresse: e.adresse,
+        gate: e.gate,
+        bruksenhetstype: e.bruksenhetstype,
+        kommune: e.kommune
+      }))
+    };
+  }
+
   return ut;
 }
 
@@ -589,6 +602,7 @@ export function byggGrunnlag(kontekst) {
   if (kontekst.resultater) kilder.push("Din prosessøkt");
   if (kontekst.samtykke) kilder.push("Samtykkestatus");
   if (kontekst.personvern) kilder.push("Personvernerklæring");
+  if (kontekst.mineEiendommer) kilder.push("Dine eiendommer (matrikkel)");
 
   return { kilder, verdier: kontekst };
 }

@@ -107,6 +107,27 @@ pnpm test            # valider-data.js: referential integrity across all dataset
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
+- After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
+```bash
+./start.sh --reload          # recreates all Node services (picks up compose config changes too)
+docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
+```
+  Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed — a restart is enough.
+- The seven volume-mounted Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `mcp-services`,
+  `process-agent`, `fiks-simulator`, `process-builder`) run via `scripts/dev.sh`, which selects the
+  right watcher automatically:
+  - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` — inotify
+    events propagate natively; restarts are immediate.
+  - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
+    polling — inotify does not propagate through Docker Desktop's 9P volume mount, so `start.bat`
+    sets `WATCH_POLL=1` to switch to polling automatically.
+  Any file you save is detected and the Node process restarts — **no manual action needed for normal
+  code edits**. Watch for the log line `Change detected in '...'` (inotify) or `restarting due to changes...`
+  (nodemon) to confirm it triggered.
+- `matrikkel-mock` is the exception: it bakes files into its own Docker image at `apps/matrikkel-mock/Dockerfile`
+  and has no volume mount. Changes there require `docker compose up -d --build matrikkel-mock`.
+- `./start.sh --reload` is still useful when you change `docker-compose.yml` itself (e.g. environment
+  variables), since `--watch` only restarts the Node process, not the container.
 - `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
   timestamps are replaced with placeholders, so two runs of the same code are
   byte-identical. Use it as a regression gate around refactors:

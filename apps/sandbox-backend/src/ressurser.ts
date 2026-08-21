@@ -6,7 +6,8 @@ import {
   finnGate,
   finnPerson,
   hentHusstandForPerson,
-  hentPlasserForTjeneste
+  hentPlasserForTjeneste,
+  readJson
 } from "./state.ts";
 
 // SHARED RESOURCE CATALOG
@@ -206,6 +207,35 @@ export const ressurser: Ressurs[] = [
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
         grunnlag: { personId, gate: gateData.adressenavn, harEiendom }
       };
+    }
+  },
+  {
+    metode: "GET",
+    sti: "/api/matrikkel/mine-eiendommer",
+    ressurs: "matrikkel-mine-eiendommer",
+    beskrivelse: "Eiendommer i matrikkelen der søkeren er registrert som eier, på tvers av alle gater.",
+    revisjon: false,
+    handter: async ({ personId }) => {
+      // Read the raw seed file directly so we bypass leggTilUniversellEierIAlleEiendommer,
+      // which adds person-001 to every property to keep the demo working from any street.
+      // For ownership questions the user should only see properties they genuinely own.
+      const rawMatrikkel = await readJson("matrikkel.seed.json");
+      const gater: any[] = rawMatrikkel?.gater || [];
+      const mine: any[] = [];
+      for (const gate of gater) {
+        for (const eiendom of (gate.eiendommer || [])) {
+          if (Array.isArray(eiendom.eiere) && eiendom.eiere.includes(personId)) {
+            mine.push({
+              matrikkelId: eiendom.matrikkelId,
+              adresse: eiendom.adresse,
+              bruksenhetstype: eiendom.bruksenhetstype,
+              gate: gate.adressenavn,
+              kommune: gate.kommune
+            });
+          }
+        }
+      }
+      return { personId, eiendommer: mine, syntetisk: true };
     }
   },
   {

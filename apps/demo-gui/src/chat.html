@@ -352,7 +352,18 @@
         };
       }
 
-      function byggSporsmaalsKontekst() {
+      async function byggSporsmaalsKontekst() {
+        let mineEiendommer = null;
+        if (oekt?.personId) {
+          try {
+            const res = await fetch(
+              `${backendBase}/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
+            );
+            if (res.ok) mineEiendommer = await res.json();
+          } catch (_) {
+            // Best-effort — answer without ownership data if lookup fails
+          }
+        }
         return {
           tjeneste: aktivProsess?.navn || "ukjent prosess",
           prosess: aktivProsess || null,
@@ -369,6 +380,7 @@
               }
             : null),
           resultater: oekt?.resultater || null,
+          mineEiendommer: mineEiendommer,
           samtale: samtale.slice(-6)
         };
       }
@@ -384,7 +396,7 @@
             body: JSON.stringify({
               tekst: text,
               sporingsId: oekt?.sporingsId,
-              kontekst: byggSporsmaalsKontekst(),
+              kontekst: await byggSporsmaalsKontekst(),
               sprak: "nb"
             })
           });
@@ -727,11 +739,10 @@
 
         try {
           if (steg.type === "INFO") {
-            if (lower.includes("fortsett") || lower.includes("neste") || lower.includes("start") || lower.includes("klar") || erJaSvar(reellTekst)) {
-              await goNext();
-            } else {
-              addMsg("assistant", "Bare si fra når du er klar, så går vi videre.");
-            }
+            // Any input at an info step means the user has read the information
+            // and wants to move on — whether they say "fortsett", name a street,
+            // or anything else that is not a side-question.
+            await goNext();
             return;
           }
 

@@ -27,6 +27,7 @@ ASSUME_YES=false
 DOWN=false
 MOCK=false
 RESET=false
+RELOAD=false
 PROFILE=""
 COMPOSE_FILES=(-f docker-compose.yml)
 
@@ -47,6 +48,7 @@ Options:
   -y, --yes          Do not ask before installing Ollama or downloading a model
       --mock         Run without a language model (AI replies become templates)
       --reset        Wipe runtime state in state/ and start from the seed data
+      --reload       Restart Node services to pick up code changes, then exit
   -d, --down         Stop and remove all containers
   -h, --help         Show this help
 
@@ -69,6 +71,7 @@ Examples:
   ./start.sh -m llama3.1:8b   # alternative model family
   ./start.sh --mock           # no model — useful on a bad connection
   ./start.sh --reset          # forget every earlier demo run
+  ./start.sh --reload         # restart services after a code change
   ./start.sh -d               # stop everything
 EOF
 }
@@ -81,6 +84,7 @@ while [[ $# -gt 0 ]]; do
     -y|--yes)   ASSUME_YES=true; shift ;;
     --mock)     MOCK=true; shift ;;
     --reset)    RESET=true; shift ;;
+    --reload)   RELOAD=true; shift ;;
     -d|--down)  DOWN=true; shift ;;
     -h|--help)  usage; exit 0 ;;
     -g|--gpu|-p|--pull)
@@ -381,6 +385,22 @@ if $DOWN; then
   step "🛑 Stopping workshop-ai"
   docker compose "${COMPOSE_FILES[@]}" down -t 0
   printf '\n✅ Stopped.\n\n'
+  exit 0
+fi
+
+if $RELOAD; then
+  step "🔄 Reloading Node services"
+  # Use the same up-path as start_services so platform differences are respected.
+  # "up -d" recreates a container when its config (e.g. command:) has changed;
+  # plain "restart" reuses the old container and never picks up compose changes.
+  if [[ "$PROFILE" == "macos-native" ]]; then
+    docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
+  else
+    docker compose "${COMPOSE_FILES[@]}" up -d "${NODE_SERVICES[@]}"
+  fi
+  wait_for_services
+  info "all eight services have reloaded"
+  printf '\n✅ Ready — code changes are live.\n\n'
   exit 0
 fi
 
