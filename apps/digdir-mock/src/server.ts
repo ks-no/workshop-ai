@@ -298,41 +298,196 @@ function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string
     .map((navn) => `<input type="hidden" name="${navn}" value="${escapeHtml(parametere.get(navn))}">`)
     .join("\n        ");
 
+  // data-sok carries a lowercased haystack so the filter below never touches the
+  // DOM text. 369 options is too many to scroll, and a participant arrives knowing
+  // either a name or a personId.
   const valg = personer
-    .map((p) => `<option value="${escapeHtml(p.pid)}">${escapeHtml(p.visningsnavn)} — ${escapeHtml(p.personId)}${p.kommune ? ` (${escapeHtml(p.kommune)})` : ""}</option>`)
-    .join("\n          ");
+    .map((p) => {
+      const merke = p.visningsnavn === "Skjermet person" ? " \u00b7 skjermet" : "";
+      return `<option value="${escapeHtml(p.pid)}" data-sok="${escapeHtml(`${p.visningsnavn} ${p.personId} ${p.pid} ${p.kommune}`.toLowerCase())}">`
+        + `${escapeHtml(p.visningsnavn)} \u2014 ${escapeHtml(p.personId)}`
+        + `${p.kommune ? ` (${escapeHtml(p.kommune)})` : ""}${merke}</option>`;
+    })
+    .join("\n            ");
+
+  const klient = parametere.get("client_id") || "ukjent klient";
+  const tilbake = parametere.get("redirect_uri") || "";
 
   return `<!doctype html>
 <html lang="nb">
   <head>
     <meta charset="utf-8">
-    <title>ID-porten (mock) — velg testbruker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Logg inn \u2014 ID-porten (sandkasse)</title>
     <style>
-      body { font-family: system-ui, Arial, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
-      .merke { background: #fff3cd; border: 1px solid #e0c97f; padding: .6rem .8rem; border-radius: 6px; font-size: .9rem; }
-      select, button { font-size: 1rem; padding: .5rem; margin-top: .5rem; }
-      select { width: 100%; }
-      button { background: #0b5cab; color: white; border: 0; border-radius: 6px; padding: .6rem 1.2rem; cursor: pointer; }
-      dl { font-size: .85rem; color: #555; }
+      :root {
+        --blaa: #1a4a7a;
+        --blaa-moerk: #12395e;
+        --kant: #cdd7e0;
+        --grunn: #f1f4f7;
+        --tekst: #1d2b36;
+        --dempet: #5b6b7a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: var(--grunn);
+        color: var(--tekst);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        line-height: 1.5;
+      }
+      .kort {
+        width: 100%;
+        max-width: 30rem;
+        background: #fff;
+        border: 1px solid var(--kant);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(29, 43, 54, .08), 0 8px 24px rgba(29, 43, 54, .06);
+      }
+      .topp {
+        background: var(--blaa);
+        color: #fff;
+        padding: 1.1rem 1.5rem;
+        display: flex;
+        align-items: baseline;
+        gap: .6rem;
+      }
+      .topp strong { font-size: 1.15rem; letter-spacing: .01em; }
+      .topp span { font-size: .8rem; opacity: .85; }
+      .sandkasse {
+        margin: 0;
+        background: #fdf6e3;
+        border-bottom: 1px solid #e8d9a8;
+        padding: .7rem 1.5rem;
+        font-size: .82rem;
+        color: #6b5518;
+      }
+      .kropp { padding: 1.5rem; }
+      h1 { font-size: 1.15rem; margin: 0 0 .3rem; }
+      .under { margin: 0 0 1.4rem; color: var(--dempet); font-size: .9rem; }
+      label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: .35rem; }
+      input[type="search"], select {
+        width: 100%;
+        font: inherit;
+        font-size: .95rem;
+        padding: .55rem .7rem;
+        border: 1px solid var(--kant);
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+      }
+      input[type="search"]:focus, select:focus {
+        outline: 3px solid rgba(26, 74, 122, .35);
+        outline-offset: 1px;
+        border-color: var(--blaa);
+      }
+      input[type="search"] { margin-bottom: .6rem; }
+      /* No explicit height: let size="8" decide, so the last row is whole rather
+         than sliced in half. */
+      select { padding: .35rem; }
+      select option { padding: .15rem .35rem; }
+      .antall { font-size: .78rem; color: var(--dempet); margin: .45rem 0 1.2rem; }
+      button {
+        width: 100%;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: .7rem 1rem;
+        border: 0;
+        border-radius: 6px;
+        background: var(--blaa);
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover { background: var(--blaa-moerk); }
+      button:focus-visible { outline: 3px solid rgba(26, 74, 122, .45); outline-offset: 2px; }
+      .detaljer {
+        margin: 1.4rem 0 0;
+        padding-top: 1.1rem;
+        border-top: 1px solid var(--kant);
+        font-size: .8rem;
+        color: var(--dempet);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: .3rem .9rem;
+      }
+      .detaljer dt { font-weight: 600; }
+      .detaljer dd { margin: 0; overflow-wrap: anywhere; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95em; }
     </style>
   </head>
   <body>
-    <h1>ID-porten</h1>
-    <p class="merke">🧪 Dette er en mock. Ingen ekte innlogging, ingen ekte personer.
-      Tokenet du får er signert av sandkassen og godtas bare her.</p>
-    <form method="POST" action="/idporten/authorize">
-      ${skjulte}
-      <label for="pid">Velg testbruker</label>
-      <select id="pid" name="pid">
-          ${valg}
-      </select>
-      <p><button type="submit">Logg inn</button></p>
-    </form>
-    <dl>
-      <dt>Klient</dt><dd>${escapeHtml(parametere.get("client_id") || "(ukjent)")}</dd>
-      <dt>Tilbake til</dt><dd>${escapeHtml(parametere.get("redirect_uri") || "(ingen)")}</dd>
-      <dt>Sikkerhetsnivå</dt><dd>idporten-loa-high</dd>
-    </dl>
+    <main class="kort">
+      <div class="topp"><strong>ID-porten</strong><span>sandkasse</span></div>
+      <p class="sandkasse">
+        \ud83e\uddea <strong>Dette er en etterlikning.</strong> Ingen ekte innlogging, ingen ekte
+        personer. Tokenet du f\u00e5r er signert av sandkassen og godtas bare her.
+      </p>
+      <div class="kropp">
+        <h1>Velg testbruker</h1>
+        <p class="under"><code>${escapeHtml(klient)}</code> ber om \u00e5 f\u00e5 vite hvem du er.</p>
+        <form method="POST" action="/idporten/authorize">
+          ${skjulte}
+          <label for="sok">S\u00f8k etter navn, personId eller f\u00f8dselsnummer</label>
+          <input type="search" id="sok" placeholder="Maja, person-031, 0301 \u2026" autocomplete="off">
+          <label for="pid">Testbruker</label>
+          <select id="pid" name="pid" size="8" required>
+            ${valg}
+          </select>
+          <p class="antall" id="antall">${personer.length} testbrukere</p>
+          <button type="submit">Logg inn</button>
+        </form>
+        <dl class="detaljer">
+          <dt>Sikkerhetsniv\u00e5</dt><dd>idporten-loa-high (BankID)</dd>
+          <dt>Sendes til</dt><dd>${escapeHtml(tilbake) || "\u2014"}</dd>
+        </dl>
+      </div>
+    </main>
+    <script>
+      // Filtering happens on data-sok, so a search never depends on how the option
+      // happens to be rendered. Options are hidden rather than removed, so the
+      // form still posts a valid pid if the filter is cleared mid-selection.
+      const sok = document.getElementById("sok");
+      const velger = document.getElementById("pid");
+      const antall = document.getElementById("antall");
+      const alle = [...velger.options];
+
+      // A <select size=n> is a listbox, and a listbox starts with nothing selected —
+      // unlike a dropdown, which auto-selects its first option. Without this the
+      // form cannot be submitted until the user clicks a row, which reads as a
+      // broken button rather than as a missing choice.
+      function sikreValg() {
+        if (velger.selectedIndex >= 0 && !velger.options[velger.selectedIndex].hidden) {
+          return;
+        }
+        const foerste = alle.find((valg) => !valg.hidden);
+        if (foerste) {
+          foerste.selected = true;
+        }
+      }
+
+      sok.addEventListener("input", () => {
+        const naal = sok.value.trim().toLowerCase();
+        let synlige = 0;
+        for (const valg of alle) {
+          const treff = !naal || valg.dataset.sok.includes(naal);
+          valg.hidden = !treff;
+          if (treff) synlige += 1;
+        }
+        antall.textContent = naal
+          ? synlige + " av " + alle.length + " testbrukere"
+          : alle.length + " testbrukere";
+        sikreValg();
+      });
+
+      sikreValg();
+    </script>
   </body>
 </html>`;
 }
@@ -422,6 +577,23 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         acr_values_supported: ["idporten-loa-substantial", "idporten-loa-high"],
         syntetisk: true
       });
+      return;
+    }
+
+    // The testbrukere, machine-readable.
+    //
+    // This exists because the alternative was worse: klient.ts used to scrape the
+    // picker page for personId -> pid, and restyling that page broke every test
+    // script at once. The information is the same either way — the picker already
+    // publishes it — but a listing is a contract and HTML is not.
+    //
+    // Real ID-porten has nothing like this, and could not: there is no endpoint
+    // that lists the population. It is here because a test script needs to say
+    // "log in as person-031" without knowing a fødselsnummer by heart.
+    if (sti === "/idporten/testbrukere") {
+      // Protected people are listed by personId only, exactly as in the picker, so
+      // this does not become the way around Del A2.
+      jsonResponse(response, 200, await hentPersoner());
       return;
     }
 

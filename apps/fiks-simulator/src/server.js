@@ -1,5 +1,12 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+import { lagVerifikator, TokenFeil } from "../../digdir-mock/src/verifiser.ts";
+// A2's masking, reused rather than reimplemented. fiks-simulator reads
+// data/personer.json itself, so it is a second data layer that A2 never covered —
+// which is why /fiks/register/person/person-031 handed out a kode 6 person's name
+// and street address in full. The repo already carries four masking
+// implementations; this makes it three rather than five.
+import { maskerHusstand, maskerPerson } from "../../sandbox-backend/src/skjerming.ts";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +21,24 @@ const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../stat
 const port = Number(process.env.PORT) || 8081;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
+// This service is its own resource server, with its own audience. A token minted
+// for sandbox-backend is refused here, and that is the point of audience
+// restriction: a leaked token has a blast radius.
+const digdirBaseUrl = process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086";
+const digdirIssuer = process.env.DIGDIR_ISSUER || "http://localhost:8086";
+const authEnforce = process.env.AUTH_ENFORCE !== "false";
+
+// The scope Fiks' register surface requires. Real Fiks puts its register APIs
+// behind Maskinporten, and so does this.
+const SCOPE_REGISTER = "ks:fiks:register";
+
+const verifiserToken = lagVerifikator({
+  digdirBaseUrl,
+  maskinportenIssuer: digdirIssuer,
+  idportenIssuer: `${digdirIssuer}/idporten`,
+  audience: "fiks-simulator"
+});
+
 // Its only call to the backend is the audit log, so its hjemmel is exactly that
 // and nothing more. Three machines, three different scopes, none of them "admin".
 const TOKEN = {
@@ -24,12 +49,13 @@ const TOKEN = {
   resource: "sandbox-backend"
 };
 
-function jsonResponse(response, statusCode, data) {
+function jsonResponse(response, statusCode, data, headers = {}) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization"
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    ...headers
   });
   response.end(JSON.stringify(data, null, 2));
 }
@@ -289,6 +315,119 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
   return { feilmeldinger, deltakere, svarPersoner };
 }
 
+/**
+ * Maskinporten on the register surface. Throws a FiksFeil the request handler maps,
+ * so the shape is Fiks' own and not sandbox-backend's.
+ *
+ * Real Fiks would also check which organisation the consumer claim names, and
+ * whether that municipality has a data-processing agreement for the register. We
+ * check the scope and record the client, which is the part the workshop is about.
+ */
+class FiksFeil extends Error {
+  constructor(melding, status, kode, headers = {}) {
+    super(melding);
+    this.status = status;
+    this.kode = kode;
+    this.headers = headers;
+  }
+}
+
+async function krevRegisterHjemmel(request) {
+  if (!authEnforce) return null;
+
+  const header = request.headers.authorization;
+  if (!header) {
+    throw new FiksFeil(
+      "Registerflaten i Fiks krever et Maskinporten-token. " +
+      "Hent et med scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulator.",
+      401,
+      "MANGLER_TOKEN",
+      { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' }
+    );
+  }
+  const [ordning, token] = header.split(" ");
+  if (!/^bearer$/i.test(ordning || "") || !token) {
+    throw new FiksFeil(
+      "Authorization-headeren må være på formen «Bearer <token>».",
+      401,
+      "UGYLDIG_TOKEN",
+      { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' }
+    );
+  }
+
+  let verifisert;
+  try {
+    verifisert = await verifiserToken(token);
+  } catch (feil) {
+    if (feil instanceof TokenFeil) {
+      throw new FiksFeil(feil.message, feil.status, feil.status === 401 ? "UGYLDIG_TOKEN" : "UTSTEDER_NEDE",
+        feil.status === 401 ? { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' } : {});
+    }
+    throw feil;
+  }
+
+  // A citizen's ID-porten token cannot open a register API. The register is a
+  // machine-to-machine surface: the hjemmel belongs to the municipality, not to
+  // whoever happens to be logged in.
+  if (verifisert.utsteder !== "maskinporten") {
+    throw new FiksFeil(
+      "Registerflaten er en maskin-til-maskin-flate. Et personlig ID-porten-token " +
+      "gir ikke hjemmel her, uansett sikkerhetsnivå.",
+      403,
+      "KREVER_MASKINPORTEN"
+    );
+  }
+
+  const scopes = String(verifisert.krav.scope || "").split(" ").filter(Boolean);
+  if (!scopes.includes(SCOPE_REGISTER)) {
+    throw new FiksFeil(
+      `Klienten ${verifisert.krav.client_id} mangler scope ${SCOPE_REGISTER} ` +
+      `(har: ${scopes.join(" ") || "ingen"}).`,
+      403,
+      "MANGLER_SCOPE"
+    );
+  }
+
+  return {
+    clientId: verifisert.krav.client_id || "ukjent",
+    consumer: verifisert.krav.consumer?.ID || null
+  };
+}
+
+// The masking A2 applies in sandbox-backend's readState(), applied here too. Without
+// it a machine with register hjemmel still received an address-protected person in
+// full, which would undo A2 for anyone who found the route.
+function maskertPerson(person) {
+  return person ? maskerPerson(person) : person;
+}
+
+/**
+ * Who acted on a samtykke.
+ *
+ * The three events are not the same kind of act, and logging one actor for all
+ * three was the lie: the *service* asks for consent, the *citizen* answers it and
+ * the *citizen* withdraws it. Before this they all said
+ * `{ type: "testbruker", id: personId }` — which named the person the consent was
+ * about, not who did the thing.
+ *
+ * SANDBOX SIMPLIFICATION, and it belongs in the same drawer as the unverified
+ * client assertion in digdir-mock: for the citizen's own acts, the actor is taken
+ * from the request body, because only the caller knows. sandbox-backend supplies it
+ * from the verified token it holds.
+ *
+ * Forwarding the citizen's own token here instead would be the real answer, and it
+ * does not work: that token is minted for audience "sandbox-backend" and this
+ * service refuses it — correctly. Bridging that needs token exchange (RFC 8693),
+ * which is more machinery than the workshop needs. Absent a supplied actor we say
+ * what is true: fiks-simulator recorded this, on behalf of someone.
+ */
+function samtykkeAktor(oppgitt, personId) {
+  if (oppgitt && oppgitt.type) {
+    return oppgitt;
+  }
+  return { type: "system", id: "fiks-simulator", ...(personId ? { paaVegneAv: personId } : {}) };
+}
+
 function docsHtml() {
   return `
   <!doctype html>
@@ -347,6 +486,7 @@ const server = createServer(async (request, response) => {
       /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/redusert-foreldrebetaling$/
     );
     if (request.method === "POST" && beregningTreff) {
+      const klient = await krevRegisterHjemmel(request);
       const body = await readBody(request);
       const { feilmeldinger, deltakere, svarPersoner } = beregnRedusertForeldrebetaling(
         body, personer, inntekter
@@ -358,7 +498,12 @@ const server = createServer(async (request, response) => {
         sporingsId: body.sporingsId,
         handling: "BEREGNING_UTFOERT",
         ressurs: "skatteoginntektsopplysninger",
-        aktor: { type: "system", id: "fiks-simulator" }
+        // Who asked, not just who computed. The consumer claim names the
+        // organisation behind the client, which is what makes "which municipality
+        // looked this up" answerable.
+        aktor: klient
+          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
+          : { type: "system", id: "fiks-simulator" }
       });
 
       jsonResponse(response, 200, {
@@ -399,7 +544,9 @@ const server = createServer(async (request, response) => {
         sporingsId: nyttSamtykke.sporingsId,
         handling: "SAMTYKKE_OPPRETTET",
         ressurs: "samtykke",
-        aktor: { type: "testbruker", id: nyttSamtykke.personId }
+        // The service asked. A consent request is something a municipality sends,
+        // not something the citizen does — they have not answered yet.
+        aktor: { type: "system", id: "fiks-simulator", paaVegneAv: nyttSamtykke.personId }
       });
       jsonResponse(response, 201, nyttSamtykke);
       return;
@@ -442,7 +589,9 @@ const server = createServer(async (request, response) => {
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_SVART",
         ressurs: "samtykke",
-        aktor: { type: "testbruker", id: samtykke.personId },
+        // The citizen answered. This is the single most consequential entry in the
+        // whole log, and it must say who agreed.
+        aktor: samtykkeAktor(body.aktor, samtykke.personId),
         grunnlag: { status: samtykke.status, id: samtykke.samtykkeId }
       });
       jsonResponse(response, 200, samtykke);
@@ -464,7 +613,7 @@ const server = createServer(async (request, response) => {
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_TRUKKET",
         ressurs: "samtykke",
-        aktor: { type: "testbruker", id: samtykke.personId }
+        aktor: samtykkeAktor(body.aktor, samtykke.personId)
       });
       jsonResponse(response, 200, samtykke);
       return;
@@ -478,21 +627,34 @@ const server = createServer(async (request, response) => {
 
     const personTreff = url.pathname.match(/^\/fiks\/register\/person\/([^/]+)$/);
     if (request.method === "GET" && personTreff) {
+      await krevRegisterHjemmel(request);
       const person = personer.find((kandidat) => kandidat.personId === personTreff[1]);
-      jsonResponse(response, person ? 200 : 404, person || { feil: "Fant ikke person." });
+      jsonResponse(response, person ? 200 : 404, maskertPerson(person) || { feil: "Fant ikke person." });
       return;
     }
 
     const husstandTreff = url.pathname.match(/^\/fiks\/register\/husstand\/([^/]+)$/);
     if (request.method === "GET" && husstandTreff) {
+      await krevRegisterHjemmel(request);
       const person = personer.find((kandidat) => kandidat.personId === husstandTreff[1]);
       const husstand = husstander.find((kandidat) => kandidat.husstandId === person?.husstandId);
-      jsonResponse(response, husstand ? 200 : 404, husstand || { feil: "Fant ikke husstand." });
+      // The household address is masked only when every member is protected — you
+      // cannot hide an address someone shares with an unprotected person. Same rule
+      // as sandbox-backend, because it is the same function.
+      const gradering = new Map(personer.map((p) => [p.personId, p.adressebeskyttelse]));
+      jsonResponse(
+        response,
+        husstand ? 200 : 404,
+        husstand ? maskerHusstand(husstand, gradering) : { feil: "Fant ikke husstand." }
+      );
       return;
     }
 
     const inntektTreff = url.pathname.match(/^\/fiks\/register\/inntekt\/([^/]+)$/);
     if (request.method === "GET" && inntektTreff) {
+      // This route handed out full income with no token and no samtykke — the way
+      // around consent-before-income, the sandbox's flagship policy rule.
+      await krevRegisterHjemmel(request);
       const inntekt = inntekter.find((kandidat) => kandidat.personId === inntektTreff[1]);
       jsonResponse(response, inntekt ? 200 : 404, inntekt || { feil: "Fant ikke inntekt." });
       return;
@@ -500,14 +662,19 @@ const server = createServer(async (request, response) => {
 
     const barnehageTreff = url.pathname.match(/^\/fiks\/register\/barnehage\/([^/]+)$/);
     if (request.method === "GET" && barnehageTreff) {
+      await krevRegisterHjemmel(request);
       jsonResponse(response, 200, barnehageplasser.filter((kandidat) => kandidat.personId === barnehageTreff[1]));
       return;
     }
 
     const kontaktTreff = url.pathname.match(/^\/fiks\/register\/kontaktinfo\/([^/]+)$/);
     if (request.method === "GET" && kontaktTreff) {
+      await krevRegisterHjemmel(request);
       const person = personer.find((kandidat) => kandidat.personId === kontaktTreff[1]);
-      jsonResponse(response, person ? 200 : 404, person ? { personId: person.personId, kontakt: person.kontakt, syntetisk: true } : { feil: "Fant ikke person." });
+      // maskerPerson nulls epost and telefon for a protected person, so the contact
+      // details come from the masked copy rather than the raw seed.
+      const maskert = maskertPerson(person);
+      jsonResponse(response, person ? 200 : 404, person ? { personId: maskert.personId, kontakt: maskert.kontakt, syntetisk: true } : { feil: "Fant ikke person." });
       return;
     }
 
@@ -566,6 +733,16 @@ const server = createServer(async (request, response) => {
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
+    if (error instanceof FiksFeil) {
+      // Fiks' own error shape: a kode alongside the melding, the way the register
+      // API answers. Not sandbox-backend's shape, and not Tomcat HTML.
+      jsonResponse(response, error.status, {
+        feil: error.message,
+        feilmeldinger: [{ kode: error.kode, melding: error.message }],
+        syntetisk: true
+      }, error.headers);
+      return;
+    }
     jsonResponse(response, 500, { feil: "Intern feil i Fiks-simulator.", detalj: error.message, syntetisk: true });
   }
 });

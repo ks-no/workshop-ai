@@ -36,6 +36,27 @@ paths:
                 $ref: "#/components/schemas/InvokeToolResponse"
 
 components:
+  securitySchemes:
+    maskinporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
+        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` — et token utstedt for en annen
+        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
+        Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend`.
+    idporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
+        PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
+        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
+        «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
+        Hent ett med `scripts/token.ts --innbygger <personId>`.
   schemas:
     ProsessInfo:
       type: object

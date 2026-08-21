@@ -195,8 +195,11 @@ export async function hentInnbyggerToken({
 }
 
 // A test script knows people by personId; ID-porten knows them by fødselsnummer.
-// The picker page carries both, so it doubles as the lookup — no second data path
-// into personer.json, and no endpoint that exists only to map one to the other.
+//
+// This used to scrape the picker page for the mapping. It worked until the page was
+// restyled, and then every test script failed at once with "Fant ikke person-001
+// blant testbrukerne" — a message that points at the data rather than at the
+// markup. GET /idporten/testbrukere is a contract; HTML is not.
 const pidCache = new Map<string, string>();
 
 async function slaaOppPid(digdirBaseUrl: string, personId?: string): Promise<string> {
@@ -206,12 +209,12 @@ async function slaaOppPid(digdirBaseUrl: string, personId?: string): Promise<str
   const kjent = pidCache.get(personId);
   if (kjent) return kjent;
 
-  const svar = await fetch(
-    `${digdirBaseUrl}/idporten/authorize?client_id=oppslag&redirect_uri=http://localhost/x`
-  );
-  const side = await svar.text();
-  for (const [, funnetPid, funnetPersonId] of side.matchAll(/value="(\d{11})">[^<]*— ([a-z0-9-]+)/g)) {
-    pidCache.set(funnetPersonId, funnetPid);
+  const svar = await fetch(`${digdirBaseUrl}/idporten/testbrukere`);
+  if (!svar.ok) {
+    throw new Error(`Fikk ikke testbrukerlista fra digdir-mock: ${await lesFeil(svar)}`);
+  }
+  for (const bruker of await svar.json() as Array<{ personId: string; pid: string }>) {
+    pidCache.set(bruker.personId, bruker.pid);
   }
   const treff = pidCache.get(personId);
   if (!treff) {

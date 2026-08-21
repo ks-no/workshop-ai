@@ -22,7 +22,7 @@
 // hand itself any citizen's identity is exactly the wrong lesson.
 
 import type { IncomingMessage } from "node:http";
-import { createPublicKey, createVerify } from "node:crypto";
+import { lagVerifikator, TokenFeil } from "../../digdir-mock/src/verifiser.ts";
 import {
   authEnforce,
   digdirBaseUrl,
@@ -40,58 +40,21 @@ export type Kaller =
 /** Clock skew tolerance. Small on purpose — everything here runs on one machine. */
 const slakkSekunder = 10;
 
-// --- JWKS -----------------------------------------------------------------
-
-// Cached by kid. digdir-mock persists its key across restarts, but --reset rotates
-// it, so an unknown kid triggers exactly one refetch before we give up. Refetching
-// on every unknown kid without that guard turns a bad token into a way to make
-// this service hammer the issuer.
-let jwksCache = new Map<string, any>();
-let hentetSist = 0;
-
-async function hentNokkel(kid: string): Promise<any> {
-  const kjent = jwksCache.get(kid);
-  if (kjent) return kjent;
-
-  // Do not refetch more than once every few seconds for the same miss.
-  if (Date.now() - hentetSist < 3000) {
-    throw ugyldig(`Ukjent signeringsnøkkel (kid ${kid}).`);
-  }
-  hentetSist = Date.now();
-
-  let noekler: any[];
-  try {
-    const svar = await fetch(`${digdirBaseUrl}/jwks`, { signal: AbortSignal.timeout(3000) });
-    if (!svar.ok) {
-      throw new Error(`status ${svar.status}`);
-    }
-    noekler = ((await svar.json()) as any).keys || [];
-  } catch (feil: any) {
-    // The issuer being unreachable is not the caller's fault, and it must not read
-    // as "your token is invalid". 503 says whose problem it is.
-    throw new HttpError(
-      `Fikk ikke kontakt med tokenutstederen på ${digdirBaseUrl}. Kjører digdir-mock?`,
-      503,
-      { detalj: feil.message, syntetisk: true }
-    );
-  }
-
-  jwksCache = new Map(noekler.filter((n) => n.kid).map((n) => [n.kid, n]));
-  const funnet = jwksCache.get(kid);
-  if (!funnet) {
-    throw ugyldig(
-      `Tokenet er signert med en nøkkel utstederen ikke kjenner (kid ${kid}). ` +
-      `Er tokenet fra før en ./start.sh --reset?`
-    );
-  }
-  return funnet;
-}
-
 // --- verification ---------------------------------------------------------
 
-function ugyldig(melding: string): HttpError {
-  // RFC 6750 section 3: a 401 tells the client *how* to authenticate, and the
-  // error code is machine-readable.
+// The mechanics live in digdir-mock/src/verifiser.ts, shared with fiks-simulator.
+// What stays here is this service's policy: what a verified token *means*, and who
+// may do what with it.
+const verifiser = lagVerifikator({
+  digdirBaseUrl,
+  maskinportenIssuer,
+  idportenIssuer,
+  audience: tokenAudience
+});
+
+function fraTokenFeil(feil: TokenFeil): HttpError {
+  // RFC 6750 section 3: a 401 tells the client *how* to authenticate, and the error
+  // code is machine-readable.
   //
   // The Norwegian explanation stays in the response body and deliberately does not
   // go into error_description. Header values are ASCII — RFC 6750 defines
@@ -99,70 +62,15 @@ function ugyldig(melding: string): HttpError {
   // puts raw non-ASCII bytes on the wire, which a conforming client is entitled to
   // mangle or reject. Clients read the code in the header; people read the prose in
   // the body.
-  return new HttpError(melding, 401, { syntetisk: true }, {
-    "WWW-Authenticate": 'Bearer realm="sandbox-backend", error="invalid_token"'
-  });
-}
-
-function b64url(segment: string): string {
-  return Buffer.from(segment, "base64url").toString("utf8");
-}
-
-async function verifiser(token: string): Promise<any> {
-  const deler = token.split(".");
-  if (deler.length !== 3) {
-    throw ugyldig("Tokenet er ikke en JWT med tre segmenter.");
+  //
+  // 503 keeps its own shape: an unreachable issuer is not an authentication
+  // failure, and must not read as one.
+  if (feil.status === 401) {
+    return new HttpError(feil.message, 401, { syntetisk: true }, {
+      "WWW-Authenticate": 'Bearer realm="sandbox-backend", error="invalid_token"'
+    });
   }
-
-  let header: any;
-  let krav: any;
-  try {
-    header = JSON.parse(b64url(deler[0]));
-    krav = JSON.parse(b64url(deler[1]));
-  } catch {
-    throw ugyldig("Tokenet kunne ikke dekodes.");
-  }
-
-  // Never take the header's word for the algorithm. Accepting alg: "none", or an
-  // HMAC alg verified against the public key as a secret, is the classic JWT hole.
-  if (header.alg !== "RS256") {
-    throw ugyldig(`Forventet alg RS256, tokenet oppgir ${header.alg}.`);
-  }
-  if (!header.kid) {
-    throw ugyldig("Tokenet mangler kid, så nøkkelen kan ikke velges.");
-  }
-
-  const jwk = await hentNokkel(header.kid);
-  const signaturGyldig = createVerify("RSA-SHA256")
-    .update(`${deler[0]}.${deler[1]}`)
-    .verify(createPublicKey({ key: jwk, format: "jwk" }), Buffer.from(deler[2], "base64url"));
-  if (!signaturGyldig) {
-    throw ugyldig("Signaturen stemmer ikke med utstederens nøkkel.");
-  }
-
-  const naa = Math.floor(Date.now() / 1000);
-  if (typeof krav.exp !== "number" || krav.exp + slakkSekunder < naa) {
-    throw ugyldig("Tokenet er utløpt. Hent et nytt med scripts/token.sh.");
-  }
-  if (typeof krav.iat === "number" && krav.iat - slakkSekunder > naa) {
-    throw ugyldig("Tokenet er utstedt fram i tid.");
-  }
-  if (krav.iss !== maskinportenIssuer && krav.iss !== idportenIssuer) {
-    throw ugyldig(
-      `Ukjent utsteder ${krav.iss}. Forventet ${maskinportenIssuer} eller ${idportenIssuer}.`
-    );
-  }
-
-  // Audience restriction. A token minted for fiks-simulator must not open doors
-  // here, however valid its signature is.
-  const mottakere = Array.isArray(krav.aud) ? krav.aud : [krav.aud];
-  if (!mottakere.includes(tokenAudience)) {
-    throw ugyldig(
-      `Tokenet er utstedt for ${mottakere.join(", ")}, ikke for ${tokenAudience}.`
-    );
-  }
-
-  return krav;
+  return new HttpError(feil.message, feil.status, { syntetisk: true });
 }
 
 /**
@@ -179,16 +87,28 @@ export async function klassifiserKaller(request: IncomingMessage): Promise<Kalle
   }
   const [ordning, token] = header.split(" ");
   if (!/^bearer$/i.test(ordning || "") || !token) {
-    throw ugyldig("Authorization-headeren må være på formen «Bearer <token>».");
+    throw new HttpError(
+      "Authorization-headeren må være på formen «Bearer <token>».",
+      401,
+      { syntetisk: true },
+      { "WWW-Authenticate": 'Bearer realm="sandbox-backend", error="invalid_token"' }
+    );
   }
 
-  const krav = await verifiser(token);
+  let verifisert;
+  try {
+    verifisert = await verifiser(token);
+  } catch (feil) {
+    if (feil instanceof TokenFeil) throw fraTokenFeil(feil);
+    throw feil;
+  }
+  const { krav, utsteder } = verifisert;
 
   // The issuer decides the kind of caller. `pid` alone would be a weaker test: a
   // machine token that happened to carry the claim would be read as a citizen.
-  if (krav.iss === idportenIssuer) {
+  if (utsteder === "idporten") {
     if (!krav.pid) {
-      throw ugyldig("ID-porten-tokenet mangler pid.");
+      throw fraTokenFeil(new TokenFeil("ID-porten-tokenet mangler pid."));
     }
     return {
       type: "innbygger",

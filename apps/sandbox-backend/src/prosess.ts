@@ -134,7 +134,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     return { type: "QUESTION", svar };
   },
 
-  CONSENT_REQUEST: async ({ oekt, steg, body }) => {
+  CONSENT_REQUEST: async ({ oekt, steg, body, kaller }) => {
     if (body.handling === "opprett-samtykke") {
       const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke`, {
         method: "POST",
@@ -163,7 +163,11 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
-          sporingsId: oekt.sporingsId
+          sporingsId: oekt.sporingsId,
+          // Only this service holds the verified token, so only it can say who
+          // agreed. Without this the samtykke event would name fiks-simulator as
+          // the actor — honest, but far less useful than the truth.
+          aktor: aktorFor(kaller, oekt.personId)
         })
       });
       const data = await svar.json() as any;

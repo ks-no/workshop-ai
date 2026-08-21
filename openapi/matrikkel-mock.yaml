@@ -154,4 +154,15 @@ paths:
         "404":
           description: Ikke funnet
 
-
+components:
+  securitySchemes:
+    # matrikkel-mock er ikke bak Maskinporten. Matrikkelen er et offentlig register,
+    # og oppslagene her har ikke noe personsubjekt — de svarer på gater og eiendommer.
+    # Eierfiltreringen skjer på forespørselen, se apps/matrikkel-mock/src/server.js.
+    ingen:
+      type: apiKey
+      in: header
+      name: X-Ingen-Autentisering
+      description: >-
+        Ikke i bruk. Feltet finnes for å gjøre det eksplisitt at denne tjenesten
+        med vilje er åpen, framfor at fraværet av securitySchemes leses som en glipp.

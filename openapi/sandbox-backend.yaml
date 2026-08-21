@@ -490,18 +490,61 @@ paths:
               properties:
                 handling:
                   type: string
+                  description: >-
+                    `DATA_LES` og `DATA_NEKTET` gjelder datatilgang; `DATA_NEKTET`
+                    betyr hjemmel uten samtykke. `TILGANG_NEKTET` er noe annet: der
+                    manglet hjemmelen selv, altså 401 eller 403 før samtykke i det hele
+                    tatt ble vurdert. De to skal ikke slås sammen — forskjellen er hele
+                    poenget.
                   example: SAMTYKKE_OPPRETTET
                 ressurs:
                   type: string
                 sporingsId:
                   type: string
+                omfatter:
+                  type: array
+                  description: >-
+                    Hvilke personer dataene faktisk gjaldt, som personId. Utelates når
+                    det ikke sier mer enn aktor alt gjør. Finnes fordi de to ikke er
+                    samme sak: et inntektsoppslag kombinerer alle foresatte i
+                    husstanden, så for de 68 av 200 husstandene med to foresatte leses
+                    en partners skattedata på styrken av søkerens samtykke.
+                  items:
+                    type: string
+                    example: person-009
                 aktor:
                   type: object
+                  description: >-
+                    Hvem som kalte, avledet av tokenet — ikke hvem det ble spurt om.
+                    Identifikatorrommene er bevisst ulike: `id` er fødselsnummer for
+                    en innbygger, fordi det er hva ID-porten-tokenet bærer, mens
+                    `paaVegneAv` er personId, som er sandkassens domeneidentifikator.
                   properties:
                     type:
                       type: string
+                      enum: [innbygger, system, utvikler, ukjent]
+                      description: >-
+                        `innbygger` er en autentisert person via ID-porten. `system` er
+                        en maskinklient med eget scope. `utvikler` er prosessbyggeren,
+                        som ikke er en innbygger. `ukjent` betyr at ingen ble
+                        autentisert — det skjer bare med AUTH_ENFORCE=false, og skal se
+                        feil ut.
                     id:
                       type: string
+                      description: >-
+                        Fødselsnummer for `innbygger`, client_id for `system`, null for
+                        `ukjent`.
+                      example: "12018890001"
+                    acr:
+                      type: string
+                      description: Sikkerhetsnivået personen ble autentisert på.
+                      example: idporten-loa-high
+                    paaVegneAv:
+                      type: string
+                      description: >-
+                        For `system`: hvilken person kallet gjaldt. En maskin opptrer
+                        aldri *som* innbyggeren, men kan opptre på vegne av en.
+                      example: person-001
       responses:
         "201":
           description: Hendelsen er registrert
@@ -522,6 +565,27 @@ paths:
           description: Hendelser returnert
 
 components:
+  securitySchemes:
+    maskinporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
+        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` — et token utstedt for en annen
+        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
+        Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend`.
+    idporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
+        PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
+        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
+        «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
+        Hent ett med `scripts/token.ts --innbygger <personId>`.
   parameters:
     PersonId:
       name: personId
