@@ -1,4 +1,16 @@
 import { readFile } from "node:fs/promises";
+import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
+// The vedtak itself, imported rather than mirrored. This file used to carry its own
+// copy of every rule below, which meant data/forventet-utfall.json — the pinned
+// outcomes the workshop text rests on — was validated against the copy instead of
+// against the rule that ships. The two agreed, but nothing made them agree, and the
+// copy had already drifted for ordning shapes that do not exist yet (a trinnTil with
+// no trinnFra counted 11 plasser here and 4 in the rule).
+import {
+  plasserSomKvalifiserer,
+  regelKreverInntekt,
+  vurderVilkaar
+} from "../apps/sandbox-backend/src/vilkaar.ts";
 import { SAMTYKKESTATUSER } from "../apps/fiks-simulator/src/samtykke.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
@@ -105,47 +117,46 @@ for (const ordning of satser.ordninger) {
 const barnehageplasser = await les("data/barnehageplasser.json");
 const sfoplasser = await les("data/sfoplasser.json");
 const fritidsdeltakelse = await les("data/fritidsdeltakelse.json");
-// Mirrors tjenesteDatasett in apps/sandbox-backend/src/state.ts. A new tjeneste is
-// one line there and one line here.
-const plasserPerTjeneste = {
-  barnehage: barnehageplasser,
-  sfo: sfoplasser,
-  fritid: fritidsdeltakelse
+// The State the rules in vilkaar.ts read. The keys must match tjenesteDatasett in
+// apps/sandbox-backend/src/state.ts — a new tjeneste is one line there and one line
+// here. Get one wrong and hentPlasserForTjeneste throws `Ukjent tjeneste`, where the
+// old lookup silently yielded "no plass".
+//
+// This is assembled by hand rather than by calling readState(), on purpose, and it
+// must stay that way. readState() reads state/ before data/ (state.ts:15-27), so one
+// demo run leaving a state/satser.json behind would make this gate validate bytes
+// that are not the seed — the exact trap findShadowedSeeds warns about. It also runs
+// maskerBefolkning, which would make the "seed is not masked" check further down
+// assert against its own output. Both failures are silent.
+const tilstand = {
+  personer,
+  husstander,
+  satser,
+  barnehageplasser,
+  sfoplasser,
+  fritidsdeltakelse
 };
 
-function alderVed(foedselsdato, referansedato) {
-  const foedt = new Date(foedselsdato);
-  const referanse = new Date(referansedato);
-  const alder = referanse.getFullYear() - foedt.getFullYear();
-  const foerBursdag =
-    referanse.getMonth() < foedt.getMonth() ||
-    (referanse.getMonth() === foedt.getMonth() && referanse.getDate() < foedt.getDate());
-  return foerBursdag ? alder - 1 : alder;
-}
-
-function kvalifiserer(plass, ordning) {
-  if (ordning.trinnFra !== undefined) {
-    const til = ordning.trinnTil ?? ordning.trinnFra;
-    if (typeof plass.trinn !== "number" || plass.trinn < ordning.trinnFra || plass.trinn > til) {
-      return false;
-    }
-  }
-  if (ordning.alderFraAar !== undefined) {
-    const til = ordning.alderTilAar ?? ordning.alderFraAar;
-    const barn = personer.find((p) => p.personId === plass.personId);
-    if (!barn?.foedselsdato) return false;
-    const alder = alderVed(barn.foedselsdato, satser.gjelderFra);
-    if (alder < ordning.alderFraAar || alder > til) return false;
-  }
-  return true;
+// Whose data a household is assessed on. The rules take a person; this file iterates
+// households, so it has to name the søker the way prosess.ts does.
+function soekerFor(husstand) {
+  return husstand.medlemmer.find((m) => m.rolle === "foresatt")?.personId ?? null;
 }
 
 for (const ordning of satser.ordninger) {
   // Needs-based ordninger have no plass dataset. Their target group is the
   // applicant's own age, checked against data/tjenestetilbud.json further down.
   if (ordning.regel === "TJENESTEBEHOV") continue;
-  const treff = (plasserPerTjeneste[ordning.tjeneste] || []).filter((plass) => kvalifiserer(plass, ordning));
-  if (treff.length === 0) {
+  // Asked through the rule, so it is the rule's own definition of "in the target
+  // group" that is checked. Slightly stricter than the old dataset-wide sweep: a
+  // plass only counts if it belongs to a barn of the household it sits in. That is
+  // a no-op on today's seed — every plass row does — and it is the question worth
+  // asking, since a plass no household can reach cannot be granted either.
+  const treff = husstander.some((husstand) => {
+    const soeker = soekerFor(husstand);
+    return soeker !== null && plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length > 0;
+  });
+  if (!treff) {
     throw new Error(
       `Ingen ${ordning.tjeneste}-plass i dataene er i målgruppen for ${ordning.id}. ` +
       `Ordningen kan da aldri innvilges. Juster data/${ordning.tjeneste}plasser.json eller ordningen i data/satser.json.`
@@ -171,27 +182,38 @@ if (husstander.every(husstandsgrunnlag)) {
 // under the SFO threshold while its only child is in barnehage. Five scenario
 // texts described themselves wrongly for exactly that reason, and four of six
 // ordninger could only ever produce one outcome.
-function plasserIMaalgruppe(husstand, ordning) {
-  const barn = new Set(
-    husstand.medlemmer.filter((m) => m.rolle === "barn").map((m) => m.personId)
-  );
-  return (plasserPerTjeneste[ordning.tjeneste] || [])
-    .filter((plass) => barn.has(plass.personId) && kvalifiserer(plass, ordning));
-}
-
-// Mirrors regelHandtere in apps/sandbox-backend/src/regler.ts. Returns null when
-// the ordning cannot be assessed at all for this husstand.
+// The vedtak, from vilkaar.ts. Returns null when the ordning cannot be assessed at
+// all for this husstand — and that distinction is load-bearing: the pinned-outcome
+// check below uses `vurder(...) !== null` to enumerate which ordninger a husstand
+// even touches. vurderVilkaar never returns null (it answers "no qualifying plass"
+// as a real godkjent: false), so the three not-assessable cases have to be caught
+// here, before the call. Collapse them into an avslag and every husstand appears to
+// hit every ordning, the completeness check inverts, and the next reader concludes
+// data/forventet-utfall.json is stale. It is not; it is the oracle.
 function vurder(husstand, ordning) {
   // TJENESTEBEHOV is assessed per person, not per household, so it has its own
   // coverage check further down and is deliberately invisible here.
   if (ordning.regel === "TJENESTEBEHOV") return null;
-  const plasser = plasserIMaalgruppe(husstand, ordning);
-  if (plasser.length === 0) return null;
+  const soeker = soekerFor(husstand);
+  if (soeker === null) return null;
+  if (plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length === 0) return null;
   const g = husstandsgrunnlag(husstand);
-  if (g === null) return null;
-  if (ordning.regel === "INNTEKTSGRENSE") return g < ordning.inntektsgrense;
-  const aarspris = plasser.reduce((s, p) => s + p.manedspris, 0) * satser.maanederMedBetaling;
-  return aarspris > satser.maksAndelAvInntekt * g;
+  if (regelKreverInntekt[ordning.regel] && g === null) return null;
+  // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
+  // not marked medregnes), so the income rules are driven with the same number the
+  // running service would have fetched — no stack needed.
+  return vurderVilkaar(ordning.regel, {
+    tilstand,
+    personId: soeker,
+    ordning,
+    satser,
+    grunnlag: g,
+    // felles and forbehold only land in SjekkResultat.grunnlag and in the prose. This
+    // gate asserts on godkjent, never on melding — rewording a message must not fail
+    // a data check.
+    felles: {},
+    forbehold: ""
+  }).godkjent;
 }
 
 for (const ordning of satser.ordninger) {
@@ -321,6 +343,15 @@ for (const plass of sfoplasser) {
 // someone the tilbud fits and someone it does not. Three distinct rejection
 // reasons exist, and all three must be reachable — otherwise the branches that
 // produce them are dead code nobody notices.
+//
+// This block stays hand-rolled, and it is not a leftover mirror. It has to tell
+// `ingenTilbud` apart from `utenforMaalgruppe`, and vurderVilkaar cannot: both
+// TJENESTEBEHOV branches return godkjent: false with an identical key set in
+// grunnlag, so the only discriminator is `melding` — which this gate must not
+// assert on. Adding an `avslagsgrunn` key to grunnlag would fix it, but that
+// changes the contract dump for the støttekontakt flows, so it is its own
+// decision. Until then: the four-way classification here, the rule's own branches
+// covered by pnpm test:vilkaar.
 const tjenestetilbud = await les("data/tjenestetilbud.json");
 for (const ordning of satser.ordninger) {
   if (ordning.regel !== "TJENESTEBEHOV") continue;

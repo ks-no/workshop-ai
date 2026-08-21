@@ -49,6 +49,16 @@ jobs:
       - name: Skjerming av adressebeskyttede
         run: pnpm test:skjerming
 
+      # The vedtak itself, as pure functions against literal fixtures. Needs no
+      # stack and no model. This is not a duplicate of `pnpm test`: that one drives
+      # the same rule over the seed, and the seed cannot reach an ordning with only
+      # one bound set — the shape where the gate's old hand-written mirror disagreed
+      # with the rule. Only fixtures reach it. Same for TJENESTEBEHOV's dead
+      # rejection branches and the UTKAST forbehold, which the kontrakt dump never
+      # touches because every household it visits has a finished skatteoppgjør.
+      - name: Vilkårsvurderingen
+        run: pnpm test:vilkaar
+
       # The samtykke state machine, expiry and the write queue. Half pure functions,
       # half a real fiks-simulator on 18091 against a temp STATE_DIR — the lost-update
       # and double-answer cases only exist over HTTP.
