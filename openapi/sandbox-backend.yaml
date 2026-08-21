@@ -607,7 +607,7 @@ paths:
 
         Samtykke til inntekt kreves bare for ordninger som faktisk måles mot
         inntekt. Støttekontakt vurderes på behov, og henter da ingen inntekt —
-        se regelKreverInntekt i regler.ts.
+        se regelKreverInntekt i vilkaar.ts.
 
         `/api/regler/sjekk/foreldrebetaling` er et alias for denne. Navnet sier
         foreldrebetaling, men ruta har alltid tatt enhver ordning.

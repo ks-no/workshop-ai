@@ -17,7 +17,7 @@
 //   syntetiskFodselsnummer  regler.ts sends it to fiks-simulator for the income
 //                           lookup. Fiks already returns skjermet: true with no
 //                           name, so nothing is double-masked by keeping it.
-//   foedselsdato            regler.ts does age assessment against the ordning's
+//   foedselsdato            vilkaar.ts does age assessment against the ordning's
 //                           target group.
 //   bostedsadresse
 //     .kommunenummer        TJENESTEBEHOV filters the municipality's own tilbud on
@@ -62,7 +62,7 @@ type Maskeringsregel = {
 
 // Record<Adressegradering, ...> is the point of the closed union: add a fourth
 // grade to types.ts and the compiler demands a rule for it here, the same way
-// regelHandtere demands a handler for a new Regeltype.
+// regelHandtere in vilkaar.ts demands a handler for a new Regeltype.
 const REGLER: Record<Adressegradering, Maskeringsregel> = {
   UGRADERT: { skjulNavn: false, skjulAdresse: false },
   // Kode 7: the address is protected, the name is not.

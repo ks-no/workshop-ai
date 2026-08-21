@@ -9,7 +9,7 @@
  * `Record<T, T[]>` is the point of the type parameter: the compiler demands an
  * entry for every status, so adding one without deciding what it may become is a
  * compile error rather than a quiet dead end. Same pattern as `regelHandtere` in
- * regler.ts and `REGLER` in skjerming.ts.
+ * vilkaar.ts and `REGLER` in skjerming.ts.
  */
 
 export type Overgangsutfall<T extends string> =

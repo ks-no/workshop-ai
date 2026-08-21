@@ -10,10 +10,9 @@ import {
   harGyldigSamtykke,
   harUtloeptSamtykke,
   hentInntektForPerson,
-  regelKreverInntekt,
-  velgOrdningForTjeneste,
   vurderOrdning
 } from "./regler.ts";
+import { regelKreverInntekt, velgOrdningForTjeneste } from "./vilkaar.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import { eiendommerForPersonIGate, finnGate, hentGater } from "./matrikkel.ts";

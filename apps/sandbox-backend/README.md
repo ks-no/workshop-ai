@@ -25,7 +25,9 @@ direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22
 | `routes.ts` | Rutetabell for orkestrering: prosessøkter, prosess-CRUD, revisjonslogg. Delegerer alt dataoppslag til `ressurser.ts`. |
 | `ressurser.ts` | **Den delte ressurskatalogen.** Én oppføring blir samtidig et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål. |
 | `prosess.ts` | Stegmotoren. `stegHandtere` har én håndterer per stegtype. |
-| `regler.ts` | Vilkårsvurdering mot `data/satser.json`. `regelHandtere` har én håndterer per regeltype. |
+| `vilkaar.ts` | Vilkårsvurdering mot `data/satser.json`. Rent og synkront: `grunnlag` kommer inn som parameter, så et utfall kan pinnes uten kjørende tjenester. `vurderVilkaar` er eneste vei inn; `regelHandtere` er privat og har én håndterer per regeltype. |
+| `alder.ts` | `alderVed`. Delt av `vilkaar.ts`, `scripts/valider-data.js` og `scripts/importer-tenor.js`, som før hadde hver sin kopi. |
+| `regler.ts` | I/O-halvdelen av vilkårsvurderingen: henter beregningen fra Fiks, og samtykkepredikatene. |
 | `state.ts` | Lesing og skriving av datasett, og oppslagshjelpere. `readJson` leser `state/` først med `data/` som fallback. |
 | `types.ts` | Domenetypene. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. |
 | `routing.ts`, `errors.ts`, `http.ts`, `config.ts`, `revisjon.ts` | Småting. |
@@ -38,7 +40,7 @@ stedene — se `docs/prosessmodell.md` for hele oppskriften:
 1. ny flyt → `data/prosessdefinisjoner.json`
 2. ny ordning → `data/satser.json`
 3. ny datakilde eller sjekk → `ressurser.ts`
-4. ny regeltype → `regelHandtere` i `regler.ts`
+4. ny regeltype → `regelHandtere` i `vilkaar.ts` (privat; `vurderVilkaar` er inngangen)
 
 ## Testing
 

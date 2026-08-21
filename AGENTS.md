@@ -23,7 +23,7 @@
 - `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
   `./start.sh --reset` clears `state/`.
 - `apps/sandbox-backend` is TypeScript, split into modules (`routes.ts`, `prosess.ts`,
-  `ressurser.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
+  `ressurser.ts`, `vilkaar.ts`, `alder.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
   `errors.ts`, `config.ts`, `http.ts`).
   There is no `server.js` — `server.ts` only wires up the HTTP server.
   Node type-strips the `.ts` files directly; there is no build step.
@@ -38,6 +38,20 @@
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable — never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
+- **Eligibility logic lives in one place: `vilkaar.ts`.** `vurderVilkaar` is the only way
+  in; `regelHandtere` is private, so a new rule type does not widen the interface. The
+  module is pure and synchronous — the income basis arrives as a parameter — so an outcome
+  can be pinned with a literal `tilstand` object and no running services. `regler.ts` is
+  the I/O half (the Fiks beregning, the samtykke predicates) and `vilkaar.ts` must never
+  import it back: that arrow is what keeps a rules test from paying for a 2048-bit RSA
+  keypair at module load.
+  **`scripts/valider-data.js` imports the rule rather than mirroring it.** It used to
+  carry its own copy of every rule, so `data/forventet-utfall.json` — the pinned
+  outcomes the workshop text rests on — was validated against the copy. Never reintroduce
+  a second implementation for the gate's convenience, and never regenerate
+  `forventet-utfall.json` from the rules: an oracle derived from what it tests cannot
+  fail. `alderVed` lives in `alder.ts` for the same reason, shared by the rules, the gate
+  and `scripts/importer-tenor.js`.
 - Consent gating is enforced before protected data reads; do not bypass this in UI or agent logic.
 - A citizen may ask a free question at any point (`POST /ai/sporsmaal`). That path is
   **stateless by design**: it never calls `/svar`, `/handling` or `/neste`, and it never
@@ -105,6 +119,7 @@ docker compose down -t 0
 pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.js: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
+pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
@@ -133,7 +148,8 @@ pnpm test:agent:matrikkel
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer` and `test:kontrakt` on every PR
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`, `test:vilkaar`,
+  `test:skjerming`, `test:samtykke`, `test:openapi` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) — run those locally.

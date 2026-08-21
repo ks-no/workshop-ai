@@ -22,30 +22,27 @@
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
 
 const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = path.join(rot, "data");
 const tenorDir = path.join(dataDir, "tenor");
 const tørrkjør = process.argv.includes("--tørrkjør") || process.argv.includes("--torrkjor");
 
-// Age is computed at the rates' effective date, like everywhere else in the
-// sandbox, so the same person yields the same outcome whenever this runs.
-const REFERANSEDATO = "2026-08-01";
 const MYNDIG = 18;
 
 const les = async (fil) => JSON.parse(await readFile(fil, "utf8"));
 const skriv = (fil, data) =>
   writeFile(fil, JSON.stringify(data, null, 2) + "\n");
 
-function alderVed(foedselsdato, referansedato) {
-  const f = new Date(foedselsdato);
-  const r = new Date(referansedato);
-  const alder = r.getFullYear() - f.getFullYear();
-  const foerBursdag =
-    r.getMonth() < f.getMonth() ||
-    (r.getMonth() === f.getMonth() && r.getDate() < f.getDate());
-  return foerBursdag ? alder - 1 : alder;
-}
+// Age is computed at the rates' effective date, like everywhere else in the
+// sandbox, so the same person yields the same outcome whenever this runs. This
+// used to be a hardcoded "2026-08-01" that happened to equal satser.gjelderFra,
+// so the claim above was true only by coincidence of value. It matters more here
+// than it looks: the adult/child split below decides `rolle` in husstander.json,
+// which is an input to every rule in vilkaar.ts. A drifting reference date would
+// have moved the rules' input, not just one rule.
+const REFERANSEDATO = (await les(path.join(dataDir, "satser.json"))).gjelderFra;
 
 // --- reading the extracts ---------------------------------------------------
 
