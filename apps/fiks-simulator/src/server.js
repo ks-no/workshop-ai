@@ -7,16 +7,17 @@ import { lagVerifikator, TokenFeil } from "../../digdir-mock/src/verifiser.ts";
 // and street address in full. The repo already carries four masking
 // implementations; this makes it three rather than five.
 import { maskerHusstand, maskerPerson } from "../../sandbox-backend/src/skjerming.ts";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+// Consent has rules now: which statuses exist, what may follow what, and when a
+// samtykke has run out. All three live in samtykke.ts so the compiler can hold
+// them together — see the comment there.
+import { effektivStatus, validerSamtykkeovergang } from "./samtykke.ts";
+import { validerOppgaveovergang } from "./oppgave.ts";
+import { lagStateLeser, newId, updateJson } from "./state.ts";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// See the same split in sandbox-backend: data/ is seed and stays untouched,
-// state/ holds everything written at runtime and is gitignored.
-const seedDir = path.resolve(__dirname, "../../../data");
-const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 // PORT lar testskript starte en isolert instans ved siden av docker compose.
 const port = Number(process.env.PORT) || 8081;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
@@ -68,38 +69,12 @@ function textResponse(response, statusCode, data, contentType = "text/html; char
   response.end(data);
 }
 
-// Same two-level lookup as sandbox-backend: state/ first, then the seed in
-// data/. Runtime-only datasets have no seed and pass a default; anything
-// without one is required and fails loudly if missing.
-async function readJson(filnavn, standardverdi) {
-  for (const mappe of [stateDir, seedDir]) {
-    try {
-      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-  }
-  if (standardverdi !== undefined) {
-    return standardverdi;
-  }
-  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
-}
-
-async function writeJson(filnavn, data) {
-  await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, filnavn), JSON.stringify(data, null, 2) + "\n");
-}
-
 async function readBody(request) {
   const chunks = [];
   for await (const del of request) {
     chunks.push(del);
   }
   return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
-}
-
-function newId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 // sandbox-backend owns the audit log. We send events there instead of writing
@@ -428,6 +403,85 @@ function samtykkeAktor(oppgitt, personId) {
   return { type: "system", id: "fiks-simulator", ...(personId ? { paaVegneAv: personId } : {}) };
 }
 
+/**
+ * Turns a refused transition into the answer the caller gets.
+ *
+ * The state machine decides both the code and the status — 400 for a status that
+ * does not exist, 409 for one that cannot be reached from here — so the rule and
+ * its HTTP answer stay in one place. See tilstandsmaskin.ts.
+ */
+function krevOvergang(utfall) {
+  if (!utfall.lovlig) {
+    throw new FiksFeil(utfall.melding, utfall.status, utfall.kode);
+  }
+}
+
+/**
+ * The one place a samtykke changes status.
+ *
+ * /svar and /trekk were two near-identical blocks that each did their own lookup,
+ * their own mutation and their own write, which is how they ended up with two
+ * different notions of what a legal change was: /svar took any string, /trekk
+ * took none at all.
+ *
+ * Lookup, rule check and write all happen inside the queue, against the row as it
+ * is on disk right now. Reading it out first and validating against that copy
+ * would reintroduce exactly the race the queue exists to close — two answers
+ * arriving together would both see VENTER_PAA_SVAR and both be allowed.
+ */
+async function settSamtykkestatus(samtykkeId, oensket, body) {
+  let avvist = null;
+  try {
+    return await updateJson("samtykker.json", [], (samtykker) => {
+      const treff = samtykker.find((kandidat) => kandidat.samtykkeId === samtykkeId);
+      if (!treff) {
+        throw new FiksFeil("Fant ikke samtykke.", 404, "SAMTYKKE_IKKE_FUNNET");
+      }
+      // Against the *effective* status, so an expired consent cannot be answered,
+      // withdrawn or otherwise edited back into force.
+      const utfall = validerSamtykkeovergang(effektivStatus(treff), oensket);
+      if (!utfall.lovlig) {
+        avvist = {
+          personId: treff.personId,
+          sporingsId: treff.sporingsId,
+          grunnlag: { id: treff.samtykkeId, status: effektivStatus(treff), forsoekt: oensket, kode: utfall.kode }
+        };
+        krevOvergang(utfall);
+      }
+      treff.status = oensket;
+      treff.historikk = [...(treff.historikk || []), { tidspunkt: new Date().toISOString(), status: oensket }];
+      return treff;
+    });
+  } catch (feil) {
+    // An attempt to revive a withdrawn or expired samtykke is exactly what an
+    // audit log is for — the same reason B3 records TILGANG_NEKTET rather than
+    // only successful reads. A 404 or a malformed status logs nothing: there is no
+    // samtykke to attach the attempt to.
+    if (avvist) {
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || avvist.sporingsId,
+        handling: "SAMTYKKE_AVVIST",
+        ressurs: "samtykke",
+        aktor: samtykkeAktor(body.aktor, avvist.personId),
+        grunnlag: avvist.grunnlag
+      });
+    }
+    throw feil;
+  }
+}
+
+/**
+ * A samtykke as it is answered for, with expiry applied.
+ *
+ * UTLOEPT is derived rather than stored — nothing here runs on a timer — so the
+ * expiry has to be applied on the way out, or the API would keep reporting
+ * SAMTYKKET for a consent that no longer authorises anything. Same shape as A2's
+ * masking, which is likewise applied when the data leaves rather than in the seed.
+ */
+function medEffektivStatus(samtykke) {
+  return samtykke ? { ...samtykke, status: effektivStatus(samtykke) } : samtykke;
+}
+
 function docsHtml() {
   return `
   <!doctype html>
@@ -440,8 +494,11 @@ function docsHtml() {
         <li><code>GET /fiks/samtykke/{samtykkeId}</code></li>
         <li><code>PUT /fiks/samtykke/{samtykkeId}/svar</code></li>
         <li><code>PUT /fiks/samtykke/{samtykkeId}/trekk</code></li>
+        <li><code>GET /fiks/samtykke/{samtykkeId}/historikk</code></li>
         <li><code>GET /fiks/personer/{personId}/samtykker</code></li>
         <li><code>POST /fiks/oppgaver</code></li>
+        <li><code>GET /fiks/oppgaver/{oppgaveId}</code></li>
+        <li><code>PUT /fiks/oppgaver/{oppgaveId}/status</code></li>
       </ul>
     </body>
   </html>`;
@@ -472,13 +529,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    const personer = await readJson("personer.json");
-    const husstander = await readJson("husstander.json");
-    const inntekter = await readJson("inntekter.json");
-    const barnehageplasser = await readJson("barnehageplasser.json");
-    const samtykker = await readJson("samtykker.json", []);
-    const oppgaver = await readJson("oppgaver.json", []);
-    const meldinger = await readJson("meldinger.json", []);
+    // Lazy, so a route that only touches samtykker never opens personer.json —
+    // this used to read all seven files, 369 people included, on every request.
+    // Writes do not go through here: they go through updateJson, which reads
+    // inside its own queue. See state.ts.
+    const tilstand = lagStateLeser();
 
     // Full Fiks path, so calls can be copied straight from the Fiks documentation
     // and later point at the real API by changing only the base URL.
@@ -489,7 +544,7 @@ const server = createServer(async (request, response) => {
       const klient = await krevRegisterHjemmel(request);
       const body = await readBody(request);
       const { feilmeldinger, deltakere, svarPersoner } = beregnRedusertForeldrebetaling(
-        body, personer, inntekter
+        body, await tilstand.personer(), await tilstand.inntekter()
       );
       const { inntekt, fradrag, beregningsbeloep } = byggBeregning(deltakere);
       const stadier = svarPersoner.map((p) => p.stadie);
@@ -538,8 +593,10 @@ const server = createServer(async (request, response) => {
         historikk: [{ tidspunkt: new Date().toISOString(), status: "VENTER_PAA_SVAR" }],
         syntetisk: true
       };
-      samtykker.push(nyttSamtykke);
-      await writeJson("samtykker.json", samtykker);
+      // Two of these arriving at once used to produce one samtykke: both read the
+      // same array, both pushed, both wrote, and the loser vanished without an
+      // error. The queue makes the read part of the write.
+      await updateJson("samtykker.json", [], (samtykker) => samtykker.push(nyttSamtykke));
       await leggTilRevisjon({
         sporingsId: nyttSamtykke.sporingsId,
         handling: "SAMTYKKE_OPPRETTET",
@@ -554,17 +611,19 @@ const server = createServer(async (request, response) => {
 
     const samtykkeTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)$/);
     if (request.method === "GET" && samtykkeTreff) {
+      const samtykker = await tilstand.samtykker();
       const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === samtykkeTreff[1]);
       if (!samtykke) {
         jsonResponse(response, 404, { feil: "Fant ikke samtykke." });
         return;
       }
-      jsonResponse(response, 200, samtykke);
+      jsonResponse(response, 200, medEffektivStatus(samtykke));
       return;
     }
 
     const historikkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/historikk$/);
     if (request.method === "GET" && historikkTreff) {
+      const samtykker = await tilstand.samtykker();
       const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === historikkTreff[1]);
       if (!samtykke) {
         jsonResponse(response, 404, { feil: "Fant ikke samtykke." });
@@ -577,14 +636,7 @@ const server = createServer(async (request, response) => {
     const svarTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/svar$/);
     if (request.method === "PUT" && svarTreff) {
       const body = await readBody(request);
-      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === svarTreff[1]);
-      if (!samtykke) {
-        jsonResponse(response, 404, { feil: "Fant ikke samtykke." });
-        return;
-      }
-      samtykke.status = body.status || "SAMTYKKET";
-      samtykke.historikk.push({ tidspunkt: new Date().toISOString(), status: samtykke.status });
-      await writeJson("samtykker.json", samtykker);
+      const samtykke = await settSamtykkestatus(svarTreff[1], body.status || "SAMTYKKET", body);
       await leggTilRevisjon({
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_SVART",
@@ -594,41 +646,40 @@ const server = createServer(async (request, response) => {
         aktor: samtykkeAktor(body.aktor, samtykke.personId),
         grunnlag: { status: samtykke.status, id: samtykke.samtykkeId }
       });
-      jsonResponse(response, 200, samtykke);
+      jsonResponse(response, 200, medEffektivStatus(samtykke));
       return;
     }
 
     const trekkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/trekk$/);
     if (request.method === "PUT" && trekkTreff) {
       const body = await readBody(request);
-      const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === trekkTreff[1]);
-      if (!samtykke) {
-        jsonResponse(response, 404, { feil: "Fant ikke samtykke." });
-        return;
-      }
-      samtykke.status = "TRUKKET";
-      samtykke.historikk.push({ tidspunkt: new Date().toISOString(), status: "TRUKKET" });
-      await writeJson("samtykker.json", samtykker);
+      // A withdrawal is a transition like any other: from SAMTYKKET and nowhere
+      // else. Before this it overwrote whatever the status was, so a consent could
+      // be withdrawn twice, or withdrawn while the citizen had never answered it.
+      const samtykke = await settSamtykkestatus(trekkTreff[1], "TRUKKET", body);
       await leggTilRevisjon({
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_TRUKKET",
         ressurs: "samtykke",
         aktor: samtykkeAktor(body.aktor, samtykke.personId)
       });
-      jsonResponse(response, 200, samtykke);
+      jsonResponse(response, 200, medEffektivStatus(samtykke));
       return;
     }
 
     const personSamtykkeTreff = url.pathname.match(/^\/fiks\/personer\/([^/]+)\/samtykker$/);
     if (request.method === "GET" && personSamtykkeTreff) {
-      jsonResponse(response, 200, samtykker.filter((samtykke) => samtykke.personId === personSamtykkeTreff[1]));
+      const samtykker = await tilstand.samtykker();
+      jsonResponse(response, 200, samtykker
+        .filter((samtykke) => samtykke.personId === personSamtykkeTreff[1])
+        .map(medEffektivStatus));
       return;
     }
 
     const personTreff = url.pathname.match(/^\/fiks\/register\/person\/([^/]+)$/);
     if (request.method === "GET" && personTreff) {
       await krevRegisterHjemmel(request);
-      const person = personer.find((kandidat) => kandidat.personId === personTreff[1]);
+      const person = (await tilstand.personer()).find((kandidat) => kandidat.personId === personTreff[1]);
       jsonResponse(response, person ? 200 : 404, maskertPerson(person) || { feil: "Fant ikke person." });
       return;
     }
@@ -636,8 +687,9 @@ const server = createServer(async (request, response) => {
     const husstandTreff = url.pathname.match(/^\/fiks\/register\/husstand\/([^/]+)$/);
     if (request.method === "GET" && husstandTreff) {
       await krevRegisterHjemmel(request);
+      const personer = await tilstand.personer();
       const person = personer.find((kandidat) => kandidat.personId === husstandTreff[1]);
-      const husstand = husstander.find((kandidat) => kandidat.husstandId === person?.husstandId);
+      const husstand = (await tilstand.husstander()).find((kandidat) => kandidat.husstandId === person?.husstandId);
       // The household address is masked only when every member is protected — you
       // cannot hide an address someone shares with an unprotected person. Same rule
       // as sandbox-backend, because it is the same function.
@@ -655,7 +707,7 @@ const server = createServer(async (request, response) => {
       // This route handed out full income with no token and no samtykke — the way
       // around consent-before-income, the sandbox's flagship policy rule.
       await krevRegisterHjemmel(request);
-      const inntekt = inntekter.find((kandidat) => kandidat.personId === inntektTreff[1]);
+      const inntekt = (await tilstand.inntekter()).find((kandidat) => kandidat.personId === inntektTreff[1]);
       jsonResponse(response, inntekt ? 200 : 404, inntekt || { feil: "Fant ikke inntekt." });
       return;
     }
@@ -663,14 +715,15 @@ const server = createServer(async (request, response) => {
     const barnehageTreff = url.pathname.match(/^\/fiks\/register\/barnehage\/([^/]+)$/);
     if (request.method === "GET" && barnehageTreff) {
       await krevRegisterHjemmel(request);
-      jsonResponse(response, 200, barnehageplasser.filter((kandidat) => kandidat.personId === barnehageTreff[1]));
+      jsonResponse(response, 200, (await tilstand.barnehageplasser())
+        .filter((kandidat) => kandidat.personId === barnehageTreff[1]));
       return;
     }
 
     const kontaktTreff = url.pathname.match(/^\/fiks\/register\/kontaktinfo\/([^/]+)$/);
     if (request.method === "GET" && kontaktTreff) {
       await krevRegisterHjemmel(request);
-      const person = personer.find((kandidat) => kandidat.personId === kontaktTreff[1]);
+      const person = (await tilstand.personer()).find((kandidat) => kandidat.personId === kontaktTreff[1]);
       // maskerPerson nulls epost and telefon for a protected person, so the contact
       // details come from the masked copy rather than the raw seed.
       const maskert = maskertPerson(person);
@@ -688,10 +741,10 @@ const server = createServer(async (request, response) => {
         status: "OPPRETTET",
         opprettet: new Date().toISOString(),
         sporingsId: body.sporingsId || newId("flyt"),
+        historikk: [{ tidspunkt: new Date().toISOString(), status: "OPPRETTET" }],
         syntetisk: true
       };
-      oppgaver.push(oppgave);
-      await writeJson("oppgaver.json", oppgaver);
+      await updateJson("oppgaver.json", [], (oppgaver) => oppgaver.push(oppgave));
       await leggTilRevisjon({
         sporingsId: oppgave.sporingsId,
         handling: "OPPGAVE_OPPRETTET",
@@ -704,8 +757,35 @@ const server = createServer(async (request, response) => {
 
     const oppgaveTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)$/);
     if (request.method === "GET" && oppgaveTreff) {
-      const oppgave = oppgaver.find((kandidat) => kandidat.oppgaveId === oppgaveTreff[1]);
+      const oppgave = (await tilstand.oppgaver()).find((kandidat) => kandidat.oppgaveId === oppgaveTreff[1]);
       jsonResponse(response, oppgave ? 200 : 404, oppgave || { feil: "Fant ikke oppgave." });
+      return;
+    }
+
+    // Casework has a direction: an oppgave is picked up, then finished or rejected,
+    // and none of those are undoable. No case in the sandbox drives an oppgave past
+    // OPPRETTET yet — this is the surface a saksbehandlerflate would use.
+    const oppgaveStatusTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)\/status$/);
+    if (request.method === "PUT" && oppgaveStatusTreff) {
+      const body = await readBody(request);
+      const oppgave = await updateJson("oppgaver.json", [], (oppgaver) => {
+        const treff = oppgaver.find((kandidat) => kandidat.oppgaveId === oppgaveStatusTreff[1]);
+        if (!treff) {
+          throw new FiksFeil("Fant ikke oppgave.", 404, "OPPGAVE_IKKE_FUNNET");
+        }
+        krevOvergang(validerOppgaveovergang(treff.status, body.status));
+        treff.status = body.status;
+        treff.historikk = [...(treff.historikk || []), { tidspunkt: new Date().toISOString(), status: body.status }];
+        return treff;
+      });
+      await leggTilRevisjon({
+        sporingsId: body.sporingsId || oppgave.sporingsId,
+        handling: "OPPGAVE_STATUS_ENDRET",
+        ressurs: "oppgave",
+        aktor: samtykkeAktor(body.aktor, oppgave.personId),
+        grunnlag: { status: oppgave.status, id: oppgave.oppgaveId }
+      });
+      jsonResponse(response, 200, oppgave);
       return;
     }
 
@@ -718,15 +798,14 @@ const server = createServer(async (request, response) => {
         opprettet: new Date().toISOString(),
         syntetisk: true
       };
-      meldinger.push(melding);
-      await writeJson("meldinger.json", meldinger);
+      await updateJson("meldinger.json", [], (meldinger) => meldinger.push(melding));
       jsonResponse(response, 201, melding);
       return;
     }
 
     const meldingTreff = url.pathname.match(/^\/fiks\/meldinger\/([^/]+)$/);
     if (request.method === "GET" && meldingTreff) {
-      const melding = meldinger.find((kandidat) => kandidat.meldingId === meldingTreff[1]);
+      const melding = (await tilstand.meldinger()).find((kandidat) => kandidat.meldingId === meldingTreff[1]);
       jsonResponse(response, melding ? 200 : 404, melding || { feil: "Fant ikke melding." });
       return;
     }

@@ -42,8 +42,8 @@ Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal d
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
-- OpenAPI for alle seks tjenester — `sandbox-backend` med 28 av 31 stier, `process-agent`
-  komplett, `fiks-simulator` fortsatt bare 4 av 20
+- OpenAPI for alle seks tjenester, komplett og holdt i takt med koden av
+  `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
 Se `docs/veien-videre.md` for hva som gjenstår og hvilke arkitekturvalg som er åpne.
 
@@ -510,10 +510,9 @@ Anbefalt arbeidsform:
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
-- CI kjører `pnpm lint`, `pnpm test` og `pnpm test:kontrakt` på PR. Evalene og
+- CI kjører `pnpm lint`, `pnpm test`, `pnpm test:sperrer`, `pnpm test:skjerming`,
+  `pnpm test:samtykke`, `pnpm test:openapi` og `pnpm test:kontrakt` på PR. Evalene og
   stack-testene gjør den ikke — de krever en modell eller en kjørende stack
-- `openapi/fiks-simulator.yaml` dokumenterer 4 av 20 ruter. De øvrige spesifikasjonene
-  er stort sett komplette
 - Ingen persistensstrategi utover flate JSON-filer. `process-agent` holder sesjoner i
   minnet og mister dem ved restart
 - Datasett og policyer er laget for demo og hackathon, ikke produksjon

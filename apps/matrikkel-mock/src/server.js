@@ -181,6 +181,20 @@ function leggTilBonesheienHvisMangler(register) {
   });
 }
 
+// The live lookups reach ws.geonorge.no, and both wrappers are only ever called
+// after the seed has already missed. An outage there must therefore degrade to
+// "not found" rather than surface as a 500: a mock that fails because an external
+// API is down is worse than one that answers what it knows.
+//
+// This was not theoretical. A slow Geonorge turned GET /api/matrikkel/gater?gate=
+// on an unknown street from 404 into 502, which made the contract dump differ
+// between runs — and a hackathon venue with no outbound network would have hit it
+// on every miss.
+function utenLive(feil, hva) {
+  console.warn(`Live-oppslag mot Geonorge feilet (${hva}): ${feil.message}. Svarer fra seeden alene.`);
+  return null;
+}
+
 function finnEiendomViaLive(register, adresseSoek) {
   return finnEiendomLive(adresseSoek).then((treff) => {
     if (!treff) return null;
@@ -193,11 +207,18 @@ function finnEiendomViaLive(register, adresseSoek) {
       poststed: treff.poststed
     });
     return { gate, eiendom: treff };
-  });
+  }).catch((feil) => utenLive(feil, `eiendom ${adresseSoek}`));
 }
 
 async function finnGaterViaLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
-  return finnGaterLive(gateSoek, includeEiendommer, kommunenummer);
+  try {
+    return await finnGaterLive(gateSoek, includeEiendommer, kommunenummer);
+  } catch (feil) {
+    utenLive(feil, `gate ${gateSoek}`);
+    // The callers treat the result as a list, so an empty one is the miss they
+    // already know how to answer.
+    return [];
+  }
 }
 
 function jsonResponse(response, statusCode, data) {

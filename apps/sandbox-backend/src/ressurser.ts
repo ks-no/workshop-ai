@@ -8,6 +8,7 @@ import {
 import { HttpError } from "./errors.ts";
 import {
   harGyldigSamtykke,
+  harUtloeptSamtykke,
   hentInntektForPerson,
   regelKreverInntekt,
   velgOrdningForTjeneste,
@@ -516,20 +517,27 @@ export async function utforRessurs(
       kontekst.oekt?.aktivtSamtykkeId
     );
     if (!samtykke) {
+      // A consent that ran out is not the same refusal as one that was never
+      // given, and telling a citizen who remembers agreeing that they must
+      // "register a samtykke" reads as the system having forgotten. Both are
+      // DATA_NEKTET — hjemmel was there, samtykke was not — but the reason differs.
+      const utloept = harUtloeptSamtykke(tilstand, kontekst.personId, kreverSamtykke);
       await leggTilRevisjon({
         sporingsId: kontekst.sporingsId,
         handling: "DATA_NEKTET",
         ressurs: ressurs.ressurs,
-        formaal: "Mangler samtykke",
+        formaal: utloept ? "Utløpt samtykke" : "Mangler samtykke",
         ...omfatterFelt,
         aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
       throw new HttpError(
-        `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
+        utloept
+          ? `Samtykket som dekket dette har utløpt. ${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever et nytt samtykke.`
+          : `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
         403,
         // Both 403s carry a machine-readable grunn, so a client can tell "you may
         // not" from "you may, but nobody has consented yet" without parsing prose.
-        { syntetisk: true, grunn: "mangler_samtykke" }
+        { syntetisk: true, grunn: utloept ? "utloept_samtykke" : "mangler_samtykke" }
       );
     }
   }

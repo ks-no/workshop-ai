@@ -12,25 +12,29 @@ Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-19 ruter. Samtykke — foreløpig åpne. `POST`/`PUT`-rutene kalles bare av prosessmotoren i
-sandbox-backend, og aktøren i revisjonsloggen settes fra tokenet den holder:
-`SAMTYKKE_OPPRETTET` er tjenesten som *ber* om samtykke, mens `SAMTYKKE_SVART` og
-`SAMTYKKE_TRUKKET` er innbyggeren som svarer. Kalles de direkte med curl, står
-fiks-simulator som aktør «på vegne av» personen — sant, men mindre presist.
+21 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. Samtykke-, oppgave- og
+meldingsflatene er foreløpig åpne; registerflaten og beregningen er bak Maskinporten.
+
+`POST`/`PUT`-rutene kalles normalt bare av prosessmotoren i sandbox-backend, og aktøren i
+revisjonsloggen settes fra tokenet den holder: `SAMTYKKE_OPPRETTET` er tjenesten som *ber*
+om samtykke, mens `SAMTYKKE_SVART` og `SAMTYKKE_TRUKKET` er innbyggeren som svarer. Kalles
+de direkte med curl, står fiks-simulator som aktør «på vegne av» personen — sant, men
+mindre presist.
 
 Samtykke:
 
 - `POST /fiks/samtykke` — opprett
 - `GET /fiks/samtykke/{samtykkeId}`
 - `GET /fiks/samtykke/{samtykkeId}/historikk`
-- `POST /fiks/samtykke/{samtykkeId}/svar`
-- `POST /fiks/samtykke/{samtykkeId}/trekk`
+- `PUT /fiks/samtykke/{samtykkeId}/svar`
+- `PUT /fiks/samtykke/{samtykkeId}/trekk`
 - `GET /fiks/personer/{personId}/samtykker`
 
 Register — **bak Maskinporten**, scope `ks:fiks:register`:
 
 - `GET /fiks/register/person/{personId}`
-- `GET /fiks/register/husstand/{husstandId}`
+- `GET /fiks/register/husstand/{personId}` — slår opp på **personId**, og finner
+  husstanden derfra
 - `GET /fiks/register/inntekt/{personId}`
 - `GET /fiks/register/barnehage/{personId}`
 - `GET /fiks/register/kontaktinfo/{personId}`
@@ -55,26 +59,56 @@ Fram til Del B leste denne tjenesten `data/personer.json` selv uten å maskere, 
 Oppgaver og meldinger:
 
 - `POST /fiks/oppgaver`, `GET /fiks/oppgaver/{oppgaveId}`
+- `PUT /fiks/oppgaver/{oppgaveId}/status`
 - `POST /fiks/meldinger`, `GET /fiks/meldinger/{meldingId}`
 
 Beregning — den eneste ruta som speiler et ekte KS-API, også bak `ks:fiks:register`:
 
-- `GET /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
+- `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
 
 Modellert etter
 [register-skatteoginntektsopplysninger-beregning-api-v1](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json),
 beregningstype `BARNEHAGE_SFO`.
 
-Pluss `/helse`, `/docs` og `/openapi.yaml`.
+Pluss `/helse`, `/health`, `/docs` og `/openapi.yaml`.
 
-## OpenAPI henger etter
+## Samtykket har regler
 
-`openapi/fiks-simulator.yaml` dekker **4 av 19** ruter: `/helse`, `/fiks/samtykke`,
-`/fiks/samtykke/{samtykkeId}` og beregningsruta. Hele register-, oppgave- og
-meldingsdelen mangler, det samme gjør samtykkets underruter.
+Samtykke er sandkassens viktigste policyregel, og kan derfor ikke være det slappeste i
+stacken. Kodeverket og tilstandsmaskinen ligger i `src/samtykke.ts`:
 
-`securitySchemes` er på plass i spesifikasjonen, men de enkelte rutene er ennå ikke
-merket med `security:` — den delen hører til Del E.
+```
+VENTER_PAA_SVAR → SAMTYKKET | IKKE_SAMTYKKET
+SAMTYKKET       → TRUKKET | UTLOEPT
+IKKE_SAMTYKKET  → endelig
+TRUKKET         → endelig
+UTLOEPT         → endelig
+```
 
-Å tette dette er en fin, avgrenset førsteoppgave. Rutene finnes og virker — det er
-bare beskrivelsen som mangler.
+- **Ugyldig overgang gir 409** med hva statusen var og hva som ble forsøkt. Et trukket
+  samtykke kan ikke gjenopplives ved å svare på det igjen.
+- **En status utenfor kodeverket gir 400.** Forskjellen er med vilje: «du skrev feil» og
+  «du er for sent ute» er ikke samme svar.
+- **`utloper` leses.** Et samtykke er gyldig i 30 dager. `UTLOEPT` *utledes* på vei ut —
+  ingenting kjører på en timer her, så raden på disk står som `SAMTYKKET` mens API-et
+  svarer `UTLOEPT`. Historikken forblir dermed et faktisk hendelsesforløp: utløp er noe
+  som skjedde med samtykket, ikke noe noen gjorde.
+- **Avviste forsøk revisjonslogges** som `SAMTYKKE_AVVIST`, med status, forsøk og kode.
+  Et forsøk på å gjenopplive et trukket samtykke er nettopp det en revisjonslogg er til
+  for.
+- **Skriving er serialisert.** Ti samtidige `POST /fiks/samtykke` ga tre samtykker før
+  skrivekøen i `src/state.ts`; nå gir de ti. Fem samtidige svar på samme samtykke gir ett
+  `200` og fire `409`.
+
+Oppgaven har samme form, i `src/oppgave.ts`: `OPPRETTET → UNDER_BEHANDLING → FERDIG |
+AVVIST`. Ingen case driver en oppgave videre ennå — flaten finnes for en
+saksbehandlerflate.
+
+`pnpm test:samtykke` dekker alt dette, uten stack og uten modell.
+
+## Spesifikasjonen holdes i takt
+
+`pnpm test:openapi` sammenligner hver rute i koden med hver path i spesifikasjonen, i
+begge retninger, og feiler også på duplikate path-nøkler, feil metode, manglende
+`security:` og et kodeverk som har kommet ut av takt. Legger du til en rute her uten å
+dokumentere den, feiler CI.

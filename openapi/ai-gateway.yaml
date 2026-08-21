@@ -7,7 +7,31 @@ info:
     Støtter mock, Ollama og OpenRouter som provider (AI_PROVIDER-env).
 servers:
   - url: http://localhost:8082
+# Ingen av rutene her krever token, og det er et valg, ikke en glipp.
+# ai-gateway er en intern tjeneste i sandkassen: den kalles av sandbox-backend og demo-GUI-ene, og henter selv et Maskinporten-token når den skriver til revisjonsloggen. Innkommende kall verifiseres ikke.
+# En tom security på dokumentnivå gjelder alle operasjonene under paths.
+security: []
+
 paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
   /health:
     get:
       summary: Health check, inkludert om modellen faktisk er tilgjengelig
@@ -227,28 +251,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/VelgVerktoyResponse"
 
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+
 components:
-  securitySchemes:
-    maskinporten:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >-
-        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
-        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
-        Krever scope `ks:innbyggerdialog:revisjon` og aud `sandbox-backend` — et token utstedt for en annen
-        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
-        Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:revisjon --resource sandbox-backend`.
-    idporten:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >-
-        Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
-        PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
-        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
-        «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
-        Hent ett med `scripts/token.ts --innbygger <personId>`.
   schemas:
     SporsmaalRequest:
       type: object

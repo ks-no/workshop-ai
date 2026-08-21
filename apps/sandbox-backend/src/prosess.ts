@@ -67,6 +67,28 @@ async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kal
   });
 }
 
+/**
+ * The Fiks answer, or the Fiks error raised as our own.
+ *
+ * The samtykke routes have a state machine from Del D on, so answering the same
+ * request twice, or answering one that was withdrawn, comes back as 409. This code
+ * called `svar.json()` without looking at the status: the error body was stored as
+ * the step's result and the flow carried on with HTTP 200, which is a worse outcome
+ * than the 409 it hid. The status and the melding are passed through unchanged, so
+ * the citizen reads what the samtykke service said rather than a paraphrase.
+ */
+async function fiksSvar(svar: Response, hva: string) {
+  const data = await svar.json() as any;
+  if (!svar.ok) {
+    throw new HttpError(
+      data?.feil || `${hva} feilet i Fiks-simulatoren (status ${svar.status}).`,
+      svar.status,
+      { syntetisk: true, ...(data?.feilmeldinger ? { feilmeldinger: data.feilmeldinger } : {}) }
+    );
+  }
+  return data;
+}
+
 export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) {
   const nySoknad = {
     soknadId: newId("soknad"),
@@ -146,7 +168,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
           sporingsId: oekt.sporingsId
         })
       });
-      const data = await svar.json() as any;
+      const data = await fiksSvar(svar, "Å opprette samtykke");
       oekt.aktivtSamtykkeId = data.samtykkeId;
       oekt.resultater[steg.id] = data;
       return data;
@@ -170,7 +192,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
           aktor: aktorFor(kaller, oekt.personId)
         })
       });
-      const data = await svar.json() as any;
+      const data = await fiksSvar(svar, "Å svare på samtykket");
       oekt.resultater[steg.id] = data;
       return data;
     }

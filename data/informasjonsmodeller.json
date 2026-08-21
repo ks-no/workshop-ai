@@ -76,7 +76,13 @@
           "beskrivelse": "Innbyggerens godkjenning av databruk. Kreves før inntektsopplysninger kan hentes.",
           "attributter": [
             { "navn": "samtykkeId", "type": "string" },
-            { "navn": "status", "type": "kodeverdi", "beskrivelse": "VENTER_PAA_SVAR, SAMTYKKET eller TRUKKET." },
+            {
+              "navn": "status",
+              "type": "kodeverdi",
+              "beskrivelse": "Samtykkets tilstand. Tre av verdiene er endelige: et samtykke som er nektet, trukket eller utløpt gjenopplives ikke, kommunen må spørre på nytt. UTLOEPT utledes av utloper og skrives aldri til rad.",
+              "kodeverdier": ["VENTER_PAA_SVAR", "SAMTYKKET", "IKKE_SAMTYKKET", "TRUKKET", "UTLOEPT"]
+            },
+            { "navn": "utloper", "type": "tidspunkt", "beskrivelse": "30 dager etter at samtykket ble opprettet. Etter dette hjemler samtykket ingen lesning." },
             { "navn": "dataKilder", "type": "liste" }
           ]
         }

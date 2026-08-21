@@ -140,9 +140,13 @@ lukkes før hackathonet.
 **Agent-sesjoner ligger i minnet** i `process-agent`, uten TTL eller opprydding.
 De forsvinner ved omstart.
 
-**`fiks-simulator` er tynt dokumentert:** 4 av 19 ruter i OpenAPI. Se
-`examples/postman/README.md` for hvilke.
+**Autentisering går gjennom `digdir-mock`.** Både sandbox-backend og
+fiks-simulator krever token: ID-porten for en innbygger, Maskinporten for en
+maskin, med audience per tjeneste. `personId` tas ikke lenger fra requesten på
+tro og love — tokenets `pid` må slå opp til den personen forespørselen gjelder.
+Utstederen er en etterlikning, og klientassertionen verifiseres ikke, så
+identitetslaget er ekte i form og syntetisk i tillit.
 
-**Ingen autentisering noe sted.** `personId` tas fra requesten uten verifikasjon.
-Det er bevisst i en sandbox med syntetiske data, men det betyr at ingenting her
-kan flyttes til produksjon uten et reelt identitetslag.
+**Samtykke- og oppgaveflatene i `fiks-simulator` er fortsatt åpne.**
+Registerflaten er bak Maskinporten; `/fiks/samtykke*`, `/fiks/oppgaver*` og
+`/fiks/meldinger*` er ikke. Bevisst avgrensning, ikke en glipp.

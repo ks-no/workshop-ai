@@ -5,13 +5,60 @@ info:
   description: MCP-style HTTP tool endpoints for process orchestration.
 servers:
   - url: http://localhost:8083
+# Ingen av rutene her krever token, og det er et valg, ikke en glipp.
+# mcp-services er en intern verktøyflate som kalles av process-agent og demo-GUI-ene, og som selv henter et Maskinporten-token når den kaller sandbox-backend. Innkommende kall verifiseres ikke.
+# En tom security på dokumentnivå gjelder alle operasjonene under paths.
+security: []
+
 paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
   /health:
     get:
       summary: Health check
       responses:
         "200":
           description: OK
+  /mcp:
+    get:
+      summary: Tjenestens navn, protokoll og versjon
+      description: >-
+        Merk `protocol: mcp-style-http`. Dette er ikke Model Context Protocol:
+        det finnes ingen JSON-RPC, ingen stdio og ingen SSE, så en MCP-klient kan
+        ikke koble seg på. Verktøydefinisjonene har derimot riktig formede
+        inputSchema, så veien til ekte MCP er kort.
+      responses:
+        "200":
+          description: Tjenesteinformasjon
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  protocol:
+                    type: string
+                    enum: [mcp-style-http]
+                  version:
+                    type: string
   /mcp/tools:
     get:
       summary: List available tools
@@ -35,28 +82,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/InvokeToolResponse"
 
+  /mcp/tools/{name}/invoke:
+    post:
+      summary: Kall et verktøy navngitt i stien
+      description: >-
+        Samme som POST /mcp/tools/invoke, men med verktøynavnet i stien framfor i
+        kroppen. Argumentene tas fra `toolArgs`, `args` eller `arguments`.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                toolArgs:
+                  type: object
+                args:
+                  type: object
+                arguments:
+                  type: object
+      responses:
+        "200":
+          description: Tool response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvokeToolResponse"
+
 components:
-  securitySchemes:
-    maskinporten:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >-
-        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
-        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
-        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` — et token utstedt for en annen
-        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
-        Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend`.
-    idporten:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >-
-        Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
-        PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
-        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
-        «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
-        Hent ett med `scripts/token.ts --innbygger <personId>`.
   schemas:
     ProsessInfo:
       type: object

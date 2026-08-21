@@ -75,15 +75,15 @@ Alle disse er implementert:
 - `PUT /fiks/samtykke/{samtykkeId}/svar` · `/trekk` · `GET .../historikk`
 - `GET /fiks/personer/{personId}/samtykker`
 - `GET /fiks/register/person/{personId}` · `/husstand` · `/inntekt` · `/barnehage` · `/kontaktinfo`
-- `POST /fiks/oppgaver`, `GET /fiks/oppgaver/{id}`
+- `POST /fiks/oppgaver`, `GET /fiks/oppgaver/{id}`, `PUT /fiks/oppgaver/{id}/status`
 - `POST /fiks/meldinger`, `GET /fiks/meldinger/{id}`
-- `GET /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
+- `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
 
 Det siste ligger på den **ekte** Fiks-stien, så kall kan kopieres rett fra
 KS-dokumentasjonen. Det er den eneste flaten som speiler et reelt KS-API.
 
-⚠️ `openapi/fiks-simulator.yaml` dokumenterer bare 4 av 20 ruter. Det er den største
-kontraktsgjelden i repoet.
+`openapi/fiks-simulator.yaml` dokumenterer alle 21 rutene, med `security:` per rute.
+`pnpm test:openapi` holder spesifikasjonen og koden i takt, i begge retninger.
 
 ### KI-støtte-API — `ai-gateway` (8082)
 

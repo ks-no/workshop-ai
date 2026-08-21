@@ -2,35 +2,492 @@ openapi: 3.1.0
 info:
   title: Fiks Simulator API
   version: 0.1.0
-  description: Mock-API for samtykke, register og oppgaver.
+  description: >-
+    Etterlikning av de KS Fiks-flatene sandkassen trenger: samtykke, register,
+    oppgaver og meldinger. Alle data er syntetiske, og hvert svar bærer
+    `syntetisk: true`.
+
+    Registerflaten ligger bak Maskinporten med scope `ks:fiks:register` og
+    audience `fiks-simulator`. Samtykke-, oppgave- og meldingsflatene er
+    fortsatt åpne — en bevisst avgrensning i sandkassen, ikke en glipp, og den
+    står oppført per rute nedenfor.
 servers:
   - url: http://localhost:8081
 paths:
   /helse:
     get:
-      summary: Health check
+      summary: Helsesjekk
+      security: []
       responses:
         "200":
-          description: OK
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
+  /health:
+    get:
+      summary: Helsesjekk
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      security: []
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
   /fiks/samtykke:
     post:
-      summary: Create consent
+      summary: Opprett en samtykkeforespørsel
+      description: >-
+        Oppretter et samtykke med status `VENTER_PAA_SVAR` og `utloper` 30 dager
+        fram. Det er kommunen som spør; innbyggeren svarer på
+        `PUT /fiks/samtykke/{samtykkeId}/svar`.
+
+        Åpen flate i sandkassen, i motsetning til registerflaten under.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [personId, formaal]
+              properties:
+                personId:
+                  type: string
+                  example: person-001
+                formaal:
+                  type: string
+                  description: Formålet innbyggeren samtykker til. Revisjonsloggen fører det videre.
+                  example: Vurdere rett til redusert foreldrebetaling
+                dataKilder:
+                  type: array
+                  description: Hvilke datakilder samtykket dekker. Kontrolleres ved lesing.
+                  items:
+                    type: string
+                  example: [inntekt]
+                sporingsId:
+                  type: string
       responses:
         "201":
-          description: Consent created
+          description: Samtykkeforespørsel opprettet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykke"
   /fiks/samtykke/{samtykkeId}:
     get:
-      summary: Get consent
+      summary: Hent ett samtykke
+      description: >-
+        Statusen som returneres er den *effektive*: et samtykke med `utloper` i
+        fortida svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
+        Utløp utledes på vei ut, på samme måte som skjermingen av
+        adressebeskyttede — se apps/fiks-simulator/src/samtykke.ts.
+      security: []
       parameters:
-        - name: samtykkeId
+        - $ref: "#/components/parameters/SamtykkeId"
+      responses:
+        "200":
+          description: Samtykket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/samtykke/{samtykkeId}/historikk:
+    get:
+      summary: Samtykkets hendelsesforløp
+      description: >-
+        Hver overgang som faktisk ble gjennomført, i rekkefølge. Avviste forsøk
+        står ikke her — de havner i revisjonsloggen som `SAMTYKKE_AVVIST`.
+        Utløp står heller ikke her: ingenting *gjorde* det.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/SamtykkeId"
+      responses:
+        "200":
+          description: Historikken
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Samtykkehendelse"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/samtykke/{samtykkeId}/svar:
+    put:
+      summary: Innbyggerens svar på en samtykkeforespørsel
+      description: >-
+        PUT, ikke POST: svaret er idempotent i den forstand at det setter en
+        tilstand, og tilstandsmaskinen avgjør om overgangen er lovlig.
+
+        Fra `VENTER_PAA_SVAR` går det til `SAMTYKKET` eller `IKKE_SAMTYKKET`. Et
+        samtykke som er nektet, trukket eller utløpt er endelig, og et nytt svar
+        gir 409 — kommunen må spørre på nytt.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/SamtykkeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  description: Standard er SAMTYKKET.
+                  $ref: "#/components/schemas/Samtykkestatus"
+                sporingsId:
+                  type: string
+                aktor:
+                  $ref: "#/components/schemas/Aktor"
+      responses:
+        "200":
+          description: Svaret er registrert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykke"
+        "400":
+          $ref: "#/components/responses/UkjentStatus"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "409":
+          $ref: "#/components/responses/UgyldigOvergang"
+  /fiks/samtykke/{samtykkeId}/trekk:
+    put:
+      summary: Trekk et samtykke
+      description: >-
+        Bare fra `SAMTYKKET`. Et samtykke som allerede er trukket eller utløpt
+        kan ikke trekkes igjen, og svaret er da 409 med hva statusen var.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/SamtykkeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sporingsId:
+                  type: string
+                aktor:
+                  $ref: "#/components/schemas/Aktor"
+      responses:
+        "200":
+          description: Samtykket er trukket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "409":
+          $ref: "#/components/responses/UgyldigOvergang"
+  /fiks/personer/{personId}/samtykker:
+    get:
+      summary: Alle samtykker for én person
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Samtykkene, med effektiv status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Samtykke"
+  /fiks/register/person/{personId}:
+    get:
+      summary: Folkeregisterliknende oppslag på én person
+      description: >-
+        Adressebeskyttede personer maskeres på vei ut, uavhengig av hvem som
+        spør: en person med kode 6 svarer «Skjermet person» uten adresse, men
+        beholder fødselsnummer, fødselsdato og kommunenummer — beregningen
+        trenger dem. Se apps/sandbox-backend/src/skjerming.ts.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Personen, maskert etter gradering
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/register/husstand/{personId}:
+    get:
+      summary: Husstanden en person hører til
+      description: >-
+        Slår opp på **personId**, ikke på husstandId: kalleren kjenner personen,
+        og husstanden finnes derfra.
+
+        Husstandens adresse maskeres bare når alle medlemmene er skjermet — en
+        adresse man deler med en umaskert medboer kan ikke skjules.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Husstanden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Husstand"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/register/inntekt/{personId}:
+    get:
+      summary: Rå inntektsposter for én person
+      description: >-
+        Denne ruta delte ut full inntekt uten token før B4 — veien rundt
+        samtykke-før-inntekt, som er sandkassens viktigste policyregel. Hjemmel
+        håndheves her; samtykket håndheves i sandbox-backend, som er den som
+        kjenner innbyggeren.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Inntektsradene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inntekt"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/register/barnehage/{personId}:
+    get:
+      summary: Barnehageplasser registrert på én person
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Plassene. Tom liste når personen ikke har noen.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barnehageplass"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+  /fiks/register/kontaktinfo/{personId}:
+    get:
+      summary: Kontakt- og reservasjonsopplysninger
+      description: Epost og telefon nulles for adressebeskyttede personer.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Kontaktopplysningene
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personId:
+                    type: string
+                  kontakt:
+                    $ref: "#/components/schemas/Kontakt"
+                  syntetisk:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/oppgaver:
+    post:
+      summary: Opprett en oppgave til saksbehandling
+      description: Åpen flate i sandkassen, som samtykkeflaten.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [personId]
+              properties:
+                personId:
+                  type: string
+                soknadId:
+                  type: string
+                tittel:
+                  type: string
+                sporingsId:
+                  type: string
+      responses:
+        "201":
+          description: Oppgaven er opprettet med status OPPRETTET
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oppgave"
+  /fiks/oppgaver/{oppgaveId}:
+    get:
+      summary: Hent én oppgave
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OppgaveId"
+      responses:
+        "200":
+          description: Oppgaven
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oppgave"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+  /fiks/oppgaver/{oppgaveId}/status:
+    put:
+      summary: Flytt en oppgave i saksbehandlingen
+      description: >-
+        `OPPRETTET → UNDER_BEHANDLING → FERDIG | AVVIST`. En sak avvises etter at
+        noen har sett på den, ikke før, og ingen av de to sluttilstandene kan
+        gjøres om. Ugyldig overgang gir 409.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OppgaveId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/Oppgavestatus"
+                sporingsId:
+                  type: string
+                aktor:
+                  $ref: "#/components/schemas/Aktor"
+      responses:
+        "200":
+          description: Ny status er satt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oppgave"
+        "400":
+          $ref: "#/components/responses/UkjentStatus"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "409":
+          $ref: "#/components/responses/UgyldigOvergang"
+  /fiks/meldinger:
+    post:
+      summary: Legg en melding i innbyggerens innboks
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tittel:
+                  type: string
+                innhold:
+                  type: string
+      responses:
+        "201":
+          description: Meldingen er lagret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Melding"
+  /fiks/meldinger/{meldingId}:
+    get:
+      summary: Hent én melding
+      security: []
+      parameters:
+        - name: meldingId
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Consent returned
-
+          description: Meldingen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Melding"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
   /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling:
     post:
       summary: Beregn inntektsgrunnlag for redusert foreldrebetaling
@@ -43,6 +500,8 @@ paths:
 
         Simulatoren beregner grunnlaget. Inntektsgrensene eies av kommunen og
         ligger i data/satser.json.
+      security:
+        - maskinporten: [ks:fiks:register]
       parameters:
         - name: rolleId
           in: path
@@ -165,6 +624,362 @@ paths:
                           type: string
 
 components:
+  parameters:
+    SamtykkeId:
+      name: samtykkeId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: samtykke-1787295292530-ddxjgm
+    PersonId:
+      name: personId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: person-001
+    OppgaveId:
+      name: oppgaveId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    IkkeFunnet:
+      description: Fant ikke ressursen
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    UkjentStatus:
+      description: >-
+        Statusen finnes ikke i kodeverket. En feilformet forespørsel, ikke en
+        konflikt — derfor 400 og ikke 409.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    UgyldigOvergang:
+      description: >-
+        Statusen finnes, men kan ikke nås fra den ressursen har nå. Meldingen
+        sier hva statusen var og hva som ble forsøkt.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    ManglerToken:
+      description: >-
+        Ingen eller ugyldig Authorization-header. `WWW-Authenticate` bærer koden;
+        prosaen ligger i kroppen, fordi RFC 6750 ikke tar norsk tekst i en header.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    ManglerHjemmel:
+      description: >-
+        Tokenet er gyldig, men gir ikke hjemmel her: manglende scope, eller et
+        personlig ID-porten-token mot en maskin-til-maskin-flate. Forskjellen på
+        401 og 403 er forskjellen på «vi vet ikke hvem du er» og «vi vet, og du
+        har ikke lov».
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+
+  schemas:
+    Feil:
+      type: object
+      properties:
+        feil:
+          type: string
+          description: Meldingen, på norsk, til den som kalte.
+        feilmeldinger:
+          type: array
+          description: Fiks' egen feilform, med en maskinlesbar kode ved siden av meldingen.
+          items:
+            type: object
+            properties:
+              kode:
+                type: string
+                enum:
+                  - MANGLER_TOKEN
+                  - UGYLDIG_TOKEN
+                  - UTSTEDER_NEDE
+                  - KREVER_MASKINPORTEN
+                  - MANGLER_SCOPE
+                  - SAMTYKKE_IKKE_FUNNET
+                  - OPPGAVE_IKKE_FUNNET
+                  - UKJENT_STATUS
+                  - UGYLDIG_OVERGANG
+              melding:
+                type: string
+        syntetisk:
+          type: boolean
+
+    Aktor:
+      type: object
+      description: >-
+        Hvem som handlet. Oppgis av kalleren for innbyggerens egne handlinger,
+        fordi bare kalleren kjenner den verifiserte identiteten — sandbox-backend
+        henter den fra tokenet sitt. Uten oppgitt aktør sier loggen det som er
+        sant: fiks-simulator førte det, på vegne av noen.
+      properties:
+        type:
+          type: string
+          enum: [innbygger, system]
+        id:
+          type: string
+        acr:
+          type: string
+        paaVegneAv:
+          type: string
+
+    Samtykkestatus:
+      type: string
+      description: >-
+        Kodeverket ligger i apps/fiks-simulator/src/samtykke.ts, og
+        scripts/valider-data.js feiler hvis informasjonsmodellen kommer ut av
+        takt med det. `IKKE_SAMTYKKET`, `TRUKKET` og `UTLOEPT` er endelige.
+        `UTLOEPT` utledes av `utloper` og skrives aldri til rad.
+      enum: [VENTER_PAA_SVAR, SAMTYKKET, IKKE_SAMTYKKET, TRUKKET, UTLOEPT]
+
+    Samtykkehendelse:
+      type: object
+      properties:
+        tidspunkt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/Samtykkestatus"
+
+    Samtykke:
+      type: object
+      properties:
+        samtykkeId:
+          type: string
+        personId:
+          type: string
+        formaal:
+          type: string
+        dataKilder:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/Samtykkestatus"
+        opprettet:
+          type: string
+          format: date-time
+        utloper:
+          type: string
+          format: date-time
+          description: 30 dager etter opprettelsen. Etter dette hjemler samtykket ingen lesning.
+        sporingsId:
+          type: string
+        historikk:
+          type: array
+          items:
+            $ref: "#/components/schemas/Samtykkehendelse"
+        syntetisk:
+          type: boolean
+
+    Oppgavestatus:
+      type: string
+      description: Kodeverket ligger i apps/fiks-simulator/src/oppgave.ts.
+      enum: [OPPRETTET, UNDER_BEHANDLING, FERDIG, AVVIST]
+
+    Oppgave:
+      type: object
+      properties:
+        oppgaveId:
+          type: string
+        personId:
+          type: string
+        soknadId:
+          type: string
+        tittel:
+          type: string
+        status:
+          $ref: "#/components/schemas/Oppgavestatus"
+        opprettet:
+          type: string
+          format: date-time
+        sporingsId:
+          type: string
+        historikk:
+          type: array
+          items:
+            type: object
+            properties:
+              tidspunkt:
+                type: string
+                format: date-time
+              status:
+                $ref: "#/components/schemas/Oppgavestatus"
+        syntetisk:
+          type: boolean
+
+    Melding:
+      type: object
+      properties:
+        meldingId:
+          type: string
+        tittel:
+          type: string
+        innhold:
+          type: string
+        opprettet:
+          type: string
+          format: date-time
+        syntetisk:
+          type: boolean
+
+    Kontakt:
+      type: object
+      description: >-
+        Tenor-importerte personer har `kontakt: {}`. Nøkkelsettet er frosset
+        wire-format — kode som skriver felt inn her endrer kontrakten.
+      properties:
+        epost:
+          type: string
+          nullable: true
+        telefon:
+          type: string
+          nullable: true
+
+    Adresse:
+      type: object
+      description: >-
+        Gatenavn, husnummer, postnummer og poststed nulles for
+        adressebeskyttede. Kommune og kommunenummer overlever, fordi
+        regelmotoren trenger dem.
+      properties:
+        adressenavn:
+          type: string
+          nullable: true
+        husnummer:
+          type: string
+          nullable: true
+        postnummer:
+          type: string
+          nullable: true
+        poststed:
+          type: string
+          nullable: true
+        kommune:
+          type: string
+        kommunenummer:
+          type: string
+
+    Person:
+      type: object
+      properties:
+        personId:
+          type: string
+        syntetiskFodselsnummer:
+          type: string
+          description: Overlever maskeringen — oppslaget mot inntekt trenger det.
+        navn:
+          type: object
+          properties:
+            fornavn:
+              type: string
+            mellomnavn:
+              type: string
+            etternavn:
+              type: string
+        foedselsdato:
+          type: string
+          format: date
+        bostedsadresse:
+          $ref: "#/components/schemas/Adresse"
+        kontakt:
+          $ref: "#/components/schemas/Kontakt"
+        husstandId:
+          type: string
+        adressebeskyttelse:
+          type: string
+          enum: [UGRADERT, FORTROLIG, STRENGT_FORTROLIG]
+        skjermet:
+          type: boolean
+        syntetisk:
+          type: boolean
+
+    Husstand:
+      type: object
+      properties:
+        husstandId:
+          type: string
+        adresse:
+          type: string
+          nullable: true
+          description: Null når alle medlemmene er skjermet.
+        kommune:
+          type: string
+        medlemmer:
+          type: array
+          items:
+            type: object
+            properties:
+              personId:
+                type: string
+              rolle:
+                type: string
+                enum: [foresatt, barn]
+        syntetisk:
+          type: boolean
+
+    Inntekt:
+      type: object
+      properties:
+        personId:
+          type: string
+        identifikator:
+          type: string
+        inntektsaar:
+          type: integer
+        stadie:
+          type: string
+          enum: [OPPGJOER, UTKAST, UKJENT]
+        skatteoppgjoersdato:
+          type: string
+          format: date
+        poster:
+          type: array
+          items:
+            type: object
+            properties:
+              tekniskNavn:
+                type: string
+              visningstekst:
+                type: string
+              beloep:
+                type: integer
+                format: int64
+              kilde:
+                type: string
+              medregnes:
+                type: boolean
+                description: Poster som ikke medregnes føres som SUBTRAHERE i beregningen.
+              infotekst:
+                type: string
+        syntetisk:
+          type: boolean
+
+    Barnehageplass:
+      type: object
+      properties:
+        personId:
+          type: string
+        barnehage:
+          type: string
+        manedspris:
+          type: integer
+        syntetisk:
+          type: boolean
+
   securitySchemes:
     maskinporten:
       type: http

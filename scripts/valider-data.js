@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { SAMTYKKESTATUSER } from "../apps/fiks-simulator/src/samtykke.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
 // created by the services on first write.
@@ -436,6 +437,39 @@ for (const prosess of alleProsesser) {
         `som ikke finnes i data/satser.json.`
       );
     }
+  }
+}
+
+// --- Ett kodeverk for samtykkestatus ---------------------------------------
+// The statuses lived in three places with three different inventories: demo-gui
+// and mcp-services knew IKKE_SAMTYKKET, and the informasjonsmodell documented
+// three of the five and never mentioned UTLOEPT at all. The state machine in
+// apps/fiks-simulator/src/samtykke.ts is the kodeverk now, and this check makes
+// the documentation fail rather than quietly disagree with the code.
+const modeller = await les("data/informasjonsmodeller.json");
+const samtykkemodeller = modeller.modeller
+  .flatMap((modell) => modell.begreper || modell.entiteter || [])
+  .filter((begrep) => begrep.id === "consent");
+
+if (samtykkemodeller.length === 0) {
+  throw new Error(
+    "Fant ingen informasjonsmodell med id \"consent\". Kodeverket for samtykkestatus " +
+    "skal dokumenteres der — se apps/fiks-simulator/src/samtykke.ts."
+  );
+}
+
+for (const modell of samtykkemodeller) {
+  const status = (modell.attributter || []).find((attributt) => attributt.navn === "status");
+  if (!status) {
+    throw new Error(`Informasjonsmodellen ${modell.id} mangler attributtet status.`);
+  }
+  const dokumentert = JSON.stringify(status.kodeverdier || []);
+  const ikode = JSON.stringify(SAMTYKKESTATUSER);
+  if (dokumentert !== ikode) {
+    throw new Error(
+      `Kodeverket for samtykkestatus er ute av takt. Informasjonsmodellen sier ` +
+      `${dokumentert}, tilstandsmaskinen i apps/fiks-simulator/src/samtykke.ts sier ${ikode}.`
+    );
   }
 }
 

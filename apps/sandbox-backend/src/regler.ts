@@ -1,4 +1,9 @@
 import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+// The samtykke kodeverk belongs to the service that owns the resource, and expiry
+// is part of it. This backend reads state/samtykker.json directly — a sandbox
+// simplification it already lived with — so importing the rule is strictly better
+// than keeping a second copy of it here that can drift.
+import { effektivStatus } from "../../fiks-simulator/src/samtykke.ts";
 import { digdirBaseUrl, digdirIssuer, fiksBaseUrl, fiksRolleId } from "./config.ts";
 import {
   finnPerson,
@@ -323,6 +328,15 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
   return handterer({ tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
 }
 
+// Every samtykke this person has given for this source, whatever state it is in.
+function samtykkerFor(tilstand: State, personId: string, datakilde: string) {
+  return tilstand.samtykker.filter((samtykke: any) =>
+    samtykke.personId === personId &&
+    Array.isArray(samtykke.dataKilder) &&
+    samtykke.dataKilder.includes(datakilde)
+  );
+}
+
 /**
  * The samtykke that authorises reading `datakilde` for `personId`, or null.
  *
@@ -336,9 +350,10 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
  * Without a preference, the most recently created one wins. An arbitrary order is
  * the one thing an audit basis must not be.
  *
- * Expiry is deliberately still not checked here. `utloper` is set 30 days out and
- * nothing reads it; making it real belongs with the samtykke state machine in Del
- * D, together with TRUKKET and UTLOEPT, rather than half-done here.
+ * Expiry counts from Del D on: `utloper` was written 30 days ahead and read by
+ * nobody, so a consent given a year ago still opened the income route. The status
+ * comes from `effektivStatus`, which is the only place that rule lives — see
+ * fiks-simulator/src/samtykke.ts.
  */
 export function harGyldigSamtykke(
   tilstand: State,
@@ -346,12 +361,8 @@ export function harGyldigSamtykke(
   datakilde: string,
   foretrukketId?: string | null
 ) {
-  const gyldige = tilstand.samtykker.filter((samtykke: any) =>
-    samtykke.personId === personId &&
-    samtykke.status === "SAMTYKKET" &&
-    Array.isArray(samtykke.dataKilder) &&
-    samtykke.dataKilder.includes(datakilde)
-  );
+  const gyldige = samtykkerFor(tilstand, personId, datakilde)
+    .filter((samtykke: any) => effektivStatus(samtykke) === "SAMTYKKET");
   if (gyldige.length === 0) {
     return null;
   }
@@ -364,4 +375,16 @@ export function harGyldigSamtykke(
   return gyldige.reduce((nyeste: any, kandidat: any) =>
     String(kandidat.opprettet || "") > String(nyeste.opprettet || "") ? kandidat : nyeste
   );
+}
+
+/**
+ * Whether the citizen ever did consent to this source, and it has since run out.
+ *
+ * Only used to pick which of the two refusals to answer with. "Krever registrert
+ * samtykke" is a confusing thing to read when you remember agreeing — the useful
+ * answer says the consent expired and has to be given again.
+ */
+export function harUtloeptSamtykke(tilstand: State, personId: string, datakilde: string) {
+  return samtykkerFor(tilstand, personId, datakilde)
+    .some((samtykke: any) => effektivStatus(samtykke) === "UTLOEPT");
 }
