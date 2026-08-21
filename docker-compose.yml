@@ -169,6 +169,16 @@ services:
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
+      # Named BEDROCK_AWS_* rather than the plain AWS_* names on purpose: a
+      # developer's shell commonly already exports AWS_ACCESS_KEY_ID/etc for their
+      # own unrelated credentials, and both Compose's ${VAR:-default} and Node's
+      # --env-file prefer an already-set shell variable over .env — silently
+      # pairing their personal key with this service's short-lived session token.
+      - BEDROCK_AWS_REGION=${BEDROCK_AWS_REGION:-eu-north-1}
+      - BEDROCK_AWS_ACCESS_KEY_ID=${BEDROCK_AWS_ACCESS_KEY_ID:-}
+      - BEDROCK_AWS_SECRET_ACCESS_KEY=${BEDROCK_AWS_SECRET_ACCESS_KEY:-}
+      - BEDROCK_AWS_SESSION_TOKEN=${BEDROCK_AWS_SESSION_TOKEN:-}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-eu.anthropic.claude-sonnet-4-5-20250929-v1:0}
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
       - "8082:8082"

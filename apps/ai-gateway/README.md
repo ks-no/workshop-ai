@@ -104,6 +104,7 @@ Provider-modus:
 - `AI_PROVIDER=mock` (kodens default, ingen ekstern modell — men se under)
 - `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjørt i Docker Compose)
 - `AI_PROVIDER=openrouter` (billige/gratis modeller via OpenRouter)
+- `AI_PROVIDER=bedrock` (AWS Bedrock, Anthropic-modeller — se eget avsnitt under)
 
 Merk at kodens default er `mock`, men både `.env.example` og `docker-compose.yml`
 setter `ollama`. Siden `./start.sh` kopierer `.env.example` til `.env`, er den
@@ -115,6 +116,68 @@ Valgfrie miljovariabler:
 - `OLLAMA_MODEL` (standard `qwen2.5:7b`)
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (standard `mistralai/mistral-7b-instruct:free`)
+- `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`
+
+`AI_PROVIDER` og de variablene bare setter *startverdien*. Se `/admin` under for å
+bytte mens tjenesten kjører.
+
+## Bytt provider uten restart: `/admin`
+
+```
+http://localhost:8082/admin
+```
+
+En side som viser hvilken provider som er aktiv og lar deg bytte mellom
+mock/ollama/openrouter/bedrock — og for Bedrock, hvilken modell — med et par klikk.
+Byttet gjelder umiddelbart og skrives til `state/ai-provider-override.json`, som
+overstyrer `AI_PROVIDER`/`BEDROCK_MODEL_ID` fra miljøet ved neste oppstart. Fila er
+i `state/` sammen med resten av kjøretidsdataene: gitignored, nullstilt av
+`./start.sh --reset`.
+
+Samme ting via API:
+
+```bash
+curl -s http://localhost:8082/admin/providers.json
+
+curl -s -X POST http://localhost:8082/admin/provider \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"bedrock","bedrockModel":"eu.anthropic.claude-haiku-4-5-20251001-v1:0"}'
+```
+
+`provider` valideres mot en hviteliste og `bedrockModel` mot listen i `BEDROCK_MODELS`
+(`src/server.js`) — en ukjent verdi for begge gir 400, ikke et forsøk på å bruke den.
+
+Lagt inn som en fjerde provider, ikke en erstatning: koden fortsatt velger mellom
+`callOllama`/`callOpenRouter`/`callBedrock` i `callModel`, akkurat som beskrevet i
+"Legge til en ny provider" under. En eventuell femte provider er samme oppskrift —
+en funksjon med signaturen `(prompt, temperatur, signal)`, en gren i `callModel`, og
+et navn lagt til i `AI_PROVIDERS`.
+
+### AWS Bedrock
+
+Gatewayen kaller Bedrock med rå `fetch` og signerer selv med AWS Signature Version 4
+(`node:crypto`, ingen AWS SDK — samme "ingen SDK"-linje som resten av tjenesten). Se
+`signAwsRequestV4`/`callBedrock` i `src/server.js`. Modellene i `/admin` er en
+kuratert liste (`BEDROCK_MODELS`), ikke hentet live fra AWS.
+
+Du får utdelte AWS-nøkler, ferdig begrenset til `bedrock:InvokeModel` på de riktige
+modellene — hvordan de ble laget er ikke noe du trenger å tenke på. Legg dem i `.env`:
+
+```
+BEDROCK_AWS_REGION=eu-north-1
+BEDROCK_AWS_ACCESS_KEY_ID=...
+BEDROCK_AWS_SECRET_ACCESS_KEY=...
+BEDROCK_AWS_SESSION_TOKEN=...
+BEDROCK_MODEL_ID=eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+```
+
+`docker-compose.yml` plukker `BEDROCK_AWS_*` og `BEDROCK_MODEL_ID` opp fra `.env`
+automatisk (se `ai-gateway`-tjenesten der) — ingenting annet å konfigurere. Modellen
+kan også velges om i `/admin` uten restart.
+
+Kun Anthropic-modeller er støttet: `callBedrock` bygger requesten i Anthropics
+Messages-format (`anthropic_version: "bedrock-2023-05-31"`). Titan, Nova, Llama og
+Mistral på Bedrock har hver sin body-form og er ikke bygget.
 
 ## Er modellen koblet på?
 
@@ -131,8 +194,12 @@ curl -s http://localhost:8082/helse
 ```
 
 `modellNaaBar: false` kommer med et `feil`-felt som sier hvorfor — Ollama er ikke nåbar,
-modellen er ikke lastet ned, `OPENROUTER_API_KEY` mangler, eller `AI_PROVIDER=mock`.
-Merk at status alltid er 200: tjenesten *lever* selv om modellen ikke gjør det.
+modellen er ikke lastet ned, `OPENROUTER_API_KEY` mangler, `BEDROCK_AWS_ACCESS_KEY_ID`/$
+`BEDROCK_AWS_SECRET_ACCESS_KEY` mangler, eller `AI_PROVIDER=mock`. Merk at status alltid er
+200: tjenesten *lever* selv om modellen ikke gjør det. Som for OpenRouter sjekker
+Bedrock-sjekken bare at nøklene er satt — den kaller ikke AWS, så en feil nøkkel eller
+en modell IAM-policyen ikke tillater rapporteres som tilgjengelig og feiler først på
+neste faktiske kall.
 
 `demo-gui` sjekker dette ved sidelast og viser en gul stripe på `/chat` og `/agent` når
 modellen ikke er koblet på. Enkeltsvar som faller tilbake vises også i samtalen.

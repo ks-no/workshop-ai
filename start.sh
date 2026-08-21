@@ -359,6 +359,21 @@ wait_for_services() {
 
 # --- 7. Verify the model is really wired up ---------------------------------
 
+json_field() { # json_field FIELD <<<JSON  -> the string value, unquoted
+  grep -o "\"$1\": *\"[^\"]*\"" | sed -E 's/.*: *"(.*)"$/\1/' | head -1
+}
+
+# ai-gateway's active provider is whatever /admin last set, which can differ
+# from AI_PROVIDER in .env and survives a restart (state/ai-provider-override.json).
+# Ask it, rather than assuming ollama — the warning at the bottom used to
+# hardcode "Ollama is NOT connected" even when the active provider was Bedrock.
+active_provider() {
+  curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider
+}
+
+# A real call, not just /helse: /helse's own bedrock/openrouter check only
+# confirms credentials are *configured*, not that a call actually succeeds — so
+# only an end-to-end call here can tell a working setup from a broken one.
 verify_llm() {
   local response
   response="$(curl -fsS -m 180 -X POST http://localhost:8082/ai/klarsprak \
@@ -374,7 +389,7 @@ verify_llm() {
     printf '      %s\n' "$(grep -o '"advarsel": *"[^"]*"' <<<"$response")"
     return 1
   fi
-  grep -q '"modell": *"ollama:' <<<"$response"
+  VERIFIED_MODEL="$(json_field modell <<<"$response")"
 }
 
 # --- Run --------------------------------------------------------------------
@@ -442,11 +457,12 @@ wait_for_services
 info "all eight services are responding"
 
 LLM_OK=false
+VERIFIED_MODEL=""
 if ! $MOCK; then
   step "🔌 Verifying that the model is connected"
   if verify_llm; then
     LLM_OK=true
-    info "confirmed: ai-gateway is using ollama:$MODEL"
+    info "confirmed: ai-gateway is using $VERIFIED_MODEL"
   fi
 fi
 
@@ -457,13 +473,35 @@ printf '   🧠 Agent:           http://localhost:3001/agent\n'
 printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
 printf '   🔧 Process Builder: http://localhost:3000\n'
 printf '   🔍 AI trace:        http://localhost:8082/trace\n'
+printf '   🔀 AI provider:     http://localhost:8082/admin\n'
 printf '   📚 API docs:        http://localhost:8080/docs\n'
 
 if $MOCK; then
   printf '\n   ⚠️  Running with --mock: AI replies are canned template text, not a model.\n'
 elif ! $LLM_OK; then
-  printf '\n   ⚠️  The model is NOT connected. Replies will look normal but come from\n'
-  printf '       templates. Check that Ollama is running, then start again.\n'
+  # The active provider is whatever /admin last set — not necessarily ollama —
+  # so the warning below names the provider actually configured, not a fixed guess.
+  case "$(active_provider)" in
+    bedrock)
+      printf '\n   ⚠️  Provider is set to AWS Bedrock, but it did not answer. Replies will\n'
+      printf '       look normal but come from templates. Check credentials and model access\n'
+      printf '       at http://localhost:8082/admin — and whether the account has submitted\n'
+      printf '       the Anthropic use-case form (Bedrock console -> Model access).\n'
+      ;;
+    openrouter)
+      printf '\n   ⚠️  Provider is set to OpenRouter, but it did not answer. Replies will\n'
+      printf '       look normal but come from templates. Check OPENROUTER_API_KEY, or\n'
+      printf '       switch provider at http://localhost:8082/admin.\n'
+      ;;
+    ollama|"")
+      printf '\n   ⚠️  Ollama is NOT connected. Replies will look normal but come from\n'
+      printf '       templates. Check that Ollama is running, then start again.\n'
+      ;;
+    *)
+      printf '\n   ⚠️  The active provider did not answer. Replies will look normal but\n'
+      printf '       come from templates. Check http://localhost:8082/admin.\n'
+      ;;
+  esac
 fi
 
 printf '\n   Stop with: ./start.sh -d\n\n'
