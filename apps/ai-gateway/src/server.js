@@ -4,6 +4,7 @@ import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash, createHmac } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ruteoversikt } from "../../shared-ui/openapi.ts";
 import {
   byggGrunnlag,
   byggPersonvernSvar,
@@ -147,6 +148,7 @@ function docsHtml() {
     <head><meta charset="utf-8"><title>AI Gateway API</title></head>
     <body style="font-family: Arial, sans-serif; padding: 24px;">
       <h1>AI Gateway API</h1>
+      <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
       <ul>
         <li><code>POST /ai/dialogforslag</code></li>
         <li><code>POST /ai/oppsummering</code></li>
@@ -2052,7 +2054,17 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (url.pathname === "/openapi.yaml") {
+    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
+      jsonResponse(
+        response,
+        200,
+        await ruteoversikt(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"))
+      );
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/openapi.yaml") {
       const yaml = await readFile(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"), "utf8");
       textResponse(response, 200, yaml, "text/yaml; charset=utf-8");
       return;

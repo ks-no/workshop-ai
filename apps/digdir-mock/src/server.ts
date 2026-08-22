@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeJwt, signJwt, type SigneringsNokkel } from "./jwt.ts";
+import { ruteoversikt } from "../../shared-ui/openapi.ts";
 
 // MOCK AV MASKINPORTEN OG ID-PORTEN
 //
@@ -65,6 +66,7 @@ const codeLevetidSekunder = 300;
 // does not invalidate every token a participant already pasted somewhere.
 // ./start.sh --reset rotates it, which is the right semantics for a reset.
 const nokkelFil = path.join(stateDir, "digdir-nokkel.json");
+const openapiFil = path.resolve(__dirname, "../../../openapi/digdir-mock.yaml");
 
 type Utstederkeys = SigneringsNokkel & { jwk: JsonWebKey };
 
@@ -162,6 +164,11 @@ function jsonResponse(
 
 function htmlResponse(response: ServerResponse, statusCode: number, body: string): void {
   response.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8", ...CORS });
+  response.end(body);
+}
+
+function tekstResponse(response: ServerResponse, statusCode: number, body: string, contentType: string): void {
+  response.writeHead(statusCode, { "Content-Type": contentType, ...CORS });
   response.end(body);
 }
 
@@ -498,6 +505,7 @@ function docsHtml(): string {
   <head><meta charset="utf-8"><title>Digdir Mock API</title></head>
   <body style="font-family: Arial, sans-serif; padding: 24px;">
     <h1>Digdir Mock — Maskinporten og ID-porten</h1>
+    <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
     <h2>Maskinporten (maskin til maskin)</h2>
     <ul>
       <li><code>GET /.well-known/oauth-authorization-server</code></li>
@@ -541,6 +549,17 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     if (sti === "/docs") {
       htmlResponse(response, 200, docsHtml());
+      return;
+    }
+
+    if (request.method === "GET" && sti === "/openapi.yaml") {
+      tekstResponse(response, 200, await readFile(openapiFil, "utf8"), "text/yaml; charset=utf-8");
+      return;
+    }
+
+    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    if (request.method === "GET" && sti === "/openapi-ruter.json") {
+      jsonResponse(response, 200, await ruteoversikt(openapiFil));
       return;
     }
 
@@ -668,7 +687,12 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     // --- ID-porten: the login screen --------------------------------------
-    if (sti === "/idporten/authorize") {
+    //
+    // GET renders the picker, POST is the form on it coming back with a pid. Both
+    // methods are named here rather than left open: without the guard the branch
+    // also answered PUT and DELETE, which nobody meant, and the spec had no honest
+    // way to say which methods the route has.
+    if ((request.method === "GET" || request.method === "POST") && sti === "/idporten/authorize") {
       const parametere = request.method === "POST" ? await lesForm(request) : url.searchParams;
 
       const redirectUri = parametere.get("redirect_uri");

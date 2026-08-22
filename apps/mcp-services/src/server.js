@@ -3,6 +3,7 @@ import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { docsHtml, ruteoversikt } from "../../shared-ui/openapi.ts";
 
 const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
@@ -32,6 +33,7 @@ const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const brregDataFile = process.env.BRREG_DATA_FILE || path.resolve(__dirname, "../../../data/brreg.seed.json");
 const folkeregisterDataFile = process.env.FOLKEREGISTER_DATA_FILE || path.resolve(__dirname, "../../../data/folkeregister.seed.json");
+const openapiFile = path.resolve(__dirname, "../../../openapi/mcp-services.yaml");
 let brregRegisterPromise = null;
 let folkeregisterRegisterPromise = null;
 
@@ -369,6 +371,19 @@ function json(response, statusCode, data) {
     "Access-Control-Allow-Headers": "Content-Type,Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
+}
+
+// Samme headere som json(), for svarene som ikke er JSON: /docs og
+// /openapi.yaml. CORS hører på alle tre — ellers dør et nettleserkall i
+// preflight, og det er bare synlig i konsollet.
+function tekst(response, statusCode, data, contentType = "text/plain; charset=utf-8") {
+  response.writeHead(statusCode, {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization"
+  });
+  response.end(data);
 }
 
 async function readBody(request) {
@@ -1236,6 +1251,24 @@ const server = createServer(async (request, response) => {
   try {
     if (url.pathname === "/helse" || url.pathname === "/health") {
       json(response, 200, { status: "ok", tjeneste: "mcp-services", tidspunkt: new Date().toISOString() });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/docs") {
+      tekst(response, 200, docsHtml(await ruteoversikt(openapiFile)), "text/html; charset=utf-8");
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/openapi.yaml") {
+      tekst(response, 200, await readFile(openapiFile, "utf8"), "text/yaml; charset=utf-8");
+      return;
+    }
+
+    // Den samme spesifikasjonen, lest. En nettleser kan ikke lese YAML uten en
+    // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
+    // med det API-utforskeren trenger.
+    if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
+      json(response, 200, await ruteoversikt(openapiFile));
       return;
     }
 

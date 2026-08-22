@@ -5,9 +5,11 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
+import { ruteoversikt } from "../../shared-ui/openapi.ts";
 import { createGunzip } from "node:zlib";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const openapiFile = path.resolve(__dirname, "../../../openapi/matrikkel-mock.yaml");
 const port = Number(process.env.PORT || 8085);
 const wsPath = "/geointegrasjon/matrikkel/wsapi/v1/BasisService";
 const wsNamespace = "http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31";
@@ -1075,6 +1077,17 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/openapi.yaml") {
+      textResponse(response, 200, await readFile(openapiFile, "utf8"), "text/yaml; charset=utf-8");
+      return;
+    }
+
+    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
+      jsonResponse(response, 200, await ruteoversikt(openapiFile));
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/docs") {
       textResponse(
         response,
@@ -1083,6 +1096,7 @@ const server = createServer(async (request, response) => {
           "<!doctype html>",
           "<html lang=\"nb\"><head><meta charset=\"utf-8\"><title>Matrikkel Mock</title></head><body>",
           "<h1>Matrikkel Mock API</h1>",
+          "<p><a href=\"/openapi.yaml\">Spesifikasjonen</a> · " + "<a href=\"/openapi-ruter.json\">Samme, lest, som JSON</a> · " + "<a href=\"http://localhost:3001/utforsker\">Prøv rutene i API-utforskeren</a></p>",
           "<ul>",
           `<li><code>GET ${wsPath}?wsdl</code></li>`,
           `<li><code>POST ${wsPath}</code> (SOAP)</li>`,

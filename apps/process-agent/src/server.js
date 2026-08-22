@@ -1,7 +1,13 @@
 import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { docsHtml, ruteoversikt } from "../../shared-ui/openapi.ts";
 
 const port = Number(process.env.PORT || 8084);
 const mcpBaseUrl = process.env.MCP_BASE_URL || "http://mcp-services:8083";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const openapiFile = path.resolve(__dirname, "../../../openapi/process-agent.yaml");
 
 const sessions = new Map();
 
@@ -13,6 +19,19 @@ function json(response, statusCode, data) {
     "Access-Control-Allow-Headers": "Content-Type,Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
+}
+
+// Samme headere som json(), for svarene som ikke er JSON: /docs og
+// /openapi.yaml. CORS hører på alle tre — ellers dør et nettleserkall i
+// preflight, og det er bare synlig i konsollet.
+function tekst(response, statusCode, data, contentType = "text/plain; charset=utf-8") {
+  response.writeHead(statusCode, {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization"
+  });
+  response.end(data);
 }
 
 async function readBody(request) {
@@ -1700,6 +1719,22 @@ const server = createServer(async (request, response) => {
   try {
     if (url.pathname === "/helse" || url.pathname === "/health") {
       json(response, 200, { status: "ok", tjeneste: "process-agent", tidspunkt: new Date().toISOString() });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/docs") {
+      tekst(response, 200, docsHtml(await ruteoversikt(openapiFile)), "text/html; charset=utf-8");
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/openapi.yaml") {
+      tekst(response, 200, await readFile(openapiFile, "utf8"), "text/yaml; charset=utf-8");
+      return;
+    }
+
+    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
+      json(response, 200, await ruteoversikt(openapiFile));
       return;
     }
 

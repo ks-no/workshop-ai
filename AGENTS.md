@@ -104,6 +104,26 @@ if a comment restates the code, delete it instead of translating it.
 - When API behavior changes, update matching OpenAPI docs in `openapi/*.yaml`.
 - Keep changes scoped to one app unless cross-service change is required.
 
+## Frontend: the KS Digital design system
+- `docs/designsystem.md` is the reference for any frontend work, and
+  `http://localhost:3001/ds-eksempel` is it running. Read the doc before writing markup;
+  it carries the `ds-` class API, the token names and the rules below.
+- The design system ships as **plain CSS** (`apps/shared-ui/ds-base.css` +
+  `ds-ksdigital.css`, vendored from `@ks-digital/designsystem-themes`, refreshed by
+  `pnpm ds:hent`). That is the only reason it fits a repo with no dependencies and no
+  build step. Do not reach for the React or Angular packages here.
+- **Never load `felles.css` and the design system CSS on the same page.** `felles.css` has
+  no `@layer`, and unlayered rules outrank every layer in the cascade, so it silently
+  overrides `@layer ds` and `@layer ksd`: Inter disappears and every button variant
+  collapses to the same blue. It looks like the stylesheet failed to load. It did not — it
+  was overridden. To override the design system deliberately, declare `@layer side;` (it
+  lands after `ksd`) and put your rules there.
+- Never edit the two vendored files. `pnpm ds:hent` overwrites them.
+- `demo-gui` and `process-builder` keep their existing look. A new frontend is a new file,
+  because those two are what other teams read to understand the sandbox.
+- The naming rule above still applies. Class names are technical, so they are English;
+  the wire format stays Norwegian no matter how the UI is styled.
+
 ## Developer workflows
 - Install + run all services:
 ```bash
@@ -252,6 +272,7 @@ pnpm test:agent:matrikkel
 
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
+- Frontend and styling: `docs/designsystem.md`, and `apps/demo-gui/src/ds-eksempel.html` for working markup.
 - Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/mcp-services.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
 - End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-mcp-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`, `scripts/test-bergen-matrikkel-bulk.js`.
 

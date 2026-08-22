@@ -35,6 +35,7 @@ hører til hvilken case. Går noe galt senere, er det den siden du går tilbake 
 | <http://localhost:3001/agent> | Agent i naturlig språk. Den velger prosess selv |
 | <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
 | <http://localhost:3000> | Prosessbygger — lag eller endre en flyt |
+| <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend — se `docs/designsystem.md` |
 
 De øvrige tjenestene (`:8080`–`:8085`) er API-er du kan bygge mot, men du trenger ikke
 åpne noen av dem for å se sandboxen virke. Se `README.md` når du kommer dit.

@@ -44,6 +44,7 @@ export function docsHtml() {
     <head><meta charset="utf-8"><title>Sandbox Backend API</title></head>
     <body style="font-family: Arial, sans-serif; padding: 24px;">
       <h1>Sandbox Backend API</h1>
+      <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
       <ul>
         <li><code>GET /helse</code></li>
         <li><code>GET /api/personer</code></li>

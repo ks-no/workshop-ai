@@ -20,7 +20,11 @@
  *   6. a security requirement that disagrees with the route's tilgang or scope
  *   7. an enum in the spec that has drifted from the kodeverk in the code
  *
- * There is no YAML parser here and there is not going to be one: the sandbox has
+ * The spec is read by apps/shared-ui/openapi.ts, which every service also serves
+ * from GET /openapi-ruter.json. One reader, two consumers: what the gate compares
+ * against the code is the same text the API explorer renders.
+ *
+ * There is no YAML parser there and there is not going to be one: the sandbox has
  * no runtime dependencies, and for check 1 a parser would actively be in the way.
  *
  * Path parameters are compared by position, not by name: the code's regexes carry
@@ -36,6 +40,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { lesSpesifikasjon } from "../apps/shared-ui/openapi.ts";
 
 const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_METODER = ["get", "post", "put", "patch", "delete", "head", "options"];
@@ -46,13 +51,6 @@ type Rute = {
   /** Tilgangsband fra koden, der koden har et. Se autentisering.ts. */
   tilgang?: string;
   scope?: string;
-};
-
-type Operasjon = {
-  metode: string;
-  linje: number;
-  security: string[] | null;
-  scopes: string[];
 };
 
 type Tjeneste = {
@@ -94,90 +92,6 @@ function lesEnum(tekst: string, skjema: string): string[] | null {
   const blokk = neste === -1 ? rest : rest.slice(0, neste);
   const treff = blokk.match(/^ {6}enum: \[([^\]]*)\]/m);
   return treff ? treff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean) : null;
-}
-
-function lesSpesifikasjon(tekst: string) {
-  const linjer = tekst.split("\n");
-  const stier: { sti: string; linje: number; operasjoner: Operasjon[] }[] = [];
-  const rekkefoelge: string[] = [];
-  let iPaths = false;
-  let naavaerende: (typeof stier)[number] | null = null;
-  let naavaerendeOperasjon: Operasjon | null = null;
-  let securityInnrykk = -1;
-  // A document-level `security:` applies to every operation that does not declare
-  // its own. Nothing else at the top level is read here.
-  let dokumentSecurity = false;
-
-  linjer.forEach((linje, indeks) => {
-    if (/^paths:\s*$/.test(linje)) {
-      iPaths = true;
-      return;
-    }
-    if (/^security:\s*/.test(linje)) {
-      dokumentSecurity = true;
-      return;
-    }
-    if (/^\S/.test(linje) && !/^paths:/.test(linje)) {
-      iPaths = false;
-    }
-    if (!iPaths) return;
-
-    const stiTreff = linje.match(/^ {2}(\/\S*):\s*$/);
-    if (stiTreff) {
-      naavaerende = { sti: stiTreff[1], linje: indeks + 1, operasjoner: [] };
-      naavaerendeOperasjon = null;
-      securityInnrykk = -1;
-      stier.push(naavaerende);
-      rekkefoelge.push(stiTreff[1]);
-      return;
-    }
-    if (!naavaerende) return;
-
-    const metodeTreff = linje.match(/^ {4}([a-z]+):\s*$/);
-    if (metodeTreff && HTTP_METODER.includes(metodeTreff[1])) {
-      naavaerendeOperasjon = { metode: metodeTreff[1].toUpperCase(), linje: indeks + 1, security: null, scopes: [] };
-      securityInnrykk = -1;
-      naavaerende.operasjoner.push(naavaerendeOperasjon);
-      return;
-    }
-    if (!naavaerendeOperasjon) return;
-
-    // `security: []` on one line is the explicit "open" marker; a block form
-    // follows on the lines below it, indented deeper.
-    const tomSecurity = linje.match(/^ {6}security:\s*\[\s*\]\s*$/);
-    if (tomSecurity) {
-      naavaerendeOperasjon.security = [];
-      return;
-    }
-    if (/^ {6}security:\s*$/.test(linje)) {
-      naavaerendeOperasjon.security = [];
-      securityInnrykk = 6;
-      return;
-    }
-    if (securityInnrykk >= 0) {
-      const innrykk = linje.search(/\S/);
-      if (innrykk <= securityInnrykk && linje.trim() !== "") {
-        securityInnrykk = -1;
-        return;
-      }
-      // - maskinporten: [ks:innbyggerdialog:les]  eller  - idporten: []
-      // eller ordningen på egen linje med scopene under seg.
-      const ordning = linje.match(/^\s*- (\w+):\s*(\[([^\]]*)\])?\s*$/);
-      if (ordning) {
-        naavaerendeOperasjon.security!.push(ordning[1]);
-        for (const scope of (ordning[3] || "").split(",")) {
-          if (scope.trim()) naavaerendeOperasjon.scopes.push(scope.trim());
-        }
-        return;
-      }
-      const scope = linje.match(/^\s*- ([a-z]+:[^\s]+)\s*$/);
-      if (scope) {
-        naavaerendeOperasjon.scopes.push(scope[1]);
-      }
-    }
-  });
-
-  return { stier, rekkefoelge, dokumentSecurity };
 }
 
 // --- koden ----------------------------------------------------------------
@@ -227,14 +141,33 @@ function skannRuter(kilde: string, tjeneste: Tjeneste) {
     deklarasjoner.add(foer.split("\n").length);
   }
 
+  // const sti = url.pathname;  — digdir-mock names the path once and compares the
+  // name from there on. The shape belongs in this scanner, not in ikkeRuter: with
+  // the alias unknown, all eleven of its routes were invisible and the check would
+  // have reported "0 ruter i koden" — failing loudly, but pointing at the wrong
+  // thing. Teaching the shape makes it robust for the next service that writes
+  // its routes this way.
+  const aliaser: string[] = [];
+  // [^\S\n] og ikke \s: \s matcher linjeskift, så ^ kunne feste seg på en blank
+  // linje over, og treff.index pekte på den i stedet for på deklarasjonen.
+  for (const treff of kilde.matchAll(/^[^\S\n]*const (\w+) = url\.pathname;[^\S\n]*$/gm)) {
+    aliaser.push(treff[1]);
+    deklarasjoner.add(kilde.slice(0, treff.index).split("\n").length);
+  }
+  const alias = aliaser.length ? new RegExp(`\\b(?:${aliaser.join("|")})\\b`, "g") : null;
+
   const linjer = kilde.split("\n");
   linjer.forEach((linje, indeks) => {
-    const metoder = [...linje.matchAll(/request\.method === "([A-Z]+)"/g)].map((m) => m[1]);
+    // The line as the matchers below want to see it. The original is kept for the
+    // ikkeRuter lookup and for the error message: both have to speak about the
+    // source as it is written.
+    const rutelinje = alias ? linje.replace(alias, "url.pathname") : linje;
+    const metoder = [...rutelinje.matchAll(/request\.method === "([A-Z]+)"/g)].map((m) => m[1]);
     let traff = false;
 
     // if (request.method === "X" && xTreff)
     for (const [navn, moenster] of moenstre) {
-      if (!new RegExp(`&&\\s*${navn}\\b|\\b${navn}\\s*&&`).test(linje)) continue;
+      if (!new RegExp(`&&\\s*${navn}\\b|\\b${navn}\\s*&&`).test(rutelinje)) continue;
       const sti = stiFraRegex(moenster);
       if (!sti) {
         uparsede.push(`${indeks + 1}: kunne ikke tolke mønsteret /${moenster}/`);
@@ -248,7 +181,7 @@ function skannRuter(kilde: string, tjeneste: Tjeneste) {
     }
 
     // url.pathname === "/x"  og  url.pathname === KONSTANT
-    for (const treff of linje.matchAll(/url\.pathname === (?:"([^"]+)"|(\w+))/g)) {
+    for (const treff of rutelinje.matchAll(/url\.pathname === (?:"([^"]+)"|(\w+))/g)) {
       const stier = treff[1] ? [treff[1]] : strenger.get(treff[2]);
       if (!stier) {
         uparsede.push(`${indeks + 1}: kjenner ikke konstanten ${treff[2]}`);
@@ -264,7 +197,7 @@ function skannRuter(kilde: string, tjeneste: Tjeneste) {
     }
 
     // LISTE.includes(url.pathname)
-    for (const treff of linje.matchAll(/(\w+)\.includes\(url\.pathname\)/g)) {
+    for (const treff of rutelinje.matchAll(/(\w+)\.includes\(url\.pathname\)/g)) {
       const stier = strenger.get(treff[1]);
       if (!stier) {
         uparsede.push(`${indeks + 1}: kjenner ikke listen ${treff[1]}`);
@@ -279,7 +212,7 @@ function skannRuter(kilde: string, tjeneste: Tjeneste) {
       traff = true;
     }
 
-    if (traff || !linje.includes("url.pathname") || deklarasjoner.has(indeks + 1)) return;
+    if (traff || !rutelinje.includes("url.pathname") || deklarasjoner.has(indeks + 1)) return;
     // A url.pathname the scanner did not recognise. Either it is a route written
     // in a new shape — and then the shape belongs in this scanner — or it is not
     // a route, and then it belongs in ikkeRuter with a reason.
@@ -353,6 +286,15 @@ const tjenester: Tjeneste[] = [
     navn: "matrikkel-mock",
     spesifikasjon: "openapi/matrikkel-mock.yaml",
     kilde: "apps/matrikkel-mock/src/server.js"
+  },
+  {
+    navn: "digdir-mock",
+    spesifikasjon: "openapi/digdir-mock.yaml",
+    kilde: "apps/digdir-mock/src/server.ts",
+    ikkeRuter: [
+      // 404-meldingen gjentar stien for at den skal stå i svaret. Ikke en rute.
+      "`Fant ikke ${request.method} ${sti}. Se GET /docs.`"
+    ]
   }
 ];
 
@@ -366,7 +308,10 @@ const notater: string[] = [];
 for (const tjeneste of tjenester) {
   if (filter.length && !filter.some((m) => tjeneste.navn.includes(m))) continue;
 
-  const spec = lesSpesifikasjon(await readFile(path.join(rot, tjeneste.spesifikasjon), "utf8"));
+  const spec = lesSpesifikasjon(
+    await readFile(path.join(rot, tjeneste.spesifikasjon), "utf8"),
+    tjeneste.spesifikasjon
+  );
 
   // 1. Duplikate path-nøkler. YAML tar den siste og kaster den første i stillhet.
   const settSti = new Set<string>();

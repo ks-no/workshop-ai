@@ -105,6 +105,11 @@ services:
       # its token from localhost:8086, and sandbox-backend must accept that same
       # `iss` when it verifies it. DIGDIR_BASE_URL is the dial address instead.
       - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
+      # Standarden i koden er 120 sekunder, som holder for en tjeneste: klient.ts
+      # fornyer selv, og ingen merker det. En deltaker som logger inn i
+      # API-utforskeren gjør ikke det — der betyr to minutter at alt plutselig
+      # svarer 401 uten at noe sier hvorfor. En time dekker en økt.
+      - DIGDIR_TOKEN_TTL=${DIGDIR_TOKEN_TTL:-3600}
     ports:
       - "8086:8086"
     volumes:
