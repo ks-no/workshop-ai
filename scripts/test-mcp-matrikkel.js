@@ -7,11 +7,11 @@ const mcpLivePort = 18084;
 const mcpHybridPort = 18087;
 const geonorgePort = 18086;
 
-function vent(ms) {
+function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ventPaa(url, forsok = 40) {
+async function waitFor(url, forsok = 40) {
   for (let i = 0; i < forsok; i += 1) {
     try {
       const svar = await fetch(url);
@@ -19,7 +19,7 @@ async function ventPaa(url, forsok = 40) {
     } catch {
       // Ikke oppe enda.
     }
-    await vent(250);
+    await wait(250);
   }
   throw new Error(`Timeout: ${url}`);
 }
@@ -143,10 +143,10 @@ async function kjor() {
   });
 
   try {
-    await ventPaa(`http://127.0.0.1:${matrikkelPort}/health`);
-    await ventPaa(`http://127.0.0.1:${mcpMockPort}/health`);
-    await ventPaa(`http://127.0.0.1:${mcpLivePort}/health`);
-    await ventPaa(`http://127.0.0.1:${mcpHybridPort}/health`);
+    await waitFor(`http://127.0.0.1:${matrikkelPort}/helse`);
+    await waitFor(`http://127.0.0.1:${mcpMockPort}/helse`);
+    await waitFor(`http://127.0.0.1:${mcpLivePort}/helse`);
+    await waitFor(`http://127.0.0.1:${mcpHybridPort}/helse`);
 
     const gate = await invoke(mcpMockPort, "matrikkel_finn_veger", { gate: "Storgata" });
     assert(gate.adressenavn === "Storgata", "matrikkel_finn_veger returnerte ikke Storgata");

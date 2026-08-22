@@ -316,6 +316,14 @@ textarea.dark {
   text-decoration: underline;
 }
 
+/* The page you are already on. renderTopNav renders it as a span, not a link, so
+   it needs the spacing the anchors get from the rule above. */
+.top-links [aria-current="page"] {
+  margin-right: 14px;
+  font-weight: 600;
+  color: var(--farge-tekst-dempet);
+}
+
 .muted,
 .small {
   color: var(--farge-tekst-dempet);

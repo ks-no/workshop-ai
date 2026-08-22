@@ -32,12 +32,6 @@ paths:
                   tidspunkt:
                     type: string
                     format: date-time
-  /health:
-    get:
-      summary: Health check
-      responses:
-        "200":
-          description: Tjenesten er oppe
   /openapi.yaml:
     get:
       summary: Denne spesifikasjonen

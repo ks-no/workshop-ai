@@ -33,7 +33,7 @@ New data sources are wired in by adding heuristics in `ai-gateway` and a tool in
 
 ## Endpoints
 
-- `GET /health`
+- `GET /helse`
 - `POST /agent/sessions` create a new agent session
 - `GET /agent/sessions/{sessionId}` get session status
 - `POST /agent/sessions/{sessionId}/messages` send a user message

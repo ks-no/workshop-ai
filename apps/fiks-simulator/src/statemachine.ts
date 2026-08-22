@@ -8,7 +8,7 @@
  *
  * `Record<T, T[]>` is the point of the type parameter: the compiler demands an
  * entry for every status, so adding one without deciding what it may become is a
- * compile error rather than a quiet dead end. Same pattern as `regelHandtere` in
+ * compile error rather than a quiet dead end. Same pattern as `regelHandlers` in
  * vilkaar.ts and `REGLER` in skjerming.ts.
  */
 
@@ -20,11 +20,11 @@ export type Overgangsutfall<T extends string> =
  * @param navn What the resource is called in a message to a citizen, capitalised
  *   and definite: "Samtykket", "Oppgaven".
  */
-export function lagTilstandsmaskin<T extends string>(navn: string, overganger: Record<T, T[]>) {
-  const statuser = Object.keys(overganger) as T[];
+export function createTilstandsmaskin<T extends string>(navn: string, overganger: Record<T, T[]>) {
+  const statuses = Object.keys(overganger) as T[];
 
-  function erStatus(verdi: unknown): verdi is T {
-    return typeof verdi === "string" && (statuser as string[]).includes(verdi);
+  function isStatus(verdi: unknown): verdi is T {
+    return typeof verdi === "string" && (statuses as string[]).includes(verdi);
   }
 
   // Two different failures, and they are not the same HTTP answer: an unknown
@@ -32,16 +32,16 @@ export function lagTilstandsmaskin<T extends string>(navn: string, overganger: R
   // cannot reach from here is a conflict with the current state (409). Collapsing
   // them into one code would make "you spelled it wrong" and "you are too late"
   // indistinguishable to a client.
-  function validerOvergang(fra: unknown, til: unknown): Overgangsutfall<T> {
-    if (!erStatus(til)) {
+  function validateOvergang(fra: unknown, til: unknown): Overgangsutfall<T> {
+    if (!isStatus(til)) {
       return {
         lovlig: false,
         status: 400,
         kode: "UKJENT_STATUS",
-        melding: `«${String(til)}» er ikke en gyldig status. Gyldige: ${statuser.join(", ")}.`
+        melding: `«${String(til)}» er ikke en gyldig status. Gyldige: ${statuses.join(", ")}.`
       };
     }
-    if (!erStatus(fra)) {
+    if (!isStatus(fra)) {
       // Persisted rubbish, from before the machine existed or from a hand-edited
       // state file. Answering 409 rather than 400 is deliberate: the request is
       // fine, the stored row is not.
@@ -49,22 +49,22 @@ export function lagTilstandsmaskin<T extends string>(navn: string, overganger: R
         lovlig: false,
         status: 409,
         kode: "UKJENT_STATUS",
-        melding: `${navn} har den ukjente statusen «${String(fra)}». Gyldige: ${statuser.join(", ")}.`
+        melding: `${navn} har den ukjente statusen «${String(fra)}». Gyldige: ${statuses.join(", ")}.`
       };
     }
-    const mulige = overganger[fra];
-    if (!mulige.includes(til)) {
+    const allowed = overganger[fra];
+    if (!allowed.includes(til)) {
       return {
         lovlig: false,
         status: 409,
         kode: "UGYLDIG_OVERGANG",
-        melding: mulige.length
-          ? `${navn} har status ${fra}, og kan derfra bare settes til ${mulige.join(" eller ")}. Forsøkte ${til}.`
+        melding: allowed.length
+          ? `${navn} har status ${fra}, og kan derfra bare settes til ${allowed.join(" eller ")}. Forsøkte ${til}.`
           : `${navn} har status ${fra}, som er endelig. Forsøkte ${til}.`
       };
     }
     return { lovlig: true, fra, til };
   }
 
-  return { statuser, erStatus, validerOvergang };
+  return { statuses, isStatus, validateOvergang };
 }

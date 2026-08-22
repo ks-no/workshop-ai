@@ -3,7 +3,7 @@
 import { access } from "node:fs/promises";
 import { constants } from "node:fs";
 
-const defaultUrl = process.env.MATRIKKEL_HEALTH_URL || "http://localhost:8085/health";
+const defaultUrl = process.env.MATRIKKEL_HEALTH_URL || "http://localhost:8085/helse";
 const defaultDataFile = process.env.MATRIKKEL_DATA_FILE || "data/matrikkel.json";
 
 function parseArgs(argv) {

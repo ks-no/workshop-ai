@@ -9,19 +9,19 @@ import { fileURLToPath } from "node:url";
 // The version is pinned deliberately. @ks-digital/designsystem-themes is pre-1.0
 // (0.0.1-alpha.*) and class names may still move, so a floating version would let a
 // silent upstream change break every participant's frontend mid-hackathon.
-const VERSJON = "0.0.1-alpha.69";
-const TEMA = "ksdigital";
+const VERSION = "0.0.1-alpha.69";
+const THEME = "ksdigital";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sharedUiDir = path.resolve(__dirname, "..", "apps", "shared-ui");
-const cdn = `https://cdn.jsdelivr.net/npm/@ks-digital/designsystem-themes@${VERSJON}/dist`;
+const cdn = `https://cdn.jsdelivr.net/npm/@ks-digital/designsystem-themes@${VERSION}/dist`;
 
-const filer = [
+const files = [
   { url: `${cdn}/base.css`, navn: "ds-base.css" },
-  { url: `${cdn}/themes/${TEMA}.css`, navn: `ds-${TEMA}.css` }
+  { url: `${cdn}/themes/${THEME}.css`, navn: `ds-${THEME}.css` }
 ];
 
-async function hent({ url, navn }) {
+async function download({ url, navn }) {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`${url} svarte ${response.status} ${response.statusText}`);
@@ -37,10 +37,10 @@ async function hent({ url, navn }) {
   console.log(`  ${navn}  ${(css.length / 1024).toFixed(0)} kB`);
 }
 
-console.log(`Henter @ks-digital/designsystem-themes@${VERSJON} (tema: ${TEMA})`);
+console.log(`Henter @ks-digital/designsystem-themes@${VERSION} (tema: ${THEME})`);
 try {
-  for (const fil of filer) {
-    await hent(fil);
+  for (const fil of files) {
+    await download(fil);
   }
   console.log("Ferdig. Se docs/designsystem.md for hvordan filene brukes.");
 } catch (error) {

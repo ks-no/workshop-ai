@@ -87,7 +87,7 @@ export type Prosessoekt = {
 
 // --- rules and rates ------------------------------------------------------
 
-// A closed union so the compiler demands a handler in regelHandtere (vilkaar.ts) the moment a
+// A closed union so the compiler demands a handler in regelHandlers (vilkaar.ts) the moment a
 // new rule type appears. TJENESTEBEHOV is the first one that is not about money:
 // støttekontakt is assessed on need and capacity, and must not drag an income
 // lookup — and its consent — along with it.

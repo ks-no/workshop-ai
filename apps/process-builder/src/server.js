@@ -36,7 +36,7 @@ async function sendFile(response, filsti, contentType) {
 const server = createServer(async (request, response) => {
   const sti = (request.url || "/").split("?")[0];
 
-  if (sti === "/helse" || sti === "/health") {
+  if (sti === "/helse") {
     send(response, 200, JSON.stringify({ status: "ok", tjeneste: "prosessbygger" }), "application/json; charset=utf-8");
     return;
   }

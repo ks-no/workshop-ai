@@ -107,7 +107,7 @@ async function req(path, options = {}) {
 
 function createFakeMcpServer() {
   return createServer(async (request, response) => {
-    if (request.method === "GET" && (request.url === "/health" || request.url === "/helse")) {
+    if (request.method === "GET" && request.url === "/helse") {
       json(response, 200, { status: "ok" });
       return;
     }
@@ -183,7 +183,7 @@ function createFakeMcpServer() {
       if (name === "answer_question") {
         fakeSession.savedAnswer = args.svar;
         fakeSession.savedAnswers[args.stegId] = args.svar;
-        json(response, 200, { ok: true, result: { lagret: true } });
+        json(response, 200, { ok: true, result: { stored: true } });
         return;
       }
 
@@ -318,7 +318,7 @@ async function run() {
   });
 
   try {
-    await waitFor(`http://127.0.0.1:${agentPort}/health`);
+    await waitFor(`http://127.0.0.1:${agentPort}/helse`);
 
     const created = await req("/agent/sessions", {
       method: "POST",

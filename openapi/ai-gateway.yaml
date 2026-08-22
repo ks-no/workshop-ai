@@ -16,25 +16,6 @@ security: []
 paths:
   /helse:
     get:
-      summary: Helsesjekk
-      responses:
-        "200":
-          description: Tjenesten svarer
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [ok]
-                  tjeneste:
-                    type: string
-                  tidspunkt:
-                    type: string
-                    format: date-time
-  /health:
-    get:
       summary: Health check, inkludert om modellen faktisk er tilgjengelig
       description: |
         Svarer alltid 200 så lenge tjenesten kjører. Om modellen er nåbar leses

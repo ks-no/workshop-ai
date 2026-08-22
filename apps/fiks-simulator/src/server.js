@@ -1,22 +1,22 @@
 import { createServer } from "node:http";
-import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
-import { lagVerifikator, TokenFeil } from "../../digdir-mock/src/verifiser.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
+import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 // A2's masking, reused rather than reimplemented. fiks-simulator reads
 // data/personer.json itself, so it is a second data layer that A2 never covered —
 // which is why /fiks/register/person/person-031 handed out a kode 6 person's name
 // and street address in full. The repo already carries four masking
 // implementations; this makes it three rather than five.
-import { maskerHusstand, maskerPerson } from "../../sandbox-backend/src/skjerming.ts";
+import { maskHusstand, maskPerson } from "../../sandbox-backend/src/skjerming.ts";
 // Consent has rules now: which statuses exist, what may follow what, and when a
 // samtykke has run out. All three live in samtykke.ts so the compiler can hold
 // them together — see the comment there.
-import { effektivStatus, validerSamtykkeovergang } from "./samtykke.ts";
-import { validerOppgaveovergang } from "./oppgave.ts";
-import { lagStateLeser, newId, updateJson } from "./state.ts";
+import { effektivStatus, validateSamtykkeovergang } from "./samtykke.ts";
+import { validateOppgaveovergang } from "./oppgave.ts";
+import { createStateReader, newId, updateJson } from "./state.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ruteoversikt } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared-ui/openapi.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PORT lar testskript starte en isolert instans ved siden av docker compose.
@@ -34,7 +34,7 @@ const authEnforce = process.env.AUTH_ENFORCE !== "false";
 // behind Maskinporten, and so does this.
 const SCOPE_REGISTER = "ks:fiks:register";
 
-const verifiserToken = lagVerifikator({
+const verifyToken = createVerifier({
   digdirBaseUrl,
   maskinportenIssuer: digdirIssuer,
   idportenIssuer: `${digdirIssuer}/idporten`,
@@ -83,7 +83,7 @@ async function readBody(request) {
 //
 // Auditing must never break the operation being audited: if the backend is
 // unavailable we log locally and carry on.
-async function leggTilRevisjon(hendelse) {
+async function addRevisjon(hendelse) {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
       method: "POST",
@@ -112,7 +112,7 @@ async function leggTilRevisjon(hendelse) {
 // Entries excluded from the grunnlag are recorded as ADDERE under inntekt and
 // SUBTRAHERE under fradrag. That keeps beregningsbeloep correct while still letting
 // the resident see which benefits were left out, and why.
-function byggPost(post, identifikator) {
+function buildPost(post, identifikator) {
   return {
     tekniskNavn: post.tekniskNavn,
     visningstekst: post.visningstekst,
@@ -126,16 +126,16 @@ function byggPost(post, identifikator) {
   };
 }
 
-function byggBeregning(deltakere) {
+function buildBeregning(deltakere) {
   const inntektsposter = [];
   const fradragsposter = [];
 
   for (const d of deltakere) {
     for (const post of d.poster) {
-      inntektsposter.push(byggPost(post, d.identifikator));
+      inntektsposter.push(buildPost(post, d.identifikator));
       if (!post.medregnes) {
         fradragsposter.push({
-          ...byggPost(post, d.identifikator),
+          ...buildPost(post, d.identifikator),
           operasjon: "SUBTRAHERE",
           infotekst: post.infotekst || "Inngår ikke i grunnlaget."
         });
@@ -170,21 +170,21 @@ function byggBeregning(deltakere) {
 // One visningspost per income type, with the amount broken down by the people
 // behind it. Protected individuals count towards the total, but their share is
 // not shown.
-function byggVisningsposter(deltakere) {
-  const perType = new Map();
+function buildVisningsposter(deltakere) {
+  const byType = new Map();
 
   for (const d of deltakere) {
     for (const post of d.poster) {
       if (!post.medregnes) continue;
-      if (!perType.has(post.tekniskNavn)) {
-        perType.set(post.tekniskNavn, {
+      if (!byType.has(post.tekniskNavn)) {
+        byType.set(post.tekniskNavn, {
           tekniskNavn: post.tekniskNavn,
           visningstekst: post.visningstekst,
           beloep: 0,
           personer: []
         });
       }
-      const vp = perType.get(post.tekniskNavn);
+      const vp = byType.get(post.tekniskNavn);
       vp.beloep += post.beloep;
       if (d.skjermet) {
         vp.infotekst = "Beløpet inkluderer et husstandsmedlem med skjermet identitet, som ikke kan spesifiseres.";
@@ -194,10 +194,10 @@ function byggVisningsposter(deltakere) {
     }
   }
 
-  return [{ kategori: "INNTEKT", poster: [...perType.values()] }];
+  return [{ kategori: "INNTEKT", poster: [...byType.values()] }];
 }
 
-function beregnRedusertForeldrebetaling(body, personer, inntekter) {
+function computeRedusertForeldrebetaling(body, personer, inntekter) {
   const feilmeldinger = [];
   const inntektsaar = body.inntektsaar;
 
@@ -208,24 +208,24 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
     feilmeldinger.push({ kode: "PERSONER_MANGLER", melding: "personer må inneholde minst én person." });
   }
   if (feilmeldinger.length) {
-    return { feilmeldinger, deltakere: [], svarPersoner: [] };
+    return { feilmeldinger, deltakere: [], personerResponse: [] };
   }
 
   const deltakere = [];
-  const svarPersoner = [];
+  const personerResponse = [];
 
-  for (const forespurt of body.personer) {
+  for (const requested of body.personer) {
     // The spec requires ^[0-9]{11}$. Without this check a malformed identifier
     // returned PERSON_IKKE_FUNNET, which wrongly implies it was well-formed.
-    if (!/^[0-9]{11}$/.test(String(forespurt.identifikator || ""))) {
+    if (!/^[0-9]{11}$/.test(String(requested.identifikator || ""))) {
       feilmeldinger.push({
         kode: "UGYLDIG_IDENTIFIKATOR",
-        melding: `identifikator må være 11 siffer, fikk ${forespurt.identifikator}.`
+        melding: `identifikator må være 11 siffer, fikk ${requested.identifikator}.`
       });
       continue;
     }
 
-    const type = forespurt.type || "SOEKER";
+    const type = requested.type || "SOEKER";
     if (!["SOEKER", "ANNET"].includes(type)) {
       feilmeldinger.push({
         kode: "UGYLDIG_PERSONTYPE",
@@ -234,19 +234,19 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
       continue;
     }
 
-    const person = personer.find((p) => p.syntetiskFodselsnummer === forespurt.identifikator);
+    const person = personer.find((p) => p.syntetiskFodselsnummer === requested.identifikator);
     if (!person) {
       feilmeldinger.push({
         kode: "PERSON_IKKE_FUNNET",
-        melding: `Fant ingen person med identifikator ${forespurt.identifikator}.`
+        melding: `Fant ingen person med identifikator ${requested.identifikator}.`
       });
       continue;
     }
 
     const rad = inntekter.find(
-      (i) => i.identifikator === forespurt.identifikator && i.inntektsaar === inntektsaar
+      (i) => i.identifikator === requested.identifikator && i.inntektsaar === inntektsaar
     );
-    const ekstraposter = (forespurt.ekstraposter || []).map((e) => ({
+    const ekstraposter = (requested.ekstraposter || []).map((e) => ({
       tekniskNavn: e.tekniskNavn,
       visningstekst: e.visningstekst || e.tekniskNavn,
       beloep: e.beloep,
@@ -258,13 +258,13 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
     if (!rad && ekstraposter.length === 0) {
       feilmeldinger.push({
         kode: "INGEN_SKATTEOPPGJOER_FUNNET",
-        melding: `Fant ingen skatteopplysninger for ${forespurt.identifikator} i inntektsåret ${inntektsaar}.`
+        melding: `Fant ingen skatteopplysninger for ${requested.identifikator} i inntektsåret ${inntektsaar}.`
       });
       continue;
     }
 
     deltakere.push({
-      identifikator: forespurt.identifikator,
+      identifikator: requested.identifikator,
       skjermet: Boolean(person.skjermet),
       poster: [...(rad?.poster || []), ...ekstraposter]
     });
@@ -277,8 +277,8 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
       etternavn: person.navn.etternavn
     };
 
-    svarPersoner.push({
-      identifikator: forespurt.identifikator,
+    personerResponse.push({
+      identifikator: requested.identifikator,
       navn: person.skjermet ? undefined : navn,
       type,
       skjermet: Boolean(person.skjermet),
@@ -288,7 +288,7 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
     });
   }
 
-  return { feilmeldinger, deltakere, svarPersoner };
+  return { feilmeldinger, deltakere, personerResponse };
 }
 
 /**
@@ -299,7 +299,7 @@ function beregnRedusertForeldrebetaling(body, personer, inntekter) {
  * whether that municipality has a data-processing agreement for the register. We
  * check the scope and record the client, which is the part the workshop is about.
  */
-class FiksFeil extends Error {
+class FiksError extends Error {
   constructor(melding, status, kode, headers = {}) {
     super(melding);
     this.status = status;
@@ -308,12 +308,12 @@ class FiksFeil extends Error {
   }
 }
 
-async function krevRegisterHjemmel(request) {
+async function requireRegisterHjemmel(request) {
   if (!authEnforce) return null;
 
   const header = request.headers.authorization;
   if (!header) {
-    throw new FiksFeil(
+    throw new FiksError(
       "Registerflaten i Fiks krever et Maskinporten-token. " +
       "Hent et med scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulator.",
       401,
@@ -323,7 +323,7 @@ async function krevRegisterHjemmel(request) {
   }
   const [ordning, token] = header.split(" ");
   if (!/^bearer$/i.test(ordning || "") || !token) {
-    throw new FiksFeil(
+    throw new FiksError(
       "Authorization-headeren må være på formen «Bearer <token>».",
       401,
       "UGYLDIG_TOKEN",
@@ -331,12 +331,12 @@ async function krevRegisterHjemmel(request) {
     );
   }
 
-  let verifisert;
+  let verified;
   try {
-    verifisert = await verifiserToken(token);
+    verified = await verifyToken(token);
   } catch (feil) {
-    if (feil instanceof TokenFeil) {
-      throw new FiksFeil(feil.message, feil.status, feil.status === 401 ? "UGYLDIG_TOKEN" : "UTSTEDER_NEDE",
+    if (feil instanceof TokenError) {
+      throw new FiksError(feil.message, feil.status, feil.status === 401 ? "UGYLDIG_TOKEN" : "UTSTEDER_NEDE",
         feil.status === 401 ? { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' } : {});
     }
     throw feil;
@@ -345,8 +345,8 @@ async function krevRegisterHjemmel(request) {
   // A citizen's ID-porten token cannot open a register API. The register is a
   // machine-to-machine surface: the hjemmel belongs to the municipality, not to
   // whoever happens to be logged in.
-  if (verifisert.utsteder !== "maskinporten") {
-    throw new FiksFeil(
+  if (verified.utsteder !== "maskinporten") {
+    throw new FiksError(
       "Registerflaten er en maskin-til-maskin-flate. Et personlig ID-porten-token " +
       "gir ikke hjemmel her, uansett sikkerhetsnivå.",
       403,
@@ -354,10 +354,10 @@ async function krevRegisterHjemmel(request) {
     );
   }
 
-  const scopes = String(verifisert.krav.scope || "").split(" ").filter(Boolean);
+  const scopes = String(verified.krav.scope || "").split(" ").filter(Boolean);
   if (!scopes.includes(SCOPE_REGISTER)) {
-    throw new FiksFeil(
-      `Klienten ${verifisert.krav.client_id} mangler scope ${SCOPE_REGISTER} ` +
+    throw new FiksError(
+      `Klienten ${verified.krav.client_id} mangler scope ${SCOPE_REGISTER} ` +
       `(har: ${scopes.join(" ") || "ingen"}).`,
       403,
       "MANGLER_SCOPE"
@@ -365,16 +365,16 @@ async function krevRegisterHjemmel(request) {
   }
 
   return {
-    clientId: verifisert.krav.client_id || "ukjent",
-    consumer: verifisert.krav.consumer?.ID || null
+    clientId: verified.krav.client_id || "ukjent",
+    consumer: verified.krav.consumer?.ID || null
   };
 }
 
 // The masking A2 applies in sandbox-backend's readState(), applied here too. Without
 // it a machine with register hjemmel still received an address-protected person in
 // full, which would undo A2 for anyone who found the route.
-function maskertPerson(person) {
-  return person ? maskerPerson(person) : person;
+function maskRegisterPerson(person) {
+  return person ? maskPerson(person) : person;
 }
 
 /**
@@ -409,11 +409,11 @@ function samtykkeAktor(oppgitt, personId) {
  *
  * The state machine decides both the code and the status — 400 for a status that
  * does not exist, 409 for one that cannot be reached from here — so the rule and
- * its HTTP answer stay in one place. See tilstandsmaskin.ts.
+ * its HTTP answer stay in one place. See statemachine.ts.
  */
-function krevOvergang(utfall) {
+function requireOvergang(utfall) {
   if (!utfall.lovlig) {
-    throw new FiksFeil(utfall.melding, utfall.status, utfall.kode);
+    throw new FiksError(utfall.melding, utfall.status, utfall.kode);
   }
 }
 
@@ -430,24 +430,24 @@ function krevOvergang(utfall) {
  * would reintroduce exactly the race the queue exists to close — two answers
  * arriving together would both see VENTER_PAA_SVAR and both be allowed.
  */
-async function settSamtykkestatus(samtykkeId, oensket, body) {
-  let avvist = null;
+async function setSamtykkestatus(samtykkeId, oensket, body) {
+  let rejected = null;
   try {
     return await updateJson("samtykker.json", [], (samtykker) => {
       const treff = samtykker.find((kandidat) => kandidat.samtykkeId === samtykkeId);
       if (!treff) {
-        throw new FiksFeil("Fant ikke samtykke.", 404, "SAMTYKKE_IKKE_FUNNET");
+        throw new FiksError("Fant ikke samtykke.", 404, "SAMTYKKE_IKKE_FUNNET");
       }
       // Against the *effective* status, so an expired consent cannot be answered,
       // withdrawn or otherwise edited back into force.
-      const utfall = validerSamtykkeovergang(effektivStatus(treff), oensket);
+      const utfall = validateSamtykkeovergang(effektivStatus(treff), oensket);
       if (!utfall.lovlig) {
-        avvist = {
+        rejected = {
           personId: treff.personId,
           sporingsId: treff.sporingsId,
           grunnlag: { id: treff.samtykkeId, status: effektivStatus(treff), forsoekt: oensket, kode: utfall.kode }
         };
-        krevOvergang(utfall);
+        requireOvergang(utfall);
       }
       treff.status = oensket;
       treff.historikk = [...(treff.historikk || []), { tidspunkt: new Date().toISOString(), status: oensket }];
@@ -458,13 +458,13 @@ async function settSamtykkestatus(samtykkeId, oensket, body) {
     // audit log is for — the same reason B3 records TILGANG_NEKTET rather than
     // only successful reads. A 404 or a malformed status logs nothing: there is no
     // samtykke to attach the attempt to.
-    if (avvist) {
-      await leggTilRevisjon({
-        sporingsId: body.sporingsId || avvist.sporingsId,
+    if (rejected) {
+      await addRevisjon({
+        sporingsId: body.sporingsId || rejected.sporingsId,
         handling: "SAMTYKKE_AVVIST",
         ressurs: "samtykke",
-        aktor: samtykkeAktor(body.aktor, avvist.personId),
-        grunnlag: avvist.grunnlag
+        aktor: samtykkeAktor(body.aktor, rejected.personId),
+        grunnlag: rejected.grunnlag
       });
     }
     throw feil;
@@ -479,7 +479,7 @@ async function settSamtykkestatus(samtykkeId, oensket, body) {
  * SAMTYKKET for a consent that no longer authorises anything. Same shape as A2's
  * masking, which is likewise applied when the data leaves rather than in the seed.
  */
-function medEffektivStatus(samtykke) {
+function withEffektivStatus(samtykke) {
   return samtykke ? { ...samtykke, status: effektivStatus(samtykke) } : samtykke;
 }
 
@@ -515,7 +515,7 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (url.pathname === "/helse" || url.pathname === "/health") {
+    if (url.pathname === "/helse") {
       jsonResponse(response, 200, { status: "ok", tjeneste: "fiks-simulator", tidspunkt: new Date().toISOString() });
       return;
     }
@@ -536,7 +536,7 @@ const server = createServer(async (request, response) => {
       jsonResponse(
         response,
         200,
-        await ruteoversikt(path.resolve(__dirname, "../../../openapi/fiks-simulator.yaml"))
+        await routeOverview(path.resolve(__dirname, "../../../openapi/fiks-simulator.yaml"))
       );
       return;
     }
@@ -545,7 +545,7 @@ const server = createServer(async (request, response) => {
     // this used to read all seven files, 369 people included, on every request.
     // Writes do not go through here: they go through updateJson, which reads
     // inside its own queue. See state.ts.
-    const tilstand = lagStateLeser();
+    const tilstand = createStateReader();
 
     // Full Fiks path, so calls can be copied straight from the Fiks documentation
     // and later point at the real API by changing only the base URL.
@@ -553,15 +553,15 @@ const server = createServer(async (request, response) => {
       /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/redusert-foreldrebetaling$/
     );
     if (request.method === "POST" && beregningTreff) {
-      const klient = await krevRegisterHjemmel(request);
+      const klient = await requireRegisterHjemmel(request);
       const body = await readBody(request);
-      const { feilmeldinger, deltakere, svarPersoner } = beregnRedusertForeldrebetaling(
+      const { feilmeldinger, deltakere, personerResponse } = computeRedusertForeldrebetaling(
         body, await tilstand.personer(), await tilstand.inntekter()
       );
-      const { inntekt, fradrag, beregningsbeloep } = byggBeregning(deltakere);
-      const stadier = svarPersoner.map((p) => p.stadie);
+      const { inntekt, fradrag, beregningsbeloep } = buildBeregning(deltakere);
+      const stages = personerResponse.map((p) => p.stadie);
 
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId,
         handling: "BEREGNING_UTFOERT",
         ressurs: "skatteoginntektsopplysninger",
@@ -575,11 +575,11 @@ const server = createServer(async (request, response) => {
 
       jsonResponse(response, 200, {
         inntektsaar: body.inntektsaar,
-        stadie: stadier.length === 0 || stadier.includes("UKJENT")
+        stadie: stages.length === 0 || stages.includes("UKJENT")
           ? "UKJENT"
-          : stadier.includes("UTKAST") ? "UTKAST" : "OPPGJOER",
-        personer: svarPersoner,
-        visningsposter: byggVisningsposter(deltakere),
+          : stages.includes("UTKAST") ? "UTKAST" : "OPPGJOER",
+        personer: personerResponse,
+        visningsposter: buildVisningsposter(deltakere),
         beregningsbeloep,
         inntekt,
         fradrag,
@@ -593,7 +593,7 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && url.pathname === "/fiks/samtykke") {
       const body = await readBody(request);
-      const nyttSamtykke = {
+      const newSamtykke = {
         samtykkeId: newId("samtykke"),
         personId: body.personId,
         formaal: body.formaal,
@@ -608,16 +608,16 @@ const server = createServer(async (request, response) => {
       // Two of these arriving at once used to produce one samtykke: both read the
       // same array, both pushed, both wrote, and the loser vanished without an
       // error. The queue makes the read part of the write.
-      await updateJson("samtykker.json", [], (samtykker) => samtykker.push(nyttSamtykke));
-      await leggTilRevisjon({
-        sporingsId: nyttSamtykke.sporingsId,
+      await updateJson("samtykker.json", [], (samtykker) => samtykker.push(newSamtykke));
+      await addRevisjon({
+        sporingsId: newSamtykke.sporingsId,
         handling: "SAMTYKKE_OPPRETTET",
         ressurs: "samtykke",
         // The service asked. A consent request is something a municipality sends,
         // not something the citizen does — they have not answered yet.
-        aktor: { type: "system", id: "fiks-simulator", paaVegneAv: nyttSamtykke.personId }
+        aktor: { type: "system", id: "fiks-simulator", paaVegneAv: newSamtykke.personId }
       });
-      jsonResponse(response, 201, nyttSamtykke);
+      jsonResponse(response, 201, newSamtykke);
       return;
     }
 
@@ -629,7 +629,7 @@ const server = createServer(async (request, response) => {
         jsonResponse(response, 404, { feil: "Fant ikke samtykke." });
         return;
       }
-      jsonResponse(response, 200, medEffektivStatus(samtykke));
+      jsonResponse(response, 200, withEffektivStatus(samtykke));
       return;
     }
 
@@ -648,8 +648,8 @@ const server = createServer(async (request, response) => {
     const svarTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/svar$/);
     if (request.method === "PUT" && svarTreff) {
       const body = await readBody(request);
-      const samtykke = await settSamtykkestatus(svarTreff[1], body.status || "SAMTYKKET", body);
-      await leggTilRevisjon({
+      const samtykke = await setSamtykkestatus(svarTreff[1], body.status || "SAMTYKKET", body);
+      await addRevisjon({
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_SVART",
         ressurs: "samtykke",
@@ -658,7 +658,7 @@ const server = createServer(async (request, response) => {
         aktor: samtykkeAktor(body.aktor, samtykke.personId),
         grunnlag: { status: samtykke.status, id: samtykke.samtykkeId }
       });
-      jsonResponse(response, 200, medEffektivStatus(samtykke));
+      jsonResponse(response, 200, withEffektivStatus(samtykke));
       return;
     }
 
@@ -668,14 +668,14 @@ const server = createServer(async (request, response) => {
       // A withdrawal is a transition like any other: from SAMTYKKET and nowhere
       // else. Before this it overwrote whatever the status was, so a consent could
       // be withdrawn twice, or withdrawn while the citizen had never answered it.
-      const samtykke = await settSamtykkestatus(trekkTreff[1], "TRUKKET", body);
-      await leggTilRevisjon({
+      const samtykke = await setSamtykkestatus(trekkTreff[1], "TRUKKET", body);
+      await addRevisjon({
         sporingsId: body.sporingsId || samtykke.sporingsId,
         handling: "SAMTYKKE_TRUKKET",
         ressurs: "samtykke",
         aktor: samtykkeAktor(body.aktor, samtykke.personId)
       });
-      jsonResponse(response, 200, medEffektivStatus(samtykke));
+      jsonResponse(response, 200, withEffektivStatus(samtykke));
       return;
     }
 
@@ -684,21 +684,21 @@ const server = createServer(async (request, response) => {
       const samtykker = await tilstand.samtykker();
       jsonResponse(response, 200, samtykker
         .filter((samtykke) => samtykke.personId === personSamtykkeTreff[1])
-        .map(medEffektivStatus));
+        .map(withEffektivStatus));
       return;
     }
 
     const personTreff = url.pathname.match(/^\/fiks\/register\/person\/([^/]+)$/);
     if (request.method === "GET" && personTreff) {
-      await krevRegisterHjemmel(request);
+      await requireRegisterHjemmel(request);
       const person = (await tilstand.personer()).find((kandidat) => kandidat.personId === personTreff[1]);
-      jsonResponse(response, person ? 200 : 404, maskertPerson(person) || { feil: "Fant ikke person." });
+      jsonResponse(response, person ? 200 : 404, maskRegisterPerson(person) || { feil: "Fant ikke person." });
       return;
     }
 
     const husstandTreff = url.pathname.match(/^\/fiks\/register\/husstand\/([^/]+)$/);
     if (request.method === "GET" && husstandTreff) {
-      await krevRegisterHjemmel(request);
+      await requireRegisterHjemmel(request);
       const personer = await tilstand.personer();
       const person = personer.find((kandidat) => kandidat.personId === husstandTreff[1]);
       const husstand = (await tilstand.husstander()).find((kandidat) => kandidat.husstandId === person?.husstandId);
@@ -709,7 +709,7 @@ const server = createServer(async (request, response) => {
       jsonResponse(
         response,
         husstand ? 200 : 404,
-        husstand ? maskerHusstand(husstand, gradering) : { feil: "Fant ikke husstand." }
+        husstand ? maskHusstand(husstand, gradering) : { feil: "Fant ikke husstand." }
       );
       return;
     }
@@ -718,7 +718,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && inntektTreff) {
       // This route handed out full income with no token and no samtykke — the way
       // around consent-before-income, the sandbox's flagship policy rule.
-      await krevRegisterHjemmel(request);
+      await requireRegisterHjemmel(request);
       const inntekt = (await tilstand.inntekter()).find((kandidat) => kandidat.personId === inntektTreff[1]);
       jsonResponse(response, inntekt ? 200 : 404, inntekt || { feil: "Fant ikke inntekt." });
       return;
@@ -726,7 +726,7 @@ const server = createServer(async (request, response) => {
 
     const barnehageTreff = url.pathname.match(/^\/fiks\/register\/barnehage\/([^/]+)$/);
     if (request.method === "GET" && barnehageTreff) {
-      await krevRegisterHjemmel(request);
+      await requireRegisterHjemmel(request);
       jsonResponse(response, 200, (await tilstand.barnehageplasser())
         .filter((kandidat) => kandidat.personId === barnehageTreff[1]));
       return;
@@ -734,11 +734,11 @@ const server = createServer(async (request, response) => {
 
     const kontaktTreff = url.pathname.match(/^\/fiks\/register\/kontaktinfo\/([^/]+)$/);
     if (request.method === "GET" && kontaktTreff) {
-      await krevRegisterHjemmel(request);
+      await requireRegisterHjemmel(request);
       const person = (await tilstand.personer()).find((kandidat) => kandidat.personId === kontaktTreff[1]);
-      // maskerPerson nulls epost and telefon for a protected person, so the contact
+      // maskPerson nulls epost and telefon for a protected person, so the contact
       // details come from the masked copy rather than the raw seed.
-      const maskert = maskertPerson(person);
+      const maskert = maskRegisterPerson(person);
       jsonResponse(response, person ? 200 : 404, person ? { personId: maskert.personId, kontakt: maskert.kontakt, syntetisk: true } : { feil: "Fant ikke person." });
       return;
     }
@@ -757,7 +757,7 @@ const server = createServer(async (request, response) => {
         syntetisk: true
       };
       await updateJson("oppgaver.json", [], (oppgaver) => oppgaver.push(oppgave));
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: oppgave.sporingsId,
         handling: "OPPGAVE_OPPRETTET",
         ressurs: "oppgave",
@@ -783,14 +783,14 @@ const server = createServer(async (request, response) => {
       const oppgave = await updateJson("oppgaver.json", [], (oppgaver) => {
         const treff = oppgaver.find((kandidat) => kandidat.oppgaveId === oppgaveStatusTreff[1]);
         if (!treff) {
-          throw new FiksFeil("Fant ikke oppgave.", 404, "OPPGAVE_IKKE_FUNNET");
+          throw new FiksError("Fant ikke oppgave.", 404, "OPPGAVE_IKKE_FUNNET");
         }
-        krevOvergang(validerOppgaveovergang(treff.status, body.status));
+        requireOvergang(validateOppgaveovergang(treff.status, body.status));
         treff.status = body.status;
         treff.historikk = [...(treff.historikk || []), { tidspunkt: new Date().toISOString(), status: body.status }];
         return treff;
       });
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || oppgave.sporingsId,
         handling: "OPPGAVE_STATUS_ENDRET",
         ressurs: "oppgave",
@@ -824,7 +824,7 @@ const server = createServer(async (request, response) => {
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    if (error instanceof FiksFeil) {
+    if (error instanceof FiksError) {
       // Fiks' own error shape: a kode alongside the melding, the way the register
       // API answers. Not sandbox-backend's shape, and not Tomcat HTML.
       jsonResponse(response, error.status, {

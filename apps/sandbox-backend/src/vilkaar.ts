@@ -8,9 +8,9 @@
 // The I/O half — fetching the beregning from Fiks, and the samtykke predicates —
 // stays in regler.ts. Nothing in this file may import it: the point of the split is
 // that a caller can reach the rules without paying for regler.ts's dependency
-// chain, which builds a 2048-bit RSA keypair at module load.
+// chain, which builds a 2048-chunk RSA keypair at module load.
 import { alderVed } from "./alder.ts";
-import { finnPerson, hentPlasserForTjeneste } from "./state.ts";
+import { findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 
 function formatBelop(belop: number) {
@@ -22,14 +22,14 @@ function formatBelop(belop: number) {
 // fields went unused, so a husstand could be granted an ordning on the basis of a
 // child outside the target group.
 export function plasserSomKvalifiserer(tilstand: State, personId: string, ordning: Ordning, satser: Satser) {
-  return hentPlasserForTjeneste(tilstand, personId, ordning.tjeneste).filter((plass: Plass) => {
+  return getPlasserForTjeneste(tilstand, personId, ordning.tjeneste).filter((plass: Plass) => {
     if (ordning.trinnFra !== undefined || ordning.trinnTil !== undefined) {
       if (typeof plass.trinn !== "number") return false;
       if (ordning.trinnFra !== undefined && plass.trinn < ordning.trinnFra) return false;
       if (ordning.trinnTil !== undefined && plass.trinn > ordning.trinnTil) return false;
     }
     if (ordning.alderFraAar !== undefined || ordning.alderTilAar !== undefined) {
-      const barn = finnPerson(tilstand, plass.personId);
+      const barn = findPerson(tilstand, plass.personId);
       if (!barn?.foedselsdato) return false;
       const alder = alderVed(barn.foedselsdato, satser.gjelderFra);
       if (ordning.alderFraAar !== undefined && alder < ordning.alderFraAar) return false;
@@ -65,7 +65,7 @@ function kriterieTekst(ordning: Ordning): string {
   return "";
 }
 
-export type RegelKontekst = {
+export type RegelContext = {
   tilstand: State;
   personId: string;
   ordning: Ordning;
@@ -91,12 +91,12 @@ export const regelKreverInntekt: Record<Regeltype, boolean> = {
 // here, the same way a new resource is one entry in ressurser.ts.
 // Record<Regeltype, ...> makes the compiler demand a handler as soon as a new
 // rule type is added to types.ts.
-const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResultat> = {
+const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
   // Need and capacity, not money. The applicant is assessed against the municipality's
   // own tilbud, so the answer depends on where they live and how old they are — never
   // on what they earn.
   TJENESTEBEHOV: ({ tilstand, personId, ordning, satser, felles }) => {
-    const person = finnPerson(tilstand, personId);
+    const person = findPerson(tilstand, personId);
     if (!person?.foedselsdato) {
       return { godkjent: false, melding: "Fant ikke fødselsdato for søkeren.", grunnlag: felles };
     }
@@ -190,7 +190,7 @@ const regelHandtere: Record<Regeltype, (k: RegelKontekst) => SjekkResultat> = {
 // for. sfo-moderasjon used to hardcode redusert-sfo-2-3-trinn, so a household whose
 // only child is in first or fourth grade was told "no SFO place in 2nd-3rd grade" —
 // true, but it reads as a bug, and it hides that the child qualifies elsewhere.
-export function velgOrdningForTjeneste(
+export function selectOrdningForTjeneste(
   tilstand: State,
   personId: string,
   tjeneste: string
@@ -209,15 +209,15 @@ export function velgOrdningForTjeneste(
   return (treff || kandidater[0]).id;
 }
 
-// The one way in. regelHandtere stays private: it is the extension seam for a new
+// The one way in. regelHandlers stays private: it is the extension seam for a new
 // rule type, not a surface for callers to index. Keeping it private means adding a
 // rule type does not widen this module's interface, and the Record<Regeltype, ...>
 // annotation still makes the compiler demand a handler for every type in the union.
-export function vurderVilkaar(regeltype: Regeltype, kontekst: RegelKontekst): SjekkResultat {
-  const handterer = regelHandtere[regeltype];
+export function evaluateVilkaar(regeltype: Regeltype, kontekst: RegelContext): SjekkResultat {
+  const handterer = regelHandlers[regeltype];
   if (!handterer) {
     throw new Error(
-      `Ukjent regeltype: ${regeltype}. Gyldige: ${Object.keys(regelHandtere).join(", ")}.`
+      `Ukjent regeltype: ${regeltype}. Gyldige: ${Object.keys(regelHandlers).join(", ")}.`
     );
   }
   return handterer(kontekst);

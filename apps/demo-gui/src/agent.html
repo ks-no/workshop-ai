@@ -11,11 +11,7 @@
   </head>
   <body>
     <main>
-      <div class="top-links">
-        <a href="/">Oversikt</a>
-        <a href="/stegvis">Stegvis demo</a>
-        <a href="/chat">Chat-demo</a>
-      </div>
+      <div class="top-links" id="toppmeny"></div>
       <h1>Innbyggerdialog – AI-agent</h1>
       <p class="muted small"><strong>Du er her:</strong> agenten velger
         prosess og styrer flyten selv — du svarer bare naturlig. Den er bevisst
@@ -51,6 +47,7 @@
     </main>
 
     <script src="/assets/felles.js"></script>
+    <script>renderTopNav("/agent");</script>
     <script>
       const agentBase  = "http://localhost:8084";
       const backendBase = "http://localhost:8080";
@@ -95,9 +92,9 @@
       // ── init ─────────────────────────────────────────────────────────────────
       async function loadPeople() {
         try {
-          const res = await fetch(`${backendBase}/api/personer`, { headers: medToken() });
+          const res = await fetch(`${backendBase}/api/personer`, { headers: withToken() });
           const people = await res.json();
-          visInnloggetPerson(personEl, people);
+          showLoggedInPerson(personEl, people);
         } catch {
           addMsg("error", "Kunne ikke laste testbrukere fra backend.");
         }
@@ -192,9 +189,9 @@
       });
 
       // ── bootstrap ────────────────────────────────────────────────────────────
-      sjekkModell(aiBase, { konsekvens: "Agenten faller tilbake til heuristikk og maltekst." });
+      checkModell(aiBase, { konsekvens: "Agenten faller tilbake til heuristikk og maltekst." });
 
-      krevInnlogging().then((innlogget) => innlogget && loadPeople()).then(() => {
+      requireLogin().then((innlogget) => innlogget && loadPeople()).then(() => {
         addMsg("assistant", "Velg en testbruker og trykk «Start med AI-agent» for å begynne.");
       });
     </script>

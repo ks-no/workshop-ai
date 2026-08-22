@@ -7,7 +7,7 @@
  * mostly a surface for the workshop to build a saksbehandlerflate against.
  */
 
-import { lagTilstandsmaskin } from "./tilstandsmaskin.ts";
+import { createTilstandsmaskin } from "./statemachine.ts";
 
 export type Oppgavestatus = "OPPRETTET" | "UNDER_BEHANDLING" | "FERDIG" | "AVVIST";
 
@@ -20,8 +20,8 @@ export const OPPGAVEOVERGANGER: Record<Oppgavestatus, Oppgavestatus[]> = {
   AVVIST: []
 };
 
-const maskin = lagTilstandsmaskin<Oppgavestatus>("Oppgaven", OPPGAVEOVERGANGER);
+const maskin = createTilstandsmaskin<Oppgavestatus>("Oppgaven", OPPGAVEOVERGANGER);
 
-export const OPPGAVESTATUSER = maskin.statuser;
-export const erOppgavestatus = maskin.erStatus;
-export const validerOppgaveovergang = maskin.validerOvergang;
+export const OPPGAVESTATUSER = maskin.statuses;
+export const isOppgavestatus = maskin.isStatus;
+export const validateOppgaveovergang = maskin.validateOvergang;

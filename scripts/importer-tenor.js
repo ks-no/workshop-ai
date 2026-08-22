@@ -24,14 +24,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
 
-const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dataDir = path.join(rot, "data");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const dataDir = path.join(repoRoot, "data");
 const tenorDir = path.join(dataDir, "tenor");
-const tørrkjør = process.argv.includes("--tørrkjør") || process.argv.includes("--torrkjor");
+const dryRun = process.argv.includes("--tørrkjør") || process.argv.includes("--torrkjor");
 
 const MYNDIG = 18;
 
-const les = async (fil) => JSON.parse(await readFile(fil, "utf8"));
+const read = async (fil) => JSON.parse(await readFile(fil, "utf8"));
 const skriv = (fil, data) =>
   writeFile(fil, JSON.stringify(data, null, 2) + "\n");
 
@@ -42,7 +42,7 @@ const skriv = (fil, data) =>
 // than it looks: the adult/child split below decides `rolle` in husstander.json,
 // which is an input to every rule in vilkaar.ts. A drifting reference date would
 // have moved the rules' input, not just one rule.
-const REFERANSEDATO = (await les(path.join(dataDir, "satser.json"))).gjelderFra;
+const REFERANSEDATO = (await read(path.join(dataDir, "satser.json"))).gjelderFra;
 
 // --- reading the extracts ---------------------------------------------------
 
@@ -51,10 +51,10 @@ const REFERANSEDATO = (await les(path.join(dataDir, "satser.json"))).gjelderFra;
 // adresseIdentifikatorFraMatrikkelen, which joins a person to a property, and
 // skolekrets, which the hjertesone case had nothing to stand on without.
 function kildedata(dokument) {
-  const rå = dokument?.tenorMetadata?.kildedata;
-  if (typeof rå !== "string") return rå || {};
+  const raw = dokument?.tenorMetadata?.kildedata;
+  if (typeof raw !== "string") return raw || {};
   try {
-    return JSON.parse(rå);
+    return JSON.parse(raw);
   } catch {
     return {};
   }
@@ -100,8 +100,8 @@ function tilBostedsadresse(dokument, kommunenavn = new Map()) {
 // For the rest the poststed name stands in — a real place in the right area, but
 // not the kommune. kommunenummer is the authoritative field either way, and it is
 // correct for everyone. Noted in docs/syntetiske-data.md.
-async function lesKommunenavn() {
-  const brreg = await les(path.join(dataDir, "brreg.seed.json"));
+async function readKommunenavn() {
+  const brreg = await read(path.join(dataDir, "brreg.seed.json"));
   const kart = new Map();
   for (const enhet of brreg.dokumentListe || []) {
     for (const felt of ["forretningsadresse", "postadresse"]) {
@@ -115,12 +115,12 @@ async function lesKommunenavn() {
   return kart;
 }
 
-async function lesUttrekk() {
-  const filer = (await readdir(tenorDir))
+async function readUttrekk() {
+  const files = (await readdir(tenorDir))
     .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
     .sort();
-  if (filer.length === 0) {
-    throw new Error(`Fant ingen uttrekk i ${path.relative(rot, tenorDir)}.`);
+  if (files.length === 0) {
+    throw new Error(`Fant ingen uttrekk i ${path.relative(repoRoot, tenorDir)}.`);
   }
 
   const personer = new Map();
@@ -135,8 +135,8 @@ async function lesUttrekk() {
     return fnr;
   };
 
-  for (const fil of filer) {
-    const innhold = await les(path.join(tenorDir, fil));
+  for (const fil of files) {
+    const innhold = await read(path.join(tenorDir, fil));
     for (const dokument of innhold.dokumentListe || []) {
       const fnr = registrer(dokument);
       // tenorRelasjoner.freg is not a reference. It is the whole person document
@@ -151,7 +151,7 @@ async function lesUttrekk() {
       }
     }
   }
-  return { filer, personer, relasjoner };
+  return { files, personer, relasjoner };
 }
 
 // --- households -------------------------------------------------------------
@@ -159,21 +159,21 @@ async function lesUttrekk() {
 // A household is a connected group in the relation graph that also shares one
 // address. Without the address condition a parent who has moved out would be
 // pulled back in, and their income would count towards a household they left.
-function byggHusstander(personer, relasjoner) {
+function buildHusstander(personer, relasjoner) {
   const matrikkelId = (fnr) =>
     gjeldendeAdresse(personer.get(fnr)).adresseIdentifikatorFraMatrikkelen || `ukjent:${fnr}`;
 
-  const besøkt = new Set();
+  const visited = new Set();
   const husstander = [];
   for (const fnr of [...personer.keys()].sort()) {
-    if (besøkt.has(fnr)) continue;
+    if (visited.has(fnr)) continue;
     const stabel = [fnr];
     const gruppe = new Set();
     while (stabel.length) {
       const denne = stabel.pop();
       if (gruppe.has(denne)) continue;
       gruppe.add(denne);
-      besøkt.add(denne);
+      visited.add(denne);
       for (const nabo of relasjoner.get(denne) || []) {
         if (!gruppe.has(nabo) && matrikkelId(nabo) === matrikkelId(denne)) stabel.push(nabo);
       }
@@ -220,18 +220,18 @@ const TYPETEKST = {
 // exist so the wider population is usable at all.
 //
 // Deterministic from the fnr — no Math.random, so the output is reproducible.
-function frøAv(fnr) {
+function seedOf(fnr) {
   let h = 2166136261;
-  for (const tegn of String(fnr)) {
-    h ^= tegn.charCodeAt(0);
+  for (const char of String(fnr)) {
+    h ^= char.charCodeAt(0);
     h = Math.imul(h, 16777619);
   }
   return Math.abs(h);
 }
 
-function byggInntekt(fnr, harBarn) {
-  const frø = frøAv(fnr);
-  const loenn = 180000 + (frø % 71) * 10000;
+function buildInntekt(fnr, harBarn) {
+  const seed = seedOf(fnr);
+  const loenn = 180000 + (seed % 71) * 10000;
   const poster = [
     {
       tekniskNavn: "loennsinntekt",
@@ -241,11 +241,11 @@ function byggInntekt(fnr, harBarn) {
       medregnes: true
     }
   ];
-  if (frø % 3 === 0) {
+  if (seed % 3 === 0) {
     poster.push({
       tekniskNavn: "renteinntekt",
       visningstekst: "Renteinntekt",
-      beloep: 1000 + (frø % 40) * 500,
+      beloep: 1000 + (seed % 40) * 500,
       kilde: "SKATTEETATEN",
       medregnes: true
     });
@@ -260,7 +260,7 @@ function byggInntekt(fnr, harBarn) {
       infotekst: "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
     });
   }
-  const utkast = frø % 11 === 0;
+  const utkast = seed % 11 === 0;
   return {
     identifikator: fnr,
     inntektsaar: utkast ? 2026 : 2025,
@@ -274,9 +274,9 @@ function byggInntekt(fnr, harBarn) {
 // --- mapping ----------------------------------------------------------------
 
 function beskyttelse(dokument) {
-  const nivå = dokument.adresseBeskyttelse;
-  if (nivå === "strengtFortrolig") return "STRENGT_FORTROLIG";
-  if (nivå === "fortrolig") return "FORTROLIG";
+  const level = dokument.adresseBeskyttelse;
+  if (level === "strengtFortrolig") return "STRENGT_FORTROLIG";
+  if (level === "fortrolig") return "FORTROLIG";
   return "UGRADERT";
 }
 
@@ -294,15 +294,15 @@ function sivilstandKode(dokument) {
     .toUpperCase();
 }
 
-async function kjoer() {
-  const { filer, personer, relasjoner } = await lesUttrekk();
-  const kommunenavn = await lesKommunenavn();
-  const husstander = byggHusstander(personer, relasjoner);
+async function run() {
+  const { files, personer, relasjoner } = await readUttrekk();
+  const kommunenavn = await readKommunenavn();
+  const husstander = buildHusstander(personer, relasjoner);
 
-  const eksisterendePersoner = await les(path.join(dataDir, "personer.json"));
-  const eksisterendeHusstander = await les(path.join(dataDir, "husstander.json"));
-  const eksisterendeInntekter = await les(path.join(dataDir, "inntekter.json"));
-  const eksisterendeFreg = await les(path.join(dataDir, "folkeregister.seed.json"));
+  const eksisterendePersoner = await read(path.join(dataDir, "personer.json"));
+  const eksisterendeHusstander = await read(path.join(dataDir, "husstander.json"));
+  const eksisterendeInntekter = await read(path.join(dataDir, "inntekter.json"));
+  const eksisterendeFreg = await read(path.join(dataDir, "folkeregister.seed.json"));
 
   // Curated fixtures are everything already in the files. They are kept verbatim.
   const kuraterteFnr = new Set(eksisterendePersoner.map((p) => p.syntetiskFodselsnummer));
@@ -338,12 +338,12 @@ async function kjoer() {
     // Only a parent of a child in this household is `foresatt`, because that role
     // is what regler.ts sums income over. A grandparent under the same roof is
     // `voksen`, and the rule engine simply does not match them.
-    const erForelder = (fnr) =>
+    const isForelder = (fnr) =>
       [...barnFnr].some((barn) => (relasjoner.get(barn) || new Set()).has(fnr));
 
     const rolleFor = (fnr) => {
       if (barnFnr.has(fnr)) return "barn";
-      return erForelder(fnr) || barnFnr.size === 0 ? "foresatt" : "voksen";
+      return isForelder(fnr) || barnFnr.size === 0 ? "foresatt" : "voksen";
     };
 
     // Ids for the whole household first. A child can sort before its parent, and
@@ -362,7 +362,7 @@ async function kjoer() {
       const gradering = beskyttelse(dokument);
       const rolle = rolleFor(fnr);
       const navn = navnDeler(dokument);
-      const rå = gjeldendeAdresse(dokument);
+      const raw = gjeldendeAdresse(dokument);
       // Relations are filtered to people who made it into the dataset, otherwise
       // valider-data.js would report a relation to an unknown person.
       const foreldre = [...(relasjoner.get(fnr) || [])]
@@ -406,14 +406,14 @@ async function kjoer() {
         sivilstandDetalj: null,
         skjermet: gradering !== "UGRADERT",
         adressebeskyttelse: gradering,
-        adressegradering: rå.adressegradering || null,
+        adressegradering: raw.adressegradering || null,
         harBostedsadresseHistorikk: Boolean(dokument.harBostedsadresseHistorikk),
         vergemaalType: dokument.vergemaalType || null,
         // The join keys that were missing entirely: a property id the matrikkel
         // knows, and the school district the hjertesone case needs.
-        adresseIdentifikatorFraMatrikkelen: rå.adresseIdentifikatorFraMatrikkelen || null,
-        skolekrets: rå.skolekrets ?? null,
-        grunnkrets: rå.grunnkrets ?? null,
+        adresseIdentifikatorFraMatrikkelen: raw.adresseIdentifikatorFraMatrikkelen || null,
+        skolekrets: raw.skolekrets ?? null,
+        grunnkrets: raw.grunnkrets ?? null,
         kontakt: {},
         _sandbox: {
           personId,
@@ -425,11 +425,11 @@ async function kjoer() {
         syntetisk: true
       });
 
-      if (rolle === "foresatt") nyeInntekter.push(byggInntekt(fnr, barnFnr.size > 0));
+      if (rolle === "foresatt") nyeInntekter.push(buildInntekt(fnr, barnFnr.size > 0));
     }
 
-    const første = personer.get(medlemmer[0]);
-    const adresse = tilBostedsadresse(første, kommunenavn);
+    const first = personer.get(medlemmer[0]);
+    const adresse = tilBostedsadresse(first, kommunenavn);
     const type = husstandstype(medlemmer, personer);
     nyeHusstander.push({
       husstandId,
@@ -441,7 +441,7 @@ async function kjoer() {
       medlemmer: medlemmer.map((fnr) => ({ personId: idForFnr.get(fnr), rolle: rolleFor(fnr) })),
       kilde: "tenor",
       syntetisk: true,
-      scenario: byggScenario(type, medlemmer, personer, barnFnr.size)
+      scenario: buildScenario(type, medlemmer, personer, barnFnr.size)
     });
   }
 
@@ -458,11 +458,11 @@ async function kjoer() {
   };
 
   const sammendrag =
-    `${filer.length} uttrekk lest. ${nyePersoner.length} nye personer i ` +
+    `${files.length} uttrekk lest. ${nyePersoner.length} nye personer i ` +
     `${nyeHusstander.length} nye husstander, ${nyeInntekter.length} inntektsrader. ` +
     `Totalt ${personerUt.length} personer og ${husstanderUt.length} husstander.`;
 
-  if (tørrkjør) {
+  if (dryRun) {
     console.log(`[tørrkjør] ${sammendrag}`);
     return;
   }
@@ -478,23 +478,23 @@ async function kjoer() {
 // curated 18 own the threshold claims; these are breadth, and valider-data.js only
 // cross-checks a text against an ordning when it names one.
 // Derived from the type, so the two can never contradict each other.
-function byggScenario(type, medlemmer, personer, antallBarn) {
+function buildScenario(type, medlemmer, personer, antallBarn) {
   const barnAldre = medlemmer
     .map((f) => alderVed(personer.get(f).foedselsdato, REFERANSEDATO))
     .filter((a) => a < MYNDIG)
     .sort((a, b) => b - a);
-  const deler = [TYPETEKST[type] || "Husstand."];
+  const parts = [TYPETEKST[type] || "Husstand."];
   if (antallBarn > 0) {
-    deler.push(`Barn på ${barnAldre.join(", ")} år.`);
+    parts.push(`Barn på ${barnAldre.join(", ")} år.`);
   }
   if (medlemmer.some((f) => (personer.get(f) || {}).adresseBeskyttelse)) {
-    deler.push("Én person har adressebeskyttelse.");
+    parts.push("Én person har adressebeskyttelse.");
   }
-  deler.push("Fra Tenor, for bredde.");
-  return deler.join(" ");
+  parts.push("Fra Tenor, for bredde.");
+  return parts.join(" ");
 }
 
-kjoer().catch((feil) => {
+run().catch((feil) => {
   console.error(`Tenor-import feilet: ${feil.message}`);
   process.exit(1);
 });

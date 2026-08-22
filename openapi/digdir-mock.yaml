@@ -22,20 +22,6 @@ paths:
     get:
       summary: Helsesjekk
       security: []
-      description: >
-        Svarer også på /health. Begge finnes fordi tjenestene her snakker norsk og
-        docker-compose sitt healthcheck-vokabular ikke gjør det.
-      responses:
-        "200":
-          description: Tjenesten svarer
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Helse"
-  /health:
-    get:
-      summary: Helsesjekk (alias)
-      security: []
       responses:
         "200":
           description: Tjenesten svarer

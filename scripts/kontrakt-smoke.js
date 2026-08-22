@@ -23,14 +23,14 @@
 // ai-gateway is not needed: the flows deliberately stop before the SUMMARY step.
 
 import { spawn } from "node:child_process";
-import { hentInnbyggerToken, hentMaskinportenToken } from "../apps/digdir-mock/src/klient.ts";
+import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;
 const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
@@ -55,13 +55,13 @@ function argValue(navn) {
 const idMoenster = /([a-z]+)-\d{13}-[a-z0-9]{6}/g;
 const tidsstempelMoenster = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
-function normaliser(verdi) {
+function normalize(verdi) {
   if (Array.isArray(verdi)) {
-    return verdi.map(normaliser);
+    return verdi.map(normalize);
   }
   if (verdi && typeof verdi === "object") {
     return Object.fromEntries(
-      Object.entries(verdi).map(([noekkel, indre]) => [noekkel, normaliser(indre)])
+      Object.entries(verdi).map(([noekkel, indre]) => [noekkel, normalize(indre)])
     );
   }
   if (typeof verdi === "string") {
@@ -76,19 +76,19 @@ function normaliser(verdi) {
 // --- process startup ------------------------------------------------------
 
 function start(navn, relativSti, miljo) {
-  const barn = spawn(process.execPath, [path.join(rot, relativSti)], {
-    cwd: rot,
+  const barn = spawn(process.execPath, [path.join(repoRoot, relativSti)], {
+    cwd: repoRoot,
     env: { ...process.env, ...miljo },
     stdio: ["ignore", "pipe", "pipe"]
   });
   barn.stdout.on("data", () => {});
-  barn.stderr.on("data", (bit) => process.stderr.write(`[${navn}] ${bit}`));
+  barn.stderr.on("data", (chunk) => process.stderr.write(`[${navn}] ${chunk}`));
   return barn;
 }
 
 // Without this, an occupied port would produce a dump against someone else's
 // instance with shared state/ instead of a clear error.
-async function krevLedigPort(portnummer) {
+async function requireFreePort(portnummer) {
   await new Promise((klar, avvis) => {
     const proeve = createServer();
     proeve.once("error", (feil) => avvis(
@@ -100,7 +100,7 @@ async function krevLedigPort(portnummer) {
   });
 }
 
-async function ventPaaHelse(basisUrl, tidsfrist = 15000) {
+async function waitForHealth(basisUrl, tidsfrist = 15000) {
   const innen = Date.now() + tidsfrist;
   while (Date.now() < innen) {
     try {
@@ -122,9 +122,12 @@ const dump = [];
 // returns 369 people and /api/matrikkel/gater 221 streets; dumping them whole made
 // the file mostly data, so every added test person produced a huge diff and buried
 // the contract change the diff exists to reveal.
-function bareForm(kropp, antallViste) {
+// `antall` og `first` er dumpens egne noekler, ikke en tjenestes. Endres de,
+// endres hver linje i dumpen — og da er en foer/etter-sammenlikning verdiloes
+// til en ny baseline er tatt.
+function shapeOnly(kropp, antallViste) {
   if (!Array.isArray(kropp)) return kropp;
-  return { antall: kropp.length, foerste: kropp.slice(0, antallViste) };
+  return { antall: kropp.length, first: kropp.slice(0, antallViste) };
 }
 
 // The dump covers six different test people, so there is no single token that
@@ -143,7 +146,7 @@ function bareForm(kropp, antallViste) {
 // person, and someone else's token must not drive it.
 const eierAvId = new Map();
 
-function lærEier(kropp) {
+function learnOwner(kropp) {
   if (!kropp || typeof kropp !== "object" || !kropp.personId) return;
   for (const felt of ["oektsId", "soknadId"]) {
     if (kropp[felt]) eierAvId.set(kropp[felt], kropp.personId);
@@ -164,7 +167,7 @@ function personIdFor(sti) {
 async function autorisasjon(sti, valg) {
   if (valg.utenToken) return null;
   if (valg.somMaskin) {
-    return `Bearer ${await hentMaskinportenToken({
+    return `Bearer ${await getMaskinportenToken({
       digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
       scope: valg.somMaskin, resource: "sandbox-backend"
     })}`;
@@ -172,12 +175,12 @@ async function autorisasjon(sti, valg) {
   // A POST that creates something names its own owner in the body.
   const personId = valg.somPerson || valg.body?.personId || personIdFor(sti);
   if (!personId) return null;
-  return `Bearer ${await hentInnbyggerToken({
+  return `Bearer ${await getInnbyggerToken({
     digdirBaseUrl: digdirUrl, personId, clientId: "kontrakt-smoke"
   })}`;
 }
 
-async function kall(navn, sti, valg = {}) {
+async function call(navn, sti, valg = {}) {
   const token = await autorisasjon(sti, valg);
   const svar = await fetch(`${backendUrl}${sti}`, {
     method: valg.method || "GET",
@@ -195,28 +198,28 @@ async function kall(navn, sti, valg = {}) {
     // /docs and /openapi.yaml are not JSON. Length is enough of a regression guard.
     kropp = { ikkeJson: true, lengde: rawText.length };
   }
-  lærEier(kropp);
+  learnOwner(kropp);
   dump.push({
     navn,
     metode: valg.method || "GET",
-    sti: normaliser(sti),
+    sti: normalize(sti),
     status: svar.status,
-    kropp: normaliser(valg.form ? bareForm(kropp, valg.form) : kropp)
+    kropp: normalize(valg.form ? shapeOnly(kropp, valg.form) : kropp)
   });
   return kropp;
 }
 
 // Static lookups. Covers every GET endpoint without side effects.
-async function statiskeOppslag() {
-  await kall("helse", "/helse");
-  await kall("docs", "/docs");
-  await kall("openapi", "/openapi.yaml");
-  await kall("personer", "/api/personer", { form: 3, somMaskin: "ks:innbyggerdialog:les" });
-  await kall("person", "/api/personer/person-001");
+async function staticLookups() {
+  await call("helse", "/helse");
+  await call("docs", "/docs");
+  await call("openapi", "/openapi.yaml");
+  await call("personer", "/api/personer", { form: 3, somMaskin: "ks:innbyggerdialog:les" });
+  await call("person", "/api/personer/person-001");
   // person-999 is not a testbruker, so no citizen token exists for them. A machine
   // with les-hjemmel asking about someone who does not exist is the honest caller here.
-  await kall("person-ukjent", "/api/personer/person-999", { somMaskin: "ks:innbyggerdialog:les" });
-  await kall("husstand", "/api/personer/person-001/husstand");
+  await call("person-ukjent", "/api/personer/person-999", { somMaskin: "ks:innbyggerdialog:les" });
+  await call("husstand", "/api/personer/person-001/husstand");
   // Address protection on the wire. Without these the dump never touches a
   // protected person: /api/personer is dumped with form: 3 and the first three are
   // all UGRADERT, so masking would not show up in a diff at all.
@@ -225,34 +228,34 @@ async function statiskeOppslag() {
   // FORTROLIG (address masked, name kept) — the two levels must stay observably
   // different. household-093 holds only protected people so its adresse is masked;
   // household-013 has three unprotected residents and deliberately keeps its own.
-  await kall("person-strengt-fortrolig", "/api/personer/person-031");
-  await kall("person-fortrolig", "/api/personer/person-194");
-  await kall("husstand-helt-skjermet", "/api/personer/person-218/husstand");
-  await kall("husstand-delvis-skjermet", "/api/personer/person-030/husstand");
-  await kall("barnehage", "/api/personer/person-001/barnehage");
+  await call("person-strengt-fortrolig", "/api/personer/person-031");
+  await call("person-fortrolig", "/api/personer/person-194");
+  await call("husstand-helt-skjermet", "/api/personer/person-218/husstand");
+  await call("husstand-delvis-skjermet", "/api/personer/person-030/husstand");
+  await call("barnehage", "/api/personer/person-001/barnehage");
   // person-008 is the guardian who actually has a child in SFO.
-  await kall("sfo", "/api/personer/person-008/sfo");
-  await kall("sfo-tom", "/api/personer/person-001/sfo");
+  await call("sfo", "/api/personer/person-008/sfo");
+  await call("sfo-tom", "/api/personer/person-001/sfo");
   // Household routes resolve the applicant server-side, so the path names no person.
-  await kall("inntektsgrunnlag-uten-samtykke", "/api/husstander/household-001/inntektsgrunnlag", { somPerson: "person-001" });
-  await kall("soknader", "/api/personer/person-001/soknader");
-  await kall("inntekt-uten-samtykke", "/api/personer/person-001/inntekt");
-  await kall("satser", "/api/regler/satser");
-  await kall("prosesser", "/api/prosesser");
-  await kall("prosesser-med-maler", "/api/prosesser?inkluderMaler=true");
-  await kall("prosess", "/api/prosesser/reduced-kindergarten-payment");
-  await kall("prosess-ukjent", "/api/prosesser/finnes-ikke");
-  await kall("datasett", "/api/katalog/datasett");
-  await kall("informasjonsmodeller", "/api/katalog/informasjonsmodeller");
-  await kall("ressurskatalog", "/api/katalog/ressurser");
-  await kall("gater", "/api/matrikkel/gater", { form: 3 });
-  await kall("gate-treff", "/api/matrikkel/gater?gate=Storgata");
-  await kall("gate-bom", "/api/matrikkel/gater?gate=Finnesikkegata");
-  await kall("eierforhold-ja", "/api/matrikkel/sjekk/eierforhold?personId=person-001&gate=Storgata");
-  await kall("eierforhold-nei", "/api/matrikkel/sjekk/eierforhold?personId=person-001&gate=Fj%C3%B8sangerveien");
-  await kall("sjekk-mangler-parametere", "/api/regler/sjekk/foreldrebetaling");
-  await kall("sjekk-ukjent-ordning", "/api/regler/sjekk/foreldrebetaling?personId=person-001&ordning=finnes-ikke");
-  await kall("ukjent-endepunkt", "/api/finnes-ikke");
+  await call("inntektsgrunnlag-uten-samtykke", "/api/husstander/household-001/inntektsgrunnlag", { somPerson: "person-001" });
+  await call("soknader", "/api/personer/person-001/soknader");
+  await call("inntekt-uten-samtykke", "/api/personer/person-001/inntekt");
+  await call("satser", "/api/regler/satser");
+  await call("prosesser", "/api/prosesser");
+  await call("prosesser-med-maler", "/api/prosesser?inkluderMaler=true");
+  await call("prosess", "/api/prosesser/reduced-kindergarten-payment");
+  await call("prosess-ukjent", "/api/prosesser/finnes-ikke");
+  await call("datasett", "/api/katalog/datasett");
+  await call("informasjonsmodeller", "/api/katalog/informasjonsmodeller");
+  await call("ressurskatalog", "/api/katalog/ressurser");
+  await call("gater", "/api/matrikkel/gater", { form: 3 });
+  await call("gate-treff", "/api/matrikkel/gater?gate=Storgata");
+  await call("gate-bom", "/api/matrikkel/gater?gate=Finnesikkegata");
+  await call("eierforhold-ja", "/api/matrikkel/sjekk/eierforhold?personId=person-001&gate=Storgata");
+  await call("eierforhold-nei", "/api/matrikkel/sjekk/eierforhold?personId=person-001&gate=Fj%C3%B8sangerveien");
+  await call("sjekk-mangler-parametere", "/api/regler/sjekk/foreldrebetaling");
+  await call("sjekk-ukjent-ordning", "/api/regler/sjekk/foreldrebetaling?personId=person-001&ordning=finnes-ikke");
+  await call("ukjent-endepunkt", "/api/finnes-ikke");
 }
 
 // Foreldrebetaling: INFO -> husstand -> samtykke -> inntekt -> SJEKK.
@@ -260,142 +263,142 @@ async function statiskeOppslag() {
 async function foreldrebetalingsflyt(prosessId, merkelapp, hvem = {}) {
   const personId = hvem.personId || "person-001";
   const husstandId = hvem.husstandId || "household-001";
-  const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId }
   });
   const id = oekt.oektsId;
 
-  await kall(`${merkelapp}-info`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-husstand`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-info`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-husstand`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "opprett-samtykke" }
   });
-  await kall(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
-  await kall(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-inntekt`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-inntekt`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 
   // With the samtykke registered, the direct income route should now answer 200.
-  await kall(`${merkelapp}-inntekt-med-samtykke`, `/api/personer/${personId}/inntekt`);
-  await kall(`${merkelapp}-inntektsgrunnlag`, `/api/husstander/${husstandId}/inntektsgrunnlag`, { somPerson: personId });
+  await call(`${merkelapp}-inntekt-med-samtykke`, `/api/personer/${personId}/inntekt`);
+  await call(`${merkelapp}-inntektsgrunnlag`, `/api/husstander/${husstandId}/inntektsgrunnlag`, { somPerson: personId });
 }
 
 // Fritidskort is the only ordning outside barnehage and SFO, and the only one that
 // scopes by the child's age rather than by school year. Two people, so the dump
 // carries both outcomes: person-028 is under the threshold, person-008 over it.
 async function fritidskortflyt(personId, merkelapp) {
-  const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "fritidskort-stotte" }
   });
   const id = oekt.oektsId;
 
-  await kall(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-svar-behov`, `/api/prosessoekter/${id}/svar`, {
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-behov`, `/api/prosessoekter/${id}/svar`, {
     method: "POST",
     body: { stegId: "behov", svar: { gjelderFor: "barnet mitt", aktivitet: "fotball" } }
   });
-  await kall(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "opprett-samtykke" }
   });
-  await kall(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
-  await kall(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-inntekt`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
-  await kall(`${merkelapp}-fritid`, `/api/personer/${personId}/fritid`);
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-inntekt`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  await call(`${merkelapp}-fritid`, `/api/personer/${personId}/fritid`);
 }
 
 // Støttekontakt is the only ordning assessed on need rather than money, and the
 // only SJEKK that does not require income consent. The dump records that: the
 // check answers before any samtykke for inntekt exists.
 async function stottekontaktflyt(personId, merkelapp) {
-  const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "stottekontakt-behov" }
   });
   const id = oekt.oektsId;
 
-  await kall(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-svar-situasjon`, `/api/prosessoekter/${id}/svar`, {
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-situasjon`, `/api/prosessoekter/${id}/svar`, {
     method: "POST",
     body: {
       stegId: "situasjon",
       svar: { beskrivelse: "Trenger noen å være sammen med i helgene", onskerKontakt: "ja", kontaktkanal: "Telefon" }
     }
   });
-  await kall(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "opprett-samtykke" }
   });
-  await kall(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
     method: "POST",
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
-  await kall(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
 // Fartsdemping is the only case that exercises SJEKK, matrikkel and
 // {svar.<stegId>} substitution at once.
 async function fartsdempingsflyt(gate, merkelapp) {
-  const oekt = await kall(`${merkelapp}-opprett`, "/api/prosessoekter", {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId: "person-001", prosessId: "fartsdempende-tiltak" }
   });
   const id = oekt.oektsId;
 
-  await kall(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-svar-gate`, `/api/prosessoekter/${id}/svar`, {
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-gate`, `/api/prosessoekter/${id}/svar`, {
     method: "POST",
     body: { stegId: "velg-gate", svar: gate }
   });
-  await kall(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-hent-gate`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await kall(`${merkelapp}-sjekk-eier`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  await kall(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-hent-gate`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk-eier`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
 async function soknadOgRevisjon() {
-  const soknad = await kall("soknad-opprett", "/api/soknader", {
+  const soknad = await call("soknad-opprett", "/api/soknader", {
     method: "POST",
     body: { personId: "person-001", prosessId: "reduced-kindergarten-payment", prosessNavn: "Royktest" }
   });
-  await kall("soknad-hent", `/api/soknader/${soknad.soknadId}`);
+  await call("soknad-hent", `/api/soknader/${soknad.soknadId}`);
   // With hjemmel, so the dump still records the 404 for an unknown id. Without a
   // token this is a 401 instead: authentication is settled before we say whether
   // something exists, so an anonymous caller cannot probe for valid ids.
-  await kall("soknad-ukjent", "/api/soknader/finnes-ikke", { somMaskin: "ks:innbyggerdialog:les" });
+  await call("soknad-ukjent", "/api/soknader/finnes-ikke", { somMaskin: "ks:innbyggerdialog:les" });
   // And the 401 itself, pinned deliberately rather than arrived at by accident.
-  await kall("uten-token", "/api/personer/person-001", { utenToken: true });
-  await kall("revisjonslogg", "/api/revisjonslogg", { somMaskin: "ks:innbyggerdialog:les" });
+  await call("uten-token", "/api/personer/person-001", { utenToken: true });
+  await call("revisjonslogg", "/api/revisjonslogg", { somMaskin: "ks:innbyggerdialog:les" });
 }
 
 // --- run ------------------------------------------------------------------
 
-async function kjoer() {
-  await krevLedigPort(backendPort);
-  await krevLedigPort(fiksPort);
-  await krevLedigPort(matrikkelPort);
-  await krevLedigPort(digdirPort);
+async function run() {
+  await requireFreePort(backendPort);
+  await requireFreePort(fiksPort);
+  await requireFreePort(matrikkelPort);
+  await requireFreePort(digdirPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
   const miljo = {
@@ -421,13 +424,13 @@ async function kjoer() {
 
   try {
     await Promise.all([
-      ventPaaHelse(digdirUrl),
-      ventPaaHelse(backendUrl),
-      ventPaaHelse(fiksUrl),
-      ventPaaHelse(matrikkelUrl)
+      waitForHealth(digdirUrl),
+      waitForHealth(backendUrl),
+      waitForHealth(fiksUrl),
+      waitForHealth(matrikkelUrl)
     ]);
 
-    await statiskeOppslag();
+    await staticLookups();
     await foreldrebetalingsflyt("reduced-kindergarten-payment", "barnehage");
     await foreldrebetalingsflyt("sfo-moderasjon", "sfo");
     // household-013 is the only household with both a protected guardian
@@ -454,7 +457,7 @@ async function kjoer() {
 
     await mkdir(path.dirname(outFile), { recursive: true });
     await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");
-    console.log(`${dump.length} kall skrevet til ${path.relative(rot, outFile)}`);
+    console.log(`${dump.length} kall skrevet til ${path.relative(repoRoot, outFile)}`);
   } finally {
     for (const tjeneste of tjenester) {
       tjeneste.kill("SIGTERM");
@@ -463,7 +466,7 @@ async function kjoer() {
   }
 }
 
-kjoer().catch((feil) => {
+run().catch((feil) => {
   console.error(`Kontrakt-royktest feilet: ${feil.message}`);
   process.exit(1);
 });

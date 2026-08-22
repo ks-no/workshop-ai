@@ -1,4 +1,4 @@
-# Every Node service answers /health with a "tjeneste" field. Without a
+# Every Node service answers /helse with a "tjeneste" field. Without a
 # healthcheck, depends_on only waits for the container to start — not for the
 # server inside it to accept connections, which is where startup races come from.
 # Node is present in all these images, so fetch is the cheapest probe available.
@@ -63,7 +63,7 @@ services:
   process-builder:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/process-builder/src/server.js"]
@@ -77,7 +77,7 @@ services:
   demo-gui:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/demo-gui/src/server.js"]
@@ -91,7 +91,7 @@ services:
   digdir-mock:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8086/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8086/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     # Node strips the types on load, so .ts runs with no build step — the same
@@ -118,7 +118,7 @@ services:
   sandbox-backend:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/sandbox-backend/src/server.ts"]
@@ -146,7 +146,7 @@ services:
   fiks-simulator:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8081/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/fiks-simulator/src/server.js"]
@@ -164,7 +164,7 @@ services:
   matrikkel-mock:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8085/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8085/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/matrikkel-mock/src/server.js"]
@@ -201,7 +201,7 @@ services:
   ai-gateway:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8082/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8082/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/ai-gateway/src/server.js"]
@@ -238,7 +238,7 @@ services:
   mcp-services:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8083/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8083/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/mcp-services/src/server.js"]
@@ -285,7 +285,7 @@ services:
   process-agent:
     healthcheck:
       <<: *helsesjekk
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8084/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8084/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/process-agent/src/server.js"]

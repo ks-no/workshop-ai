@@ -1,8 +1,8 @@
-import { aktorFor, type Kaller } from "./autentisering.ts";
+import { aktorFor, type Caller } from "./autentisering.ts";
 import { aiBaseUrl, fiksBaseUrl } from "./config.ts";
 import { HttpError } from "./errors.ts";
-import { utforRessurs } from "./ressurser.ts";
-import { leggTilRevisjon } from "./revisjon.ts";
+import { runRessurs } from "./ressurser.ts";
+import { addRevisjon } from "./revisjon.ts";
 import { newId, writeJson } from "./state.ts";
 import type {
   ProsessDefinisjon,
@@ -13,7 +13,7 @@ import type {
   State
 } from "./types.ts";
 
-function erstattParametere(url: string, oekt: Prosessoekt) {
+function replaceParametere(url: string, oekt: Prosessoekt) {
   let result = url;
   result = result.replace(/{personId}/g, encodeURIComponent(oekt.personId));
   for (const [stegId, svarVerdi] of Object.entries(oekt.svar || {})) {
@@ -46,7 +46,7 @@ function erstattParametere(url: string, oekt: Prosessoekt) {
   return result;
 }
 
-export function byggProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefinisjon | null) {
+export function buildProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefinisjon | null) {
   return {
     ...oekt,
     aktivtSteg: prosess?.steg?.[oekt.stegIndex] || null,
@@ -57,9 +57,9 @@ export function byggProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefini
 // DATA_FETCH and SJEKK both consult the shared resource catalog, exactly the way
 // the HTTP router does. The engine used to keep its own copy of these lookups,
 // and the copies had drifted apart.
-async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Kaller) {
-  const resolvertUrl = erstattParametere(steg.api.url, oekt);
-  return utforRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvertUrl}`), {
+async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Caller) {
+  const resolvedUrl = replaceParametere(steg.api.url, oekt);
+  return runRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvedUrl}`), {
     oekt,
     steg,
     sporingsId: oekt.sporingsId,
@@ -89,7 +89,7 @@ async function fiksSvar(svar: Response, hva: string) {
   return data;
 }
 
-export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) {
+export async function createSoknad(tilstand: State, body: any, kaller: Caller) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -102,7 +102,7 @@ export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) 
 
   tilstand.soknader.push(nySoknad);
   await writeJson("soknader.json", tilstand.soknader);
-  await leggTilRevisjon({
+  await addRevisjon({
     sporingsId: nySoknad.sporingsId,
     handling: "SOKNAD_SENDT_INN",
     ressurs: "soknad",
@@ -131,20 +131,20 @@ export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) 
   return { ...nySoknad, oppgave };
 }
 
-type StegKontekst = {
+type StegContext = {
   tilstand: State;
   oekt: Prosessoekt;
   prosess: ProsessDefinisjon;
   steg: any;
   body: any;
   /** Who is calling, from the token. See autentisering.ts. */
-  kaller: Kaller;
+  kaller: Caller;
 };
 
 // One handler per step type. A new step type is one entry here; the execution
 // below needs no change. Record<Stegtype, ...> makes the compiler demand a
 // handler as soon as a new step type is added to types.ts.
-export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promise<unknown>> = {
+export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promise<unknown>> = {
   INFO: () => ({ type: "INFO", melding: "Informasjonssteg krever ingen handling." }),
 
   QUESTION: ({ oekt, steg, body }) => {
@@ -201,20 +201,20 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
   },
 
   DATA_FETCH: async ({ tilstand, oekt, steg, kaller }) => {
-    const data = await hentFraKatalog(tilstand, oekt, steg, kaller);
+    const data = await getFraKatalog(tilstand, oekt, steg, kaller);
     oekt.resultater[steg.id] = data;
     return data;
   },
 
   SJEKK: async ({ tilstand, oekt, steg, kaller }) => {
-    const resultat = await hentFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
+    const resultat = await getFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
 
     oekt.resultater[steg.id] = resultat;
     if (!resultat.godkjent) {
       oekt.status = "AVVIST";
       oekt.avvistMelding = resultat.melding;
     }
-    await leggTilRevisjon({
+    await addRevisjon({
       sporingsId: oekt.sporingsId,
       handling: resultat.godkjent ? "SJEKK_OK" : "SJEKK_AVVIST",
       ressurs: "prosessoekt",
@@ -245,7 +245,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
   },
 
   SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
-    const data = await opprettSoknad(tilstand, {
+    const data = await createSoknad(tilstand, {
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
@@ -257,22 +257,22 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
   }
 };
 
-export async function utforStegHandling(
+export async function runStegHandling(
   tilstand: State,
   oekt: Prosessoekt,
   prosess: ProsessDefinisjon,
   body: any,
-  kaller: Kaller
+  kaller: Caller
 ) {
   const steg: ProsessSteg | undefined = prosess.steg[oekt.stegIndex];
   if (!steg) {
     throw new HttpError("Fant ikke aktivt steg.", 400);
   }
 
-  const handterer = stegHandtere[steg.type as Stegtype];
+  const handterer = stegHandlers[steg.type as Stegtype];
   if (!handterer) {
     throw new HttpError(
-      `Støtter ikke stegtypen ${steg.type}. Gyldige: ${Object.keys(stegHandtere).join(", ")}.`,
+      `Støtter ikke stegtypen ${steg.type}. Gyldige: ${Object.keys(stegHandlers).join(", ")}.`,
       400
     );
   }

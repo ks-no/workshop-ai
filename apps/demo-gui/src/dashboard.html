@@ -40,7 +40,7 @@
       .dot.opp { background: #2f9e5a; }
       .dot.ned { background: #d33c3c; }
 
-      .entrances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .entrances { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
       .entrance { display: block; text-decoration: none; color: inherit; border: 1px solid var(--farge-kant-svak); border-radius: 10px; padding: 22px 24px; background: var(--farge-flate); }
       .entrance:hover { border-color: var(--farge-primar); box-shadow: var(--skygge); }
       .entrance h3 { margin-bottom: 8px; color: var(--farge-primar); }
@@ -51,6 +51,10 @@
       .diagram { overflow-x: auto; padding: 6px 0 22px 0; }
       svg text { font-family: var(--skrift); }
 
+      @media (max-width: 1150px) {
+        .entrances { grid-template-columns: repeat(2, 1fr); }
+      }
+
       @media (max-width: 900px) {
         main { padding: 24px 20px 56px; }
         .card { padding: 22px 20px; }
@@ -60,6 +64,7 @@
   </head>
   <body>
     <main>
+      <div class="top-links" id="toppmeny"></div>
       <h1>Innbyggerdialog-sandbox</h1>
       <p>En kommunal tjeneste i miniatyr: prosessdrevne dialoger over <strong>syntetiske</strong>
         data, med eksplisitt samtykke, deterministisk vilkårsvurdering og revisjonslogg.
@@ -85,6 +90,11 @@
             <p>Ett steg av gangen med rå JSON og revisjonslogg synlig. Bruk denne når du
               vil se hva som faktisk skjer under panseret.</p>
           </a>
+          <a class="entrance" href="/utforsker">
+            <h3>API-utforsker</h3>
+            <p>Alle endepunktene i sandkassen, med skjema per rute og en <code>curl</code>
+              som virker når den limes inn. Tokenet velges ut fra hjemmelen ruta krever.</p>
+          </a>
         </div>
         <p class="muted small" style="margin-top:20px">Ingen av de tre er den «riktige»
           måten. De er referanseimplementasjoner — bygg gjerne din egen klient mot de
@@ -92,10 +102,23 @@
       </section>
 
       <section class="card">
+        <h2>Tjenestene</h2>
+        <p class="muted small">Status hentes fra hver tjenestes <code>/helse</code>. Er noe
+          rødt, er det nesten alltid forklaringen på en «fetch failed». Lista kommer fra
+          <code>/assets/tjenester.json</code>, den samme fila API-utforskeren leser.</p>
+        <table>
+          <thead>
+            <tr><th>Tjeneste</th><th>Port</th><th>Status</th><th>API</th></tr>
+          </thead>
+          <tbody id="tjenestetabell"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
         <h2>Slik henger tjenestene sammen</h2>
         <div class="diagram">
           <svg viewBox="0 0 760 300" width="760" height="300" role="img"
-               aria-label="Arkitektur: nettleseren snakker med sandbox-backend, som er eneste vei til fiks-simulator og matrikkel-mock. ai-gateway, mcp-services og process-agent ligger ved siden av.">
+               aria-label="Arkitektur: nettleseren logger inn hos digdir-mock og snakker med sandbox-backend, som er eneste vei til fiks-simulator og matrikkel-mock og som verifiserer tokenet mot digdir-mocks jwks. ai-gateway, mcp-services og process-agent ligger ved siden av.">
             <defs>
               <marker id="pil" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
                 <path d="M0,0 L10,5 L0,10 z" fill="#8695a6" />
@@ -106,6 +129,12 @@
             <rect x="20" y="122" width="130" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
             <text x="85" y="146" text-anchor="middle" font-size="14" font-weight="600" fill="#17232f">Nettleser</text>
             <text x="85" y="164" text-anchor="middle" font-size="11" fill="#5b6a7a">3000 / 3001</text>
+
+            <!-- Utstederen. Nettleseren snakker med den direkte: ID-porten-redirecten
+                 gaar dit, og tjenestene verifiserer tokenet mot dens /jwks. -->
+            <rect x="20" y="18" width="150" height="52" rx="8" fill="#f7fafd" stroke="#ccd6e0" />
+            <text x="95" y="40" text-anchor="middle" font-size="13" fill="#17232f">digdir-mock</text>
+            <text x="95" y="58" text-anchor="middle" font-size="11" fill="#5b6a7a">8086 · ID-porten</text>
 
             <!-- Kjernen -->
             <rect x="230" y="112" width="150" height="76" rx="8" fill="#e9f1ff" stroke="#1459c7" stroke-width="2" />
@@ -143,7 +172,12 @@
               <path d="M182 254 H226" />
               <path d="M330 228 V194" />
               <path d="M352 228 L352 74" stroke-dasharray="4 3" />
+              <path d="M85 118 V74" />
+              <path d="M232 120 L178 58" stroke-dasharray="4 3" />
             </g>
+
+            <text x="120" y="100" text-anchor="middle" font-size="10" fill="#5b6a7a">logg inn</text>
+            <text x="228" y="92" text-anchor="middle" font-size="10" fill="#5b6a7a">jwks</text>
 
             <text x="700" y="150" text-anchor="middle" font-size="11" fill="#5b6a7a">Alt er</text>
             <text x="700" y="166" text-anchor="middle" font-size="11" fill="#5b6a7a">syntetisk</text>
@@ -152,36 +186,10 @@
         <p class="muted small"><strong>Poenget med bildet:</strong> samtykkesperren og
           revisjonsloggen ligger i <code>sandbox-backend</code>, og det finnes ingen vei
           rundt den. <code>ai-gateway</code> har ingen dataadgang av seg selv — den
-          formulerer, den henter ikke.</p>
+          formulerer, den henter ikke. Hjemmelen kommer fra <code>digdir-mock</code>:
+          nettleseren logger inn der, og tjenestene verifiserer tokenet mot dens
+          <code>/jwks</code>. Ingen tjeneste deler ut hjemmel til seg selv.</p>
       </section>
-
-      <div class="grid-2">
-        <section class="card">
-          <h2>Kjører alt?</h2>
-          <p class="muted small">Hentes direkte fra hver tjenestes <code>/helse</code>.
-            Er noe rødt, er det nesten alltid forklaringen på en «fetch failed».</p>
-          <table>
-            <thead>
-              <tr><th>Tjeneste</th><th>Port</th><th>Status</th><th>Dokumentasjon</th></tr>
-            </thead>
-            <tbody id="helseTabell"></tbody>
-          </table>
-        </section>
-
-        <section class="card">
-          <h2>Er modellen koblet på?</h2>
-          <p class="muted small">Uten modell svarer <code>ai-gateway</code> med maltekst
-            som ser helt normal ut. Dette er den eneste måten å se forskjell på.</p>
-          <table>
-            <tbody id="modellTabell">
-              <tr><td>Laster…</td></tr>
-            </tbody>
-          </table>
-          <p class="muted small" style="margin-top:20px">Kjørte du med
-            <code>./start.sh --mock</code>, skal den være av — og det er som forventet.
-            Se hva modellen faktisk fikk i <a href="http://localhost:8082/trace">KI-sporet</a>.</p>
-        </section>
-      </div>
 
       <section class="card">
         <h2>Hvilken bruker til hvilken case</h2>
@@ -227,92 +235,151 @@
         </table>
       </section>
 
-      <section class="card">
-        <h2>Verktøy og kontrakter</h2>
-        <div class="links">
-          <a href="http://localhost:3000">Prosessbygger</a>
-          <a href="http://localhost:8082/trace">KI-spor — hva modellen faktisk fikk</a>
-          <a href="http://localhost:8080/docs">API-oversikt (backend)</a>
-          <a href="http://localhost:8080/openapi.yaml">OpenAPI: sandbox-backend</a>
-          <a href="http://localhost:8082/openapi.yaml">OpenAPI: ai-gateway</a>
-          <a href="http://localhost:8083/mcp/tools">Verktøykatalog (mcp-services)</a>
-        </div>
-        <p class="muted small" style="margin-top:20px">Revisjonsloggen ligger på
-          <code>GET /api/revisjonslogg/{sporingsId}</code>. Hver økt viser sin
-          <code>sporingsId</code>, og den korrelerer med KI-sporet.</p>
-      </section>
+      <div class="grid-2">
+        <section class="card">
+          <h2>Er modellen koblet på?</h2>
+          <p class="muted small">Uten modell svarer <code>ai-gateway</code> med maltekst
+            som ser helt normal ut. Dette er den eneste måten å se forskjell på.</p>
+          <table>
+            <tbody id="modellTabell">
+              <tr><td>Laster…</td></tr>
+            </tbody>
+          </table>
+          <p class="muted small" style="margin-top:20px">Kjørte du med
+            <code>./start.sh --mock</code>, skal den være av — og det er som forventet.
+            Se hva modellen faktisk fikk i <a href="http://localhost:8082/trace">KI-sporet</a>.</p>
+        </section>
+
+        <section class="card">
+          <h2>Verktøy</h2>
+          <p class="muted small">Spesifikasjonene og utforskeren ligger per rad i
+            tabellen over. Dette er det som ikke er et API.</p>
+          <div class="links">
+            <a href="http://localhost:3000">Prosessbygger</a>
+            <a href="http://localhost:8082/trace">KI-spor — hva modellen faktisk fikk</a>
+            <a href="http://localhost:8082/admin">Bytt KI-provider</a>
+            <a href="http://localhost:8083/mcp/tools">Verktøykatalog (mcp-services)</a>
+            <a href="/ds-eksempel">Designsystem-mal</a>
+          </div>
+          <p class="muted small" style="margin-top:20px">Revisjonsloggen ligger på
+            <code>GET /api/revisjonslogg/{sporingsId}</code>. Hver økt viser sin
+            <code>sporingsId</code>, og den korrelerer med KI-sporet.</p>
+        </section>
+      </div>
     </main>
 
     <script src="/assets/felles.js"></script>
+    <script>renderTopNav("/");</script>
     <script>
       const aiBase = "http://localhost:8082";
 
-      // Rekkefølgen speiler bildet over: kjernen først, så registrene, så KI-siden.
-      const tjenester = [
-        { navn: "sandbox-backend", port: 8080, docs: "/docs", rolle: "Prosessmotor, samtykke, regler, revisjon" },
-        { navn: "fiks-simulator", port: 8081, docs: "/docs", rolle: "Mock av KS Fiks" },
-        { navn: "ai-gateway", port: 8082, docs: "/docs", rolle: "Modellkall og KI-spor" },
-        { navn: "mcp-services", port: 8083, docs: "/mcp/tools", rolle: "Verktøykatalog over de andre" },
-        { navn: "process-agent", port: 8084, docs: null, rolle: "Agent-API" },
-        { navn: "matrikkel-mock", port: 8085, docs: "/docs", rolle: "Mock av Kartverket Matrikkel" },
-        { navn: "demo-gui", port: 3001, docs: null, rolle: "Denne siden" },
-        { navn: "process-builder", port: 3000, docs: null, rolle: "Prosessbygger" }
-      ];
+      /*
+       * Tjenestelista sto her, håndholdt, ved siden av en identisk liste i
+       * utforsker.html. Denne kopien manglet digdir-mock og oppga feil docs-sti for
+       * to tjenester. Nå leses begge fra /assets/tjenester.json, og
+       * pnpm test:openapi krever at registeret er enig med CI-portens egen liste.
+       *
+       * Alt som ikke er navn, port og rolle utledes: en tjeneste med spesifikasjon
+       * har /docs, /openapi.yaml og en plass i utforskeren. Da kan kolonnen ikke
+       * drive fra virkeligheten igjen.
+       */
+      function dot(klasse, tekst) {
+        const celle = document.createDocumentFragment();
+        const flekk = document.createElement("span");
+        flekk.className = klasse;
+        celle.append(flekk, document.createTextNode(tekst));
+        return celle;
+      }
 
-      const helseTabell = document.getElementById("helseTabell");
-
-      function tegnHelserad(tjeneste) {
+      function renderTjenesterad(tjeneste, tabell) {
+        const base = `http://localhost:${tjeneste.port}`;
         const rad = document.createElement("tr");
 
         const navn = document.createElement("td");
-        navn.innerHTML = `<code>${htmlEscape(tjeneste.navn)}</code><br><span class="muted small">${htmlEscape(tjeneste.rolle)}</span>`;
+        const kode = document.createElement("code");
+        kode.textContent = tjeneste.navn;
+        const rolle = document.createElement("span");
+        rolle.className = "muted small";
+        rolle.textContent = tjeneste.rolle;
+        navn.append(kode, document.createElement("br"), rolle);
 
         const port = document.createElement("td");
         port.textContent = tjeneste.port;
 
         const status = document.createElement("td");
-        status.innerHTML = '<span class="dot"></span>sjekker…';
+        status.append(dot("dot", "sjekker…"));
 
-        const docs = document.createElement("td");
-        if (tjeneste.docs) {
-          const lenke = document.createElement("a");
-          lenke.href = `http://localhost:${tjeneste.port}${tjeneste.docs}`;
-          lenke.textContent = tjeneste.docs;
-          docs.appendChild(lenke);
+        const api = document.createElement("td");
+        if (tjeneste.spesifikasjon) {
+          const docs = document.createElement("a");
+          docs.href = `${base}/docs`;
+          docs.textContent = "/docs";
+          const spek = document.createElement("a");
+          spek.href = `${base}/openapi.yaml`;
+          spek.textContent = "openapi.yaml";
+          const utforsk = document.createElement("a");
+          utforsk.href = `/utforsker?tjeneste=${encodeURIComponent(tjeneste.navn)}`;
+          utforsk.textContent = "Utforsk →";
+          api.append(docs, document.createTextNode(" · "), spek, document.createTextNode(" · "), utforsk);
         } else {
-          docs.innerHTML = '<span class="muted">–</span>';
+          const strek = document.createElement("span");
+          strek.className = "muted";
+          strek.textContent = "–";
+          api.appendChild(strek);
         }
 
-        rad.append(navn, port, status, docs);
-        helseTabell.appendChild(rad);
+        rad.append(navn, port, status, api);
+        tabell.appendChild(rad);
         return status;
       }
 
-      async function sjekkTjeneste(tjeneste, statusCelle) {
+      async function checkTjeneste(tjeneste, statusCelle) {
         try {
           const res = await fetch(`http://localhost:${tjeneste.port}/helse`, {
             signal: AbortSignal.timeout(4000)
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          statusCelle.innerHTML = '<span class="dot opp"></span>oppe';
+          statusCelle.replaceChildren(dot("dot opp", "oppe"));
         } catch {
-          statusCelle.innerHTML = '<span class="dot ned"></span>svarer ikke';
+          statusCelle.replaceChildren(dot("dot ned", "svarer ikke"));
         }
       }
 
-      for (const tjeneste of tjenester) {
-        const statusCelle = tegnHelserad(tjeneste);
-        sjekkTjeneste(tjeneste, statusCelle);
+      async function renderTjenester() {
+        const tabell = document.getElementById("tjenestetabell");
+        let tjenester;
+        try {
+          const svar = await fetch("/assets/tjenester.json");
+          if (!svar.ok) throw new Error(`status ${svar.status}`);
+          tjenester = await svar.json();
+        } catch (feil) {
+          const rad = document.createElement("tr");
+          const celle = document.createElement("td");
+          celle.colSpan = 4;
+          celle.append(dot("dot ned", `Klarte ikke å lese tjenesteregisteret: ${feil.message}`));
+          rad.appendChild(celle);
+          tabell.appendChild(rad);
+          return;
+        }
+        for (const tjeneste of tjenester) {
+          checkTjeneste(tjeneste, renderTjenesterad(tjeneste, tabell));
+        }
       }
 
-      async function tegnModellstatus() {
+      renderTjenester();
+
+      async function renderModellstatus() {
         const tabell = document.getElementById("modellTabell");
-        const data = await sjekkModell(aiBase, {
+        const data = await checkModell(aiBase, {
           konsekvens: "KI-svar i demoene blir maltekst, ikke modellgenerert."
         });
 
         if (!data) {
-          tabell.innerHTML = '<tr><td><span class="dot ned"></span>Får ikke kontakt med ai-gateway.</td></tr>';
+          const rad = document.createElement("tr");
+          const celle = document.createElement("td");
+          celle.append(dot("dot ned", "Får ikke kontakt med ai-gateway."));
+          rad.appendChild(celle);
+          tabell.replaceChildren(rad);
           return;
         }
 
@@ -325,14 +392,14 @@
           rader.push(["Forklaring", data.feil]);
         }
 
-        tabell.innerHTML = "";
+        tabell.replaceChildren();
         for (const [navn, verdi] of rader) {
           const rad = document.createElement("tr");
           const nokkel = document.createElement("th");
           nokkel.textContent = navn;
           const celle = document.createElement("td");
           if (navn === "Modell tilgjengelig") {
-            celle.innerHTML = `<span class="dot ${data.modellNaaBar ? "opp" : "ned"}"></span>${htmlEscape(verdi)}`;
+            celle.append(dot(`dot ${data.modellNaaBar ? "opp" : "ned"}`, verdi));
           } else {
             celle.textContent = verdi;
           }
@@ -341,7 +408,7 @@
         }
       }
 
-      tegnModellstatus();
+      renderModellstatus();
     </script>
   </body>
 </html>

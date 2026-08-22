@@ -3,11 +3,11 @@ import { spawn } from "node:child_process";
 const port = 18085;
 const baseUrl = `http://127.0.0.1:${port}`;
 
-function vent(ms) {
+function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ventPaaServer(url, forsok = 30) {
+async function waitForServer(url, forsok = 30) {
   for (let i = 0; i < forsok; i += 1) {
     try {
       const svar = await fetch(url);
@@ -15,7 +15,7 @@ async function ventPaaServer(url, forsok = 30) {
     } catch {
       // Server is not up yet.
     }
-    await vent(250);
+    await wait(250);
   }
   throw new Error(`Server svarte ikke paa ${url}`);
 }
@@ -31,7 +31,7 @@ async function kjor() {
   });
 
   try {
-    await ventPaaServer(`${baseUrl}/health`);
+    await waitForServer(`${baseUrl}/helse`);
 
     const alleGaterSvar = await fetch(`${baseUrl}/mock/matrikkel/gater`);
     assert(alleGaterSvar.ok, "Kunne ikke hente gateoversikt");

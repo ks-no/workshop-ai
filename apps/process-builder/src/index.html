@@ -143,11 +143,11 @@
         }
       ];
 
-      function settStatus(tekst) {
+      function setStatus(tekst) {
         status.textContent = tekst;
       }
 
-      async function hentProsesser() {
+      async function getProsesser() {
         const svar = await fetch("http://localhost:8080/api/prosesser");
         const data = await svar.json();
         prosesser.length = 0;
@@ -159,7 +159,7 @@
           const knapp = document.createElement("button");
           knapp.textContent = prosess.navn;
           knapp.onclick = () => {
-            visProsess(prosess);
+            showProsess(prosess);
             fyllSkjema(prosess);
           };
           li.appendChild(knapp);
@@ -175,7 +175,7 @@
         prosessSteg.value = JSON.stringify(prosess.steg || [], null, 2);
       }
 
-      function visProsess(prosess) {
+      function showProsess(prosess) {
         const stegHtml = (prosess.steg || [])
           .map((steg, indeks) => {
             const feltInfo = steg.felter?.length ? ` (${steg.felter.length} felt)` : "";
@@ -201,12 +201,12 @@
         prosessSteg.value = JSON.stringify(eksempelSteg, null, 2);
       }
 
-      async function lagreProsess() {
+      async function saveProsess() {
         let steg;
         try {
           steg = JSON.parse(prosessSteg.value || "[]");
         } catch (error) {
-          settStatus(`Kunne ikke tolke steg-JSON: ${error.message}`);
+          setStatus(`Kunne ikke tolke steg-JSON: ${error.message}`);
           return;
         }
 
@@ -219,7 +219,7 @@
         };
 
         if (!payload.id || !payload.navn) {
-          settStatus("Prosess må ha både ID og navn.");
+          setStatus("Prosess må ha både ID og navn.");
           return;
         }
 
@@ -237,41 +237,41 @@
 
         const data = await svar.json();
         if (!svar.ok) {
-          settStatus(`Lagring feilet: ${data.feil || svar.status}`);
+          setStatus(`Lagring feilet: ${data.feil || svar.status}`);
           return;
         }
 
-        settStatus(finnes ? "Prosess oppdatert." : "Ny prosess opprettet.");
-        await hentProsesser();
+        setStatus(finnes ? "Prosess oppdatert." : "Ny prosess opprettet.");
+        await getProsesser();
         fyllSkjema(data);
-        visProsess(data);
+        showProsess(data);
       }
 
       document.getElementById("oppdater").onclick = () => {
-        hentProsesser().then(() => settStatus("Prosessliste oppdatert."));
+        getProsesser().then(() => setStatus("Prosessliste oppdatert."));
       };
 
       document.getElementById("nyProsess").onclick = () => {
         nullstillSkjema();
         detaljer.textContent = "Ny prosess er klar til redigering.";
-        settStatus("Ny prosess opprettet i skjemaet. Fyll inn ID og navn før lagring.");
+        setStatus("Ny prosess opprettet i skjemaet. Fyll inn ID og navn før lagring.");
       };
 
-      document.getElementById("lagreProsess").onclick = lagreProsess;
+      document.getElementById("lagreProsess").onclick = saveProsess;
 
       document.getElementById("lastInnEksempel").onclick = () => {
         prosessSteg.value = JSON.stringify(eksempelSteg, null, 2);
-        settStatus("Eksempelsteg lagt inn i skjemaet.");
+        setStatus("Eksempelsteg lagt inn i skjemaet.");
       };
 
-      hentProsesser()
+      getProsesser()
         .then(() => {
           nullstillSkjema();
-          settStatus("Prosesser hentet.");
+          setStatus("Prosesser hentet.");
         })
         .catch((error) => {
           detaljer.textContent = `Kunne ikke hente prosesser: ${error.message}`;
-          settStatus(`Kunne ikke hente prosesser: ${error.message}`);
+          setStatus(`Kunne ikke hente prosesser: ${error.message}`);
         });
     </script>
   </body>

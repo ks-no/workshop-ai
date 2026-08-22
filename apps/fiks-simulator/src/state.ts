@@ -32,10 +32,10 @@ export const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../
  * no seed and pass a default; anything called without one is required and fails
  * loudly rather than quietly looking empty.
  */
-export async function readJson(filnavn: string, standardverdi?: unknown): Promise<any> {
-  for (const mappe of [stateDir, seedDir]) {
+export async function readJson(fileName: string, standardverdi?: unknown): Promise<any> {
+  for (const dir of [stateDir, seedDir]) {
     try {
-      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
+      return JSON.parse(await readFile(path.join(dir, fileName), "utf8"));
     } catch (error: any) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -43,18 +43,18 @@ export async function readJson(filnavn: string, standardverdi?: unknown): Promis
   if (standardverdi !== undefined) {
     return standardverdi;
   }
-  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
+  throw new Error(`Fant ikke ${fileName} i verken state/ eller data/.`);
 }
 
-export async function writeJson(filnavn: string, data: unknown) {
+export async function writeJson(fileName: string, data: unknown) {
   await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, filnavn), JSON.stringify(data, null, 2) + "\n");
+  await writeFile(path.join(stateDir, fileName), JSON.stringify(data, null, 2) + "\n");
 }
 
 // One queue for every file, not one per file. Serialising a little more than
 // strictly necessary costs nothing at sandbox scale, and it means a change that
 // later spans two files cannot interleave with another.
-let skrivekoe: Promise<unknown> = Promise.resolve();
+let writeQueue: Promise<unknown> = Promise.resolve();
 
 /**
  * Read, change and write one file, with no other write in between.
@@ -70,19 +70,19 @@ let skrivekoe: Promise<unknown> = Promise.resolve();
  * logs. Here the operation *is* the write, so a lost samtykke has to be loud.
  */
 export function updateJson<T>(
-  filnavn: string,
+  fileName: string,
   standardverdi: unknown,
   endre: (data: any) => T | Promise<T>
 ): Promise<T> {
-  const neste = skrivekoe.then(async () => {
-    const data = await readJson(filnavn, standardverdi);
+  const neste = writeQueue.then(async () => {
+    const data = await readJson(fileName, standardverdi);
     const resultat = await endre(data);
-    await writeJson(filnavn, data);
+    await writeJson(fileName, data);
     return resultat;
   });
   // The chain must survive a rejected link, or one 409 would wedge every later
   // write. The caller still sees the rejection — this only keeps the queue alive.
-  skrivekoe = neste.catch(() => {});
+  writeQueue = neste.catch(() => {});
   return neste;
 }
 
@@ -92,24 +92,24 @@ export function updateJson<T>(
  * Make one at the top of a request and hand it to the handlers; a route that only
  * touches samtykker never opens personer.json.
  */
-export function lagStateLeser() {
-  const lastet = new Map<string, Promise<any>>();
+export function createStateReader() {
+  const loaded = new Map<string, Promise<any>>();
 
-  function les(filnavn: string, standardverdi?: unknown): Promise<any> {
-    if (!lastet.has(filnavn)) {
-      lastet.set(filnavn, readJson(filnavn, standardverdi));
+  function read(fileName: string, standardverdi?: unknown): Promise<any> {
+    if (!loaded.has(fileName)) {
+      loaded.set(fileName, readJson(fileName, standardverdi));
     }
-    return lastet.get(filnavn)!;
+    return loaded.get(fileName)!;
   }
 
   return {
-    personer: () => les("personer.json"),
-    husstander: () => les("husstander.json"),
-    inntekter: () => les("inntekter.json"),
-    barnehageplasser: () => les("barnehageplasser.json"),
-    samtykker: () => les("samtykker.json", []),
-    oppgaver: () => les("oppgaver.json", []),
-    meldinger: () => les("meldinger.json", [])
+    personer: () => read("personer.json"),
+    husstander: () => read("husstander.json"),
+    inntekter: () => read("inntekter.json"),
+    barnehageplasser: () => read("barnehageplasser.json"),
+    samtykker: () => read("samtykker.json", []),
+    oppgaver: () => read("oppgaver.json", []),
+    meldinger: () => read("meldinger.json", [])
   };
 }
 

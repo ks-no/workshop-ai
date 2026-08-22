@@ -10,14 +10,14 @@
 // token per request.
 
 import { createHash, generateKeyPairSync, randomBytes } from "node:crypto";
-import { decodeJwt, signJwt, type SigneringsNokkel } from "./jwt.ts";
+import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
 
 // Each client signs its assertions with a keypair it generates at boot. That is
 // what a real Maskinporten client does; the only difference is that real
 // Maskinporten has the public key registered and checks the signature, while
 // digdir-mock validates the assertion on shape. Generating it here rather than
 // skipping the signature keeps the client code honest.
-const klientNokkel: SigneringsNokkel = (() => {
+const clientKey: SigningKey = (() => {
   const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   return {
     kid: createHash("sha256")
@@ -29,21 +29,21 @@ const klientNokkel: SigneringsNokkel = (() => {
 })();
 
 /** Refresh this many seconds before expiry, so a token never expires in flight. */
-const slakkSekunder = 15;
+const slackSeconds = 15;
 
-type Bufret = { token: string; utloper: number };
+type Cached = { token: string; utloper: number };
 
-const cache = new Map<string, Bufret>();
+const cache = new Map<string, Cached>();
 
-function naa(): number {
+function now(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-function fortsattGyldig(oppfoering: Bufret | undefined): oppfoering is Bufret {
-  return oppfoering !== undefined && oppfoering.utloper - slakkSekunder > naa();
+function stillValid(oppfoering: Cached | undefined): oppfoering is Cached {
+  return oppfoering !== undefined && oppfoering.utloper - slackSeconds > now();
 }
 
-async function lesFeil(svar: Response): Promise<string> {
+async function readError(svar: Response): Promise<string> {
   const tekst = await svar.text();
   try {
     const kropp = JSON.parse(tekst);
@@ -53,14 +53,14 @@ async function lesFeil(svar: Response): Promise<string> {
   }
 }
 
-type TokenSvar = { access_token: string; expires_in?: number };
+type TokenResponse = { access_token: string; expires_in?: number };
 
-function bufre(noekkel: string, data: TokenSvar): string {
-  cache.set(noekkel, { token: data.access_token, utloper: naa() + (data.expires_in ?? 60) });
+function cacheIt(noekkel: string, data: TokenResponse): string {
+  cache.set(noekkel, { token: data.access_token, utloper: now() + (data.expires_in ?? 60) });
   return data.access_token;
 }
 
-export type MaskinportenValg = {
+export type MaskinportenOptions = {
   /** Where to dial the issuer. Inside docker that is not the same as `issuer`. */
   digdirBaseUrl: string;
   /** The logical issuer name, which must match the `aud` the issuer expects. */
@@ -76,29 +76,29 @@ export type MaskinportenValg = {
  * Maskinporten. Machine to machine: proves which client is calling and what it may
  * do, via scope. No person involved.
  */
-export async function hentMaskinportenToken({
+export async function getMaskinportenToken({
   digdirBaseUrl,
   issuer,
   clientId,
   scope,
   resource = "sandbox-backend",
   orgnr = "991825827"
-}: MaskinportenValg): Promise<string> {
+}: MaskinportenOptions): Promise<string> {
   const noekkel = `m2m:${clientId}:${scope}:${resource}`;
-  const bufret = cache.get(noekkel);
-  if (fortsattGyldig(bufret)) return bufret.token;
+  const cached = cache.get(noekkel);
+  if (stillValid(cached)) return cached.token;
 
-  const utstedt = naa();
+  const issuedAt = now();
   const assertion = signJwt({
     iss: clientId,
     aud: issuer,
     scope,
     resource,
     orgnr,
-    iat: utstedt,
-    exp: utstedt + 30,
+    iat: issuedAt,
+    exp: issuedAt + 30,
     jti: randomBytes(16).toString("hex")
-  }, klientNokkel);
+  }, clientKey);
 
   const svar = await fetch(`${digdirBaseUrl}/token`, {
     method: "POST",
@@ -110,12 +110,12 @@ export async function hentMaskinportenToken({
     })
   });
   if (!svar.ok) {
-    throw new Error(`Maskinporten ga ${svar.status}: ${await lesFeil(svar)}`);
+    throw new Error(`Maskinporten ga ${svar.status}: ${await readError(svar)}`);
   }
-  return bufre(noekkel, await svar.json() as TokenSvar);
+  return cacheIt(noekkel, await svar.json() as TokenResponse);
 }
 
-export type InnbyggerValg = {
+export type InnbyggerOptions = {
   digdirBaseUrl: string;
   /** Either personId, which is looked up, or the pid (fødselsnummer) directly. */
   personId?: string;
@@ -133,25 +133,25 @@ export type InnbyggerValg = {
  * sandbox is for; a test script walking the same flow a browser walks is also
  * better coverage.
  */
-export async function hentInnbyggerToken({
+export async function getInnbyggerToken({
   digdirBaseUrl,
   personId,
   pid,
   clientId = "sandkasse-testskript",
   resource = "sandbox-backend"
-}: InnbyggerValg): Promise<string> {
+}: InnbyggerOptions): Promise<string> {
   const noekkel = `pid:${pid || personId}:${clientId}:${resource}`;
-  const bufret = cache.get(noekkel);
-  if (fortsattGyldig(bufret)) return bufret.token;
+  const cached = cache.get(noekkel);
+  if (stillValid(cached)) return cached.token;
 
-  const oppslag = pid || await slaaOppPid(digdirBaseUrl, personId);
+  const lookup = pid || await lookupPid(digdirBaseUrl, personId);
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const redirectUri = "http://localhost/testskript-callback";
 
   // redirect: "manual" — the code is in the Location header, and there is nothing
   // at the other end of redirectUri to follow to.
-  const autorisering = await fetch(`${digdirBaseUrl}/idporten/authorize`, {
+  const authorization = await fetch(`${digdirBaseUrl}/idporten/authorize`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     redirect: "manual",
@@ -163,13 +163,13 @@ export async function hentInnbyggerToken({
       resource,
       code_challenge: challenge,
       code_challenge_method: "S256",
-      pid: oppslag
+      pid: lookup
     })
   });
-  const location = autorisering.headers.get("location");
+  const location = authorization.headers.get("location");
   if (!location) {
     throw new Error(
-      `ID-porten ga ingen redirect (${autorisering.status}): ${await lesFeil(autorisering)}`
+      `ID-porten ga ingen redirect (${authorization.status}): ${await readError(authorization)}`
     );
   }
   const code = new URL(location).searchParams.get("code");
@@ -189,9 +189,9 @@ export async function hentInnbyggerToken({
     })
   });
   if (!svar.ok) {
-    throw new Error(`ID-porten ga ${svar.status}: ${await lesFeil(svar)}`);
+    throw new Error(`ID-porten ga ${svar.status}: ${await readError(svar)}`);
   }
-  return bufre(noekkel, await svar.json() as TokenSvar);
+  return cacheIt(noekkel, await svar.json() as TokenResponse);
 }
 
 // A test script knows people by personId; ID-porten knows them by fødselsnummer.
@@ -202,16 +202,16 @@ export async function hentInnbyggerToken({
 // markup. GET /idporten/testbrukere is a contract; HTML is not.
 const pidCache = new Map<string, string>();
 
-async function slaaOppPid(digdirBaseUrl: string, personId?: string): Promise<string> {
+async function lookupPid(digdirBaseUrl: string, personId?: string): Promise<string> {
   if (!personId) {
-    throw new Error("hentInnbyggerToken krever personId eller pid.");
+    throw new Error("getInnbyggerToken krever personId eller pid.");
   }
-  const kjent = pidCache.get(personId);
-  if (kjent) return kjent;
+  const known = pidCache.get(personId);
+  if (known) return known;
 
   const svar = await fetch(`${digdirBaseUrl}/idporten/testbrukere`);
   if (!svar.ok) {
-    throw new Error(`Fikk ikke testbrukerlista fra digdir-mock: ${await lesFeil(svar)}`);
+    throw new Error(`Fikk ikke testbrukerlista fra digdir-mock: ${await readError(svar)}`);
   }
   for (const bruker of await svar.json() as Array<{ personId: string; pid: string }>) {
     pidCache.set(bruker.personId, bruker.pid);
@@ -225,7 +225,7 @@ async function slaaOppPid(digdirBaseUrl: string, personId?: string): Promise<str
 
 // Warned about once per process per client, so a missing issuer is visible without
 // a line per request.
-const advart = new Set<string>();
+const warned = new Set<string>();
 
 /**
  * The Authorization header for a machine client — or an empty object if the issuer
@@ -244,13 +244,13 @@ const advart = new Set<string>();
  *
  * The warning is what keeps this from being silent.
  */
-export async function maskinportenHeader(valg: MaskinportenValg): Promise<Record<string, string>> {
+export async function maskinportenHeader(valg: MaskinportenOptions): Promise<Record<string, string>> {
   try {
-    return { Authorization: `Bearer ${await hentMaskinportenToken(valg)}` };
+    return { Authorization: `Bearer ${await getMaskinportenToken(valg)}` };
   } catch (feil) {
     const noekkel = `${valg.clientId}:${valg.scope}`;
-    if (!advart.has(noekkel)) {
-      advart.add(noekkel);
+    if (!warned.has(noekkel)) {
+      warned.add(noekkel);
       console.warn(
         `Kunne ikke hente Maskinporten-token for ${valg.clientId} ` +
         `(${(feil as Error).message}). Kaller videre uten token — ` +
@@ -262,7 +262,7 @@ export async function maskinportenHeader(valg: MaskinportenValg): Promise<Record
 }
 
 /** The pid in a token, without verifying it. For logging and test assertions only. */
-export function pidI(token: string): string | null {
+export function pidIn(token: string): string | null {
   try {
     return decodeJwt(token).payload.pid ?? null;
   } catch {

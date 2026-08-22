@@ -20,11 +20,7 @@
   </head>
   <body>
     <main>
-      <div class="top-links">
-        <a href="/">Oversikt</a>
-        <a href="/stegvis">Stegvis demo</a>
-        <a href="/agent">AI-agent</a>
-      </div>
+      <div class="top-links" id="toppmeny"></div>
       <h1>Innbyggerdialog Chat</h1>
       <p class="muted small"><strong>Du er her:</strong> samme prosessmotor som den stegvise
         demoen, pakket som dialog. Du velger prosess selv, og kan stille spørsmål
@@ -74,6 +70,7 @@
     </main>
 
     <script src="/assets/felles.js"></script>
+    <script>renderTopNav("/chat");</script>
     <script>
       const backendBase = "http://localhost:8080";
       const aiBase = "http://localhost:8082";
@@ -171,7 +168,7 @@
 
         if (steg.type === "QUESTION") {
           const intro = steg.tekst || steg.tittel;
-          return `${intro}\n\n${byggSporsmalsHjelp(steg)}`;
+          return `${intro}\n\n${buildSporsmaalsHjelp(steg)}`;
         }
 
         /*
@@ -226,21 +223,21 @@
           return;
         }
         sessionInfoEl.textContent = `Du er i ${aktivProsess?.navn || oekt.prosessId}. Steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`;
-        tegnOektStatus();
+        renderOektStatus();
       }
 
       /*
        * Samtykkestatus, syntetisk-merking og sporet, synlig hele veien.
        * Ligger de bare i API-svaret, ser ingen dem under en demo.
        */
-      function tegnOektStatus() {
+      function renderOektStatus() {
         oektStatusEl.innerHTML = "";
         if (!oekt) return;
 
         // Samtykkeobjektet opprettes først når innbygger svarer, så statusen må
         // også lese hvilket steg vi står på. Ellers står det «ikke spurt om
         // samtykke ennå» midt i samtykkespørsmålet.
-        const staarPaaSamtykke = oekt.aktivtSteg?.type === "CONSENT_REQUEST";
+        const isOnSamtykke = oekt.aktivtSteg?.type === "CONSENT_REQUEST";
         const samtykketekst = {
           SAMTYKKET: "samtykke gitt",
           IKKE_SAMTYKKET: "samtykke ikke gitt",
@@ -248,7 +245,7 @@
           UTLOEPT: "samtykket er utløpt",
           VENTER_PAA_SVAR: "venter på ditt samtykke"
         }[sisteSamtykke?.status]
-          || (staarPaaSamtykke ? "venter på ditt samtykke" : null)
+          || (isOnSamtykke ? "venter på ditt samtykke" : null)
           || (oekt.aktivtSamtykkeId ? "samtykke opprettet" : "ikke spurt om samtykke ennå");
 
         const merker = [`🔒 ${samtykketekst}`, "🧪 syntetiske data"];
@@ -276,13 +273,13 @@
           knapp.textContent = "revisjonslogg";
           knapp.onclick = (hendelse) => {
             hendelse.preventDefault();
-            visRevisjonslogg(oekt.sporingsId);
+            showRevisjonslogg(oekt.sporingsId);
           };
           oektStatusEl.appendChild(knapp);
         }
       }
 
-      async function visRevisjonslogg(sporingsId) {
+      async function showRevisjonslogg(sporingsId) {
         try {
           const rader = await req(`/api/revisjonslogg/${encodeURIComponent(sporingsId)}`);
           if (rader.length === 0) {
@@ -302,7 +299,7 @@
       }
 
       // «Takk, det har jeg notert» sa ingenting om hva som ble notert.
-      function kvitterForSvar(steg, tekst) {
+      function acknowledgeSvar(steg, tekst) {
         const kort = tekst.length > 90 ? `${tekst.slice(0, 90).trim()}…` : tekst;
         if (Array.isArray(steg.felter) && steg.felter.length > 0) {
           return `Takk. Jeg har notert svaret ditt på «${steg.tittel || steg.id}».`;
@@ -342,22 +339,22 @@
       // Lukket liste. Brukes bare på QUESTION-steg, der terskelen må være høy.
       const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
 
-      function erSidesporsmaal(text, steg) {
+      function isSidesporsmaal(text, steg) {
         const lower = normalize(text);
         if (!lower) return false;
 
         // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
         // er et svar med et spørreord midt inni.
-        const starterMedSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
-        const harSporsmaalstegn = text.includes("?");
+        const startsWithSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
+        const hasQuestionMark = text.includes("?");
 
         // På QUESTION bærer teksten en verdi vi mister ved feilruting, så her
         // kreves alle tre. Ellers kan innbygger uansett bare si ja eller nei.
         if (steg?.type === "QUESTION") {
-          return starterMedSporreord && harSporsmaalstegn && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
+          return startsWithSporreord && hasQuestionMark && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
         }
 
-        return starterMedSporreord || harSporsmaalstegn;
+        return startsWithSporreord || hasQuestionMark;
       }
 
       /*
@@ -366,7 +363,7 @@
        * inn» mens vi fortsatt sto og ventet på bekreftelse. Grunnlaget må si
        * hva som *ikke* har skjedd, ikke bare hva som finnes.
        */
-      function byggFlyt() {
+      function buildFlyt() {
         if (!oekt) return null;
         const steg = aktivProsess?.steg || [];
         const submitSteg = steg.find((s) => s.type === "SUBMIT");
@@ -381,7 +378,7 @@
         };
       }
 
-      async function byggSporsmaalsKontekst() {
+      async function buildSporsmaalsKontekst() {
         let mineEiendommer = null;
         if (oekt?.personId) {
           try {
@@ -399,7 +396,7 @@
           tjeneste: aktivProsess?.navn || "ukjent prosess",
           prosess: aktivProsess || null,
           steg: oekt?.aktivtSteg || null,
-          flyt: byggFlyt(),
+          flyt: buildFlyt(),
           satser: satser,
           // Står vi på samtykkesteget uten svar ennå, er «venter» sannere enn
           // ingenting — og det er nettopp da innbygger spør hvorfor.
@@ -418,7 +415,7 @@
 
       // fraKnapp: et forslag innbygger trykket på var aldri et feilrutet svar,
       // så da skal rømningsknappen ikke tilbys.
-      async function svarPaaSidesporsmaal(text, fraKnapp = false) {
+      async function answerSidesporsmaal(text, fraKnapp = false) {
         addTyping();
         try {
           const res = await fetch(`${aiBase}/ai/sporsmaal`, {
@@ -427,7 +424,7 @@
             body: JSON.stringify({
               tekst: text,
               sporingsId: oekt?.sporingsId,
-              kontekst: await byggSporsmaalsKontekst(),
+              kontekst: await buildSporsmaalsKontekst(),
               sprak: "nb"
             })
           });
@@ -452,12 +449,12 @@
           addMsg("error", `Fikk ikke svar på spørsmålet: ${error.message}`);
         }
 
-        gjenopptaFlyt(fraKnapp ? null : text);
+        resumeFlyt(fraKnapp ? null : text);
       }
 
       // Flyten gjenopptas eksplisitt. stegIndex er ikke rørt — vi viser bare
       // hvor vi står, og gir en vei ut av en feilruting.
-      function gjenopptaFlyt(opprinneligTekst) {
+      function resumeFlyt(opprinneligTekst) {
         const steg = oekt?.aktivtSteg;
         if (!steg) return;
         addMsg("system", `Sidespørsmål — flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
@@ -468,7 +465,7 @@
       async function req(path, options = {}) {
         const res = await fetch(`${backendBase}${path}`, {
           ...options,
-          headers: medToken({ "Content-Type": "application/json", ...(options.headers || {}) })
+          headers: withToken({ "Content-Type": "application/json", ...(options.headers || {}) })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -477,17 +474,17 @@
         return data;
       }
 
-      function erJaSvar(text) {
+      function isJaSvar(text) {
         const lower = normalize(text);
         return ["ja", "japp", "yes", "klart", "greit", "okei", "ok", "gjerne", "ja takk", "send inn", "det går fint", "det er greit"].some((match) => lower.includes(match));
       }
 
-      function erNeiSvar(text) {
+      function isNeiSvar(text) {
         const lower = normalize(text);
         return ["nei", "ikke", "stopp", "senere", "ikke nå", "nei takk"].some((match) => lower.includes(match));
       }
 
-      function byggSporsmalsHjelp(steg) {
+      function buildSporsmaalsHjelp(steg) {
         const felter = steg?.felter || [];
         if (felter.length === 0) {
           return "Fortell gjerne med dine egne ord.";
@@ -504,7 +501,7 @@
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
 
-      async function tolkBrukersvar(text, intents, kontekst = {}) {
+      async function interpretBrukersvar(text, intents, kontekst = {}) {
         try {
           const res = await fetch(`${aiBase}/ai/tolk-svar`, {
             method: "POST",
@@ -528,10 +525,10 @@
           }
           return data;
         } catch {
-          if (erJaSvar(text)) {
+          if (isJaSvar(text)) {
             return { intent: intents.ja, confidence: 0.6, modell: "lokal-fallback" };
           }
-          if (erNeiSvar(text)) {
+          if (isNeiSvar(text)) {
             return { intent: intents.nei, confidence: 0.6, modell: "lokal-fallback" };
           }
           return { intent: intents.ukjent, confidence: 0.1, modell: "lokal-fallback" };
@@ -602,7 +599,7 @@
           addMsg("assistant", summary);
           samtale.push({ rolle: "assistent", tekst: summary });
         }
-        varsleOmFallback(result.resultat);
+        warnAboutFallback(result.resultat);
 
         // Et utfall reiser spørsmål. Å tilby dem er billigere enn å håpe at
         // innbygger vet at de kan spørre. Settes her, men tegnes av
@@ -716,7 +713,7 @@
             onClick: () => {
               addMsg("user", sporsmaal);
               samtale.push({ rolle: "innbygger", tekst: sporsmaal });
-              svarPaaSidesporsmaal(sporsmaal, true);
+              answerSidesporsmaal(sporsmaal, true);
             }
           });
         }
@@ -763,8 +760,8 @@
         const tvungetSvar = valg.hoppOverSporsmaalsruting || lower.startsWith("svar:");
         const reellTekst = lower.startsWith("svar:") ? text.slice(4).trim() : text;
 
-        if (!tvungetSvar && erSidesporsmaal(text, steg)) {
-          await svarPaaSidesporsmaal(text);
+        if (!tvungetSvar && isSidesporsmaal(text, steg)) {
+          await answerSidesporsmaal(text);
           return;
         }
 
@@ -782,15 +779,15 @@
               method: "POST",
               body: JSON.stringify({ stegId: steg.id, svar: reellTekst })
             });
-            addMsg("assistant", kvitterForSvar(steg, reellTekst));
+            addMsg("assistant", acknowledgeSvar(steg, reellTekst));
             updateSessionInfo();
             await goNext();
             return;
           }
 
           if (steg.type === "CONSENT_REQUEST") {
-            const tolkning = await tolkBrukersvar(reellTekst, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
-            varsleOmFallback(tolkning);
+            const tolkning = await interpretBrukersvar(reellTekst, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
+            warnAboutFallback(tolkning);
             if (tolkning.intent === "samtykke-ja") {
               await ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.");
               return;
@@ -802,7 +799,7 @@
             // Uklart svar på et samtykkespørsmål skal aldri gjettes på. Var det
             // egentlig et spørsmål, svarer vi på det i stedet for å mase.
             if (!tvungetSvar) {
-              await svarPaaSidesporsmaal(reellTekst);
+              await answerSidesporsmaal(reellTekst);
               return;
             }
             addMsg("assistant", "Jeg vil være sikker på at jeg forstod deg riktig. Svar gjerne «ja» eller «nei» — samtykke må være utvetydig.");
@@ -815,8 +812,8 @@
           }
 
           if (steg.type === "SUBMIT") {
-            const tolkning = await tolkBrukersvar(reellTekst, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
-            varsleOmFallback(tolkning);
+            const tolkning = await interpretBrukersvar(reellTekst, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
+            warnAboutFallback(tolkning);
             if (tolkning.intent === "send-ja") {
               await runHandling({}, "Da sender jeg inn søknaden.");
               return;
@@ -826,7 +823,7 @@
               return;
             }
             if (!tvungetSvar) {
-              await svarPaaSidesporsmaal(reellTekst);
+              await answerSidesporsmaal(reellTekst);
               return;
             }
             addMsg("assistant", "Du kan for eksempel svare «ja, send inn» eller «nei, ikke ennå».");
@@ -868,8 +865,8 @@
         satser = await req("/api/regler/satser").catch(() => null);
         prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
         // ID-porten decided who you are, so the person selector reports it rather
-        // than offering a choice. See visInnloggetPerson in felles.js.
-        visInnloggetPerson(personEl, personer);
+        // than offering a choice. See showLoggedInPerson in felles.js.
+        showLoggedInPerson(personEl, personer);
         prosessEl.innerHTML = prosesser.map((p) => `<option value="${htmlEscape(p.id)}">${htmlEscape(p.navn)}</option>`).join("");
         return personer;
       }
@@ -894,11 +891,11 @@
         }
       });
 
-      sjekkModell(aiBase, {
+      checkModell(aiBase, {
         konsekvens: "Svarene under kommer fra maler, ikke fra en modell."
       });
 
-      krevInnlogging()
+      requireLogin()
         .then((innlogget) => innlogget && loadOptions())
         .then((personer) => {
           if (!personer) return;

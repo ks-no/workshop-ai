@@ -179,7 +179,7 @@ function collectNumbers(verdi, ut = new Set()) {
   return ut;
 }
 
-export function byggGrunnlagsIndeks(kontekst) {
+export function buildGrunnlagsIndeks(kontekst) {
   const raa = collectNumbers(kontekst);
   const lovlige = new Set();
 
@@ -208,23 +208,23 @@ const AARSTALL_MAX = 2100;
  * sentence.
  */
 export function findUngroundedNumbers(tekst, indeks) {
-  const normalisert = String(tekst || "").replace(/ /g, " ");
+  const normalized = String(tekst || "").replace(/ /g, " ");
   const funn = [];
 
-  for (const treff of normalisert.matchAll(/(\d[\d  .]*\d|\d)(\s*(?:kr|kroner|%|prosent))?/gi)) {
-    const raatall = treff[1].replace(/[\s.]/g, "");
+  for (const treff of normalized.matchAll(/(\d[\d  .]*\d|\d)(\s*(?:kr|kroner|%|prosent))?/gi)) {
+    const rawNumbers = treff[1].replace(/[\s.]/g, "");
     const enhet = (treff[2] || "").trim().toLowerCase();
-    const tall = Number(raatall);
+    const tall = Number(rawNumbers);
     if (!Number.isFinite(tall)) continue;
 
-    const erMarkert = enhet.length > 0;
-    if (!erMarkert && Math.abs(tall) < 1000) continue;
+    const isMarked = enhet.length > 0;
+    if (!isMarked && Math.abs(tall) < 1000) continue;
 
     // A bare year is prose, not a claim about money.
-    if (!erMarkert && raatall.length === 4 && tall >= AARSTALL_MIN && tall <= AARSTALL_MAX) continue;
+    if (!isMarked && rawNumbers.length === 4 && tall >= AARSTALL_MIN && tall <= AARSTALL_MAX) continue;
 
     if (!indeks.has(tall)) {
-      funn.push(erMarkert ? `${tall} ${enhet}` : String(tall));
+      funn.push(isMarked ? `${tall} ${enhet}` : String(tall));
     }
   }
 
@@ -270,7 +270,7 @@ const INJEKSJONSMONSTRE = [
   "new instructions"
 ];
 
-export function harInjeksjonsmarkorer(tekst) {
+export function hasInjeksjonsmarkorer(tekst) {
   const raa = String(tekst || "");
   if (raa.length > 500) return true;
   if (raa.includes("```")) return true;
@@ -341,12 +341,12 @@ const PERSONVERNTEMA = [
   "syntetisk"
 ];
 
-export function erPersonvernSporsmaal(sporsmaal) {
+export function isPersonvernSporsmaal(sporsmaal) {
   const tekst = foldNorwegian(normalizeText(sporsmaal));
   return PERSONVERNTEMA.some((tema) => tekst.includes(foldNorwegian(tema)));
 }
 
-export function byggPersonvernSvar(kontekst) {
+export function buildPersonvernSvar(kontekst) {
   const tjeneste = kontekst?.tjeneste;
   const samtykke = kontekst?.samtykke?.status;
 
@@ -368,11 +368,11 @@ export function byggPersonvernSvar(kontekst) {
 
 /* ── Trygge svar ──────────────────────────────────────────────────────────── */
 
-export function byggTryggSvar(kontekst, aarsak) {
+export function buildTryggSvar(kontekst, aarsak) {
   if (aarsak === "ikke-utfort") {
-    const staarPaa = kontekst?.flyt?.staarPaa;
-    return staarPaa
-      ? `Vi står fortsatt på «${staarPaa}», og ingenting er sendt inn ennå. Det skjer først når du sier fra at du vil sende.`
+    const isOnList = kontekst?.flyt?.isOnList;
+    return isOnList
+      ? `Vi står fortsatt på «${isOnList}», og ingenting er sendt inn ennå. Det skjer først når du sier fra at du vil sende.`
       : "Ingenting er sendt inn ennå. Det skjer først når du sier fra at du vil sende.";
   }
 
@@ -413,7 +413,7 @@ export function validateAnswer(tekst, kontekst) {
   const grunnlagstekst = kontekstTekst;
 
   if (!svar) {
-    return { ok: false, sperre: "tomt", advarsel: "Modellen svarte tomt.", tekst: byggTryggSvar(kontekst) };
+    return { ok: false, sperre: "tomt", advarsel: "Modellen svarte tomt.", tekst: buildTryggSvar(kontekst) };
   }
 
   if (svar.length > MAKS_SVARLENGDE) {
@@ -421,7 +421,7 @@ export function validateAnswer(tekst, kontekst) {
       ok: false,
       sperre: "lengde",
       advarsel: `Svaret var ${svar.length} tegn, over taket på ${MAKS_SVARLENGDE}.`,
-      tekst: byggTryggSvar(kontekst)
+      tekst: buildTryggSvar(kontekst)
     };
   }
 
@@ -431,7 +431,7 @@ export function validateAnswer(tekst, kontekst) {
       ok: false,
       sperre: "promptlekkasje",
       advarsel: `Svaret gjenga promptstrukturen: ${lekkasje.join(", ")}.`,
-      tekst: byggTryggSvar(kontekst)
+      tekst: buildTryggSvar(kontekst)
     };
   }
 
@@ -441,7 +441,7 @@ export function validateAnswer(tekst, kontekst) {
       ok: false,
       sperre: "identifikator",
       advarsel: `Svaret inneholdt identifikatorer som ikke står i grunnlaget: ${identifikatorer.join(", ")}.`,
-      tekst: byggTryggSvar(kontekst)
+      tekst: buildTryggSvar(kontekst)
     };
   }
 
@@ -451,27 +451,27 @@ export function validateAnswer(tekst, kontekst) {
       ok: false,
       sperre: "beslutning",
       advarsel: `Svaret avgjorde saken selv: «${beslutninger.join("», «")}». KI skal formulere, ikke vedta.`,
-      tekst: byggTryggSvar(kontekst)
+      tekst: buildTryggSvar(kontekst)
     };
   }
 
-  const paastander = findFalseCompletionClaims(svar, kontekst);
-  if (paastander.length > 0) {
+  const claims = findFalseCompletionClaims(svar, kontekst);
+  if (claims.length > 0) {
     return {
       ok: false,
       sperre: "ikke-utfort",
-      advarsel: `Svaret påstod at noe var gjort som ikke er gjort: «${paastander.join("», «")}». Søknaden er ikke sendt inn.`,
-      tekst: byggTryggSvar(kontekst, "ikke-utfort")
+      advarsel: `Svaret påstod at noe var gjort som ikke er gjort: «${claims.join("», «")}». Søknaden er ikke sendt inn.`,
+      tekst: buildTryggSvar(kontekst, "ikke-utfort")
     };
   }
 
-  const udekkede = findUngroundedNumbers(svar, byggGrunnlagsIndeks(kontekst));
+  const udekkede = findUngroundedNumbers(svar, buildGrunnlagsIndeks(kontekst));
   if (udekkede.length > 0) {
     return {
       ok: false,
       sperre: "tall",
       advarsel: `Svaret oppga tall som ikke finnes i grunnlaget: ${udekkede.join(", ")}.`,
-      tekst: byggTryggSvar(kontekst)
+      tekst: buildTryggSvar(kontekst)
     };
   }
 
@@ -536,7 +536,7 @@ export function sanitizeSporsmaalKontekst(kontekst) {
   // hva som finnes.
   if (inn.flyt) {
     ut.flyt = {
-      staarPaa: inn.flyt.staarPaa,
+      isOnList: inn.flyt.isOnList,
       stegNummer: inn.flyt.stegNummer,
       avTotalt: inn.flyt.avTotalt,
       status: inn.flyt.status,
@@ -593,7 +593,7 @@ export function sanitizeSporsmaalKontekst(kontekst) {
  * Which sources an answer stands on. Shown to the citizen, so it is part of the
  * contract rather than debug output.
  */
-export function byggGrunnlag(kontekst) {
+export function buildGrunnlag(kontekst) {
   const kilder = [];
   if (kontekst.satser) {
     kilder.push(`Satser${kontekst.satser.gjelderFra ? ` ${kontekst.satser.gjelderFra}` : ""}`);

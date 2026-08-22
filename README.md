@@ -240,13 +240,13 @@ Alle tjenestene kjører når `./start.sh` er ferdig:
   designsystem kjørende i sandboxen, med markup for hver komponent. Mal hvis du lager din
   egen frontend. Se `docs/designsystem.md`
 - [http://localhost:3000](http://localhost:3000) — prosessbygger
-- [http://localhost:8080/health](http://localhost:8080/health)
-- [http://localhost:8081/health](http://localhost:8081/health)
-- [http://localhost:8085/health](http://localhost:8085/health)
-- [http://localhost:8082/health](http://localhost:8082/health)
-- [http://localhost:8083/health](http://localhost:8083/health)
-- [http://localhost:8084/health](http://localhost:8084/health)
-- [http://localhost:8086/health](http://localhost:8086/health)
+- [http://localhost:8080/helse](http://localhost:8080/helse)
+- [http://localhost:8081/helse](http://localhost:8081/helse)
+- [http://localhost:8085/helse](http://localhost:8085/helse)
+- [http://localhost:8082/helse](http://localhost:8082/helse)
+- [http://localhost:8083/helse](http://localhost:8083/helse)
+- [http://localhost:8084/helse](http://localhost:8084/helse)
+- [http://localhost:8086/helse](http://localhost:8086/helse)
 - [http://localhost:8080/docs](http://localhost:8080/docs)
 - [http://localhost:8081/docs](http://localhost:8081/docs)
 - [http://localhost:8082/docs](http://localhost:8082/docs)

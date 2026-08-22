@@ -7,10 +7,10 @@
 // person yields the same outcome whenever the demo runs.
 export function alderVed(foedselsdato: string, referansedato: string): number {
   const foedt = new Date(foedselsdato);
-  const referanse = new Date(referansedato);
-  const alder = referanse.getFullYear() - foedt.getFullYear();
-  const foerBursdag =
-    referanse.getMonth() < foedt.getMonth() ||
-    (referanse.getMonth() === foedt.getMonth() && referanse.getDate() < foedt.getDate());
-  return foerBursdag ? alder - 1 : alder;
+  const reference = new Date(referansedato);
+  const alder = reference.getFullYear() - foedt.getFullYear();
+  const beforeBirthday =
+    reference.getMonth() < foedt.getMonth() ||
+    (reference.getMonth() === foedt.getMonth() && reference.getDate() < foedt.getDate());
+  return beforeBirthday ? alder - 1 : alder;
 }

@@ -9,30 +9,30 @@ import {
 } from "./http.ts";
 import {
   aktorFor,
-  klassifiserKaller,
-  krevTilgang,
+  classifyKaller,
+  requireTilgang,
   SCOPE_LES,
   SCOPE_REVISJON,
-  type Kaller,
+  type Caller,
   type Tilgang
 } from "./autentisering.ts";
 import { openapiFile } from "./config.ts";
-import { ruteoversikt } from "../../shared-ui/openapi.ts";
-import { byggProsessoektRespons, opprettSoknad, utforStegHandling } from "./prosess.ts";
-import { finnRessurs, ressurskatalog, utforRessurs } from "./ressurser.ts";
-import { leggTilRevisjon } from "./revisjon.ts";
+import { routeOverview } from "../../shared-ui/openapi.ts";
+import { buildProsessoektRespons, createSoknad, runStegHandling } from "./prosess.ts";
+import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
+import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import type { Prosessoekt } from "./types.ts";
 import {
-  erMalProsess,
-  finnPerson,
-  finnProsess,
-  finnProsessoekt,
-  hentProsesserForVisning,
-  lagreProsessdefinisjoner,
-  lagreProsessoekter,
+  isMalProsess,
+  findPerson,
+  findProsess,
+  findProsessoekt,
+  getProsesserForVisning,
+  writeProsessdefinisjoner,
+  writeProsessoekter,
   readState,
-  normaliserProsess,
+  normalizeProsess,
   newId
 } from "./state.ts";
 
@@ -45,7 +45,7 @@ type Kontekst = {
   parametere: PathParams;
   tilstand: State;
   /** Who is calling, from the token. See autentisering.ts. */
-  kaller: Kaller;
+  kaller: Caller;
 };
 
 type Rute = {
@@ -77,7 +77,7 @@ type Rute = {
 // though the direct HTTP path is closed, because a SJEKK step runs with
 // oekt.personId regardless of who asked.
 function eierAvOekt({ parametere, tilstand }: { parametere: PathParams; tilstand: State }) {
-  return finnProsessoekt(tilstand, parametere.oektsId)?.personId ?? null;
+  return findProsessoekt(tilstand, parametere.oektsId)?.personId ?? null;
 }
 
 function eierAvSoknad({ parametere, tilstand }: { parametere: PathParams; tilstand: State }) {
@@ -86,45 +86,37 @@ function eierAvSoknad({ parametere, tilstand }: { parametere: PathParams; tilsta
 
 // A POST that creates something names its own subject in the body. Read once here
 // rather than in each handler, so the check happens before the write.
-async function personIdFraKropp({ request }: { request: IncomingMessage }) {
-  return (await lesKroppEnGang(request))?.personId ?? null;
+async function personIdFromBody({ request }: { request: IncomingMessage }) {
+  return (await readBodyOnce(request))?.personId ?? null;
 }
 
 // readRequestBody consumes the stream, so a route whose subject comes from the body
 // would otherwise find it empty by the time the handler runs. Parse once, cache on
 // the request, and let both the check and the handler read the same object.
-const kroppCache = new WeakMap<IncomingMessage, any>();
+const bodyCache = new WeakMap<IncomingMessage, any>();
 
-async function lesKroppEnGang(request: IncomingMessage): Promise<any> {
-  if (!kroppCache.has(request)) {
+async function readBodyOnce(request: IncomingMessage): Promise<any> {
+  if (!bodyCache.has(request)) {
     // The one place readRequestBody is still called. Everything else goes through
     // this cache, so the stream is consumed exactly once per request.
-    kroppCache.set(request, await readRequestBody(request));
+    bodyCache.set(request, await readRequestBody(request));
   }
-  return kroppCache.get(request);
+  return bodyCache.get(request);
 }
 
-function hentSporingsId(url: URL) {
+function getSporingsId(url: URL) {
   return url.searchParams.get("sporingsId") || newId("flyt");
 }
 
 // --- system routes: answer without reading state --------------------------
 
 // A health probe that needs credentials cannot tell you the service is unhealthy,
-// and documentation is not data. All four are open.
+// and documentation is not data. All three are open.
 const systemruter: Rute[] = [
   {
     metode: "GET",
     tilgang: "aapen",
     sti: "/helse",
-    handter: ({ response }) => {
-      jsonResponse(response, 200, { status: "ok", tjeneste: "sandbox-backend", tidspunkt: new Date().toISOString() });
-    }
-  },
-  {
-    metode: "GET",
-    tilgang: "aapen",
-    sti: "/health",
     handter: ({ response }) => {
       jsonResponse(response, 200, { status: "ok", tjeneste: "sandbox-backend", tidspunkt: new Date().toISOString() });
     }
@@ -153,7 +145,7 @@ const systemruter: Rute[] = [
     // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
     // med det API-utforskeren trenger for å rendre et skjema per rute.
     handter: async ({ response }) => {
-      jsonResponse(response, 200, await ruteoversikt(openapiFile));
+      jsonResponse(response, 200, await routeOverview(openapiFile));
     }
   }
 ];
@@ -174,10 +166,10 @@ const ruter: Rute[] = [
         visningsnavn: [person.navn.fornavn, person.navn.mellomnavn, person.navn.etternavn]
           .filter(Boolean).join(" ")
       }));
-      const synlige = kaller.type === "innbygger"
+      const visible = kaller.type === "innbygger"
         ? alle.filter((person: any) => person.syntetiskFodselsnummer === kaller.pid)
         : alle;
-      jsonResponse(response, 200, synlige);
+      jsonResponse(response, 200, visible);
     }
   },
   {
@@ -197,7 +189,7 @@ const ruter: Rute[] = [
     sti: "/api/prosesser",
     handter: ({ response, url, tilstand }) => {
       const inkluderMaler = url.searchParams.get("inkluderMaler") === "true";
-      jsonResponse(response, 200, hentProsesserForVisning(tilstand, inkluderMaler));
+      jsonResponse(response, 200, getProsesserForVisning(tilstand, inkluderMaler));
     }
   },
   {
@@ -205,8 +197,8 @@ const ruter: Rute[] = [
     tilgang: "aapen",
     sti: "/api/prosesser",
     handter: async ({ request, response, tilstand }) => {
-      const body = await lesKroppEnGang(request);
-      const nyProsess = normaliserProsess({
+      const body = await readBodyOnce(request);
+      const nyProsess = normalizeProsess({
         id: body.id || newId("prosess"),
         navn: body.navn || "Ny prosess",
         beskrivelse: body.beskrivelse || "Prosess opprettet i prosessbyggeren.",
@@ -215,18 +207,18 @@ const ruter: Rute[] = [
         redigering: body.redigering || {},
         syntetisk: true
       });
-      const alleProsesser = hentProsesserForVisning(tilstand, true);
-      if (alleProsesser.some((prosess: any) => prosess.id === nyProsess.id)) {
+      const allProsesser = getProsesserForVisning(tilstand, true);
+      if (allProsesser.some((prosess: any) => prosess.id === nyProsess.id)) {
         jsonResponse(response, 409, { feil: "Prosess med samme id finnes allerede." });
         return;
       }
-      if (erMalProsess(nyProsess)) {
+      if (isMalProsess(nyProsess)) {
         tilstand.prosessMaler.push(nyProsess);
       } else {
         tilstand.prosesser.push(nyProsess);
       }
-      await lagreProsessdefinisjoner(tilstand);
-      await leggTilRevisjon({
+      await writeProsessdefinisjoner(tilstand);
+      await addRevisjon({
         sporingsId: newId("flyt"),
         handling: "PROSESS_OPPRETTET",
         ressurs: "prosess",
@@ -279,7 +271,7 @@ const ruter: Rute[] = [
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
     handter: ({ response, parametere, tilstand }) => {
-      const prosess = finnProsess(tilstand, parametere.prosessId);
+      const prosess = findProsess(tilstand, parametere.prosessId);
       jsonResponse(response, prosess ? 200 : 404, prosess || { feil: "Fant ikke prosess." });
     }
   },
@@ -288,7 +280,7 @@ const ruter: Rute[] = [
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
     handter: async ({ request, response, parametere, tilstand }) => {
-      const body = await lesKroppEnGang(request);
+      const body = await readBodyOnce(request);
       const index = tilstand.prosesser.findIndex((prosess: any) => prosess.id === parametere.prosessId);
       const malIndeks = tilstand.prosessMaler.findIndex((prosess: any) => prosess.id === parametere.prosessId);
       if (index === -1 && malIndeks === -1) {
@@ -299,7 +291,7 @@ const ruter: Rute[] = [
       const liste = erMal ? tilstand.prosessMaler : tilstand.prosesser;
       const listeIndeks = erMal ? malIndeks : index;
       const eksisterende = liste[listeIndeks];
-      const oppdatertProsess = normaliserProsess({
+      const oppdatertProsess = normalizeProsess({
         ...eksisterende,
         navn: body.navn ?? eksisterende.navn,
         beskrivelse: body.beskrivelse ?? eksisterende.beskrivelse,
@@ -309,8 +301,8 @@ const ruter: Rute[] = [
         syntetisk: true
       });
       liste[listeIndeks] = oppdatertProsess;
-      await lagreProsessdefinisjoner(tilstand);
-      await leggTilRevisjon({
+      await writeProsessdefinisjoner(tilstand);
+      await addRevisjon({
         sporingsId: newId("flyt"),
         handling: "PROSESS_OPPDATERT",
         ressurs: "prosess",
@@ -323,11 +315,11 @@ const ruter: Rute[] = [
     metode: "POST",
     sti: "/api/prosessoekter",
     // You may start a process for yourself. The subject is in the body.
-    finnPersonId: personIdFraKropp,
+    finnPersonId: personIdFromBody,
     handter: async ({ request, response, tilstand, kaller }) => {
-      const body = await lesKroppEnGang(request);
+      const body = await readBodyOnce(request);
       const prosess = tilstand.prosesser.find((kandidat: any) => kandidat.id === body.prosessId) || null;
-      const person = finnPerson(tilstand, body.personId);
+      const person = findPerson(tilstand, body.personId);
       if (!prosess || !person) {
         jsonResponse(response, 404, { feil: "Fant ikke prosess eller person." });
         return;
@@ -347,14 +339,14 @@ const ruter: Rute[] = [
         syntetisk: true
       };
       tilstand.prosessoekter.push(nyOekt);
-      await lagreProsessoekter(tilstand.prosessoekter);
-      await leggTilRevisjon({
+      await writeProsessoekter(tilstand.prosessoekter);
+      await addRevisjon({
         sporingsId: nyOekt.sporingsId,
         handling: "PROSESSOEKT_OPPRETTET",
         ressurs: "prosessoekt",
         aktor: aktorFor(kaller, nyOekt.personId)
       });
-      jsonResponse(response, 201, byggProsessoektRespons(nyOekt, prosess));
+      jsonResponse(response, 201, buildProsessoektRespons(nyOekt, prosess));
     }
   },
   {
@@ -362,12 +354,12 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId",
     finnPersonId: eierAvOekt,
     handter: ({ response, parametere, tilstand }) => {
-      const oekt = finnProsessoekt(tilstand, parametere.oektsId);
+      const oekt = findProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
         jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
         return;
       }
-      jsonResponse(response, 200, byggProsessoektRespons(oekt, finnProsess(tilstand, oekt.prosessId)));
+      jsonResponse(response, 200, buildProsessoektRespons(oekt, findProsess(tilstand, oekt.prosessId)));
     }
   },
   {
@@ -375,13 +367,13 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId/svar",
     finnPersonId: eierAvOekt,
     handter: async ({ request, response, parametere, tilstand, kaller }) => {
-      const body = await lesKroppEnGang(request);
-      const oekt = finnProsessoekt(tilstand, parametere.oektsId);
+      const body = await readBodyOnce(request);
+      const oekt = findProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
         jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
         return;
       }
-      const prosess = finnProsess(tilstand, oekt.prosessId);
+      const prosess = findProsess(tilstand, oekt.prosessId);
       const steg = prosess?.steg?.[oekt.stegIndex];
       if (!steg) {
         jsonResponse(response, 400, { feil: "Fant ikke aktivt steg." });
@@ -389,14 +381,14 @@ const ruter: Rute[] = [
       }
       oekt.svar[body.stegId || steg.id] = body.svar;
       oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekter(tilstand.prosessoekter);
-      await leggTilRevisjon({
+      await writeProsessoekter(tilstand.prosessoekter);
+      await addRevisjon({
         sporingsId: oekt.sporingsId,
         handling: "STEG_SVAR_LAGRET",
         ressurs: "prosessoekt",
         aktor: aktorFor(kaller, oekt.personId)
       });
-      jsonResponse(response, 200, byggProsessoektRespons(oekt, prosess));
+      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
     }
   },
   {
@@ -404,18 +396,18 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId/handling",
     finnPersonId: eierAvOekt,
     handter: async ({ request, response, parametere, tilstand, kaller }) => {
-      const body = await lesKroppEnGang(request);
-      const oekt = finnProsessoekt(tilstand, parametere.oektsId);
+      const body = await readBodyOnce(request);
+      const oekt = findProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
         jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
         return;
       }
-      const prosess = finnProsess(tilstand, oekt.prosessId);
-      const resultat = await utforStegHandling(tilstand, oekt, prosess, body, kaller);
+      const prosess = findProsess(tilstand, oekt.prosessId);
+      const resultat = await runStegHandling(tilstand, oekt, prosess, body, kaller);
       oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekter(tilstand.prosessoekter);
+      await writeProsessoekter(tilstand.prosessoekter);
       jsonResponse(response, 200, {
-        oekt: byggProsessoektRespons(oekt, prosess),
+        oekt: buildProsessoektRespons(oekt, prosess),
         resultat
       });
     }
@@ -425,7 +417,7 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId/neste",
     finnPersonId: eierAvOekt,
     handter: async ({ response, parametere, tilstand }) => {
-      const oekt = finnProsessoekt(tilstand, parametere.oektsId);
+      const oekt = findProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
         jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
         return;
@@ -434,15 +426,15 @@ const ruter: Rute[] = [
         jsonResponse(response, 400, { feil: "Prosessøkten er avsluttet og kan ikke fortsette." });
         return;
       }
-      const prosess = finnProsess(tilstand, oekt.prosessId);
+      const prosess = findProsess(tilstand, oekt.prosessId);
       if (oekt.stegIndex >= prosess.steg.length - 1) {
         jsonResponse(response, 400, { feil: "Prosessøkten er allerede på siste steg." });
         return;
       }
       oekt.stegIndex += 1;
       oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekter(tilstand.prosessoekter);
-      jsonResponse(response, 200, byggProsessoektRespons(oekt, prosess));
+      await writeProsessoekter(tilstand.prosessoekter);
+      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
     }
   },
   {
@@ -450,29 +442,29 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId/forrige",
     finnPersonId: eierAvOekt,
     handter: async ({ response, parametere, tilstand }) => {
-      const oekt = finnProsessoekt(tilstand, parametere.oektsId);
+      const oekt = findProsessoekt(tilstand, parametere.oektsId);
       if (!oekt) {
         jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
         return;
       }
-      const prosess = finnProsess(tilstand, oekt.prosessId);
+      const prosess = findProsess(tilstand, oekt.prosessId);
       if (oekt.stegIndex <= 0) {
         jsonResponse(response, 400, { feil: "Prosessøkten er allerede på første steg." });
         return;
       }
       oekt.stegIndex -= 1;
       oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekter(tilstand.prosessoekter);
-      jsonResponse(response, 200, byggProsessoektRespons(oekt, prosess));
+      await writeProsessoekter(tilstand.prosessoekter);
+      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
     }
   },
   {
     metode: "POST",
     sti: "/api/soknader",
-    finnPersonId: personIdFraKropp,
+    finnPersonId: personIdFromBody,
     handter: async ({ request, response, tilstand, kaller }) => {
-      const body = await lesKroppEnGang(request);
-      jsonResponse(response, 201, await opprettSoknad(tilstand, body, kaller));
+      const body = await readBodyOnce(request);
+      jsonResponse(response, 201, await createSoknad(tilstand, body, kaller));
     }
   },
   {
@@ -502,12 +494,12 @@ const ruter: Rute[] = [
     scope: SCOPE_REVISJON,
     sti: "/api/revisjonslogg",
     handter: async ({ request, response }) => {
-      const hendelse = await lesKroppEnGang(request);
+      const hendelse = await readBodyOnce(request);
       if (!hendelse.handling) {
         jsonResponse(response, 400, { feil: "Revisjonshendelse mangler handling." });
         return;
       }
-      await leggTilRevisjon(hendelse);
+      await addRevisjon(hendelse);
       jsonResponse(response, 201, { status: "registrert", syntetisk: true });
     }
   },
@@ -544,7 +536,7 @@ function findRoute(metode: string, sti: string): { rute: Rute; parametere: PathP
   return null;
 }
 
-const systemstier = new Set(systemruter.map((rute) => rute.sti));
+const systemPaths = new Set(systemruter.map((rute) => rute.sti));
 
 export async function handleRequest(request: IncomingMessage, response: ServerResponse) {
   const url = new URL(request.url!, `http://${request.headers.host}`);
@@ -560,7 +552,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     // System routes answer without state, so /helse still works if a dataset
     // is corrupt. They also answer without a token: a health probe that needs
     // credentials cannot tell you the service is unhealthy.
-    if (treff && systemstier.has(treff.rute.sti)) {
+    if (treff && systemPaths.has(treff.rute.sti)) {
       await treff.rute.handter({
         request, response, url, parametere: treff.parametere, tilstand: null,
         kaller: { type: "anonym" }
@@ -571,18 +563,18 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     // Once per request, before anything reads state. A broken token is a 401 here
     // and never reaches a handler; a missing one is `anonym`, and what that is
     // worth is decided per route and per resource.
-    const kaller = await klassifiserKaller(request);
+    const kaller = await classifyKaller(request);
 
     const tilstand = await readState();
 
     if (treff) {
-      const rutekontekst = { request, response, url, parametere: treff.parametere, tilstand };
+      const routeContext = { request, response, url, parametere: treff.parametere, tilstand };
       const personId = treff.rute.finnPersonId
-        ? await treff.rute.finnPersonId(rutekontekst)
+        ? await treff.rute.finnPersonId(routeContext)
         : null;
 
       try {
-        krevTilgang({
+        requireTilgang({
           kaller,
           tilgang: treff.rute.tilgang ?? "egne-data",
           scope: treff.rute.scope ?? SCOPE_LES,
@@ -590,13 +582,13 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
           // and the handler then answers 404. Refusing with 403 instead would tell
           // an unauthenticated caller which session ids exist.
           pid: personId
-            ? finnPerson(tilstand, personId)?.syntetiskFodselsnummer ?? null
+            ? findPerson(tilstand, personId)?.syntetiskFodselsnummer ?? null
             : null,
           hva: `${treff.rute.metode} ${treff.rute.sti}`
         });
       } catch (feil) {
-        await leggTilRevisjon({
-          sporingsId: hentSporingsId(url),
+        await addRevisjon({
+          sporingsId: getSporingsId(url),
           handling: "TILGANG_NEKTET",
           ressurs: treff.rute.sti,
           formaal: "Mangler hjemmel",
@@ -606,15 +598,15 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
         throw feil;
       }
 
-      await treff.rute.handter({ ...rutekontekst, kaller });
+      await treff.rute.handter({ ...routeContext, kaller });
       return;
     }
 
     // No orchestration route matched: try the shared resource catalog, which the
     // process engine consults in exactly the same way.
-    if (finnRessurs(request.method!, url.pathname)) {
-      const data = await utforRessurs(tilstand, request.method!, url, {
-        sporingsId: hentSporingsId(url),
+    if (findRessurs(request.method!, url.pathname)) {
+      const data = await runRessurs(tilstand, request.method!, url, {
+        sporingsId: getSporingsId(url),
         kaller
       });
       jsonResponse(response, 200, data);

@@ -47,7 +47,7 @@ This service exposes tool endpoints a generic agent can call to:
 
 ## Endpoints
 
-- `GET /health`
+- `GET /helse`
 - `GET /mcp`
 - `GET /mcp/tools`
 - `POST /mcp/tools/invoke`

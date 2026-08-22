@@ -14,7 +14,7 @@ import { createSign, createVerify, createPublicKey } from "node:crypto";
 import type { JsonWebKey, KeyObject } from "node:crypto";
 
 /** A key this module can sign with. PEM string or a KeyObject, plus the kid to advertise. */
-export type SigneringsNokkel = {
+export type SigningKey = {
   kid: string;
   privateKey: string | KeyObject;
 };
@@ -31,11 +31,11 @@ export type JwtHeader = {
  * `scope` and `consumer`, ID-porten has `pid` and `acr` — and the resource server
  * is where a claim gets a meaning. See autentisering.ts in sandbox-backend.
  */
-export type JwtKrav = Record<string, any>;
+export type JwtClaims = Record<string, any>;
 
-export type DekodetJwt = {
+export type DecodedJwt = {
   header: JwtHeader;
-  payload: JwtKrav;
+  payload: JwtClaims;
   /** The `header.payload` string the signature covers. */
   signingInput: string;
   signature: Buffer;
@@ -49,12 +49,12 @@ function b64urlDecode(segment: string): string {
   return Buffer.from(segment, "base64url").toString("utf8");
 }
 
-export function signJwt(krav: JwtKrav, { kid, privateKey }: SigneringsNokkel): string {
+export function signJwt(krav: JwtClaims, { kid, privateKey }: SigningKey): string {
   const header: JwtHeader = { alg: "RS256", typ: "JWT", kid };
   const signingInput =
     `${b64urlEncode(JSON.stringify(header))}.${b64urlEncode(JSON.stringify(krav))}`;
-  const signatur = createSign("RSA-SHA256").update(signingInput).sign(privateKey);
-  return `${signingInput}.${signatur.toString("base64url")}`;
+  const signature = createSign("RSA-SHA256").update(signingInput).sign(privateKey);
+  return `${signingInput}.${signature.toString("base64url")}`;
 }
 
 /**
@@ -62,17 +62,17 @@ export function signJwt(krav: JwtKrav, { kid, privateKey }: SigneringsNokkel): s
  * client's assertion, and for a resource server that needs the `kid` before it can
  * pick a key. Never use the payload from this for an access decision.
  */
-export function decodeJwt(token: string): DekodetJwt {
-  const deler = String(token || "").split(".");
-  if (deler.length !== 3) {
+export function decodeJwt(token: string): DecodedJwt {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) {
     throw new Error("Token har ikke tre segmenter.");
   }
   try {
     return {
-      header: JSON.parse(b64urlDecode(deler[0])),
-      payload: JSON.parse(b64urlDecode(deler[1])),
-      signingInput: `${deler[0]}.${deler[1]}`,
-      signature: Buffer.from(deler[2], "base64url")
+      header: JSON.parse(b64urlDecode(parts[0])),
+      payload: JSON.parse(b64urlDecode(parts[1])),
+      signingInput: `${parts[0]}.${parts[1]}`,
+      signature: Buffer.from(parts[2], "base64url")
     };
   } catch (feil) {
     throw new Error(`Token kunne ikke dekodes: ${(feil as Error).message}`);
@@ -86,14 +86,14 @@ export function decodeJwt(token: string): DekodetJwt {
  * resource server, and burying them here would make them invisible at the place
  * where the access decision is actually made.
  */
-export function verifyJwt(token: string, jwk: JsonWebKey): JwtKrav {
+export function verifyJwt(token: string, jwk: JsonWebKey): JwtClaims {
   const { header, payload, signingInput, signature } = decodeJwt(token);
   if (header.alg !== "RS256") {
     throw new Error(`Forventet alg RS256, fikk ${header.alg}.`);
   }
   const publicKey = createPublicKey({ key: jwk, format: "jwk" });
-  const gyldig = createVerify("RSA-SHA256").update(signingInput).verify(publicKey, signature);
-  if (!gyldig) {
+  const valid = createVerify("RSA-SHA256").update(signingInput).verify(publicKey, signature);
+  if (!valid) {
     throw new Error("Signaturen stemmer ikke med nøkkelen.");
   }
   return payload;

@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { docsHtml, ruteoversikt } from "../../shared-ui/openapi.ts";
+import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
 
 const port = Number(process.env.PORT || 8084);
 const mcpBaseUrl = process.env.MCP_BASE_URL || "http://mcp-services:8083";
@@ -459,15 +459,15 @@ function extractPossibleGateMention(text) {
   return match?.[1] || null;
 }
 
-function utledGateSoeketekst(rawText) {
-  const raatekst = String(rawText || "").trim();
-  if (!raatekst) return "";
+function gateSearchText(input) {
+  const rawText = String(input || "").trim();
+  if (!rawText) return "";
 
   // Accept both "Storgata 5" and compact forms like "Bønesheien258".
-  const utenHusnummer = raatekst.replace(/[\s,]*\d+[\p{L}]?$/u, "").trim();
+  const utenHusnummer = rawText.replace(/[\s,]*\d+[\p{L}]?$/u, "").trim();
   if (utenHusnummer) return utenHusnummer;
 
-  return extractPossibleGateMention(raatekst) || raatekst;
+  return extractPossibleGateMention(rawText) || rawText;
 }
 
 function extractPossibleAdresseMention(text) {
@@ -504,7 +504,7 @@ function extractBrregQuery(text) {
     /^sok\s+/i,
     /^hvem er\s+/i,
     /^hva er\s+/i,
-    /^oppslag\s+pa\s+/i,
+    /^lookup\s+pa\s+/i,
     /^brreg\s+/i,
     /^enhetsregisteret\s+/i
   ];
@@ -726,7 +726,7 @@ async function runKontekstTool(toolName, stepAnswer) {
 async function runValideringTool(toolName, userText) {
   if (toolName === "matrikkel_finn_veger") {
     try {
-      const query = utledGateSoeketekst(userText);
+      const query = gateSearchText(userText);
 
       const gateTreff = await invokeTool("matrikkel_finn_veger", { gate: query, all: true, limit: 10, offset: 0 });
       const treffliste = Array.isArray(gateTreff) ? gateTreff : [];
@@ -738,8 +738,8 @@ async function runValideringTool(toolName, userText) {
         const fraOffentligKilde = typeof kandidat.gateId === "string" && kandidat.gateId.startsWith("geo-");
         const inputNormalisert = normalize(query);
         const gateNormalisert = normalize(kandidat.adressenavn);
-        const erEksaktTreff = inputNormalisert === gateNormalisert;
-        if (!erEksaktTreff) {
+        const isExactMatch = inputNormalisert === gateNormalisert;
+        if (!isExactMatch) {
           const forslag = treffliste.slice(0, 5).map((g) => g.adressenavn).join(", ");
           return {
             confirm: true,
@@ -884,7 +884,7 @@ function maybeAnswerProcessMetaQuestion(state, text) {
  * Says explicitly what has *not* happened yet. Without it the model reads the
  * step named "Send søknad" in the process definition and reports it as done.
  */
-function byggFlyt(state) {
+function buildFlyt(state) {
   const oekt = state.lastSession;
   if (!oekt) return null;
   const steg = state.processDefinition?.steg || [];
@@ -917,7 +917,7 @@ async function maybeAnswerCitizenQuestion(state, text) {
         tjeneste: state.processDefinition?.navn || state.selectedProcess?.navn,
         prosess: state.processDefinition || null,
         steg: state.lastSession?.aktivtSteg || null,
-        flyt: byggFlyt(state),
+        flyt: buildFlyt(state),
         resultater: state.lastSession?.resultater || null,
         samtale: recentHistory(state, 6).map((entry) => ({
           rolle: entry.role === "assistant" ? "assistent" : "innbygger",
@@ -951,14 +951,14 @@ function looksLikeCitizenQuestion(text, streng = false) {
   // startsWith, not includes: "jeg lurte på hva du mente med Storgata" is an
   // answer with a question word in the middle of it.
   const starterMedSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
-  const harSporsmaalstegn = String(text).includes("?");
+  const hasQuestionMark = String(text).includes("?");
 
   if (!streng) {
-    return starterMedSporreord || harSporsmaalstegn;
+    return starterMedSporreord || hasQuestionMark;
   }
 
   return starterMedSporreord
-    && harSporsmaalstegn
+    && hasQuestionMark
     && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
 }
 
@@ -1259,16 +1259,16 @@ async function handleMessage(state, message) {
   const sidesvar = await maybeAnswerCitizenQuestion(state, text);
   if (sidesvar) {
     const step = state.lastSession?.aktivtSteg;
-    const tilbake = step?.tekst || step?.tittel;
-    return tilbake
-      ? [sidesvar.tekst, `Tilbake til der vi var: ${tilbake}`]
+    const back = step?.tekst || step?.tittel;
+    return back
+      ? [sidesvar.tekst, `Tilbake til der vi var: ${back}`]
       : [sidesvar.tekst];
   }
 
   if (state.awaiting === "question") {
     const step = state.lastSession?.aktivtSteg;
     const activeQuestionId = step?.id || state.awaitingStepId || null;
-    const valideringsToolNavn = state.awaitingValideringTools || [];
+    const valideringsToolName = state.awaitingValideringTools || [];
     const likelyGateStep = isLikelyGateQuestionStep(step);
 
     if (activeQuestionId !== "velg-gate") {
@@ -1289,9 +1289,9 @@ async function handleMessage(state, message) {
 
     // If the user asks a lookup question (e.g. "Finnes Storgata?"), answer it
     // directly and keep the step open so the user can submit a final value.
-    if (text.includes("?") && (valideringsToolNavn.length > 0 || likelyGateStep)) {
+    if (text.includes("?") && (valideringsToolName.length > 0 || likelyGateStep)) {
       const lookupText = extractLookupCandidate(text) || text;
-      const lookupTools = valideringsToolNavn.length > 0 ? valideringsToolNavn : (likelyGateStep ? ["matrikkel_finn_veger"] : []);
+      const lookupTools = valideringsToolName.length > 0 ? valideringsToolName : (likelyGateStep ? ["matrikkel_finn_veger"] : []);
       for (const toolName of lookupTools) {
         const valResult = await runValideringTool(toolName, lookupText);
         if (!valResult) continue;
@@ -1317,9 +1317,9 @@ async function handleMessage(state, message) {
     if (!looksLikeHelpQuestion(activeQuestionId, text)) {
       const lower = normalize(text);
       const isHelpish = text.includes("?") || ["hjelp", "vet ikke", "usikker", "forslag", "hvilke", "hva kan jeg"].some((ord) => lower.includes(ord));
-      if (isHelpish && valideringsToolNavn.length > 0) {
+      if (isHelpish && valideringsToolName.length > 0) {
         const hints = [];
-        for (const toolName of valideringsToolNavn) {
+        for (const toolName of valideringsToolName) {
           const hint = await runKontekstTool(toolName);
           if (hint) hints.push(hint);
         }
@@ -1347,7 +1347,7 @@ async function handleMessage(state, message) {
     }
 
     // Run dynamic validation tools discovered when the step was entered.
-    for (const toolName of valideringsToolNavn) {
+    for (const toolName of valideringsToolName) {
       const valResult = await runValideringTool(toolName, text);
       if (!valResult) continue;
       if (valResult.retry) {
@@ -1717,13 +1717,13 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (url.pathname === "/helse" || url.pathname === "/health") {
+    if (url.pathname === "/helse") {
       json(response, 200, { status: "ok", tjeneste: "process-agent", tidspunkt: new Date().toISOString() });
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/docs") {
-      tekst(response, 200, docsHtml(await ruteoversikt(openapiFile)), "text/html; charset=utf-8");
+      tekst(response, 200, docsHtml(await routeOverview(openapiFile)), "text/html; charset=utf-8");
       return;
     }
 
@@ -1734,7 +1734,7 @@ const server = createServer(async (request, response) => {
 
     // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
-      json(response, 200, await ruteoversikt(openapiFile));
+      json(response, 200, await routeOverview(openapiFile));
       return;
     }
 

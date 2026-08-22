@@ -14,7 +14,7 @@
 // Only the token goes to stdout, so command substitution works. Everything else —
 // help, errors, decoded claims — goes to stderr.
 
-import { hentInnbyggerToken, hentMaskinportenToken } from "../apps/digdir-mock/src/klient.ts";
+import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { decodeJwt } from "../apps/digdir-mock/src/jwt.ts";
 
 // Defaults are the host's view of the stack. Inside docker the issuer is
@@ -68,8 +68,8 @@ if (!personId && !scope) {
 let token: string;
 try {
   token = personId
-    ? await hentInnbyggerToken({ digdirBaseUrl, personId, clientId, resource })
-    : await hentMaskinportenToken({
+    ? await getInnbyggerToken({ digdirBaseUrl, personId, clientId, resource })
+    : await getMaskinportenToken({
         digdirBaseUrl, issuer: digdirIssuer, clientId, scope: scope!, resource
       });
 } catch (feil) {

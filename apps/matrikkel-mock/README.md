@@ -38,7 +38,7 @@ pnpm check:matrikkel-source
 Mot en annen URL:
 
 ```bash
-pnpm check:matrikkel-source -- --url=http://localhost:18085/health
+pnpm check:matrikkel-source -- --url=http://localhost:18085/helse
 ```
 
 ## Bygg og kjor egen Docker-image
@@ -57,7 +57,7 @@ docker run --rm -p 8085:8085 workshop-ai/matrikkel-mock:local
 
 ## Endepunkt
 
-- `GET /health`
+- `GET /helse`
 - `GET /docs`
 - `GET /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl`
 - `POST /geointegrasjon/matrikkel/wsapi/v1/BasisService` (SOAP)

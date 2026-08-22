@@ -19,6 +19,7 @@
  *   5. an operation with no `security:` — neither its own nor a document default
  *   6. a security requirement that disagrees with the route's tilgang or scope
  *   7. an enum in the spec that has drifted from the kodeverk in the code
+ *   8. a service in apps/shared-ui/tjenester.json that this list disagrees with
  *
  * The spec is read by apps/shared-ui/openapi.ts, which every service also serves
  * from GET /openapi-ruter.json. One reader, two consumers: what the gate compares
@@ -40,9 +41,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { lesSpesifikasjon } from "../apps/shared-ui/openapi.ts";
+import { readSpec } from "../apps/shared-ui/openapi.ts";
 
-const rot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_METODER = ["get", "post", "put", "patch", "delete", "head", "options"];
 
 type Rute = {
@@ -83,7 +84,7 @@ type Tjeneste = {
 // --- spesifikasjonen ------------------------------------------------------
 
 /** `enum: [A, B, C]` under et navngitt skjema i components.schemas. */
-function lesEnum(tekst: string, skjema: string): string[] | null {
+function readEnum(tekst: string, skjema: string): string[] | null {
   const start = tekst.indexOf(`\n    ${skjema}:\n`);
   if (start === -1) return null;
   // Etter skjemaets egen linje, ellers treffer søket under seg selv.
@@ -97,7 +98,7 @@ function lesEnum(tekst: string, skjema: string): string[] | null {
 // --- koden ----------------------------------------------------------------
 
 /** `/fiks/samtykke/{samtykkeId}` og `/fiks/samtykke/([^/]+)` blir samme sti. */
-function normaliser(sti: string) {
+function normalize(sti: string) {
   return sti.replace(/\{[^}]*\}/g, "{}").replace(/:([A-Za-z]+)/g, "{}");
 }
 
@@ -107,7 +108,7 @@ function normaliser(sti: string) {
  * null rather than guessing — an unparsed route has to become an error, never a
  * silently missing one.
  */
-function stiFraRegex(moenster: string): string | null {
+function pathFromRegex(moenster: string): string | null {
   const sti = moenster
     .replace(/^\^/, "")
     .replace(/\$$/, "")
@@ -116,7 +117,7 @@ function stiFraRegex(moenster: string): string | null {
   return /[()[\]^$*+?\\]/.test(sti) ? null : sti;
 }
 
-function skannRuter(kilde: string, tjeneste: Tjeneste) {
+function scanRoutes(kilde: string, tjeneste: Tjeneste) {
   const ruter: Rute[] = [];
   const uparsede: string[] = [];
 
@@ -168,7 +169,7 @@ function skannRuter(kilde: string, tjeneste: Tjeneste) {
     // if (request.method === "X" && xTreff)
     for (const [navn, moenster] of moenstre) {
       if (!new RegExp(`&&\\s*${navn}\\b|\\b${navn}\\s*&&`).test(rutelinje)) continue;
-      const sti = stiFraRegex(moenster);
+      const sti = pathFromRegex(moenster);
       if (!sti) {
         uparsede.push(`${indeks + 1}: kunne ikke tolke mønsteret /${moenster}/`);
         traff = true;
@@ -301,40 +302,62 @@ const tjenester: Tjeneste[] = [
 // --- sjekken --------------------------------------------------------------
 
 const filter = process.argv.slice(2).filter((argument) => !argument.startsWith("-"));
-const vis = process.argv.includes("--vis");
+const show = process.argv.includes("--vis");
 const feil: string[] = [];
 const notater: string[] = [];
+
+// 8. Registeret og denne lista skal beskrive de samme tjenestene.
+//
+// apps/shared-ui/tjenester.json er det dashboardet og API-utforskeren leser. Lista
+// her kan ikke slaas sammen med den: oppfoeringene under baerer `kilde`, `ikkeRuter`
+// og `utenfor` — unntak som bare denne porten har bruk for. Men navnene skal stemme,
+// ellers faar en ny tjeneste spesifikasjon uten aa dukke opp for deltakerne, eller
+// omvendt.
+const registeret: { navn: string; spesifikasjon: boolean }[] = JSON.parse(
+  await readFile(path.join(repoRoot, "apps/shared-ui/tjenester.json"), "utf8")
+);
+const iRegisteret = registeret.filter((t) => t.spesifikasjon).map((t) => t.navn).sort();
+const iLista = tjenester.map((t) => t.navn).sort();
+if (iRegisteret.join(",") !== iLista.join(",")) {
+  const mangler = iLista.filter((n) => !iRegisteret.includes(n));
+  const ekstra = iRegisteret.filter((n) => !iLista.includes(n));
+  feil.push(
+    "apps/shared-ui/tjenester.json er ikke enig med tjenester-lista i dette skriptet." +
+      (mangler.length ? `\n    Mangler i registeret med spesifikasjon: true: ${mangler.join(", ")}` : "") +
+      (ekstra.length ? `\n    Star i registeret, men ikke i lista her: ${ekstra.join(", ")}` : "")
+  );
+}
 
 for (const tjeneste of tjenester) {
   if (filter.length && !filter.some((m) => tjeneste.navn.includes(m))) continue;
 
-  const spec = lesSpesifikasjon(
-    await readFile(path.join(rot, tjeneste.spesifikasjon), "utf8"),
+  const spec = readSpec(
+    await readFile(path.join(repoRoot, tjeneste.spesifikasjon), "utf8"),
     tjeneste.spesifikasjon
   );
 
   // 1. Duplikate path-nøkler. YAML tar den siste og kaster den første i stillhet.
-  const settSti = new Set<string>();
-  for (const sti of spec.rekkefoelge) {
-    if (settSti.has(sti)) {
+  const seenPaths = new Set<string>();
+  for (const sti of spec.order) {
+    if (seenPaths.has(sti)) {
       feil.push(`${tjeneste.spesifikasjon}: path-nøkkelen ${sti} står oppført to ganger. YAML beholder den siste og kaster den første uten et ord.`);
     }
-    settSti.add(sti);
+    seenPaths.add(sti);
   }
 
   let ruter: Rute[];
   if (tjeneste.ruter) {
     ruter = await tjeneste.ruter();
   } else {
-    const kilde = await readFile(path.join(rot, tjeneste.kilde!), "utf8");
-    const skannet = skannRuter(kilde, tjeneste);
-    for (const linje of skannet.uparsede) {
+    const kilde = await readFile(path.join(repoRoot, tjeneste.kilde!), "utf8");
+    const scanned = scanRoutes(kilde, tjeneste);
+    for (const linje of scanned.uparsede) {
       feil.push(
         `${tjeneste.kilde}:${linje}\n    Skanneren kjente ikke igjen denne bruken av url.pathname. Er det en rute, ` +
         `hører formen i scripts/sjekk-openapi-dekning.ts; er det ikke en rute, hører linjen i ikkeRuter med en grunn.`
       );
     }
-    ruter = skannet.ruter;
+    ruter = scanned.ruter;
   }
 
   const utenfor = tjeneste.utenfor || {};
@@ -344,10 +367,10 @@ for (const tjeneste of tjenester) {
 
   // 2 og 4. Hver rute i koden skal finnes i spesifikasjonen, med riktig metode.
   const iSpec = new Map<string, Set<string>>();
-  for (const sti of spec.stier) {
-    const noekkel = normaliser(sti.sti);
+  for (const sti of spec.paths) {
+    const noekkel = normalize(sti.path);
     if (!iSpec.has(noekkel)) iSpec.set(noekkel, new Set());
-    for (const operasjon of sti.operasjoner) {
+    for (const operasjon of sti.operations) {
       iSpec.get(noekkel)!.add(operasjon.metode);
     }
   }
@@ -355,7 +378,7 @@ for (const tjeneste of tjenester) {
   const iKode = new Map<string, Set<string>>();
   for (const rute of ruter) {
     if (utenfor[rute.sti]) continue;
-    const noekkel = normaliser(rute.sti);
+    const noekkel = normalize(rute.sti);
     if (!iKode.has(noekkel)) iKode.set(noekkel, new Set());
     iKode.get(noekkel)!.add(rute.metode.toUpperCase());
   }
@@ -391,60 +414,60 @@ for (const tjeneste of tjenester) {
   // 5 og 6. Hjemmel per rute, avledet av tilgangsbandet i koden.
   const bandFor = new Map<string, Rute>();
   for (const rute of ruter) {
-    if (rute.tilgang) bandFor.set(`${rute.metode.toUpperCase()} ${normaliser(rute.sti)}`, rute);
+    if (rute.tilgang) bandFor.set(`${rute.metode.toUpperCase()} ${normalize(rute.sti)}`, rute);
   }
 
-  for (const sti of spec.stier) {
-    for (const operasjon of sti.operasjoner) {
-      if (operasjon.security === null && !spec.dokumentSecurity) {
+  for (const sti of spec.paths) {
+    for (const operasjon of sti.operations) {
+      if (operasjon.security === null && !spec.documentSecurity) {
         feil.push(
-          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.sti} mangler security:. ` +
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} mangler security:. ` +
           `Åpne ruter skal ha «security: []» eksplisitt, slik at fraværet ikke leses som en glipp.`
         );
         continue;
       }
-      const rute = bandFor.get(`${operasjon.metode} ${normaliser(sti.sti)}`);
+      const rute = bandFor.get(`${operasjon.metode} ${normalize(sti.path)}`);
       if (!rute || operasjon.security === null) continue;
 
       if (rute.tilgang === "aapen" && operasjon.security.length > 0) {
         feil.push(
-          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.sti} krever ` +
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} krever ` +
           `${operasjon.security.join("/")}, men tilgangsbandet i koden er «aapen».`
         );
       }
       if (rute.tilgang !== "aapen" && operasjon.security.length === 0) {
         feil.push(
-          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.sti} er dokumentert som åpen, ` +
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} er dokumentert som åpen, ` +
           `men tilgangsbandet i koden er «${rute.tilgang}».`
         );
       }
       if (rute.tilgang === "bred" && operasjon.security.includes("idporten")) {
         feil.push(
-          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.sti} er i bandet «bred», ` +
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} er i bandet «bred», ` +
           `som ingen innbygger kan åpne. Da skal bare maskinporten stå der.`
         );
       }
       if (operasjon.security.includes("maskinporten") && rute.scope && !operasjon.scopes.includes(rute.scope)) {
         feil.push(
-          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.sti} oppgir scope ` +
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} oppgir scope ` +
           `${operasjon.scopes.join(", ") || "ingen"}, men koden krever ${rute.scope}.`
         );
       }
     }
   }
 
-  if (vis) {
+  if (show) {
     for (const [sti, metoder] of [...iKode].sort()) {
-      const rute = ruter.find((kandidat) => normaliser(kandidat.sti) === sti);
+      const rute = ruter.find((kandidat) => normalize(kandidat.sti) === sti);
       const band = rute?.tilgang ? `  [${rute.tilgang}${rute.scope ? ` ${rute.scope}` : ""}]` : "";
       console.log(`  ${[...metoder].sort().join(",").padEnd(8)} ${sti}${band}`);
     }
   }
 
   // 7. Kodeverk spesifikasjonen gjentar.
-  const tekst = await readFile(path.join(rot, tjeneste.spesifikasjon), "utf8");
+  const tekst = await readFile(path.join(repoRoot, tjeneste.spesifikasjon), "utf8");
   for (const kodeverk of tjeneste.kodeverk || []) {
-    const dokumentert = lesEnum(tekst, kodeverk.skjema);
+    const dokumentert = readEnum(tekst, kodeverk.skjema);
     const ikode = [...(await kodeverk.verdier())];
     if (!dokumentert) {
       feil.push(`${tjeneste.spesifikasjon}: fant ingen enum under skjemaet ${kodeverk.skjema}.`);
@@ -458,10 +481,10 @@ for (const tjeneste of tjenester) {
     }
   }
 
-  const antallOperasjoner = spec.stier.reduce((sum, sti) => sum + sti.operasjoner.length, 0);
+  const operationCount = spec.paths.reduce((sum, sti) => sum + sti.operations.length, 0);
   console.log(
     `${tjeneste.navn.padEnd(16)} ${String(iKode.size).padStart(3)} stier i koden, ` +
-    `${String(iSpec.size).padStart(3)} i spesifikasjonen, ${antallOperasjoner} operasjoner`
+    `${String(iSpec.size).padStart(3)} i spesifikasjonen, ${operationCount} operasjoner`
   );
 }
 

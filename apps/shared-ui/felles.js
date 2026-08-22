@@ -93,6 +93,53 @@ function addGrunnlagsfot(grunnlag) {
   chatTarget.scrollTop = chatTarget.scrollHeight;
 }
 
+/* ── Toppmenyen ────────────────────────────────────────────────────────────
+ *
+ * The five pages used to each carry their own hand-copied <div class="top-links">.
+ * They drifted: three listed three links, one listed four, the dashboard had none,
+ * and not one of them linked to the API explorer — 887 lines of it, reachable only
+ * by typing the URL. One list here, and a new page cannot be forgotten by four
+ * others.
+ *
+ * /ds-eksempel is deliberately absent: it loads neither felles.css nor felles.js,
+ * so a .top-links block there would be unstyled. It is reached from the README and
+ * docs/deltakerstart.md.
+ */
+
+const PAGES = [
+  { sti: "/", tekst: "Oversikt" },
+  { sti: "/chat", tekst: "Chat" },
+  { sti: "/agent", tekst: "AI-agent" },
+  { sti: "/stegvis", tekst: "Stegvis" },
+  { sti: "/utforsker", tekst: "API-utforsker" }
+];
+
+/**
+ * Fills <div class="top-links" id="toppmeny"> with the site's pages.
+ *
+ * `activePath` is rendered as plain text rather than a link — a link to the page
+ * you are already on is a dead end, and aria-current says the same thing to a
+ * screen reader.
+ */
+function renderTopNav(activePath) {
+  const element = document.getElementById("toppmeny");
+  if (!element) return;
+  element.replaceChildren();
+  for (const side of PAGES) {
+    if (side.sti === activePath) {
+      const her = document.createElement("span");
+      her.textContent = side.tekst;
+      her.setAttribute("aria-current", "page");
+      element.appendChild(her);
+      continue;
+    }
+    const lenke = document.createElement("a");
+    lenke.href = side.sti;
+    lenke.textContent = side.tekst;
+    element.appendChild(lenke);
+  }
+}
+
 /* ── Er modellen faktisk koblet på? ────────────────────────────────────────
  *
  * ai-gateway answers with template text when the model is down and sets an
@@ -100,7 +147,7 @@ function addGrunnlagsfot(grunnlag) {
  * working one — well-formed Norwegian prose, just from a template.
  */
 
-function visModellBanner(tekst, elementId = "modellBanner") {
+function showModellBanner(tekst, elementId = "modellBanner") {
   const element = document.getElementById(elementId);
   if (!element) return;
   if (!tekst) {
@@ -112,22 +159,22 @@ function visModellBanner(tekst, elementId = "modellBanner") {
   element.textContent = tekst;
 }
 
-async function sjekkModell(aiBase, valg = {}) {
+async function checkModell(aiBase, valg = {}) {
   const konsekvens = valg.konsekvens || "Svarene under kommer fra maler, ikke fra en modell.";
   try {
     const res = await fetch(`${aiBase}/helse`);
     const data = await res.json();
     if (data.modellNaaBar) {
-      visModellBanner(null, valg.elementId);
+      showModellBanner(null, valg.elementId);
       return data;
     }
-    visModellBanner(
+    showModellBanner(
       `⚠️ Modellen er ikke koblet på (${data.modell || data.provider}). ${konsekvens} ${data.feil || ""}`.trim(),
       valg.elementId
     );
     return data;
   } catch {
-    visModellBanner(`⚠️ Får ikke kontakt med ai-gateway. ${konsekvens}`, valg.elementId);
+    showModellBanner(`⚠️ Får ikke kontakt med ai-gateway. ${konsekvens}`, valg.elementId);
     return null;
   }
 }
@@ -137,7 +184,7 @@ async function sjekkModell(aiBase, valg = {}) {
  * so advarsel is surfaced where it happens too. Kept quiet by default: a
  * warning shown on every turn teaches the user to ignore it.
  */
-function varsleOmFallback(result) {
+function warnAboutFallback(result) {
   if (result && typeof result.advarsel === "string" && result.advarsel.trim()) {
     addMsg("system", `⚠️ ${result.advarsel}`);
   }
@@ -146,7 +193,7 @@ function varsleOmFallback(result) {
 /* --- ID-porten i nettleseren -------------------------------------------------
  *
  * The redirect flow, once, for all three demo-gui pages. Each page's fetch helper
- * then needs one line: `...medToken()` in its headers.
+ * then needs one line: `...withToken()` in its headers.
  *
  * This file stays .js while the rest of Del B is TypeScript, because a browser
  * loads it directly — there is no build step to strip types in. That is a platform
@@ -163,14 +210,14 @@ function varsleOmFallback(result) {
  */
 
 const IDPORTEN_BASE = "http://localhost:8086";
-const TOKEN_NOKKEL = "sandkasse-idporten-token";
-const VERIFIER_NOKKEL = "sandkasse-pkce-verifier";
+const TOKEN_KEY = "sandkasse-idporten-token";
+const VERIFIER_KEY = "sandkasse-pkce-verifier";
 
 /*
  * ET TOKEN PER AUDIENCE.
  *
  * `resource` på /authorize blir tokenets `aud`, og en tjeneste avviser et token
- * som er utstedt for en annen — det er hele poenget med audience-begrensning. De
+ * som er issuedAt for en annen — det er hele poenget med audience-begrensning. De
  * tre prosessidene snakker bare med sandbox-backend, så de holder seg til
  * standarden og merker ingenting; API-utforskeren kan kalle sju tjenester og
  * trenger å holde ett token per audience samtidig.
@@ -180,8 +227,8 @@ const VERIFIER_NOKKEL = "sandkasse-pkce-verifier";
  */
 const STANDARD_AUDIENCE = "sandbox-backend";
 
-function tokenNokkel(audience = STANDARD_AUDIENCE) {
-  return audience === STANDARD_AUDIENCE ? TOKEN_NOKKEL : `${TOKEN_NOKKEL}:${audience}`;
+function tokenKey(audience = STANDARD_AUDIENCE) {
+  return audience === STANDARD_AUDIENCE ? TOKEN_KEY : `${TOKEN_KEY}:${audience}`;
 }
 
 function base64url(bytes) {
@@ -189,12 +236,12 @@ function base64url(bytes) {
     .replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function lagretToken(audience) {
-  return sessionStorage.getItem(tokenNokkel(audience));
+function storedToken(audience) {
+  return sessionStorage.getItem(tokenKey(audience));
 }
 
 /** Claims without verifying the signature. The backend verifies; this is for display. */
-function kravIToken(token) {
+function claimsIn(token) {
   if (!token) return null;
   try {
     const del = token.split(".")[1].replaceAll("-", "+").replaceAll("_", "/");
@@ -204,37 +251,37 @@ function kravIToken(token) {
   }
 }
 
-function tokenKrav(audience) {
-  return kravIToken(lagretToken(audience));
+function tokenClaims(audience) {
+  return claimsIn(storedToken(audience));
 }
 
-function kravGyldige(krav) {
+function claimsValid(krav) {
   // Treat a token expiring within 30 s as already gone, so a flow does not die
   // halfway through on an expiry it could have seen coming.
   return Boolean(krav && krav.exp && krav.exp - 30 > Math.floor(Date.now() / 1000));
 }
 
-function tokenGyldig(audience) {
-  return kravGyldige(tokenKrav(audience));
+function tokenValid(audience) {
+  return claimsValid(tokenClaims(audience));
 }
 
-function innloggetPid(audience) {
-  return tokenKrav(audience)?.pid || null;
+function loggedInPid(audience) {
+  return tokenClaims(audience)?.pid || null;
 }
 
 /** Headers for a call to the backend. Spread into an existing headers object. */
-function medToken(ekstra = {}, audience) {
-  const token = lagretToken(audience);
+function withToken(ekstra = {}, audience) {
+  const token = storedToken(audience);
   return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...ekstra };
 }
 
-function loggUt() {
+function logOut() {
   for (const noekkel of Object.keys(sessionStorage)) {
-    if (noekkel === TOKEN_NOKKEL || noekkel.startsWith(`${TOKEN_NOKKEL}:`)) {
+    if (noekkel === TOKEN_KEY || noekkel.startsWith(`${TOKEN_KEY}:`)) {
       sessionStorage.removeItem(noekkel);
     }
   }
-  sessionStorage.removeItem(VERIFIER_NOKKEL);
+  sessionStorage.removeItem(VERIFIER_KEY);
 }
 
 /**
@@ -245,13 +292,13 @@ function loggUt() {
  * PKCE uses crypto.subtle, which browsers only expose in a secure context. That
  * covers localhost, which is where the sandbox runs.
  */
-async function krevInnlogging(valg = {}) {
+async function requireLogin(valg = {}) {
   const audience = valg.resource || STANDARD_AUDIENCE;
-  if (tokenGyldig(audience)) return true;
-  sessionStorage.removeItem(tokenNokkel(audience));
+  if (tokenValid(audience)) return true;
+  sessionStorage.removeItem(tokenKey(audience));
 
   const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
-  sessionStorage.setItem(VERIFIER_NOKKEL, verifier);
+  sessionStorage.setItem(VERIFIER_KEY, verifier);
   const challenge = base64url(
     await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))
   );
@@ -274,15 +321,15 @@ async function krevInnlogging(valg = {}) {
 }
 
 /** Called by /callback only: swaps the code for a token and returns where to go. */
-async function fullfoerInnlogging() {
+async function completeLogin() {
   const parametere = new URLSearchParams(location.search);
   const feil = parametere.get("error");
   if (feil) {
     throw new Error(`${feil}: ${parametere.get("error_description") || "ingen forklaring"}`);
   }
   const code = parametere.get("code");
-  const verifier = sessionStorage.getItem(VERIFIER_NOKKEL);
-  if (!code) throw new Error("ID-porten sendte ingen code tilbake.");
+  const verifier = sessionStorage.getItem(VERIFIER_KEY);
+  if (!code) throw new Error("ID-porten sendte ingen code back.");
   if (!verifier) throw new Error("Fant ingen PKCE-verifier. Start innloggingen på nytt.");
 
   const svar = await fetch(`${IDPORTEN_BASE}/idporten/token`, {
@@ -302,22 +349,22 @@ async function fullfoerInnlogging() {
   }
   // Lagres på tokenets egen aud, ikke på den vi trodde vi ba om. Utstederen er
   // fasiten, og da kan ingen audience-forveksling gjemme seg her.
-  sessionStorage.setItem(tokenNokkel(kravIToken(data.access_token)?.aud), data.access_token);
-  sessionStorage.removeItem(VERIFIER_NOKKEL);
+  sessionStorage.setItem(tokenKey(claimsIn(data.access_token)?.aud), data.access_token);
+  sessionStorage.removeItem(VERIFIER_KEY);
   return parametere.get("state") || "/";
 }
 
 /**
  * Logs out and starts a fresh login. Exposed on its own so a page can put "logg
- * ut" wherever it likes; visInnloggetPerson wires up the common case.
+ * ut" wherever it likes; showLoggedInPerson wires up the common case.
  *
- * Reloading is what triggers krevInnlogging() again, which sends the browser to
+ * Reloading is what triggers requireLogin() again, which sends the browser to
  * ID-porten's picker — so "log out" and "switch user" are the same action. There is
  * no session at the issuer to end: it hands out a code per authorize request and
  * remembers nothing.
  */
-function byttBruker() {
-  loggUt();
+function switchUser() {
+  logOut();
   // Back to the page's own path, without a stale ?code= from an earlier round trip.
   location.assign(location.pathname);
 }
@@ -332,8 +379,8 @@ function byttBruker() {
  * each page because this is the one place that knows the selector has stopped being
  * a choice — and a disabled dropdown with no way out is a dead end.
  */
-function visInnloggetPerson(velgerElement, personer) {
-  const pid = innloggetPid();
+function showLoggedInPerson(velgerElement, personer) {
+  const pid = loggedInPid();
   const meg = personer.find((person) => person.syntetiskFodselsnummer === pid);
   if (!meg) {
     throw new Error(`Innlogget som ${pid}, men fant ingen slik person i datasettet.`);
@@ -345,15 +392,15 @@ function visInnloggetPerson(velgerElement, personer) {
     `Innlogget via ID-porten som ${meg.visningsnavn} (${pid}). Bruk «bytt bruker» for å endre.`;
 
   // Idempotent: renderStep and friends may call this more than once per page load.
-  if (!velgerElement.parentNode?.querySelector(".byttBruker")) {
+  if (!velgerElement.parentNode?.querySelector(".switchUser")) {
     const bytt = document.createElement("a");
-    bytt.className = "byttBruker";
+    bytt.className = "switchUser";
     bytt.href = "#";
     bytt.textContent = "logg ut / bytt bruker";
     bytt.style.cssText = "display:inline-block; margin-top:.35rem; font-size:.85rem;";
     bytt.onclick = (hendelse) => {
       hendelse.preventDefault();
-      byttBruker();
+      switchUser();
     };
     velgerElement.insertAdjacentElement("afterend", bytt);
   }
@@ -361,12 +408,12 @@ function visInnloggetPerson(velgerElement, personer) {
 }
 
 /** An extra "logged in as …" detail line, for pages with somewhere to put it. */
-function visInnloggingsbanner(container, meg) {
+function showLoginBanner(container, meg) {
   if (!container) return;
   const rad = document.createElement("div");
   rad.className = "line";
   rad.innerHTML =
     `🔓 Innlogget som <strong>${htmlEscape(meg.visningsnavn)}</strong> ` +
-    `(${htmlEscape(innloggetPid())}, idporten-loa-high)`;
+    `(${htmlEscape(loggedInPid())}, idporten-loa-high)`;
   container.prepend(rad);
 }

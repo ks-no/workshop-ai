@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { seedDir, stateDir } from "./config.ts";
-import { maskerBefolkning } from "./skjerming.ts";
+import { maskBefolkning } from "./skjerming.ts";
 
 type State = any;
 
@@ -12,10 +12,10 @@ type State = any;
 // Datasets that only exist at runtime have no seed at all, so they pass a
 // default. Anything called without one is required, and a missing file fails
 // loudly rather than quietly looking empty.
-export async function readJson(filnavn: string, standardverdi?: unknown): Promise<any> {
+export async function readJson(fileName: string, standardverdi?: unknown): Promise<any> {
   for (const mappe of [stateDir, seedDir]) {
     try {
-      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
+      return JSON.parse(await readFile(path.join(mappe, fileName), "utf8"));
     } catch (error: any) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -23,7 +23,7 @@ export async function readJson(filnavn: string, standardverdi?: unknown): Promis
   if (standardverdi !== undefined) {
     return standardverdi;
   }
-  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
+  throw new Error(`Fant ikke ${fileName} i verken state/ eller data/.`);
 }
 
 // Which seed files are currently shadowed by a copy in state/.
@@ -35,11 +35,11 @@ export async function readJson(filnavn: string, standardverdi?: unknown): Promis
 // lose a lot of time to that.
 export async function findShadowedSeeds(): Promise<string[]> {
   const skygget: string[] = [];
-  for (const filnavn of ["prosessdefinisjoner.json", "personer.json", "satser.json"]) {
+  for (const fileName of ["prosessdefinisjoner.json", "personer.json", "satser.json"]) {
     try {
-      await readFile(path.join(stateDir, filnavn), "utf8");
-      await readFile(path.join(seedDir, filnavn), "utf8");
-      skygget.push(filnavn);
+      await readFile(path.join(stateDir, fileName), "utf8");
+      await readFile(path.join(seedDir, fileName), "utf8");
+      skygget.push(fileName);
     } catch {
       // Missing in either place means no shadowing. Nothing to report.
     }
@@ -47,12 +47,12 @@ export async function findShadowedSeeds(): Promise<string[]> {
   return skygget;
 }
 
-export async function writeJson(filnavn: string, data: unknown) {
+export async function writeJson(fileName: string, data: unknown) {
   await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, filnavn), JSON.stringify(data, null, 2) + "\n");
+  await writeFile(path.join(stateDir, fileName), JSON.stringify(data, null, 2) + "\n");
 }
 
-export function normaliserProsess(prosess: any) {
+export function normalizeProsess(prosess: any) {
   return {
     ...prosess,
     steg: Array.isArray(prosess?.steg) ? prosess.steg : [],
@@ -67,7 +67,7 @@ function parseProsessDefinisjoner(data: any) {
   if (Array.isArray(data)) {
     return {
       formatVersion: "0.1.0",
-      prosesser: data.map(normaliserProsess),
+      prosesser: data.map(normalizeProsess),
       maler: [],
       meta: {}
     };
@@ -77,24 +77,26 @@ function parseProsessDefinisjoner(data: any) {
 
   return {
     formatVersion: formatVersion || "0.2.0",
-    prosesser: Array.isArray(prosesser) ? prosesser.map(normaliserProsess) : [],
-    maler: Array.isArray(maler) ? maler.map(normaliserProsess) : [],
+    prosesser: Array.isArray(prosesser) ? prosesser.map(normalizeProsess) : [],
+    maler: Array.isArray(maler) ? maler.map(normalizeProsess) : [],
     meta
   };
 }
 
-export function erMalProsess(prosess: any) {
+export function isMalProsess(prosess: any) {
   return prosess?.redigering?.mal === true || prosess?.redigering?.status === "template";
 }
 
-export function hentProsesserForVisning(tilstand: State, inkluderMaler = false) {
+// inkluderMaler: samme navn som query-parameteren paa GET /api/prosesser. Den er
+// wire og frosset — se AGENTS.md.
+export function getProsesserForVisning(tilstand: State, inkluderMaler = false) {
   if (inkluderMaler) {
     return [...tilstand.prosesser, ...tilstand.prosessMaler];
   }
   return tilstand.prosesser;
 }
 
-export async function lagreProsessdefinisjoner(tilstand: State) {
+export async function writeProsessdefinisjoner(tilstand: State) {
   await writeJson("prosessdefinisjoner.json", {
     ...tilstand.prosessKatalogMeta,
     formatVersion: tilstand.prosessFormatVersion || "0.2.0",
@@ -146,10 +148,10 @@ export async function readState() {
 
   // Address protection is applied here, after the state/ fallback, so a shadowed
   // state/personer.json is masked too. This is the single place the population is
-  // assembled, and every reader downstream goes through it — finnPerson,
-  // hentHusstandForPerson, ressurser.ts, regler.ts, prosess.ts. readJson itself is
+  // assembled, and every reader downstream goes through it — findPerson,
+  // getHusstandForPerson, ressurser.ts, regler.ts, prosess.ts. readJson itself is
   // generic and also serves revisjon.ts, so it is the wrong altitude for this.
-  const maskert = maskerBefolkning(personer, husstander);
+  const maskert = maskBefolkning(personer, husstander);
 
   return {
     personer: maskert.personer,
@@ -173,24 +175,24 @@ export async function readState() {
   };
 }
 
-export function finnPerson(tilstand: State, personId: string) {
+export function findPerson(tilstand: State, personId: string) {
   return tilstand.personer.find((person: any) => person.personId === personId) || null;
 }
 
-export function finnProsess(tilstand: State, prosessId: string) {
-  return hentProsesserForVisning(tilstand, true).find((prosess: any) => prosess.id === prosessId) || null;
+export function findProsess(tilstand: State, prosessId: string) {
+  return getProsesserForVisning(tilstand, true).find((prosess: any) => prosess.id === prosessId) || null;
 }
 
-export function finnProsessoekt(tilstand: State, oektsId: string) {
+export function findProsessoekt(tilstand: State, oektsId: string) {
   return tilstand.prosessoekter.find((oekt: any) => oekt.oektsId === oektsId) || null;
 }
 
-export async function lagreProsessoekter(prosessoekter: unknown) {
+export async function writeProsessoekter(prosessoekter: unknown) {
   await writeJson("prosessoekter.json", prosessoekter);
 }
 
-export function hentHusstandForPerson(tilstand: State, personId: string) {
-  const person = finnPerson(tilstand, personId);
+export function getHusstandForPerson(tilstand: State, personId: string) {
+  const person = findPerson(tilstand, personId);
   if (!person) {
     throw new Error("Fant ikke person.");
   }
@@ -209,8 +211,8 @@ export const tjenesteDatasett = {
   fritid: "fritidsdeltakelse"
 };
 
-export function hentBarnaIHusstand(tilstand: State, personId: string): string[] {
-  const person = finnPerson(tilstand, personId);
+export function getBarnaIHusstand(tilstand: State, personId: string): string[] {
+  const person = findPerson(tilstand, personId);
   if (!person) {
     throw new Error("Fant ikke person.");
   }
@@ -220,11 +222,11 @@ export function hentBarnaIHusstand(tilstand: State, personId: string): string[] 
     .map((medlem: any) => medlem.personId) || [person.personId];
 }
 
-export function hentPlasserForTjeneste(tilstand: State, personId: string, tjeneste: string) {
+export function getPlasserForTjeneste(tilstand: State, personId: string, tjeneste: string) {
   const datasett = (tjenesteDatasett as Record<string, string>)[tjeneste];
   if (!datasett) {
     throw new Error(`Ukjent tjeneste: ${tjeneste}. Gyldige: ${Object.keys(tjenesteDatasett).join(", ")}.`);
   }
-  const barnIds = hentBarnaIHusstand(tilstand, personId);
+  const barnIds = getBarnaIHusstand(tilstand, personId);
   return tilstand[datasett].filter((plass: any) => barnIds.includes(plass.personId));
 }

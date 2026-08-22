@@ -30,12 +30,6 @@ paths:
                   tidspunkt:
                     type: string
                     format: date-time
-  /health:
-    get:
-      summary: Health check
-      responses:
-        "200":
-          description: OK
   /docs:
     get:
       summary: Ruteoversikt som HTML

@@ -5,7 +5,7 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { ruteoversikt } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared-ui/openapi.ts";
 import { createGunzip } from "node:zlib";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,14 +15,14 @@ const wsPath = "/geointegrasjon/matrikkel/wsapi/v1/BasisService";
 const wsNamespace = "http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31";
 const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
-const maksSideStoerrelse = Number(process.env.MATRIKKEL_PAGE_MAX || 5000);
+const maxPageSize = Number(process.env.MATRIKKEL_PAGE_MAX || 5000);
 // Bønesheien is injected below for the fartsdempende case, and this is its owner.
 // It is deliberately NOT applied to every property: doing that used to make
 // person-001 a co-owner of all 8202 of them, so every ownership check said yes
 // and the documented "Fjøsangerveien gives a rejection" could never happen.
 const bonesheienEierPersonId = "person-001";
 
-function normaliser(verdi) {
+function normalize(verdi) {
   return String(verdi || "")
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
@@ -38,19 +38,19 @@ function safeNumber(verdi, fallback = 0) {
 function parsePagination(searchParams) {
   const limitRaw = searchParams.get("limit");
   const offsetRaw = searchParams.get("offset");
-  const harPagination = limitRaw !== null || offsetRaw !== null;
-  if (!harPagination) {
-    return { harPagination, limit: null, offset: 0 };
+  const hasPagination = limitRaw !== null || offsetRaw !== null;
+  if (!hasPagination) {
+    return { hasPagination, limit: null, offset: 0 };
   }
 
-  const limit = Math.max(1, Math.min(safeNumber(limitRaw, 100), maksSideStoerrelse));
+  const limit = Math.max(1, Math.min(safeNumber(limitRaw, 100), maxPageSize));
   const offset = Math.max(0, safeNumber(offsetRaw, 0));
-  return { harPagination, limit, offset };
+  return { hasPagination, limit, offset };
 }
 
-function paginer(items, searchParams) {
-  const { harPagination, limit, offset } = parsePagination(searchParams);
-  if (!harPagination) return items;
+function paginate(items, searchParams) {
+  const { hasPagination, limit, offset } = parsePagination(searchParams);
+  if (!hasPagination) return items;
   return {
     items: items.slice(offset, offset + limit),
     total: items.length,
@@ -59,11 +59,11 @@ function paginer(items, searchParams) {
   };
 }
 
-function normaliserAdresse(verdi) {
-  return normaliser(verdi).replace(/\s+/g, " ").trim();
+function normalizeAdresse(verdi) {
+  return normalize(verdi).replace(/\s+/g, " ").trim();
 }
 
-function lagTomtRegister(kilde) {
+function createEmptyRegister(kilde) {
   return {
     gater: [],
     gaterPerId: new Map(),
@@ -94,9 +94,9 @@ async function readMatrikkelData() {
   for (const fil of kandidatfiler) {
     try {
       if (fil.endsWith(".jsonl") || fil.endsWith(".ndjson") || fil.endsWith(".jsonl.gz") || fil.endsWith(".ndjson.gz")) {
-        return await lesJsonlRegister(fil);
+        return await readJsonlRegister(fil);
       }
-      return await lesJsonRegister(fil);
+      return await readJsonRegister(fil);
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -105,7 +105,7 @@ async function readMatrikkelData() {
   throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.json i repoet.");
 }
 
-function leggTilPrefixIndeks(register, prefix, matrikkelId) {
+function addPrefixIndex(register, prefix, matrikkelId) {
   if (!prefix) return;
   const liste = register.eiendomPerAdressePrefix.get(prefix) || [];
   if (liste[liste.length - 1] !== matrikkelId) {
@@ -114,16 +114,16 @@ function leggTilPrefixIndeks(register, prefix, matrikkelId) {
   }
 }
 
-function hentGateNoekkel(gate) {
+function getGateNoekkel(gate) {
   if (gate?.gateId) return String(gate.gateId);
   return [
-    normaliser(gate?.adressenavn),
+    normalize(gate?.adressenavn),
     String(gate?.kommunenummer || "")
   ].join("|");
 }
 
-function hentEllerOpprettGate(register, gateInput = {}) {
-  const noekkel = hentGateNoekkel(gateInput);
+function getOrCreateGate(register, gateInput = {}) {
+  const noekkel = getGateNoekkel(gateInput);
   if (register.gaterPerId.has(noekkel)) {
     return register.gaterPerId.get(noekkel);
   }
@@ -141,7 +141,7 @@ function hentEllerOpprettGate(register, gateInput = {}) {
   register.gaterPerId.set(noekkel, gate);
   register.gater.push(gate);
 
-  const normNavn = normaliser(gate.adressenavn);
+  const normNavn = normalize(gate.adressenavn);
   if (normNavn) {
     const liste = register.gaterPerNormalisertNavn.get(normNavn) || [];
     liste.push(gate);
@@ -151,7 +151,7 @@ function hentEllerOpprettGate(register, gateInput = {}) {
   return gate;
 }
 
-function normaliserTekst(verdi) {
+function normalizeText(verdi) {
   return String(verdi || "")
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
@@ -159,11 +159,11 @@ function normaliserTekst(verdi) {
     .trim();
 }
 
-function leggTilBonesheienHvisMangler(register) {
-  const finnesAllerede = register.gater.some((gate) => normaliserTekst(gate.adressenavn) === normaliserTekst("Bønesheien"));
-  if (finnesAllerede) return;
+function addBonesheienIfMissing(register) {
+  const alreadyExists = register.gater.some((gate) => normalizeText(gate.adressenavn) === normalizeText("Bønesheien"));
+  if (alreadyExists) return;
 
-  const gate = hentEllerOpprettGate(register, {
+  const gate = getOrCreateGate(register, {
     gateId: "gate-bonesheien-bergen",
     adressenavn: "Bønesheien",
     kommunenummer: "4601",
@@ -171,7 +171,7 @@ function leggTilBonesheienHvisMangler(register) {
     postnummer: "5154",
     poststed: "BØNES"
   });
-  leggTilEiendom(register, gate, {
+  addEiendom(register, gate, {
     matrikkelId: "matr-bonesheien-258",
     gnr: 20,
     bnr: 258,
@@ -197,11 +197,11 @@ function utenLive(feil, hva) {
   return null;
 }
 
-function finnEiendomViaLive(register, adresseSoek) {
-  return finnEiendomLive(adresseSoek).then((treff) => {
+function findEiendomViaLive(register, adresseSoek) {
+  return findEiendomLive(adresseSoek).then((treff) => {
     if (!treff) return null;
-    const gate = hentEllerOpprettGate(register, {
-      gateId: `geo-${treff.kommunenummer || ""}-${normaliser(treff.adressenavn)}`,
+    const gate = getOrCreateGate(register, {
+      gateId: `geo-${treff.kommunenummer || ""}-${normalize(treff.adressenavn)}`,
       adressenavn: treff.adressenavn,
       kommunenummer: treff.kommunenummer,
       kommune: treff.kommune,
@@ -212,9 +212,9 @@ function finnEiendomViaLive(register, adresseSoek) {
   }).catch((feil) => utenLive(feil, `eiendom ${adresseSoek}`));
 }
 
-async function finnGaterViaLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
+async function findGaterViaLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
   try {
-    return await finnGaterLive(gateSoek, includeEiendommer, kommunenummer);
+    return await findGaterLive(gateSoek, includeEiendommer, kommunenummer);
   } catch (feil) {
     utenLive(feil, `gate ${gateSoek}`);
     // The callers treat the result as a list, so an empty one is the miss they
@@ -252,7 +252,7 @@ function xmlEscape(verdi) {
     .replaceAll("'", "&apos;");
 }
 
-function finnTagg(xml, taggnavn) {
+function findTag(xml, taggnavn) {
   const treff = xml.match(new RegExp(`<(?:\\w+:)?${taggnavn}[^>]*>([\\s\\S]*?)<\\/(?:\\w+:)?${taggnavn}>`, "i"));
   return treff ? treff[1].trim() : null;
 }
@@ -264,11 +264,11 @@ function findOperation(xml) {
   return operasjonTreff ? operasjonTreff[1] : null;
 }
 
-function byggMatrikkelNoekkel(eiendom) {
+function buildMatrikkelNoekkel(eiendom) {
   return `${safeNumber(eiendom.gnr, -1)}:${safeNumber(eiendom.bnr, -1)}`;
 }
 
-function leggTilEiendom(register, gate, eiendomInput = {}) {
+function addEiendom(register, gate, eiendomInput = {}) {
   const matrikkelId = String(eiendomInput.matrikkelId || "").trim();
   if (!matrikkelId || register.eiendomPerId.has(matrikkelId)) {
     return;
@@ -289,17 +289,17 @@ function leggTilEiendom(register, gate, eiendomInput = {}) {
   register.eiendomPerId.set(matrikkelId, eiendom);
   gate.eiendomIds.push(matrikkelId);
 
-  const matrikkelNoekkel = byggMatrikkelNoekkel(eiendom);
+  const matrikkelNoekkel = buildMatrikkelNoekkel(eiendom);
   const perGnrBnr = register.eiendomPerGnrBnr.get(matrikkelNoekkel) || [];
   perGnrBnr.push(matrikkelId);
   register.eiendomPerGnrBnr.set(matrikkelNoekkel, perGnrBnr);
 
-  const normAdresse = normaliserAdresse(eiendom.adresse);
+  const normAdresse = normalizeAdresse(eiendom.adresse);
   if (normAdresse) {
     const perAdresse = register.eiendomPerNormalisertAdresse.get(normAdresse) || [];
     perAdresse.push(matrikkelId);
     register.eiendomPerNormalisertAdresse.set(normAdresse, perAdresse);
-    leggTilPrefixIndeks(register, normAdresse.split(" ")[0], matrikkelId);
+    addPrefixIndex(register, normAdresse.split(" ")[0], matrikkelId);
   }
 
   if (!gate.postnummer && eiendom.postnummer) gate.postnummer = eiendom.postnummer;
@@ -307,7 +307,7 @@ function leggTilEiendom(register, gate, eiendomInput = {}) {
 }
 
 function ferdigstillRegister(register) {
-  leggTilBonesheienHvisMangler(register);
+  addBonesheienIfMissing(register);
   register.gater.sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
   for (const gate of register.gater) {
     gate.antallEiendommer = gate.eiendomIds.length;
@@ -348,13 +348,13 @@ function gateTreffSomListe(gateTreff, includeEiendommer = false) {
   });
 }
 
-async function lesJsonRegister(fil) {
+async function readJsonRegister(fil) {
   const json = JSON.parse(await readFile(fil, "utf8"));
-  const register = lagTomtRegister({ fil, format: "json", metadata: json.kilde || null });
+  const register = createEmptyRegister({ fil, format: "json", metadata: json.kilde || null });
   for (const gateInput of json.gater || []) {
-    const gate = hentEllerOpprettGate(register, gateInput);
+    const gate = getOrCreateGate(register, gateInput);
     for (const eiendom of gateInput.eiendommer || []) {
-      leggTilEiendom(register, gate, eiendom);
+      addEiendom(register, gate, eiendom);
     }
   }
   ferdigstillRegister(register);
@@ -369,7 +369,7 @@ function parseJsonlLinje(raw, linjeNr) {
   }
 }
 
-function utledGateFraFlatLinje(post) {
+function gateFromFlatLine(post) {
   return {
     gateId: post.gateId,
     adressenavn: post.adressenavn,
@@ -380,7 +380,7 @@ function utledGateFraFlatLinje(post) {
   };
 }
 
-function utledEiendomFraFlatLinje(post) {
+function eiendomFromFlatLine(post) {
   return {
     matrikkelId: post.matrikkelId,
     gnr: post.gnr,
@@ -401,16 +401,16 @@ function utledEiendomFraFlatLinje(post) {
   };
 }
 
-async function lesJsonlRegister(fil) {
+async function readJsonlRegister(fil) {
   // Validate early so missing files become normal ENOENT errors (handled by fallback logic).
   await access(fil, constants.R_OK);
   const input = createReadStream(fil);
   const stream = fil.endsWith(".gz") ? input.pipe(createGunzip()) : input;
-  const leser = createInterface({ input: stream, crlfDelay: Infinity });
-  const register = lagTomtRegister({ fil, format: fil.endsWith(".gz") ? "jsonl.gz" : "jsonl", metadata: null });
+  const reader = createInterface({ input: stream, crlfDelay: Infinity });
+  const register = createEmptyRegister({ fil, format: fil.endsWith(".gz") ? "jsonl.gz" : "jsonl", metadata: null });
   let linjeNr = 0;
 
-  for await (const linje of leser) {
+  for await (const linje of reader) {
     linjeNr += 1;
     const trimmed = linje.trim();
     if (!trimmed) continue;
@@ -421,38 +421,38 @@ async function lesJsonlRegister(fil) {
       continue;
     }
 
-    const gateData = post.gate || utledGateFraFlatLinje(post);
-    const eiendomData = post.eiendom || utledEiendomFraFlatLinje(post);
+    const gateData = post.gate || gateFromFlatLine(post);
+    const eiendomData = post.eiendom || eiendomFromFlatLine(post);
     if (!gateData?.adressenavn || !eiendomData?.matrikkelId) {
       continue;
     }
 
-    const gate = hentEllerOpprettGate(register, gateData);
-    leggTilEiendom(register, gate, eiendomData);
+    const gate = getOrCreateGate(register, gateData);
+    addEiendom(register, gate, eiendomData);
   }
 
   ferdigstillRegister(register);
   return register;
 }
 
-function finnGate(register, gateSoek) {
-  const soek = normaliser(gateSoek);
+function findGate(register, gateSoek) {
+  const soek = normalize(gateSoek);
   if (!soek) return null;
 
   const eksakt = register.gaterPerNormalisertNavn.get(soek);
   if (eksakt?.length) return eksakt[0];
 
-  return register.gater.find((gate) => normaliser(gate.adressenavn).includes(soek)) || null;
+  return register.gater.find((gate) => normalize(gate.adressenavn).includes(soek)) || null;
 }
 
-function finnGater(register, gateSoek) {
-  const soek = normaliser(gateSoek);
+function findGater(register, gateSoek) {
+  const soek = normalize(gateSoek);
   if (!soek) return register.gater;
-  return register.gater.filter((gate) => normaliser(gate.adressenavn).includes(soek));
+  return register.gater.filter((gate) => normalize(gate.adressenavn).includes(soek));
 }
 
-function finnEiendomFraAdresse(register, adresseSoek) {
-  const soek = normaliserAdresse(adresseSoek);
+function findEiendomFraAdresse(register, adresseSoek) {
+  const soek = normalizeAdresse(adresseSoek);
   if (!soek) return null;
 
   const eksakt = register.eiendomPerNormalisertAdresse.get(soek);
@@ -465,14 +465,14 @@ function finnEiendomFraAdresse(register, adresseSoek) {
   for (const matrikkelId of kandidater) {
     const eiendom = register.eiendomPerId.get(matrikkelId);
     if (!eiendom) continue;
-    const adresse = normaliserAdresse(eiendom.adresse);
+    const adresse = normalizeAdresse(eiendom.adresse);
     if (adresse === soek || adresse.includes(soek) || soek.includes(adresse)) {
       return eiendom;
     }
   }
 
   for (const eiendom of register.eiendommer) {
-    const adresse = normaliserAdresse(eiendom.adresse);
+    const adresse = normalizeAdresse(eiendom.adresse);
     if (adresse === soek || adresse.includes(soek) || soek.includes(adresse)) {
       return eiendom;
     }
@@ -481,8 +481,8 @@ function finnEiendomFraAdresse(register, adresseSoek) {
   return null;
 }
 
-function finnEiendommerFraAdresse(register, adresseSoek) {
-  const soek = normaliserAdresse(adresseSoek);
+function findEiendommerFraAdresse(register, adresseSoek) {
+  const soek = normalizeAdresse(adresseSoek);
   if (!soek) return [];
 
   const normPrefix = soek.split(" ")[0];
@@ -493,7 +493,7 @@ function finnEiendommerFraAdresse(register, adresseSoek) {
   for (const matrikkelId of kandidatIds) {
     const eiendom = register.eiendomPerId.get(matrikkelId);
     if (!eiendom) continue;
-    const adresse = normaliserAdresse(eiendom.adresse);
+    const adresse = normalizeAdresse(eiendom.adresse);
     if (adresse === soek || adresse.includes(soek) || soek.includes(adresse)) {
       filtrert.push(eiendom);
     }
@@ -523,7 +523,7 @@ function enrichEiendom(gate, eiendom) {
   };
 }
 
-function finnEiendom(register, matrikkelId, gnr, bnr) {
+function findEiendom(register, matrikkelId, gnr, bnr) {
   if (matrikkelId) {
     return register.eiendomPerId.get(matrikkelId) || null;
   }
@@ -538,8 +538,8 @@ function finnEiendom(register, matrikkelId, gnr, bnr) {
   return null;
 }
 
-function normaliserGeonorgeSoek(verdi) {
-  return normaliser(verdi)
+function normalizeGeonorgeSoek(verdi) {
+  return normalize(verdi)
     .replaceAll("ø", "o")
     .replaceAll("æ", "ae")
     .replaceAll("å", "aa");
@@ -550,7 +550,7 @@ function geonorgeQueryVariants(query) {
   if (!tekst) return [];
   const varianter = new Set([
     tekst,
-    normaliserGeonorgeSoek(tekst),
+    normalizeGeonorgeSoek(tekst),
     tekst.replaceAll("ø", "o").replaceAll("Ø", "O"),
     tekst.replaceAll("æ", "ae").replaceAll("Æ", "AE"),
     tekst.replaceAll("å", "aa").replaceAll("Å", "AA")
@@ -589,18 +589,18 @@ function geonorgeAdresseTekst(adresse) {
   return [navn, nummer ? `${nummer}${bokstav}` : ""].filter(Boolean).join(" ").trim();
 }
 
-function byggAdresseKjerne(verdi) {
-  const tekst = normaliser(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+function buildAdresseKjerne(verdi) {
+  const tekst = normalize(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
   const treff = tekst.match(/([\p{L}][\p{L}\s.-]*?(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
-  return treff?.[1] ? normaliser(treff[1]).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim() : tekst;
+  return treff?.[1] ? normalize(treff[1]).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim() : tekst;
 }
 
-function velgBesteLiveAdresse(adresser, query) {
+function pickBestLiveAdresse(adresser, query) {
   if (!Array.isArray(adresser) || !adresser.length) return null;
-  const soek = normaliser(normaliserGeonorgeSoek(query)).replace(/\s+/g, " ").trim();
-  const soekKjerne = byggAdresseKjerne(query);
-  const kandidatTekst = (adresse) => normaliser(geonorgeAdresseTekst(adresse)).replace(/\s+/g, " ").trim();
-  const kandidatKjerne = (adresse) => byggAdresseKjerne(geonorgeAdresseTekst(adresse));
+  const soek = normalize(normalizeGeonorgeSoek(query)).replace(/\s+/g, " ").trim();
+  const soekKjerne = buildAdresseKjerne(query);
+  const kandidatTekst = (adresse) => normalize(geonorgeAdresseTekst(adresse)).replace(/\s+/g, " ").trim();
+  const kandidatKjerne = (adresse) => buildAdresseKjerne(geonorgeAdresseTekst(adresse));
   const eksakt = adresser.find((adresse) => kandidatTekst(adresse) === soek);
   if (eksakt) return eksakt;
   const eksaktKjerne = adresser.find((adresse) => kandidatKjerne(adresse) === soekKjerne);
@@ -617,7 +617,7 @@ function velgBesteLiveAdresse(adresser, query) {
 
 function geonorgeAdresseTilGate(adresse) {
   return {
-    gateId: `geo-${adresse.kommunenummer || ""}-${normaliser(adresse.adressenavn)}`,
+    gateId: `geo-${adresse.kommunenummer || ""}-${normalize(adresse.adressenavn)}`,
     adressenavn: String(adresse.adressenavn || ""),
     kommunenummer: String(adresse.kommunenummer || ""),
     kommune: String(adresse.kommunenavn || ""),
@@ -664,14 +664,14 @@ function geonorgeAdresseTilEiendom(adresse) {
   };
 }
 
-function byggLiveGateTreff(adresser, includeEiendommer = false) {
+function buildLiveGateTreff(adresser, includeEiendommer = false) {
   const perGate = new Map();
   for (const adresse of adresser || []) {
     if (!adresse?.adressenavn) continue;
-    const key = `${adresse.kommunenummer || ""}|${normaliser(adresse.adressenavn)}`;
+    const key = `${adresse.kommunenummer || ""}|${normalize(adresse.adressenavn)}`;
     if (!perGate.has(key)) {
       perGate.set(key, {
-        gateId: `geo-${String(adresse.kommunenummer || "")}-${normaliser(adresse.adressenavn)}`,
+        gateId: `geo-${String(adresse.kommunenummer || "")}-${normalize(adresse.adressenavn)}`,
         adressenavn: String(adresse.adressenavn || ""),
         kommunenummer: String(adresse.kommunenummer || ""),
         kommune: String(adresse.kommunenavn || ""),
@@ -696,7 +696,7 @@ function byggLiveGateTreff(adresser, includeEiendommer = false) {
   })).sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
 }
 
-async function hentLiveAdresser(gateSoek, kommunenummer = null) {
+async function getLiveAdresser(gateSoek, kommunenummer = null) {
   const term = String(gateSoek || "").trim();
   if (!term) return [];
 
@@ -710,15 +710,15 @@ async function hentLiveAdresser(gateSoek, kommunenummer = null) {
   return kandidater;
 }
 
-async function finnGaterLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
-  return byggLiveGateTreff(await hentLiveAdresser(gateSoek, kommunenummer), includeEiendommer);
+async function findGaterLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
+  return buildLiveGateTreff(await getLiveAdresser(gateSoek, kommunenummer), includeEiendommer);
 }
 
-async function finnEiendomLive(adresseSoek) {
+async function findEiendomLive(adresseSoek) {
   const term = String(adresseSoek || "").trim();
   if (!term) return null;
-  const adresser = await hentLiveAdresser(term);
-  const adresseTreff = velgBesteLiveAdresse(adresser, term);
+  const adresser = await getLiveAdresser(term);
+  const adresseTreff = pickBestLiveAdresse(adresser, term);
   return adresseTreff ? geonorgeAdresseTilEiendom(adresseTreff) : null;
 }
 
@@ -781,7 +781,7 @@ function wsdlDocument(baseUrl) {
 </wsdl:definitions>`;
 }
 
-function byggGateReturn(gate) {
+function buildGateReturn(gate) {
   return [
     "      <return>",
     `        <gateId>${xmlEscape(gate.gateId)}</gateId>`,
@@ -794,7 +794,7 @@ function byggGateReturn(gate) {
   ].join("\n");
 }
 
-function byggEiendomReturn(gate, eiendom) {
+function buildEiendomReturn(gate, eiendom) {
   const enriched = enrichEiendom(gate, eiendom);
   return [
     "      <return>",
@@ -825,30 +825,30 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-function handterSoap(operasjon, xml, register) {
+function handleSoapRequest(operasjon, xml, register) {
   if (operasjon === "FinnVeger") {
-    const tekst = finnTagg(xml, "soeketekst") || finnTagg(xml, "adressenavn") || "";
-    const kommunenummer = finnTagg(xml, "kommunenummer");
+    const tekst = findTag(xml, "soeketekst") || findTag(xml, "adressenavn") || "";
+    const kommunenummer = findTag(xml, "kommunenummer");
     const gater = register.gater.filter((gate) => {
       const matcherKommune = !kommunenummer || gate.kommunenummer === kommunenummer;
-      const matcherTekst = !tekst || normaliser(gate.adressenavn).includes(normaliser(tekst));
+      const matcherTekst = !tekst || normalize(gate.adressenavn).includes(normalize(tekst));
       return matcherKommune && matcherTekst;
     });
 
-    return soapEnvelope(`    <mat:FinnVegerResponse>\n${gater.map(byggGateReturn).join("\n")}\n    </mat:FinnVegerResponse>`);
+    return soapEnvelope(`    <mat:FinnVegerResponse>\n${gater.map(buildGateReturn).join("\n")}\n    </mat:FinnVegerResponse>`);
   }
 
   if (operasjon === "FinnMatrikkelenheter") {
-    const gateSoek = finnTagg(xml, "adressenavn") || finnTagg(xml, "soeketekst") || finnTagg(xml, "gate");
-    const kommunenummer = finnTagg(xml, "kommunenummer");
+    const gateSoek = findTag(xml, "adressenavn") || findTag(xml, "soeketekst") || findTag(xml, "gate");
+    const kommunenummer = findTag(xml, "kommunenummer");
     const gater = register.gater.filter((gate) => {
       const matcherKommune = !kommunenummer || gate.kommunenummer === kommunenummer;
-      const matcherGate = !gateSoek || normaliser(gate.adressenavn).includes(normaliser(gateSoek));
+      const matcherGate = !gateSoek || normalize(gate.adressenavn).includes(normalize(gateSoek));
       return matcherKommune && matcherGate;
     });
     const eiendommer = gater.flatMap((gate) => gate.eiendomIds.map((id) => register.eiendomPerId.get(id)).filter(Boolean));
 
-    return soapEnvelope(`    <mat:FinnMatrikkelenheterResponse>\n${eiendommer.map((eiendom) => byggEiendomReturn({
+    return soapEnvelope(`    <mat:FinnMatrikkelenheterResponse>\n${eiendommer.map((eiendom) => buildEiendomReturn({
       adressenavn: eiendom.adressenavn,
       kommunenummer: eiendom.kommunenummer,
       kommune: eiendom.kommune,
@@ -858,15 +858,15 @@ function handterSoap(operasjon, xml, register) {
   }
 
   if (operasjon === "HentMatrikkelenhet") {
-    const matrikkelId = finnTagg(xml, "matrikkelId") || finnTagg(xml, "matrikkelenhetsId");
-    const gnr = finnTagg(xml, "gaardsnummer") || finnTagg(xml, "gnr");
-    const bnr = finnTagg(xml, "bruksnummer") || finnTagg(xml, "bnr");
-    const treff = finnEiendom(register, matrikkelId, gnr, bnr);
+    const matrikkelId = findTag(xml, "matrikkelId") || findTag(xml, "matrikkelenhetsId");
+    const gnr = findTag(xml, "gaardsnummer") || findTag(xml, "gnr");
+    const bnr = findTag(xml, "bruksnummer") || findTag(xml, "bnr");
+    const treff = findEiendom(register, matrikkelId, gnr, bnr);
     if (!treff) {
       return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespoerselen.");
     }
 
-    return soapEnvelope(`    <mat:HentMatrikkelenhetResponse>\n${byggEiendomReturn({
+    return soapEnvelope(`    <mat:HentMatrikkelenhetResponse>\n${buildEiendomReturn({
       adressenavn: treff.adressenavn,
       kommunenummer: treff.kommunenummer,
       kommune: treff.kommune,
@@ -876,10 +876,10 @@ function handterSoap(operasjon, xml, register) {
   }
 
   if (operasjon === "HentEiere") {
-    const matrikkelId = finnTagg(xml, "matrikkelId") || finnTagg(xml, "matrikkelenhetsId");
-    const gnr = finnTagg(xml, "gaardsnummer") || finnTagg(xml, "gnr");
-    const bnr = finnTagg(xml, "bruksnummer") || finnTagg(xml, "bnr");
-    const treff = finnEiendom(register, matrikkelId, gnr, bnr);
+    const matrikkelId = findTag(xml, "matrikkelId") || findTag(xml, "matrikkelenhetsId");
+    const gnr = findTag(xml, "gaardsnummer") || findTag(xml, "gnr");
+    const bnr = findTag(xml, "bruksnummer") || findTag(xml, "bnr");
+    const treff = findEiendom(register, matrikkelId, gnr, bnr);
     if (!treff) {
       return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespoerselen.");
     }
@@ -895,7 +895,7 @@ function handterSoap(operasjon, xml, register) {
 }
 
 function handleSoap(operasjon, xml, matrikkel) {
-  return handterSoap(operasjon, xml, matrikkel);
+  return handleSoapRequest(operasjon, xml, matrikkel);
 }
 
 const matrikkelPromise = readMatrikkelData();
@@ -912,7 +912,7 @@ const server = createServer(async (request, response) => {
     const register = await matrikkelPromise;
     const matrikkel = register;
 
-    if (request.method === "GET" && (url.pathname === "/helse" || url.pathname === "/health")) {
+    if (request.method === "GET" && (url.pathname === "/helse")) {
       jsonResponse(response, 200, {
         status: "ok",
         tjeneste: "matrikkel-mock",
@@ -930,29 +930,29 @@ const server = createServer(async (request, response) => {
       const gateSoek = url.searchParams.get("gate");
       const includeEiendommer = url.searchParams.get("includeEiendommer") === "true";
       if (gateSoek) {
-        const treff = finnGater(register, gateSoek).map((gate) => gateSomRespons(register, gate, includeEiendommer));
+        const treff = findGater(register, gateSoek).map((gate) => gateSomRespons(register, gate, includeEiendommer));
         if (!treff.length) {
-          const liveTreff = await finnGaterViaLive(gateSoek, includeEiendommer);
+          const liveTreff = await findGaterViaLive(gateSoek, includeEiendommer);
           if (liveTreff.length) {
-            jsonResponse(response, 200, paginer(liveTreff, url.searchParams));
+            jsonResponse(response, 200, paginate(liveTreff, url.searchParams));
             return;
           }
           jsonResponse(response, 404, { feil: `Fant ikke gate ${gateSoek}.` });
           return;
         }
-        jsonResponse(response, 200, paginer(treff, url.searchParams));
+        jsonResponse(response, 200, paginate(treff, url.searchParams));
         return;
       }
       const alle = register.gater.map((gate) => gateSomRespons(register, gate, includeEiendommer));
-      jsonResponse(response, 200, paginer(alle, url.searchParams));
+      jsonResponse(response, 200, paginate(alle, url.searchParams));
       return;
     }
 
     const eiendomTreff = url.pathname.match(/^\/mock\/matrikkel\/eiendom\/([^/]+)$/);
     if (request.method === "GET" && eiendomTreff) {
-      const treff = finnEiendom(register, decodeURIComponent(eiendomTreff[1]), null, null);
+      const treff = findEiendom(register, decodeURIComponent(eiendomTreff[1]), null, null);
       if (!treff) {
-        const liveTreff = await finnEiendomViaLive(register, decodeURIComponent(eiendomTreff[1]));
+        const liveTreff = await findEiendomViaLive(register, decodeURIComponent(eiendomTreff[1]));
         if (liveTreff?.eiendom) {
           jsonResponse(response, 200, liveTreff.eiendom);
           return;
@@ -973,22 +973,22 @@ const server = createServer(async (request, response) => {
 
       let kandidater;
       if (url.searchParams.get("matrikkelId")) {
-        const treff = finnEiendom(register, url.searchParams.get("matrikkelId"), null, null);
+        const treff = findEiendom(register, url.searchParams.get("matrikkelId"), null, null);
         kandidater = treff ? [treff] : [];
       } else if (gnr !== null && bnr !== null) {
-        const treff = finnEiendom(register, null, gnr, bnr);
+        const treff = findEiendom(register, null, gnr, bnr);
         kandidater = treff ? [treff] : [];
       } else if (gateSoek) {
-        const gater = finnGater(register, gateSoek);
+        const gater = findGater(register, gateSoek);
         kandidater = gater.flatMap((gate) => gate.eiendomIds.map((id) => register.eiendomPerId.get(id)).filter(Boolean));
         if (!kandidater.length) {
-          const liveGater = await finnGaterViaLive(gateSoek, true);
+          const liveGater = await findGaterViaLive(gateSoek, true);
           kandidater = liveGater.flatMap((gate) => gate.eiendommer || []);
         }
       } else if (adresseSoek) {
-        kandidater = finnEiendommerFraAdresse(register, adresseSoek);
+        kandidater = findEiendommerFraAdresse(register, adresseSoek);
         if (!kandidater.length) {
-          const liveTreff = await finnEiendomViaLive(register, adresseSoek);
+          const liveTreff = await findEiendomViaLive(register, adresseSoek);
           kandidater = liveTreff?.eiendom ? [liveTreff.eiendom] : [];
         }
       } else {
@@ -997,21 +997,21 @@ const server = createServer(async (request, response) => {
 
       let filtrert = personId ? kandidater.filter((eiendom) => (eiendom.eiere || []).includes(personId)) : kandidater;
       if (adresseSoek) {
-        const norm = normaliserAdresse(adresseSoek);
+        const norm = normalizeAdresse(adresseSoek);
         filtrert = filtrert.filter((eiendom) => {
-          const adresse = normaliserAdresse(eiendom.adresse);
+          const adresse = normalizeAdresse(eiendom.adresse);
           return adresse === norm || adresse.includes(norm) || norm.includes(adresse);
         });
       }
-      jsonResponse(response, 200, paginer(filtrert, url.searchParams));
+      jsonResponse(response, 200, paginate(filtrert, url.searchParams));
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/mock/matrikkel/eiendom-oppslag") {
       const adresse = url.searchParams.get("adresse") || "";
-      const treff = finnEiendomFraAdresse(register, adresse);
+      const treff = findEiendomFraAdresse(register, adresse);
       if (!treff) {
-        const liveTreff = await finnEiendomViaLive(register, adresse);
+        const liveTreff = await findEiendomViaLive(register, adresse);
         if (liveTreff?.eiendom) {
           jsonResponse(response, 200, liveTreff.eiendom);
           return;
@@ -1037,23 +1037,23 @@ const server = createServer(async (request, response) => {
         return;
       }
       if (operasjon === "FinnVeger") {
-        const gateSoek = finnTagg(xml, "adressenavn") || finnTagg(xml, "soeketekst") || finnTagg(xml, "gate") || "";
-        const kommunenummer = finnTagg(xml, "kommunenummer");
+        const gateSoek = findTag(xml, "adressenavn") || findTag(xml, "soeketekst") || findTag(xml, "gate") || "";
+        const kommunenummer = findTag(xml, "kommunenummer");
         const treff = gateSoek
-          ? finnGater(register, gateSoek).map((gate) => gateSomRespons(register, gate, false))
+          ? findGater(register, gateSoek).map((gate) => gateSomRespons(register, gate, false))
           : register.gater.map((gate) => gateSomRespons(register, gate, false));
         const svar = treff.length > 0
           ? treff
-          : await finnGaterViaLive(gateSoek, false, kommunenummer);
-        textResponse(response, 200, soapEnvelope(`    <mat:FinnVegerResponse>\n${svar.map(byggGateReturn).join("\n")}\n    </mat:FinnVegerResponse>`), "text/xml; charset=utf-8");
+          : await findGaterViaLive(gateSoek, false, kommunenummer);
+        textResponse(response, 200, soapEnvelope(`    <mat:FinnVegerResponse>\n${svar.map(buildGateReturn).join("\n")}\n    </mat:FinnVegerResponse>`), "text/xml; charset=utf-8");
         return;
       }
 
       if (operasjon === "FinnMatrikkelenheter") {
-        const gateSoek = finnTagg(xml, "adressenavn") || finnTagg(xml, "soeketekst") || finnTagg(xml, "gate") || "";
-        const kommunenummer = finnTagg(xml, "kommunenummer");
+        const gateSoek = findTag(xml, "adressenavn") || findTag(xml, "soeketekst") || findTag(xml, "gate") || "";
+        const kommunenummer = findTag(xml, "kommunenummer");
         const gater = gateSoek
-          ? finnGater(register, gateSoek)
+          ? findGater(register, gateSoek)
           : register.gater;
         const treff = gater.length > 0
           ? gater.flatMap((gate) => gate.eiendomIds.map((id) => register.eiendomPerId.get(id)).filter(Boolean).map((eiendom) => ({
@@ -1065,15 +1065,15 @@ const server = createServer(async (request, response) => {
               poststed: gate.poststed,
               eiendom
             })))
-          : (await finnGaterViaLive(gateSoek, true, kommunenummer)).flatMap((gate) => (gate.eiendommer || []).map((eiendom) => ({ ...gate, eiendom })));
+          : (await findGaterViaLive(gateSoek, true, kommunenummer)).flatMap((gate) => (gate.eiendommer || []).map((eiendom) => ({ ...gate, eiendom })));
         const responseBody = treff.length > 0
-          ? `    <mat:FinnMatrikkelenheterResponse>\n${treff.map(({ gateId, adressenavn, kommunenummer: kommuneNr, kommune, postnummer, poststed, eiendom }) => byggEiendomReturn({ gateId, adressenavn, kommunenummer: kommuneNr, kommune, postnummer, poststed }, eiendom)).join("\n")}\n    </mat:FinnMatrikkelenheterResponse>`
+          ? `    <mat:FinnMatrikkelenheterResponse>\n${treff.map(({ gateId, adressenavn, kommunenummer: kommuneNr, kommune, postnummer, poststed, eiendom }) => buildEiendomReturn({ gateId, adressenavn, kommunenummer: kommuneNr, kommune, postnummer, poststed }, eiendom)).join("\n")}\n    </mat:FinnMatrikkelenheterResponse>`
           : "    <mat:FinnMatrikkelenheterResponse></mat:FinnMatrikkelenheterResponse>";
         textResponse(response, 200, soapEnvelope(responseBody), "text/xml; charset=utf-8");
         return;
       }
 
-      textResponse(response, 200, handterSoap(operasjon, xml, register), "text/xml; charset=utf-8");
+      textResponse(response, 200, handleSoapRequest(operasjon, xml, register), "text/xml; charset=utf-8");
       return;
     }
 
@@ -1084,7 +1084,7 @@ const server = createServer(async (request, response) => {
 
     // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
-      jsonResponse(response, 200, await ruteoversikt(openapiFile));
+      jsonResponse(response, 200, await routeOverview(openapiFile));
       return;
     }
 

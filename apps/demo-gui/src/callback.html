@@ -18,7 +18,7 @@
       // along in `state`.
       (async () => {
         try {
-          const tilbakeTil = await fullfoerInnlogging();
+          const tilbakeTil = await completeLogin();
           location.replace(tilbakeTil);
         } catch (feil) {
           document.getElementById("tittel").textContent = "Innloggingen gikk ikke gjennom";

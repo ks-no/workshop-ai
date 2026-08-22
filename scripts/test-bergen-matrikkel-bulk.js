@@ -46,7 +46,7 @@ async function run() {
   });
 
   try {
-    await waitForServer(`${baseUrl}/health`);
+    await waitForServer(`${baseUrl}/helse`);
 
     for (const gate of gateSample) {
       const res = await fetch(`${baseUrl}/mock/matrikkel/gater?gate=${encodeURIComponent(gate.adressenavn)}`);

@@ -111,8 +111,8 @@
 
       <div class="verktoylinje">
         <div class="ds-field">
-          <label class="ds-label" for="modus">Fargemodus</label>
-          <select class="ds-input" id="modus">
+          <label class="ds-label" for="mode">Fargemodus</label>
+          <select class="ds-input" id="mode">
             <option value="light">Lys</option>
             <option value="dark">Mørk</option>
             <option value="auto">Auto (følger systemet)</option>
@@ -123,8 +123,8 @@
         </div>
 
         <div class="ds-field">
-          <label class="ds-label" for="storrelse">Størrelse</label>
-          <select class="ds-input" id="storrelse">
+          <label class="ds-label" for="size">Størrelse</label>
+          <select class="ds-input" id="size">
             <option value="sm">sm</option>
             <option value="md" selected>md</option>
             <option value="lg">lg</option>
@@ -138,13 +138,13 @@
       <section class="demo" id="sandbox-status">
         <h2 class="ds-heading" data-size="sm">Er vi inne i sandboxen?</h2>
         <div class="vis vis--blokk" data-kode="nei">
-          <div class="ds-alert" id="helsevarsel" aria-live="polite">
+          <div class="ds-alert" id="healthNote" aria-live="polite">
             <p class="ds-paragraph">Sjekker <code>http://localhost:8080/helse</code> …</p>
           </div>
         </div>
       </section>
 
-      <div id="galleri" data-size="md">
+      <div id="gallery" data-size="md">
         <section class="demo">
           <h2 class="ds-heading" data-size="sm">Typografi</h2>
           <div class="vis vis--blokk">
@@ -378,10 +378,10 @@
       // is the markup that is actually rendering. Hand-written samples drift; this
       // cannot. Attribute values come from the DOM, so they are already what the parser
       // accepted — but they still get escaped, because a value could contain a quote.
-      const TOMME = new Set(["img", "input", "br", "hr", "source", "circle"]);
-      const ENLINJE = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "summary", "label", "legend", "caption", "th", "td", "option", "li", "a", "button", "span", "code", "strong"]);
+      const EMPTY = new Set(["img", "input", "br", "hr", "source", "circle"]);
+      const ONE_LINE = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "summary", "label", "legend", "caption", "th", "td", "option", "li", "a", "button", "span", "code", "strong"]);
 
-      function attributter(element) {
+      function attributes(element) {
         return [...element.attributes]
           .filter((attributt) => attributt.name !== "data-kode")
           .map((attributt) => {
@@ -393,69 +393,69 @@
 
       // Inline serialisation keeps children — collapsing them to textContent used to
       // drop the markup that mattered, so a <td> holding a .ds-tag printed as bare text.
-      function serialiserInline(element) {
+      function serializeInline(element) {
         const tag = element.tagName.toLowerCase();
-        if (TOMME.has(tag)) return `<${tag}${attributter(element)} />`;
-        const deler = [...element.childNodes]
+        if (EMPTY.has(tag)) return `<${tag}${attributes(element)} />`;
+        const parts = [...element.childNodes]
           .map((node) => {
             if (node.nodeType === Node.TEXT_NODE) return node.textContent.replace(/\s+/g, " ");
-            if (node.nodeType === Node.ELEMENT_NODE) return serialiserInline(node);
+            if (node.nodeType === Node.ELEMENT_NODE) return serializeInline(node);
             return "";
           })
           .join("");
-        return `<${tag}${attributter(element)}>${deler.trim()}</${tag}>`;
+        return `<${tag}${attributes(element)}>${parts.trim()}</${tag}>`;
       }
 
-      function serialiser(element, dybde = 0) {
-        const innrykk = "  ".repeat(dybde);
+      function serialize(element, depth = 0) {
+        const indent = "  ".repeat(depth);
         const tag = element.tagName.toLowerCase();
 
-        if (TOMME.has(tag)) return `${innrykk}<${tag}${attributter(element)} />`;
+        if (EMPTY.has(tag)) return `${indent}<${tag}${attributes(element)} />`;
 
-        const barn = [...element.children];
-        const kanInline =
-          barn.length === 0 ||
-          (ENLINJE.has(tag) && barn.every((b) => ENLINJE.has(b.tagName.toLowerCase()) || TOMME.has(b.tagName.toLowerCase())));
-        if (kanInline) return `${innrykk}${serialiserInline(element)}`;
+        const children = [...element.children];
+        const canInline =
+          children.length === 0 ||
+          (ONE_LINE.has(tag) && children.every((b) => ONE_LINE.has(b.tagName.toLowerCase()) || EMPTY.has(b.tagName.toLowerCase())));
+        if (canInline) return `${indent}${serializeInline(element)}`;
 
-        const inni = barn.map((barnet) => serialiser(barnet, dybde + 1)).join("\n");
-        return `${innrykk}<${tag}${attributter(element)}>\n${inni}\n${innrykk}</${tag}>`;
+        const inner = children.map((child) => serialize(child, depth + 1)).join("\n");
+        return `${indent}<${tag}${attributes(element)}>\n${inner}\n${indent}</${tag}>`;
       }
 
       for (const vis of document.querySelectorAll(".vis")) {
         if (vis.dataset.kode === "nei") continue;
         const pre = document.createElement("pre");
         pre.className = "kode";
-        pre.textContent = [...vis.children].map((barnet) => serialiser(barnet)).join("\n\n");
+        pre.textContent = [...vis.children].map((child) => serialize(child)).join("\n\n");
         vis.parentElement.append(pre);
       }
 
       // data-color-scheme belongs on the root element: the theme defines its colour
       // variables on :root and on [data-color-scheme], so anything below inherits.
-      const modus = document.getElementById("modus");
-      modus.onchange = () => document.documentElement.setAttribute("data-color-scheme", modus.value);
+      const mode = document.getElementById("mode");
+      mode.onchange = () => document.documentElement.setAttribute("data-color-scheme", mode.value);
 
       // data-size is inherited too. Setting it once on the gallery rescales every
       // component inside it — that is the whole sizing mechanism, not a per-component prop.
-      const storrelse = document.getElementById("storrelse");
-      const galleri = document.getElementById("galleri");
-      storrelse.onchange = () => galleri.setAttribute("data-size", storrelse.value);
+      const size = document.getElementById("size");
+      const gallery = document.getElementById("gallery");
+      size.onchange = () => gallery.setAttribute("data-size", size.value);
 
       // One real call, so the page proves it is inside the sandbox rather than a
       // detached static demo.
-      const helsevarsel = document.getElementById("helsevarsel");
-      function visHelse(farge, tekst) {
-        helsevarsel.setAttribute("data-color", farge);
-        const avsnitt = document.createElement("p");
-        avsnitt.className = "ds-paragraph";
-        avsnitt.textContent = tekst;
-        helsevarsel.replaceChildren(avsnitt);
+      const healthNote = document.getElementById("healthNote");
+      function showHelse(farge, tekst) {
+        healthNote.setAttribute("data-color", farge);
+        const paragraph = document.createElement("p");
+        paragraph.className = "ds-paragraph";
+        paragraph.textContent = tekst;
+        healthNote.replaceChildren(paragraph);
       }
 
       fetch("http://localhost:8080/helse")
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-        .then((svar) => visHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandboxen.`))
-        .catch((error) => visHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error.message}). Malen virker likevel — den trenger ingen backend.`));
+        .then((svar) => showHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandboxen.`))
+        .catch((error) => showHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error.message}). Malen virker likevel — den trenger ingen backend.`));
     </script>
   </body>
 </html>

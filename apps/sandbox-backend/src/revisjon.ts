@@ -5,10 +5,10 @@ import { readJson, newId, writeJson } from "./state.ts";
 //
 // Writes are chained so that concurrent requests cannot interleave their
 // read-modify-write and drop each other's events.
-let revisjonsKoe = Promise.resolve();
+let revisjonQueue = Promise.resolve();
 
-export async function leggTilRevisjon(hendelse: Record<string, unknown>) {
-  revisjonsKoe = revisjonsKoe.then(async () => {
+export async function addRevisjon(hendelse: Record<string, unknown>) {
+  revisjonQueue = revisjonQueue.then(async () => {
     const revisjonslogg = await readJson("revisjonslogg.json", []);
     revisjonslogg.push({
       hendelseId: newId("revisjon"),
@@ -20,5 +20,5 @@ export async function leggTilRevisjon(hendelse: Record<string, unknown>) {
   }).catch((error: Error) => {
     console.warn(`Kunne ikke skrive revisjonslogg: ${error.message}`);
   });
-  return revisjonsKoe;
+  return revisjonQueue;
 }

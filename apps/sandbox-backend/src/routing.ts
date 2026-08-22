@@ -6,38 +6,38 @@
 // reaches the handler as "Fjøsangerveien".
 
 export type PathPattern = {
-  monster: string;
+  pattern: string;
   regex: RegExp;
-  parametere: string[];
+  paramNames: string[];
 };
 
 export type PathParams = Record<string, string>;
 
-export function compilePathPattern(monster: string): PathPattern {
-  const parametere: string[] = [];
-  const regexSource = monster
+export function compilePathPattern(pattern: string): PathPattern {
+  const paramNames: string[] = [];
+  const regexSource = pattern
     .split("/")
-    .map((del) => {
-      if (!del.startsWith(":")) {
+    .map((segment) => {
+      if (!segment.startsWith(":")) {
         // Anything that is not a parameter must match literally.
-        return del.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       }
-      parametere.push(del.slice(1));
+      paramNames.push(segment.slice(1));
       return "([^/]+)";
     })
     .join("/");
 
-  return { monster, regex: new RegExp(`^${regexSource}$`), parametere };
+  return { pattern, regex: new RegExp(`^${regexSource}$`), paramNames };
 }
 
-export function matchPath(pathPattern: PathPattern, sti: string): PathParams | null {
-  const treff = sti.match(pathPattern.regex);
-  if (!treff) {
+export function matchPath(pathPattern: PathPattern, path: string): PathParams | null {
+  const match = path.match(pathPattern.regex);
+  if (!match) {
     return null;
   }
   const values: PathParams = {};
-  pathPattern.parametere.forEach((navn, index) => {
-    values[navn] = decodeURIComponent(treff[index + 1]!);
+  pathPattern.paramNames.forEach((name, index) => {
+    values[name] = decodeURIComponent(match[index + 1]!);
   });
   return values;
 }

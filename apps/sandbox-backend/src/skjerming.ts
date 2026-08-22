@@ -45,7 +45,7 @@ const SKJERMEDE_KONTAKTFELT = ["epost", "telefon"];
 // was absent would grow the key set: Tenor-imported people carry `kontakt: {}` with
 // no epost or telefon at all, and the frozen wire format means masking may change
 // values, never shape.
-function nullUt(objekt: Record<string, any>, felter: string[]): Record<string, any> {
+function blankOut(objekt: Record<string, any>, felter: string[]): Record<string, any> {
   const kopi = { ...objekt };
   for (const felt of felter) {
     if (felt in kopi) kopi[felt] = null;
@@ -62,7 +62,7 @@ type Maskeringsregel = {
 
 // Record<Adressegradering, ...> is the point of the closed union: add a fourth
 // grade to types.ts and the compiler demands a rule for it here, the same way
-// regelHandtere in vilkaar.ts demands a handler for a new Regeltype.
+// regelHandlers in vilkaar.ts demands a handler for a new Regeltype.
 const REGLER: Record<Adressegradering, Maskeringsregel> = {
   UGRADERT: { skjulNavn: false, skjulAdresse: false },
   // Kode 7: the address is protected, the name is not.
@@ -77,11 +77,11 @@ function regelFor(gradering: unknown): Maskeringsregel {
   return REGLER[gradering as Adressegradering] ?? REGLER.STRENGT_FORTROLIG;
 }
 
-export function erSkjermet(gradering: unknown): boolean {
+export function isSkjermet(gradering: unknown): boolean {
   return gradering !== "UGRADERT";
 }
 
-export function maskerPerson(person: Person): Person {
+export function maskPerson(person: Person): Person {
   const regel = regelFor(person.adressebeskyttelse);
   if (!regel.skjulNavn && !regel.skjulAdresse) {
     return person;
@@ -95,10 +95,10 @@ export function maskerPerson(person: Person): Person {
 
   if (regel.skjulAdresse) {
     if (person.bostedsadresse) {
-      maskert.bostedsadresse = nullUt(person.bostedsadresse, SKJERMEDE_ADRESSEFELT);
+      maskert.bostedsadresse = blankOut(person.bostedsadresse, SKJERMEDE_ADRESSEFELT);
     }
     if (person.kontakt) {
-      maskert.kontakt = nullUt(person.kontakt, SKJERMEDE_KONTAKTFELT);
+      maskert.kontakt = blankOut(person.kontakt, SKJERMEDE_KONTAKTFELT);
     }
   }
 
@@ -115,7 +115,7 @@ export function maskerPerson(person: Person): Person {
 //
 // This is a real limit of field-level masking, not a gap to plug later: you cannot
 // hide an address someone shares with a person who is not protected.
-export function maskerHusstand(
+export function maskHusstand(
   husstand: Husstand,
   graderingPerPersonId: Map<string, unknown>
 ): Husstand {
@@ -123,10 +123,10 @@ export function maskerHusstand(
   if (medlemmer.length === 0) {
     return husstand;
   }
-  const alleSkjermet = medlemmer.every((medlem) =>
-    erSkjermet(graderingPerPersonId.get(medlem.personId))
+  const allSkjermet = medlemmer.every((medlem) =>
+    isSkjermet(graderingPerPersonId.get(medlem.personId))
   );
-  if (!alleSkjermet) {
+  if (!allSkjermet) {
     return husstand;
   }
   return { ...husstand, adresse: null };
@@ -134,12 +134,12 @@ export function maskerHusstand(
 
 // The one call readState() needs. Builds the personId -> grade index once, so the
 // household pass does not scan the population per household.
-export function maskerBefolkning(personer: Person[], husstander: Husstand[]) {
+export function maskBefolkning(personer: Person[], husstander: Husstand[]) {
   const graderingPerPersonId = new Map<string, unknown>(
     personer.map((person) => [person.personId, person.adressebeskyttelse])
   );
   return {
-    personer: personer.map(maskerPerson),
-    husstander: husstander.map((husstand) => maskerHusstand(husstand, graderingPerPersonId))
+    personer: personer.map(maskPerson),
+    husstander: husstander.map((husstand) => maskHusstand(husstand, graderingPerPersonId))
   };
 }

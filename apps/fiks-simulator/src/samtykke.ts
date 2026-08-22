@@ -13,7 +13,7 @@
  * scripts/valider-data.js fails if the informasjonsmodell drifts from it.
  */
 
-import { lagTilstandsmaskin } from "./tilstandsmaskin.ts";
+import { createTilstandsmaskin } from "./statemachine.ts";
 
 export type Samtykkestatus =
   | "VENTER_PAA_SVAR"
@@ -40,11 +40,11 @@ export const SAMTYKKEOVERGANGER: Record<Samtykkestatus, Samtykkestatus[]> = {
   UTLOEPT: []
 };
 
-const maskin = lagTilstandsmaskin<Samtykkestatus>("Samtykket", SAMTYKKEOVERGANGER);
+const maskin = createTilstandsmaskin<Samtykkestatus>("Samtykket", SAMTYKKEOVERGANGER);
 
-export const SAMTYKKESTATUSER = maskin.statuser;
-export const erSamtykkestatus = maskin.erStatus;
-export const validerSamtykkeovergang = maskin.validerOvergang;
+export const SAMTYKKESTATUSER = maskin.statuses;
+export const isSamtykkestatus = maskin.isStatus;
+export const validateSamtykkeovergang = maskin.validateOvergang;
 
 type Samtykkelignende = { status?: unknown; utloper?: unknown } | null | undefined;
 
@@ -52,7 +52,7 @@ type Samtykkelignende = { status?: unknown; utloper?: unknown } | null | undefin
  * Whether `utloper` has passed. Says nothing about the status — see
  * `effektivStatus` for the two combined.
  *
- * `naa` is a parameter so a test can pin the clock. It is not pinned in
+ * `now` is a parameter so a test can pin the clock. It is not pinned in
  * production the way `alderVed()` pins age against `satser.gjelderFra`: a consent
  * really does expire in wall-clock time, and pinning that would be a lie. What
  * keeps `pnpm test:kontrakt` byte-identical instead is that every samtykke
@@ -63,9 +63,9 @@ type Samtykkelignende = { status?: unknown; utloper?: unknown } | null | undefin
  * offset (`+02:00`) where toISOString() always produces `Z`, and those two do not
  * sort against each other.
  */
-export function erUtloept(samtykke: Samtykkelignende, naa: number = Date.now()): boolean {
+export function isUtloept(samtykke: Samtykkelignende, now: number = Date.now()): boolean {
   const utloper = Date.parse(String(samtykke?.utloper ?? ""));
-  return Number.isFinite(utloper) && utloper <= naa;
+  return Number.isFinite(utloper) && utloper <= now;
 }
 
 /**
@@ -81,7 +81,7 @@ export function erUtloept(samtykke: Samtykkelignende, naa: number = Date.now()):
  * Every reader must go through this. Comparing `samtykke.status === "SAMTYKKET"`
  * directly is the bug this function exists to prevent.
  */
-export function effektivStatus(samtykke: Samtykkelignende, naa: number = Date.now()): string {
-  const lagret = String(samtykke?.status ?? "");
-  return lagret === "SAMTYKKET" && erUtloept(samtykke, naa) ? "UTLOEPT" : lagret;
+export function effektivStatus(samtykke: Samtykkelignende, now: number = Date.now()): string {
+  const stored = String(samtykke?.status ?? "");
+  return stored === "SAMTYKKET" && isUtloept(samtykke, now) ? "UTLOEPT" : stored;
 }

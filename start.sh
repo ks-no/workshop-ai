@@ -206,10 +206,10 @@ port_in_use() {
   return 1
 }
 
-# Every Node service answers /health with a "tjeneste" field, so this tells
+# Every Node service answers /helse with a "tjeneste" field, so this tells
 # our own containers apart from an unrelated process on the same port.
 port_is_ours() {
-  curl -fsS -m 2 "http://localhost:$1/health" 2>/dev/null | grep -q '"tjeneste"'
+  curl -fsS -m 2 "http://localhost:$1/helse" 2>/dev/null | grep -q '"tjeneste"'
 }
 
 preflight() {
@@ -474,6 +474,7 @@ printf '   🧭 Start here:      http://localhost:3001\n'
 printf '   🌐 Chat:            http://localhost:3001/chat\n'
 printf '   🧠 Agent:           http://localhost:3001/agent\n'
 printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
+printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'
 printf '   🔧 Process Builder: http://localhost:3000\n'
 printf '   🔍 AI trace:        http://localhost:8082/trace\n'
 printf '   🔀 AI provider:     http://localhost:8082/admin\n'

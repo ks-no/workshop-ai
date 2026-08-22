@@ -5,8 +5,8 @@ import type { JsonWebKey } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { decodeJwt, signJwt, type SigneringsNokkel } from "./jwt.ts";
-import { ruteoversikt } from "../../shared-ui/openapi.ts";
+import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
+import { routeOverview } from "../../shared-ui/openapi.ts";
 
 // MOCK AV MASKINPORTEN OG ID-PORTEN
 //
@@ -56,8 +56,8 @@ const idportenIssuer = `${issuerBase}/idporten`;
 // Tokens are short-lived on purpose. Two minutes is long enough for a workshop
 // exercise and short enough that "my token expired" is something participants
 // actually see happen.
-const tokenLevetidSekunder = Number(process.env.DIGDIR_TOKEN_TTL) || 120;
-const codeLevetidSekunder = 300;
+const tokenLifetimeSeconds = Number(process.env.DIGDIR_TOKEN_TTL) || 120;
+const codeLifetimeSeconds = 300;
 
 // --- keys -----------------------------------------------------------------
 
@@ -65,15 +65,15 @@ const codeLevetidSekunder = 300;
 // never be committed, not even a synthetic one — and persisting it means a restart
 // does not invalidate every token a participant already pasted somewhere.
 // ./start.sh --reset rotates it, which is the right semantics for a reset.
-const nokkelFil = path.join(stateDir, "digdir-nokkel.json");
-const openapiFil = path.resolve(__dirname, "../../../openapi/digdir-mock.yaml");
+const keyFile = path.join(stateDir, "digdir-nokkel.json");
+const openapiFile = path.resolve(__dirname, "../../../openapi/digdir-mock.yaml");
 
-type Utstederkeys = SigneringsNokkel & { jwk: JsonWebKey };
+type IssuerKeys = SigningKey & { jwk: JsonWebKey };
 
-async function lastEllerLagNokkel(): Promise<Utstederkeys> {
+async function loadOrCreateKey(): Promise<IssuerKeys> {
   try {
-    const lagret = JSON.parse(await readFile(nokkelFil, "utf8"));
-    return { kid: lagret.kid, privateKey: lagret.privateKeyPem, jwk: lagret.publicJwk };
+    const stored = JSON.parse(await readFile(keyFile, "utf8"));
+    return { kid: stored.kid, privateKey: stored.privateKeyPem, jwk: stored.publicJwk };
   } catch (feil) {
     if ((feil as NodeJS.ErrnoException).code !== "ENOENT") throw feil;
   }
@@ -89,12 +89,12 @@ async function lastEllerLagNokkel(): Promise<Utstederkeys> {
   };
 
   await mkdir(stateDir, { recursive: true });
-  await writeFile(nokkelFil, JSON.stringify({ kid, privateKeyPem, publicJwk }, null, 2) + "\n");
-  console.log(`Ny signeringsnøkkel skrevet til ${nokkelFil} (kid ${kid})`);
+  await writeFile(keyFile, JSON.stringify({ kid, privateKeyPem, publicJwk }, null, 2) + "\n");
+  console.log(`Ny signeringsnøkkel skrevet til ${keyFile} (kid ${kid})`);
   return { kid, privateKey: privateKeyPem, jwk: publicJwk };
 }
 
-const nokkel = await lastEllerLagNokkel();
+const nokkel = await loadOrCreateKey();
 
 // --- people ---------------------------------------------------------------
 
@@ -105,22 +105,22 @@ type Testbruker = {
   kommune: string;
 };
 
-async function lesJson(filnavn: string): Promise<any> {
+async function readJson(fileName: string): Promise<any> {
   for (const mappe of [stateDir, seedDir]) {
     try {
-      return JSON.parse(await readFile(path.join(mappe, filnavn), "utf8"));
+      return JSON.parse(await readFile(path.join(mappe, fileName), "utf8"));
     } catch (feil) {
       if ((feil as NodeJS.ErrnoException).code !== "ENOENT") throw feil;
     }
   }
-  throw new Error(`Fant ikke ${filnavn} i verken state/ eller data/.`);
+  throw new Error(`Fant ikke ${fileName} i verken state/ eller data/.`);
 }
 
 // `pid` resolves against syntetiskFodselsnummer, not personId. The fødselsnummer
 // is what real ID-porten puts in the claim, and Del A2 deliberately lets
 // syntetiskFodselsnummer survive masking precisely so lookups like this work.
-async function hentPersoner(): Promise<Testbruker[]> {
-  const personer = await lesJson("personer.json");
+async function getPersoner(): Promise<Testbruker[]> {
+  const personer = await readJson("personer.json");
   return personer.map((person: any): Testbruker => ({
     personId: person.personId,
     pid: person.syntetiskFodselsnummer,
@@ -167,13 +167,13 @@ function htmlResponse(response: ServerResponse, statusCode: number, body: string
   response.end(body);
 }
 
-function tekstResponse(response: ServerResponse, statusCode: number, body: string, contentType: string): void {
+function textResponse(response: ServerResponse, statusCode: number, body: string, contentType: string): void {
   response.writeHead(statusCode, { "Content-Type": contentType, ...CORS });
   response.end(body);
 }
 
 /** RFC 6749 section 5.2. The shape every OAuth client already knows how to read. */
-function oauthFeil(
+function oauthError(
   response: ServerResponse,
   statusCode: number,
   error: string,
@@ -182,32 +182,32 @@ function oauthFeil(
   jsonResponse(response, statusCode, { error, error_description: beskrivelse, syntetisk: true });
 }
 
-async function lesForm(request: IncomingMessage): Promise<URLSearchParams> {
-  const biter: Buffer[] = [];
-  for await (const bit of request) biter.push(bit as Buffer);
-  return new URLSearchParams(Buffer.concat(biter).toString("utf8"));
+async function readForm(request: IncomingMessage): Promise<URLSearchParams> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(chunk as Buffer);
+  return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
 }
 
 function escapeHtml(tekst: unknown): string {
-  const tegnkart: Record<string, string> = {
+  const charMap: Record<string, string> = {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   };
-  return String(tekst).replace(/[&<>"']/g, (tegn) => tegnkart[tegn]);
+  return String(tekst).replace(/[&<>"']/g, (tegn) => charMap[tegn]);
 }
 
 // --- token minting --------------------------------------------------------
 
-function naa(): number {
+function now(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-function felleClaims(issuer: string, audience: string) {
-  const utstedt = naa();
+function commonClaims(issuer: string, audience: string) {
+  const issuedAt = now();
   return {
     iss: issuer,
     aud: audience,
-    iat: utstedt,
-    exp: utstedt + tokenLevetidSekunder,
+    iat: issuedAt,
+    exp: issuedAt + tokenLifetimeSeconds,
     jti: randomUUID(),
     // Marks the token as sandbox-issued, the same way every synthetic payload in
     // the repo carries it. A real token has no such field, which is the point.
@@ -215,16 +215,16 @@ function felleClaims(issuer: string, audience: string) {
   };
 }
 
-type MaskinportenValg = {
+type MaskinportenOptions = {
   clientId: string;
   scope: string;
   audience: string;
   orgnr: string;
 };
 
-function maskinportenToken({ clientId, scope, audience, orgnr }: MaskinportenValg): string {
+function maskinportenToken({ clientId, scope, audience, orgnr }: MaskinportenOptions): string {
   return signJwt({
-    ...felleClaims(maskinportenIssuer, audience),
+    ...commonClaims(maskinportenIssuer, audience),
     client_id: clientId,
     scope,
     // Maskinporten identifies the organisation behind the client, not just the
@@ -234,15 +234,15 @@ function maskinportenToken({ clientId, scope, audience, orgnr }: MaskinportenVal
   }, nokkel);
 }
 
-type IdportenValg = {
+type IdportenOptions = {
   clientId: string;
   audience: string;
   pid: string;
   nonce: string | null;
 };
 
-function idportenTokens({ clientId, audience, pid, nonce }: IdportenValg) {
-  const felles = felleClaims(idportenIssuer, audience);
+function idportenTokens({ clientId, audience, pid, nonce }: IdportenOptions) {
+  const felles = commonClaims(idportenIssuer, audience);
   const person = {
     // `sub` is a pairwise pseudonym in real ID-porten — stable per person per
     // client, and deliberately not the fødselsnummer. `pid` is where the
@@ -268,7 +268,7 @@ function idportenTokens({ clientId, audience, pid, nonce }: IdportenValg) {
 
 // --- authorization code store --------------------------------------------
 
-type LagretKode = {
+type StoredCode = {
   pid: string;
   clientId: string;
   redirectUri: string;
@@ -281,25 +281,25 @@ type LagretKode = {
 
 // In memory and single-use. Codes are not meant to survive a restart, and a code
 // that can be redeemed twice is a replay hole even in a sandbox.
-const koder = new Map<string, LagretKode>();
+const codes = new Map<string, StoredCode>();
 
-function lagreKode(data: Omit<LagretKode, "utloper">): string {
+function storeCode(data: Omit<StoredCode, "utloper">): string {
   const code = randomUUID();
-  koder.set(code, { ...data, utloper: naa() + codeLevetidSekunder });
+  codes.set(code, { ...data, utloper: now() + codeLifetimeSeconds });
   return code;
 }
 
-function loesInnKode(code: string): LagretKode | null {
-  const lagret = koder.get(code);
-  if (!lagret) return null;
-  koder.delete(code);
-  return lagret.utloper < naa() ? null : lagret;
+function redeemCode(code: string): StoredCode | null {
+  const stored = codes.get(code);
+  if (!stored) return null;
+  codes.delete(code);
+  return stored.utloper < now() ? null : stored;
 }
 
 // --- the login screen -----------------------------------------------------
 
-function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string {
-  const skjulte = ["client_id", "redirect_uri", "state", "nonce", "code_challenge",
+function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string {
+  const hidden = ["client_id", "redirect_uri", "state", "nonce", "code_challenge",
     "code_challenge_method", "resource"]
     .filter((navn) => parametere.get(navn))
     .map((navn) => `<input type="hidden" name="${navn}" value="${escapeHtml(parametere.get(navn))}">`)
@@ -310,15 +310,15 @@ function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string
   // either a name or a personId.
   const valg = personer
     .map((p) => {
-      const merke = p.visningsnavn === "Skjermet person" ? " \u00b7 skjermet" : "";
+      const label = p.visningsnavn === "Skjermet person" ? " \u00b7 skjermet" : "";
       return `<option value="${escapeHtml(p.pid)}" data-sok="${escapeHtml(`${p.visningsnavn} ${p.personId} ${p.pid} ${p.kommune}`.toLowerCase())}">`
         + `${escapeHtml(p.visningsnavn)} \u2014 ${escapeHtml(p.personId)}`
-        + `${p.kommune ? ` (${escapeHtml(p.kommune)})` : ""}${merke}</option>`;
+        + `${p.kommune ? ` (${escapeHtml(p.kommune)})` : ""}${label}</option>`;
     })
     .join("\n            ");
 
   const klient = parametere.get("client_id") || "ukjent klient";
-  const tilbake = parametere.get("redirect_uri") || "";
+  const back = parametere.get("redirect_uri") || "";
 
   return `<!doctype html>
 <html lang="nb">
@@ -440,7 +440,7 @@ function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string
         <h1>Velg testbruker</h1>
         <p class="under"><code>${escapeHtml(klient)}</code> ber om \u00e5 f\u00e5 vite hvem du er.</p>
         <form method="POST" action="/idporten/authorize">
-          ${skjulte}
+          ${hidden}
           <label for="sok">S\u00f8k etter navn, personId eller f\u00f8dselsnummer</label>
           <input type="search" id="sok" placeholder="Maja, person-031, 0301 \u2026" autocomplete="off">
           <label for="pid">Testbruker</label>
@@ -452,7 +452,7 @@ function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string
         </form>
         <dl class="detaljer">
           <dt>Sikkerhetsniv\u00e5</dt><dd>idporten-loa-high (BankID)</dd>
-          <dt>Sendes til</dt><dd>${escapeHtml(tilbake) || "\u2014"}</dd>
+          <dt>Sendes til</dt><dd>${escapeHtml(back) || "\u2014"}</dd>
         </dl>
       </div>
     </main>
@@ -461,39 +461,39 @@ function velgerSide(personer: Testbruker[], parametere: URLSearchParams): string
       // happens to be rendered. Options are hidden rather than removed, so the
       // form still posts a valid pid if the filter is cleared mid-selection.
       const sok = document.getElementById("sok");
-      const velger = document.getElementById("pid");
+      const picker = document.getElementById("pid");
       const antall = document.getElementById("antall");
-      const alle = [...velger.options];
+      const alle = [...picker.options];
 
       // A <select size=n> is a listbox, and a listbox starts with nothing selected —
       // unlike a dropdown, which auto-selects its first option. Without this the
       // form cannot be submitted until the user clicks a row, which reads as a
       // broken button rather than as a missing choice.
-      function sikreValg() {
-        if (velger.selectedIndex >= 0 && !velger.options[velger.selectedIndex].hidden) {
+      function safeChoice() {
+        if (picker.selectedIndex >= 0 && !picker.options[picker.selectedIndex].hidden) {
           return;
         }
-        const foerste = alle.find((valg) => !valg.hidden);
-        if (foerste) {
-          foerste.selected = true;
+        const first = alle.find((valg) => !valg.hidden);
+        if (first) {
+          first.selected = true;
         }
       }
 
       sok.addEventListener("input", () => {
-        const naal = sok.value.trim().toLowerCase();
-        let synlige = 0;
+        const needle = sok.value.trim().toLowerCase();
+        let visible = 0;
         for (const valg of alle) {
-          const treff = !naal || valg.dataset.sok.includes(naal);
+          const treff = !needle || valg.dataset.sok.includes(needle);
           valg.hidden = !treff;
-          if (treff) synlige += 1;
+          if (treff) visible += 1;
         }
-        antall.textContent = naal
-          ? synlige + " av " + alle.length + " testbrukere"
+        antall.textContent = needle
+          ? visible + " av " + alle.length + " testbrukere"
           : alle.length + " testbrukere";
-        sikreValg();
+        safeChoice();
       });
 
-      sikreValg();
+      safeChoice();
     </script>
   </body>
 </html>`;
@@ -538,7 +538,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 
   try {
-    if (sti === "/helse" || sti === "/health") {
+    if (sti === "/helse") {
       jsonResponse(response, 200, {
         status: "ok",
         tjeneste: "digdir-mock",
@@ -553,13 +553,13 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     if (request.method === "GET" && sti === "/openapi.yaml") {
-      tekstResponse(response, 200, await readFile(openapiFil, "utf8"), "text/yaml; charset=utf-8");
+      textResponse(response, 200, await readFile(openapiFile, "utf8"), "text/yaml; charset=utf-8");
       return;
     }
 
     // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
     if (request.method === "GET" && sti === "/openapi-ruter.json") {
-      jsonResponse(response, 200, await ruteoversikt(openapiFil));
+      jsonResponse(response, 200, await routeOverview(openapiFile));
       return;
     }
 
@@ -601,7 +601,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // The testbrukere, machine-readable.
     //
-    // This exists because the alternative was worse: klient.ts used to scrape the
+    // This exists because the alternative was worse: client.ts used to scrape the
     // picker page for personId -> pid, and restyling that page broke every test
     // script at once. The information is the same either way — the picker already
     // publishes it — but a listing is a contract and HTML is not.
@@ -612,7 +612,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     if (sti === "/idporten/testbrukere") {
       // Protected people are listed by personId only, exactly as in the picker, so
       // this does not become the way around Del A2.
-      jsonResponse(response, 200, await hentPersoner());
+      jsonResponse(response, 200, await getPersoner());
       return;
     }
 
@@ -625,16 +625,16 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // --- Maskinporten: jwt-bearer -----------------------------------------
     if (request.method === "POST" && sti === "/token") {
-      const form = await lesForm(request);
+      const form = await readForm(request);
       const grantType = form.get("grant_type");
       if (grantType !== "urn:ietf:params:oauth:grant-type:jwt-bearer") {
-        oauthFeil(response, 400, "unsupported_grant_type",
+        oauthError(response, 400, "unsupported_grant_type",
           `Maskinporten bruker urn:ietf:params:oauth:grant-type:jwt-bearer, fikk ${grantType || "ingenting"}.`);
         return;
       }
       const assertion = form.get("assertion");
       if (!assertion) {
-        oauthFeil(response, 400, "invalid_request", "assertion mangler.");
+        oauthError(response, 400, "invalid_request", "assertion mangler.");
         return;
       }
 
@@ -642,7 +642,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       try {
         krav = decodeJwt(assertion).payload;
       } catch (feil) {
-        oauthFeil(response, 400, "invalid_grant",
+        oauthError(response, 400, "invalid_grant",
           `assertion kunne ikke leses: ${(feil as Error).message}`);
         return;
       }
@@ -652,16 +652,16 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       // is built correctly.
       for (const felt of ["iss", "aud", "scope", "exp"]) {
         if (!krav[felt]) {
-          oauthFeil(response, 400, "invalid_grant", `assertion mangler ${felt}.`);
+          oauthError(response, 400, "invalid_grant", `assertion mangler ${felt}.`);
           return;
         }
       }
-      if (Number(krav.exp) < naa()) {
-        oauthFeil(response, 400, "invalid_grant", "assertion er utløpt.");
+      if (Number(krav.exp) < now()) {
+        oauthError(response, 400, "invalid_grant", "assertion er utløpt.");
         return;
       }
       if (krav.aud !== maskinportenIssuer) {
-        oauthFeil(response, 400, "invalid_grant",
+        oauthError(response, 400, "invalid_grant",
           `assertion har aud ${krav.aud}, forventet ${maskinportenIssuer}.`);
         return;
       }
@@ -679,7 +679,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
           orgnr: String(krav.orgnr || "991825827")
         }),
         token_type: "Bearer",
-        expires_in: tokenLevetidSekunder,
+        expires_in: tokenLifetimeSeconds,
         scope,
         syntetisk: true
       });
@@ -693,17 +693,17 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     // also answered PUT and DELETE, which nobody meant, and the spec had no honest
     // way to say which methods the route has.
     if ((request.method === "GET" || request.method === "POST") && sti === "/idporten/authorize") {
-      const parametere = request.method === "POST" ? await lesForm(request) : url.searchParams;
+      const parametere = request.method === "POST" ? await readForm(request) : url.searchParams;
 
       const redirectUri = parametere.get("redirect_uri");
       const clientId = parametere.get("client_id");
       if (!redirectUri || !clientId) {
-        oauthFeil(response, 400, "invalid_request", "client_id og redirect_uri er påkrevd.");
+        oauthError(response, 400, "invalid_request", "client_id og redirect_uri er påkrevd.");
         return;
       }
       const responseType = parametere.get("response_type");
       if (request.method === "GET" && responseType && responseType !== "code") {
-        oauthFeil(response, 400, "unsupported_response_type",
+        oauthError(response, 400, "unsupported_response_type",
           `Bare response_type=code støttes, fikk ${responseType}.`);
         return;
       }
@@ -711,17 +711,17 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       // GET renders the picker; the POST back from it carries the chosen pid.
       const pid = parametere.get("pid");
       if (!pid) {
-        htmlResponse(response, 200, velgerSide(await hentPersoner(), parametere));
+        htmlResponse(response, 200, pickerPage(await getPersoner(), parametere));
         return;
       }
 
-      const personer = await hentPersoner();
+      const personer = await getPersoner();
       if (!personer.some((person) => person.pid === pid)) {
-        oauthFeil(response, 400, "invalid_request", `Ukjent testbruker: ${pid}.`);
+        oauthError(response, 400, "invalid_request", `Ukjent testbruker: ${pid}.`);
         return;
       }
 
-      const code = lagreKode({
+      const code = storeCode({
         pid,
         clientId,
         redirectUri,
@@ -731,81 +731,81 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         codeChallengeMethod: parametere.get("code_challenge_method")
       });
 
-      const tilbake = new URL(redirectUri);
-      tilbake.searchParams.set("code", code);
+      const back = new URL(redirectUri);
+      back.searchParams.set("code", code);
       const state = parametere.get("state");
       if (state) {
-        tilbake.searchParams.set("state", state);
+        back.searchParams.set("state", state);
       }
-      response.writeHead(302, { Location: tilbake.toString(), ...CORS });
+      response.writeHead(302, { Location: back.toString(), ...CORS });
       response.end();
       return;
     }
 
     // --- ID-porten: code -> tokens ----------------------------------------
     if (request.method === "POST" && sti === "/idporten/token") {
-      const form = await lesForm(request);
+      const form = await readForm(request);
       if (form.get("grant_type") !== "authorization_code") {
-        oauthFeil(response, 400, "unsupported_grant_type",
+        oauthError(response, 400, "unsupported_grant_type",
           `ID-porten bruker authorization_code, fikk ${form.get("grant_type") || "ingenting"}.`);
         return;
       }
       const code = form.get("code");
       if (!code) {
-        oauthFeil(response, 400, "invalid_request", "code mangler.");
+        oauthError(response, 400, "invalid_request", "code mangler.");
         return;
       }
-      const lagret = loesInnKode(code);
-      if (!lagret) {
-        oauthFeil(response, 400, "invalid_grant", "Ukjent, brukt eller utløpt code.");
+      const stored = redeemCode(code);
+      if (!stored) {
+        oauthError(response, 400, "invalid_grant", "Ukjent, brukt eller utløpt code.");
         return;
       }
-      if (form.get("redirect_uri") && form.get("redirect_uri") !== lagret.redirectUri) {
-        oauthFeil(response, 400, "invalid_grant",
+      if (form.get("redirect_uri") && form.get("redirect_uri") !== stored.redirectUri) {
+        oauthError(response, 400, "invalid_grant",
           "redirect_uri stemmer ikke med den fra /authorize.");
         return;
       }
 
       // PKCE. Required for public clients — demo-gui runs in a browser and cannot
       // keep a secret, so the code alone must not be enough to redeem.
-      if (lagret.codeChallenge) {
+      if (stored.codeChallenge) {
         const verifier = form.get("code_verifier");
         if (!verifier) {
-          oauthFeil(response, 400, "invalid_grant",
+          oauthError(response, 400, "invalid_grant",
             "code_verifier mangler, men code_challenge ble brukt.");
           return;
         }
-        if (lagret.codeChallengeMethod !== "S256") {
-          oauthFeil(response, 400, "invalid_request",
-            `Bare code_challenge_method=S256 støttes, fikk ${lagret.codeChallengeMethod}.`);
+        if (stored.codeChallengeMethod !== "S256") {
+          oauthError(response, 400, "invalid_request",
+            `Bare code_challenge_method=S256 støttes, fikk ${stored.codeChallengeMethod}.`);
           return;
         }
-        const beregnet = createHash("sha256").update(verifier).digest("base64url");
-        if (beregnet !== lagret.codeChallenge) {
-          oauthFeil(response, 400, "invalid_grant",
+        const computed = createHash("sha256").update(verifier).digest("base64url");
+        if (computed !== stored.codeChallenge) {
+          oauthError(response, 400, "invalid_grant",
             "code_verifier stemmer ikke med code_challenge.");
           return;
         }
       }
 
       const { accessToken, idToken } = idportenTokens({
-        clientId: lagret.clientId,
-        audience: lagret.audience,
-        pid: lagret.pid,
-        nonce: lagret.nonce
+        clientId: stored.clientId,
+        audience: stored.audience,
+        pid: stored.pid,
+        nonce: stored.nonce
       });
       jsonResponse(response, 200, {
         access_token: accessToken,
         id_token: idToken,
         token_type: "Bearer",
-        expires_in: tokenLevetidSekunder,
+        expires_in: tokenLifetimeSeconds,
         scope: "openid profile",
         syntetisk: true
       });
       return;
     }
 
-    oauthFeil(response, 404, "invalid_request", `Fant ikke ${request.method} ${sti}. Se GET /docs.`);
+    oauthError(response, 404, "invalid_request", `Fant ikke ${request.method} ${sti}. Se GET /docs.`);
   } catch (feil) {
     console.error(`digdir-mock: ${(feil as Error).stack || (feil as Error).message}`);
     jsonResponse(response, 500, {

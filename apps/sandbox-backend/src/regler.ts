@@ -1,16 +1,16 @@
-import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 // The samtykke kodeverk belongs to the service that owns the resource, and expiry
 // is part of it. This backend reads state/samtykker.json directly — a sandbox
 // simplification it already lived with — so importing the rule is strictly better
 // than keeping a second copy of it here that can drift.
 import { effektivStatus } from "../../fiks-simulator/src/samtykke.ts";
 import { digdirBaseUrl, digdirIssuer, fiksBaseUrl, fiksRolleId } from "./config.ts";
-import { finnPerson, hentHusstandForPerson } from "./state.ts";
+import { findPerson, getHusstandForPerson } from "./state.ts";
 import type { Satser, SjekkResultat, State } from "./types.ts";
 // The rules themselves live in vilkaar.ts and are pure. This file is the I/O half:
 // it fetches the beregning, then hands the numbers over. The arrow points one way —
 // vilkaar.ts must never import this file back.
-import { regelKreverInntekt, vurderVilkaar } from "./vilkaar.ts";
+import { regelKreverInntekt, evaluateVilkaar } from "./vilkaar.ts";
 
 // Fetches the household income basis from the Fiks simulator. Spouses, registered
 // partners and cohabitants count as one household, per forskrift om
@@ -27,12 +27,12 @@ const FIKS_TOKEN = {
   resource: "fiks-simulator"
 };
 
-async function hentInntektsgrunnlag(tilstand: State, personId: string, inntektsaar: number): Promise<any> {
-  const husstand = hentHusstandForPerson(tilstand, personId);
+async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaar: number): Promise<any> {
+  const husstand = getHusstandForPerson(tilstand, personId);
   const personer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
     .map((medlem: any) => {
-      const person = finnPerson(tilstand, medlem.personId);
+      const person = findPerson(tilstand, medlem.personId);
       return {
         identifikator: person.syntetiskFodselsnummer,
         type: medlem.personId === personId ? "SOEKER" : "ANNET"
@@ -57,24 +57,24 @@ async function hentInntektsgrunnlag(tilstand: State, personId: string, inntektsa
 }
 
 function sisteInntektsaar(tilstand: State, personId: string) {
-  const husstand = hentHusstandForPerson(tilstand, personId);
+  const husstand = getHusstandForPerson(tilstand, personId);
   const identer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
-    .map((medlem: any) => finnPerson(tilstand, medlem.personId)?.syntetiskFodselsnummer);
+    .map((medlem: any) => findPerson(tilstand, medlem.personId)?.syntetiskFodselsnummer);
   const aar = tilstand.inntekter
     .filter((rad: any) => identer.includes(rad.identifikator))
     .map((rad: any) => rad.inntektsaar);
   return aar.length ? Math.max(...aar) : new Date().getFullYear() - 1;
 }
 
-export async function hentInntektForPerson(tilstand: State, personId: string) {
-  return hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
+export async function getInntektForPerson(tilstand: State, personId: string) {
+  return getInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId));
 }
 
 // Assesses one ordning in data/satser.json against the income basis from Fiks.
 // The calculation is deterministic and happens here, not in the AI layer — see
 // ai-no-decisions in policies/ai-policy.yaml.
-export async function vurderOrdning(tilstand: State, personId: string, ordningId: string | null): Promise<SjekkResultat> {
+export async function evaluateOrdning(tilstand: State, personId: string, ordningId: string | null): Promise<SjekkResultat> {
   const satser: Satser = tilstand.satser;
   const ordning = satser.ordninger.find((kandidat) => kandidat.id === ordningId);
   if (!ordning) {
@@ -86,7 +86,7 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
   // consent for it along — the opposite of what consent-before-income is for.
   const brukerInntekt = regelKreverInntekt[ordning.regel];
   const beregning = brukerInntekt
-    ? await hentInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
+    ? await getInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
     : null;
 
   if (beregning && beregning.feilmeldinger.length > 0) {
@@ -110,7 +110,7 @@ export async function vurderOrdning(tilstand: State, personId: string, ordningId
     ? " Merk at skatteoppgjøret ikke er ferdig, så grunnlaget kan endre seg."
     : "";
 
-  return vurderVilkaar(ordning.regel, { tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
+  return evaluateVilkaar(ordning.regel, { tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
 }
 
 // Every samtykke this person has given for this source, whatever state it is in.
@@ -140,7 +140,7 @@ function samtykkerFor(tilstand: State, personId: string, datakilde: string) {
  * comes from `effektivStatus`, which is the only place that rule lives — see
  * fiks-simulator/src/samtykke.ts.
  */
-export function harGyldigSamtykke(
+export function hasGyldigSamtykke(
   tilstand: State,
   personId: string,
   datakilde: string,
@@ -169,7 +169,7 @@ export function harGyldigSamtykke(
  * samtykke" is a confusing thing to read when you remember agreeing — the useful
  * answer says the consent expired and has to be given again.
  */
-export function harUtloeptSamtykke(tilstand: State, personId: string, datakilde: string) {
+export function hasUtloeptSamtykke(tilstand: State, personId: string, datakilde: string) {
   return samtykkerFor(tilstand, personId, datakilde)
     .some((samtykke: any) => effektivStatus(samtykke) === "UTLOEPT");
 }

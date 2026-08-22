@@ -1,14 +1,14 @@
 import { createServer } from "node:http";
-import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { docsHtml, ruteoversikt } from "../../shared-ui/openapi.ts";
+import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
 
 const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
-// Imported across the app boundary on purpose: klient.ts is where the token
+// Imported across the app boundary on purpose: client.ts is where the token
 // protocol is defined, and a copy per service is how four subtly different token
 // clients happen. Node loads the .ts directly.
 const digdirBaseUrl = process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086";
@@ -450,7 +450,7 @@ async function matrikkel(path) {
   return data;
 }
 
-function normaliser(verdi) {
+function normalize(verdi) {
   return String(verdi || "")
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
@@ -499,7 +499,7 @@ function toBrregOrganisation(doc) {
     postadresse: postAddr,
     telefonnummer: doc?.telefonnummer ? String(doc.telefonnummer) : null,
     nettside: doc?.hjemmeside ? String(doc.hjemmeside) : null,
-    _search: normaliser([
+    _search: normalize([
       doc?.organisasjonsnummer,
       doc?.navn,
       orgForm?.kode,
@@ -536,7 +536,7 @@ async function getBrregRegister() {
 
 function buildFrSearchIndex(person) {
   const navn = person.personnavn;
-  return normaliser([
+  return normalize([
     person.foedselsEllerDNummer,
     navn?.fornavn,
     navn?.mellomnavn,
@@ -621,7 +621,7 @@ async function fetchJson(url) {
 
 function geonorgeAdresseTilGate(adresse) {
   return {
-    gateId: `geo-${adresse.kommunenummer || ""}-${normaliser(adresse.adressenavn)}`,
+    gateId: `geo-${adresse.kommunenummer || ""}-${normalize(adresse.adressenavn)}`,
     adressenavn: String(adresse.adressenavn || ""),
     kommunenummer: String(adresse.kommunenummer || ""),
     kommune: String(adresse.kommunenavn || ""),
@@ -639,12 +639,12 @@ function geonorgeAdresseTekst(adresse) {
   return [navn, nummer ? `${nummer}${bokstav}` : ""].filter(Boolean).join(" ").trim();
 }
 
-function normaliserAdresseTekst(verdi) {
-  return normaliser(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+function normalizeAdresseText(verdi) {
+  return normalize(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function byggAdressekjerne(verdi) {
-  const tekst = normaliserAdresseTekst(verdi)
+function buildAdressekjerne(verdi) {
+  const tekst = normalizeAdresseText(verdi)
     .replace(/\b(norge|norway)\b/gu, " ")
     .replace(/\b\d{4}\s+[\p{L}\s-]+$/u, " ")
     .replace(/\b[\p{L}\s-]+\s+\d{4}$/u, " ")
@@ -653,7 +653,7 @@ function byggAdressekjerne(verdi) {
     .trim();
 
   const treff = tekst.match(/([\p{L}][\p{L}\s.-]*?(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
-  return treff?.[1] ? normaliserAdresseTekst(treff[1]) : tekst;
+  return treff?.[1] ? normalizeAdresseText(treff[1]) : tekst;
 }
 
 function geonorgeAdresseTilEiendom(adresse) {
@@ -699,25 +699,25 @@ function geonorgeAdresseTilEiendom(adresse) {
   };
 }
 
-function velgBesteLiveAdresse(adresser, query) {
+function pickBestLiveAdresse(adresser, query) {
   if (!Array.isArray(adresser) || !adresser.length) return null;
-  const soek = normaliserAdresseTekst(query);
-  const soekKjerne = byggAdressekjerne(query);
-  const eksakt = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)) === soek);
+  const soek = normalizeAdresseText(query);
+  const searchCore = buildAdressekjerne(query);
+  const eksakt = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)) === soek);
   if (eksakt) return eksakt;
-  const eksaktKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)) === soekKjerne);
+  const eksaktKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)) === searchCore);
   if (eksaktKjerne) return eksaktKjerne;
-  const starterMed = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)).startsWith(soek));
+  const starterMed = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)).startsWith(soek));
   if (starterMed) return starterMed;
-  const starterMedKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)).startsWith(soekKjerne));
+  const starterMedKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)).startsWith(searchCore));
   if (starterMedKjerne) return starterMedKjerne;
-  const inneholder = adresser.find((adresse) => normaliserAdresseTekst(geonorgeAdresseTekst(adresse)).includes(soek));
+  const inneholder = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)).includes(soek));
   if (inneholder) return inneholder;
-  const inneholderKjerne = adresser.find((adresse) => byggAdressekjerne(geonorgeAdresseTekst(adresse)).includes(soekKjerne));
+  const inneholderKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)).includes(searchCore));
   return inneholderKjerne || adresser[0] || null;
 }
 
-function paginerListe(liste, args = {}) {
+function paginateList(liste, args = {}) {
   const offset = Math.max(0, safeInt(args.offset, 0));
   const limit = Number.isInteger(args.limit)
     ? clampInt(args.limit, 1, 1000)
@@ -725,7 +725,7 @@ function paginerListe(liste, args = {}) {
   return liste.slice(offset, offset + limit);
 }
 
-async function finnVegerLive(args = {}) {
+async function findVegerLive(args = {}) {
   const gate = String(args.gate || "").trim();
   if (!gate) return [];
 
@@ -745,7 +745,7 @@ async function finnVegerLive(args = {}) {
     const adresser = Array.isArray(data?.adresser) ? data.adresser : [];
     for (const adresse of adresser) {
       if (!adresse?.adressenavn) continue;
-      const key = `${adresse.kommunenummer || ""}|${normaliser(adresse.adressenavn)}`;
+      const key = `${adresse.kommunenummer || ""}|${normalize(adresse.adressenavn)}`;
       if (!perGate.has(key)) {
         perGate.set(key, geonorgeAdresseTilGate(adresse));
       } else {
@@ -759,22 +759,22 @@ async function finnVegerLive(args = {}) {
     const navn = a.adressenavn.localeCompare(b.adressenavn, "nb");
     return navn !== 0 ? navn : String(a.kommunenummer).localeCompare(String(b.kommunenummer), "nb");
   });
-  return paginerListe(liste, { offset, limit });
+  return paginateList(liste, { offset, limit });
 }
 
-async function finnEiendomLive(args = {}) {
+async function findEiendomLive(args = {}) {
   const adresse = String(args.adresse || "").trim();
   if (!adresse) return null;
 
-  const adresseKjerne = byggAdressekjerne(adresse);
-  const soeketermer = new Set([
+  const adresseKjerne = buildAdressekjerne(adresse);
+  const searchTerms = new Set([
     adresse,
     adresseKjerne,
     adresseKjerne.replace(/\s*,\s*/g, " ").trim()
   ].filter(Boolean));
 
   const kandidater = [];
-  for (const term of soeketermer) {
+  for (const term of searchTerms) {
     for (const variant of geonorgeQueryVariants(term)) {
     const params = new URLSearchParams({
       sok: variant,
@@ -786,11 +786,11 @@ async function finnEiendomLive(args = {}) {
     }
   }
 
-  const adresseTreff = velgBesteLiveAdresse(kandidater, adresse);
+  const adresseTreff = pickBestLiveAdresse(kandidater, adresse);
   return adresseTreff ? geonorgeAdresseTilEiendom(adresseTreff) : null;
 }
 
-async function finnVegerMock(args = {}) {
+async function findVegerMock(args = {}) {
   const params = new URLSearchParams();
   if (args.gate) params.set("gate", String(args.gate));
   if (Number.isInteger(args.limit)) params.set("limit", String(args.limit));
@@ -833,10 +833,10 @@ function damerauLevenshtein(a, b) {
 }
 
 function fuzzyGateTreff(gater, gateSoek, limit = 10) {
-  const soek = normaliser(gateSoek);
+  const soek = normalize(gateSoek);
   if (!soek) return [];
   return [...gater]
-    .map((gate) => ({ gate, distanse: damerauLevenshtein(soek, normaliser(gate.adressenavn)) }))
+    .map((gate) => ({ gate, distanse: damerauLevenshtein(soek, normalize(gate.adressenavn)) }))
     .filter((entry) => entry.distanse <= 2)
     .sort((a, b) => a.distanse - b.distanse || a.gate.adressenavn.localeCompare(b.gate.adressenavn, "nb"))
     .slice(0, Math.max(1, limit))
@@ -1012,7 +1012,7 @@ async function invokeTool(name, args = {}) {
     const kanBrukeLive = (matrikkelMode === "live" || matrikkelMode === "hybrid") && args.gate;
     if (kanBrukeLive) {
       try {
-        const liveTreff = await finnVegerLive(args);
+        const liveTreff = await findVegerLive(args);
         if (liveTreff.length || matrikkelMode === "live") {
           return matrikkelVegerSvar(liveTreff, args);
         }
@@ -1023,13 +1023,13 @@ async function invokeTool(name, args = {}) {
       }
     }
 
-    const mockTreff = await finnVegerMock(args);
+    const mockTreff = await findVegerMock(args);
     if (mockTreff.length || !args.gate) {
       return matrikkelVegerSvar(mockTreff, args);
     }
 
     // Last fallback: typo-tolerant match over the full mock list.
-    const alleMockTreff = await finnVegerMock({ all: true, limit: 5000, offset: 0 });
+    const alleMockTreff = await findVegerMock({ all: true, limit: 5000, offset: 0 });
     const fuzzyTreff = fuzzyGateTreff(alleMockTreff, args.gate, Number.isInteger(args.limit) ? args.limit : 10);
     return matrikkelVegerSvar(fuzzyTreff, args);
   }
@@ -1038,7 +1038,7 @@ async function invokeTool(name, args = {}) {
     const kanBrukeLiveAdresse = (matrikkelMode === "live" || matrikkelMode === "hybrid") && args.adresse;
     if (kanBrukeLiveAdresse) {
       try {
-        const liveEiendom = await finnEiendomLive(args);
+        const liveEiendom = await findEiendomLive(args);
         if (liveEiendom || matrikkelMode === "live") {
           if (!liveEiendom) {
             throw new Error(`Fant ikke adressen ${args.adresse} i offentlig adressekilde.`);
@@ -1086,9 +1086,9 @@ async function invokeTool(name, args = {}) {
 
   if (name === "brreg_search_organisations") {
     const register = await getBrregRegister();
-    const query = normaliser(args.query || args.q || "");
-    const kommune = normaliser(args.kommune || "");
-    const organisasjonsform = normaliser(args.organisasjonsform || "");
+    const query = normalize(args.query || args.q || "");
+    const kommune = normalize(args.kommune || "");
+    const organisasjonsform = normalize(args.organisasjonsform || "");
     const offset = Math.max(0, safeInt(args.offset, 0));
     const limit = clampInt(args.limit ?? 10, 1, 100);
 
@@ -1097,11 +1097,11 @@ async function invokeTool(name, args = {}) {
       if (kommune) {
         const kommuneValues = [org.forretningsadresse?.kommune, org.postadresse?.kommune]
           .filter(Boolean)
-          .map((value) => normaliser(String(value)));
+          .map((value) => normalize(String(value)));
         if (!kommuneValues.some((value) => value.includes(kommune))) return false;
       }
       if (organisasjonsform) {
-        const formSearch = normaliser(`${org.organisasjonsform?.kode || ""} ${org.organisasjonsform?.beskrivelse || ""}`);
+        const formSearch = normalize(`${org.organisasjonsform?.kode || ""} ${org.organisasjonsform?.beskrivelse || ""}`);
         if (!formSearch.includes(organisasjonsform)) return false;
       }
       return true;
@@ -1142,9 +1142,9 @@ async function invokeTool(name, args = {}) {
 
   if (name === "folkeregister_search_persons") {
     const register = await getFolkeregisterRegister();
-    const query = normaliser(args.query || args.q || "");
+    const query = normalize(args.query || args.q || "");
     const fnr = String(args.foedselsEllerDNummer || args.fnr || "").trim();
-    const kommune = normaliser(args.kommune || "");
+    const kommune = normalize(args.kommune || "");
     const offset = Math.max(0, safeInt(args.offset, 0));
     const limit = clampInt(args.limit ?? 10, 1, 100);
     const includeSkjermet = Boolean(args.includeSkjermet);
@@ -1163,7 +1163,7 @@ async function invokeTool(name, args = {}) {
       if (person.skjermet && !includeSkjermet) return false;
       if (query && !person._searchIndex.includes(query)) return false;
       if (kommune) {
-        const komVal = normaliser(String(person.bostedsadresse?.kommune || ""));
+        const komVal = normalize(String(person.bostedsadresse?.kommune || ""));
         if (!komVal.includes(kommune)) return false;
       }
       return true;
@@ -1249,13 +1249,13 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (url.pathname === "/helse" || url.pathname === "/health") {
+    if (url.pathname === "/helse") {
       json(response, 200, { status: "ok", tjeneste: "mcp-services", tidspunkt: new Date().toISOString() });
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/docs") {
-      tekst(response, 200, docsHtml(await ruteoversikt(openapiFile)), "text/html; charset=utf-8");
+      tekst(response, 200, docsHtml(await routeOverview(openapiFile)), "text/html; charset=utf-8");
       return;
     }
 
@@ -1268,7 +1268,7 @@ const server = createServer(async (request, response) => {
     // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
     // med det API-utforskeren trenger.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
-      json(response, 200, await ruteoversikt(openapiFile));
+      json(response, 200, await routeOverview(openapiFile));
       return;
     }
 

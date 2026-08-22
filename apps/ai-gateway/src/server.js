@@ -1,16 +1,16 @@
 import { createServer } from "node:http";
-import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash, createHmac } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ruteoversikt } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared-ui/openapi.ts";
 import {
-  byggGrunnlag,
-  byggPersonvernSvar,
-  byggTryggSvar,
-  erPersonvernSporsmaal,
-  harInjeksjonsmarkorer,
+  buildGrunnlag,
+  buildPersonvernSvar,
+  buildTryggSvar,
+  isPersonvernSporsmaal,
+  hasInjeksjonsmarkorer,
   manglendeGrunnlagFor,
   sanitizeSporsmaalKontekst,
   validateAnswer
@@ -125,7 +125,7 @@ function newId(prefix) {
 //
 // Auditing must never break the operation being audited: if the backend is
 // unavailable we log locally and carry on.
-async function leggTilRevisjon(hendelse) {
+async function addRevisjon(hendelse) {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
       method: "POST",
@@ -421,7 +421,7 @@ function adminHtml() {
           <p class="muted small" id="bedrockCreds"></p>
         </div>
         <button id="byttKnapp">Bytt</button>
-        <div id="byttStatus" class="status"></div>
+        <div id="switchStatus" class="status"></div>
       </div>
     </main>
     <script>
@@ -437,26 +437,26 @@ function adminHtml() {
         return providerNavn[id] || id;
       }
 
-      function hentStatus() {
+      function getStatus() {
         return fetch("/admin/providers.json").then(function (res) { return res.json(); });
       }
 
-      function tegnNaavaerende(data) {
-        var merke = data.modellNaaBar
+      function renderCurrent(data) {
+        var label = data.modellNaaBar
           ? '<span class="tag tag-ok">tilgjengelig</span>'
           : '<span class="tag tag-feil">ikke tilgjengelig</span>';
         var feilHtml = data.feil ? '<div class="muted small">' + escapeHtml(data.feil) + "</div>" : "";
         document.getElementById("naavaerende").innerHTML =
           "<div><strong>Aktiv leverandør:</strong> " + escapeHtml(navnFor(data.provider)) + "</div>" +
-          "<div><strong>Modell:</strong> " + escapeHtml(data.modell || "–") + " " + merke + "</div>" +
+          "<div><strong>Modell:</strong> " + escapeHtml(data.modell || "–") + " " + label + "</div>" +
           feilHtml;
       }
 
-      function oppdaterBedrockSynlighet(valgtProvider) {
+      function updateBedrockVisibility(valgtProvider) {
         document.getElementById("bedrockDetaljer").hidden = valgtProvider !== "bedrock";
       }
 
-      function tegnValg(data, valgtProvider) {
+      function renderChoices(data, valgtProvider) {
         var container = document.getElementById("providerValg");
         container.innerHTML = data.providers.map(function (p) {
           return (
@@ -474,7 +474,7 @@ function adminHtml() {
             for (var j = 0; j < labels.length; j++) {
               labels[j].classList.toggle("valgt", labels[j].querySelector("input").checked);
             }
-            oppdaterBedrockSynlighet(event.target.value);
+            updateBedrockVisibility(event.target.value);
           };
         }
 
@@ -490,7 +490,7 @@ function adminHtml() {
           ? "Region: " + data.bedrock.region
           : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
 
-        oppdaterBedrockSynlighet(valgtProvider);
+        updateBedrockVisibility(valgtProvider);
       }
 
       function valgtProviderVerdi() {
@@ -500,13 +500,13 @@ function adminHtml() {
 
       function bytt() {
         var provider = valgtProviderVerdi();
-        var byttStatus = document.getElementById("byttStatus");
+        var switchStatus = document.getElementById("switchStatus");
         if (!provider) return;
         var payload = { provider: provider };
         if (provider === "bedrock") {
           payload.bedrockModel = document.getElementById("bedrockModellValg").value;
         }
-        byttStatus.textContent = "Bytter...";
+        switchStatus.textContent = "Bytter...";
         fetch("/admin/provider", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -519,21 +519,21 @@ function adminHtml() {
             });
           })
           .then(function (data) {
-            byttStatus.textContent = "Byttet. Aktiv leverandør oppdatert.";
-            tegnNaavaerende(data);
-            tegnValg(data, data.provider);
+            switchStatus.textContent = "Byttet. Aktiv leverandør oppdatert.";
+            renderCurrent(data);
+            renderChoices(data, data.provider);
           })
           .catch(function (error) {
-            byttStatus.textContent = "Feilet: " + error.message;
+            switchStatus.textContent = "Feilet: " + error.message;
           });
       }
 
       document.getElementById("byttKnapp").onclick = bytt;
 
-      hentStatus()
+      getStatus()
         .then(function (data) {
-          tegnNaavaerende(data);
-          tegnValg(data, data.provider);
+          renderCurrent(data);
+          renderChoices(data, data.provider);
         })
         .catch(function (error) {
           document.getElementById("naavaerende").textContent = "Kunne ikke laste status: " + error.message;
@@ -548,7 +548,7 @@ function buildTemplateResponse(type, body) {
   const data = body?.kontekst?.data || {};
   const svar = body?.kontekst?.svar || {};
 
-  function finnVerdi(predicate) {
+  function findValue(predicate) {
     return Object.values(data || {}).find(predicate) || null;
   }
 
@@ -556,8 +556,8 @@ function buildTemplateResponse(type, body) {
     return new Intl.NumberFormat("nb-NO").format(Number(tall || 0));
   }
 
-  function byggHusstandLinjer() {
-    const husstand = finnVerdi((v) => v?.husstandId && Array.isArray(v?.medlemmer));
+  function buildHusstandLines() {
+    const husstand = findValue((v) => v?.husstandId && Array.isArray(v?.medlemmer));
     if (!husstand) return null;
     const foresatte = husstand.medlemmer.filter((m) => m.rolle === "foresatt");
     const barn = husstand.medlemmer.filter((m) => m.rolle === "barn");
@@ -567,8 +567,8 @@ function buildTemplateResponse(type, body) {
     return chunks.join(", ");
   }
 
-  function byggInntektLinjer() {
-    const beregning = finnVerdi((v) => v?.beregningsbeloep !== undefined);
+  function buildInntektLines() {
+    const beregning = findValue((v) => v?.beregningsbeloep !== undefined);
     if (!beregning) return null;
     const poster = (beregning.visningsposter || [])
       .flatMap((v) => v.poster || [])
@@ -585,7 +585,7 @@ function buildTemplateResponse(type, body) {
     return chunks.join(". ");
   }
 
-  function byggSvarLinjer() {
+  function buildSvarLines() {
     const chunks = [];
     for (const [, verdi] of Object.entries(svar || {})) {
       if (typeof verdi === "string" && verdi.trim()) {
@@ -610,15 +610,15 @@ function buildTemplateResponse(type, body) {
     return ["ja", "japp", "yes", "greit", "ok", "okei", "det stemmer", "riktig"].some((ord) => tekst.includes(ord));
   }
 
-  function byggFartsdempendeOppsummering() {
-    const gateData = finnVerdi((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
+  function buildFartsdempendeOppsummering() {
+    const gateData = findValue((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
     if (!gateData || !String(tjeneste).toLowerCase().includes("fartsdempende")) {
       return null;
     }
 
     const flereEnn20 = svar["boliger-bekreft"];
     const begrunnelse = String(svar.begrunnelse || "").trim();
-    const eierSjekk = finnVerdi((v) => v?.godkjent !== undefined && typeof v?.melding === "string");
+    const eierSjekk = findValue((v) => v?.godkjent !== undefined && typeof v?.melding === "string");
 
     const linjer = [
       `Her er en oppsummering av søknaden om fartsdempende tiltak i ${gateData.adressenavn}, ${gateData.kommune}.`,
@@ -645,8 +645,8 @@ function buildTemplateResponse(type, body) {
     return linjer.join(" ");
   }
 
-  function byggGateLinje() {
-    const gateData = finnVerdi((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
+  function buildGateLine() {
+    const gateData = findValue((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
     if (!gateData) return null;
     const boligInfo = gateData.antallBoligeiendommer !== undefined
       ? `${gateData.antallBoligeiendommer} boligeiendommer av totalt ${gateData.antallEiendommer}`
@@ -654,16 +654,16 @@ function buildTemplateResponse(type, body) {
     return `Gate: ${gateData.adressenavn}, ${gateData.kommune || ""} (${boligInfo})`;
   }
 
-  function byggOppsummeringstekst() {
-    const fartsdempendeOppsummering = byggFartsdempendeOppsummering();
+  function buildOppsummeringstekst() {
+    const fartsdempendeOppsummering = buildFartsdempendeOppsummering();
     if (fartsdempendeOppsummering) {
       return fartsdempendeOppsummering;
     }
 
-    const gateLinje = byggGateLinje();
-    const husstandLinje = byggHusstandLinjer();
-    const inntektLinje = byggInntektLinjer();
-    const svarLinje = byggSvarLinjer();
+    const gateLinje = buildGateLine();
+    const husstandLinje = buildHusstandLines();
+    const inntektLinje = buildInntektLines();
+    const svarLinje = buildSvarLines();
 
     const detaljer = [gateLinje, husstandLinje, inntektLinje, svarLinje].filter(Boolean);
     const detaljtekst = detaljer.length > 0
@@ -679,13 +679,13 @@ function buildTemplateResponse(type, body) {
 
   const tekster = {
     dialogforslag: `Hei! Jeg kan hjelpe deg med ${tjeneste}. Vi går steg for steg og bruker bare syntetiske opplysninger i denne demoen.`,
-    oppsummering: byggOppsummeringstekst(),
+    oppsummering: buildOppsummeringstekst(),
     "forklar-databruk": `Vi bruker opplysningene i denne demoen for å vise hvordan saksflyten kan bli enklere å forstå. Dataene er syntetiske og brukes ikke til reelle vedtak.`,
     klarsprak: "Dette betyr kort fortalt at du får en enklere forklaring på hvilke opplysninger som brukes og hvorfor.",
     risikosjekk: "Ingen kritiske risikoer funnet i denne demoen, men løsningen må fortsatt unngå reelle persondata og automatiserte vedtak.",
     // Not a placeholder: this is what the citizen gets whenever a guardrail
     // fires, and it is the whole answer when AI_PROVIDER=mock.
-    sporsmaal: byggTryggSvar(body?.kontekst)
+    sporsmaal: buildTryggSvar(body?.kontekst)
   };
 
   return {
@@ -749,7 +749,7 @@ function buildToolChoicePrompt(body) {
 
   return [
     "Du velger hvilke verktøy agenten bør bruke for et prosessteg i en kommunal dialogløsning.",
-    "Svar KUN med gyldig JSON-array, ingen annen tekst.",
+    "Svar KUN med valid JSON-array, ingen annen tekst.",
     'Hvert element: {"name":"<verktøynavn>","bruk":"kontekst|validering|kontekst_og_validering","begrunnelse":"..."}',
     '"kontekst" = kall proaktivt før spørsmålet stilles for å gi nyttige hint til brukeren.',
     '"validering" = kall etter at brukeren har svart, for å normalisere eller validere svaret.',
@@ -1072,7 +1072,7 @@ function buildProcessChoicePrompt(body) {
 
   return [
     "Du mapper brukerens melding til riktig kommunal prosess.",
-    "Svar KUN med gyldig JSON, ingen forklaring utenfor JSON.",
+    "Svar KUN med valid JSON, ingen forklaring utenfor JSON.",
     'Gyldig schema: {"intent":"match|ambiguous|unknown","prosessId":"string|null","confidence":0.0,"begrunnelse":"kort tekst","kandidater":[{"id":"string","score":0.0}]}',
     "Regler:",
     "- intent=match kun hvis en prosess er tydelig mest sannsynlig.",
@@ -1225,7 +1225,7 @@ function buildIntentPrompt(body) {
   const ukjentIntent = body?.ukjentIntent || "ukjent";
   return [
     "Du klassifiserer en kort brukermelding i en kommunal chatflyt.",
-    "Svar KUN med gyldig JSON og ingen annen tekst.",
+    "Svar KUN med valid JSON og ingen annen tekst.",
     `Gyldige intent-verdier: ${jaIntent}, ${neiIntent}, ${ukjentIntent}`,
     `Hvis meldingen uttrykker samtykke, bekreftelse eller godkjenning, bruk ${jaIntent}.`,
     `Hvis meldingen uttrykker avslag, usikkerhet eller at brukeren ikke vil gå videre, bruk ${neiIntent}.`,
@@ -1288,7 +1288,7 @@ function validateIntent(data, body) {
 // single prompt with no role structure.
 
 const SYSTEM_FREETEXT = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
-const SYSTEM_JSON = "Du returnerer kun gyldig JSON uten kodeblokker eller forklarende tekst.";
+const SYSTEM_JSON = "Du returnerer kun valid JSON uten kodeblokker eller forklarende tekst.";
 
 async function callOllama(prompt, temperature, signal) {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
@@ -1885,8 +1885,8 @@ async function buildAiResponse(type, body) {
  * This endpoint has no data access of its own. It never calls sandbox-backend,
  * never looks anything up, and answers only from the grounding the caller sends
  * with the request. That is deliberate and is the reason it cannot route around
- * the consent gate in utforRessurs(): there is nothing to route around. The one
- * backend call in this service stays leggTilRevisjon.
+ * the consent gate in runRessurs(): there is nothing to route around. The one
+ * backend call in this service stays addRevisjon.
  *
  * Three things happen before the model is trusted: the question is screened for
  * injection markers, the grounding is projected down to what a model may see,
@@ -1895,12 +1895,12 @@ async function buildAiResponse(type, body) {
 async function answerCitizenQuestion(body) {
   const sprak = body?.sprak || "nb";
   const kontekst = sanitizeSporsmaalKontekst(body?.kontekst);
-  const grunnlag = byggGrunnlag(kontekst);
+  const grunnlag = buildGrunnlag(kontekst);
   const base = { syntetisk: true, sprak, grunnlag };
 
   const avvis = (aarsak, advarsel) => ({
     ...base,
-    tekst: byggTryggSvar(kontekst, aarsak),
+    tekst: buildTryggSvar(kontekst, aarsak),
     modell: "sperre",
     sperre: aarsak,
     advarsel
@@ -1912,13 +1912,13 @@ async function answerCitizenQuestion(body) {
 
   // Caught here it costs nothing. Caught after the call, the model has already
   // read it as instructions.
-  if (harInjeksjonsmarkorer(body.tekst)) {
+  if (hasInjeksjonsmarkorer(body.tekst)) {
     return avvis("injeksjon", "Spørsmålet inneholdt instruksjonslignende innhold og gikk ikke til modellen.");
   }
 
   // Answered from our own text, not the model's. See erPersonvernSporsmaal.
-  if (erPersonvernSporsmaal(body.tekst)) {
-    return { ...base, tekst: byggPersonvernSvar(kontekst), modell: "fast-tekst" };
+  if (isPersonvernSporsmaal(body.tekst)) {
+    return { ...base, tekst: buildPersonvernSvar(kontekst), modell: "fast-tekst" };
   }
 
   const manglende = manglendeGrunnlagFor(body.tekst, kontekst);
@@ -1930,7 +1930,7 @@ async function answerCitizenQuestion(body) {
   }
 
   if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
-    return { ...base, tekst: byggTryggSvar(kontekst), modell: "mock-ai-gateway" };
+    return { ...base, tekst: buildTryggSvar(kontekst), modell: "mock-ai-gateway" };
   }
 
   let llm;
@@ -1945,7 +1945,7 @@ async function answerCitizenQuestion(body) {
   } catch (error) {
     return {
       ...base,
-      tekst: byggTryggSvar(kontekst),
+      tekst: buildTryggSvar(kontekst),
       modell: `${aiProvider}-fallback`,
       advarsel: `Provider ${aiProvider} feilet: ${error.message}`
     };
@@ -1976,7 +1976,7 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (url.pathname === "/helse" || url.pathname === "/health") {
+    if (url.pathname === "/helse") {
       // "The service answers" is not "the model answers". Without the provider
       // status here, a gateway with a dead model looks perfectly healthy, and the
       // failure first surfaces as template text in a response nobody suspects.
@@ -2059,7 +2059,7 @@ const server = createServer(async (request, response) => {
       jsonResponse(
         response,
         200,
-        await ruteoversikt(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"))
+        await routeOverview(path.resolve(__dirname, "../../../openapi/ai-gateway.yaml"))
       );
       return;
     }
@@ -2073,7 +2073,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/ai/tolk-svar") {
       const body = await readBody(request);
       const svar = await interpretReplyWithAi(body);
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "tolk-svar",
@@ -2086,7 +2086,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/ai/velg-prosess") {
       const body = await readBody(request);
       const svar = await chooseProcessWithAi(body);
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "velg-prosess",
@@ -2111,7 +2111,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/ai/velg-verktoy") {
       const body = await readBody(request);
       const svar = await chooseToolsWithAi(body);
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_TOLKNING",
         ressurs: "velg-verktoy",
@@ -2127,7 +2127,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/ai/sporsmaal") {
       const body = await readBody(request);
       const svar = await answerCitizenQuestion(body);
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_KALL",
         ressurs: "sporsmaal",
@@ -2142,7 +2142,7 @@ const server = createServer(async (request, response) => {
       const body = await readBody(request);
       const type = url.pathname.replace("/ai/", "");
       const svar = await buildAiResponse(type, body);
-      await leggTilRevisjon({
+      await addRevisjon({
         sporingsId: body.sporingsId || newId("flyt"),
         handling: "KI_KALL",
         ressurs: type,

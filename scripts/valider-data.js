@@ -9,13 +9,13 @@ import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
 import {
   plasserSomKvalifiserer,
   regelKreverInntekt,
-  vurderVilkaar
+  evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { SAMTYKKESTATUSER } from "../apps/fiks-simulator/src/samtykke.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
 // created by the services on first write.
-const filer = [
+const files = [
   "data/personer.json",
   "data/husstander.json",
   "data/inntekter.json",
@@ -32,18 +32,18 @@ const filer = [
   "data/forventet-utfall.json"
 ];
 
-async function les(fil) {
+async function read(fil) {
   return JSON.parse(await readFile(fil, "utf8"));
 }
 
-for (const fil of filer) {
-  await les(fil);
+for (const fil of files) {
+  await read(fil);
 }
 
-const personer = await les("data/personer.json");
-const husstander = await les("data/husstander.json");
-const inntekter = await les("data/inntekter.json");
-const satser = await les("data/satser.json");
+const personer = await read("data/personer.json");
+const husstander = await read("data/husstander.json");
+const inntekter = await read("data/inntekter.json");
+const satser = await read("data/satser.json");
 
 if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
@@ -114,19 +114,19 @@ for (const ordning of satser.ordninger) {
 // this test an ordning can become impossible to grant because no husstand has a
 // child in the target group — and then the rule looks like it works while it only
 // ever says no.
-const barnehageplasser = await les("data/barnehageplasser.json");
-const sfoplasser = await les("data/sfoplasser.json");
-const fritidsdeltakelse = await les("data/fritidsdeltakelse.json");
+const barnehageplasser = await read("data/barnehageplasser.json");
+const sfoplasser = await read("data/sfoplasser.json");
+const fritidsdeltakelse = await read("data/fritidsdeltakelse.json");
 // The State the rules in vilkaar.ts read. The keys must match tjenesteDatasett in
 // apps/sandbox-backend/src/state.ts — a new tjeneste is one line there and one line
-// here. Get one wrong and hentPlasserForTjeneste throws `Ukjent tjeneste`, where the
+// here. Get one wrong and getPlasserForTjeneste throws `Ukjent tjeneste`, where the
 // old lookup silently yielded "no plass".
 //
 // This is assembled by hand rather than by calling readState(), on purpose, and it
 // must stay that way. readState() reads state/ before data/ (state.ts:15-27), so one
 // demo run leaving a state/satser.json behind would make this gate validate bytes
 // that are not the seed — the exact trap findShadowedSeeds warns about. It also runs
-// maskerBefolkning, which would make the "seed is not masked" check further down
+// maskBefolkning, which would make the "seed is not masked" check further down
 // assert against its own output. Both failures are silent.
 const tilstand = {
   personer,
@@ -185,7 +185,7 @@ if (husstander.every(husstandsgrunnlag)) {
 // The vedtak, from vilkaar.ts. Returns null when the ordning cannot be assessed at
 // all for this husstand — and that distinction is load-bearing: the pinned-outcome
 // check below uses `vurder(...) !== null` to enumerate which ordninger a husstand
-// even touches. vurderVilkaar never returns null (it answers "no qualifying plass"
+// even touches. evaluateVilkaar never returns null (it answers "no qualifying plass"
 // as a real godkjent: false), so the three not-assessable cases have to be caught
 // here, before the call. Collapse them into an avslag and every husstand appears to
 // hit every ordning, the completeness check inverts, and the next reader concludes
@@ -202,7 +202,7 @@ function vurder(husstand, ordning) {
   // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
   // not marked medregnes), so the income rules are driven with the same number the
   // running service would have fetched — no stack needed.
-  return vurderVilkaar(ordning.regel, {
+  return evaluateVilkaar(ordning.regel, {
     tilstand,
     personId: soeker,
     ordning,
@@ -236,7 +236,7 @@ for (const ordning of satser.ordninger) {
 // forventetUtfall records what each husstand is supposed to demonstrate. Pinning
 // it means a changed income or a moved trinn breaks the build here, instead of
 // silently turning a case into something the scenario text no longer describes.
-const pinnet = await les("data/forventet-utfall.json");
+const pinnet = await read("data/forventet-utfall.json");
 const pinnetPerHusstand = new Map(pinnet.husstander.map((r) => [r.husstandId, r.utfall]));
 
 for (const husstand of husstander) {
@@ -309,11 +309,11 @@ for (const husstand of husstander) {
       // The direction word sits just before "grensen for <ordning>". Only assert
       // when one is actually there — many texts name an ordning without claiming a side.
       const foran = rest.slice(Math.max(0, i - 40), i);
-      const paastandUnder = /\bunder grensen for $/.test(foran);
-      const paastandOver = /\bover grensen for $/.test(foran);
-      if ((paastandUnder || paastandOver) && paastandUnder !== rad.godkjent) {
+      const claimBelow = /\bunder grensen for $/.test(foran);
+      const claimAbove = /\bover grensen for $/.test(foran);
+      if ((claimBelow || claimAbove) && claimBelow !== rad.godkjent) {
         throw new Error(
-          `${husstand.husstandId} sier «${paastandUnder ? "under" : "over"} grensen for ${frase}», ` +
+          `${husstand.husstandId} sier «${claimBelow ? "under" : "over"} grensen for ${frase}», ` +
           `men dataene gir ${rad.godkjent ? "innvilget" : "avslag"} for ${ordningId}.`
         );
       }
@@ -345,14 +345,14 @@ for (const plass of sfoplasser) {
 // produce them are dead code nobody notices.
 //
 // This block stays hand-rolled, and it is not a leftover mirror. It has to tell
-// `ingenTilbud` apart from `utenforMaalgruppe`, and vurderVilkaar cannot: both
+// `ingenTilbud` apart from `utenforMaalgruppe`, and evaluateVilkaar cannot: both
 // TJENESTEBEHOV branches return godkjent: false with an identical key set in
 // grunnlag, so the only discriminator is `melding` — which this gate must not
 // assert on. Adding an `avslagsgrunn` key to grunnlag would fix it, but that
 // changes the contract dump for the støttekontakt flows, so it is its own
 // decision. Until then: the four-way classification here, the rule's own branches
 // covered by pnpm test:vilkaar.
-const tjenestetilbud = await les("data/tjenestetilbud.json");
+const tjenestetilbud = await read("data/tjenestetilbud.json");
 for (const ordning of satser.ordninger) {
   if (ordning.regel !== "TJENESTEBEHOV") continue;
   const utfall = { innvilget: 0, ingenTilbud: 0, utenforMaalgruppe: 0, fullt: 0 };
@@ -439,14 +439,14 @@ for (const person of personer.filter((p) => p.adressebeskyttelse !== "UGRADERT")
 // fritidskort-stotte fetched income for a long time without an ordning to measure
 // it against. Nothing caught it, because the coverage checks only iterate over
 // ordninger that exist.
-const prosesskatalog = await les("data/prosessdefinisjoner.json");
-const alleProsesser = [
+const prosesskatalog = await read("data/prosessdefinisjoner.json");
+const allProsesser = [
   ...(prosesskatalog.prosesser || []),
   ...(prosesskatalog.maler || [])
 ];
 const ordningIder = new Set(satser.ordninger.map((o) => o.id));
 const tjenester = new Set(satser.ordninger.map((o) => o.tjeneste));
-for (const prosess of alleProsesser) {
+for (const prosess of allProsesser) {
   for (const steg of prosess.steg || []) {
     if (steg.type !== "SJEKK") continue;
     const url = steg.api?.url || steg.ressurs || "";
@@ -477,7 +477,7 @@ for (const prosess of alleProsesser) {
 // three of the five and never mentioned UTLOEPT at all. The state machine in
 // apps/fiks-simulator/src/samtykke.ts is the kodeverk now, and this check makes
 // the documentation fail rather than quietly disagree with the code.
-const modeller = await les("data/informasjonsmodeller.json");
+const modeller = await read("data/informasjonsmodeller.json");
 const samtykkemodeller = modeller.modeller
   .flatMap((modell) => modell.begreper || modell.entiteter || [])
   .filter((begrep) => begrep.id === "consent");

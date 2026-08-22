@@ -1,30 +1,30 @@
 import {
   aktorFor,
-  krevTilgang,
+  requireTilgang,
   SCOPE_LES,
-  type Kaller,
+  type Caller,
   type Tilgang
 } from "./autentisering.ts";
 import { HttpError } from "./errors.ts";
 import {
-  harGyldigSamtykke,
-  harUtloeptSamtykke,
-  hentInntektForPerson,
-  vurderOrdning
+  hasGyldigSamtykke,
+  hasUtloeptSamtykke,
+  getInntektForPerson,
+  evaluateOrdning
 } from "./regler.ts";
-import { regelKreverInntekt, velgOrdningForTjeneste } from "./vilkaar.ts";
-import { leggTilRevisjon } from "./revisjon.ts";
+import { regelKreverInntekt, selectOrdningForTjeneste } from "./vilkaar.ts";
+import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import {
   eiendommerForPerson,
   eiendommerForPersonIGate,
-  finnGate,
-  hentGater
+  findGate,
+  getGater
 } from "./matrikkel.ts";
 import {
-  finnPerson,
-  hentHusstandForPerson,
-  hentPlasserForTjeneste
+  findPerson,
+  getHusstandForPerson,
+  getPlasserForTjeneste
 } from "./state.ts";
 
 // SHARED RESOURCE CATALOG
@@ -48,11 +48,11 @@ type State = any;
 // The rule type decides. An ordning assessed on need and capacity — støttekontakt —
 // never reads income, so demanding consent for income would collect a basis the
 // decision does not use. Anything unresolvable keeps the strict requirement.
-function samtykkeForOrdningssjekk(kontekst: RessursKontekst): string | null {
+function samtykkeForOrdningssjekk(kontekst: RessursContext): string | null {
   try {
     const ordningId =
       kontekst.sok.get("ordning") ||
-      velgOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
+      selectOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
     const ordning = kontekst.tilstand.satser.ordninger.find((o: any) => o.id === ordningId);
     if (!ordning) return "inntekt";
     return regelKreverInntekt[ordning.regel as keyof typeof regelKreverInntekt] ? "inntekt" : null;
@@ -61,7 +61,7 @@ function samtykkeForOrdningssjekk(kontekst: RessursKontekst): string | null {
   }
 }
 
-export type RessursKontekst = {
+export type RessursContext = {
   tilstand: State;
   parametere: PathParams;
   sok: URLSearchParams;
@@ -70,15 +70,15 @@ export type RessursKontekst = {
   oekt: any | null;
   steg: any | null;
   /** Who is calling, from the token. See autentisering.ts. */
-  kaller: Kaller;
+  kaller: Caller;
 };
 
 // The foresatte whose income the calculation combines — the same set regler.ts
 // sends to Fiks. Derived here rather than read back off the response so the audit
 // entry is written even when the lookup fails.
-function foresatteIHusstand(kontekst: RessursKontekst): string[] {
+function foresatteIHusstand(kontekst: RessursContext): string[] {
   try {
-    const husstand = hentHusstandForPerson(kontekst.tilstand, kontekst.personId);
+    const husstand = getHusstandForPerson(kontekst.tilstand, kontekst.personId);
     return husstand.medlemmer
       .filter((medlem: any) => medlem.rolle === "foresatt")
       .map((medlem: any) => medlem.personId);
@@ -89,9 +89,9 @@ function foresatteIHusstand(kontekst: RessursKontekst): string[] {
   }
 }
 
-function alleIHusstand(kontekst: RessursKontekst): string[] {
+function allIHusstand(kontekst: RessursContext): string[] {
   try {
-    return hentHusstandForPerson(kontekst.tilstand, kontekst.personId)
+    return getHusstandForPerson(kontekst.tilstand, kontekst.personId)
       .medlemmer.map((medlem: any) => medlem.personId);
   } catch {
     return [kontekst.personId];
@@ -100,9 +100,9 @@ function alleIHusstand(kontekst: RessursKontekst): string[] {
 
 // A plass belongs to a child, not to the applicant. Both are recorded: the parent
 // asked, the child's data answered.
-function barnMedPlass(kontekst: RessursKontekst, tjeneste: string): string[] {
+function barnMedPlass(kontekst: RessursContext, tjeneste: string): string[] {
   try {
-    const plasser = hentPlasserForTjeneste(kontekst.tilstand, kontekst.personId, tjeneste);
+    const plasser = getPlasserForTjeneste(kontekst.tilstand, kontekst.personId, tjeneste);
     return [...new Set([kontekst.personId, ...plasser.map((plass: any) => plass.personId)])];
   } catch {
     return [kontekst.personId];
@@ -129,7 +129,7 @@ export type Ressurs = {
    * what is being asked for. Overrides kreverSamtykke when present. Fails closed:
    * if the request cannot be resolved, the strictest requirement stands.
    */
-  kreverSamtykkeFor?: (kontekst: RessursKontekst) => string | null;
+  kreverSamtykkeFor?: (kontekst: RessursContext) => string | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
   /**
@@ -143,14 +143,14 @@ export type Ressurs = {
    * An audit log that records only the actor cannot answer the question a person
    * actually asks it — whose data was read — so it records both.
    */
-  omfatter?: (kontekst: RessursKontekst) => string[];
+  omfatter?: (kontekst: RessursContext) => string[];
   /** Runs before the consent check, so missing parameters give 400 and not 403. */
-  valider?: (kontekst: RessursKontekst) => void;
+  valider?: (kontekst: RessursContext) => void;
   /** For resources where the person is not in the path but must be resolved before the consent check. */
-  finnPersonId?: (kontekst: RessursKontekst) => string;
+  finnPersonId?: (kontekst: RessursContext) => string;
   /** Set false for lookups the caller logs instead (the SJEKK step). */
   revisjon?: boolean;
-  handter: (kontekst: RessursKontekst) => unknown | Promise<unknown>;
+  handter: (kontekst: RessursContext) => unknown | Promise<unknown>;
 };
 
 export const ressurser: Ressurs[] = [
@@ -160,7 +160,7 @@ export const ressurser: Ressurs[] = [
     ressurs: "person",
     beskrivelse: "Folkeregisterliknende grunndata om én person.",
     handter: ({ tilstand, personId }) => {
-      const person = finnPerson(tilstand, personId);
+      const person = findPerson(tilstand, personId);
       if (!person) {
         throw new HttpError("Fant ikke person.", 404);
       }
@@ -172,10 +172,10 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/husstand",
     ressurs: "husstand",
     beskrivelse: "Husstanden personen tilhører, med roller for foresatte og barn.",
-    omfatter: alleIHusstand,
+    omfatter: allIHusstand,
     handter: ({ tilstand, personId }) => {
       try {
-        return hentHusstandForPerson(tilstand, personId);
+        return getHusstandForPerson(tilstand, personId);
       } catch (error: any) {
         throw new HttpError(error.message, 404);
       }
@@ -193,7 +193,7 @@ export const ressurser: Ressurs[] = [
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: async ({ tilstand, personId }) => {
       try {
-        return await hentInntektForPerson(tilstand, personId);
+        return await getInntektForPerson(tilstand, personId);
       } catch (error: any) {
         throw new HttpError(error.message, 404);
       }
@@ -207,7 +207,7 @@ export const ressurser: Ressurs[] = [
     omfatter: (kontekst) => barnMedPlass(kontekst, "barnehage"),
     handter: ({ tilstand, personId }) => {
       try {
-        return hentPlasserForTjeneste(tilstand, personId, "barnehage");
+        return getPlasserForTjeneste(tilstand, personId, "barnehage");
       } catch (error: any) {
         throw new HttpError(error.message, 404);
       }
@@ -223,7 +223,7 @@ export const ressurser: Ressurs[] = [
     omfatter: (kontekst) => barnMedPlass(kontekst, "sfo"),
     handter: ({ tilstand, personId }) => {
       try {
-        return hentPlasserForTjeneste(tilstand, personId, "sfo");
+        return getPlasserForTjeneste(tilstand, personId, "sfo");
       } catch (error: any) {
         throw new HttpError(error.message, 404);
       }
@@ -238,7 +238,7 @@ export const ressurser: Ressurs[] = [
     formaal: "Vise fritidsaktiviteter i husstanden",
     handter: ({ tilstand, personId }) => {
       try {
-        return hentPlasserForTjeneste(tilstand, personId, "fritid");
+        return getPlasserForTjeneste(tilstand, personId, "fritid");
       } catch (error: any) {
         throw new HttpError(error.message, 404);
       }
@@ -262,7 +262,7 @@ export const ressurser: Ressurs[] = [
       }
       return soeker.personId;
     },
-    handter: ({ tilstand, personId }) => hentInntektForPerson(tilstand, personId)
+    handter: ({ tilstand, personId }) => getInntektForPerson(tilstand, personId)
   },
   {
     metode: "GET",
@@ -275,7 +275,7 @@ export const ressurser: Ressurs[] = [
     handter: async ({ sok }) => {
       const gateParam = sok.get("gate");
       if (!gateParam) {
-        return (await hentGater()).map((g) => ({
+        return (await getGater()).map((g) => ({
           gateId: g.gateId,
           adressenavn: g.adressenavn,
           kommune: g.kommune,
@@ -283,7 +283,7 @@ export const ressurser: Ressurs[] = [
           antallBoligeiendommer: g.antallBoligeiendommer
         }));
       }
-      const gateData = await finnGate(gateParam);
+      const gateData = await findGate(gateParam);
       if (!gateData) {
         // 221 street names is too many to hand back on a typo, so point at the list
         // instead. The matrikkel already does prefix and substring matching, so a
@@ -315,19 +315,21 @@ export const ressurser: Ressurs[] = [
     revisjon: false,
     handter: async ({ sok, personId, steg }) => {
       const gateNavn = sok.get("gate") || "";
-      const gateData = await finnGate(gateNavn);
+      const gateData = await findGate(gateNavn);
       if (!gateData) {
         return { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
       }
       // Filtered in the matrikkel, so no other resident's ownership is ever sent here.
       const egne = await eiendommerForPersonIGate(gateData.adressenavn, personId);
-      const harEiendom = egne.length > 0;
+      const hasEiendom = egne.length > 0;
       return {
-        godkjent: harEiendom,
-        melding: harEiendom
+        godkjent: hasEiendom,
+        melding: hasEiendom
           ? `Eierforhold i ${gateData.adressenavn} bekreftet.`
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
-        grunnlag: { personId, gate: gateData.adressenavn, harEiendom, antallEiendommer: egne.length }
+        // harEiendom staar eksplisitt: noekkelen er wire. Som shorthand ville den fulgt
+        // navnet paa den lokale variabelen.
+        grunnlag: { personId, gate: gateData.adressenavn, harEiendom: hasEiendom, antallEiendommer: egne.length }
       };
     }
   },
@@ -381,8 +383,8 @@ export const ressurser: Ressurs[] = [
         // to the child's actual trinn, instead of naming one and being wrong for
         // every household outside it.
         const ordning = sok.get("ordning")
-          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
-        return await vurderOrdning(tilstand, personId, ordning);
+          || selectOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await evaluateOrdning(tilstand, personId, ordning);
       } catch (error: any) {
         throw new HttpError(error.message, 400);
       }
@@ -409,8 +411,8 @@ export const ressurser: Ressurs[] = [
     handter: async ({ tilstand, sok, personId }) => {
       try {
         const ordning = sok.get("ordning")
-          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
-        return await vurderOrdning(tilstand, personId, ordning);
+          || selectOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await evaluateOrdning(tilstand, personId, ordning);
       } catch (error: any) {
         throw new HttpError(error.message, 400);
       }
@@ -420,7 +422,7 @@ export const ressurser: Ressurs[] = [
 
 const kompilerte = ressurser.map((ressurs) => ({ ressurs, monster: compilePathPattern(ressurs.sti) }));
 
-export function finnRessurs(metode: string, sti: string) {
+export function findRessurs(metode: string, sti: string) {
   for (const { ressurs, monster } of kompilerte) {
     if (ressurs.metode !== metode) continue;
     const parametere = matchPath(monster, sti);
@@ -444,21 +446,21 @@ export function ressurskatalog() {
   }));
 }
 
-type UtforValg = {
+type RunOptions = {
   oekt?: any | null;
   steg?: any | null;
   personId?: string | null;
   sporingsId: string;
-  kaller?: Kaller;
+  kaller?: Caller;
 };
 
-export async function utforRessurs(
+export async function runRessurs(
   tilstand: State,
   metode: string,
   url: URL,
-  valg: UtforValg
+  valg: RunOptions
 ): Promise<unknown> {
-  const treff = finnRessurs(metode, url.pathname);
+  const treff = findRessurs(metode, url.pathname);
   if (!treff) {
     const gyldige = ressurser.map((r) => `${r.metode} ${r.sti}`).join(", ");
     throw new HttpError(`Ukjent ressurs: ${metode} ${url.pathname}. Gyldige: ${gyldige}.`, 404);
@@ -467,7 +469,7 @@ export async function utforRessurs(
   const { ressurs, parametere } = treff;
   const sok = url.searchParams;
 
-  const kontekst: RessursKontekst = {
+  const kontekst: RessursContext = {
     tilstand,
     parametere,
     sok,
@@ -501,12 +503,12 @@ export async function utforRessurs(
   // syntetiskFodselsnummer survives A2's masking precisely so this lookup works for
   // an address-protected person too. See skjerming.ts.
   try {
-    krevTilgang({
+    requireTilgang({
       kaller: kontekst.kaller,
       tilgang: ressurs.tilgang ?? "egne-data",
       scope: ressurs.scope ?? SCOPE_LES,
       pid: kontekst.personId
-        ? finnPerson(tilstand, kontekst.personId)?.syntetiskFodselsnummer ?? null
+        ? findPerson(tilstand, kontekst.personId)?.syntetiskFodselsnummer ?? null
         : null,
       hva: `å lese ${ressurs.ressurs}`
     });
@@ -514,7 +516,7 @@ export async function utforRessurs(
     // A refused attempt is exactly what an audit log is for. TILGANG_NEKTET, not
     // DATA_NEKTET: that one means "had hjemmel, lacked samtykke", and conflating
     // the two would erase the distinction Del B exists to teach.
-    await leggTilRevisjon({
+    await addRevisjon({
       sporingsId: kontekst.sporingsId,
       handling: "TILGANG_NEKTET",
       ressurs: ressurs.ressurs,
@@ -542,7 +544,7 @@ export async function utforRessurs(
   if (kreverSamtykke) {
     // The session knows which consent it just created. Prefer it, so the basis in
     // the audit log is the one the citizen actually gave in this flow.
-    samtykke = harGyldigSamtykke(
+    samtykke = hasGyldigSamtykke(
       tilstand,
       kontekst.personId,
       kreverSamtykke,
@@ -553,8 +555,8 @@ export async function utforRessurs(
       // given, and telling a citizen who remembers agreeing that they must
       // "register a samtykke" reads as the system having forgotten. Both are
       // DATA_NEKTET — hjemmel was there, samtykke was not — but the reason differs.
-      const utloept = harUtloeptSamtykke(tilstand, kontekst.personId, kreverSamtykke);
-      await leggTilRevisjon({
+      const utloept = hasUtloeptSamtykke(tilstand, kontekst.personId, kreverSamtykke);
+      await addRevisjon({
         sporingsId: kontekst.sporingsId,
         handling: "DATA_NEKTET",
         ressurs: ressurs.ressurs,
@@ -584,7 +586,7 @@ export async function utforRessurs(
     // what was agreed.
     const formaal = samtykke?.formaal || ressurs.formaal;
 
-    await leggTilRevisjon({
+    await addRevisjon({
       sporingsId: kontekst.sporingsId,
       handling: "DATA_LES",
       ressurs: ressurs.ressurs,

@@ -15,7 +15,10 @@ const ASSETS = {
   // Vendored design system, see docs/designsystem.md. Flat filenames on purpose:
   // the lookup below joins the URL name onto a directory, so no name may contain a slash.
   "ds-base.css": "text/css; charset=utf-8",
-  "ds-ksdigital.css": "text/css; charset=utf-8"
+  "ds-ksdigital.css": "text/css; charset=utf-8",
+  // The service registry. Dashboard and API explorer both read it, so the list of
+  // services exists once instead of once per page. See apps/shared-ui/tjenester.json.
+  "tjenester.json": "application/json; charset=utf-8"
 };
 
 function send(response, statusCode, body, contentType = "text/html; charset=utf-8") {
@@ -41,8 +44,10 @@ function sendHtml(response, filename) {
 const sider = {
   "/": "dashboard.html",
   "/dashboard": "dashboard.html",
-  "/stegvis": "index.html",
-  "/index.html": "index.html",
+  "/stegvis": "stegvis.html",
+  // Ruta het /stegvis lenge foer filen gjorde. Aliaset staar fordi noen kan ha
+  // bokmerket det.
+  "/index.html": "stegvis.html",
   "/chat": "chat.html",
   "/chat.html": "chat.html",
   "/agent": "agent.html",
@@ -58,7 +63,7 @@ const sider = {
 const server = createServer(async (request, response) => {
   const sti = (request.url || "/").split("?")[0];
 
-  if (sti === "/helse" || sti === "/health") {
+  if (sti === "/helse") {
     send(response, 200, JSON.stringify({ status: "ok", tjeneste: "demo-gui" }), "application/json; charset=utf-8");
     return;
   }

@@ -14,11 +14,7 @@
   </head>
   <body>
     <main>
-      <div class="top-links">
-        <a href="/">Oversikt</a>
-        <a href="/chat">Chat-demo</a>
-        <a href="/agent">AI-agent</a>
-      </div>
+      <div class="top-links" id="toppmeny"></div>
       <h1>Innbyggerdialog Demo — stegvis</h1>
       <p><strong>Du er her:</strong> ett steg av gangen, med rå JSON og revisjonslogg synlig.
         Bruk denne når du vil <em>se hva som skjer under panseret</em>.</p>
@@ -67,6 +63,7 @@
       </div>
     </main>
     <script src="/assets/felles.js"></script>
+    <script>renderTopNav("/stegvis");</script>
     <script>
       const aiBase = "http://localhost:8082";
       const personvelger = document.getElementById("personvelger");
@@ -77,7 +74,7 @@
       const samtykkeIdEl = document.getElementById("samtykkeId");
       const sporingsIdEl = document.getElementById("sporingsId");
       const oektsIdEl = document.getElementById("oektsId");
-      const stegTeller = document.getElementById("stegTeller");
+      const stegCounter = document.getElementById("stegTeller");
       const aktivtStegEl = document.getElementById("aktivtSteg");
       const prosessOversikt = document.getElementById("prosessOversikt");
 
@@ -88,11 +85,11 @@
       let sporingsId = `flyt-${Date.now()}`;
       sporingsIdEl.textContent = sporingsId;
 
-      function settStatus(tekst) {
+      function setStatus(tekst) {
         statusEl.textContent = tekst;
       }
 
-      function logg(tekst) {
+      function log(tekst) {
         const node = document.createElement("div");
         node.className = "line";
         node.textContent = tekst;
@@ -107,12 +104,12 @@
         return prosessvelger.value;
       }
 
-      function prosessFraId(prosessId) {
+      function prosessFromId(prosessId) {
         return prosesser.find((prosess) => prosess.id === prosessId) || null;
       }
 
-      async function hentJson(url, valg = {}) {
-        const svar = await fetch(url, { ...valg, headers: medToken(valg.headers || {}) });
+      async function getJson(url, valg = {}) {
+        const svar = await fetch(url, { ...valg, headers: withToken(valg.headers || {}) });
         const data = await svar.json();
         if (!svar.ok) {
           throw new Error(data.feil || `Feil ${svar.status}`);
@@ -121,7 +118,7 @@
       }
 
       async function postJson(url, payload = {}) {
-        return hentJson(url, {
+        return getJson(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -133,30 +130,30 @@
       // everything downstream keeps working unchanged.
       let meg = null;
 
-      async function lastInnGrunnlag() {
-        personer = await hentJson("http://localhost:8080/api/personer");
-        prosesser = await hentJson("http://localhost:8080/api/prosesser");
+      async function loadGrunnlag() {
+        personer = await getJson("http://localhost:8080/api/personer");
+        prosesser = await getJson("http://localhost:8080/api/prosesser");
 
-        meg = visInnloggetPerson(personvelger, personer);
-        visInnloggingsbanner(hendelser, meg);
+        meg = showLoggedInPerson(personvelger, personer);
+        showLoginBanner(hendelser, meg);
 
         prosessvelger.innerHTML = prosesser
           .map((prosess) => `<option value="${htmlEscape(prosess.id)}">${htmlEscape(prosess.navn)}</option>`)
           .join("");
 
-        tegnProsessOversikt();
+        renderProsessOversikt();
       }
 
-      function tegnProsessOversikt() {
-        const prosess = aktivProsess || prosessFraId(valgtProsessId());
+      function renderProsessOversikt() {
+        const prosess = aktivProsess || prosessFromId(valgtProsessId());
         if (!prosess) {
           prosessOversikt.innerHTML = `<div class="muted">Ingen prosess valgt.</div>`;
-          stegTeller.textContent = "0 / 0";
+          stegCounter.textContent = "0 / 0";
           return;
         }
 
         const aktivIndex = aktivProsessoekt?.stegIndex ?? -1;
-        stegTeller.textContent = `${Math.max(aktivIndex + 1, 0)} / ${prosess.steg.length}`;
+        stegCounter.textContent = `${Math.max(aktivIndex + 1, 0)} / ${prosess.steg.length}`;
         prosessOversikt.innerHTML = prosess.steg.map((steg, indeks) => {
           const klasser = [];
           if (indeks === aktivIndex) klasser.push("active");
@@ -170,25 +167,25 @@
         }).join("");
       }
 
-      function oppdaterSessionVisning(oekt) {
+      function updateSessionView(oekt) {
         aktivProsessoekt = oekt;
-        aktivProsess = prosessFraId(oekt.prosessId);
+        aktivProsess = prosessFromId(oekt.prosessId);
         sporingsId = oekt.sporingsId;
         sporingsIdEl.textContent = sporingsId;
         oektsIdEl.textContent = oekt.oektsId;
         samtykkeIdEl.textContent = oekt.aktivtSamtykkeId || "ikke opprettet";
-        tegnProsessOversikt();
+        renderProsessOversikt();
       }
 
-      function tegnAktivtSteg() {
+      function renderAktivtSteg() {
         const steg = aktivProsessoekt?.aktivtSteg;
         if (!steg) {
           aktivtStegEl.innerHTML = `<div class="muted">Ingen aktivt steg.</div>`;
-          tegnProsessOversikt();
+          renderProsessOversikt();
           return;
         }
 
-        tegnProsessOversikt();
+        renderProsessOversikt();
 
         let innhold = `
           <div class="step-type">${htmlEscape(steg.type)}</div>
@@ -282,10 +279,10 @@
         }
 
         aktivtStegEl.innerHTML = innhold;
-        kobleStegHandlinger(steg);
+        wireStegHandlinger(steg);
       }
 
-      function kobleStegHandlinger(steg) {
+      function wireStegHandlinger(steg) {
         if (steg.type === "QUESTION") {
           document.getElementById("lagreSvar").onclick = async () => {
             try {
@@ -307,26 +304,26 @@
                 stegId: steg.id,
                 svar
               });
-              oppdaterSessionVisning(oekt);
+              updateSessionView(oekt);
               visning.textContent = JSON.stringify(oekt, null, 2);
-              settStatus("Svar lagret i prosessøkten.");
-              logg(`Svar lagret for steg ${steg.id}.`);
-              tegnAktivtSteg();
+              setStatus("Svar lagret i prosessøkten.");
+              log(`Svar lagret for steg ${steg.id}.`);
+              renderAktivtSteg();
             } catch (error) {
-              settStatus(error.message);
+              setStatus(error.message);
             }
           };
         }
 
         if (steg.type === "CONSENT_REQUEST") {
           document.getElementById("opprettSamtykke").onclick = async () => {
-            await kjorStegHandling({ handling: "opprett-samtykke" }, "Samtykke opprettet.");
+            await runStegHandling({ handling: "opprett-samtykke" }, "Samtykke opprettet.");
           };
           document.getElementById("samtykk").onclick = async () => {
-            await kjorStegHandling({ handling: "samtykkesvar", status: "SAMTYKKET" }, "Samtykke registrert.");
+            await runStegHandling({ handling: "samtykkesvar", status: "SAMTYKKET" }, "Samtykke registrert.");
           };
           document.getElementById("ikkeSamtykk").onclick = async () => {
-            await kjorStegHandling({ handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }, "Svar registrert uten samtykke.");
+            await runStegHandling({ handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }, "Svar registrert uten samtykke.");
           };
         }
 
@@ -338,29 +335,29 @@
               SUMMARY: "Oppsummering laget.",
               SUBMIT: "Søknad sendt inn."
             };
-            await kjorStegHandling({}, meldinger[steg.type]);
+            await runStegHandling({}, meldinger[steg.type]);
           };
         }
       }
 
-      async function kjorStegHandling(payload, statusmelding) {
+      async function runStegHandling(payload, statusmelding) {
         try {
           const data = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/handling`, payload);
-          oppdaterSessionVisning(data.oekt);
+          updateSessionView(data.oekt);
           visning.textContent = JSON.stringify(data.resultat, null, 2);
           // Et SJEKK-steg som ikke godkjennes setter okten til AVVIST og avslutter
           // flyten. Uten dette ville avslaget sett ut som et vanlig utfort steg.
           if (data.oekt?.status === "AVVIST") {
             const avvist = data.oekt.avvistMelding || data.resultat?.melding || "Prosessen ble avvist.";
-            settStatus(`Avvist: ${avvist}`);
-            logg(`Avvist: ${avvist}`);
+            setStatus(`Avvist: ${avvist}`);
+            log(`Avvist: ${avvist}`);
           } else {
-            settStatus(statusmelding);
-            logg(statusmelding);
+            setStatus(statusmelding);
+            log(statusmelding);
           }
-          tegnAktivtSteg();
+          renderAktivtSteg();
         } catch (error) {
-          settStatus(error.message);
+          setStatus(error.message);
           visning.textContent = JSON.stringify({ feil: error.message }, null, 2);
         }
       }
@@ -372,66 +369,66 @@
             prosessId: valgtProsessId(),
             sporingsId: `flyt-${Date.now()}`
           });
-          oppdaterSessionVisning(oekt);
+          updateSessionView(oekt);
           visning.textContent = JSON.stringify(oekt, null, 2);
-          settStatus(`Prosess startet: ${aktivProsess?.navn || "ukjent prosess"}`);
-          logg("Prosess startet.");
-          tegnAktivtSteg();
+          setStatus(`Prosess startet: ${aktivProsess?.navn || "ukjent prosess"}`);
+          log("Prosess startet.");
+          renderAktivtSteg();
         } catch (error) {
-          settStatus(error.message);
+          setStatus(error.message);
         }
       }
 
-      async function flyttSteg(retning) {
+      async function moveSteg(retning) {
         if (!aktivProsessoekt) {
-          settStatus("Start en prosess først.");
+          setStatus("Start en prosess først.");
           return;
         }
         try {
           const endepunkt = retning < 0 ? "forrige" : "neste";
           const oekt = await postJson(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/${endepunkt}`);
-          oppdaterSessionVisning(oekt);
+          updateSessionView(oekt);
           visning.textContent = JSON.stringify(oekt, null, 2);
-          settStatus(`Viser steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`);
-          tegnAktivtSteg();
+          setStatus(`Viser steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`);
+          renderAktivtSteg();
         } catch (error) {
-          settStatus(error.message);
+          setStatus(error.message);
         }
       }
 
       document.getElementById("start").onclick = startProsess;
-      document.getElementById("forrige").onclick = () => flyttSteg(-1);
-      document.getElementById("neste").onclick = () => flyttSteg(1);
+      document.getElementById("forrige").onclick = () => moveSteg(-1);
+      document.getElementById("neste").onclick = () => moveSteg(1);
       document.getElementById("hentLogg").onclick = async () => {
         try {
-          const data = await hentJson(`http://localhost:8080/api/revisjonslogg/${sporingsId}`);
+          const data = await getJson(`http://localhost:8080/api/revisjonslogg/${sporingsId}`);
           visning.textContent = JSON.stringify(data, null, 2);
-          settStatus("Revisjonslogg hentet.");
-          logg("Revisjonslogg hentet.");
+          setStatus("Revisjonslogg hentet.");
+          log("Revisjonslogg hentet.");
         } catch (error) {
-          settStatus(error.message);
+          setStatus(error.message);
         }
       };
 
       prosessvelger.onchange = () => {
         if (!aktivProsessoekt) {
-          tegnProsessOversikt();
+          renderProsessOversikt();
         }
       };
 
-      sjekkModell(aiBase, {
+      checkModell(aiBase, {
         konsekvens: "Oppsummeringen under kommer fra maler, ikke fra en modell."
       });
 
-      // Log in first. krevInnlogging() returns false when it has already started
+      // Log in first. requireLogin() returns false when it has already started
       // navigating to ID-porten, and then there is nothing more to do on this load.
-      krevInnlogging().then((innlogget) => {
+      requireLogin().then((innlogget) => {
         if (!innlogget) return null;
-        return lastInnGrunnlag().then(() => {
-          settStatus(`Demo-GUI klar. Innlogget som ${meg.visningsnavn}.`);
+        return loadGrunnlag().then(() => {
+          setStatus(`Demo-GUI klar. Innlogget som ${meg.visningsnavn}.`);
         });
       }).catch((error) => {
-        settStatus(`Kunne ikke laste grunnlag: ${error.message}`);
+        setStatus(`Kunne ikke laste grunnlag: ${error.message}`);
       });
     </script>
   </body>

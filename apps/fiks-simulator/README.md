@@ -70,7 +70,7 @@ Modellert etter
 [register-skatteoginntektsopplysninger-beregning-api-v1](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json),
 beregningstype `BARNEHAGE_SFO`.
 
-Pluss `/helse`, `/health`, `/docs` og `/openapi.yaml`.
+Pluss `/helse`, `/docs`, `/openapi.yaml` og `/openapi-ruter.json`.
 
 ## Samtykket har regler
 

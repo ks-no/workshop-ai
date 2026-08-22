@@ -62,11 +62,11 @@ async function hent(sti: string): Promise<any> {
   return svar.json();
 }
 
-export async function hentGater(): Promise<Gate[]> {
+export async function getGater(): Promise<Gate[]> {
   return (await hent("/mock/matrikkel/gater")) || [];
 }
 
-export async function finnGate(gateNavn: string | null): Promise<Gate | null> {
+export async function findGate(gateNavn: string | null): Promise<Gate | null> {
   if (!gateNavn) return null;
   const treff = await hent(`/mock/matrikkel/gater?gate=${encodeURIComponent(gateNavn)}`);
   return Array.isArray(treff) && treff.length > 0 ? treff[0] : null;

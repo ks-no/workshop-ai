@@ -21,16 +21,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
-  /health:
-    get:
-      summary: Health check
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
   /docs:
     get:
       summary: Ruteoversikt som HTML

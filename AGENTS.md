@@ -38,8 +38,8 @@
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable — never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
-- **Eligibility logic lives in one place: `vilkaar.ts`.** `vurderVilkaar` is the only way
-  in; `regelHandtere` is private, so a new rule type does not widen the interface. The
+- **Eligibility logic lives in one place: `vilkaar.ts`.** `evaluateVilkaar` is the only way
+  in; `regelHandlers` is private, so a new rule type does not widen the interface. The
   module is pure and synchronous — the income basis arrives as a parameter — so an outcome
   can be pinned with a literal `tilstand` object and no running services. `regler.ts` is
   the I/O half (the Fiks beregning, the samtykke predicates) and `vilkaar.ts` must never
@@ -197,7 +197,7 @@ pnpm test:agent:matrikkel
   (need the compose stack up) — run those locally.
 - All eight services have a `healthcheck` in `docker-compose.yml`, and `mcp-services`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
-  `/health` itself, since the macOS path uses `--no-deps`.
+  `/helse` itself, since the macOS path uses `--no-deps`.
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).

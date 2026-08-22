@@ -3,7 +3,7 @@
 // This module answers one question — who is on the other end of this request —
 // and refuses to answer a second one. Whether that caller is *allowed* to do the
 // thing is authorisation, and it lives where the request is handled: in
-// utforRessurs for data resources, and in handleRequest for the orchestration
+// runRessurs for data resources, and in handleRequest for the orchestration
 // routes. Keeping the two apart is the whole pedagogical point of Del B:
 //
 //   401  we do not know who you are          (autentisering)
@@ -22,7 +22,7 @@
 // hand itself any citizen's identity is exactly the wrong lesson.
 
 import type { IncomingMessage } from "node:http";
-import { lagVerifikator, TokenFeil } from "../../digdir-mock/src/verifiser.ts";
+import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 import {
   authEnforce,
   digdirBaseUrl,
@@ -32,27 +32,27 @@ import {
 } from "./config.ts";
 import { HttpError } from "./errors.ts";
 
-export type Kaller =
+export type Caller =
   | { type: "innbygger"; pid: string; acr: string; clientId: string }
   | { type: "system"; clientId: string; scope: string[]; consumer: string | null }
   | { type: "anonym" };
 
 /** Clock skew tolerance. Small on purpose — everything here runs on one machine. */
-const slakkSekunder = 10;
+const slackSeconds = 10;
 
 // --- verification ---------------------------------------------------------
 
-// The mechanics live in digdir-mock/src/verifiser.ts, shared with fiks-simulator.
+// The mechanics live in digdir-mock/src/verify.ts, shared with fiks-simulator.
 // What stays here is this service's policy: what a verified token *means*, and who
 // may do what with it.
-const verifiser = lagVerifikator({
+const verifiser = createVerifier({
   digdirBaseUrl,
   maskinportenIssuer,
   idportenIssuer,
   audience: tokenAudience
 });
 
-function fraTokenFeil(feil: TokenFeil): HttpError {
+function fromTokenError(feil: TokenError): HttpError {
   // RFC 6750 section 3: a 401 tells the client *how* to authenticate, and the error
   // code is machine-readable.
   //
@@ -80,7 +80,7 @@ function fraTokenFeil(feil: TokenFeil): HttpError {
  * throw 401: someone tried to authenticate and failed, and silently downgrading
  * that to anonymous would hide the mistake.
  */
-export async function klassifiserKaller(request: IncomingMessage): Promise<Kaller> {
+export async function classifyKaller(request: IncomingMessage): Promise<Caller> {
   const header = request.headers.authorization;
   if (!header) {
     return { type: "anonym" };
@@ -99,7 +99,7 @@ export async function klassifiserKaller(request: IncomingMessage): Promise<Kalle
   try {
     verifisert = await verifiser(token);
   } catch (feil) {
-    if (feil instanceof TokenFeil) throw fraTokenFeil(feil);
+    if (feil instanceof TokenError) throw fromTokenError(feil);
     throw feil;
   }
   const { krav, utsteder } = verifisert;
@@ -108,7 +108,7 @@ export async function klassifiserKaller(request: IncomingMessage): Promise<Kalle
   // machine token that happened to carry the claim would be read as a citizen.
   if (utsteder === "idporten") {
     if (!krav.pid) {
-      throw fraTokenFeil(new TokenFeil("ID-porten-tokenet mangler pid."));
+      throw fromTokenError(new TokenError("ID-porten-tokenet mangler pid."));
     }
     return {
       type: "innbygger",
@@ -136,7 +136,7 @@ export async function klassifiserKaller(request: IncomingMessage): Promise<Kalle
  * `personId` is who the request concerns. For a citizen it is redundant — they are
  * the subject — so it is only recorded for a machine, as `paaVegneAv`.
  */
-export function aktorFor(kaller: Kaller, personId?: string | null): Record<string, unknown> {
+export function aktorFor(kaller: Caller, personId?: string | null): Record<string, unknown> {
   if (kaller.type === "innbygger") {
     return { type: "innbygger", id: kaller.pid, acr: kaller.acr };
   }
@@ -195,19 +195,19 @@ function manglerToken(hva: string): HttpError {
 
 function manglerHjemmel(melding: string): HttpError {
   // 403: we know exactly who this is, and they still may not. Deliberately a
-  // different message from the 403 for missing samtykke — see utforRessurs.
+  // different message from the 403 for missing samtykke — see runRessurs.
   return new HttpError(melding, 403, { syntetisk: true, grunn: "mangler_hjemmel" });
 }
 
 /**
- * The one authorisation decision, shared by both boundaries: utforRessurs for data
+ * The one authorisation decision, shared by both boundaries: runRessurs for data
  * resources, and handleRequest for the orchestration routes.
  *
  * Throws, or returns having said nothing. Never returns a boolean — a caller that
  * forgets to check a boolean fails open, and this must fail closed.
  */
-export function krevTilgang(valg: {
-  kaller: Kaller;
+export function requireTilgang(valg: {
+  kaller: Caller;
   tilgang: Tilgang;
   /** Scope a machine caller must hold. */
   scope: string;
@@ -257,7 +257,7 @@ export function krevTilgang(valg: {
 }
 
 /** For log lines and error messages. Never for an access decision. */
-export function beskrivKaller(kaller: Kaller): string {
+export function describeKaller(kaller: Caller): string {
   if (kaller.type === "innbygger") return `innbygger ${kaller.pid} (${kaller.acr})`;
   if (kaller.type === "system") return `${kaller.clientId} [${kaller.scope.join(" ") || "uten scope"}]`;
   return "ukjent kaller";

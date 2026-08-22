@@ -31,8 +31,8 @@ export function textResponse(response: ServerResponse, statusCode: number, data:
 
 export async function readRequestBody(request: IncomingMessage): Promise<any> {
   const chunks = [];
-  for await (const del of request) {
-    chunks.push(del);
+  for await (const chunk of request) {
+    chunks.push(chunk);
   }
   return chunks.length === 0 ? {} : JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }

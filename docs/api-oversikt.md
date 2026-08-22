@@ -1,40 +1,41 @@
 # API-oversikt
 
-## Sandbox Backend
+**Denne siden lister ikke endepunktene.** Den forteller hvor de står, og forklarer det
+spesifikasjonene ikke kan forklare selv.
 
-Forventede hovedendepunkter:
+Grunnen: endepunktene fantes her i en håndskrevet liste, ved siden av `openapi/*.yaml`,
+ved siden av hver tjenestes `/docs`, og ved siden av `/openapi-ruter.json`. Fire lister
+over det samme driver fra hverandre, og den håndskrevne taper alltid. `pnpm test:openapi`
+holder spesifikasjonene i takt med koden; ingenting holdt denne fila i takt med noe.
 
-- `GET /helse`
-- `GET /api/prosesser`
-- `GET /api/prosesser/{prosessId}`
-- `POST /api/prosesser`
-- `PUT /api/prosesser/{prosessId}`
-- `POST /api/prosessoekter`
-- `GET /api/prosessoekter/{oektsId}`
-- `POST /api/prosessoekter/{oektsId}/svar`
-- `POST /api/prosessoekter/{oektsId}/handling`
-- `POST /api/prosessoekter/{oektsId}/neste`
-- `POST /api/prosessoekter/{oektsId}/forrige`
-- `GET /api/personer`
-- `GET /api/personer/{personId}`
-- `GET /api/personer/{personId}/husstand`
-- `GET /api/personer/{personId}/inntekt`
-- `GET /api/personer/{personId}/barnehage`
-- `GET /api/personer/{personId}/sfo`
-- `GET /api/personer/{personId}/soknader`
-- `GET /api/husstander/{husstandId}/inntektsgrunnlag`
-- `GET /api/regler/satser`
-- `GET /api/regler/sjekk/foreldrebetaling`
-- `GET /api/matrikkel/gater`
-- `GET /api/matrikkel/sjekk/eierforhold`
-- `GET /api/katalog/datasett`
-- `GET /api/katalog/informasjonsmodeller`
-- `GET /api/katalog/ressurser`
-- `POST /api/soknader`
-- `GET /api/soknader/{soknadId}`
-- `GET /api/revisjonslogg`
-- `POST /api/revisjonslogg`
-- `GET /api/revisjonslogg/{sporingsId}`
+## Hvor endepunktene står
+
+| Vil du | Bruk |
+|---|---|
+| Prøve et kall, med skjema og en `curl` som virker | <http://localhost:3001/utforsker> |
+| Se rutene i én tjeneste | `http://localhost:<port>/docs` |
+| Lese kontrakten | `http://localhost:<port>/openapi.yaml`, eller `openapi/*.yaml` i repoet |
+| Lese den maskinelt | `http://localhost:<port>/openapi-ruter.json` |
+
+Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell.
+
+| Tjeneste | Port | Spesifikasjon |
+|---|---|---|
+| sandbox-backend | 8080 | `openapi/sandbox-backend.yaml` |
+| fiks-simulator | 8081 | `openapi/fiks-simulator.yaml` |
+| ai-gateway | 8082 | `openapi/ai-gateway.yaml` |
+| mcp-services | 8083 | `openapi/mcp-services.yaml` |
+| process-agent | 8084 | `openapi/process-agent.yaml` |
+| matrikkel-mock | 8085 | `openapi/matrikkel-mock.yaml` |
+| digdir-mock | 8086 | `openapi/digdir-mock.yaml` |
+
+Lista over tjenester bor i `apps/shared-ui/tjenester.json`, som dashboardet og
+API-utforskeren begge leser. `pnpm test:openapi` krever at den er enig med seg selv.
+
+Alle sju svarer også på `GET /helse`. Det finnes ingen `/health` — den var et alias som
+gjorde at hver tjeneste sto oppført to ganger i utforskeren.
+
+## Sandbox Backend: ressurskatalogen
 
 Ressursene under `/api/personer/{personId}/…`, `/api/husstander/…`,
 `/api/matrikkel/…` og `/api/regler/sjekk/…` kommer fra den delte
@@ -42,24 +43,12 @@ ressurskatalogen. Hver av dem kan brukes både som HTTP-kall og som mål for et
 `DATA_FETCH`- eller `SJEKK`-steg. `GET /api/katalog/ressurser` lister dem med
 samtykkekrav og beskrivelse.
 
-## Fiks Simulator
+Det er den listen som er sann, ikke en kopi her: katalogen er én tabell i
+`apps/sandbox-backend/src/ressurser.ts`, og `pnpm test:openapi` leser den direkte.
 
-- `POST /fiks/samtykke`
-- `GET /fiks/samtykke/{samtykkeId}`
-- `PUT /fiks/samtykke/{samtykkeId}/svar`
-- `PUT /fiks/samtykke/{samtykkeId}/trekk`
-- `GET /fiks/samtykke/{samtykkeId}/historikk`
-- `GET /fiks/personer/{personId}/samtykker`
-- `GET /fiks/register/person/{personId}`
-- `GET /fiks/register/husstand/{personId}`
-- `GET /fiks/register/inntekt/{personId}`
-- `GET /fiks/register/barnehage/{personId}`
-- `GET /fiks/register/kontaktinfo/{personId}`
-- `POST /fiks/oppgaver`
-- `GET /fiks/oppgaver/{oppgaveId}`
-- `PUT /fiks/oppgaver/{oppgaveId}/status`
+## AI Gateway: hva hvert endepunkt er til
 
-## AI Gateway
+Spesifikasjonen har signaturene. Dette er det den ikke sier:
 
 - `POST /ai/dialogforslag`
 - `POST /ai/oppsummering`
@@ -77,9 +66,8 @@ samtykkekrav og beskrivelse.
 
 ## MCP Services (port 8083)
 
-- `GET /mcp/tools` – liste over alle verktøy
-- `POST /mcp/tools/invoke` – kalle et navngitt verktøy
-- `POST /mcp/tools/{toolName}/invoke` – alternativ sti
+`GET /mcp/tools` er fasit og svarer med den levende katalogen. Tabellen under er der for
+den som leser uten å kjøre stacken.
 
 ### Verktøy
 
@@ -112,26 +100,14 @@ samtykkekrav og beskrivelse.
 
 ## Matrikkel Mock (port 8085)
 
-SOAP-endepunkt (Geointegrasjon-sti):
+SOAP-flaten er den eneste i sandkassen som ikke lar seg beskrive godt i OpenAPI, så den
+står her:
 
 - `GET /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl`
-- `POST /geointegrasjon/matrikkel/wsapi/v1/BasisService` – støtter `FinnVeger`, `FinnMatrikkelenheter`, `HentMatrikkelenhet`, `HentEiere`
+- `POST /geointegrasjon/matrikkel/wsapi/v1/BasisService` – støtter `FinnVeger`,
+  `FinnMatrikkelenheter`, `HentMatrikkelenhet`, `HentEiere`
 
-REST-hjelpeendepunkter:
-
-- `GET /mock/matrikkel/gater?gate=Storgata`
-- `GET /mock/matrikkel/eiendommer?gate=Storgata&personId=person-001`
-- `GET /mock/matrikkel/eiendom/{matrikkelId}`
-- `GET /health`
-
-## OpenAPI-filer
-
-- `openapi/sandbox-backend.yaml`
-- `openapi/fiks-simulator.yaml`
-- `openapi/ai-gateway.yaml`
-- `openapi/mcp-services.yaml`
-- `openapi/matrikkel-mock.yaml`
-- `openapi/process-agent.yaml`
+REST-hjelpeendepunktene står i `openapi/matrikkel-mock.yaml`.
 
 ## Videre API-retning
 
