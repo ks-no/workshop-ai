@@ -1,3 +1,4 @@
+import { aktorFor, type Kaller } from "./autentisering.ts";
 import { aiBaseUrl, fiksBaseUrl } from "./config.ts";
 import { HttpError } from "./errors.ts";
 import { utforRessurs } from "./ressurser.ts";
@@ -56,16 +57,39 @@ export function byggProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefini
 // DATA_FETCH and SJEKK both consult the shared resource catalog, exactly the way
 // the HTTP router does. The engine used to keep its own copy of these lookups,
 // and the copies had drifted apart.
-async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any) {
+async function hentFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Kaller) {
   const resolvertUrl = erstattParametere(steg.api.url, oekt);
   return utforRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvertUrl}`), {
     oekt,
     steg,
-    sporingsId: oekt.sporingsId
+    sporingsId: oekt.sporingsId,
+    kaller
   });
 }
 
-export async function opprettSoknad(tilstand: State, body: any) {
+/**
+ * The Fiks answer, or the Fiks error raised as our own.
+ *
+ * The samtykke routes have a state machine from Del D on, so answering the same
+ * request twice, or answering one that was withdrawn, comes back as 409. This code
+ * called `svar.json()` without looking at the status: the error body was stored as
+ * the step's result and the flow carried on with HTTP 200, which is a worse outcome
+ * than the 409 it hid. The status and the melding are passed through unchanged, so
+ * the citizen reads what the samtykke service said rather than a paraphrase.
+ */
+async function fiksSvar(svar: Response, hva: string) {
+  const data = await svar.json() as any;
+  if (!svar.ok) {
+    throw new HttpError(
+      data?.feil || `${hva} feilet i Fiks-simulatoren (status ${svar.status}).`,
+      svar.status,
+      { syntetisk: true, ...(data?.feilmeldinger ? { feilmeldinger: data.feilmeldinger } : {}) }
+    );
+  }
+  return data;
+}
+
+export async function opprettSoknad(tilstand: State, body: any, kaller: Kaller) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -82,7 +106,7 @@ export async function opprettSoknad(tilstand: State, body: any) {
     sporingsId: nySoknad.sporingsId,
     handling: "SOKNAD_SENDT_INN",
     ressurs: "soknad",
-    aktor: { type: "testbruker", id: nySoknad.personId }
+    aktor: aktorFor(kaller, nySoknad.personId)
   });
 
   let oppgave = null;
@@ -113,6 +137,8 @@ type StegKontekst = {
   prosess: ProsessDefinisjon;
   steg: any;
   body: any;
+  /** Who is calling, from the token. See autentisering.ts. */
+  kaller: Kaller;
 };
 
 // One handler per step type. A new step type is one entry here; the execution
@@ -130,7 +156,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     return { type: "QUESTION", svar };
   },
 
-  CONSENT_REQUEST: async ({ oekt, steg, body }) => {
+  CONSENT_REQUEST: async ({ oekt, steg, body, kaller }) => {
     if (body.handling === "opprett-samtykke") {
       const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke`, {
         method: "POST",
@@ -142,7 +168,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
           sporingsId: oekt.sporingsId
         })
       });
-      const data = await svar.json() as any;
+      const data = await fiksSvar(svar, "Å opprette samtykke");
       oekt.aktivtSamtykkeId = data.samtykkeId;
       oekt.resultater[steg.id] = data;
       return data;
@@ -159,10 +185,14 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
-          sporingsId: oekt.sporingsId
+          sporingsId: oekt.sporingsId,
+          // Only this service holds the verified token, so only it can say who
+          // agreed. Without this the samtykke event would name fiks-simulator as
+          // the actor — honest, but far less useful than the truth.
+          aktor: aktorFor(kaller, oekt.personId)
         })
       });
-      const data = await svar.json() as any;
+      const data = await fiksSvar(svar, "Å svare på samtykket");
       oekt.resultater[steg.id] = data;
       return data;
     }
@@ -170,14 +200,14 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     throw new HttpError("Samtykkesteg krever handlingen opprett-samtykke eller samtykkesvar.", 400);
   },
 
-  DATA_FETCH: async ({ tilstand, oekt, steg }) => {
-    const data = await hentFraKatalog(tilstand, oekt, steg);
+  DATA_FETCH: async ({ tilstand, oekt, steg, kaller }) => {
+    const data = await hentFraKatalog(tilstand, oekt, steg, kaller);
     oekt.resultater[steg.id] = data;
     return data;
   },
 
-  SJEKK: async ({ tilstand, oekt, steg }) => {
-    const resultat = await hentFraKatalog(tilstand, oekt, steg) as SjekkResultat;
+  SJEKK: async ({ tilstand, oekt, steg, kaller }) => {
+    const resultat = await hentFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
 
     oekt.resultater[steg.id] = resultat;
     if (!resultat.godkjent) {
@@ -188,7 +218,7 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
       sporingsId: oekt.sporingsId,
       handling: resultat.godkjent ? "SJEKK_OK" : "SJEKK_AVVIST",
       ressurs: "prosessoekt",
-      aktor: { type: "testbruker", id: oekt.personId }
+      aktor: aktorFor(kaller, oekt.personId)
     });
     return resultat;
   },
@@ -214,20 +244,26 @@ export const stegHandtere: Record<Stegtype, (k: StegKontekst) => unknown | Promi
     return data;
   },
 
-  SUBMIT: async ({ tilstand, oekt, prosess, steg }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
     const data = await opprettSoknad(tilstand, {
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
-    });
+    }, kaller);
     oekt.resultater[steg.id] = data;
     oekt.status = "FULLFORT";
     return data;
   }
 };
 
-export async function utforStegHandling(tilstand: State, oekt: Prosessoekt, prosess: ProsessDefinisjon, body: any) {
+export async function utforStegHandling(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon,
+  body: any,
+  kaller: Kaller
+) {
   const steg: ProsessSteg | undefined = prosess.steg[oekt.stegIndex];
   if (!steg) {
     throw new HttpError("Fant ikke aktivt steg.", 400);
@@ -241,5 +277,5 @@ export async function utforStegHandling(tilstand: State, oekt: Prosessoekt, pros
     );
   }
 
-  return handterer({ tilstand, oekt, prosess, steg, body });
+  return handterer({ tilstand, oekt, prosess, steg, body, kaller });
 }

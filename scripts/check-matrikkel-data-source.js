@@ -4,7 +4,7 @@ import { access } from "node:fs/promises";
 import { constants } from "node:fs";
 
 const defaultUrl = process.env.MATRIKKEL_HEALTH_URL || "http://localhost:8085/health";
-const defaultDataFile = process.env.MATRIKKEL_DATA_FILE || "data/matrikkel.seed.json";
+const defaultDataFile = process.env.MATRIKKEL_DATA_FILE || "data/matrikkel.json";
 
 function parseArgs(argv) {
   const opts = { url: defaultUrl, dataFile: defaultDataFile };
@@ -60,7 +60,7 @@ async function main() {
     console.error("Forventet datakilde ved neste oppstart:");
     if (process.env.MATRIKKEL_DATA_FILE) {
       console.error(`- MATRIKKEL_DATA_FILE: ${opts.dataFile} (${exists ? "finnes" : "mangler"})`);
-      console.error("- fallback: data/matrikkel.seed.json");
+      console.error("- fallback: data/matrikkel.json");
     } else {
       console.error(`- standard: ${opts.dataFile} (${exists ? "finnes" : "mangler"})`);
     }

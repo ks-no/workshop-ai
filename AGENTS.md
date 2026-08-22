@@ -11,7 +11,7 @@
   with `process-builder`, both served at `/assets/*`.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
-- `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Separate Docker image built from `apps/matrikkel-mock/Dockerfile`.
+- `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) — persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/mcp-services` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
 - `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `mcp-services` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
@@ -23,7 +23,7 @@
 - `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
   `./start.sh --reset` clears `state/`.
 - `apps/sandbox-backend` is TypeScript, split into modules (`routes.ts`, `prosess.ts`,
-  `ressurser.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
+  `ressurser.ts`, `vilkaar.ts`, `alder.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
   `errors.ts`, `config.ts`, `http.ts`).
   There is no `server.js` — `server.ts` only wires up the HTTP server.
   Node type-strips the `.ts` files directly; there is no build step.
@@ -38,6 +38,20 @@
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable — never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
+- **Eligibility logic lives in one place: `vilkaar.ts`.** `vurderVilkaar` is the only way
+  in; `regelHandtere` is private, so a new rule type does not widen the interface. The
+  module is pure and synchronous — the income basis arrives as a parameter — so an outcome
+  can be pinned with a literal `tilstand` object and no running services. `regler.ts` is
+  the I/O half (the Fiks beregning, the samtykke predicates) and `vilkaar.ts` must never
+  import it back: that arrow is what keeps a rules test from paying for a 2048-bit RSA
+  keypair at module load.
+  **`scripts/valider-data.js` imports the rule rather than mirroring it.** It used to
+  carry its own copy of every rule, so `data/forventet-utfall.json` — the pinned
+  outcomes the workshop text rests on — was validated against the copy. Never reintroduce
+  a second implementation for the gate's convenience, and never regenerate
+  `forventet-utfall.json` from the rules: an oracle derived from what it tests cannot
+  fail. `alderVed` lives in `alder.ts` for the same reason, shared by the rules, the gate
+  and `scripts/importer-tenor.js`.
 - Consent gating is enforced before protected data reads; do not bypass this in UI or agent logic.
 - A citizen may ask a free question at any point (`POST /ai/sporsmaal`). That path is
   **stateless by design**: it never calls `/svar`, `/handling` or `/neste`, and it never
@@ -105,6 +119,7 @@ docker compose down -t 0
 pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.js: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
+pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -113,9 +128,9 @@ pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fr
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
   Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed — a restart is enough.
-- The seven volume-mounted Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `mcp-services`,
-  `process-agent`, `fiks-simulator`, `process-builder`) run via `scripts/dev.sh`, which selects the
-  right watcher automatically:
+- All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `mcp-services`,
+  `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`) are
+  volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
   - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` — inotify
     events propagate natively; restarts are immediate.
   - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
@@ -124,8 +139,9 @@ docker compose restart sandbox-backend demo-gui   # targeted restart if you only
   Any file you save is detected and the Node process restarts — **no manual action needed for normal
   code edits**. Watch for the log line `Change detected in '...'` (inotify) or `restarting due to changes...`
   (nodemon) to confirm it triggered.
-- `matrikkel-mock` is the exception: it bakes files into its own Docker image at `apps/matrikkel-mock/Dockerfile`
-  and has no volume mount. Changes there require `docker compose up -d --build matrikkel-mock`.
+- `matrikkel-mock` used to be the exception — a baked image with no volume mount, so every seed
+  change needed `--build`. It no longer is: it reads the work tree like the rest, and
+  `apps/matrikkel-mock/Dockerfile` survives only for running it standalone outside Compose.
 - `./start.sh --reload` is still useful when you change `docker-compose.yml` itself (e.g. environment
   variables), since `--watch` only restarts the Node process, not the container.
 - `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
@@ -154,7 +170,8 @@ pnpm test:agent:matrikkel
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer` and `test:kontrakt` on every PR
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`, `test:vilkaar`,
+  `test:skjerming`, `test:samtykke`, `test:openapi` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) — run those locally.
@@ -204,8 +221,9 @@ pnpm test:agent:matrikkel
   callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only
   `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
 - `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
-  `data/matrikkel.seed.json`. Note that `data/matrikkel.json` (5.9 MB of downloaded
-  Geonorge addresses) is read by nothing at all.
+  `data/matrikkel.json` — the full Bergen extract, 220 streets and 8202 properties with
+  coordinates. `data/matrikkel.seed.json` remains as the small four-street fixture the
+  mock's own tests point at.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
   lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **Two different
   defaults, and the distinction matters:** the code default is `mock`
@@ -213,13 +231,16 @@ pnpm test:agent:matrikkel
   (`docker-compose.yml:200`) — so `hybrid` is what you actually run. Not `live`: `live`
   rethrows on network failure, so bad conference wifi turns every street lookup into a
   500. `hybrid` tries Geonorge first and falls back to the seed data.
+  Compose now defaults to `mock`, because the seed holds every Bergen street and a live
+  lookup has nothing left to add.
   `MATRIKKEL_MODE` is read only by `mcp-services`; `matrikkel-mock` always falls back to
   live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
   is down.
 
 ## Matrikkel integration pattern
-- `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.seed.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
-- `data/matrikkel.seed.json` is the stable curated base dataset; keep it small, readable, and deterministic.
+- `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
+- **It is the only reader of the matrikkel seed.** `sandbox-backend` reaches it over HTTP via `MATRIKKEL_BASE_URL`; nothing else opens the file. Keeping two read paths meant keeping two copies of the same post-processing in step by hand.
+- `data/matrikkel.seed.json` is the small curated fixture; keep it small, readable, and deterministic.
 - `mcp-services` kan gjore direkte gateoppslag mot Geonorge adresse-API i `live`-modus, uten lokal Norges-kopi.
 - `apps/mcp-services` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
 - `matrikkel_hent_eiendom` og `matrikkel_hent_eiere` kan brukes med eksakt adresse, for eksempel `Storgata 5`.

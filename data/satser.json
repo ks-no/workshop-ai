@@ -60,6 +60,24 @@
       "inntektsgrense": 651017,
       "trinnFra": 4,
       "trinnTil": 4
+    },
+    {
+      "id": "fritidskort-stotte",
+      "navn": "Fritidskort-støtte",
+      "tjeneste": "fritid",
+      "regel": "INNTEKTSGRENSE",
+      "inntektsgrense": 360000,
+      "alderFraAar": 6,
+      "alderTilAar": 18,
+      "beskrivelse": "Dekker deltakeravgift for én fritidsaktivitet per barn mellom 6 og 18 år."
+    },
+    {
+      "id": "stottekontakt",
+      "navn": "Støttekontakt",
+      "tjeneste": "stottekontakt",
+      "regel": "TJENESTEBEHOV",
+      "tilbudsdatasett": "tjenestetilbud",
+      "beskrivelse": "Behovsavklaring mot kommunens registrerte tilbud. Vurderes på alder og kapasitet, ikke inntekt."
     }
   ],
   "syntetisk": true

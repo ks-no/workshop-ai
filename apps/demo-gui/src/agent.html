@@ -95,11 +95,9 @@
       // ── init ─────────────────────────────────────────────────────────────────
       async function loadPeople() {
         try {
-          const res = await fetch(`${backendBase}/api/personer`);
+          const res = await fetch(`${backendBase}/api/personer`, { headers: medToken() });
           const people = await res.json();
-          personEl.innerHTML = people
-            .map((p) => `<option value="${htmlEscape(p.personId)}">${htmlEscape(p.visningsnavn)} (${htmlEscape(p.bostedsadresse.kommune)})</option>`)
-            .join("");
+          visInnloggetPerson(personEl, people);
         } catch {
           addMsg("error", "Kunne ikke laste testbrukere fra backend.");
         }
@@ -196,7 +194,7 @@
       // ── bootstrap ────────────────────────────────────────────────────────────
       sjekkModell(aiBase, { konsekvens: "Agenten faller tilbake til heuristikk og maltekst." });
 
-      loadPeople().then(() => {
+      krevInnlogging().then((innlogget) => innlogget && loadPeople()).then(() => {
         addMsg("assistant", "Velg en testbruker og trykk «Start med AI-agent» for å begynne.");
       });
     </script>

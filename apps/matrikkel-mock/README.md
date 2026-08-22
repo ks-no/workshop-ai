@@ -4,7 +4,7 @@ Mock av Kartverket Matrikkel Geointegrasjon API i egen Docker-image.
 
 ## Datasett
 
-`matrikkel-mock` starter fra `data/matrikkel.seed.json` og bygger et syntetisk matrikkelregister ved oppstart. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
+`matrikkel-mock` starter fra `data/matrikkel.json` — 220 Bergen-gater og 8202 eiendommer — og bygger et syntetisk matrikkelregister ved oppstart. Den er eneste leser av matrikkeldataene i sandkassen: `sandbox-backend` kaller den over HTTP via `MATRIKKEL_BASE_URL`. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
 
 Bakgrunn:
 
@@ -21,11 +21,11 @@ node apps/matrikkel-mock/src/server.js
 
 `MATRIKKEL_DATA_FILE` stotter fortsatt:
 
-- vanlig JSON (`data/matrikkel.seed.json`-format)
+- vanlig JSON (`data/matrikkel.json`-format)
 - `jsonl` / `ndjson`
 - `jsonl.gz` / `ndjson.gz`
 
-I `docker compose` leser `matrikkel-mock` standardfilen `data/matrikkel.seed.json`.
+I `docker compose` leser `matrikkel-mock` standardfilen `data/matrikkel.json`. `data/matrikkel.seed.json` er beholdt som liten fixture for mockens egne tester.
 
 Ved store datamengder kan du bruke `limit` og `offset` paa `GET /mock/matrikkel/gater` og `GET /mock/matrikkel/eiendommer`.
 
@@ -42,6 +42,13 @@ pnpm check:matrikkel-source -- --url=http://localhost:18085/health
 ```
 
 ## Bygg og kjor egen Docker-image
+
+Sandkassens `docker-compose.yml` bruker **ikke** denne Dockerfilen. Der kjorer mocken fra
+`node:24-alpine` med `./:/workspace` montert inn, som alle de andre tjenestene, slik at
+`data/matrikkel.json` i arbeidstreet alltid er kilden.
+
+Dockerfilen finnes for a kjore mocken frittstaende, uten resten av sandkassen. Da bakes
+matrikkelen inn i imaget, og du ma bygge pa nytt hver gang `data/matrikkel.json` endrer seg:
 
 ```bash
 docker build -t workshop-ai/matrikkel-mock:local -f apps/matrikkel-mock/Dockerfile .

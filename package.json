@@ -16,12 +16,19 @@
     "start:demo": "node apps/demo-gui/src/server.js",
     "start:prosessbygger": "node apps/process-builder/src/server.js",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.js",
+    "start:digdir": "node apps/digdir-mock/src/server.ts",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.js",
+    "data:tenor": "node scripts/importer-tenor.js",
+    "token": "node scripts/token.ts",
     "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.js",
     "test:kontrakt": "node scripts/kontrakt-smoke.js",
     "test:sperrer": "node scripts/test-sporsmaalsperrer.js",
+    "test:skjerming": "node scripts/test-skjerming.js",
+    "test:vilkaar": "node scripts/test-vilkaar.js",
+    "test:samtykke": "node scripts/test-samtykke.js",
+    "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:eval": "node scripts/eval.js",
     "test:agent": "node scripts/test-agent-flow.js",
     "test:agent:nl": "node scripts/test-agent-natural-language.js",
@@ -32,7 +39,7 @@
     "test:folkeregister-mcp": "node scripts/test-folkeregister-mcp.js",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.js",
     "lint": "tsc --noEmit",
-    "format": "echo \"Ingen formatter konfigurert enn\u00e5\""
+    "format": "echo \"Ingen formatter konfigurert ennå\""
   },
   "engines": {
     "node": ">=22.18"

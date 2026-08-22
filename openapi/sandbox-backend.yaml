@@ -8,13 +8,59 @@ servers:
 paths:
   /helse:
     get:
-      summary: Health check
+      summary: Helsesjekk
+      security: []
+      description: >
+        Svarer også på /health. Begge finnes fordi tjenestene her snakker norsk
+        og docker-compose sitt healthcheck-vokabular ikke gjør det.
       responses:
         "200":
-          description: OK
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Helse"
+  /health:
+    get:
+      summary: Helsesjekk (alias)
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Helse"
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      security: []
+      description: Menneskeleselig liste over endepunktene, generert av http.ts.
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      description: >
+        Tjenesten serverer sin egen spesifikasjon fra openapi/. Filen og koden
+        holdes i takt av scripts/sjekk-openapi-dekning.ts.
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
   /api/prosesser:
     get:
       summary: List prosesser
+      security: []
       parameters:
         - name: inkluderMaler
           in: query
@@ -34,6 +80,7 @@ paths:
                   $ref: "#/components/schemas/ProsessDefinisjon"
     post:
       summary: Opprett prosess
+      security: []
       requestBody:
         required: false
         content:
@@ -50,6 +97,7 @@ paths:
   /api/prosesser/{prosessId}:
     get:
       summary: Hent prosess
+      security: []
       parameters:
         - name: prosessId
           in: path
@@ -65,6 +113,7 @@ paths:
                 $ref: "#/components/schemas/ProsessDefinisjon"
     put:
       summary: Oppdater prosess
+      security: []
       parameters:
         - name: prosessId
           in: path
@@ -81,12 +130,18 @@ paths:
   /api/prosessoekter:
     post:
       summary: Opprett prosessøkt
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       responses:
         "201":
           description: Prosessøkt opprettet
   /api/prosessoekter/{oektsId}:
     get:
       summary: Hent prosessøkt
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: oektsId
           in: path
@@ -99,6 +154,9 @@ paths:
   /api/prosessoekter/{oektsId}/svar:
     post:
       summary: Lagre svar i prosessøkt
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: oektsId
           in: path
@@ -111,6 +169,9 @@ paths:
   /api/prosessoekter/{oektsId}/handling:
     post:
       summary: Utfør aktiv steg-handling
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: oektsId
           in: path
@@ -123,6 +184,9 @@ paths:
   /api/prosessoekter/{oektsId}/neste:
     post:
       summary: Gå til neste steg
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: oektsId
           in: path
@@ -135,6 +199,9 @@ paths:
   /api/prosessoekter/{oektsId}/forrige:
     post:
       summary: Gå til forrige steg
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: oektsId
           in: path
@@ -147,34 +214,72 @@ paths:
   /api/personer:
     get:
       summary: List syntetiske personer
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Hele befolkningen, 369 personer. Ingen innbygger har hjemmel til dette —
+        ruta er i bandet «bred» og krever et maskin-token. Adressebeskyttede
+        personer er maskert, se Person.
       responses:
         "200":
           description: Personer returnert
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Person"
   /api/personer/{personId}:
     get:
       summary: Hent én person
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Folkeregisterliknende grunndata. Adressebeskyttede personer maskeres ved
+        innlasting, ikke i denne ruta — se Person, og merk at maskeringen er
+        kaller-uavhengig: person-031 ser «Skjermet person» også om seg selv.
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
           description: Person returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
         "404":
-          description: Fant ikke person
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/personer/{personId}/husstand:
     get:
       summary: Hent husstanden personen tilhoerer
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
           description: Husstand returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Husstand"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
         "404":
-          description: Fant ikke person eller husstand
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/personer/{personId}/inntekt:
     get:
       summary: Hent inntekt for person
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       description: >
         Krever registrert samtykke for datakilden "inntekt", jf. regelen
         consent-before-income i policies/access-policy.yaml. Alle treff
@@ -183,44 +288,111 @@ paths:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
-          description: Inntekt returnert
+          description: Inntektsgrunnlaget for husholdningen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inntektsgrunnlag"
         "403":
-          description: Samtykke mangler
+          $ref: "#/components/responses/ManglerSamtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/personer/{personId}/barnehage:
     get:
       summary: Hent barnehageplasser for barna i husstanden
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
-          description: Barnehageplasser returnert
+          description: Plassene. Tom liste når husstanden ikke har noen.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barnehageplass"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
         "404":
-          description: Fant ikke person
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/personer/{personId}/sfo:
     get:
       summary: Hent SFO-plasser for barna i husstanden
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
-          description: SFO-plasser returnert
+          description: Plassene. Tom liste når husstanden ikke har noen.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sfoplass"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
         "404":
-          description: Fant ikke person
+          $ref: "#/components/responses/IkkeFunnet"
+
+  /api/personer/{personId}/fritid:
+    get:
+      summary: Hent fritidsaktiviteter barna i husstanden deltar i
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Den eneste tjenesten som vurderes på barnets alder framfor skoletrinn.
+        Ordningen fritidskort ligger i data/satser.json.
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Deltakelsene. Tom liste når husstanden ikke har noen.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Fritidsdeltakelse"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/personer/{personId}/soknader:
     get:
       summary: List soeknader personen har sendt inn
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
-          description: Soeknader returnert
+          description: Soeknadene
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Soknad"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
 
   /api/soknader:
     post:
       summary: Opprett en soeknad
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       description: Oppretter samtidig en oppgave i fiks-simulator.
       requestBody:
         required: true
@@ -245,6 +417,9 @@ paths:
   /api/soknader/{soknadId}:
     get:
       summary: Hent én soeknad
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: soknadId
           in: path
@@ -260,6 +435,7 @@ paths:
   /api/katalog/datasett:
     get:
       summary: List de syntetiske datasettene
+      security: []
       responses:
         "200":
           description: Datasett returnert
@@ -267,6 +443,7 @@ paths:
   /api/katalog/informasjonsmodeller:
     get:
       summary: List informasjonsmodellene datasettene laaner vokabular fra
+      security: []
       responses:
         "200":
           description: Informasjonsmodeller returnert
@@ -274,6 +451,7 @@ paths:
   /api/katalog/ressurser:
     get:
       summary: List ressursene DATA_FETCH- og SJEKK-steg kan peke paa
+      security: []
       description: >
         Ressurskatalogen i apps/sandbox-backend/src/ressurser.ts. Hver oppfoering
         er samtidig et HTTP-endepunkt, et gyldig DATA_FETCH-maal og et gyldig
@@ -309,6 +487,7 @@ paths:
   /api/matrikkel/gater:
     get:
       summary: List gater, eller hent noekkeltall for én gate
+      security: []
       description: >
         Uten ?gate returneres en liste. Med ?gate returneres en projeksjon uten
         eiendomslisten, siden den inneholder personId-ene til andre innbyggere.
@@ -322,12 +501,59 @@ paths:
       responses:
         "200":
           description: Gate eller gateliste returnert
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/MatrikkelGateSummary"
+                  - $ref: "#/components/schemas/MatrikkelGate"
         "404":
-          description: Fant ikke gaten
+          description: >
+            Fant ikke gaten. 221 gatenavn er for mange å sende tilbake på en
+            skrivefeil, så kroppen peker på lista i stedet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+  /api/matrikkel/mine-eiendommer:
+    get:
+      summary: Hent eiendommer soekeren er registrert som eier av
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Egne data, ikke det aapne gateregisteret: matrikkelen filtrerer paa eier
+        serverside, saa eierlistene til andre i gaten naar aldri hit. Til forskjell
+        fra sjekk/eierforhold er den ikke bundet til en gate.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Eiendomsliste returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MineEiendommer"
+        "400":
+          description: personId mangler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
 
   /api/matrikkel/sjekk/eierforhold:
     get:
       summary: Vurder om soekeren eier eiendom i en gitt gate
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       description: Brukes av SJEKK-steg. Foelger samme kontrakt som andre sjekker.
       parameters:
         - name: personId
@@ -348,64 +574,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/SjekkResultat"
 
-  /api/matrikkel/gater:
-    get:
-      summary: Søk i tilgjengelige gater i matrikkeldata
-      description: Returnerer alle tilgjengelige gater, eller alle treff som matcher hele eller deler av et gatenavn.
-      parameters:
-        - name: gate
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Hele eller deler av gatenavn.
-      responses:
-        "200":
-          description: Liste over gater eller treff.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MatrikkelGateSummary"
-        "404":
-          description: Fant ingen matchende gate.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/matrikkel/sjekk/eierforhold:
-    get:
-      summary: Sjekk om en person er registrert som eier i en gate
-      parameters:
-        - name: gate
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: personId
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Eierforhold vurdert.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MatrikkelEierforholdSjekk"
-        "404":
-          description: Fant ikke gaten.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /api/regler/satser:
     get:
       summary: Hent moderasjonsordninger med regler og inntektsgrenser
+      security: []
       description: >
         Satsene eies av kommunen og ligger i data/satser.json. Inntektsgrunnlaget
         beregnes derimot av fiks-simulator.
@@ -416,6 +588,9 @@ paths:
   /api/regler/sjekk/foreldrebetaling:
     get:
       summary: Vurder rett til en moderasjonsordning
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       description: >
         Deterministisk vurdering av inntektsgrunnlaget mot ordningen. Brukes av
         SJEKK-steg i prosessdefinisjoner. KI forklarer utfallet, men avgjør det
@@ -448,9 +623,65 @@ paths:
             inntektsgrunnlag og er derfor underlagt samme samtykkekrav som
             /api/personer/{personId}/inntekt.
 
+  /api/regler/sjekk/ordning:
+    get:
+      summary: Vurder rett til en ordning
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Vurderer én ordning i data/satser.json. Oppgi `ordning` direkte, eller
+        `tjeneste` og la barnets trinn eller alder avgjøre hvilken ordning som
+        gjelder — det siste er grunnen til at en husstand med barn i 1. trinn
+        ikke lenger får «ingen SFO-plass på 2.–3. trinn» i svaret.
+
+        Samtykke til inntekt kreves bare for ordninger som faktisk måles mot
+        inntekt. Støttekontakt vurderes på behov, og henter da ingen inntekt —
+        se regelKreverInntekt i vilkaar.ts.
+
+        `/api/regler/sjekk/foreldrebetaling` er et alias for denne. Navnet sier
+        foreldrebetaling, men ruta har alltid tatt enhver ordning.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: ordning
+          in: query
+          required: false
+          description: Id fra data/satser.json. Enten denne eller tjeneste.
+          schema:
+            type: string
+            example: redusert-foreldrebetaling
+        - name: tjeneste
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [barnehage, sfo, fritid]
+      responses:
+        "200":
+          description: Vurdering utfoert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SjekkResultat"
+        "400":
+          description: Ukjent ordning, ukjent tjeneste eller manglende parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          $ref: "#/components/responses/ManglerSamtykke"
+
   /api/husstander/{husstandId}/inntektsgrunnlag:
     get:
       summary: Hent husholdningens inntektsgrunnlag
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       description: >
         Henter beregningen fra fiks-simulator for hele husholdningen. Samme data
         som personruta, og derfor samme samtykkekrav.
@@ -463,19 +694,27 @@ paths:
       responses:
         "200":
           description: Beregning returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inntektsgrunnlag"
         "403":
-          description: Samtykke mangler
+          $ref: "#/components/responses/ManglerSamtykke"
         "404":
-          description: Fant ikke husstand
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/revisjonslogg:
     get:
       summary: Hent hele revisjonsloggen
+      security:
+        - maskinporten: [ks:innbyggerdialog:les]
       responses:
         "200":
           description: Revisjonslogg returnert
     post:
       summary: Registrer en revisjonshendelse
+      security:
+        - maskinporten: [ks:innbyggerdialog:revisjon]
       description: >
         Denne tjenesten eier revisjonsloggen. Andre tjenester, som
         fiks-simulator og ai-gateway, sender hendelser hit i stedet for å
@@ -490,18 +729,61 @@ paths:
               properties:
                 handling:
                   type: string
+                  description: >-
+                    `DATA_LES` og `DATA_NEKTET` gjelder datatilgang; `DATA_NEKTET`
+                    betyr hjemmel uten samtykke. `TILGANG_NEKTET` er noe annet: der
+                    manglet hjemmelen selv, altså 401 eller 403 før samtykke i det hele
+                    tatt ble vurdert. De to skal ikke slås sammen — forskjellen er hele
+                    poenget.
                   example: SAMTYKKE_OPPRETTET
                 ressurs:
                   type: string
                 sporingsId:
                   type: string
+                omfatter:
+                  type: array
+                  description: >-
+                    Hvilke personer dataene faktisk gjaldt, som personId. Utelates når
+                    det ikke sier mer enn aktor alt gjør. Finnes fordi de to ikke er
+                    samme sak: et inntektsoppslag kombinerer alle foresatte i
+                    husstanden, så for de 68 av 200 husstandene med to foresatte leses
+                    en partners skattedata på styrken av søkerens samtykke.
+                  items:
+                    type: string
+                    example: person-009
                 aktor:
                   type: object
+                  description: >-
+                    Hvem som kalte, avledet av tokenet — ikke hvem det ble spurt om.
+                    Identifikatorrommene er bevisst ulike: `id` er fødselsnummer for
+                    en innbygger, fordi det er hva ID-porten-tokenet bærer, mens
+                    `paaVegneAv` er personId, som er sandkassens domeneidentifikator.
                   properties:
                     type:
                       type: string
+                      enum: [innbygger, system, utvikler, ukjent]
+                      description: >-
+                        `innbygger` er en autentisert person via ID-porten. `system` er
+                        en maskinklient med eget scope. `utvikler` er prosessbyggeren,
+                        som ikke er en innbygger. `ukjent` betyr at ingen ble
+                        autentisert — det skjer bare med AUTH_ENFORCE=false, og skal se
+                        feil ut.
                     id:
                       type: string
+                      description: >-
+                        Fødselsnummer for `innbygger`, client_id for `system`, null for
+                        `ukjent`.
+                      example: "12018890001"
+                    acr:
+                      type: string
+                      description: Sikkerhetsnivået personen ble autentisert på.
+                      example: idporten-loa-high
+                    paaVegneAv:
+                      type: string
+                      description: >-
+                        For `system`: hvilken person kallet gjaldt. En maskin opptrer
+                        aldri *som* innbyggeren, men kan opptre på vegne av en.
+                      example: person-001
       responses:
         "201":
           description: Hendelsen er registrert
@@ -511,6 +793,9 @@ paths:
   /api/revisjonslogg/{sporingsId}:
     get:
       summary: Hent revisjonshendelsene for én flyt
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
       parameters:
         - name: sporingsId
           in: path
@@ -522,6 +807,27 @@ paths:
           description: Hendelser returnert
 
 components:
+  securitySchemes:
+    maskinporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
+        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` — et token utstedt for en annen
+        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
+        Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend`.
+    idporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
+        PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
+        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
+        «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
+        Hent ett med `scripts/token.ts --innbygger <personId>`.
   parameters:
     PersonId:
       name: personId
@@ -531,7 +837,285 @@ components:
         type: string
         example: person-001
 
+  responses:
+    IkkeFunnet:
+      description: Fant ikke ressursen
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    ManglerHjemmel:
+      description: >
+        Tokenet er gyldig, men gir ikke hjemmel her: `pid` er en annen person enn
+        forespørselen gjelder, eller maskinen mangler scope. `grunn` er
+        mangler_hjemmel.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    ManglerSamtykke:
+      description: >
+        Hjemmelen er i orden, men samtykket er ikke. To tilfeller, skilt av
+        `grunn`: mangler_samtykke når ingen har samtykket, utloept_samtykke når
+        noen gjorde det og samtykket har gått ut. Begge revisjonslogges som
+        DATA_NEKTET.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+
   schemas:
+    Helse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        tjeneste:
+          type: string
+        tidspunkt:
+          type: string
+          format: date-time
+    Kontakt:
+      type: object
+      description: >
+        Tenor-importerte personer har `kontakt: {}` — ingen nøkler i det hele
+        tatt. Nøkkelsettet er frosset wire-format.
+      properties:
+        epost:
+          type: string
+          nullable: true
+        telefon:
+          type: string
+          nullable: true
+    Adresse:
+      type: object
+      description: >
+        For en adressebeskyttet person er adressenavn, husnummer, postnummer og
+        poststed null. Kommune og kommunenummer overlever med vilje: regelmotoren
+        vurderer mot kommunens eget tilbud, og uten kommunenummer ville en
+        skjermet person mistet retten til tjenester.
+      properties:
+        adressenavn:
+          type: string
+          nullable: true
+        husnummer:
+          type: integer
+          nullable: true
+        postnummer:
+          type: string
+          nullable: true
+        poststed:
+          type: string
+          nullable: true
+        kommune:
+          type: string
+        kommunenummer:
+          type: string
+    Person:
+      type: object
+      description: >
+        Adressebeskyttelse anvendes ved innlasting, i skjerming.ts, og gjelder
+        derfor alle lesere. STRENGT_FORTROLIG (kode 6) mister navn og adresse:
+        navnet blir «Skjermet person». FORTROLIG (kode 7) mister adressen og
+        beholder navnet. Begge beholder fødselsnummer, fødselsdato, husstandId og
+        kommunenummer — beregningen og regelmotoren trenger dem, og uten dem
+        ville skjermingen stilt personen utenfor tjenestene sine.
+      properties:
+        personId:
+          type: string
+        syntetiskFodselsnummer:
+          type: string
+          description: Overlever maskeringen. Nøkkelen mot inntektsopplysningene i Fiks.
+        navn:
+          type: object
+          properties:
+            fornavn:
+              type: string
+            mellomnavn:
+              type: string
+              nullable: true
+            etternavn:
+              type: string
+        foedselsdato:
+          type: string
+          format: date
+        bostedsadresse:
+          $ref: "#/components/schemas/Adresse"
+        sivilstand:
+          type: string
+        rolle:
+          type: string
+          enum: [foresatt, barn]
+        husstandId:
+          type: string
+        skjermet:
+          type: boolean
+          description: True for både FORTROLIG og STRENGT_FORTROLIG.
+        adressebeskyttelse:
+          type: string
+          enum: [UGRADERT, FORTROLIG, STRENGT_FORTROLIG]
+        foreldrebarnrelasjon:
+          type: array
+          items:
+            type: object
+            properties:
+              relatertPersonId:
+                type: string
+              relasjon:
+                type: string
+                enum: [BARN, FAR, MOR, MEDMOR]
+        kontakt:
+          $ref: "#/components/schemas/Kontakt"
+        syntetisk:
+          type: boolean
+    Husstand:
+      type: object
+      properties:
+        husstandId:
+          type: string
+        type:
+          type: string
+          example: ENSLIG_FORSORGER
+        adresse:
+          type: string
+          nullable: true
+          description: >
+            Null bare når alle medlemmene er skjermet. En adresse man deler med
+            en umaskert medboer kan ikke skjules — medboerens egen post viser den
+            uansett.
+        kommune:
+          type: string
+        medlemmer:
+          type: array
+          items:
+            type: object
+            properties:
+              personId:
+                type: string
+              rolle:
+                type: string
+                enum: [foresatt, barn]
+        scenario:
+          type: string
+          description: Hva husstanden er kuratert for å vise. Bare på de frosne fixturene.
+        syntetisk:
+          type: boolean
+    Barnehageplass:
+      type: object
+      properties:
+        personId:
+          type: string
+        barnehageId:
+          type: string
+        barnehagenavn:
+          type: string
+        kommune:
+          type: string
+        plassprosent:
+          type: integer
+        manedspris:
+          type: integer
+        syntetisk:
+          type: boolean
+    Sfoplass:
+      type: object
+      properties:
+        personId:
+          type: string
+        sfoId:
+          type: string
+        sfonavn:
+          type: string
+        kommune:
+          type: string
+        trinn:
+          type: integer
+        manedspris:
+          type: integer
+        syntetisk:
+          type: boolean
+    Fritidsdeltakelse:
+      type: object
+      properties:
+        personId:
+          type: string
+        aktivitetId:
+          type: string
+        aktivitetsnavn:
+          type: string
+        arrangoer:
+          type: string
+        kommune:
+          type: string
+        manedspris:
+          type: integer
+        syntetisk:
+          type: boolean
+    Soknad:
+      type: object
+      properties:
+        soknadId:
+          type: string
+        personId:
+          type: string
+        prosessId:
+          type: string
+        status:
+          type: string
+          enum: [SENDT_INN]
+        opprettet:
+          type: string
+          format: date-time
+        sporingsId:
+          type: string
+        syntetisk:
+          type: boolean
+    Inntektsgrunnlag:
+      type: object
+      description: >
+        Svaret fra fiks-simulator sitt register-API, beregningstype
+        BARNEHAGE_SFO. Modellen er Fiks sin egen — se openapi/fiks-simulator.yaml
+        for hele formen. Husholdningsinntekten er summen for alle foresatte i
+        husstanden, jf. forskrift om foreldrebetaling, og for en husstand med to
+        foresatte betyr det at også den andres skattedata leses. Revisjonsloggen
+        fører begge i `omfatter`.
+      properties:
+        inntektsaar:
+          type: integer
+        stadie:
+          type: string
+          enum: [OPPGJOER, UTKAST, UKJENT]
+        beregningsbeloep:
+          type: integer
+          format: int64
+          description: Grunnlaget etter fradrag. Tallet regelsjekken måler mot.
+        personer:
+          type: array
+          items:
+            type: object
+        visningsposter:
+          type: array
+          description: >
+            Oppstilling per inntektstype. Et skjermet husstandsmedlem teller med
+            i summen, men beløpet spesifiseres ikke på personen.
+          items:
+            type: object
+        inntekt:
+          type: object
+        fradrag:
+          type: object
+        feilmeldinger:
+          type: array
+          items:
+            type: object
+            properties:
+              kode:
+                type: string
+              melding:
+                type: string
+        syntetisk:
+          type: boolean
     SjekkResultat:
       type: object
       description: >
@@ -547,15 +1131,48 @@ components:
         grunnlag:
           type: object
           description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
-    ErrorResponse:
+    Feil:
       type: object
+      description: >
+        Feilformen alle ruter deler. `feil` er meldingen på norsk. `grunn` er
+        maskinlesbar og skiller de to 403-ene fra hverandre: mangler_hjemmel,
+        mangler_samtykke og utloept_samtykke er tre forskjellige svar på «nei».
       properties:
         feil:
           type: string
-        tilgjengelige:
-          type: array
-          items:
-            type: string
+        grunn:
+          type: string
+          enum: [mangler_hjemmel, mangler_samtykke, utloept_samtykke]
+        detalj:
+          type: string
+        hint:
+          type: string
+        syntetisk:
+          type: boolean
+    MatrikkelGate:
+      type: object
+      description: >
+        Nøkkeltall for én gate. Eiendomslisten er med vilje ikke med: den
+        inneholder personId-ene til andre innbyggere i gaten.
+      properties:
+        gateId:
+          type: string
+        adressenavn:
+          type: string
+        kommune:
+          type: string
+        kommunenummer:
+          type: string
+        postnummer:
+          type: string
+        poststed:
+          type: string
+        antallEiendommer:
+          type: integer
+        antallBoligeiendommer:
+          type: integer
+        syntetisk:
+          type: boolean
     MatrikkelGateSummary:
       type: object
       required: [gateId, adressenavn, kommune, antallEiendommer, antallBoligeiendommer]
@@ -570,18 +1187,35 @@ components:
           type: integer
         antallBoligeiendommer:
           type: integer
-    MatrikkelEierforholdSjekk:
+    MineEiendommer:
       type: object
-      required: [personId, gate, harEiendom, godkjent]
+      required: [personId, eiendommer, syntetisk]
       properties:
         personId:
           type: string
+        eiendommer:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinEiendom"
+        syntetisk:
+          type: boolean
+    MinEiendom:
+      type: object
+      description: >
+        Projeksjon, ikke matrikkelenheten: eierlista er utelatt med vilje, saa
+        medeiere ikke foelger med ut av matrikkelen.
+      required: [matrikkelId, adresse]
+      properties:
+        matrikkelId:
+          type: string
+        adresse:
+          type: string
+        bruksenhetstype:
+          type: string
         gate:
           type: string
-        harEiendom:
-          type: boolean
-        godkjent:
-          type: boolean
+        kommune:
+          type: string
     RedigeringMeta:
       type: object
       description: Valgfri metadata for enklere redigering av prosessdefinisjoner.

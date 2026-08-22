@@ -14,7 +14,11 @@ const wsNamespace = "http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.
 const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
 const maksSideStoerrelse = Number(process.env.MATRIKKEL_PAGE_MAX || 5000);
-const universellEierPersonId = "person-001";
+// Bønesheien is injected below for the fartsdempende case, and this is its owner.
+// It is deliberately NOT applied to every property: doing that used to make
+// person-001 a co-owner of all 8202 of them, so every ownership check said yes
+// and the documented "Fjøsangerveien gives a rejection" could never happen.
+const bonesheienEierPersonId = "person-001";
 
 function normaliser(verdi) {
   return String(verdi || "")
@@ -73,8 +77,14 @@ function lagTomtRegister(kilde) {
 }
 
 async function readMatrikkelData() {
+  // matrikkel.json is the full Bergen extract: 220 streets, 8202 properties with
+  // coordinates. It was 5.9 MB of dead weight that no code read, while the case
+  // that needs streets had four to choose from. matrikkel.seed.json stays as the
+  // small fixture the mock's own tests point at via MATRIKKEL_DATA_FILE.
   const kandidatfiler = [
     process.env.MATRIKKEL_DATA_FILE,
+    path.resolve(__dirname, "../../../data/matrikkel.json"),
+    path.resolve(__dirname, "../data/matrikkel.json"),
     path.resolve(__dirname, "../../../data/matrikkel.seed.json"),
     path.resolve(__dirname, "../data/matrikkel.seed.json")
   ].filter(Boolean);
@@ -90,7 +100,7 @@ async function readMatrikkelData() {
     }
   }
 
-  throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.seed.json i repoet.");
+  throw new Error("Fant ikke matrikkeldata. Sett MATRIKKEL_DATA_FILE eller legg data/matrikkel.json i repoet.");
 }
 
 function leggTilPrefixIndeks(register, prefix, matrikkelId) {
@@ -147,15 +157,6 @@ function normaliserTekst(verdi) {
     .trim();
 }
 
-function gjørMajaTilEierIAlleEiendommer(register) {
-  for (const eiendom of register.eiendommer) {
-    const eiere = Array.isArray(eiendom.eiere) ? eiendom.eiere : [];
-    if (!eiere.includes(universellEierPersonId)) {
-      eiendom.eiere = [...eiere, universellEierPersonId];
-    }
-  }
-}
-
 function leggTilBonesheienHvisMangler(register) {
   const finnesAllerede = register.gater.some((gate) => normaliserTekst(gate.adressenavn) === normaliserTekst("Bønesheien"));
   if (finnesAllerede) return;
@@ -174,10 +175,24 @@ function leggTilBonesheienHvisMangler(register) {
     bnr: 258,
     adresse: "Bønesheien 258",
     bruksenhetstype: "bolig",
-    eiere: [universellEierPersonId],
+    eiere: [bonesheienEierPersonId],
     postnummer: "5154",
     poststed: "BØNES"
   });
+}
+
+// The live lookups reach ws.geonorge.no, and both wrappers are only ever called
+// after the seed has already missed. An outage there must therefore degrade to
+// "not found" rather than surface as a 500: a mock that fails because an external
+// API is down is worse than one that answers what it knows.
+//
+// This was not theoretical. A slow Geonorge turned GET /api/matrikkel/gater?gate=
+// on an unknown street from 404 into 502, which made the contract dump differ
+// between runs — and a hackathon venue with no outbound network would have hit it
+// on every miss.
+function utenLive(feil, hva) {
+  console.warn(`Live-oppslag mot Geonorge feilet (${hva}): ${feil.message}. Svarer fra seeden alene.`);
+  return null;
 }
 
 function finnEiendomViaLive(register, adresseSoek) {
@@ -192,11 +207,18 @@ function finnEiendomViaLive(register, adresseSoek) {
       poststed: treff.poststed
     });
     return { gate, eiendom: treff };
-  });
+  }).catch((feil) => utenLive(feil, `eiendom ${adresseSoek}`));
 }
 
 async function finnGaterViaLive(gateSoek, includeEiendommer = false, kommunenummer = null) {
-  return finnGaterLive(gateSoek, includeEiendommer, kommunenummer);
+  try {
+    return await finnGaterLive(gateSoek, includeEiendommer, kommunenummer);
+  } catch (feil) {
+    utenLive(feil, `gate ${gateSoek}`);
+    // The callers treat the result as a list, so an empty one is the miss they
+    // already know how to answer.
+    return [];
+  }
 }
 
 function jsonResponse(response, statusCode, data) {
@@ -204,7 +226,7 @@ function jsonResponse(response, statusCode, data) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,SOAPAction"
+    "Access-Control-Allow-Headers": "Content-Type,SOAPAction,Authorization"
   });
   response.end(JSON.stringify(data, null, 2));
 }
@@ -214,7 +236,7 @@ function textResponse(response, statusCode, data, contentType = "text/plain; cha
     "Content-Type": contentType,
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,SOAPAction"
+    "Access-Control-Allow-Headers": "Content-Type,SOAPAction,Authorization"
   });
   response.end(data);
 }
@@ -283,7 +305,6 @@ function leggTilEiendom(register, gate, eiendomInput = {}) {
 }
 
 function ferdigstillRegister(register) {
-  gjørMajaTilEierIAlleEiendommer(register);
   leggTilBonesheienHvisMangler(register);
   register.gater.sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
   for (const gate of register.gater) {

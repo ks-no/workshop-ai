@@ -24,6 +24,8 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["apps/**/*.ts", "apps/**/*.js", "scripts/**/*.js"],
+  // scripts/**/*.ts maa staa her, ellers er et .ts-skript usjekket: token.ts og
+  // sjekk-openapi-dekning.ts falt utenfor til 21.08.2026.
+  "include": ["apps/**/*.ts", "apps/**/*.js", "scripts/**/*.js", "scripts/**/*.ts"],
   "exclude": ["node_modules"]
 }

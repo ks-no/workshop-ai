@@ -7,7 +7,31 @@ info:
     SOAP kontrakt eksponeres paa /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl.
 servers:
   - url: http://localhost:8085
+# Ingen av rutene her krever token, og det er et valg, ikke en glipp.
+# Matrikkelen er et offentlig register, og oppslagene her har ikke noe personsubjekt — de svarer på gater og eiendommer. Eierfiltreringen skjer på forespørselen, se apps/matrikkel-mock/src/server.js.
+# En tom security på dokumentnivå gjelder alle operasjonene under paths.
+security: []
+
 paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
   /health:
     get:
       summary: Health check
@@ -154,4 +178,14 @@ paths:
         "404":
           description: Ikke funnet
 
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
 

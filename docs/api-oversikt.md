@@ -55,6 +55,9 @@ samtykkekrav og beskrivelse.
 - `GET /fiks/register/inntekt/{personId}`
 - `GET /fiks/register/barnehage/{personId}`
 - `GET /fiks/register/kontaktinfo/{personId}`
+- `POST /fiks/oppgaver`
+- `GET /fiks/oppgaver/{oppgaveId}`
+- `PUT /fiks/oppgaver/{oppgaveId}/status`
 
 ## AI Gateway
 

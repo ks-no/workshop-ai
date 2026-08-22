@@ -1,0 +1,92 @@
+[
+  {
+    "aktivitetId": "akt-fotball",
+    "navn": "Fotball",
+    "kategori": "Ballidrett",
+    "alderFra": 6,
+    "alderTil": 18,
+    "typiskAarspris": 3400,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-handball",
+    "navn": "Håndball",
+    "kategori": "Ballidrett",
+    "alderFra": 6,
+    "alderTil": 18,
+    "typiskAarspris": 3600,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-korps",
+    "navn": "Skolekorps",
+    "kategori": "Musikk",
+    "alderFra": 8,
+    "alderTil": 18,
+    "typiskAarspris": 4200,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-kor",
+    "navn": "Barnekor",
+    "kategori": "Musikk",
+    "alderFra": 6,
+    "alderTil": 15,
+    "typiskAarspris": 1800,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-klatring",
+    "navn": "Klatring",
+    "kategori": "Friluft",
+    "alderFra": 8,
+    "alderTil": 18,
+    "typiskAarspris": 3900,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-speider",
+    "navn": "Speider",
+    "kategori": "Friluft",
+    "alderFra": 6,
+    "alderTil": 18,
+    "typiskAarspris": 1500,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-svomming",
+    "navn": "Svømming",
+    "kategori": "Individuell idrett",
+    "alderFra": 6,
+    "alderTil": 14,
+    "typiskAarspris": 3100,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-friidrett",
+    "navn": "Friidrett",
+    "kategori": "Individuell idrett",
+    "alderFra": 8,
+    "alderTil": 18,
+    "typiskAarspris": 2800,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-dans",
+    "navn": "Dans",
+    "kategori": "Scene",
+    "alderFra": 6,
+    "alderTil": 18,
+    "typiskAarspris": 4100,
+    "syntetisk": true
+  },
+  {
+    "aktivitetId": "akt-sjakk",
+    "navn": "Sjakklubb",
+    "kategori": "Spill",
+    "alderFra": 6,
+    "alderTil": 18,
+    "typiskAarspris": 900,
+    "syntetisk": true
+  }
+]

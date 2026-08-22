@@ -87,9 +87,13 @@ export type Prosessoekt = {
 
 // --- rules and rates ------------------------------------------------------
 
-export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT";
+// A closed union so the compiler demands a handler in regelHandtere (vilkaar.ts) the moment a
+// new rule type appears. TJENESTEBEHOV is the first one that is not about money:
+// støttekontakt is assessed on need and capacity, and must not drag an income
+// lookup — and its consent — along with it.
+export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT" | "TJENESTEBEHOV";
 
-export type Tjeneste = "barnehage" | "sfo";
+export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt";
 
 export type Ordning = {
   id: string;
@@ -102,6 +106,8 @@ export type Ordning = {
   alderTilAar?: number;
   trinnFra?: number;
   trinnTil?: number;
+  /** TJENESTEBEHOV: which dataset of tjenestetilbud the ordning is assessed against. */
+  tilbudsdatasett?: string;
 };
 
 export type Satser = {
@@ -129,12 +135,25 @@ export type SjekkResultat = {
 // actually reads and leave the rest open.
 type MedFelter = { [key: string]: any };
 
+// FREG grades address protection: kode 7 (FORTROLIG) and kode 6
+// (STRENGT_FORTROLIG), plus the ungraded majority. Closed, so the masking rules in
+// skjerming.ts must cover every grade the compiler knows about. The boolean
+// `skjermet` is derived from this field and never the other way round — the same
+// invariant scripts/valider-data.js enforces on the seed.
+export type Adressegradering = "UGRADERT" | "FORTROLIG" | "STRENGT_FORTROLIG";
+
+// mellomnavn is null rather than absent throughout the seed, and masking writes
+// null too. Typing it as string only would reject both.
+export type Personnavn = { fornavn: string; mellomnavn?: string | null; etternavn: string };
+
 export type Person = MedFelter & {
   personId: string;
   husstandId: string;
   syntetiskFodselsnummer: string;
   foedselsdato?: string;
-  navn: { fornavn: string; mellomnavn?: string; etternavn: string };
+  navn: Personnavn;
+  adressebeskyttelse: Adressegradering;
+  skjermet: boolean;
 };
 
 export type Husstandsmedlem = { personId: string; rolle: "foresatt" | "barn" | string };
@@ -157,12 +176,6 @@ export type Samtykke = MedFelter & {
   dataKilder: string[];
 };
 
-export type Gate = MedFelter & {
-  gateId: string;
-  adressenavn: string;
-  eiendommer: Array<{ eiere?: string[] } & MedFelter>;
-};
-
 export type State = {
   personer: Person[];
   husstander: Husstand[];
@@ -178,7 +191,6 @@ export type State = {
   samtykker: Samtykke[];
   revisjonslogg: MedFelter[];
   prosessoekter: Prosessoekt[];
-  matrikkel: { gater: Gate[] } & MedFelter;
   satser: Satser;
   [datasett: string]: any;
 };

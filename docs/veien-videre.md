@@ -39,17 +39,15 @@ Minimumslista fra juni er i hovedsak innfridd:
   viser en gul stripe når modellen er nede
 - ✅ evals av KI-laget — `pnpm test:eval` scorer mot datasett i `evals/`, med terskel
   per datasett og exit≠0 under. Harnesset nekter å score maltekst
-- ⚠️ API-dokumentasjon — `sandbox-backend` er godt dekket med 28 av 31 paths, men
-  `fiks-simulator` har bare 4 av 20 ruter i OpenAPI
+- ✅ API-dokumentasjon — alle seks spesifikasjoner dekker hver rute i koden, med
+  `security:` per rute. `pnpm test:openapi` sammenligner de to i begge retninger og
+  feiler i CI hvis de kommer ut av takt
 
 ## Hva som gjenstår
 
-- **`fiks-simulator.yaml`** — 16 udokumenterte ruter: hele `/fiks/register/*`,
-  samtykkets underruter (`/historikk`, `/svar`, `/trekk`), `/fiks/personer/{id}/samtykker`,
-  `/fiks/oppgaver`, `/fiks/meldinger`, `/health`, `/docs`, `/openapi.yaml`.
-  Den største reelle kontraktsgjelden, og en avgrenset oppgave.
 - **Evalene og stack-testene er ikke i CI.** `.github/workflows/ci.yml` kjører `lint`,
-  `test` og `test:kontrakt`, som ikke trenger modell eller kjørende tjenester.
+  `test`, `test:sperrer`, `test:skjerming`, `test:samtykke`, `test:openapi` og
+  `test:kontrakt`, som ikke trenger modell eller kjørende tjenester.
   `test:eval` krever en modell og holdes bevisst utenfor; `test:agent*` krever at
   stacken er oppe. Å kjøre dem i CI ville krevd Ollama i workflowen.
 - **`mcp-services` er ikke MCP-protokollen** — REST med `protocol: "mcp-style-http"`.

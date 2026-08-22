@@ -1,0 +1,308 @@
+[
+  {
+    "personId": "person-011",
+    "aktivitetId": "akt-kor",
+    "aktivitetsnavn": "Barnekor",
+    "arrangoer": "Stavanger barnekor",
+    "kommune": "Stavanger",
+    "manedspris": 160,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-027",
+    "aktivitetId": "akt-svomming",
+    "aktivitetsnavn": "Svømming",
+    "arrangoer": "Bergen svømmeklubb",
+    "kommune": "Bergen",
+    "manedspris": 280,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-029",
+    "aktivitetId": "akt-kor",
+    "aktivitetsnavn": "Barnekor",
+    "arrangoer": "Trondheim barnekor",
+    "kommune": "Trondheim",
+    "manedspris": 160,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-032",
+    "aktivitetId": "akt-fotball",
+    "aktivitetsnavn": "Fotball",
+    "arrangoer": "Oslo idrettslag",
+    "kommune": "Oslo",
+    "manedspris": 310,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-034",
+    "aktivitetId": "akt-sjakk",
+    "aktivitetsnavn": "Sjakklubb",
+    "arrangoer": "Stavanger sjakklubb",
+    "kommune": "Stavanger",
+    "manedspris": 80,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-044",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Stavanger klatreklubb",
+    "kommune": "Stavanger",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-046",
+    "aktivitetId": "akt-handball",
+    "aktivitetsnavn": "Håndball",
+    "arrangoer": "Ålesund idrettslag",
+    "kommune": "Ålesund",
+    "manedspris": 330,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-047",
+    "aktivitetId": "akt-dans",
+    "aktivitetsnavn": "Dans",
+    "arrangoer": "Sandnes danseskole",
+    "kommune": "Sandnes",
+    "manedspris": 370,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-048",
+    "aktivitetId": "akt-sjakk",
+    "aktivitetsnavn": "Sjakklubb",
+    "arrangoer": "Trondheim sjakklubb",
+    "kommune": "Trondheim",
+    "manedspris": 80,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-049",
+    "aktivitetId": "akt-kor",
+    "aktivitetsnavn": "Barnekor",
+    "arrangoer": "Oslo barnekor",
+    "kommune": "Oslo",
+    "manedspris": 160,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-051",
+    "aktivitetId": "akt-handball",
+    "aktivitetsnavn": "Håndball",
+    "arrangoer": "Stavanger idrettslag",
+    "kommune": "Stavanger",
+    "manedspris": 330,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-057",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Tverrelvdalen klatreklubb",
+    "kommune": "Tverrelvdalen",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-064",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Hustadvika klatreklubb",
+    "kommune": "Hustadvika",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-068",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Storslett klatreklubb",
+    "kommune": "Storslett",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-072",
+    "aktivitetId": "akt-korps",
+    "aktivitetsnavn": "Skolekorps",
+    "arrangoer": "Oslo skolekorps",
+    "kommune": "Oslo",
+    "manedspris": 380,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-077",
+    "aktivitetId": "akt-korps",
+    "aktivitetsnavn": "Skolekorps",
+    "arrangoer": "Oslo skolekorps",
+    "kommune": "Oslo",
+    "manedspris": 380,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-079",
+    "aktivitetId": "akt-svomming",
+    "aktivitetsnavn": "Svømming",
+    "arrangoer": "Tromsø svømmeklubb",
+    "kommune": "Tromsø",
+    "manedspris": 280,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-093",
+    "aktivitetId": "akt-sjakk",
+    "aktivitetsnavn": "Sjakklubb",
+    "arrangoer": "Bærum sjakklubb",
+    "kommune": "Bærum",
+    "manedspris": 80,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-098",
+    "aktivitetId": "akt-handball",
+    "aktivitetsnavn": "Håndball",
+    "arrangoer": "Sandnes idrettslag",
+    "kommune": "Sandnes",
+    "manedspris": 330,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-110",
+    "aktivitetId": "akt-speider",
+    "aktivitetsnavn": "Speider",
+    "arrangoer": "Nevervika speidergruppe",
+    "kommune": "Nevervika",
+    "manedspris": 140,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-139",
+    "aktivitetId": "akt-sjakk",
+    "aktivitetsnavn": "Sjakklubb",
+    "arrangoer": "Senja sjakklubb",
+    "kommune": "Senja",
+    "manedspris": 80,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-144",
+    "aktivitetId": "akt-svomming",
+    "aktivitetsnavn": "Svømming",
+    "arrangoer": "Glomfjord svømmeklubb",
+    "kommune": "Glomfjord",
+    "manedspris": 280,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-158",
+    "aktivitetId": "akt-sjakk",
+    "aktivitetsnavn": "Sjakklubb",
+    "arrangoer": "Lørenskog sjakklubb",
+    "kommune": "Lørenskog",
+    "manedspris": 80,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-169",
+    "aktivitetId": "akt-dans",
+    "aktivitetsnavn": "Dans",
+    "arrangoer": "Engan danseskole",
+    "kommune": "Engan",
+    "manedspris": 370,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-178",
+    "aktivitetId": "akt-dans",
+    "aktivitetsnavn": "Dans",
+    "arrangoer": "Orkland danseskole",
+    "kommune": "Orkland",
+    "manedspris": 370,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-208",
+    "aktivitetId": "akt-handball",
+    "aktivitetsnavn": "Håndball",
+    "arrangoer": "Kristiansand idrettslag",
+    "kommune": "Kristiansand",
+    "manedspris": 330,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-229",
+    "aktivitetId": "akt-speider",
+    "aktivitetsnavn": "Speider",
+    "arrangoer": "Halden speidergruppe",
+    "kommune": "Halden",
+    "manedspris": 140,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-235",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Oslo klatreklubb",
+    "kommune": "Oslo",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-238",
+    "aktivitetId": "akt-speider",
+    "aktivitetsnavn": "Speider",
+    "arrangoer": "Bergen speidergruppe",
+    "kommune": "Bergen",
+    "manedspris": 140,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-263",
+    "aktivitetId": "akt-handball",
+    "aktivitetsnavn": "Håndball",
+    "arrangoer": "Oslo idrettslag",
+    "kommune": "Oslo",
+    "manedspris": 330,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-271",
+    "aktivitetId": "akt-fotball",
+    "aktivitetsnavn": "Fotball",
+    "arrangoer": "Gursken idrettslag",
+    "kommune": "Gursken",
+    "manedspris": 310,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-276",
+    "aktivitetId": "akt-speider",
+    "aktivitetsnavn": "Speider",
+    "arrangoer": "Ullensvang speidergruppe",
+    "kommune": "Ullensvang",
+    "manedspris": 140,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-300",
+    "aktivitetId": "akt-klatring",
+    "aktivitetsnavn": "Klatring",
+    "arrangoer": "Larvik klatreklubb",
+    "kommune": "Larvik",
+    "manedspris": 350,
+    "syntetisk": true
+  },
+  {
+    "personId": "person-350",
+    "aktivitetId": "akt-korps",
+    "aktivitetsnavn": "Skolekorps",
+    "arrangoer": "Kvinnherad skolekorps",
+    "kommune": "Kvinnherad",
+    "manedspris": 380,
+    "syntetisk": true
+  }
+]

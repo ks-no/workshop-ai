@@ -78,10 +78,14 @@
       {
         "personId": "person-011",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-044",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Søsken i to ordninger. Så vidt over grensen for SFO 4. trinn."
+    "scenario": "Tre søsken i tre ordninger. Så vidt over grensen for redusert SFO 4. trinn."
   },
   {
     "husstandId": "household-005",
@@ -98,7 +102,8 @@
         "rolle": "barn"
       }
     ],
-    "syntetisk": true
+    "syntetisk": true,
+    "scenario": "Grensetilfelle for 6 %-regelen: full pris ligger så vidt over taket, så husstanden har akkurat rett til redusert foreldrebetaling."
   },
   {
     "husstandId": "household-006",
@@ -113,10 +118,14 @@
       {
         "personId": "person-015",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-045",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for gratis kjernetid for 1-åringer."
+    "scenario": "To barn i barnehage. Så vidt under grensen for gratis kjernetid for 1-åringer."
   },
   {
     "husstandId": "household-007",
@@ -175,10 +184,14 @@
       {
         "personId": "person-023",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-046",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Svært lav inntekt. Under alle grenser."
+    "scenario": "Søsken i barnehage og SFO. Svært lav inntekt — så vidt under grensen for redusert SFO 2.–3. trinn, og under alle andre grenser."
   },
   {
     "husstandId": "household-010",
@@ -193,10 +206,14 @@
       {
         "personId": "person-025",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-047",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for gratis SFO 1. trinn."
+    "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for gratis SFO 1. trinn."
   },
   {
     "husstandId": "household-011",
@@ -229,10 +246,14 @@
       {
         "personId": "person-029",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-048",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for redusert SFO 2.–3. trinn."
+    "scenario": "To barn i SFO. Så vidt over grensen for redusert SFO 2.–3. trinn."
   },
   {
     "husstandId": "household-013",
@@ -251,10 +272,14 @@
       {
         "personId": "person-032",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-049",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
+    "scenario": "Søsken på 1. og 3. trinn. Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
   },
   {
     "husstandId": "household-014",
@@ -269,10 +294,14 @@
       {
         "personId": "person-034",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-050",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt over grensen for gratis kjernetid 1 år, men godt under SFO 4. trinn."
+    "scenario": "Ettåring i barnehage og barn på 3. trinn. Så vidt over grensen for gratis kjernetid for 1-åringer."
   },
   {
     "husstandId": "household-015",
@@ -291,10 +320,14 @@
       {
         "personId": "person-037",
         "rolle": "barn"
+      },
+      {
+        "personId": "person-051",
+        "rolle": "barn"
       }
     ],
     "syntetisk": true,
-    "scenario": "Så vidt under grensen for redusert SFO 4. trinn."
+    "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for redusert SFO 4. trinn."
   },
   {
     "husstandId": "household-016",
@@ -349,5 +382,3461 @@
     ],
     "syntetisk": true,
     "scenario": "Edge case: husstand uten barn."
+  },
+  {
+    "husstandId": "household-019",
+    "type": "ENSLIG",
+    "adresse": "Vikaveien 17A",
+    "kommune": "Tjøtta",
+    "kommunenummer": "1820",
+    "medlemmer": [
+      {
+        "personId": "person-052",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-020",
+    "type": "ENSLIG",
+    "adresse": "Svaleveien 12",
+    "kommune": "Moss",
+    "kommunenummer": "3103",
+    "medlemmer": [
+      {
+        "personId": "person-053",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-021",
+    "type": "EKTEPAR",
+    "adresse": "Risbakkvegen 119",
+    "kommune": "Jaren",
+    "kommunenummer": "3446",
+    "medlemmer": [
+      {
+        "personId": "person-054",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-055",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-056",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-022",
+    "type": "EKTEPAR",
+    "adresse": "Sønvismoen 70",
+    "kommune": "Tverrelvdalen",
+    "kommunenummer": "5601",
+    "medlemmer": [
+      {
+        "personId": "person-057",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-058",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-059",
+        "rolle": "voksen"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 9 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-023",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Bispeluelia 8A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-060",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-061",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-024",
+    "type": "ENSLIG",
+    "adresse": "Tuftveien 8",
+    "kommune": "Kongsberg",
+    "kommunenummer": "3303",
+    "medlemmer": [
+      {
+        "personId": "person-062",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-025",
+    "type": "EKTEPAR",
+    "adresse": "Øvre Visnesveg 25",
+    "kommune": "Hustadvika",
+    "kommunenummer": "1579",
+    "medlemmer": [
+      {
+        "personId": "person-063",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-064",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-065",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-026",
+    "type": "EKTEPAR",
+    "adresse": "Mælen 10",
+    "kommune": "Storslett",
+    "kommunenummer": "5544",
+    "medlemmer": [
+      {
+        "personId": "person-066",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-067",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-068",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 11 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-027",
+    "type": "EKTEPAR",
+    "adresse": "Bakkelia 26B",
+    "kommune": "Sortland",
+    "kommunenummer": "1870",
+    "medlemmer": [
+      {
+        "personId": "person-069",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-070",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-071",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 6 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-028",
+    "type": "EKTEPAR",
+    "adresse": "Granstangen 34A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-072",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-073",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-074",
+        "rolle": "voksen"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-029",
+    "type": "ENSLIG",
+    "adresse": "Malerhaugveien 32A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-075",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-030",
+    "type": "EKTEPAR",
+    "adresse": "P. A. Munchs vei 9",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-076",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-077",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-078",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 8 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-031",
+    "type": "EKTEPAR",
+    "adresse": "Skårungevegen 16",
+    "kommune": "Tromsø",
+    "kommunenummer": "5501",
+    "medlemmer": [
+      {
+        "personId": "person-079",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-080",
+        "rolle": "voksen"
+      },
+      {
+        "personId": "person-081",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 10 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-032",
+    "type": "ENSLIG",
+    "adresse": "Iver Holters gate 38",
+    "kommune": "Drammen",
+    "kommunenummer": "3301",
+    "medlemmer": [
+      {
+        "personId": "person-082",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-033",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Lundeveien 2",
+    "kommune": "Vågan",
+    "kommunenummer": "1865",
+    "medlemmer": [
+      {
+        "personId": "person-083",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-084",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 1 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-034",
+    "type": "ENSLIG",
+    "adresse": "Tårstadveien 13",
+    "kommune": "Tårstad",
+    "kommunenummer": "1853",
+    "medlemmer": [
+      {
+        "personId": "person-085",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-035",
+    "type": "VOKSNE_SAMMEN",
+    "adresse": "Arnt Mathisens gate 18",
+    "kommune": "Stjørdal",
+    "kommunenummer": "5035",
+    "medlemmer": [
+      {
+        "personId": "person-086",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-087",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-088",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere voksne på samme adresse, uten barn i husstanden. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-036",
+    "type": "ENSLIG",
+    "adresse": "Falkevegen 31",
+    "kommune": "Porsgrunn",
+    "kommunenummer": "4001",
+    "medlemmer": [
+      {
+        "personId": "person-089",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-037",
+    "type": "ENSLIG",
+    "adresse": "Skotet 11",
+    "kommune": "Lundegrend",
+    "kommunenummer": "4616",
+    "medlemmer": [
+      {
+        "personId": "person-090",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-038",
+    "type": "EKTEPAR",
+    "adresse": "Regattaveien 91",
+    "kommune": "Bærum",
+    "kommunenummer": "3201",
+    "medlemmer": [
+      {
+        "personId": "person-091",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-092",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-093",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 11 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-039",
+    "type": "ENSLIG",
+    "adresse": "Holtveien 511",
+    "kommune": "Øverbygd",
+    "kommunenummer": "5524",
+    "medlemmer": [
+      {
+        "personId": "person-094",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-040",
+    "type": "ENSLIG",
+    "adresse": "Rambergveien 25D",
+    "kommune": "Tønsberg",
+    "kommunenummer": "3905",
+    "medlemmer": [
+      {
+        "personId": "person-095",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-041",
+    "type": "EKTEPAR",
+    "adresse": "Røyskattveien 7",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-096",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-097",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-098",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 14 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-042",
+    "type": "EKTEPAR",
+    "adresse": "Skafstadveien 44",
+    "kommune": "Lier",
+    "kommunenummer": "3312",
+    "medlemmer": [
+      {
+        "personId": "person-099",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-100",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-101",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 11 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-043",
+    "type": "ENSLIG",
+    "adresse": "Kvednaneslia 17",
+    "kommune": "Tau",
+    "kommunenummer": "1130",
+    "medlemmer": [
+      {
+        "personId": "person-102",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-044",
+    "type": "EKTEPAR",
+    "adresse": "Skogliveien 18",
+    "kommune": "Rennebu",
+    "kommunenummer": "5022",
+    "medlemmer": [
+      {
+        "personId": "person-103",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-104",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-105",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-045",
+    "type": "VOKSNE_SAMMEN",
+    "adresse": "Hørsandvegen 17",
+    "kommune": "Ådalsbruk",
+    "kommunenummer": "3412",
+    "medlemmer": [
+      {
+        "personId": "person-106",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-107",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-108",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere voksne på samme adresse, uten barn i husstanden. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-046",
+    "type": "EKTEPAR",
+    "adresse": "Nevervikveien 79",
+    "kommune": "Nevervika",
+    "kommunenummer": "1875",
+    "medlemmer": [
+      {
+        "personId": "person-109",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-110",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-111",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 12 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-047",
+    "type": "ENSLIG",
+    "adresse": "Lindebergåsen 19B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-112",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-048",
+    "type": "EKTEPAR",
+    "adresse": "Steinnesveien 138",
+    "kommune": "Hansnes",
+    "kommunenummer": "5534",
+    "medlemmer": [
+      {
+        "personId": "person-113",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-114",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-115",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-049",
+    "type": "VOKSNE_SAMMEN",
+    "adresse": "Sundsodden 86",
+    "kommune": "Nissedal",
+    "kommunenummer": "4030",
+    "medlemmer": [
+      {
+        "personId": "person-116",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-117",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-118",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere voksne på samme adresse, uten barn i husstanden. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-050",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Blivgodtvegen 340",
+    "kommune": "Gjøvik",
+    "kommunenummer": "3407",
+    "medlemmer": [
+      {
+        "personId": "person-119",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-120",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 3 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-051",
+    "type": "ENSLIG",
+    "adresse": "Homsvika 10",
+    "kommune": "Lindesnes",
+    "kommunenummer": "4205",
+    "medlemmer": [
+      {
+        "personId": "person-121",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-052",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Brekkåsen 10",
+    "kommune": "Gimse",
+    "kommunenummer": "5028",
+    "medlemmer": [
+      {
+        "personId": "person-122",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-123",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-053",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Sjursavegen 61",
+    "kommune": "Austevoll",
+    "kommunenummer": "4625",
+    "medlemmer": [
+      {
+        "personId": "person-124",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-125",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-054",
+    "type": "EKTEPAR",
+    "adresse": "Markusveien 53",
+    "kommune": "Drammen",
+    "kommunenummer": "3301",
+    "medlemmer": [
+      {
+        "personId": "person-126",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-127",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-128",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 16 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-055",
+    "type": "EKTEPAR",
+    "adresse": "Bjønnbåsen 24",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-129",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-130",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-131",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 8 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-056",
+    "type": "EKTEPAR",
+    "adresse": "Bergskaugveien 36",
+    "kommune": "Enebakk",
+    "kommunenummer": "3220",
+    "medlemmer": [
+      {
+        "personId": "person-132",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-133",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-134",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 5 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-057",
+    "type": "ENSLIG",
+    "adresse": "Måltrostveien 6",
+    "kommune": "Vikersund",
+    "kommunenummer": "3316",
+    "medlemmer": [
+      {
+        "personId": "person-135",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-058",
+    "type": "EKTEPAR",
+    "adresse": "Liakroken 32",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-136",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-137",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-138",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 12 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-059",
+    "type": "EKTEPAR",
+    "adresse": "Fagerfjellveien 459",
+    "kommune": "Senja",
+    "kommunenummer": "5530",
+    "medlemmer": [
+      {
+        "personId": "person-139",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-140",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-141",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 7 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-060",
+    "type": "ENSLIG",
+    "adresse": "Øklandsvegen 785",
+    "kommune": "Sveio",
+    "kommunenummer": "4612",
+    "medlemmer": [
+      {
+        "personId": "person-142",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-061",
+    "type": "ENSLIG",
+    "adresse": "Tårstadveien 13",
+    "kommune": "Tårstad",
+    "kommunenummer": "1853",
+    "medlemmer": [
+      {
+        "personId": "person-143",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-062",
+    "type": "EKTEPAR",
+    "adresse": "Glomveien 21",
+    "kommune": "Glomfjord",
+    "kommunenummer": "1837",
+    "medlemmer": [
+      {
+        "personId": "person-144",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-145",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-146",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 13 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-063",
+    "type": "EKTEPAR",
+    "adresse": "Oscars gate 1C",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-147",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-148",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-149",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 10 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-064",
+    "type": "EKTEPAR",
+    "adresse": "Stavestranda 31",
+    "kommune": "Kvammen",
+    "kommunenummer": "4645",
+    "medlemmer": [
+      {
+        "personId": "person-150",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-151",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-152",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 0 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-065",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Saltnesveien 493",
+    "kommune": "Råde",
+    "kommunenummer": "3112",
+    "medlemmer": [
+      {
+        "personId": "person-153",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-154",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 0 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-066",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Vefsnvegen 18",
+    "kommune": "Mosjøen",
+    "kommunenummer": "1824",
+    "medlemmer": [
+      {
+        "personId": "person-155",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-156",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-067",
+    "type": "EKTEPAR",
+    "adresse": "Asbjørnsens vei 3B",
+    "kommune": "Lørenskog",
+    "kommunenummer": "3222",
+    "medlemmer": [
+      {
+        "personId": "person-157",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-158",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-159",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 14 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-068",
+    "type": "EKTEPAR",
+    "adresse": "Jupiter ring 4",
+    "kommune": "Porsgrunn",
+    "kommunenummer": "4001",
+    "medlemmer": [
+      {
+        "personId": "person-160",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-161",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-162",
+        "rolle": "voksen"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-069",
+    "type": "EKTEPAR",
+    "adresse": "Brokskarvegen 1008",
+    "kommune": "Tromsø",
+    "kommunenummer": "5501",
+    "medlemmer": [
+      {
+        "personId": "person-163",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-164",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-165",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 5 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-070",
+    "type": "EKTEPAR",
+    "adresse": "Kobbelvsletta 9",
+    "kommune": "Engan",
+    "kommunenummer": "1845",
+    "medlemmer": [
+      {
+        "personId": "person-166",
+        "rolle": "voksen"
+      },
+      {
+        "personId": "person-167",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-168",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-169",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 13, 9 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-071",
+    "type": "EKTEPAR",
+    "adresse": "Gravaåsen 52",
+    "kommune": "Porsgrunn",
+    "kommunenummer": "4001",
+    "medlemmer": [
+      {
+        "personId": "person-170",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-171",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-172",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 3 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-072",
+    "type": "EKTEPAR",
+    "adresse": "Báhkiljohka 17",
+    "kommune": "Karasjok",
+    "kommunenummer": "5610",
+    "medlemmer": [
+      {
+        "personId": "person-173",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-174",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-175",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-073",
+    "type": "ENSLIG",
+    "adresse": "Frøystadtoppen 14",
+    "kommune": "Bølandet",
+    "kommunenummer": "1515",
+    "medlemmer": [
+      {
+        "personId": "person-176",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-074",
+    "type": "EKTEPAR",
+    "adresse": "Hemnevegen 92",
+    "kommune": "Orkland",
+    "kommunenummer": "5059",
+    "medlemmer": [
+      {
+        "personId": "person-177",
+        "rolle": "voksen"
+      },
+      {
+        "personId": "person-178",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-179",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 7 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-075",
+    "type": "ENSLIG",
+    "adresse": "Guderudgata 15",
+    "kommune": "Indre Østfold",
+    "kommunenummer": "3118",
+    "medlemmer": [
+      {
+        "personId": "person-180",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-076",
+    "type": "EKTEPAR",
+    "adresse": "Sundsvollveien 32",
+    "kommune": "Vega",
+    "kommunenummer": "1815",
+    "medlemmer": [
+      {
+        "personId": "person-181",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-182",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-183",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 12 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-077",
+    "type": "ENSLIG",
+    "adresse": "Biskop Jens Nilssøns gate 19B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-184",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-078",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Vestsideveien 92",
+    "kommune": "Lier",
+    "kommunenummer": "3312",
+    "medlemmer": [
+      {
+        "personId": "person-185",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-186",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-079",
+    "type": "ENSLIG",
+    "adresse": "Smeitkollen 76",
+    "kommune": "Treungen",
+    "kommunenummer": "4030",
+    "medlemmer": [
+      {
+        "personId": "person-187",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-080",
+    "type": "EKTEPAR",
+    "adresse": "Wilhelm Hansens vei 5",
+    "kommune": "Halden",
+    "kommunenummer": "3101",
+    "medlemmer": [
+      {
+        "personId": "person-188",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-189",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-190",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 2 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-081",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Solli 10",
+    "kommune": "Tunhovd",
+    "kommunenummer": "3338",
+    "medlemmer": [
+      {
+        "personId": "person-191",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-192",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-082",
+    "type": "ENSLIG",
+    "adresse": "Vassveien 15",
+    "kommune": "Senja",
+    "kommunenummer": "5530",
+    "medlemmer": [
+      {
+        "personId": "person-193",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-083",
+    "type": "ENSLIG",
+    "adresse": "Kvistadbakkan 84",
+    "kommune": "Inderøy",
+    "kommunenummer": "5053",
+    "medlemmer": [
+      {
+        "personId": "person-194",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Én person har adressebeskyttelse. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-084",
+    "type": "ENSLIG",
+    "adresse": "Bekkevegen 1",
+    "kommune": "Mosjøen",
+    "kommunenummer": "1824",
+    "medlemmer": [
+      {
+        "personId": "person-195",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-085",
+    "type": "ENSLIG",
+    "adresse": "Colletts gate 74",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-196",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-086",
+    "type": "EKTEPAR",
+    "adresse": "Musdalsvegen 682",
+    "kommune": "Tretten",
+    "kommunenummer": "3440",
+    "medlemmer": [
+      {
+        "personId": "person-197",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-198",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-199",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 1 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-087",
+    "type": "EKTEPAR",
+    "adresse": "Dragesetvegen 324",
+    "kommune": "Stryn",
+    "kommunenummer": "4651",
+    "medlemmer": [
+      {
+        "personId": "person-200",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-201",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-202",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-088",
+    "type": "FLERGENERASJON",
+    "adresse": "Ytrebygdsvegen 182",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-203",
+        "rolle": "voksen"
+      },
+      {
+        "personId": "person-204",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-205",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-206",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-207",
+        "rolle": "voksen"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere generasjoner under samme tak. Barn på 16, 13 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-089",
+    "type": "EKTEPAR",
+    "adresse": "Koboltveien 8",
+    "kommune": "Kristiansand",
+    "kommunenummer": "4204",
+    "medlemmer": [
+      {
+        "personId": "person-208",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-209",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-210",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-090",
+    "type": "EKTEPAR",
+    "adresse": "Kyrkjebakken 46",
+    "kommune": "Stad",
+    "kommunenummer": "4649",
+    "medlemmer": [
+      {
+        "personId": "person-211",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-212",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-213",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 15 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-091",
+    "type": "EKTEPAR",
+    "adresse": "Slettebakksveien 35",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-214",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-215",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-216",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-092",
+    "type": "ENSLIG",
+    "adresse": "Skippergata 123",
+    "kommune": "Kristiansand",
+    "kommunenummer": "4204",
+    "medlemmer": [
+      {
+        "personId": "person-217",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-093",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Gamle Elsvassveien 2B",
+    "kommune": "Hattfjelldal",
+    "kommunenummer": "1826",
+    "medlemmer": [
+      {
+        "personId": "person-218",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-219",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 4 år. Én person har adressebeskyttelse. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-094",
+    "type": "ENSLIG",
+    "adresse": "Bjørn Bondes vei 9",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-220",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-095",
+    "type": "ENSLIG",
+    "adresse": "Colletts gate 74",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-221",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-096",
+    "type": "ENSLIG",
+    "adresse": "Malmveien 6B",
+    "kommune": "Fauske",
+    "kommunenummer": "1841",
+    "medlemmer": [
+      {
+        "personId": "person-222",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-097",
+    "type": "ENSLIG",
+    "adresse": "Bjørn Bondes vei 9",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-223",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-098",
+    "type": "VOKSNE_SAMMEN",
+    "adresse": "Nygårdsvegen 26",
+    "kommune": "Kvinnherad",
+    "kommunenummer": "4617",
+    "medlemmer": [
+      {
+        "personId": "person-224",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-225",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-226",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere voksne på samme adresse, uten barn i husstanden. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-099",
+    "type": "EKTEPAR",
+    "adresse": "Sundsliåsen 13",
+    "kommune": "Halden",
+    "kommunenummer": "3101",
+    "medlemmer": [
+      {
+        "personId": "person-227",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-228",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-229",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 7 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-100",
+    "type": "ENSLIG",
+    "adresse": "Innergården 2",
+    "kommune": "Senja",
+    "kommunenummer": "5530",
+    "medlemmer": [
+      {
+        "personId": "person-230",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-101",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Løvenskiolds gate 20B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-231",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-232",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 3 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-102",
+    "type": "EKTEPAR",
+    "adresse": "Erling Skjalgssons gate 13",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-233",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-234",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-235",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-103",
+    "type": "EKTEPAR",
+    "adresse": "Bispengsgaten 3",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-236",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-237",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-238",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-104",
+    "type": "ENSLIG",
+    "adresse": "Veita 12",
+    "kommune": "Rennebu",
+    "kommunenummer": "5022",
+    "medlemmer": [
+      {
+        "personId": "person-239",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-105",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Briskeveien 3",
+    "kommune": "Sandefjord",
+    "kommunenummer": "3907",
+    "medlemmer": [
+      {
+        "personId": "person-240",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-241",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-106",
+    "type": "ENSLIG",
+    "adresse": "Øklandsvegen 785",
+    "kommune": "Sveio",
+    "kommunenummer": "4612",
+    "medlemmer": [
+      {
+        "personId": "person-242",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-107",
+    "type": "EKTEPAR",
+    "adresse": "Flintvegen 22",
+    "kommune": "Stjørdal",
+    "kommunenummer": "5035",
+    "medlemmer": [
+      {
+        "personId": "person-243",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-244",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-245",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 12 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-108",
+    "type": "ENSLIG",
+    "adresse": "Bieveien 5",
+    "kommune": "Arendal",
+    "kommunenummer": "4203",
+    "medlemmer": [
+      {
+        "personId": "person-246",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-109",
+    "type": "ENSLIG",
+    "adresse": "Gaupestien 12",
+    "kommune": "Hakadal",
+    "kommunenummer": "3232",
+    "medlemmer": [
+      {
+        "personId": "person-247",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-110",
+    "type": "ENSLIG",
+    "adresse": "Liaskjervegen 140",
+    "kommune": "Øygarden",
+    "kommunenummer": "4626",
+    "medlemmer": [
+      {
+        "personId": "person-248",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-111",
+    "type": "ENSLIG",
+    "adresse": "Lindebergåsen 19B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-249",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-112",
+    "type": "ENSLIG",
+    "adresse": "Busveien 26",
+    "kommune": "Sør-Varanger",
+    "kommunenummer": "5605",
+    "medlemmer": [
+      {
+        "personId": "person-250",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-113",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Søre Hålandvegen 26",
+    "kommune": "Karmøy",
+    "kommunenummer": "1149",
+    "medlemmer": [
+      {
+        "personId": "person-251",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-252",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-114",
+    "type": "EKTEPAR",
+    "adresse": "Kleivene 67",
+    "kommune": "Froland",
+    "kommunenummer": "4214",
+    "medlemmer": [
+      {
+        "personId": "person-253",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-254",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-255",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 13 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-115",
+    "type": "ENSLIG",
+    "adresse": "Oscar Larsens veg 8",
+    "kommune": "Tromsø",
+    "kommunenummer": "5501",
+    "medlemmer": [
+      {
+        "personId": "person-256",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-116",
+    "type": "ENSLIG",
+    "adresse": "Korsnebbveien 3",
+    "kommune": "Drøbak",
+    "kommunenummer": "3214",
+    "medlemmer": [
+      {
+        "personId": "person-257",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-117",
+    "type": "EKTEPAR",
+    "adresse": "Lageråvegen 553",
+    "kommune": "Hamar",
+    "kommunenummer": "3403",
+    "medlemmer": [
+      {
+        "personId": "person-258",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-259",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-260",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-118",
+    "type": "ENSLIG",
+    "adresse": "Myraleidet 6A",
+    "kommune": "Tjørhom",
+    "kommunenummer": "4228",
+    "medlemmer": [
+      {
+        "personId": "person-261",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-119",
+    "type": "EKTEPAR",
+    "adresse": "Holsteinveien 7",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-262",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-263",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-264",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 15 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-120",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Gaupelia 3",
+    "kommune": "Helle",
+    "kommunenummer": "4014",
+    "medlemmer": [
+      {
+        "personId": "person-265",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-266",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-121",
+    "type": "ENSLIG",
+    "adresse": "Mohaugvegen 5",
+    "kommune": "Mosvik",
+    "kommunenummer": "5053",
+    "medlemmer": [
+      {
+        "personId": "person-267",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-122",
+    "type": "ENSLIG",
+    "adresse": "Flaenstubben 16",
+    "kommune": "Fenstad",
+    "kommunenummer": "3228",
+    "medlemmer": [
+      {
+        "personId": "person-268",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-123",
+    "type": "EKTEPAR",
+    "adresse": "Haugsbygda 46",
+    "kommune": "Gursken",
+    "kommunenummer": "1514",
+    "medlemmer": [
+      {
+        "personId": "person-269",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-270",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-271",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-124",
+    "type": "EKTEPAR",
+    "adresse": "Lyngvegen 5A",
+    "kommune": "Kvinnherad",
+    "kommunenummer": "4617",
+    "medlemmer": [
+      {
+        "personId": "person-272",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-273",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-274",
+        "rolle": "voksen"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 5 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-125",
+    "type": "EKTEPAR",
+    "adresse": "Herandsvegen 261",
+    "kommune": "Ullensvang",
+    "kommunenummer": "4618",
+    "medlemmer": [
+      {
+        "personId": "person-275",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-276",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-277",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 16 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-126",
+    "type": "ENSLIG",
+    "adresse": "Nylænde 21",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-278",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-127",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Heggelivegen 29A",
+    "kommune": "Steinkjer",
+    "kommunenummer": "5006",
+    "medlemmer": [
+      {
+        "personId": "person-279",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-280",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 3 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-128",
+    "type": "ENSLIG",
+    "adresse": "Geitavegen 173",
+    "kommune": "Orkland",
+    "kommunenummer": "5059",
+    "medlemmer": [
+      {
+        "personId": "person-281",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-129",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Vistavegen 55",
+    "kommune": "Steinkjer",
+    "kommunenummer": "5006",
+    "medlemmer": [
+      {
+        "personId": "person-282",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-283",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-130",
+    "type": "ENSLIG",
+    "adresse": "Øvre Våganeset 12",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-284",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-131",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Sørestranda 168",
+    "kommune": "Hovdebygda",
+    "kommunenummer": "1520",
+    "medlemmer": [
+      {
+        "personId": "person-285",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-286",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 2 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-132",
+    "type": "ENSLIG",
+    "adresse": "Høgdaveien 3E",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-287",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-133",
+    "type": "ENSLIG",
+    "adresse": "Porsvegen 5",
+    "kommune": "Øygarden",
+    "kommunenummer": "4626",
+    "medlemmer": [
+      {
+        "personId": "person-288",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-134",
+    "type": "ENSLIG",
+    "adresse": "Skolegata 22",
+    "kommune": "Stjørdal",
+    "kommunenummer": "5035",
+    "medlemmer": [
+      {
+        "personId": "person-289",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-135",
+    "type": "ENSLIG",
+    "adresse": "Porsvegen 5",
+    "kommune": "Øygarden",
+    "kommunenummer": "4626",
+    "medlemmer": [
+      {
+        "personId": "person-290",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-136",
+    "type": "ENSLIG",
+    "adresse": "Harriet Backers gate 21",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-291",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-137",
+    "type": "ENSLIG",
+    "adresse": "Panoramavegen 1581",
+    "kommune": "Stryn",
+    "kommunenummer": "4651",
+    "medlemmer": [
+      {
+        "personId": "person-292",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-138",
+    "type": "ENSLIG",
+    "adresse": "Vognmannsvegen 17",
+    "kommune": "Skotterud",
+    "kommunenummer": "3416",
+    "medlemmer": [
+      {
+        "personId": "person-293",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-139",
+    "type": "ENSLIG",
+    "adresse": "Conradis vei 5F",
+    "kommune": "Bærum",
+    "kommunenummer": "3201",
+    "medlemmer": [
+      {
+        "personId": "person-294",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-140",
+    "type": "ENSLIG",
+    "adresse": "Villavegen 23",
+    "kommune": "Magnor",
+    "kommunenummer": "3416",
+    "medlemmer": [
+      {
+        "personId": "person-295",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-141",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Tornesvegen 449",
+    "kommune": "Hustadvika",
+    "kommunenummer": "1579",
+    "medlemmer": [
+      {
+        "personId": "person-296",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-297",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-142",
+    "type": "EKTEPAR",
+    "adresse": "Holtet 3",
+    "kommune": "Larvik",
+    "kommunenummer": "3909",
+    "medlemmer": [
+      {
+        "personId": "person-298",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-299",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-300",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 17 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-143",
+    "type": "ENSLIG",
+    "adresse": "Riskatunveien 24",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-301",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-144",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Sunnsetlykkjvegen 60",
+    "kommune": "Korsvegen",
+    "kommunenummer": "5028",
+    "medlemmer": [
+      {
+        "personId": "person-302",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-303",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-145",
+    "type": "ENSLIG",
+    "adresse": "Veita 12",
+    "kommune": "Rennebu",
+    "kommunenummer": "5022",
+    "medlemmer": [
+      {
+        "personId": "person-304",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-146",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Revbakken 5B",
+    "kommune": "Fredrikstad",
+    "kommunenummer": "3107",
+    "medlemmer": [
+      {
+        "personId": "person-305",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-306",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-147",
+    "type": "ENSLIG",
+    "adresse": "Korsnebbveien 3",
+    "kommune": "Drøbak",
+    "kommunenummer": "3214",
+    "medlemmer": [
+      {
+        "personId": "person-307",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-148",
+    "type": "ENSLIG",
+    "adresse": "Sundtvegen 10",
+    "kommune": "Grue Finnskog",
+    "kommunenummer": "3417",
+    "medlemmer": [
+      {
+        "personId": "person-308",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-149",
+    "type": "ENSLIG",
+    "adresse": "Iver Holters gate 38",
+    "kommune": "Drammen",
+    "kommunenummer": "3301",
+    "medlemmer": [
+      {
+        "personId": "person-309",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-150",
+    "type": "ENSLIG",
+    "adresse": "Prestegata 12",
+    "kommune": "Horten",
+    "kommunenummer": "3901",
+    "medlemmer": [
+      {
+        "personId": "person-310",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-151",
+    "type": "ENSLIG",
+    "adresse": "Valhallveien 10A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-311",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-152",
+    "type": "ENSLIG",
+    "adresse": "Farmanns gate 18A",
+    "kommune": "Fredrikstad",
+    "kommunenummer": "3107",
+    "medlemmer": [
+      {
+        "personId": "person-312",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-153",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Bergshaugen 3",
+    "kommune": "Fosnavåg",
+    "kommunenummer": "1515",
+    "medlemmer": [
+      {
+        "personId": "person-313",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-314",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 4 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-154",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Bjørnstjerne Bjørnsons veg 38",
+    "kommune": "Molde",
+    "kommunenummer": "1506",
+    "medlemmer": [
+      {
+        "personId": "person-315",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-316",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-155",
+    "type": "ENSLIG",
+    "adresse": "Inste Holen 29B",
+    "kommune": "Ålesund",
+    "kommunenummer": "1508",
+    "medlemmer": [
+      {
+        "personId": "person-317",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-156",
+    "type": "ENSLIG",
+    "adresse": "Svaleveien 12",
+    "kommune": "Moss",
+    "kommunenummer": "3103",
+    "medlemmer": [
+      {
+        "personId": "person-318",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-157",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Gammelveien 640",
+    "kommune": "Vingelen",
+    "kommunenummer": "3426",
+    "medlemmer": [
+      {
+        "personId": "person-319",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-320",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Én person har adressebeskyttelse. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-158",
+    "type": "ENSLIG",
+    "adresse": "Geitmyrsveien 31E",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-321",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-159",
+    "type": "ENSLIG",
+    "adresse": "Mostervikveien 30",
+    "kommune": "Bessaker",
+    "kommunenummer": "5058",
+    "medlemmer": [
+      {
+        "personId": "person-322",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-160",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Tråvikvegen 41",
+    "kommune": "Austevoll",
+    "kommunenummer": "4625",
+    "medlemmer": [
+      {
+        "personId": "person-323",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-324",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "To voksne uten barn. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-161",
+    "type": "ENSLIG",
+    "adresse": "Innergården 2",
+    "kommune": "Senja",
+    "kommunenummer": "5530",
+    "medlemmer": [
+      {
+        "personId": "person-325",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-162",
+    "type": "ENSLIG",
+    "adresse": "Lårdalsvegen 640",
+    "kommune": "Høydalsmo",
+    "kommunenummer": "4034",
+    "medlemmer": [
+      {
+        "personId": "person-326",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-163",
+    "type": "ENSLIG",
+    "adresse": "Gabels gate 9B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-327",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-164",
+    "type": "ENSLIG",
+    "adresse": "Oscar Larsens veg 8",
+    "kommune": "Tromsø",
+    "kommunenummer": "5501",
+    "medlemmer": [
+      {
+        "personId": "person-328",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-165",
+    "type": "ENSLIG",
+    "adresse": "Øvre Våganeset 12",
+    "kommune": "Bergen",
+    "kommunenummer": "4601",
+    "medlemmer": [
+      {
+        "personId": "person-329",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-166",
+    "type": "ENSLIG",
+    "adresse": "Vikaveien 17A",
+    "kommune": "Tjøtta",
+    "kommunenummer": "1820",
+    "medlemmer": [
+      {
+        "personId": "person-330",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-167",
+    "type": "ENSLIG",
+    "adresse": "Damsgård 64",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-331",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-168",
+    "type": "ENSLIG",
+    "adresse": "Skogvegen 58",
+    "kommune": "Skogn",
+    "kommunenummer": "5037",
+    "medlemmer": [
+      {
+        "personId": "person-332",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-169",
+    "type": "ENSLIG",
+    "adresse": "Nylænde 21",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-333",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-170",
+    "type": "VOKSNE_SAMMEN",
+    "adresse": "Ospelia s. 42",
+    "kommune": "Homborsund",
+    "kommunenummer": "4202",
+    "medlemmer": [
+      {
+        "personId": "person-334",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-335",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-336",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Flere voksne på samme adresse, uten barn i husstanden. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-171",
+    "type": "ENSLIG",
+    "adresse": "Mobekkvegen 329",
+    "kommune": "Vestmarka",
+    "kommunenummer": "3416",
+    "medlemmer": [
+      {
+        "personId": "person-337",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-172",
+    "type": "ENSLIG",
+    "adresse": "Malmveien 6B",
+    "kommune": "Fauske",
+    "kommunenummer": "1841",
+    "medlemmer": [
+      {
+        "personId": "person-338",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-173",
+    "type": "ENSLIG",
+    "adresse": "Raudeberget 4",
+    "kommune": "Ålesund",
+    "kommunenummer": "1508",
+    "medlemmer": [
+      {
+        "personId": "person-339",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-174",
+    "type": "ENSLIG",
+    "adresse": "Gangdalen 18D",
+    "kommune": "Kristiansand",
+    "kommunenummer": "4204",
+    "medlemmer": [
+      {
+        "personId": "person-340",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-175",
+    "type": "ENSLIG",
+    "adresse": "Tyinvegen 6720",
+    "kommune": "Øye",
+    "kommunenummer": "3454",
+    "medlemmer": [
+      {
+        "personId": "person-341",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-176",
+    "type": "ENSLIG",
+    "adresse": "Gangdalen 18D",
+    "kommune": "Kristiansand",
+    "kommunenummer": "4204",
+    "medlemmer": [
+      {
+        "personId": "person-342",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-177",
+    "type": "ENSLIG",
+    "adresse": "Kvednaneslia 17",
+    "kommune": "Tau",
+    "kommunenummer": "1130",
+    "medlemmer": [
+      {
+        "personId": "person-343",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-178",
+    "type": "ENSLIG_FORSORGER",
+    "adresse": "Evje terrasse 7B",
+    "kommune": "Bærum",
+    "kommunenummer": "3201",
+    "medlemmer": [
+      {
+        "personId": "person-344",
+        "rolle": "barn"
+      },
+      {
+        "personId": "person-345",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen med barn. Barn på 3 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-179",
+    "type": "ENSLIG",
+    "adresse": "Vognmannsvegen 17",
+    "kommune": "Skotterud",
+    "kommunenummer": "3416",
+    "medlemmer": [
+      {
+        "personId": "person-346",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-180",
+    "type": "ENSLIG",
+    "adresse": "Malerhaugveien 32A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-347",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-181",
+    "type": "EKTEPAR",
+    "adresse": "Nedre Skarveland 61",
+    "kommune": "Kvinnherad",
+    "kommunenummer": "4617",
+    "medlemmer": [
+      {
+        "personId": "person-348",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-349",
+        "rolle": "foresatt"
+      },
+      {
+        "personId": "person-350",
+        "rolle": "barn"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Ektepar med barn. Barn på 12 år. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-182",
+    "type": "ENSLIG",
+    "adresse": "Vestlivegen 54",
+    "kommune": "Geilo",
+    "kommunenummer": "3330",
+    "medlemmer": [
+      {
+        "personId": "person-351",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-183",
+    "type": "ENSLIG",
+    "adresse": "Fagernesvegen 55",
+    "kommune": "Feiring",
+    "kommunenummer": "3240",
+    "medlemmer": [
+      {
+        "personId": "person-352",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-184",
+    "type": "ENSLIG",
+    "adresse": "Liaskjervegen 140",
+    "kommune": "Øygarden",
+    "kommunenummer": "4626",
+    "medlemmer": [
+      {
+        "personId": "person-353",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-185",
+    "type": "ENSLIG",
+    "adresse": "Falkevegen 31",
+    "kommune": "Porsgrunn",
+    "kommunenummer": "4001",
+    "medlemmer": [
+      {
+        "personId": "person-354",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-186",
+    "type": "ENSLIG",
+    "adresse": "Nøysomheten 57",
+    "kommune": "Ibestad",
+    "kommunenummer": "5514",
+    "medlemmer": [
+      {
+        "personId": "person-355",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-187",
+    "type": "ENSLIG",
+    "adresse": "Østhagvegen 39",
+    "kommune": "Ringsaker",
+    "kommunenummer": "3411",
+    "medlemmer": [
+      {
+        "personId": "person-356",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-188",
+    "type": "ENSLIG",
+    "adresse": "Bieveien 5",
+    "kommune": "Arendal",
+    "kommunenummer": "4203",
+    "medlemmer": [
+      {
+        "personId": "person-357",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-189",
+    "type": "ENSLIG",
+    "adresse": "Tyinvegen 6720",
+    "kommune": "Øye",
+    "kommunenummer": "3454",
+    "medlemmer": [
+      {
+        "personId": "person-358",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-190",
+    "type": "ENSLIG",
+    "adresse": "Villavegen 23",
+    "kommune": "Magnor",
+    "kommunenummer": "3416",
+    "medlemmer": [
+      {
+        "personId": "person-359",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-191",
+    "type": "ENSLIG",
+    "adresse": "Myraleidet 6A",
+    "kommune": "Tjørhom",
+    "kommunenummer": "4228",
+    "medlemmer": [
+      {
+        "personId": "person-360",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-192",
+    "type": "ENSLIG",
+    "adresse": "Ole Bulls vei 9",
+    "kommune": "Fjellhamar",
+    "kommunenummer": "3222",
+    "medlemmer": [
+      {
+        "personId": "person-361",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-193",
+    "type": "ENSLIG",
+    "adresse": "Lauvåsvegen 22",
+    "kommune": "Braskereidfoss",
+    "kommunenummer": "3419",
+    "medlemmer": [
+      {
+        "personId": "person-362",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-194",
+    "type": "ENSLIG",
+    "adresse": "Geitavegen 173",
+    "kommune": "Orkland",
+    "kommunenummer": "5059",
+    "medlemmer": [
+      {
+        "personId": "person-363",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-195",
+    "type": "ENSLIG",
+    "adresse": "Ingelsvassveien 587",
+    "kommune": "Nordli",
+    "kommunenummer": "5042",
+    "medlemmer": [
+      {
+        "personId": "person-364",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-196",
+    "type": "ENSLIG",
+    "adresse": "Skippergata 30A",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-365",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-197",
+    "type": "ENSLIG",
+    "adresse": "Gabels gate 9B",
+    "kommune": "Oslo",
+    "kommunenummer": "0301",
+    "medlemmer": [
+      {
+        "personId": "person-366",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-198",
+    "type": "ENSLIG",
+    "adresse": "Bonsvollen 8",
+    "kommune": "Nordmela",
+    "kommunenummer": "1871",
+    "medlemmer": [
+      {
+        "personId": "person-367",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-199",
+    "type": "ENSLIG",
+    "adresse": "Roald Amundsens gate 48",
+    "kommune": "Sandnes",
+    "kommunenummer": "1108",
+    "medlemmer": [
+      {
+        "personId": "person-368",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
+  },
+  {
+    "husstandId": "household-200",
+    "type": "ENSLIG",
+    "adresse": "Eidsfjordveien 313",
+    "kommune": "Sortland",
+    "kommunenummer": "1870",
+    "medlemmer": [
+      {
+        "personId": "person-369",
+        "rolle": "foresatt"
+      }
+    ],
+    "kilde": "tenor",
+    "syntetisk": true,
+    "scenario": "Én voksen som bor alene. Fra Tenor, for bredde."
   }
 ]

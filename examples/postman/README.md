@@ -28,21 +28,13 @@ direkte.
 
 ## Dekningsgrad, per august 2026
 
-`sandbox-backend` er godt dekket med 28 paths, inkludert den deterministiske
-vilkårsvurderingen. Beregningsendepunktet — det eneste som speiler et ekte KS-API — er
-beskrevet i `openapi/fiks-simulator.yaml` med lenke til
+**Alle seks spesifikasjoner dekker nå hver rute i koden**, med `security:` per rute:
+`sandbox-backend` 33, `fiks-simulator` 21, `ai-gateway` 16, `matrikkel-mock` 8,
+`mcp-services` 6, `process-agent` 5. Beregningsendepunktet — det eneste som speiler et
+ekte KS-API — er beskrevet i `openapi/fiks-simulator.yaml` med lenke til
 [det ekte register-API-et](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json).
 
-**Det store hullet er `fiks-simulator`: 4 av 19 ruter er dokumentert.** Udokumentert i dag:
-
-- hele register-delen — `/fiks/register/person/{id}`, `/husstand/{id}`, `/inntekt/{id}`,
-  `/barnehage/{id}`, `/kontaktinfo/{id}`
-- samtykkets underruter — `/historikk`, `/svar`, `/trekk`, `/fiks/personer/{id}/samtykker`
-- oppgaver og meldinger — `/fiks/oppgaver`, `/fiks/meldinger` med oppslag
-
-Finner du et endepunkt som ikke er i spesifikasjonen, henger som regel spesifikasjonen
-etter — ruta finnes. **`examples/curl/` er den mest verifiserte oversikten** over hva
-som faktisk er der: alle kallene er hentet fra testskriptene og kjørt.
-
-Å tette `fiks-simulator.yaml` er en fin, avgrenset førsteoppgave. `openapi/` tar imot
-pull requests.
+`pnpm test:openapi` sammenligner kode og spesifikasjon i begge retninger og feiler i CI
+på en udokumentert rute, en dokumentert rute som ikke finnes, feil metode, en duplikat
+path-nøkkel, en manglende `security:` eller et kodeverk som har kommet ut av takt. Finner
+du likevel et avvik, er det en feil å melde — ikke lenger et forventet etterslep.

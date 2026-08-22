@@ -106,7 +106,7 @@ De fleste caser krever ingen kode i det hele tatt.
 | lage en ny flyt av eksisterende byggeklosser | `data/prosessdefinisjoner.json` | nei |
 | legge til en ny inntektsgrense eller ordning | `data/satser.json` → `ordninger[]` | nei |
 | hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
-| innføre en ny regeltype | `apps/sandbox-backend/src/regler.ts` → `regelHandtere` | ~20 linjer |
+| innføre en ny regeltype | `apps/sandbox-backend/src/vilkaar.ts` → `regelHandtere` | ~20 linjer |
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandtere` | ~20 linjer |
 | gi agenten et nytt verktøy for `QUESTION`-steg | `mcp-services` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.js` | ~20 linjer |
 

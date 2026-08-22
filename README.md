@@ -42,8 +42,8 @@ Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal d
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
-- OpenAPI for alle seks tjenester — `sandbox-backend` med 28 av 31 stier, `process-agent`
-  komplett, `fiks-simulator` fortsatt bare 4 av 20
+- OpenAPI for alle seks tjenester, komplett og holdt i takt med koden av
+  `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
 Se `docs/veien-videre.md` for hva som gjenstår og hvilke arkitekturvalg som er åpne.
 
@@ -362,8 +362,9 @@ gateoppslag til en 500. `hybrid` prøver Geonorge først og faller tilbake til s
 Kodens egen default uten miljøvariabel er `mock`, men den ser du bare hvis du starter
 `mcp-services` utenfor compose.
 
-`matrikkel-mock` starter uansett fra `data/matrikkel.seed.json` og faller tilbake til
-live Geonorge-oppslag ved manglende treff.
+`matrikkel-mock` starter fra `data/matrikkel.json` — 220 Bergen-gater med koordinater —
+og faller tilbake til live Geonorge-oppslag ved manglende treff. Den er den eneste
+leseren av matrikkelseeden; `sandbox-backend` går over HTTP via `MATRIKKEL_BASE_URL`.
 
 Hent matrikkeldata (REST-hjelpeendepunkt):
 
@@ -449,18 +450,23 @@ pnpm test:folkeregister-mcp
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json` — 43 personer
-- `data/husstander.json` — 18 husstander
+- `data/personer.json` — 369 personer
+- `data/husstander.json` — 200 husstander
+- `data/tenor/` — rå uttrekk fra Tenor, kilden importen bygger på
+- `data/forventet-utfall.json` — hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
 - `data/inntekter.json`
 - `data/barnehageplasser.json`
 - `data/sfoplasser.json`
 - `data/satser.json`
-- `data/matrikkel.seed.json` — lest av både `sandbox-backend` og `matrikkel-mock`
+- `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` — grunnlaget for fritidskort
+- `data/tjenestetilbud.json` — kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
+- `data/matrikkel.json` — 220 gater og 8202 eiendommer, lest av `matrikkel-mock`
+- `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`
 
-`data/matrikkel.json` ligger også der — 5,9 MB nedlastede Geonorge-adresser — men den
-leses av ingenting. Ikke bygg på den.
+`matrikkel-mock` er eneste leser av matrikkeldataene. `sandbox-backend` kaller den over
+HTTP, så det finnes bare én matrikkel i sandkassen — den som også snakker SOAP.
 
 Søknader, samtykker, oppgaver, meldinger, prosessøkter og revisjonslogg har **ingen**
 fil i `data/`. De oppstår først under kjøring og finnes bare i `state/`, som er
@@ -504,10 +510,9 @@ Anbefalt arbeidsform:
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
-- CI kjører `pnpm lint`, `pnpm test` og `pnpm test:kontrakt` på PR. Evalene og
+- CI kjører `pnpm lint`, `pnpm test`, `pnpm test:sperrer`, `pnpm test:skjerming`,
+  `pnpm test:samtykke`, `pnpm test:openapi` og `pnpm test:kontrakt` på PR. Evalene og
   stack-testene gjør den ikke — de krever en modell eller en kjørende stack
-- `openapi/fiks-simulator.yaml` dokumenterer 4 av 20 ruter. De øvrige spesifikasjonene
-  er stort sett komplette
 - Ingen persistensstrategi utover flate JSON-filer. `process-agent` holder sesjoner i
   minnet og mister dem ved restart
 - Datasett og policyer er laget for demo og hackathon, ikke produksjon

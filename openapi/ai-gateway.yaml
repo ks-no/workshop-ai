@@ -8,7 +8,31 @@ info:
     Provideren kan byttes i en kjørende instans via /admin, uten restart.
 servers:
   - url: http://localhost:8082
+# Ingen av rutene her krever token, og det er et valg, ikke en glipp.
+# ai-gateway er en intern tjeneste i sandkassen: den kalles av sandbox-backend og demo-GUI-ene, og henter selv et Maskinporten-token når den skriver til revisjonsloggen. Innkommende kall verifiseres ikke.
+# En tom security på dokumentnivå gjelder alle operasjonene under paths.
+security: []
+
 paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
   /health:
     get:
       summary: Health check, inkludert om modellen faktisk er tilgjengelig
@@ -277,6 +301,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VelgVerktoyResponse"
+
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
 
 components:
   schemas:

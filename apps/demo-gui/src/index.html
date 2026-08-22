@@ -112,7 +112,7 @@
       }
 
       async function hentJson(url, valg = {}) {
-        const svar = await fetch(url, valg);
+        const svar = await fetch(url, { ...valg, headers: medToken(valg.headers || {}) });
         const data = await svar.json();
         if (!svar.ok) {
           throw new Error(data.feil || `Feil ${svar.status}`);
@@ -128,13 +128,17 @@
         });
       }
 
+      // Who you are is settled at ID-porten, not in a dropdown here. The selector
+      // is filled with the single person you logged in as, so valgtPersonId() and
+      // everything downstream keeps working unchanged.
+      let meg = null;
+
       async function lastInnGrunnlag() {
         personer = await hentJson("http://localhost:8080/api/personer");
         prosesser = await hentJson("http://localhost:8080/api/prosesser");
 
-        personvelger.innerHTML = personer
-          .map((person) => `<option value="${htmlEscape(person.personId)}">${htmlEscape(person.visningsnavn)} (${htmlEscape(person.bostedsadresse.kommune)})</option>`)
-          .join("");
+        meg = visInnloggetPerson(personvelger, personer);
+        visInnloggingsbanner(hendelser, meg);
 
         prosessvelger.innerHTML = prosesser
           .map((prosess) => `<option value="${htmlEscape(prosess.id)}">${htmlEscape(prosess.navn)}</option>`)
@@ -419,8 +423,13 @@
         konsekvens: "Oppsummeringen under kommer fra maler, ikke fra en modell."
       });
 
-      lastInnGrunnlag().then(() => {
-        settStatus("Demo-GUI klar.");
+      // Log in first. krevInnlogging() returns false when it has already started
+      // navigating to ID-porten, and then there is nothing more to do on this load.
+      krevInnlogging().then((innlogget) => {
+        if (!innlogget) return null;
+        return lastInnGrunnlag().then(() => {
+          settStatus(`Demo-GUI klar. Innlogget som ${meg.visningsnavn}.`);
+        });
       }).catch((error) => {
         settStatus(`Kunne ikke laste grunnlag: ${error.message}`);
       });

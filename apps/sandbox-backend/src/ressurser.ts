@@ -1,13 +1,30 @@
+import {
+  aktorFor,
+  krevTilgang,
+  SCOPE_LES,
+  type Kaller,
+  type Tilgang
+} from "./autentisering.ts";
 import { HttpError } from "./errors.ts";
-import { harGyldigSamtykke, hentInntektForPerson, vurderOrdning } from "./regler.ts";
+import {
+  harGyldigSamtykke,
+  harUtloeptSamtykke,
+  hentInntektForPerson,
+  vurderOrdning
+} from "./regler.ts";
+import { regelKreverInntekt, velgOrdningForTjeneste } from "./vilkaar.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import {
+  eiendommerForPerson,
+  eiendommerForPersonIGate,
   finnGate,
+  hentGater
+} from "./matrikkel.ts";
+import {
   finnPerson,
   hentHusstandForPerson,
-  hentPlasserForTjeneste,
-  readJson
+  hentPlasserForTjeneste
 } from "./state.ts";
 
 // SHARED RESOURCE CATALOG
@@ -28,6 +45,22 @@ import {
 
 type State = any;
 
+// The rule type decides. An ordning assessed on need and capacity — støttekontakt —
+// never reads income, so demanding consent for income would collect a basis the
+// decision does not use. Anything unresolvable keeps the strict requirement.
+function samtykkeForOrdningssjekk(kontekst: RessursKontekst): string | null {
+  try {
+    const ordningId =
+      kontekst.sok.get("ordning") ||
+      velgOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
+    const ordning = kontekst.tilstand.satser.ordninger.find((o: any) => o.id === ordningId);
+    if (!ordning) return "inntekt";
+    return regelKreverInntekt[ordning.regel as keyof typeof regelKreverInntekt] ? "inntekt" : null;
+  } catch {
+    return "inntekt";
+  }
+}
+
 export type RessursKontekst = {
   tilstand: State;
   parametere: PathParams;
@@ -36,7 +69,45 @@ export type RessursKontekst = {
   sporingsId: string;
   oekt: any | null;
   steg: any | null;
+  /** Who is calling, from the token. See autentisering.ts. */
+  kaller: Kaller;
 };
+
+// The foresatte whose income the calculation combines — the same set regler.ts
+// sends to Fiks. Derived here rather than read back off the response so the audit
+// entry is written even when the lookup fails.
+function foresatteIHusstand(kontekst: RessursKontekst): string[] {
+  try {
+    const husstand = hentHusstandForPerson(kontekst.tilstand, kontekst.personId);
+    return husstand.medlemmer
+      .filter((medlem: any) => medlem.rolle === "foresatt")
+      .map((medlem: any) => medlem.personId);
+  } catch {
+    // A household we cannot resolve means the lookup will fail too. Fall back to
+    // the applicant rather than dropping the field.
+    return [kontekst.personId];
+  }
+}
+
+function alleIHusstand(kontekst: RessursKontekst): string[] {
+  try {
+    return hentHusstandForPerson(kontekst.tilstand, kontekst.personId)
+      .medlemmer.map((medlem: any) => medlem.personId);
+  } catch {
+    return [kontekst.personId];
+  }
+}
+
+// A plass belongs to a child, not to the applicant. Both are recorded: the parent
+// asked, the child's data answered.
+function barnMedPlass(kontekst: RessursKontekst, tjeneste: string): string[] {
+  try {
+    const plasser = hentPlasserForTjeneste(kontekst.tilstand, kontekst.personId, tjeneste);
+    return [...new Set([kontekst.personId, ...plasser.map((plass: any) => plass.personId)])];
+  } catch {
+    return [kontekst.personId];
+  }
+}
 
 export type Ressurs = {
   metode: string;
@@ -44,10 +115,35 @@ export type Ressurs = {
   /** Name the resource gets in the revisjonslogg. */
   ressurs: string;
   beskrivelse: string;
-  /** Data source that requires samtykke, or null. */
+  /**
+   * Which authorisation this resource requires. Omitted means the closed value,
+   * "egne-data" — a resource added during the hackathon is protected by default.
+   */
+  tilgang?: Tilgang;
+  /** Scope a machine caller must hold. Defaults to SCOPE_LES. */
+  scope?: string;
+  /** Data source that requires samtykke, or null. Shown in the resource catalogue. */
   kreverSamtykke?: string | null;
+  /**
+   * Resolves the consent requirement per request, for resources where it depends on
+   * what is being asked for. Overrides kreverSamtykke when present. Fails closed:
+   * if the request cannot be resolved, the strictest requirement stands.
+   */
+  kreverSamtykkeFor?: (kontekst: RessursKontekst) => string | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
+  /**
+   * Whose data this lookup actually touched, as personIds. Omitted means the one
+   * person the request was about.
+   *
+   * This exists because the two are not the same, and the difference is the
+   * interesting part. Reading "your" income runs a household calculation: for the
+   * 68 of 200 households with two foresatte, a partner's tax data is read on the
+   * strength of the applicant's samtykke, and the partner never agreed to anything.
+   * An audit log that records only the actor cannot answer the question a person
+   * actually asks it — whose data was read — so it records both.
+   */
+  omfatter?: (kontekst: RessursKontekst) => string[];
   /** Runs before the consent check, so missing parameters give 400 and not 403. */
   valider?: (kontekst: RessursKontekst) => void;
   /** For resources where the person is not in the path but must be resolved before the consent check. */
@@ -76,6 +172,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/husstand",
     ressurs: "husstand",
     beskrivelse: "Husstanden personen tilhører, med roller for foresatte og barn.",
+    omfatter: alleIHusstand,
     handter: ({ tilstand, personId }) => {
       try {
         return hentHusstandForPerson(tilstand, personId);
@@ -89,6 +186,9 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/inntekt",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag for husholdningen, beregnet av Fiks-simulatoren.",
+    // The calculation combines every foresatt in the household, so a two-parent
+    // household means a second person's tax data is read here.
+    omfatter: foresatteIHusstand,
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: async ({ tilstand, personId }) => {
@@ -104,6 +204,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/barnehage",
     ressurs: "barnehageplass",
     beskrivelse: "Barnehageplasser registrert på barna i husstanden.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "barnehage"),
     handter: ({ tilstand, personId }) => {
       try {
         return hentPlasserForTjeneste(tilstand, personId, "barnehage");
@@ -119,6 +220,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/personer/:personId/sfo",
     ressurs: "sfoplass",
     beskrivelse: "SFO-plasser registrert på barna i husstanden.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "sfo"),
     handter: ({ tilstand, personId }) => {
       try {
         return hentPlasserForTjeneste(tilstand, personId, "sfo");
@@ -129,9 +231,25 @@ export const ressurser: Ressurs[] = [
   },
   {
     metode: "GET",
+    sti: "/api/personer/:personId/fritid",
+    ressurs: "fritidsdeltakelse",
+    beskrivelse: "Fritidsaktiviteter barna i husstanden deltar i.",
+    omfatter: (kontekst) => barnMedPlass(kontekst, "fritid"),
+    formaal: "Vise fritidsaktiviteter i husstanden",
+    handter: ({ tilstand, personId }) => {
+      try {
+        return hentPlasserForTjeneste(tilstand, personId, "fritid");
+      } catch (error: any) {
+        throw new HttpError(error.message, 404);
+      }
+    }
+  },
+  {
+    metode: "GET",
     sti: "/api/husstander/:husstandId/inntektsgrunnlag",
     ressurs: "inntekt",
     beskrivelse: "Inntektsgrunnlag slått opp på husstand i stedet for person.",
+    omfatter: foresatteIHusstand,
     // Same data as the person route, so the same consent requirement. The applicant
     // is resolved via the husstand, since the person is not in the path.
     kreverSamtykke: "inntekt",
@@ -151,11 +269,13 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/gater",
     ressurs: "matrikkel-gate",
     beskrivelse: "Gater i matrikkelen. Med ?gate= gis nøkkeltall for én gate.",
-    handter: ({ tilstand, sok }) => {
-      const gater = tilstand.matrikkel?.gater || [];
+    // The street register is public and has no person subject — there is no one
+    // whose data this is. That is why its revisjonslogg rows say aktor: ukjent.
+    tilgang: "aapen",
+    handter: async ({ sok }) => {
       const gateParam = sok.get("gate");
       if (!gateParam) {
-        return gater.map((g: any) => ({
+        return (await hentGater()).map((g) => ({
           gateId: g.gateId,
           adressenavn: g.adressenavn,
           kommune: g.kommune,
@@ -163,14 +283,16 @@ export const ressurser: Ressurs[] = [
           antallBoligeiendommer: g.antallBoligeiendommer
         }));
       }
-      const gateData = finnGate(tilstand, gateParam);
+      const gateData = await finnGate(gateParam);
       if (!gateData) {
+        // 221 street names is too many to hand back on a typo, so point at the list
+        // instead. The matrikkel already does prefix and substring matching, so a
+        // miss here means the name really is not there.
         throw new HttpError(`Fant ikke gaten "${gateParam}".`, 404, {
-          tilgjengelige: gater.map((g: any) => g.adressenavn)
+          hint: "Se GET /api/matrikkel/gater for hele lista over gater.",
+          syntetisk: true
         });
       }
-      // Deliberate projection: the property list contains other residents' personIds,
-      // which have no place in a street lookup.
       return {
         gateId: gateData.gateId,
         adressenavn: gateData.adressenavn,
@@ -191,21 +313,21 @@ export const ressurser: Ressurs[] = [
     beskrivelse: "SJEKK: eier søkeren en eiendom i den oppgitte gaten?",
     // The SJEKK step writes SJEKK_OK/SJEKK_AVVIST itself.
     revisjon: false,
-    handter: ({ tilstand, sok, personId, steg }) => {
+    handter: async ({ sok, personId, steg }) => {
       const gateNavn = sok.get("gate") || "";
-      const gateData = finnGate(tilstand, gateNavn);
+      const gateData = await finnGate(gateNavn);
       if (!gateData) {
         return { godkjent: false, melding: `Fant ikke gaten "${gateNavn}" i matrikkelen.` };
       }
-      const harEiendom = gateData.eiendommer.some(
-        (e: any) => Array.isArray(e.eiere) && e.eiere.includes(personId)
-      );
+      // Filtered in the matrikkel, so no other resident's ownership is ever sent here.
+      const egne = await eiendommerForPersonIGate(gateData.adressenavn, personId);
+      const harEiendom = egne.length > 0;
       return {
         godkjent: harEiendom,
         melding: harEiendom
           ? `Eierforhold i ${gateData.adressenavn} bekreftet.`
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
-        grunnlag: { personId, gate: gateData.adressenavn, harEiendom }
+        grunnlag: { personId, gate: gateData.adressenavn, harEiendom, antallEiendommer: egne.length }
       };
     }
   },
@@ -214,48 +336,81 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/mine-eiendommer",
     ressurs: "matrikkel-mine-eiendommer",
     beskrivelse: "Eiendommer i matrikkelen der søkeren er registrert som eier, på tvers av alle gater.",
-    revisjon: false,
-    handter: async ({ personId }) => {
-      // Read the raw seed file directly so we bypass leggTilUniversellEierIAlleEiendommer,
-      // which adds person-001 to every property to keep the demo working from any street.
-      // For ownership questions the user should only see properties they genuinely own.
-      const rawMatrikkel = await readJson("matrikkel.seed.json");
-      const gater: any[] = rawMatrikkel?.gater || [];
-      const mine: any[] = [];
-      for (const gate of gater) {
-        for (const eiendom of (gate.eiendommer || [])) {
-          if (Array.isArray(eiendom.eiere) && eiendom.eiere.includes(personId)) {
-            mine.push({
-              matrikkelId: eiendom.matrikkelId,
-              adresse: eiendom.adresse,
-              bruksenhetstype: eiendom.bruksenhetstype,
-              gate: gate.adressenavn,
-              kommune: gate.kommune
-            });
-          }
-        }
+    // No tilgang here means "egne-data", which is what this is: the applicant's own
+    // holdings, not the open street register. And revisjon stays on — unlike a SJEKK
+    // lookup, nothing else logs this one, and it reads person data.
+    valider: ({ personId }) => {
+      if (!personId) {
+        throw new HttpError("personId er påkrevd.", 400);
       }
-      return { personId, eiendommer: mine, syntetisk: true };
+    },
+    handter: async ({ personId }) => {
+      const mine = await eiendommerForPerson(personId);
+      return {
+        personId,
+        eiendommer: mine.map((eiendom) => ({
+          matrikkelId: eiendom.matrikkelId,
+          adresse: eiendom.adresse,
+          bruksenhetstype: eiendom.bruksenhetstype,
+          gate: eiendom.adressenavn,
+          kommune: eiendom.kommune
+        })),
+        syntetisk: true
+      };
     }
   },
   {
     metode: "GET",
-    sti: "/api/regler/sjekk/foreldrebetaling",
+    sti: "/api/regler/sjekk/ordning",
     ressurs: "regelvurdering",
-    beskrivelse: "SJEKK: rett til en moderasjonsordning i data/satser.json.",
-    // The assessment reveals the household's income basis, so it carries the same
-    // consent requirement as the income route.
+    beskrivelse:
+      "SJEKK: rett til en ordning i data/satser.json. Krever samtykke til inntekt " +
+      "kun for ordninger som faktisk vurderes mot inntekt.",
     kreverSamtykke: "inntekt",
+    kreverSamtykkeFor: samtykkeForOrdningssjekk,
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     revisjon: false,
     valider: ({ sok, personId }) => {
-      if (!personId || !sok.get("ordning")) {
-        throw new HttpError("personId og ordning er påkrevd.", 400);
+      if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
+        throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
       }
     },
     handter: async ({ tilstand, sok, personId }) => {
       try {
-        return await vurderOrdning(tilstand, personId, sok.get("ordning"));
+        // `tjeneste` lets a process say "assess SFO" and leave the choice of ordning
+        // to the child's actual trinn, instead of naming one and being wrong for
+        // every household outside it.
+        const ordning = sok.get("ordning")
+          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await vurderOrdning(tilstand, personId, ordning);
+      } catch (error: any) {
+        throw new HttpError(error.message, 400);
+      }
+    }
+  },
+  {
+    metode: "GET",
+    // Alias of /api/regler/sjekk/ordning. The name says foreldrebetaling, but the
+    // route has always taken any ordning id — including fritidskort, which is not a
+    // parental payment at all. Process definitions, the curl cookbook and the
+    // OpenAPI spec all point here, so the path stays.
+    sti: "/api/regler/sjekk/foreldrebetaling",
+    ressurs: "regelvurdering",
+    beskrivelse: "SJEKK: alias for /api/regler/sjekk/ordning.",
+    kreverSamtykke: "inntekt",
+    kreverSamtykkeFor: samtykkeForOrdningssjekk,
+    formaal: "Vurdere rett til dialogrelatert tjeneste",
+    revisjon: false,
+    valider: ({ sok, personId }) => {
+      if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
+        throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
+      }
+    },
+    handter: async ({ tilstand, sok, personId }) => {
+      try {
+        const ordning = sok.get("ordning")
+          || velgOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
+        return await vurderOrdning(tilstand, personId, ordning);
       } catch (error: any) {
         throw new HttpError(error.message, 400);
       }
@@ -283,6 +438,7 @@ export function ressurskatalog() {
     sti: ressurs.sti,
     ressurs: ressurs.ressurs,
     beskrivelse: ressurs.beskrivelse,
+    tilgang: ressurs.tilgang || "egne-data",
     kreverSamtykke: ressurs.kreverSamtykke || null,
     syntetisk: true
   }));
@@ -293,6 +449,7 @@ type UtforValg = {
   steg?: any | null;
   personId?: string | null;
   sporingsId: string;
+  kaller?: Kaller;
 };
 
 export async function utforRessurs(
@@ -322,7 +479,8 @@ export async function utforRessurs(
       "",
     sporingsId: valg.sporingsId,
     oekt: valg.oekt ?? null,
-    steg: valg.steg ?? null
+    steg: valg.steg ?? null,
+    kaller: valg.kaller ?? { type: "anonym" }
   };
 
   ressurs.valider?.(kontekst);
@@ -331,21 +489,87 @@ export async function utforRessurs(
     kontekst.personId = ressurs.finnPersonId(kontekst);
   }
 
+  // Authorisation goes here, after valider() and after finnPersonId() resolved who
+  // the request is about, and before the samtykke check. That order is what makes
+  // the four outcomes distinguishable:
+  //
+  //   400  a parameter is missing            (valider)
+  //   401  we do not know who you are        (no token)
+  //   403  we know, and you have no hjemmel  (wrong pid, or missing scope)
+  //   403  you have hjemmel but no samtykke  (below, and a different grunn)
+  //
+  // syntetiskFodselsnummer survives A2's masking precisely so this lookup works for
+  // an address-protected person too. See skjerming.ts.
+  try {
+    krevTilgang({
+      kaller: kontekst.kaller,
+      tilgang: ressurs.tilgang ?? "egne-data",
+      scope: ressurs.scope ?? SCOPE_LES,
+      pid: kontekst.personId
+        ? finnPerson(tilstand, kontekst.personId)?.syntetiskFodselsnummer ?? null
+        : null,
+      hva: `å lese ${ressurs.ressurs}`
+    });
+  } catch (feil) {
+    // A refused attempt is exactly what an audit log is for. TILGANG_NEKTET, not
+    // DATA_NEKTET: that one means "had hjemmel, lacked samtykke", and conflating
+    // the two would erase the distinction Del B exists to teach.
+    await leggTilRevisjon({
+      sporingsId: kontekst.sporingsId,
+      handling: "TILGANG_NEKTET",
+      ressurs: ressurs.ressurs,
+      formaal: "Mangler hjemmel",
+      ...(kontekst.personId ? { gjaldt: kontekst.personId } : {}),
+      aktor: aktorFor(kontekst.kaller, kontekst.personId)
+    });
+    throw feil;
+  }
+
+  // Computed once, before the handler, so a DATA_LES and a DATA_NEKTET for the same
+  // request describe the same set of people.
+  const omfatter = ressurs.omfatter ? ressurs.omfatter(kontekst) : [];
+  // Only recorded when it says more than `aktor` already does. A single-subject
+  // read where the subject is the caller needs no second field.
+  const omfatterFelt = omfatter.length > 1 || (omfatter.length === 1 && omfatter[0] !== kontekst.personId)
+    ? { omfatter }
+    : {};
+
+  const kreverSamtykke = ressurs.kreverSamtykkeFor
+    ? ressurs.kreverSamtykkeFor(kontekst)
+    : ressurs.kreverSamtykke;
+
   let samtykke = null;
-  if (ressurs.kreverSamtykke) {
-    samtykke = harGyldigSamtykke(tilstand, kontekst.personId, ressurs.kreverSamtykke);
+  if (kreverSamtykke) {
+    // The session knows which consent it just created. Prefer it, so the basis in
+    // the audit log is the one the citizen actually gave in this flow.
+    samtykke = harGyldigSamtykke(
+      tilstand,
+      kontekst.personId,
+      kreverSamtykke,
+      kontekst.oekt?.aktivtSamtykkeId
+    );
     if (!samtykke) {
+      // A consent that ran out is not the same refusal as one that was never
+      // given, and telling a citizen who remembers agreeing that they must
+      // "register a samtykke" reads as the system having forgotten. Both are
+      // DATA_NEKTET — hjemmel was there, samtykke was not — but the reason differs.
+      const utloept = harUtloeptSamtykke(tilstand, kontekst.personId, kreverSamtykke);
       await leggTilRevisjon({
         sporingsId: kontekst.sporingsId,
         handling: "DATA_NEKTET",
         ressurs: ressurs.ressurs,
-        formaal: "Mangler samtykke",
-        aktor: { type: "testbruker", id: kontekst.personId }
+        formaal: utloept ? "Utløpt samtykke" : "Mangler samtykke",
+        ...omfatterFelt,
+        aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
       throw new HttpError(
-        `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
+        utloept
+          ? `Samtykket som dekket dette har utløpt. ${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever et nytt samtykke.`
+          : `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
         403,
-        { syntetisk: true }
+        // Both 403s carry a machine-readable grunn, so a client can tell "you may
+        // not" from "you may, but nobody has consented yet" without parsing prose.
+        { syntetisk: true, grunn: utloept ? "utloept_samtykke" : "mangler_samtykke" }
       );
     }
   }
@@ -366,7 +590,8 @@ export async function utforRessurs(
       ressurs: ressurs.ressurs,
       ...(formaal ? { formaal } : {}),
       ...(samtykke ? { grunnlag: { type: "samtykke", id: samtykke.samtykkeId, status: samtykke.status } } : {}),
-      aktor: { type: "testbruker", id: kontekst.personId }
+      ...omfatterFelt,
+      aktor: aktorFor(kontekst.kaller, kontekst.personId)
     });
   }
 

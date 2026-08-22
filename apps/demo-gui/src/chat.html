@@ -245,6 +245,7 @@
           SAMTYKKET: "samtykke gitt",
           IKKE_SAMTYKKET: "samtykke ikke gitt",
           TRUKKET: "samtykke trukket",
+          UTLOEPT: "samtykket er utløpt",
           VENTER_PAA_SVAR: "venter på ditt samtykke"
         }[sisteSamtykke?.status]
           || (staarPaaSamtykke ? "venter på ditt samtykke" : null)
@@ -258,17 +259,45 @@
         }
 
         if (oekt.sporingsId) {
-          for (const [tekst, url] of [
-            ["KI-spor", `${aiBase}/trace?sporingsId=${encodeURIComponent(oekt.sporingsId)}`],
-            ["revisjonslogg", `${backendBase}/api/revisjonslogg/${encodeURIComponent(oekt.sporingsId)}`]
-          ]) {
-            const lenke = document.createElement("a");
-            lenke.href = url;
-            lenke.target = "_blank";
-            lenke.rel = "noopener";
-            lenke.textContent = tekst;
-            oektStatusEl.appendChild(lenke);
+          // KI-sporet er ugradert og kan fortsatt åpnes i ny fane.
+          const spor = document.createElement("a");
+          spor.href = `${aiBase}/trace?sporingsId=${encodeURIComponent(oekt.sporingsId)}`;
+          spor.target = "_blank";
+          spor.rel = "noopener";
+          spor.textContent = "KI-spor";
+          oektStatusEl.appendChild(spor);
+
+          // Revisjonsloggen rendres i siden, ikke som lenke i ny fane. En <a href>
+          // kan ikke bære en Authorization-header, så under håndhevelse ville
+          // lenken blitt en 401-side — og loggen er den mest personsensitive
+          // flaten vi har. Den skal ikke være den ene uten port.
+          const knapp = document.createElement("a");
+          knapp.href = "#";
+          knapp.textContent = "revisjonslogg";
+          knapp.onclick = (hendelse) => {
+            hendelse.preventDefault();
+            visRevisjonslogg(oekt.sporingsId);
+          };
+          oektStatusEl.appendChild(knapp);
+        }
+      }
+
+      async function visRevisjonslogg(sporingsId) {
+        try {
+          const rader = await req(`/api/revisjonslogg/${encodeURIComponent(sporingsId)}`);
+          if (rader.length === 0) {
+            addMsg("system", "Revisjonsloggen er tom for dette sporet ennå.");
+            return;
           }
+          const linjer = rader.map((rad) => {
+            const aktor = rad.aktor
+              ? `${rad.aktor.type}${rad.aktor.id ? ` ${rad.aktor.id}` : ""}${rad.aktor.paaVegneAv ? ` på vegne av ${rad.aktor.paaVegneAv}` : ""}`
+              : "ukjent";
+            return `${rad.handling} — ${rad.ressurs || "?"} — ${aktor}`;
+          });
+          addMsg("system", `Revisjonslogg (${rader.length} hendelser):\n${linjer.join("\n")}`);
+        } catch (feil) {
+          addMsg("error", `Kunne ikke hente revisjonsloggen: ${feil.message}`);
         }
       }
 
@@ -356,10 +385,12 @@
         let mineEiendommer = null;
         if (oekt?.personId) {
           try {
-            const res = await fetch(
-              `${backendBase}/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
+            // req(), not a bare fetch: the lookup is egne-data, so it needs the
+            // ID-porten token. Without it AUTH_ENFORCE answers 401 and the field
+            // would silently stay null — a lookup that looks like it works.
+            mineEiendommer = await req(
+              `/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
             );
-            if (res.ok) mineEiendommer = await res.json();
           } catch (_) {
             // Best-effort — answer without ownership data if lookup fails
           }
@@ -436,8 +467,8 @@
 
       async function req(path, options = {}) {
         const res = await fetch(`${backendBase}${path}`, {
-          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-          ...options
+          ...options,
+          headers: medToken({ "Content-Type": "application/json", ...(options.headers || {}) })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -836,8 +867,11 @@
         // om satser og inntektsgrenser besvares fra.
         satser = await req("/api/regler/satser").catch(() => null);
         prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
-        personEl.innerHTML = personer.map((p) => `<option value="${htmlEscape(p.personId)}">${htmlEscape(p.visningsnavn)} (${htmlEscape(p.bostedsadresse.kommune)})</option>`).join("");
+        // ID-porten decided who you are, so the person selector reports it rather
+        // than offering a choice. See visInnloggetPerson in felles.js.
+        visInnloggetPerson(personEl, personer);
         prosessEl.innerHTML = prosesser.map((p) => `<option value="${htmlEscape(p.id)}">${htmlEscape(p.navn)}</option>`).join("");
+        return personer;
       }
 
       document.getElementById("start").onclick = () => startChat();
@@ -864,8 +898,12 @@
         konsekvens: "Svarene under kommer fra maler, ikke fra en modell."
       });
 
-      loadOptions()
-        .then(() => addMsg("assistant", "Velg en person og en prosess, så kan vi starte når du vil."))
+      krevInnlogging()
+        .then((innlogget) => innlogget && loadOptions())
+        .then((personer) => {
+          if (!personer) return;
+          addMsg("assistant", "Velg en prosess, så kan vi starte når du vil.");
+        })
         .catch((error) => addMsg("error", `Kunne ikke laste grunnlag: ${error.message}`));
     </script>
   </body>

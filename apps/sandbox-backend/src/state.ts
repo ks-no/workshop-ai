@@ -1,18 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { seedDir, stateDir } from "./config.ts";
+import { maskerBefolkning } from "./skjerming.ts";
 
 type State = any;
-
-const universellEierPersonId = "person-001";
-
-function normaliserTekst(verdi: string) {
-  return String(verdi || "")
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .trim()
-    .toLowerCase();
-}
 
 // Reads from state/ once something has been written there, and falls back to
 // the seed in data/. Pure seed files are never written, so they always come
@@ -116,56 +107,6 @@ export function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function finnGate(tilstand: State, gateNavn: string | null) {
-  if (!gateNavn) return null;
-  const norm = String(gateNavn).toLowerCase().trim();
-  const gater = tilstand.matrikkel?.gater || [];
-  return (
-    gater.find((g: any) => g.adressenavn.toLowerCase() === norm) ||
-    gater.find((g: any) => g.adressenavn.toLowerCase().includes(norm)) ||
-    gater.find((g: any) => norm.includes(g.adressenavn.toLowerCase())) ||
-    null
-  );
-}
-
-function leggTilUniversellEierIAlleEiendommer(matrikkel: any) {
-  for (const gate of matrikkel?.gater || []) {
-    for (const eiendom of gate.eiendommer || []) {
-      const eiere = Array.isArray(eiendom.eiere) ? eiendom.eiere : [];
-      if (!eiere.includes(universellEierPersonId)) {
-        eiendom.eiere = [...eiere, universellEierPersonId];
-      }
-    }
-  }
-}
-
-function leggTilBonesheienHvisMangler(matrikkel: any) {
-  const gater = Array.isArray(matrikkel?.gater) ? matrikkel.gater : [];
-  const finnesAllerede = gater.some((gate: any) => normaliserTekst(gate.adressenavn) === normaliserTekst("Bønesheien"));
-  if (finnesAllerede) return;
-
-  gater.push({
-    gateId: "gate-bonesheien-bergen",
-    adressenavn: "Bønesheien",
-    kommunenummer: "4601",
-    kommune: "Bergen",
-    postnummer: "5154",
-    poststed: "BØNES",
-    antallEiendommer: 1,
-    antallBoligeiendommer: 1,
-    eiendommer: [
-      {
-        matrikkelId: "matr-bonesheien-258",
-        gnr: 20,
-        bnr: 258,
-        adresse: "Bønesheien 258",
-        bruksenhetstype: "bolig",
-        eiere: [universellEierPersonId]
-      }
-    ]
-  });
-}
-
 export async function readState() {
   const [
     personer,
@@ -178,9 +119,11 @@ export async function readState() {
     samtykker,
     revisjonslogg,
     prosessoekter,
-    matrikkel,
     satser,
-    sfoplasser
+    sfoplasser,
+    fritidsdeltakelse,
+    fritidsaktiviteter,
+    tjenestetilbud
   ] = await Promise.all([
     readJson("personer.json"),
     readJson("husstander.json"),
@@ -192,19 +135,25 @@ export async function readState() {
     readJson("samtykker.json", []),
     readJson("revisjonslogg.json", []),
     readJson("prosessoekter.json", []),
-    readJson("matrikkel.seed.json"),
     readJson("satser.json"),
-    readJson("sfoplasser.json")
+    readJson("sfoplasser.json"),
+    readJson("fritidsdeltakelse.json"),
+    readJson("fritidsaktiviteter.json"),
+    readJson("tjenestetilbud.json")
   ]);
 
   const prosesskatalog = parseProsessDefinisjoner(prosesser);
 
-  leggTilUniversellEierIAlleEiendommer(matrikkel);
-  leggTilBonesheienHvisMangler(matrikkel);
+  // Address protection is applied here, after the state/ fallback, so a shadowed
+  // state/personer.json is masked too. This is the single place the population is
+  // assembled, and every reader downstream goes through it — finnPerson,
+  // hentHusstandForPerson, ressurser.ts, regler.ts, prosess.ts. readJson itself is
+  // generic and also serves revisjon.ts, so it is the wrong altitude for this.
+  const maskert = maskerBefolkning(personer, husstander);
 
   return {
-    personer,
-    husstander,
+    personer: maskert.personer,
+    husstander: maskert.husstander,
     inntekter,
     barnehageplasser,
     soknader,
@@ -216,9 +165,11 @@ export async function readState() {
     samtykker,
     revisjonslogg,
     prosessoekter,
-    matrikkel,
     satser,
-    sfoplasser
+    sfoplasser,
+    fritidsdeltakelse,
+    fritidsaktiviteter,
+    tjenestetilbud
   };
 }
 
@@ -254,7 +205,8 @@ export function hentHusstandForPerson(tilstand: State, personId: string) {
 // lookup in two separate functions, differing only in which dataset they filtered.
 export const tjenesteDatasett = {
   barnehage: "barnehageplasser",
-  sfo: "sfoplasser"
+  sfo: "sfoplasser",
+  fritid: "fritidsdeltakelse"
 };
 
 export function hentBarnaIHusstand(tilstand: State, personId: string): string[] {

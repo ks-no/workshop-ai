@@ -71,7 +71,11 @@ Kildedata i `data/`:
 | `inntekter.json` | Poster som mater beregningen, med `kilde` og `medregnes`. Har `stadie` (`OPPGJOER`/`UTKAST`) |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
-| `matrikkel.seed.json` | Gater, eiendommer og eierforhold |
+| `tjenestetilbud.json` | Kommunale tilbud med målgruppe og ledige plasser. Grunnlaget for behovsavklaring |
+| `fritidsaktiviteter.json` | Katalog over fritidsaktiviteter med aldersgrenser |
+| `fritidsdeltakelse.json` | Hvilke barn som deltar i hvilken aktivitet, og til hvilken pris |
+| `matrikkel.json` | Gater, eiendommer og eierforhold. Seed for `matrikkel-mock` |
+| `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
 | `informasjonsmodeller.json` | Begreper og attributter, med lenker til kildespesifikasjonene |
 | `prosessdefinisjoner.json` | Prosesskatalog med publiserte prosesser og maler |
 
@@ -123,12 +127,47 @@ Vil du at et av dem skal starte med innhold — for eksempel en innbygger som al
 
 ## Nåværende innhold
 
-- 43 syntetiske personer
-- 18 husstander
-- 25 inntektsposter
-- 13 barnehageplasser og 5 SFO-plasser
-- 6 ordninger med satser
-- matrikkeldata med 4 gater, eiendommer og eierforhold
+- 369 syntetiske personer
+- 200 husstander
+- 273 inntektsposter
+- 15 barnehageplasser og 11 SFO-plasser
+
+Befolkningen er todelt. **De 51 første personene og 18 første husstandene er
+håndkuraterte terskelfixturer** — de eier casene, og hver av dem har et pinnet utfall
+i `data/forventet-utfall.json`. Resten er importert fra Tenor for bredde, har ingen
+barnehage- eller SFO-plass, og er derfor ikke knyttet til noen ordning.
+
+Aldersfordelingen dekker nå 0 til 113 år. Før importen fantes ingen personer mellom
+8 og 32 år, så ordninger for ungdom hadde ingen befolkning å hvile på.
+
+## Import fra Tenor
+
+`data/tenor/` inneholder rå uttrekk fra Skatteetatens Tenor testdatasøk, ett per
+aldersbånd. Hver fil bærer sin egen `seed` og `treff`; det er provenansen som gjør
+uttrekket reproduserbart, så filene skal ikke slås sammen.
+
+```bash
+pnpm data:tenor          # bygger personer, husstander, folkeregister og inntekter
+node scripts/importer-tenor.js --tørrkjør   # viser hva som ville blitt lagt til
+```
+
+Importen er idempotent og additiv. Et fødselsnummer som allerede har fått en
+`personId` beholder den, så et nytt uttrekk kan slippes inn i mappa og importen
+kjøres på nytt uten at noen blir omnummerert. Den rører aldri de kuraterte
+fixturene.
+
+To ting er verdt å vite om de importerte dataene:
+
+- **Inntekten er forfattet, ikke hentet.** Tenor hadde inntektsdata for 6 av 120
+  hoveddokumenter og ingen av de 224 foreldrene. Beløpene utledes deterministisk fra
+  fødselsnummeret. Terskelscenarioene ligger uansett hos de 18 kuraterte husstandene,
+  der de kan kontrolleres.
+- **`kommune` er et visningsnavn, `kommunenummer` er nøkkelen.** Tenor oppgir bare
+  nummeret. Der `data/brreg.seed.json` kjenner navnet, brukes det; ellers står
+  poststedsnavnet — et ekte sted i riktig område, men ikke nødvendigvis kommunenavnet.
+- 8 ordninger, inkludert fritidskort for barn 6–18 år og støttekontakt
+- 237 tjenestetilbud fordelt på kommuner, med målgruppe og kapasitet
+- matrikkeldata med 220 Bergen-gater og 8202 eiendommer, pluss injisert Bønesheien
 - 5 prosessdefinisjoner + 1 mal
 
 `pnpm test` skriver de faktiske tallene ut ved hver kjøring, så bruk den som

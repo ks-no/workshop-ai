@@ -5,6 +5,11 @@ info:
   description: Generic process guide agent powered by MCP tools.
 servers:
   - url: http://localhost:8084
+# Ingen av rutene her krever token, og det er et valg, ikke en glipp.
+# process-agent er en intern orkestrator som kaller mcp-services og ai-gateway. Den verifiserer ingen innkommende token, og har ingen egen ressurs å beskytte.
+# En tom security på dokumentnivå gjelder alle operasjonene under paths.
+security: []
+
 paths:
   /helse:
     get:
