@@ -166,18 +166,35 @@ const IDPORTEN_BASE = "http://localhost:8086";
 const TOKEN_NOKKEL = "sandkasse-idporten-token";
 const VERIFIER_NOKKEL = "sandkasse-pkce-verifier";
 
+/*
+ * ET TOKEN PER AUDIENCE.
+ *
+ * `resource` på /authorize blir tokenets `aud`, og en tjeneste avviser et token
+ * som er utstedt for en annen — det er hele poenget med audience-begrensning. De
+ * tre prosessidene snakker bare med sandbox-backend, så de holder seg til
+ * standarden og merker ingenting; API-utforskeren kan kalle sju tjenester og
+ * trenger å holde ett token per audience samtidig.
+ *
+ * sandbox-backend beholder den gamle nøkkelen uendret, så et token som allerede
+ * ligger i fanen overlever denne endringen.
+ */
+const STANDARD_AUDIENCE = "sandbox-backend";
+
+function tokenNokkel(audience = STANDARD_AUDIENCE) {
+  return audience === STANDARD_AUDIENCE ? TOKEN_NOKKEL : `${TOKEN_NOKKEL}:${audience}`;
+}
+
 function base64url(bytes) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
     .replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function lagretToken() {
-  return sessionStorage.getItem(TOKEN_NOKKEL);
+function lagretToken(audience) {
+  return sessionStorage.getItem(tokenNokkel(audience));
 }
 
 /** Claims without verifying the signature. The backend verifies; this is for display. */
-function tokenKrav() {
-  const token = lagretToken();
+function kravIToken(token) {
   if (!token) return null;
   try {
     const del = token.split(".")[1].replaceAll("-", "+").replaceAll("_", "/");
@@ -187,25 +204,36 @@ function tokenKrav() {
   }
 }
 
-function tokenGyldig() {
-  const krav = tokenKrav();
+function tokenKrav(audience) {
+  return kravIToken(lagretToken(audience));
+}
+
+function kravGyldige(krav) {
   // Treat a token expiring within 30 s as already gone, so a flow does not die
   // halfway through on an expiry it could have seen coming.
   return Boolean(krav && krav.exp && krav.exp - 30 > Math.floor(Date.now() / 1000));
 }
 
-function innloggetPid() {
-  return tokenKrav()?.pid || null;
+function tokenGyldig(audience) {
+  return kravGyldige(tokenKrav(audience));
+}
+
+function innloggetPid(audience) {
+  return tokenKrav(audience)?.pid || null;
 }
 
 /** Headers for a call to the backend. Spread into an existing headers object. */
-function medToken(ekstra = {}) {
-  const token = lagretToken();
+function medToken(ekstra = {}, audience) {
+  const token = lagretToken(audience);
   return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...ekstra };
 }
 
 function loggUt() {
-  sessionStorage.removeItem(TOKEN_NOKKEL);
+  for (const noekkel of Object.keys(sessionStorage)) {
+    if (noekkel === TOKEN_NOKKEL || noekkel.startsWith(`${TOKEN_NOKKEL}:`)) {
+      sessionStorage.removeItem(noekkel);
+    }
+  }
   sessionStorage.removeItem(VERIFIER_NOKKEL);
 }
 
@@ -217,9 +245,10 @@ function loggUt() {
  * PKCE uses crypto.subtle, which browsers only expose in a secure context. That
  * covers localhost, which is where the sandbox runs.
  */
-async function krevInnlogging() {
-  if (tokenGyldig()) return true;
-  loggUt();
+async function krevInnlogging(valg = {}) {
+  const audience = valg.resource || STANDARD_AUDIENCE;
+  if (tokenGyldig(audience)) return true;
+  sessionStorage.removeItem(tokenNokkel(audience));
 
   const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
   sessionStorage.setItem(VERIFIER_NOKKEL, verifier);
@@ -232,6 +261,9 @@ async function krevInnlogging() {
     client_id: "demo-gui",
     redirect_uri: `${location.origin}/callback`,
     scope: "openid profile",
+    // resource blir tokenets aud. Uten den får man alltid sandbox-backend, og et
+    // kall til en annen tjeneste svarer 401 uten at noe sier hvorfor.
+    resource: audience,
     // state carries where to return to, so a deep link survives the round trip.
     state: location.pathname + location.search,
     code_challenge: challenge,
@@ -268,7 +300,9 @@ async function fullfoerInnlogging() {
   if (!svar.ok) {
     throw new Error(data.error_description || data.error || `status ${svar.status}`);
   }
-  sessionStorage.setItem(TOKEN_NOKKEL, data.access_token);
+  // Lagres på tokenets egen aud, ikke på den vi trodde vi ba om. Utstederen er
+  // fasiten, og da kan ingen audience-forveksling gjemme seg her.
+  sessionStorage.setItem(tokenNokkel(kravIToken(data.access_token)?.aud), data.access_token);
   sessionStorage.removeItem(VERIFIER_NOKKEL);
   return parametere.get("state") || "/";
 }

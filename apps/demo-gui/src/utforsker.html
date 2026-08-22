@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API-utforsker</title>
+    <link rel="stylesheet" href="/assets/felles.css" />
+    <style>
+      main { padding: 32px 28px 72px; }
+      main > h1 { margin-bottom: 10px; }
+      main > h1 + p { margin: 0 0 22px 0; max-width: 90ch; }
+
+      .flater { display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; }
+      /*
+       * Et token er én lang streng uten mellomrom, og to ting måtte rettes for at
+       * den ikke skal dra hele siden utenfor vinduet: `pre-wrap` i felles.css
+       * bryter bare ved mellomrom, og et grid-felt har `min-width: auto` og nekter
+       * derfor å krympe under innholdets min-bredde. Feltet må få lov å krympe, og
+       * strengen må få lov å brytes.
+       */
+      .flater > .card { min-width: 0; }
+      #detaljer pre, #detaljer code { overflow-wrap: anywhere; }
+
+      #identitet { margin-bottom: 20px; }
+      #identitet .hovedlinje { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+      #identitet .hvem { font-size: 15px; }
+      #identitet .tokenliste { font-size: 13px; color: var(--farge-tekst-dempet); margin-top: 10px; }
+      #identitet details { margin-top: 12px; }
+      #identitet summary { font-size: 13px; color: var(--farge-tekst-dempet); cursor: pointer; }
+
+      .ruteliste { max-height: 66vh; overflow-y: auto; margin-top: 14px; }
+      .rute {
+        display: block; width: 100%; text-align: left; cursor: pointer;
+        background: none; color: inherit; border: 0; border-bottom: 1px solid var(--farge-kant-svak);
+        border-radius: 0; padding: 11px 8px;
+      }
+      .rute:hover:not(:disabled) { background: var(--farge-flate-dempet); }
+      .rute.valgt { background: var(--farge-info-bakgrunn); }
+      .rute .sti { font-family: var(--skrift-kode); font-size: 13px; word-break: break-all; }
+      .rute .sammendrag { font-size: 12.5px; color: var(--farge-tekst-dempet); margin-top: 3px; }
+
+      /* Metoden er informasjon, ikke pynt: den avgjør om kallet leser eller skriver. */
+      .metode {
+        display: inline-block; min-width: 46px; text-align: center; margin-right: 8px;
+        font-family: var(--skrift-kode); font-size: 11px; font-weight: 700; letter-spacing: .04em;
+        padding: 2px 6px; border-radius: 4px;
+        background: var(--farge-ok-bakgrunn); color: var(--farge-ok-tekst);
+      }
+      .metode.skriver { background: var(--farge-advarsel-bakgrunn); color: var(--farge-advarsel-tekst); }
+
+      .hjemmel {
+        display: inline-block; font-size: 11.5px; padding: 2px 7px; border-radius: 999px;
+        background: var(--farge-flate-dempet); color: var(--farge-tekst-dempet);
+        border: 1px solid var(--farge-kant-svak);
+      }
+      .hjemmel.lukket { background: var(--farge-sperre-bakgrunn); color: var(--farge-sperre-tekst); border-color: var(--farge-sperre-kant); }
+
+      /* Hva som faktisk sendes med kallet. Skal være like synlig som kallet selv. */
+      .legitimasjon {
+        border: 1px solid var(--farge-kant-svak); border-radius: var(--radius);
+        background: var(--farge-flate-dempet); padding: 12px 14px; margin: 16px 0;
+        font-size: 13.5px;
+      }
+      .legitimasjon .tittel { font-weight: 600; margin-bottom: 4px; }
+      .legitimasjon .merknad { color: var(--farge-advarsel-tekst); background: var(--farge-advarsel-bakgrunn);
+        border: 1px solid var(--farge-advarsel-kant); border-radius: var(--radius);
+        padding: 8px 10px; margin-top: 10px; font-size: 12.5px; }
+      .legitimasjon select { margin-top: 8px; }
+
+      .felt { margin-bottom: 12px; }
+      .felt input, .felt select { width: 100%; }
+      .felt .hint { font-size: 12px; color: var(--farge-tekst-dempet); margin-top: 4px; }
+
+      .statuslinje { font-family: var(--skrift-kode); font-size: 14px; font-weight: 700; }
+      .statuslinje.ok { color: var(--farge-ok-tekst); }
+      .statuslinje.avvist { color: var(--farge-sperre-tekst); }
+      .statuslinje.feil { color: var(--farge-feil-tekst); }
+
+      h2 { margin-bottom: 6px; }
+      h2 + p.muted { margin-top: 0; }
+
+      @media (max-width: 1000px) { .flater { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top-links">
+        <a href="/">Oversikt</a>
+        <a href="/chat">Chat</a>
+        <a href="/stegvis">Stegvis demo</a>
+        <a href="/agent">AI-agent</a>
+      </div>
+
+      <h1>API-utforsker</h1>
+      <p class="muted small"><strong>Du er her:</strong> endepunktene sandkassen faktisk har,
+        hentet fra tjenestens egen spesifikasjon. Velg en rute, fyll inn parameterne, send
+        kallet, og kopier en <code>curl</code> som virker når den limes inn i et
+        terminalvindu. <strong>Tokenet velges automatisk</strong> ut fra hjemmelen ruta
+        krever — logg inn én gang, så ordner resten seg.</p>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <section class="card" id="identitet"></section>
+
+      <div class="flater">
+        <section class="card">
+          <h2 id="tjenestenavn">Laster …</h2>
+          <p class="muted small" id="tjenestebeskrivelse"></p>
+          <div class="felt">
+            <label for="tjenestevelger">Tjeneste</label>
+            <select id="tjenestevelger"></select>
+          </div>
+          <div class="felt">
+            <label for="sok">Søk i ruter</label>
+            <input type="search" id="sok" placeholder="personer, samtykke, revisjon …" autocomplete="off" />
+          </div>
+          <div class="ruteliste" id="ruteliste"></div>
+        </section>
+
+        <section class="card" id="detaljer">
+          <p class="muted">Velg en rute til venstre.</p>
+        </section>
+      </div>
+    </main>
+
+    <script src="/assets/felles.js"></script>
+    <script>
+      // De sju tjenestene som serverer en spesifikasjon. Adressen står i
+      // spesifikasjonen selv (servers:), men den må være kjent for å hente den
+      // første gangen — derfor står porten her. Navnet er samtidig den audience
+      // tjenesten godtar et token for; se autentisering.ts og fiks-simulator.
+      const TJENESTER = [
+        { navn: "sandbox-backend", base: "http://localhost:8080" },
+        { navn: "fiks-simulator", base: "http://localhost:8081" },
+        { navn: "ai-gateway", base: "http://localhost:8082" },
+        { navn: "mcp-services", base: "http://localhost:8083" },
+        { navn: "process-agent", base: "http://localhost:8084" },
+        { navn: "matrikkel-mock", base: "http://localhost:8085" },
+        { navn: "digdir-mock", base: "http://localhost:8086" }
+      ];
+
+      const DIGDIR = "http://localhost:8086";
+
+      const hentet = new Map();
+      let tjeneste = TJENESTER[0];
+      let ruter = [];
+      let valgtRute = null;
+      /** pid -> { personId, visningsnavn }. Fylles fra GET /idporten/testbrukere. */
+      const testbrukere = new Map();
+
+      function visBanner(tekst) {
+        const element = document.getElementById("banner");
+        element.hidden = !tekst;
+        element.textContent = tekst || "";
+      }
+
+      /* ── Legitimasjon ──────────────────────────────────────────────────────
+       *
+       * Utforskeren velger token ut fra `security:` i spesifikasjonen. Det er
+       * utbetalingen for at hver rute fikk en hjemmel som er avledet av koden: en
+       * side som gjetter ville lært bort feil ting, en side som spør hver gang
+       * ville ingen orket.
+       *
+       * Bare sandbox-backend godtar ID-porten, så én innlogging dekker alt.
+       * Maskinporten-tokenene hentes uten at deltakeren trenger å gjøre noe.
+       */
+
+      const maskinportenBuffer = new Map();
+      /** Satt av «bruk mitt eget token» i identitetskortet. Overstyrer alt. */
+      let manueltToken = null;
+      /** Ordningen deltakeren har valgt for den valgte ruta, når den godtar flere. */
+      let valgtOrdning = null;
+
+      function ordningerFor(rute) {
+        return rute.security === null ? [] : rute.security;
+      }
+
+      function hjemmelFor(rute) {
+        if (rute.security === null) return { tekst: "udokumentert hjemmel", lukket: true };
+        if (rute.security.length === 0) return { tekst: "åpen", lukket: false };
+        const scopes = rute.scopes.length ? ` (${rute.scopes.join(", ")})` : "";
+        return { tekst: rute.security.join(" eller ") + scopes, lukket: true };
+      }
+
+      function base64urlTekst(tekst) {
+        return btoa(unescape(encodeURIComponent(tekst)))
+          .replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+      }
+
+      /*
+       * MASKINPORTEN, BYGGET I NETTLESEREN.
+       *
+       * digdir-mock validerer assertionen på form og ikke på signatur, så siden kan
+       * lage den selv. Hvert felt ekte Maskinporten krever er fortsatt påkrevd, så
+       * formen man lærer her er riktig.
+       *
+       * MEN: ekte Maskinporten krever en assertion signert med en privat nøkkel som
+       * er registrert på klienten — en nøkkel en nettleser aldri skal holde. Derfor
+       * står merkelappen i UI-et ved siden av tokenet, ikke bare her.
+       */
+      async function hentMaskinportenToken(audience, scope) {
+        const noekkel = `${audience}|${scope}`;
+        const bufret = maskinportenBuffer.get(noekkel);
+        if (kravGyldige(kravIToken(bufret))) return bufret;
+
+        const naa = Math.floor(Date.now() / 1000);
+        const assertion = [
+          base64urlTekst(JSON.stringify({ alg: "RS256", typ: "JWT" })),
+          base64urlTekst(JSON.stringify({
+            iss: "api-utforsker",
+            aud: DIGDIR,
+            scope,
+            resource: audience,
+            orgnr: "991825827",
+            iat: naa,
+            exp: naa + 30
+          })),
+          "signaturen-sjekkes-ikke-i-sandkassen"
+        ].join(".");
+
+        const svar = await fetch(`${DIGDIR}/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            assertion,
+            resource: audience
+          })
+        });
+        const data = await svar.json();
+        if (!svar.ok) {
+          throw new Error(data.error_description || data.error || `status ${svar.status}`);
+        }
+        maskinportenBuffer.set(noekkel, data.access_token);
+        return data.access_token;
+      }
+
+      /**
+       * Hvilken ordning som brukes for en rute. Godtar ruta flere, kan deltakeren
+       * velge — det er der forskjellen på «egne data» og «maskin med scope» blir
+       * synlig, og der en 403 er verdt å framkalle med vilje.
+       */
+      function valgtOrdningFor(rute) {
+        const ordninger = ordningerFor(rute);
+        if (ordninger.length <= 1) return ordninger[0] || null;
+        // Valget må ligge her og ikke i DOM-en: tegnDetaljer bygger panelet på nytt
+        // for hvert bytte, og en velger som leses av seg selv nullstilles i samme
+        // slengen — knappen så ut som den ikke virket.
+        if (valgtOrdning && ordninger.includes(valgtOrdning)) return valgtOrdning;
+        return tokenGyldig(tjeneste.navn) ? "idporten" : ordninger[0];
+      }
+
+      /**
+       * Legitimasjonen for ett kall: headeren som sendes, hva den er, og hvordan
+       * den samme legitimasjonen skaffes fra et terminalvindu.
+       */
+      async function skaffLegitimasjon(rute) {
+        if (manueltToken) {
+          return {
+            header: { Authorization: `Bearer ${manueltToken}` },
+            hva: "et token du limte inn selv",
+            curlHent: null,
+            token: manueltToken
+          };
+        }
+
+        const ordning = valgtOrdningFor(rute);
+        if (!ordning) return { header: {}, hva: "ingen legitimasjon — ruta er åpen", curlHent: null };
+
+        const audience = tjeneste.navn;
+
+        if (ordning === "idporten") {
+          const token = lagretToken(audience);
+          if (!tokenGyldig(audience)) {
+            return {
+              mangler: token
+                ? `ID-porten-tokenet for ${audience} er utløpt. Logg inn på nytt.`
+                : `Ruta krever et ID-porten-token for ${audience}. Logg inn øverst på siden.`
+            };
+          }
+          const pid = innloggetPid(audience);
+          const personId = testbrukere.get(pid)?.personId;
+          return {
+            header: { Authorization: `Bearer ${token}` },
+            hva: `ID-porten-token for ${testbrukere.get(pid)?.visningsnavn || pid}, aud ${audience}`,
+            curlHent: personId ? `TOKEN=$(node scripts/token.ts --innbygger ${personId})` : null,
+            token
+          };
+        }
+
+        if (ordning === "maskinporten") {
+          const scope = rute.scopes[0];
+          if (!scope) return { mangler: "Spesifikasjonen oppgir maskinporten uten scope." };
+          try {
+            const token = await hentMaskinportenToken(audience, scope);
+            return {
+              header: { Authorization: `Bearer ${token}` },
+              hva: `Maskinporten-token, scope ${scope}, aud ${audience}`,
+              curlHent: `TOKEN=$(node scripts/token.ts --maskinporten ${scope} --resource ${audience})`,
+              token,
+              nettleserbygget: true
+            };
+          } catch (feil) {
+            return { mangler: `Fikk ikke Maskinporten-token: ${feil.message}` };
+          }
+        }
+
+        return { mangler: `Kjenner ikke ordningen «${ordning}».` };
+      }
+
+      /* ── Identitetskortet ──────────────────────────────────────────────── */
+
+      async function lastTestbrukere() {
+        try {
+          const svar = await fetch(`${DIGDIR}/idporten/testbrukere`);
+          if (!svar.ok) return;
+          for (const bruker of await svar.json()) {
+            testbrukere.set(bruker.pid, bruker);
+          }
+        } catch {
+          // Uten lista viser identitetslinja fødselsnummeret i stedet for navnet.
+          // Det er en dårligere opplevelse, ikke en ødelagt side.
+        }
+      }
+
+      function tegnIdentitet() {
+        const kort = document.getElementById("identitet");
+        kort.replaceChildren();
+
+        const hovedlinje = document.createElement("div");
+        hovedlinje.className = "hovedlinje";
+        const hvem = document.createElement("div");
+        hvem.className = "hvem";
+        hovedlinje.appendChild(hvem);
+
+        const innlogget = tokenGyldig("sandbox-backend");
+        if (innlogget) {
+          const pid = innloggetPid("sandbox-backend");
+          const bruker = testbrukere.get(pid);
+          hvem.innerHTML =
+            `🔓 Innlogget som <strong>${htmlEscape(bruker?.visningsnavn || pid)}</strong> ` +
+            `<span class="muted small">(${htmlEscape(bruker?.personId || pid)}, idporten-loa-high)</span>`;
+
+          const bytt = document.createElement("button");
+          bytt.type = "button";
+          bytt.className = "secondary";
+          bytt.textContent = "Logg ut / bytt person";
+          bytt.onclick = () => {
+            loggUt();
+            maskinportenBuffer.clear();
+            tegnIdentitet();
+            if (valgtRute) tegnDetaljer(valgtRute);
+          };
+          hovedlinje.appendChild(bytt);
+        } else {
+          hvem.innerHTML = "🔒 <strong>Ikke innlogget.</strong> " +
+            "<span class=\"muted small\">Åpne ruter og Maskinporten-ruter virker uansett.</span>";
+          const loggInn = document.createElement("button");
+          loggInn.type = "button";
+          loggInn.textContent = "Logg inn med ID-porten";
+          // Går til testbrukervelgeren i digdir-mock og kommer tilbake hit, til
+          // samme rute: den ligger i adressen, og adressen rir med i `state`.
+          loggInn.onclick = () => krevInnlogging({ resource: "sandbox-backend" });
+          hovedlinje.appendChild(loggInn);
+        }
+        kort.appendChild(hovedlinje);
+
+        const tokenliste = document.createElement("div");
+        tokenliste.className = "tokenliste";
+        const linjer = [];
+        for (const kandidat of TJENESTER) {
+          if (tokenGyldig(kandidat.navn)) {
+            const utloper = Math.round((tokenKrav(kandidat.navn).exp - Date.now() / 1000) / 60);
+            linjer.push(`ID-porten → ${kandidat.navn} (utløper om ${utloper} min)`);
+          }
+        }
+        for (const noekkel of maskinportenBuffer.keys()) {
+          const [audience, scope] = noekkel.split("|");
+          linjer.push(`Maskinporten → ${audience}, scope ${scope}`);
+        }
+        tokenliste.textContent = linjer.length
+          ? `Token i fanen: ${linjer.join(" · ")}`
+          : "Ingen token i fanen. Maskinporten-token hentes automatisk når en rute krever det.";
+        kort.appendChild(tokenliste);
+
+        const eget = document.createElement("details");
+        const sammendrag = document.createElement("summary");
+        sammendrag.textContent = manueltToken
+          ? "Bruker et token du limte inn — klikk for å fjerne det"
+          : "Har du allerede et token fra scripts/token.ts? Lim det inn her";
+        eget.appendChild(sammendrag);
+
+        const felt = document.createElement("div");
+        felt.className = "felt";
+        felt.style.marginTop = "10px";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "eyJhbGciOiJSUzI1NiIs…";
+        input.value = manueltToken || "";
+        const hint = document.createElement("div");
+        hint.className = "hint";
+        hint.textContent =
+          "Overstyrer valget for alle kall, også de åpne. Tøm feltet for å gå tilbake til " +
+          "automatisk valg.";
+        input.oninput = () => {
+          manueltToken = input.value.trim() || null;
+          if (valgtRute) tegnDetaljer(valgtRute);
+        };
+        felt.appendChild(input);
+        felt.appendChild(hint);
+        eget.appendChild(felt);
+        if (manueltToken) eget.open = true;
+        kort.appendChild(eget);
+      }
+
+      /* ── Rutelista ─────────────────────────────────────────────────────── */
+
+      function tegnRuteliste() {
+        const sok = document.getElementById("sok").value.trim().toLowerCase();
+        const liste = document.getElementById("ruteliste");
+        liste.replaceChildren();
+
+        const treff = ruter.filter((rute) =>
+          !sok ||
+          rute.sti.toLowerCase().includes(sok) ||
+          (rute.sammendrag || "").toLowerCase().includes(sok)
+        );
+
+        if (treff.length === 0) {
+          const tom = document.createElement("p");
+          tom.className = "muted small";
+          tom.textContent = "Ingen ruter matcher søket.";
+          liste.appendChild(tom);
+          return;
+        }
+
+        for (const rute of treff) {
+          const knapp = document.createElement("button");
+          knapp.type = "button";
+          knapp.className = "rute" + (rute === valgtRute ? " valgt" : "");
+
+          const metode = document.createElement("span");
+          metode.className = "metode" + (rute.metode === "GET" ? "" : " skriver");
+          metode.textContent = rute.metode;
+
+          const sti = document.createElement("span");
+          sti.className = "sti";
+          sti.textContent = rute.sti;
+
+          const rad = document.createElement("div");
+          rad.appendChild(metode);
+          rad.appendChild(sti);
+          knapp.appendChild(rad);
+
+          if (rute.sammendrag) {
+            const sammendrag = document.createElement("div");
+            sammendrag.className = "sammendrag";
+            sammendrag.textContent = rute.sammendrag;
+            knapp.appendChild(sammendrag);
+          }
+
+          knapp.onclick = () => velgRute(rute);
+          liste.appendChild(knapp);
+        }
+      }
+
+      /*
+       * Valgt rute ligger i adressen. Da overlever den rundturen til ID-porten:
+       * krevInnlogging legger location.pathname + location.search i `state`, og
+       * /callback sender nettleseren tilbake hit.
+       */
+      function velgRute(rute) {
+        valgtRute = rute;
+        valgtOrdning = null;
+        const parametere = new URLSearchParams({
+          tjeneste: tjeneste.navn,
+          metode: rute.metode,
+          sti: rute.sti
+        });
+        history.replaceState(null, "", `${location.pathname}?${parametere}`);
+        tegnRuteliste();
+        tegnDetaljer(rute);
+      }
+
+      /* ── Detaljruta ────────────────────────────────────────────────────── */
+
+      async function tegnDetaljer(rute) {
+        const panel = document.getElementById("detaljer");
+        panel.replaceChildren();
+
+        const tittel = document.createElement("h2");
+        tittel.innerHTML =
+          `<span class="metode${rute.metode === "GET" ? "" : " skriver"}">${htmlEscape(rute.metode)}</span>` +
+          `<code>${htmlEscape(rute.sti)}</code>`;
+        panel.appendChild(tittel);
+
+        const hjemmel = hjemmelFor(rute);
+        const merke = document.createElement("p");
+        const chip = document.createElement("span");
+        chip.className = "hjemmel" + (hjemmel.lukket ? " lukket" : "");
+        chip.textContent = "Hjemmel: " + hjemmel.tekst;
+        merke.appendChild(chip);
+        panel.appendChild(merke);
+
+        if (rute.beskrivelse) {
+          const beskrivelse = document.createElement("p");
+          beskrivelse.className = "muted small";
+          beskrivelse.textContent = rute.beskrivelse;
+          panel.appendChild(beskrivelse);
+        }
+
+        // Ordningsvelgeren må stå i DOM-en før skaffLegitimasjon leser den.
+        const boks = document.createElement("div");
+        boks.className = "legitimasjon";
+        panel.appendChild(boks);
+
+        const ordninger = ordningerFor(rute);
+        if (ordninger.length > 1 && !manueltToken) {
+          const label = document.createElement("label");
+          label.htmlFor = "ordningvelger";
+          label.textContent = "Ruta godtar to ordninger — send som";
+          const velger = document.createElement("select");
+          velger.id = "ordningvelger";
+          for (const ordning of ordninger) {
+            const valg = document.createElement("option");
+            valg.value = ordning;
+            valg.textContent = ordning === "idporten"
+              ? "ID-porten (innbygger — ser bare seg selv)"
+              : `Maskinporten (${rute.scopes.join(", ") || "uten scope"})`;
+            velger.appendChild(valg);
+          }
+          velger.value = valgtOrdningFor(rute);
+          velger.onchange = () => {
+            valgtOrdning = velger.value;
+            tegnDetaljer(rute);
+          };
+          boks.appendChild(label);
+          boks.appendChild(velger);
+        }
+
+        const legitimasjon = await skaffLegitimasjon(rute);
+        const tittelrad = document.createElement("div");
+        tittelrad.className = "tittel";
+        tittelrad.textContent = legitimasjon.mangler ? "Sendes uten token" : "Sendes med";
+        boks.insertBefore(tittelrad, boks.firstChild);
+
+        const hva = document.createElement("div");
+        hva.textContent = legitimasjon.mangler || legitimasjon.hva;
+        boks.insertBefore(hva, tittelrad.nextSibling);
+
+        if (legitimasjon.mangler && ordninger.includes("idporten")) {
+          const loggInn = document.createElement("button");
+          loggInn.type = "button";
+          loggInn.style.marginTop = "10px";
+          loggInn.textContent = "Logg inn med ID-porten";
+          loggInn.onclick = () => krevInnlogging({ resource: tjeneste.navn });
+          boks.appendChild(loggInn);
+        }
+
+        if (legitimasjon.nettleserbygget) {
+          const merknad = document.createElement("div");
+          merknad.className = "merknad";
+          merknad.textContent =
+            "Assertionen er bygget her i nettleseren. Det virker fordi digdir-mock " +
+            "validerer den på form, ikke på signatur. Ekte Maskinporten krever en " +
+            "assertion signert med en privat nøkkel som er registrert på klienten — " +
+            "og en privat nøkkel skal aldri ligge i en nettleser.";
+          boks.appendChild(merknad);
+        }
+
+        const skjema = document.createElement("div");
+        const felter = new Map();
+        for (const parameter of rute.parametere) {
+          if (parameter.plassering !== "path" && parameter.plassering !== "query") continue;
+          const felt = document.createElement("div");
+          felt.className = "felt";
+
+          const merkelapp = document.createElement("label");
+          merkelapp.textContent =
+            `${parameter.navn} (${parameter.plassering}${parameter.paakrevd ? ", påkrevd" : ""})`;
+          const id = `felt-${parameter.plassering}-${parameter.navn}`;
+          merkelapp.htmlFor = id;
+
+          const input = document.createElement("input");
+          input.id = id;
+          input.value = parameter.eksempel || "";
+          input.placeholder = parameter.eksempel || "";
+
+          felt.appendChild(merkelapp);
+          felt.appendChild(input);
+          if (parameter.beskrivelse) {
+            const hint = document.createElement("div");
+            hint.className = "hint";
+            hint.textContent = parameter.beskrivelse;
+            felt.appendChild(hint);
+          }
+          skjema.appendChild(felt);
+          felter.set(parameter, input);
+        }
+        panel.appendChild(skjema);
+
+        const handlinger = document.createElement("div");
+        handlinger.className = "actions";
+        const send = document.createElement("button");
+        send.type = "button";
+        send.textContent = `Send ${rute.metode}`;
+        handlinger.appendChild(send);
+        panel.appendChild(handlinger);
+
+        // Skriving hører til neste steg. En knapp som later som den virker er verre
+        // enn en knapp som sier hvorfor den ikke gjør det.
+        if (rute.metode !== "GET") {
+          send.disabled = true;
+          const merknad = document.createElement("p");
+          merknad.className = "muted small";
+          merknad.textContent =
+            "Utforskeren sender bare GET foreløpig. Kall som skriver til sandkassen kommer, " +
+            "sammen med et synlig varsel om at de endrer delt tilstand.";
+          panel.appendChild(merknad);
+        }
+
+        const svarrute = document.createElement("div");
+        svarrute.id = "svarrute";
+        panel.appendChild(svarrute);
+
+        send.onclick = () => sendKall(rute, felter, svarrute);
+      }
+
+      /* ── Kallet ────────────────────────────────────────────────────────── */
+
+      function byggUrl(rute, felter) {
+        let sti = rute.sti;
+        const spoerring = new URLSearchParams();
+        for (const [parameter, input] of felter) {
+          const verdi = input.value.trim();
+          if (parameter.plassering === "path") {
+            sti = sti.replace(`{${parameter.navn}}`, encodeURIComponent(verdi));
+          } else if (verdi !== "") {
+            spoerring.set(parameter.navn, verdi);
+          }
+        }
+        const hale = spoerring.toString();
+        return tjeneste.base + sti + (hale ? `?${hale}` : "");
+      }
+
+      /*
+       * encodeURIComponent slipper apostrofen gjennom, og en apostrof inne i
+       * enkeltfnutter avslutter dem. Uten skjermingen her blir kommandoen ukjørbar
+       * — og «en curl som virker når den limes inn» er det siden lover.
+       */
+      function skallsitat(verdi) {
+        return `'${String(verdi).replaceAll("'", `'\\''`)}'`;
+      }
+
+      /*
+       * Kommandoen som skrives ut er den som ble kjørt, ikke en mal — med de samme
+       * headerne. To former: én som viser hvordan tokenet skaffes, og én med
+       * tokenet skrevet inn, som virker umiddelbart. Dataene er syntetiske.
+       */
+      function curlFor(rute, url, legitimasjon) {
+        const kall = (tokenUttrykk) => {
+          const deler = ["curl -i"];
+          if (rute.metode !== "GET") deler.push(`-X ${rute.metode}`);
+          if (tokenUttrykk) deler.push(`-H "Authorization: Bearer ${tokenUttrykk}"`);
+          deler.push(skallsitat(url));
+          return deler.join(" ");
+        };
+        if (!legitimasjon.token) return { laert: kall(null), direkte: null };
+        return {
+          laert: legitimasjon.curlHent ? `${legitimasjon.curlHent}\n${kall("$TOKEN")}` : null,
+          direkte: kall(legitimasjon.token)
+        };
+      }
+
+      async function sendKall(rute, felter, svarrute) {
+        svarrute.replaceChildren();
+
+        const overskrift = document.createElement("h3");
+        overskrift.textContent = "Svar";
+        svarrute.appendChild(overskrift);
+
+        // En tom path-parameter gir «/api/personer//dialoger» og en 404 som ikke
+        // sier hva som mangler. Si det her i stedet.
+        const tomme = [...felter]
+          .filter(([parameter, input]) =>
+            input.value.trim() === "" && (parameter.plassering === "path" || parameter.paakrevd))
+          .map(([parameter]) => parameter.navn);
+        if (tomme.length) {
+          const mangler = document.createElement("p");
+          mangler.className = "statuslinje feil";
+          mangler.textContent = `Fyll inn ${tomme.join(", ")} først — ${tomme.length === 1 ? "den er" : "de er"} påkrevd.`;
+          svarrute.appendChild(mangler);
+          return;
+        }
+
+        const url = byggUrl(rute, felter);
+        const status = document.createElement("p");
+        status.className = "statuslinje";
+        status.textContent = "Sender …";
+        svarrute.appendChild(status);
+
+        const legitimasjon = await skaffLegitimasjon(rute);
+        if (legitimasjon.mangler) {
+          status.className = "statuslinje feil";
+          status.textContent = legitimasjon.mangler;
+          return;
+        }
+
+        let svar;
+        try {
+          svar = await fetch(url, { method: rute.metode, headers: legitimasjon.header });
+        } catch (feil) {
+          status.className = "statuslinje feil";
+          status.textContent = `Kallet nådde ikke fram: ${feil.message}`;
+          const forklaring = document.createElement("p");
+          forklaring.className = "muted small";
+          forklaring.textContent =
+            "Er tjenesten oppe? En preflight som dør er bare synlig i nettleserkonsollet.";
+          svarrute.appendChild(forklaring);
+          return;
+        }
+
+        status.className =
+          "statuslinje " + (svar.ok ? "ok" : svar.status === 401 || svar.status === 403 ? "avvist" : "feil");
+        status.textContent = `${svar.status} ${svar.statusText}`;
+
+        if (svar.status === 401 || svar.status === 403) {
+          const forklaring = document.createElement("p");
+          forklaring.className = "muted small";
+          forklaring.textContent = forklarAvvisning(rute, svar.status, legitimasjon);
+          svarrute.appendChild(forklaring);
+        }
+
+        const headere = document.createElement("pre");
+        headere.textContent = [...svar.headers].map(([navn, verdi]) => `${navn}: ${verdi}`).join("\n");
+        svarrute.appendChild(merkeMed("Headere", headere));
+
+        // Et kall på tvers av origin ser bare de trygge headerne med mindre
+        // tjenesten lister resten i Access-Control-Expose-Headers. curl ser alle,
+        // og det er verdt å si framfor å la lista se tom ut.
+        const headerNote = document.createElement("p");
+        headerNote.className = "muted small";
+        headerNote.textContent =
+          "Nettleseren viser bare de trygge headerne på et kall over origin-grensen. " +
+          "curl-en under viser alle.";
+        svarrute.appendChild(headerNote);
+
+        const raa = await svar.text();
+        const kropp = document.createElement("pre");
+        try {
+          kropp.textContent = JSON.stringify(JSON.parse(raa), null, 2);
+        } catch {
+          kropp.textContent = raa;
+        }
+        svarrute.appendChild(merkeMed("Kropp", kropp));
+
+        const curl = curlFor(rute, url, legitimasjon);
+        if (curl.laert) {
+          const kommando = document.createElement("pre");
+          kommando.textContent = curl.laert;
+          svarrute.appendChild(merkeMed("Samme kall som curl", kommando));
+        }
+        if (curl.direkte) {
+          const detaljer = document.createElement("details");
+          const sammendrag = document.createElement("summary");
+          sammendrag.className = "muted small";
+          sammendrag.textContent = curl.laert
+            ? "… eller med tokenet skrevet inn, så den virker umiddelbart"
+            : "Samme kall som curl";
+          const kommando = document.createElement("pre");
+          kommando.textContent = curl.direkte;
+          detaljer.appendChild(sammendrag);
+          detaljer.appendChild(kommando);
+          detaljer.open = !curl.laert;
+          svarrute.appendChild(detaljer);
+        }
+
+        tegnIdentitet();
+      }
+
+      /*
+       * 401 og 403 er ikke det samme, og forskjellen er hele poenget med Del B.
+       * Å skrive ut statuskoden uten å si hvilken av de to sperrene som slo til,
+       * lærer bort at sandkassen er ustabil.
+       */
+      function forklarAvvisning(rute, status, legitimasjon) {
+        const hjemmel = hjemmelFor(rute);
+        if (status === 401) {
+          return `401 betyr «vi vet ikke hvem du er» — tokenet mangler, er utløpt, eller er ` +
+            `utstedt for en annen audience enn ${tjeneste.navn}. Ruta krever ${hjemmel.tekst}.`;
+        }
+        return "403 betyr «vi vet hvem du er, og du har ikke lov». Legitimasjonen holdt, " +
+          "men den gjelder ikke denne ressursen — se grunnen i kroppen under. Et " +
+          "ID-porten-token er bundet til én person, og et Maskinporten-token til ett scope.";
+      }
+
+      function merkeMed(tekst, element) {
+        const bolk = document.createElement("div");
+        const merkelapp = document.createElement("div");
+        merkelapp.className = "label";
+        merkelapp.style.marginTop = "14px";
+        merkelapp.textContent = tekst;
+        bolk.appendChild(merkelapp);
+        bolk.appendChild(element);
+        return bolk;
+      }
+
+      /* ── Oppstart ──────────────────────────────────────────────────────── */
+
+      async function lastTjeneste(valgt, gjenopprett) {
+        tjeneste = valgt;
+        // Hvilket valg denne kjøringen gjelder. Bytter man tjeneste igjen før
+        // hentingen er ferdig, skal det trege svaret forkastes — ellers rendres
+        // én tjenestes ruter mens kallene går til en annens adresse.
+        const gjelder = valgt;
+        valgtRute = null;
+        valgtOrdning = null;
+        // Et søk fra forrige tjeneste som ikke matcher noe her, ser ut som en
+        // tjeneste uten ruter. Tøm det ved bytte.
+        document.getElementById("sok").value = "";
+        document.getElementById("detaljer").replaceChildren();
+        document.getElementById("ruteliste").replaceChildren();
+        visBanner(null);
+
+        if (!hentet.has(valgt.base)) {
+          try {
+            const svar = await fetch(`${valgt.base}/openapi-ruter.json`);
+            if (!svar.ok) throw new Error(`status ${svar.status}`);
+            hentet.set(valgt.base, await svar.json());
+          } catch (feil) {
+            if (tjeneste !== gjelder) return;
+            document.getElementById("tjenestenavn").textContent = valgt.navn;
+            document.getElementById("tjenestebeskrivelse").textContent = "";
+            visBanner(
+              `⚠️ Klarte ikke å hente ${valgt.base}/openapi-ruter.json: ${feil.message}. ` +
+              "Kjører tjenesten? Se docker compose ps."
+            );
+            ruter = [];
+            return;
+          }
+        }
+
+        if (tjeneste !== gjelder) return;
+
+        const oversikt = hentet.get(valgt.base);
+        ruter = oversikt.ruter;
+        document.getElementById("tjenestenavn").textContent = oversikt.tjeneste;
+        document.getElementById("tjenestebeskrivelse").textContent = oversikt.beskrivelse || "";
+        tegnRuteliste();
+
+        if (gjenopprett) {
+          const treff = ruter.find(
+            (rute) => rute.metode === gjenopprett.metode && rute.sti === gjenopprett.sti
+          );
+          if (treff) velgRute(treff);
+        }
+      }
+
+      async function start() {
+        const velger = document.getElementById("tjenestevelger");
+        for (const kandidat of TJENESTER) {
+          const valg = document.createElement("option");
+          valg.value = kandidat.base;
+          valg.textContent = `${kandidat.navn} (${kandidat.base.replace("http://localhost:", "")})`;
+          velger.appendChild(valg);
+        }
+        velger.onchange = () =>
+          lastTjeneste(TJENESTER.find((kandidat) => kandidat.base === velger.value));
+
+        document.getElementById("sok").oninput = tegnRuteliste;
+
+        await lastTestbrukere();
+        tegnIdentitet();
+
+        // Ruta fra adressen, slik den ser ut etter en rundtur til ID-porten.
+        const parametere = new URLSearchParams(location.search);
+        const oenskt = TJENESTER.find((kandidat) => kandidat.navn === parametere.get("tjeneste"));
+        velger.value = (oenskt || TJENESTER[0]).base;
+        await lastTjeneste(oenskt || TJENESTER[0], parametere.get("sti")
+          ? { metode: parametere.get("metode"), sti: parametere.get("sti") }
+          : null);
+      }
+
+      start();
+    </script>
+  </body>
+</html>

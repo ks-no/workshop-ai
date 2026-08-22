@@ -31,6 +31,83 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      security: []
+      description: >
+        Generert av spesifikasjonen, ikke skrevet for hånd: en håndskrevet liste er
+        en tredje sannhet ved siden av koden og filen, og den driver i stillhet.
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      description: >
+        Tjenesten serverer sin egen spesifikasjon fra openapi/. Filen og koden
+        holdes i takt av scripts/sjekk-openapi-dekning.ts.
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      description: >
+        Den samme spesifikasjonen som /openapi.yaml, lest av
+        apps/shared-ui/openapi.ts: én oppføring per operasjon, med sammendrag,
+        hjemmel og parametere. Finnes fordi en nettleser ikke kan lese YAML uten en
+        parser, og sandkassen har ingen. Dette er kilden API-utforskeren på
+        http://localhost:3001/utforsker rendrer.
+      responses:
+        "200":
+          description: Ruteoversikten
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tjeneste: { type: string }
+                  beskrivelse: { type: string }
+                  server: { type: string }
+                  ruter:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sti: { type: string }
+                        metode: { type: string }
+                        linje: { type: integer }
+                        sammendrag: { type: string }
+                        beskrivelse: { type: string }
+                        security:
+                          type: array
+                          items: { type: string }
+                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                        scopes:
+                          type: array
+                          items: { type: string }
+                        parametere:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              navn: { type: string }
+                              plassering: { type: string }
+                              paakrevd: { type: boolean }
+                              eksempel: { type: string }
+                              beskrivelse: { type: string }
+                        kroppEksempel: { type: string }
   /agent/sessions:
     post:
       summary: Create an agent session

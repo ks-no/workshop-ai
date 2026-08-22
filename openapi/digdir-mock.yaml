@@ -1,0 +1,525 @@
+openapi: 3.1.0
+info:
+  title: Digdir Mock — Maskinporten og ID-porten
+  version: 0.1.0
+  description: >-
+    Etterlikning av de to Digdir-flatene sandkassen trenger for å ha hjemmel:
+    Maskinporten for maskin-til-maskin, ID-porten for innbygger. Alle tokens er
+    RS256-signert med en nøkkel tjenesten lager selv ved første oppstart, og hvert
+    svar bærer `syntetisk: true`.
+
+    Ingen rute her krever token, og det er et valg, ikke en glipp: dette *er*
+    utstederen. Sperrene ligger i tjenestene som verifiserer tokenene, ikke her.
+
+    To forenklinger som er verdt å vite om, fordi de skiller sandkassen fra ekte
+    Digdir: `redirect_uri` valideres ikke mot noen forhåndsregistrert liste, og
+    Maskinporten-assertionen valideres på form og ikke på signatur. Begge står
+    beskrevet på ruta si.
+servers:
+  - url: http://localhost:8086
+paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      security: []
+      description: >
+        Svarer også på /health. Begge finnes fordi tjenestene her snakker norsk og
+        docker-compose sitt healthcheck-vokabular ikke gjør det.
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Helse"
+  /health:
+    get:
+      summary: Helsesjekk (alias)
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Helse"
+  /docs:
+    get:
+      summary: Ruteoversikt som HTML
+      security: []
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      description: >
+        Tjenesten serverer sin egen spesifikasjon fra openapi/. Filen og koden
+        holdes i takt av scripts/sjekk-openapi-dekning.ts.
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      description: >
+        Den samme spesifikasjonen som /openapi.yaml, lest av
+        apps/shared-ui/openapi.ts: én oppføring per operasjon, med sammendrag,
+        hjemmel og parametere. Finnes fordi en nettleser ikke kan lese YAML uten en
+        parser, og sandkassen har ingen. Dette er kilden API-utforskeren på
+        http://localhost:3001/utforsker rendrer.
+      responses:
+        "200":
+          description: Ruteoversikten
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tjeneste: { type: string }
+                  beskrivelse: { type: string }
+                  server: { type: string }
+                  ruter:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sti: { type: string }
+                        metode: { type: string }
+                        linje: { type: integer }
+                        sammendrag: { type: string }
+                        beskrivelse: { type: string }
+                        security:
+                          type: array
+                          items: { type: string }
+                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                        scopes:
+                          type: array
+                          items: { type: string }
+                        parametere:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              navn: { type: string }
+                              plassering: { type: string }
+                              paakrevd: { type: boolean }
+                              eksempel: { type: string }
+                              beskrivelse: { type: string }
+                        kroppEksempel: { type: string }
+  /.well-known/oauth-authorization-server:
+    get:
+      summary: Maskinportens metadata
+      security: []
+      description: >
+        Maskinporten er en OAuth-server, ikke en OpenID Provider: ingen person er
+        involvert, og det utstedes ikke noe id_token. Derfor ligger metadataene her
+        og ikke under openid-configuration.
+      responses:
+        "200":
+          description: Metadatadokumentet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuer:
+                    type: string
+                  token_endpoint:
+                    type: string
+                  jwks_uri:
+                    type: string
+                  grant_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  token_endpoint_auth_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  token_endpoint_auth_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  syntetisk:
+                    type: boolean
+  /idporten/.well-known/openid-configuration:
+    get:
+      summary: ID-portens metadata
+      security: []
+      description: >
+        ID-porten er en OpenID Provider: den autentiserer en person og utsteder et
+        id_token om vedkommende.
+      responses:
+        "200":
+          description: Metadatadokumentet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuer:
+                    type: string
+                  authorization_endpoint:
+                    type: string
+                  token_endpoint:
+                    type: string
+                  jwks_uri:
+                    type: string
+                  response_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  grant_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  code_challenge_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  scopes_supported:
+                    type: array
+                    items:
+                      type: string
+                  acr_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  syntetisk:
+                    type: boolean
+  /idporten/testbrukere:
+    get:
+      summary: List testbrukerne
+      security: []
+      description: >
+        Maskinlesbar liste over testpersonene, så et skript kan si «logg inn som
+        person-031» uten å kunne et fødselsnummer utenat. Den finnes fordi
+        alternativet var verre: klienten skrapte tidligere velgersiden for det samme
+        oppslaget, og en pusset side knakk hele testhalen.
+
+        Ekte ID-porten har ingenting slikt, og kunne ikke hatt det — det finnes
+        ingen rute som lister befolkningen. Adressebeskyttede personer står oppført
+        med personId og «Skjermet person», akkurat som i velgeren.
+      responses:
+        "200":
+          description: Testbrukerne
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testbruker"
+  /jwks:
+    get:
+      summary: Utstederens offentlige nøkler
+      security: []
+      description: >
+        Nøkkelen tjenestene verifiserer signaturen med. Genereres ved første
+        oppstart og lagres i state/, så den overlever en omstart.
+      responses:
+        "200":
+          description: Nøkkelsettet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Noekkelsett"
+  /jwk:
+    get:
+      summary: Utstederens offentlige nøkler (alias)
+      security: []
+      description: >
+        Samme svar som /jwks. Aliaset finnes fordi det er stien fiks-io sin
+        oidc-mock og ekte Maskinporten bruker, og å være enig koster ingenting.
+      responses:
+        "200":
+          description: Nøkkelsettet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Noekkelsett"
+  /token:
+    post:
+      summary: Maskinporten — bytt assertion mot access token
+      security: []
+      description: >
+        `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`. Assertionen må ha
+        `iss`, `aud` (= issueren), `scope` og `exp`, og `resource` avgjør hvilken
+        tjeneste tokenet gjelder for — standard er `sandbox-backend`. Et token
+        utstedt for én tjeneste avvises av en annen, og det er hele poenget med
+        audience-begrensning.
+
+        SANDKASSEFORENKLING: assertionen valideres på form, ikke på signatur. Hvert
+        felt ekte Maskinporten krever er fortsatt påkrevd, så en klient som virker
+        her er bygget riktig — men ekte Maskinporten krever en privat nøkkel, og en
+        nettleser skal aldri holde en.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, assertion]
+              properties:
+                grant_type:
+                  type: string
+                  enum: ["urn:ietf:params:oauth:grant-type:jwt-bearer"]
+                assertion:
+                  type: string
+                  description: Signert JWT med iss, aud, scope og exp.
+                resource:
+                  type: string
+                  description: Tjenesten tokenet skal gjelde for.
+      responses:
+        "200":
+          description: Tokenet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tokensvar"
+        "400":
+          $ref: "#/components/responses/OauthFeil"
+  /idporten/authorize:
+    get:
+      summary: ID-porten — testbrukervelgeren
+      security: []
+      description: >
+        Uten `pid` rendres velgersiden; velgeren poster tilbake til den samme ruta
+        med den valgte brukeren, og svaret er en 302 til `redirect_uri` med `code`
+        og `state`.
+
+        SANDKASSEFORENKLING: `redirect_uri` valideres ikke mot noen liste, så en ny
+        side trenger ingen registrering. Ekte ID-porten gjør det motsatte.
+      parameters:
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/RedirectUri"
+        - name: response_type
+          in: query
+          required: false
+          description: Bare `code` støttes.
+          schema:
+            type: string
+            example: code
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            example: openid profile
+        - name: state
+          in: query
+          required: false
+          description: Bæres uendret tilbake, så en dyplenke overlever rundturen.
+          schema:
+            type: string
+        - name: nonce
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Resource"
+        - name: code_challenge
+          in: query
+          required: false
+          description: PKCE. Påkrevd for en offentlig klient, som en nettleser er.
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          required: false
+          description: Bare S256 støttes.
+          schema:
+            type: string
+            example: S256
+      responses:
+        "200":
+          description: Velgersiden
+          content:
+            text/html:
+              schema:
+                type: string
+        "302":
+          description: Tilbake til redirect_uri med code og state
+        "400":
+          $ref: "#/components/responses/OauthFeil"
+    post:
+      summary: ID-porten — velgeren sender valgt testbruker
+      security: []
+      description: >
+        Skjemaet på velgersiden poster tilbake hit med `pid`, og de øvrige
+        parameterne fra GET-en som skjulte felt. Svaret er en 302 til
+        `redirect_uri`.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [client_id, redirect_uri, pid]
+              properties:
+                client_id:
+                  type: string
+                redirect_uri:
+                  type: string
+                pid:
+                  type: string
+                  description: Fødselsnummeret til den valgte testbrukeren.
+                state:
+                  type: string
+                nonce:
+                  type: string
+                resource:
+                  type: string
+                code_challenge:
+                  type: string
+                code_challenge_method:
+                  type: string
+      responses:
+        "302":
+          description: Tilbake til redirect_uri med code og state
+        "400":
+          $ref: "#/components/responses/OauthFeil"
+  /idporten/token:
+    post:
+      summary: ID-porten — bytt code mot tokens
+      security: []
+      description: >
+        `grant_type=authorization_code`. `redirect_uri` må stemme med den fra
+        /authorize, og ble `code_challenge` sendt der, er `code_verifier` påkrevd
+        her — PKCE, fordi en klient som kjører i en nettleser ikke kan holde på en
+        hemmelighet, og koden alene derfor ikke skal være nok. Koden kan bare løses
+        inn én gang.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, code]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code]
+                code:
+                  type: string
+                client_id:
+                  type: string
+                redirect_uri:
+                  type: string
+                code_verifier:
+                  type: string
+      responses:
+        "200":
+          description: Access token og id_token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Tokensvar"
+                  - type: object
+                    properties:
+                      id_token:
+                        type: string
+        "400":
+          $ref: "#/components/responses/OauthFeil"
+
+components:
+  parameters:
+    ClientId:
+      name: client_id
+      in: query
+      required: true
+      schema:
+        type: string
+        example: demo-gui
+    RedirectUri:
+      name: redirect_uri
+      in: query
+      required: true
+      description: Valideres ikke mot noen liste. Se beskrivelsen av ruta.
+      schema:
+        type: string
+        example: http://localhost:3001/callback
+    Resource:
+      name: resource
+      in: query
+      required: false
+      description: Tjenesten tokenet skal gjelde for. Blir tokenets aud.
+      schema:
+        type: string
+        example: sandbox-backend
+
+  responses:
+    OauthFeil:
+      description: Forespørselen ble avvist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OauthFeil"
+
+  schemas:
+    Helse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        tjeneste:
+          type: string
+        tidspunkt:
+          type: string
+          format: date-time
+    Testbruker:
+      type: object
+      properties:
+        personId:
+          type: string
+        pid:
+          type: string
+          description: Syntetisk fødselsnummer.
+        visningsnavn:
+          type: string
+          description: «Skjermet person» for adressebeskyttede.
+        kommune:
+          type: string
+    Noekkelsett:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            description: Offentlig JWK, RS256.
+    Tokensvar:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+        scope:
+          type: string
+        syntetisk:
+          type: boolean
+    OauthFeil:
+      type: object
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        syntetisk:
+          type: boolean

@@ -17,6 +17,7 @@ import {
   type Tilgang
 } from "./autentisering.ts";
 import { openapiFile } from "./config.ts";
+import { ruteoversikt } from "../../shared-ui/openapi.ts";
 import { byggProsessoektRespons, opprettSoknad, utforStegHandling } from "./prosess.ts";
 import { finnRessurs, ressurskatalog, utforRessurs } from "./ressurser.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
@@ -142,6 +143,17 @@ const systemruter: Rute[] = [
     sti: "/openapi.yaml",
     handter: async ({ response }) => {
       textResponse(response, 200, await readFile(openapiFile, "utf8"), "text/yaml; charset=utf-8");
+    }
+  },
+  {
+    metode: "GET",
+    tilgang: "aapen",
+    sti: "/openapi-ruter.json",
+    // Den samme spesifikasjonen, lest. En nettleser kan ikke lese YAML uten en
+    // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
+    // med det API-utforskeren trenger for å rendre et skjema per rute.
+    handter: async ({ response }) => {
+      jsonResponse(response, 200, await ruteoversikt(openapiFile));
     }
   }
 ];

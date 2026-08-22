@@ -16,6 +16,7 @@ import { lagStateLeser, newId, updateJson } from "./state.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ruteoversikt } from "../../shared-ui/openapi.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PORT lar testskript starte en isolert instans ved siden av docker compose.
@@ -489,6 +490,7 @@ function docsHtml() {
     <head><meta charset="utf-8"><title>Fiks Simulator API</title></head>
     <body style="font-family: Arial, sans-serif; padding: 24px;">
       <h1>Fiks Simulator API</h1>
+      <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
       <ul>
         <li><code>POST /fiks/samtykke</code></li>
         <li><code>GET /fiks/samtykke/{samtykkeId}</code></li>
@@ -523,9 +525,19 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (url.pathname === "/openapi.yaml") {
+    if (request.method === "GET" && url.pathname === "/openapi.yaml") {
       const yaml = await readFile(path.resolve(__dirname, "../../../openapi/fiks-simulator.yaml"), "utf8");
       textResponse(response, 200, yaml, "text/yaml; charset=utf-8");
+      return;
+    }
+
+    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
+      jsonResponse(
+        response,
+        200,
+        await ruteoversikt(path.resolve(__dirname, "../../../openapi/fiks-simulator.yaml"))
+      );
       return;
     }
 

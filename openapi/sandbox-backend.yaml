@@ -57,6 +57,55 @@ paths:
             text/yaml:
               schema:
                 type: string
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      description: >
+        Den samme spesifikasjonen som /openapi.yaml, lest av
+        apps/shared-ui/openapi.ts: én oppføring per operasjon, med sammendrag,
+        hjemmel og parametere. Finnes fordi en nettleser ikke kan lese YAML uten en
+        parser, og sandkassen har ingen. Dette er kilden API-utforskeren på
+        http://localhost:3001/utforsker rendrer.
+      responses:
+        "200":
+          description: Ruteoversikten
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tjeneste: { type: string }
+                  beskrivelse: { type: string }
+                  server: { type: string }
+                  ruter:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sti: { type: string }
+                        metode: { type: string }
+                        linje: { type: integer }
+                        sammendrag: { type: string }
+                        beskrivelse: { type: string }
+                        security:
+                          type: array
+                          items: { type: string }
+                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                        scopes:
+                          type: array
+                          items: { type: string }
+                        parametere:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              navn: { type: string }
+                              plassering: { type: string }
+                              paakrevd: { type: boolean }
+                              eksempel: { type: string }
+                              beskrivelse: { type: string }
+                        kroppEksempel: { type: string }
   /api/prosesser:
     get:
       summary: List prosesser

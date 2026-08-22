@@ -232,6 +232,10 @@ Alle tjenestene kjører når `./start.sh` er ferdig:
 - [http://localhost:3001/chat](http://localhost:3001/chat)
 - [http://localhost:3001/agent](http://localhost:3001/agent)
 - [http://localhost:3001/stegvis](http://localhost:3001/stegvis)
+- [http://localhost:3001/utforsker](http://localhost:3001/utforsker) — API-utforskeren: alle sju
+  tjenestenes endepunkter, med skjema per rute og en `curl` som virker når den limes inn.
+  Tokenet velges automatisk ut fra hjemmelen ruta krever: logg inn med ID-porten én gang,
+  så hentes Maskinporten-tokenene av seg selv
 - [http://localhost:3000](http://localhost:3000) — prosessbygger
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
@@ -239,10 +243,18 @@ Alle tjenestene kjører når `./start.sh` er ferdig:
 - [http://localhost:8082/health](http://localhost:8082/health)
 - [http://localhost:8083/health](http://localhost:8083/health)
 - [http://localhost:8084/health](http://localhost:8084/health)
+- [http://localhost:8086/health](http://localhost:8086/health)
 - [http://localhost:8080/docs](http://localhost:8080/docs)
 - [http://localhost:8081/docs](http://localhost:8081/docs)
-- [http://localhost:8085/docs](http://localhost:8085/docs)
 - [http://localhost:8082/docs](http://localhost:8082/docs)
+- [http://localhost:8083/docs](http://localhost:8083/docs)
+- [http://localhost:8084/docs](http://localhost:8084/docs)
+- [http://localhost:8085/docs](http://localhost:8085/docs)
+- [http://localhost:8086/docs](http://localhost:8086/docs)
+
+Hver tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, og den samme
+spesifikasjonen lest som JSON på `/openapi-ruter.json`. Den siste er det
+API-utforskeren rendrer, og `pnpm test:openapi` holder begge i takt med koden.
 
 Nye API-er:
 
