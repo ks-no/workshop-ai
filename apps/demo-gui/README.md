@@ -23,8 +23,11 @@ Tilgjengelige sider:
 - `http://localhost:3001/chat` chatdrevet prosessgrensesnitt
 - `http://localhost:3001/agent` mot `process-agent` i naturlig språk
 - `http://localhost:3001/stegvis` klassisk stegvis demo
+- `http://localhost:3001/utforsker` API-utforskeren
+- `http://localhost:3001/ds-eksempel` mal for KS Digital sitt designsystem. Denne siden
+  laster med vilje **ikke** `felles.css` — se `docs/designsystem.md`
 
-Alle fire deler `apps/shared-ui/felles.css` og `felles.js`, servert på `/assets/*`.
+De øvrige deler `apps/shared-ui/felles.css` og `felles.js`, servert på `/assets/*`.
 Prosessbyggeren på `:3000` serverer de samme filene fra sin egen `/assets/*`.
 
 Dette er en **referanseimplementasjon, ikke en tvungen klient.** Bygg gjerne din egen

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="nb" data-color-scheme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Designsystem-mal | KS Digital sandbox</title>
+
+    <!--
+      This page deliberately does NOT load /assets/felles.css. That stylesheet has no
+      @layer, and unlayered rules beat every layer in the cascade, so it would override
+      @layer ds and @layer ksd. See docs/designsystem.md.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://static.fiks.ks.no/googlefonts/googleapis/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/assets/ds-base.css" />
+    <link rel="stylesheet" href="/assets/ds-ksdigital.css" />
+
+    <style>
+      /*
+       * Page-local layout only. `side` is declared after ksd, so these rules win
+       * without needing !important or higher specificity — the pattern to copy when
+       * you need to override the design system.
+       */
+      @layer side;
+
+      @layer side {
+        body {
+          margin: 0;
+          background: var(--ds-color-background-default);
+          color: var(--ds-color-text-default);
+        }
+
+        .side {
+          max-width: 60rem;
+          margin: 0 auto;
+          padding: var(--ds-size-6) var(--ds-size-4) var(--ds-size-18);
+          display: grid;
+          gap: var(--ds-size-8);
+        }
+
+        .verktoylinje {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ds-size-4);
+          align-items: end;
+          padding: var(--ds-size-4);
+          border: 1px solid var(--ds-color-border-subtle);
+          border-radius: var(--ds-border-radius-md);
+          background: var(--ds-color-surface-tinted);
+        }
+
+        .demo {
+          display: grid;
+          gap: var(--ds-size-3);
+          padding-top: var(--ds-size-6);
+          border-top: 1px solid var(--ds-color-border-subtle);
+        }
+
+        .vis {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ds-size-4);
+          align-items: start;
+        }
+
+        /* Components that own their width should not be squeezed onto one row. */
+        .vis--blokk {
+          display: grid;
+          gap: var(--ds-size-4);
+        }
+
+        pre.kode {
+          margin: 0;
+          overflow-x: auto;
+          padding: var(--ds-size-3) var(--ds-size-4);
+          border-radius: var(--ds-border-radius-sm);
+          background: var(--ds-color-neutral-surface-tinted);
+          border: 1px solid var(--ds-color-neutral-border-subtle);
+          color: var(--ds-color-neutral-text-default);
+          font-size: var(--ds-font-size-2);
+          line-height: 1.5;
+        }
+
+        .vaapen {
+          height: var(--ds-size-18);
+          width: auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="side">
+      <header>
+        <h1 class="ds-heading" data-size="xl">Designsystem-mal</h1>
+        <p class="ds-paragraph" data-size="lg" data-variant="long">
+          <strong>Du er her:</strong> dette er ikke en av sandboxens tre innganger. Det er
+          en tom mal som viser KS Digital sitt designsystem kjørende inne i denne
+          sandboxen, slik at du kan kopiere oppsettet inn i din egen frontend.
+          Oppskriften, tokenene og reglene står i
+          <code>docs/designsystem.md</code>.
+        </p>
+        <p class="ds-paragraph" data-variant="long">
+          Hver seksjon under viser en komponent, og rett under den markupen som faktisk
+          står i DOM-en. Kodeblokkene er lest ut av siden selv, så de kan ikke bli
+          utdaterte.
+        </p>
+      </header>
+
+      <div class="verktoylinje">
+        <div class="ds-field">
+          <label class="ds-label" for="modus">Fargemodus</label>
+          <select class="ds-input" id="modus">
+            <option value="light">Lys</option>
+            <option value="dark">Mørk</option>
+            <option value="auto">Auto (følger systemet)</option>
+          </select>
+          <p class="ds-paragraph" data-size="xs" data-field="description">
+            Settes som <code>data-color-scheme</code> på <code>&lt;html&gt;</code>.
+          </p>
+        </div>
+
+        <div class="ds-field">
+          <label class="ds-label" for="storrelse">Størrelse</label>
+          <select class="ds-input" id="storrelse">
+            <option value="sm">sm</option>
+            <option value="md" selected>md</option>
+            <option value="lg">lg</option>
+          </select>
+          <p class="ds-paragraph" data-size="xs" data-field="description">
+            Settes som <code>data-size</code> på galleriet. Arves nedover.
+          </p>
+        </div>
+      </div>
+
+      <section class="demo" id="sandbox-status">
+        <h2 class="ds-heading" data-size="sm">Er vi inne i sandboxen?</h2>
+        <div class="vis vis--blokk" data-kode="nei">
+          <div class="ds-alert" id="helsevarsel" aria-live="polite">
+            <p class="ds-paragraph">Sjekker <code>http://localhost:8080/helse</code> …</p>
+          </div>
+        </div>
+      </section>
+
+      <div id="galleri" data-size="md">
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Typografi</h2>
+          <div class="vis vis--blokk">
+            <h3 class="ds-heading" data-size="lg">Redusert foreldrebetaling</h3>
+            <p class="ds-paragraph" data-size="md" data-variant="long">
+              Husstanden har en samlet inntekt under terskelen for ordningen. Vedtaket er
+              beregnet på syntetiske data.
+            </p>
+            <p class="ds-paragraph" data-size="sm">
+              <a class="ds-link" href="/utforsker">Se grunnlaget i API-utforskeren</a>
+            </p>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Knapper</h2>
+          <div class="vis">
+            <button class="ds-button" type="button">Send søknad</button>
+            <button class="ds-button" type="button" data-variant="secondary">Avbryt</button>
+            <button class="ds-button" type="button" data-variant="tertiary">Les mer</button>
+            <button class="ds-button" type="button" data-color="danger">Trekk samtykke</button>
+            <button class="ds-button" type="button" disabled>Låst</button>
+            <button class="ds-button" type="button" aria-busy="true">
+              <svg class="ds-spinner" data-size="sm" viewBox="0 0 50 50" aria-hidden="true">
+                <circle class="ds-spinner__background" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+                <circle class="ds-spinner__circle" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+              </svg>
+              Beregner
+            </button>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Skjemafelt</h2>
+          <div class="vis vis--blokk">
+            <div class="ds-field">
+              <label class="ds-label" for="fnr">Fødselsnummer</label>
+              <p class="ds-paragraph" data-size="sm" data-field="description">
+                Kun syntetiske numre fra <code>data/personer.json</code>.
+              </p>
+              <input class="ds-input" id="fnr" type="text" inputmode="numeric" />
+            </div>
+
+            <div class="ds-field">
+              <label class="ds-label" for="inntekt">Samlet inntekt</label>
+              <input class="ds-input" id="inntekt" type="text" aria-invalid="true" />
+              <p class="ds-validation-message">Inntekt må være et tall.</p>
+            </div>
+
+            <fieldset class="ds-fieldset">
+              <legend class="ds-label">Samtykke</legend>
+              <p class="ds-paragraph" data-size="sm" data-field="description">
+                Backend krever samtykke før beskyttede data leses. Avkrysningen her er
+                bare presentasjon.
+              </p>
+              <div class="ds-field">
+                <input class="ds-input" id="samtykke-inntekt" type="checkbox" />
+                <label class="ds-label" data-weight="regular" for="samtykke-inntekt">
+                  Hent inntekt fra Skatteetaten
+                </label>
+              </div>
+              <div class="ds-field">
+                <input class="ds-input" id="samtykke-husstand" type="checkbox" />
+                <label class="ds-label" data-weight="regular" for="samtykke-husstand">
+                  Hent husstand fra Folkeregisteret
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Varsler</h2>
+          <div class="vis vis--blokk">
+            <div class="ds-alert">
+              <p class="ds-paragraph">Alle data i sandboxen er syntetiske.</p>
+            </div>
+            <div class="ds-alert" data-color="success">
+              <p class="ds-paragraph">Samtykke registrert.</p>
+            </div>
+            <div class="ds-alert" data-color="warning">
+              <p class="ds-paragraph">Modellen kjører i mock-modus. Svarene er ikke ekte.</p>
+            </div>
+            <div class="ds-alert" data-color="danger">
+              <h3 class="ds-heading" data-size="2xs">Spørsmålet ble stoppet</h3>
+              <p class="ds-paragraph">
+                Sperren ligger i koden, ikke i prompten. Se
+                <code>docs/sikkerhet-og-personvern.md</code>.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Kort</h2>
+          <div class="vis">
+            <div class="ds-card">
+              <div class="ds-card__block">
+                <h3 class="ds-heading" data-size="xs">Steg 3 av 7</h3>
+              </div>
+              <div class="ds-card__block">
+                <p class="ds-paragraph">Samtykke til å hente inntekt.</p>
+              </div>
+              <div class="ds-card__block">
+                <button class="ds-button" type="button" data-size="sm">Gi samtykke</button>
+              </div>
+            </div>
+            <a class="ds-card" data-variant="tinted" href="/utforsker">
+              <div class="ds-card__block">
+                <h3 class="ds-heading" data-size="xs">API-utforskeren</h3>
+                <p class="ds-paragraph" data-size="sm">
+                  Hele kortet er en lenke fordi elementet er en <code>&lt;a&gt;</code>.
+                </p>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Tabell</h2>
+          <div class="vis vis--blokk">
+            <table class="ds-table" data-size="sm">
+              <caption>Vilkår som ble vurdert</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Vilkår</th>
+                  <th scope="col">Grunnlag</th>
+                  <th scope="col">Utfall</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Inntekt under terskel</th>
+                  <td>412 000 kr</td>
+                  <td><span class="ds-tag" data-color="success">Oppfylt</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Barn i barnehage</th>
+                  <td>1 plass</td>
+                  <td><span class="ds-tag" data-color="success">Oppfylt</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Bosatt i kommunen</th>
+                  <td>Ikke registrert</td>
+                  <td><span class="ds-tag" data-color="danger">Ikke oppfylt</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Merker og etiketter</h2>
+          <div class="vis">
+            <span class="ds-tag">Syntetisk</span>
+            <span class="ds-tag" data-color="support1">Steg</span>
+            <span class="ds-tag" data-color="warning" data-variant="outline">Mock-modell</span>
+            <span class="ds-chip">Barnehage</span>
+            <span class="ds-badge" data-count="3" data-color="danger"></span>
+            <span class="ds-badge--position" data-placement="top-right">
+              <span class="ds-badge" data-count="7" data-color="danger" aria-hidden="true"></span>
+              <button class="ds-button" type="button" data-variant="secondary">Oppgaver</button>
+            </span>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Feiloppsummering</h2>
+          <div class="vis vis--blokk">
+            <div class="ds-error-summary">
+              <h3 class="ds-heading" data-size="xs">Skjemaet mangler noe</h3>
+              <ul class="ds-list">
+                <li><a class="ds-link" href="#fnr">Fødselsnummer må fylles ut</a></li>
+                <li><a class="ds-link" href="#inntekt">Inntekt må være et tall</a></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Sammentrekk og søk</h2>
+          <div class="vis vis--blokk">
+            <details class="ds-details">
+              <summary>Hva regnes som husstand?</summary>
+              <p class="ds-paragraph">
+                Personer registrert på samme adresse i Folkeregisteret. Native
+                <code>&lt;details&gt;</code>, så den virker uten JavaScript.
+              </p>
+            </details>
+            <div class="ds-search">
+              <input class="ds-input" type="search" aria-label="Søk etter eiendom" placeholder="Søk etter eiendom" />
+              <button class="ds-button" type="reset" aria-label="Tøm søk"></button>
+              <button class="ds-button" type="button">Søk</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Venting</h2>
+          <p class="ds-paragraph" data-size="sm" data-variant="long">
+            Alle tre animerer — spinneren roterer på 2 s, skeletonene pulser på 0,8 s. Et
+            skjermbilde fryser dem, så de ser døde ut i et utklipp. Under
+            <code>prefers-reduced-motion</code> går de tregere, men de stopper ikke.
+          </p>
+          <div class="vis vis--blokk">
+            <svg class="ds-spinner" data-size="md" viewBox="0 0 50 50" role="img" aria-label="Laster">
+              <circle class="ds-spinner__background" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+              <circle class="ds-spinner__circle" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+            </svg>
+            <p class="ds-paragraph">
+              Henter <span class="ds-skeleton" data-variant="text" data-text="inntekt for husstanden"></span>
+              fra Skatteetaten.
+            </p>
+            <span class="ds-skeleton" data-variant="circle"></span>
+          </div>
+        </section>
+
+        <section class="demo">
+          <h2 class="ds-heading" data-size="sm">Kommunevåpen</h2>
+          <div class="vis">
+            <img class="vaapen" src="https://static.fiks.ks.no/img/kommunevaapen/4601.png" alt="Bergen kommunes våpen" />
+            <img class="vaapen" src="https://static.fiks.ks.no/img/kommunevaapen/0301.png" alt="Oslo kommunes våpen" />
+            <img class="vaapen" src="https://static.fiks.ks.no/img/kommunevaapen/5001.png" alt="Trondheim kommunes våpen" />
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      // Serialise the live DOM back to indented HTML, so every code block below a demo
+      // is the markup that is actually rendering. Hand-written samples drift; this
+      // cannot. Attribute values come from the DOM, so they are already what the parser
+      // accepted — but they still get escaped, because a value could contain a quote.
+      const TOMME = new Set(["img", "input", "br", "hr", "source", "circle"]);
+      const ENLINJE = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "summary", "label", "legend", "caption", "th", "td", "option", "li", "a", "button", "span", "code", "strong"]);
+
+      function attributter(element) {
+        return [...element.attributes]
+          .filter((attributt) => attributt.name !== "data-kode")
+          .map((attributt) => {
+            if (attributt.value === "") return ` ${attributt.name}`;
+            return ` ${attributt.name}="${attributt.value.replace(/"/g, "&quot;")}"`;
+          })
+          .join("");
+      }
+
+      // Inline serialisation keeps children — collapsing them to textContent used to
+      // drop the markup that mattered, so a <td> holding a .ds-tag printed as bare text.
+      function serialiserInline(element) {
+        const tag = element.tagName.toLowerCase();
+        if (TOMME.has(tag)) return `<${tag}${attributter(element)} />`;
+        const deler = [...element.childNodes]
+          .map((node) => {
+            if (node.nodeType === Node.TEXT_NODE) return node.textContent.replace(/\s+/g, " ");
+            if (node.nodeType === Node.ELEMENT_NODE) return serialiserInline(node);
+            return "";
+          })
+          .join("");
+        return `<${tag}${attributter(element)}>${deler.trim()}</${tag}>`;
+      }
+
+      function serialiser(element, dybde = 0) {
+        const innrykk = "  ".repeat(dybde);
+        const tag = element.tagName.toLowerCase();
+
+        if (TOMME.has(tag)) return `${innrykk}<${tag}${attributter(element)} />`;
+
+        const barn = [...element.children];
+        const kanInline =
+          barn.length === 0 ||
+          (ENLINJE.has(tag) && barn.every((b) => ENLINJE.has(b.tagName.toLowerCase()) || TOMME.has(b.tagName.toLowerCase())));
+        if (kanInline) return `${innrykk}${serialiserInline(element)}`;
+
+        const inni = barn.map((barnet) => serialiser(barnet, dybde + 1)).join("\n");
+        return `${innrykk}<${tag}${attributter(element)}>\n${inni}\n${innrykk}</${tag}>`;
+      }
+
+      for (const vis of document.querySelectorAll(".vis")) {
+        if (vis.dataset.kode === "nei") continue;
+        const pre = document.createElement("pre");
+        pre.className = "kode";
+        pre.textContent = [...vis.children].map((barnet) => serialiser(barnet)).join("\n\n");
+        vis.parentElement.append(pre);
+      }
+
+      // data-color-scheme belongs on the root element: the theme defines its colour
+      // variables on :root and on [data-color-scheme], so anything below inherits.
+      const modus = document.getElementById("modus");
+      modus.onchange = () => document.documentElement.setAttribute("data-color-scheme", modus.value);
+
+      // data-size is inherited too. Setting it once on the gallery rescales every
+      // component inside it — that is the whole sizing mechanism, not a per-component prop.
+      const storrelse = document.getElementById("storrelse");
+      const galleri = document.getElementById("galleri");
+      storrelse.onchange = () => galleri.setAttribute("data-size", storrelse.value);
+
+      // One real call, so the page proves it is inside the sandbox rather than a
+      // detached static demo.
+      const helsevarsel = document.getElementById("helsevarsel");
+      function visHelse(farge, tekst) {
+        helsevarsel.setAttribute("data-color", farge);
+        const avsnitt = document.createElement("p");
+        avsnitt.className = "ds-paragraph";
+        avsnitt.textContent = tekst;
+        helsevarsel.replaceChildren(avsnitt);
+      }
+
+      fetch("http://localhost:8080/helse")
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+        .then((svar) => visHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandboxen.`))
+        .catch((error) => visHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error.message}). Malen virker likevel — den trenger ingen backend.`));
+    </script>
+  </body>
+</html>

@@ -236,6 +236,9 @@ Alle tjenestene kjører når `./start.sh` er ferdig:
   tjenestenes endepunkter, med skjema per rute og en `curl` som virker når den limes inn.
   Tokenet velges automatisk ut fra hjemmelen ruta krever: logg inn med ID-porten én gang,
   så hentes Maskinporten-tokenene av seg selv
+- [http://localhost:3001/ds-eksempel](http://localhost:3001/ds-eksempel) — KS Digital sitt
+  designsystem kjørende i sandboxen, med markup for hver komponent. Mal hvis du lager din
+  egen frontend. Se `docs/designsystem.md`
 - [http://localhost:3000](http://localhost:3000) — prosessbygger
 - [http://localhost:8080/health](http://localhost:8080/health)
 - [http://localhost:8081/health](http://localhost:8081/health)
@@ -509,6 +512,7 @@ Dette repoet er lagt opp for flere team. Se:
 - `docs/architecture.md`
 - `docs/api-oversikt.md`
 - `docs/api-foerst-integrasjoner.md`
+- `docs/designsystem.md`
 - `docs/veien-videre.md`
 
 Anbefalt arbeidsform:

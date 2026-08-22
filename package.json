@@ -29,6 +29,7 @@
     "test:vilkaar": "node scripts/test-vilkaar.js",
     "test:samtykke": "node scripts/test-samtykke.js",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
+    "ds:hent": "node scripts/hent-designsystem.js",
     "test:eval": "node scripts/eval.js",
     "test:agent": "node scripts/test-agent-flow.js",
     "test:agent:nl": "node scripts/test-agent-natural-language.js",

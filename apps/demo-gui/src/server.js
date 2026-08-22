@@ -11,7 +11,11 @@ const port = 3001;
 // onto a directory path without one.
 const ASSETS = {
   "felles.css": "text/css; charset=utf-8",
-  "felles.js": "text/javascript; charset=utf-8"
+  "felles.js": "text/javascript; charset=utf-8",
+  // Vendored design system, see docs/designsystem.md. Flat filenames on purpose:
+  // the lookup below joins the URL name onto a directory, so no name may contain a slash.
+  "ds-base.css": "text/css; charset=utf-8",
+  "ds-ksdigital.css": "text/css; charset=utf-8"
 };
 
 function send(response, statusCode, body, contentType = "text/html; charset=utf-8") {
@@ -44,6 +48,8 @@ const sider = {
   "/agent": "agent.html",
   "/agent.html": "agent.html",
   "/utforsker": "utforsker.html",
+  // Template for teams building their own frontend. See docs/designsystem.md.
+  "/ds-eksempel": "ds-eksempel.html",
   // The redirect_uri registered with ID-porten. Same path for every page: the page
   // to return to travels in `state`, not in the callback URL.
   "/callback": "callback.html"

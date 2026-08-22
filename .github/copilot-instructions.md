@@ -71,4 +71,8 @@ ignorable. Do not duplicate it here; a second copy is how it went stale before.
 - Keep Norwegian domain terms and identifiers intact where they already exist.
 - Use UTF-8 Unicode encoding for all created/edited code, data, and documentation files.
 - Do not introduce new frameworks or heavy dependencies unless explicitly requested.
+- Frontend work follows the KS Digital design system. Read `docs/designsystem.md` first —
+  it carries the setup, the `ds-` class API and the hard rules. The one that bites: never
+  load `felles.css` and the design system CSS on the same page, because `felles.css` has
+  no `@layer` and unlayered rules beat every layer.
 

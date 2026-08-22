@@ -16,3 +16,5 @@ data/samtykker.json
 data/oppgaver.json
 data/soknader.json
 data/meldinger.json
+
+.claude/settings.local.json

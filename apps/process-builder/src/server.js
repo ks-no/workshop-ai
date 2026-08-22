@@ -10,7 +10,11 @@ const port = 3000;
 // Whitelisted, because the filename comes from the URL.
 const ASSETS = {
   "felles.css": "text/css; charset=utf-8",
-  "felles.js": "text/javascript; charset=utf-8"
+  "felles.js": "text/javascript; charset=utf-8",
+  // Vendored design system, see docs/designsystem.md. Flat filenames on purpose:
+  // the lookup below joins the URL name onto a directory, so no name may contain a slash.
+  "ds-base.css": "text/css; charset=utf-8",
+  "ds-ksdigital.css": "text/css; charset=utf-8"
 };
 
 function send(response, statusCode, body, contentType = "text/html; charset=utf-8") {
