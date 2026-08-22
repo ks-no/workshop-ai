@@ -213,10 +213,16 @@ export function requireTilgang(valg: {
   scope: string;
   /** The subject's fødselsnummer, or null when the route has no single subject. */
   pid: string | null;
+  /**
+   * Fødselsnummer that may act *for* the subject: a parent with foreldreansvar, or
+   * a verge. Empty for every route where the subject can act on their own behalf.
+   * Computed by handleevne.ts, never guessed here.
+   */
+  representantPider?: string[];
   /** Named in the error message, so a 403 says what was refused. */
   hva: string;
 }): void {
-  const { kaller, tilgang, scope, pid, hva } = valg;
+  const { kaller, tilgang, scope, pid, representantPider = [], hva } = valg;
 
   if (tilgang === "aapen") return;
   // The escape hatch. Off by default; it exists so the whole test tail can be
@@ -248,12 +254,25 @@ export function requireTilgang(valg: {
 
   // The pid binding. `pid` is null only where the route has no single subject, and
   // there the handler narrows the answer instead.
-  if (pid && kaller.pid !== pid) {
+  // A minor is the party to their own case, but cannot be the sender. So the
+  // binding admits a registered representative in addition to the subject - and
+  // *only* those two. This is the narrowest widening that lets a parent drive a
+  // child's flow without opening a general delegation mechanism.
+  if (pid && kaller.pid !== pid && !representantPider.includes(kaller.pid)) {
     throw manglerHjemmel(
       `Du er innlogget som ${kaller.pid}, og ${hva} gjelder en annen person. ` +
-      `Du har bare tilgang til dine egne data.`
+      `Du har bare tilgang til dine egne data, og til data for noen du er registrert ` +
+      `representant for.`
     );
   }
+}
+
+/** 403 for a subject who cannot be party to a case on their own behalf. */
+export function manglerHandleevne(melding: string): HttpError {
+  // A distinct `grunn` from mangler_hjemmel on purpose: the caller is who they say
+  // they are and has the right to their own data. What is missing is the subject's
+  // capacity to act, and the fix is a different sender, not a different token.
+  return new HttpError(melding, 403, { syntetisk: true, grunn: "krever_representant" });
 }
 
 /** For log lines and error messages. Never for an access decision. */

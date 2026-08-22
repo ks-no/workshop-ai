@@ -66,28 +66,137 @@ Kildedata i `data/`:
 
 | Fil | Innhold |
 |---|---|
-| `personer.json` | Folkeregister-inspirert: `navn`, `foedselsdato`, `bostedsadresse`, `sivilstand`, `foreldrebarnrelasjon`, `skjermet` |
-| `husstander.json` | Husholdning etter forskriften: ektefeller, partnere og samboere. Har `type` og et `scenario`-felt som sier hva husstanden demonstrerer |
-| `inntekter.json` | Poster som mater beregningen, med `kilde` og `medregnes`. Har `stadie` (`OPPGJOER`/`UTKAST`) |
+| `kuratert.json` | **Kilden til de 51 håndskrevne terskelfixturene** (`person-001`–`051`, `household-001`–`018`). Bare forfattede felter: navn, fødselsdato, adresse, sivilstand, `barn`, `ektefelle`, kontaktinfo. Alt annet utledes |
+| `tenor/*.json` | Rå uttrekk fra Skatteetatens Tenor testdatasøk, ett per aldersbånd. Provenansen som gjør uttrekket reproduserbart |
+| `personer.json` | **Generert.** Hele registeret, 394 personer: `navn`, `foedselsdato`, `personstatus`, `doedsdato`, `bostedsadresse`, `sivilstand`, `foreldrebarnrelasjon`, `foreldreansvar`, `skjermet` |
+| `husstander.json` | **Generert.** 200 husstander med `type`, `kommunenummer`, medlemmer og roller, og et `scenario`-felt |
+| `folkeregister.seed.json` | **Generert.** Samme befolkning i Folkeregisterets form: `foedselsEllerDNummer`, `personnavn`, `personstatus`, `doedsfall`, `forelderbarnrelasjon`, `familierelasjon`, `foreldreansvar` |
+| `inntekter.json` | **Generert** for de importerte, **forfattet** for de kuraterte. Poster med `kilde` og `medregnes`, og `stadie` (`OPPGJOER`/`UTKAST`) |
+| `eierforhold.json` | **Generert.** Tinglyst eierskap per matrikkelenhet, med `eierform` og `andel`. Eierskap hører i grunnboken, ikke i matrikkelen — derfor egen fil |
+| `matrikkel.json` | Gater og eiendommer i de kommunene befolkningen bor i, hentet fra Geonorge. Seed for `matrikkel-mock`. Ingen eiere |
+| `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
 | `tjenestetilbud.json` | Kommunale tilbud med målgruppe og ledige plasser. Grunnlaget for behovsavklaring |
 | `fritidsaktiviteter.json` | Katalog over fritidsaktiviteter med aldersgrenser |
 | `fritidsdeltakelse.json` | Hvilke barn som deltar i hvilken aktivitet, og til hvilken pris |
-| `matrikkel.json` | Gater, eiendommer og eierforhold. Seed for `matrikkel-mock` |
-| `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
-| `informasjonsmodeller.json` | Begreper og attributter, med lenker til kildespesifikasjonene |
+| `informasjonsmodeller.json` | Begreper og attributter, med kodeverdier som `pnpm test` holder mot dataene |
 | `prosessdefinisjoner.json` | Prosesskatalog med publiserte prosesser og maler |
+| `forventet-utfall.json` | Hva hver husstand er ment å demonstrere. Pinnet, aldri regenerert |
+| `deltakercaser.json` | Case-til-person-tabellen i `docs/deltakerstart.md`, pinnet |
+| `brreg.seed.json` | 200 syntetiske foretak fra Tenor. Ingen kobling til befolkningen |
 
-### Spec-forankring
+**`docs/testpersoner.md` er den genererte oversikten over hele befolkningen** — én rad
+per person med alder, status, husstand, hvem som kan logge inn, hvem som eier noe og
+hvem som har inntektsdata. Den skrives av importen og `pnpm test` feiler hvis den er
+ute av takt.
+
+### Generert, ikke redigert
+
+Fem filer skrives av `scripts/importer-tenor.js` og skal ikke redigeres for hånd:
+`personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` og
+`eierforhold.json`. Redigerer du en kuratert rad direkte, reverterer neste import
+den — så `pnpm test` sammenligner de kuraterte radene mot `kuratert.json` og feiler
+i stedet.
+
+```bash
+node scripts/importer-tenor.js                # bygger alt fra kilde
+node scripts/importer-tenor.js --tørrkjør     # viser tallene uten å skrive
+node scripts/importer-tenor.js --glem-id-er   # tildeler id-er fra bunnen
+node scripts/hent-matrikkel.js                # topper opp matrikkelen fra Geonorge
+```
+
+Importen bygger på nytt hver gang, men **id-ene er stabile**: `personId` og
+`husstandId` leses tilbake fra `personer.json`, så et nytt Tenor-uttrekk kan slippes
+i mappa uten at noen blir omnummerert. `--glem-id-er` tildeler dem fra bunnen, og gir
+samme resultat på uendret input — det er sånn determinismen er verifisert.
+
+## Kart over koblingene
+
+```
+kuratert.json  ─┐
+tenor/*.json   ─┴─→ importer-tenor.js ─→ personer.json ────┬─→ husstander.json
+                                       ├─→ folkeregister.seed.json
+                                       ├─→ inntekter.json
+                                       ├─→ eierforhold.json
+                                       └─→ docs/testpersoner.md
+```
+
+| Nøkkel | Hvor den finnes |
+|---|---|
+| `personId` | `personer.json`, `husstander.medlemmer[]`, `folkeregister._sandbox.personId`, `inntekter`, plassfilene, `eierforhold.eiere[].eier` |
+| `syntetiskFodselsnummer` | `personer.json`. Heter `foedselsEllerDNummer` i FREG-modellen og `identifikator` i inntekt og Fiks-beregningen. Det er dette ID-porten legger i `pid` |
+| `husstandId` | `personer.json`, `husstander.json`, `forventet-utfall.json`. `null` for alle som ikke er `BOSATT` |
+| `adresseIdentifikatorFraMatrikkelen` | `personer.bostedsadresse` og `folkeregister.seed.json`. Peker på `matrikkel.json` sin `matrikkelId`. Alle bosatte har en |
+| `matrikkelId` | `matrikkel.json`, `eierforhold.json` |
+| `kommunenummer` | Nøkkelen mot `tjenestetilbud.json` og `matrikkel.json`. `kommune` er bare et visningsnavn |
+| `ordning` | `satser.ordninger[].id`, `forventet-utfall.json`, `deltakercaser.json`, `?ordning=` i `SJEKK`-stegene |
+
+## Spec-forankring
 
 Datamodellen låner vokabular fra ekte spesifikasjoner, men er bevisst forenklet:
 
-- **Person** følger [Folkeregisterets informasjonsmodell](https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/informasjonsmodell/). Historikk, kodelister og adressetypevarianter er utelatt. Feltet heter `syntetiskFodselsnummer` og ikke `folkeregisteridentifikator`, fordi `policies/data-policy.yaml` krever at syntetiske data er tydelig merket.
-- **Inntekt** følger [KS Fiks sitt beregnings-API](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json), beregningstype `BARNEHAGE_SFO`. `fiks-simulator` eksponerer endepunktet på den ekte stien, så kall kan kopieres fra Fiks-dokumentasjonen.
-- **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i `satser.json` må verifiseres mot gjeldende forskrift før de brukes til annet enn demo — noen er nasjonale, andre kommunale.
+- **Person** følger [Folkeregisterets informasjonsmodell](https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/informasjonsmodell/).
+  `personstatus`, `doedsfall`, `familierelasjon`, `foreldreansvar` og
+  `adresseIdentifikatorFraMatrikkelen` er registerets egne felter og verdier.
+  Historikk, kodelister og adressetypevarianter er utelatt. Feltet heter
+  `syntetiskFodselsnummer` og ikke `folkeregisteridentifikator`, fordi
+  `policies/data-policy.yaml` krever at syntetiske data er tydelig merket.
+- **Inntekt** følger [KS Fiks sitt beregnings-API](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json),
+  beregningstype `BARNEHAGE_SFO`. `fiks-simulator` eksponerer endepunktet på den
+  ekte stien, så kall kan kopieres fra Fiks-dokumentasjonen.
+- **Eiendom** kommer fra [Geonorges adresse-API](https://ws.geonorge.no/adresser/v1),
+  som er offentlige adressedata. Eierskapet er vårt eget og syntetisk.
+- **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i
+  `satser.json` må verifiseres mot gjeldende forskrift før de brukes til annet enn
+  demo — noen er nasjonale, andre kommunale.
 
-### Scenariodekning
+## Fødselsnumrene er syntetiske, og merket som det
+
+Måneden har **80 lagt til**: januar er `81`, desember er `92`. Kontrollsifrene er
+regnet ut *etter* påslaget, så numrene er mod11-gyldige. Det er Skatteetatens
+konvensjon for Tenor-data, og den er det som gjør et syntetisk nummer gjenkjennelig
+som syntetisk uten å slutte å være et velformet nummer. NAV bruker +40 på måneden;
+vi bruker Skatts, fordi befolkningen kommer fra Tenor.
+
+`apps/sandbox-backend/src/foedselsnummer.ts` bærer regelen, og
+`pnpm test:foedselsnummer` dekker den. Skal du lese en dato ut av et nummer, må du
+trekke fra 80 først — men `foedselsdato` er eget felt, så du trenger det sjelden.
+**Tre personer har et nummer som beskriver en annen dato enn `foedselsdato`.** Det er
+lovlig i Folkeregisteret: en rettet fødselsdato beholder det opprinnelige nummeret.
+
+Sytten personer har **D-nummer** i stedet: dagen har 40 lagt til. De har ingen norsk
+bostedsadresse, ingen husstand og kan ikke logge inn — som i virkeligheten.
+
+## Hvem kan logge inn
+
+To terskler, begge reelle:
+
+- **13 år** er når en elektronisk ID kan finnes. MinID kan bestilles fra det året man
+  fyller 13; BankID utstedes fra 12–13 med foreldresignatur. Under det finnes det
+  ingenting å logge inn med, så `digdir-mock` lister ikke personen som testbruker.
+- **18 år** er rettslig handleevne. Mellom 13 og 18 kan man logge inn, men ikke være
+  avsender for en sak — der må en foresatt med foreldreansvar, eller en verge, være
+  det. Barnet er fortsatt part.
+
+Reglene ligger i `apps/sandbox-backend/src/handleevne.ts`, delt mellom
+`digdir-mock` og prosessmotoren så de ikke kan bli uenige, og dekket av
+`pnpm test:handleevne`. Prøver du å starte en prosess som en 15-åring får du et 403
+som navngir de foresatte som kan gjøre det i stedet.
+
+## Døde, utflyttede og inaktive
+
+Registeret har 394 personer; 369 av dem er `BOSATT`. De 25 andre er der med vilje:
+
+- **6 døde.** En død forelder er fortsatt forelder — relasjonen står, og barnet har
+  en mor. Men de har ingen husstand, ingen inntektsrad og kan ikke være avsender.
+  Én av dem er gift, og ektefellen er derfor `ENKE_ELLER_ENKEMANN`.
+- **2 utflyttede** og **17 med D-nummer eller midlertidig identifikator.**
+
+Importøren droppet disse før, og det var verre enn å ha dem: et barns døde mor
+forsvant sporløst, og familien ble ufullstendig uten at noe sa fra.
+
+## Scenariodekning
 
 Datasettene er laget for at ulike team skal kunne bygge ulike ting. For hver
 inntektsgrense i `satser.json` finnes det husstander tydelig under, tydelig
@@ -98,77 +207,82 @@ over, og like ved. I tillegg finnes:
 - husstand der bare ytelser som ikke medregnes finnes, så grunnlaget blir null
 - person med skjermet identitet, som teller med i summen men ikke kan spesifiseres
 - husstander med én og to forsørgere, søsken i to ordninger, og uten barn
+- barn med en død forelder, og en enslig forsørger som er enkemann
+- personer uten eID, personer som bare kan være part, og personer uten adresse
 
 `pnpm test` feiler hvis dekningen forsvinner. Det er med vilje: uten den testen
 kan én justert inntekt fjerne det eneste tilfellet på én side av en terskel, og
 da gir alle demoene samme utfall igjen.
 
-Disse datasettene oppstår først under kjøring og finnes bare i `state/`:
+## Adressebeskyttelse: seeden er ikke maskert
 
-- `revisjonslogg.json`
-- `prosessoekter.json`
-- `soknader.json`
-- `samtykker.json`
-- `oppgaver.json`
-- `meldinger.json`
+`data/personer.json` inneholder fullt navn, gateadresse, e-post og telefon for de seks
+adressebeskyttede personene, i klartekst. **Det er med vilje.** Maskeringen skjer ved
+innlasting, i `apps/sandbox-backend/src/skjerming.ts`, og gjelder alle lesere gjennom
+API-et. Hadde seeden vært maskert ville det ikke vært noe å beskytte, og
+maskeringstestene ville målt tomme strenger.
 
-De har ingen fil i `data/` i det hele tatt. Tjenestene starter dem som tomme lister og oppretter fila i `state/` ved første skriving.
+Leser du fila direkte ser du klartekst. Går du gjennom API-et ser du «Skjermet
+person» for kode 6 og en nullet adresse for kode 7. `pnpm test:skjerming` holder det
+på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 
-Vil du at et av dem skal starte med innhold — for eksempel en innbygger som allerede har en søknad til behandling — legger du bare fila i `data/`. Oppslaget finner den automatisk. Kildedata som *må* finnes, som `personer.json`, feiler høylytt hvis den mangler, i stedet for å se tom ut.
+## Hva som er forfattet, og hvorfor
+
+- **Inntekten.** Tenor hadde inntektsdata for 6 av 120 hoveddokumenter og ingen av de
+  224 foreldrene. Beløpene for de importerte utledes deterministisk fra
+  fødselsnummeret. Terskelscenarioene ligger hos de 18 kuraterte husstandene, der
+  tallene er forfattet og kontrollert mot `forventet-utfall.json`.
+- **Eierskapet.** Ingen offentlig kilde gir tinglyst hjemmel for syntetiske personer.
+  Fordelingen er utledet: en husstand eier hjemmet den bor i, omtrent én av fem leier,
+  omtrent én av sju eier noe ekstra, og ingen eier mer enn tre. En matrikkelenhet som
+  ikke står i `eierforhold.json` har ingen registrert eier.
+- **Tolv kuraterte adresser.** `Eksempelveien 12`, `Fjellgata 7` i Stavanger og ti
+  andre var oppdiktede. De er byttet til reelle adresser i **samme kommune**, så
+  hverken kommunenummer eller noe utfall flyttet seg. `person-001` bor nå i
+  Storgata 3 i Bergen — samme eiendom personen eier, som binder
+  fartsdempende-casen sammen.
+- **Sivilstanden til én person.** Tenor lot en gjenlevende ektefelle stå som `gift`
+  fordi uttrekket ble hentet per person og aldri avstemt. Registeret ville sagt
+  `enkeEllerEnkemann`, så importen overstyrer det. Det er det eneste stedet importen
+  overstyrer en verdi Tenor har oppgitt.
+
+## Kjente grenser
+
+- **Matrikkelen dekker de gatene befolkningen bor i**, pluss alle Bergens gater — 388
+  gater i 97 kommuner. Ikke hele Norge. Slår du opp en gate som ingen testperson bor
+  i, faller `matrikkel-mock` tilbake til live Geonorge-oppslag hvis nettet er der.
+- **Eierforholdet er nøklet på adressen, ikke på matrikkelenheten.** Tinglyst hjemmel
+  ligger i virkeligheten på matrikkelenheten (gnr/bnr), og flere adresser deler samme
+  gnr/bnr. Modellen har ingen egen matrikkelenhet, så dette er en forenkling.
+- **`kommune` er et visningsnavn.** Tenor oppgir bare `kommunenummer`. Der
+  `brreg.seed.json` kjenner navnet brukes det; ellers står poststedsnavnet — et ekte
+  sted i riktig område, men ikke nødvendigvis kommunenavnet. `kommunenummer` er
+  alltid riktig.
+- **Én Tenor-person har et kommunenummer fra før grensendringen i 2024** (5402, som nå
+  er 5503). Personen er død og har ingen adresse, så det har ingen praktisk følge.
+- **`brreg.seed.json` er en helt egen befolkning.** De 263 fødselsnumrene i
+  rollelistene har null overlapp med testpersonene.
+- **Søsken er ikke egne relasjoner.** De kan utledes av delte foreldre, men står ikke
+  i `familierelasjon`.
+- **Tolv personer er over 100 år**, den eldste 113. Det er Tenor slik det leveres.
 
 ## Regler
 
 - hver post skal være merket som syntetisk der det er relevant
 - datasett skal være konsistente på tvers av relasjoner
-- eksempelpersoner skal være enkle å bruke i demo
+- eksempelpersoner skal være enkle å bruke i demo — se `docs/testpersoner.md`
 - nye datasett skal dokumenteres før de tas i bruk
 - tjenester skriver aldri i `data/`
 - filer i `data/` og `state/` skal lagres som UTF-8 (Unicode)
 
 ## Nåværende innhold
 
-- 369 syntetiske personer
-- 200 husstander
-- 273 inntektsposter
-- 15 barnehageplasser og 11 SFO-plasser
+`pnpm test` skriver de faktiske tallene ved hver kjøring, og `docs/testpersoner.md`
+har dem i tabell. Bruk dem som kilde, ikke en liste her.
 
-Befolkningen er todelt. **De 51 første personene og 18 første husstandene er
-håndkuraterte terskelfixturer** — de eier casene, og hver av dem har et pinnet utfall
-i `data/forventet-utfall.json`. Resten er importert fra Tenor for bredde, har ingen
-barnehage- eller SFO-plass, og er derfor ikke knyttet til noen ordning.
-
-Aldersfordelingen dekker nå 0 til 113 år. Før importen fantes ingen personer mellom
-8 og 32 år, så ordninger for ungdom hadde ingen befolkning å hvile på.
-
-## Import fra Tenor
-
-`data/tenor/` inneholder rå uttrekk fra Skatteetatens Tenor testdatasøk, ett per
-aldersbånd. Hver fil bærer sin egen `seed` og `treff`; det er provenansen som gjør
-uttrekket reproduserbart, så filene skal ikke slås sammen.
-
-```bash
-pnpm data:tenor          # bygger personer, husstander, folkeregister og inntekter
-node scripts/importer-tenor.js --tørrkjør   # viser hva som ville blitt lagt til
-```
-
-Importen er idempotent og additiv. Et fødselsnummer som allerede har fått en
-`personId` beholder den, så et nytt uttrekk kan slippes inn i mappa og importen
-kjøres på nytt uten at noen blir omnummerert. Den rører aldri de kuraterte
-fixturene.
-
-To ting er verdt å vite om de importerte dataene:
-
-- **Inntekten er forfattet, ikke hentet.** Tenor hadde inntektsdata for 6 av 120
-  hoveddokumenter og ingen av de 224 foreldrene. Beløpene utledes deterministisk fra
-  fødselsnummeret. Terskelscenarioene ligger uansett hos de 18 kuraterte husstandene,
-  der de kan kontrolleres.
-- **`kommune` er et visningsnavn, `kommunenummer` er nøkkelen.** Tenor oppgir bare
-  nummeret. Der `data/brreg.seed.json` kjenner navnet, brukes det; ellers står
-  poststedsnavnet — et ekte sted i riktig område, men ikke nødvendigvis kommunenavnet.
-- 8 ordninger, inkludert fritidskort for barn 6–18 år og støttekontakt
-- 237 tjenestetilbud fordelt på kommuner, med målgruppe og kapasitet
-- matrikkeldata med 220 Bergen-gater og 8202 eiendommer, pluss injisert Bønesheien
+- 394 personer i registeret, 369 av dem bosatte
+- 200 husstander, 281 inntektsrader
+- 388 gater og 18 349 eiendommer i 97 kommuner, 176 med registrert eier. `matrikkel-mock` injiserer Bønesheien ved innlasting, så `/helse` sier 389 og 18 350
+- 8 ordninger og 237 tjenestetilbud
+- 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser
 - 5 prosessdefinisjoner + 1 mal
-
-`pnpm test` skriver de faktiske tallene ut ved hver kjøring, så bruk den som
-kilde hvis lista over har rukket å bli gammel.

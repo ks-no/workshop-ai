@@ -1,0 +1,2226 @@
+{
+  "beskrivelse": "Handskrevne terskelfixturer. Kilden til person-001..051 og household-001..018. Bare forfattede felter star her: relasjoner er oppgitt i EN retning (barn og ektefelle), og rolle, skjermet, husstandstype, adresse, kommune, medlemmer, relasjonenes motretning og inntektenes identifikator utledes av scripts/importer-tenor.js. Id-ene er frosne; ingen omnummerering.",
+  "syntetisk": true,
+  "personer": [
+    {
+      "personId": "person-001",
+      "syntetiskFodselsnummer": "12818800078",
+      "navn": {
+        "fornavn": "Maja",
+        "mellomnavn": null,
+        "etternavn": "Solberg"
+      },
+      "foedselsdato": "1988-01-12",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 3,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-001",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-002"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "maja.solberg@example.test",
+        "telefon": "+4799990001"
+      }
+    },
+    {
+      "personId": "person-002",
+      "syntetiskFodselsnummer": "03842250055",
+      "navn": {
+        "fornavn": "Ella",
+        "mellomnavn": null,
+        "etternavn": "Solberg"
+      },
+      "foedselsdato": "2022-04-03",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 3,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-001",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-003",
+      "syntetiskFodselsnummer": "21868500007",
+      "navn": {
+        "fornavn": "Jonas",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "1985-06-21",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 2,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-002",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-005"
+      ],
+      "ektefelle": "person-004",
+      "kontakt": {
+        "epost": "jonas.nilsen@example.test",
+        "telefon": "+4799990003"
+      }
+    },
+    {
+      "personId": "person-004",
+      "syntetiskFodselsnummer": "02918400071",
+      "navn": {
+        "fornavn": "Petter",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "1984-11-02",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 2,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-002",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-005"
+      ],
+      "ektefelle": "person-003",
+      "kontakt": {
+        "epost": "petter.nilsen@example.test",
+        "telefon": "+4799990004"
+      }
+    },
+    {
+      "personId": "person-005",
+      "syntetiskFodselsnummer": "17822350003",
+      "navn": {
+        "fornavn": "Leah",
+        "mellomnavn": null,
+        "etternavn": "Nilsen"
+      },
+      "foedselsdato": "2023-02-17",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 2,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-002",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-006",
+      "syntetiskFodselsnummer": "14899200099",
+      "navn": {
+        "fornavn": "Amir",
+        "mellomnavn": null,
+        "etternavn": "Hassan"
+      },
+      "foedselsdato": "1992-09-14",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Kirkeveien",
+        "husnummer": 32,
+        "postnummer": "0266",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-003",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-007"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "amir.hassan@example.test",
+        "telefon": "+4799990006"
+      }
+    },
+    {
+      "personId": "person-007",
+      "syntetiskFodselsnummer": "08832550184",
+      "navn": {
+        "fornavn": "Sara",
+        "mellomnavn": null,
+        "etternavn": "Hassan"
+      },
+      "foedselsdato": "2025-03-08",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Kirkeveien",
+        "husnummer": 32,
+        "postnummer": "0266",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-003",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-008",
+      "syntetiskFodselsnummer": "30838700000",
+      "navn": {
+        "fornavn": "Ingrid",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "1987-03-30",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 10,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-004",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-010",
+        "person-011",
+        "person-044"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "ingrid.dahl@example.test",
+        "telefon": "+4799990008"
+      }
+    },
+    {
+      "personId": "person-009",
+      "syntetiskFodselsnummer": "19888600100",
+      "navn": {
+        "fornavn": "Marius",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "1986-08-19",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 10,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-004",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-010",
+        "person-011",
+        "person-044"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "marius.dahl@example.test",
+        "telefon": "+4799990009"
+      }
+    },
+    {
+      "personId": "person-010",
+      "syntetiskFodselsnummer": "11902150015",
+      "navn": {
+        "fornavn": "Noah",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2021-10-11",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 10,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-004",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-011",
+      "syntetiskFodselsnummer": "22851950056",
+      "navn": {
+        "fornavn": "Iben",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2019-05-22",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 10,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-004",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-012",
+      "syntetiskFodselsnummer": "05929000023",
+      "navn": {
+        "fornavn": "Kari",
+        "mellomnavn": null,
+        "etternavn": "Johansen"
+      },
+      "foedselsdato": "1990-12-05",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Markusveien",
+        "husnummer": 4,
+        "postnummer": "3041",
+        "poststed": "Drammen",
+        "kommunenummer": "3301",
+        "kommune": "Drammen",
+        "husbokstav": "B"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-005",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-013"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "kari.johansen@example.test",
+        "telefon": "+4799990012"
+      }
+    },
+    {
+      "personId": "person-013",
+      "syntetiskFodselsnummer": "26872350186",
+      "navn": {
+        "fornavn": "Mikkel",
+        "mellomnavn": null,
+        "etternavn": "Johansen"
+      },
+      "foedselsdato": "2023-07-26",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Markusveien",
+        "husnummer": 4,
+        "postnummer": "3041",
+        "poststed": "Drammen",
+        "kommunenummer": "3301",
+        "kommune": "Drammen",
+        "husbokstav": "B"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-005",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-014",
+      "syntetiskFodselsnummer": "28829100055",
+      "navn": {
+        "fornavn": "Lina",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "1991-02-28",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommunenummer": "5501",
+        "kommune": "Tromsø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-006",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-015",
+        "person-045"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "lina.berg@example.test",
+        "telefon": "+4799990014"
+      }
+    },
+    {
+      "personId": "person-015",
+      "syntetiskFodselsnummer": "09892250100",
+      "navn": {
+        "fornavn": "Oskar",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "2022-09-09",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommunenummer": "5501",
+        "kommune": "Tromsø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-006",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-016",
+      "syntetiskFodselsnummer": "17878300009",
+      "navn": {
+        "fornavn": "Henrik",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "1983-07-17",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": "4204",
+        "kommune": "Kristiansand"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-007",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-018"
+      ],
+      "ektefelle": "person-017",
+      "kontakt": {
+        "epost": "henrik.lie@example.test",
+        "telefon": "+4799990016"
+      }
+    },
+    {
+      "personId": "person-017",
+      "syntetiskFodselsnummer": "23818500025",
+      "navn": {
+        "fornavn": "Tone",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "1985-01-23",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": "4204",
+        "kommune": "Kristiansand"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-007",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-018"
+      ],
+      "ektefelle": "person-016",
+      "kontakt": {
+        "epost": "tone.lie@example.test",
+        "telefon": "+4799990017"
+      }
+    },
+    {
+      "personId": "person-018",
+      "syntetiskFodselsnummer": "01922150024",
+      "navn": {
+        "fornavn": "Selma",
+        "mellomnavn": null,
+        "etternavn": "Lie"
+      },
+      "foedselsdato": "2021-12-01",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Markens gate",
+        "husnummer": 9,
+        "postnummer": "4611",
+        "poststed": "Kristiansand",
+        "kommunenummer": "4204",
+        "kommune": "Kristiansand"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-007",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-019",
+      "syntetiskFodselsnummer": "12848900069",
+      "navn": {
+        "fornavn": "Thomas",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "1989-04-12",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 9,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": "1804",
+        "kommune": "Bodø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-008",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-021"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "thomas.nguyen@example.test",
+        "telefon": "+4799990019"
+      }
+    },
+    {
+      "personId": "person-020",
+      "syntetiskFodselsnummer": "30869000082",
+      "navn": {
+        "fornavn": "Ida",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "1990-06-30",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 9,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": "1804",
+        "kommune": "Bodø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-008",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-021"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "ida.nguyen@example.test",
+        "telefon": "+4799990020"
+      }
+    },
+    {
+      "personId": "person-021",
+      "syntetiskFodselsnummer": "19812450002",
+      "navn": {
+        "fornavn": "Mina",
+        "mellomnavn": null,
+        "etternavn": "Nguyen"
+      },
+      "foedselsdato": "2024-01-19",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Havnegata",
+        "husnummer": 9,
+        "postnummer": "8006",
+        "poststed": "Bodø",
+        "kommunenummer": "1804",
+        "kommune": "Bodø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-008",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-022",
+      "syntetiskFodselsnummer": "08919300184",
+      "navn": {
+        "fornavn": "Fatima",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "1993-11-08",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Inste Holen",
+        "husnummer": 13,
+        "postnummer": "6011",
+        "poststed": "Ålesund",
+        "kommunenummer": "1508",
+        "kommune": "Ålesund",
+        "husbokstav": "A"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-009",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-023",
+        "person-046"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "fatima.ali@example.test",
+        "telefon": "+4799990022"
+      }
+    },
+    {
+      "personId": "person-023",
+      "syntetiskFodselsnummer": "14862250045",
+      "navn": {
+        "fornavn": "Yusuf",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "2022-06-14",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Inste Holen",
+        "husnummer": 13,
+        "postnummer": "6011",
+        "poststed": "Ålesund",
+        "kommunenummer": "1508",
+        "kommune": "Ålesund",
+        "husbokstav": "A"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-009",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-024",
+      "syntetiskFodselsnummer": "25858600084",
+      "navn": {
+        "fornavn": "Sofie",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "1986-05-25",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommunenummer": "1108",
+        "kommune": "Sandnes"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-010",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-025",
+        "person-047"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "sofie.eide@example.test",
+        "telefon": "+4799990024"
+      }
+    },
+    {
+      "personId": "person-025",
+      "syntetiskFodselsnummer": "30912350130",
+      "navn": {
+        "fornavn": "Emil",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "2023-11-30",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommunenummer": "1108",
+        "kommune": "Sandnes"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-010",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-026",
+      "syntetiskFodselsnummer": "03889400020",
+      "navn": {
+        "fornavn": "Randi",
+        "mellomnavn": null,
+        "etternavn": "Ås"
+      },
+      "foedselsdato": "1994-08-03",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Solbakken",
+        "husnummer": 2,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-011",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-027"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "randi.as@example.test",
+        "telefon": "+4799990026"
+      }
+    },
+    {
+      "personId": "person-027",
+      "syntetiskFodselsnummer": "15832050072",
+      "navn": {
+        "fornavn": "Theo",
+        "mellomnavn": null,
+        "etternavn": "Ås"
+      },
+      "foedselsdato": "2020-03-15",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Solbakken",
+        "husnummer": 2,
+        "postnummer": "5003",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-011",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-028",
+      "syntetiskFodselsnummer": "27908900184",
+      "navn": {
+        "fornavn": "Nora",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "1989-10-27",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 12,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-012",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-029",
+        "person-048"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "nora.fjeld@example.test",
+        "telefon": "+4799990028"
+      }
+    },
+    {
+      "personId": "person-029",
+      "syntetiskFodselsnummer": "04881950052",
+      "navn": {
+        "fornavn": "Jakob",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "2019-08-04",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 12,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-012",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-030",
+      "syntetiskFodselsnummer": "09818200045",
+      "navn": {
+        "fornavn": "Olav",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "1982-01-09",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 87,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-013",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-032",
+        "person-049"
+      ],
+      "ektefelle": "person-031",
+      "kontakt": {
+        "epost": "olav.rustad@example.test",
+        "telefon": "+4799990030"
+      }
+    },
+    {
+      "personId": "person-031",
+      "syntetiskFodselsnummer": "16848300180",
+      "navn": {
+        "fornavn": "Siri",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "1983-04-16",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 87,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-013",
+      "adressebeskyttelse": "STRENGT_FORTROLIG",
+      "barn": [
+        "person-032",
+        "person-049"
+      ],
+      "ektefelle": "person-030",
+      "kontakt": {
+        "epost": "siri.rustad@example.test",
+        "telefon": "+4799990031"
+      }
+    },
+    {
+      "personId": "person-032",
+      "syntetiskFodselsnummer": "26821850001",
+      "navn": {
+        "fornavn": "Live",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "2018-02-26",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 87,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-013",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-033",
+      "syntetiskFodselsnummer": "11868000041",
+      "navn": {
+        "fornavn": "Bjørn",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "1980-06-11",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 20,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-014",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-034",
+        "person-050"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "bjorn.haugen@example.test",
+        "telefon": "+4799990033"
+      }
+    },
+    {
+      "personId": "person-034",
+      "syntetiskFodselsnummer": "21891750045",
+      "navn": {
+        "fornavn": "Aksel",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "2017-09-21",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 20,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-014",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-035",
+      "syntetiskFodselsnummer": "07838400099",
+      "navn": {
+        "fornavn": "Even",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "1984-03-07",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-015",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-037",
+        "person-051"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "even.moen@example.test",
+        "telefon": "+4799990035"
+      }
+    },
+    {
+      "personId": "person-036",
+      "syntetiskFodselsnummer": "13898500084",
+      "navn": {
+        "fornavn": "Hilde",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "1985-09-13",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-015",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-037",
+        "person-051"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "hilde.moen@example.test",
+        "telefon": "+4799990036"
+      }
+    },
+    {
+      "personId": "person-037",
+      "syntetiskFodselsnummer": "05912250182",
+      "navn": {
+        "fornavn": "Vilde",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "2022-11-05",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-015",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-038",
+      "syntetiskFodselsnummer": "19879100073",
+      "navn": {
+        "fornavn": "Mona",
+        "mellomnavn": null,
+        "etternavn": "Strand"
+      },
+      "foedselsdato": "1991-07-19",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Gamleveien",
+        "husnummer": 19,
+        "postnummer": "1400",
+        "poststed": "Ski",
+        "kommunenummer": "3207",
+        "kommune": "Nordre Follo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-016",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-039"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "mona.strand@example.test",
+        "telefon": "+4799990038"
+      }
+    },
+    {
+      "personId": "person-039",
+      "syntetiskFodselsnummer": "12852350189",
+      "navn": {
+        "fornavn": "Filip",
+        "mellomnavn": null,
+        "etternavn": "Strand"
+      },
+      "foedselsdato": "2023-05-12",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Gamleveien",
+        "husnummer": 19,
+        "postnummer": "1400",
+        "poststed": "Ski",
+        "kommunenummer": "3207",
+        "kommune": "Nordre Follo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-016",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-040",
+      "syntetiskFodselsnummer": "02829000078",
+      "navn": {
+        "fornavn": "Yara",
+        "mellomnavn": null,
+        "etternavn": "Osman"
+      },
+      "foedselsdato": "1990-02-02",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Kanalveien",
+        "husnummer": 26,
+        "postnummer": "5068",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-017",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [
+        "person-041"
+      ],
+      "ektefelle": null,
+      "kontakt": {
+        "epost": "yara.osman@example.test",
+        "telefon": "+4799990040"
+      }
+    },
+    {
+      "personId": "person-041",
+      "syntetiskFodselsnummer": "28842150061",
+      "navn": {
+        "fornavn": "Adam",
+        "mellomnavn": null,
+        "etternavn": "Osman"
+      },
+      "foedselsdato": "2021-04-28",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Kanalveien",
+        "husnummer": 26,
+        "postnummer": "5068",
+        "poststed": "Bergen",
+        "kommunenummer": "4601",
+        "kommune": "Bergen"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-017",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-042",
+      "syntetiskFodselsnummer": "18857500071",
+      "navn": {
+        "fornavn": "Erik",
+        "mellomnavn": null,
+        "etternavn": "Sandvik"
+      },
+      "foedselsdato": "1975-05-18",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Parkveien",
+        "husnummer": 5,
+        "postnummer": "0350",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo",
+        "husbokstav": "B"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-018",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": "person-043",
+      "kontakt": {
+        "epost": "erik.sandvik@example.test",
+        "telefon": "+4799990042"
+      }
+    },
+    {
+      "personId": "person-043",
+      "syntetiskFodselsnummer": "09927700120",
+      "navn": {
+        "fornavn": "Anne",
+        "mellomnavn": null,
+        "etternavn": "Sandvik"
+      },
+      "foedselsdato": "1977-12-09",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Parkveien",
+        "husnummer": 5,
+        "postnummer": "0350",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo",
+        "husbokstav": "B"
+      },
+      "sivilstand": "GIFT",
+      "husstandId": "household-018",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": "person-042",
+      "kontakt": {
+        "epost": "anne.sandvik@example.test",
+        "telefon": "+4799990043"
+      }
+    },
+    {
+      "personId": "person-044",
+      "syntetiskFodselsnummer": "14831750031",
+      "navn": {
+        "fornavn": "Sverre",
+        "mellomnavn": null,
+        "etternavn": "Dahl"
+      },
+      "foedselsdato": "2017-03-14",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 10,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-004",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-045",
+      "syntetiskFodselsnummer": "11822550020",
+      "navn": {
+        "fornavn": "Vilja",
+        "mellomnavn": null,
+        "etternavn": "Berg"
+      },
+      "foedselsdato": "2025-02-11",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Storgata",
+        "husnummer": 55,
+        "postnummer": "9008",
+        "poststed": "Tromsø",
+        "kommunenummer": "5501",
+        "kommune": "Tromsø"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-006",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-046",
+      "syntetiskFodselsnummer": "04861950072",
+      "navn": {
+        "fornavn": "Omar",
+        "mellomnavn": null,
+        "etternavn": "Ali"
+      },
+      "foedselsdato": "2019-06-04",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Inste Holen",
+        "husnummer": 13,
+        "postnummer": "6011",
+        "poststed": "Ålesund",
+        "kommunenummer": "1508",
+        "kommune": "Ålesund",
+        "husbokstav": "A"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-009",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-047",
+      "syntetiskFodselsnummer": "30812050059",
+      "navn": {
+        "fornavn": "Amalie",
+        "mellomnavn": null,
+        "etternavn": "Eide"
+      },
+      "foedselsdato": "2020-01-30",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Julie Eges gate",
+        "husnummer": 14,
+        "postnummer": "4307",
+        "poststed": "Sandnes",
+        "kommunenummer": "1108",
+        "kommune": "Sandnes"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-010",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-048",
+      "syntetiskFodselsnummer": "09911850025",
+      "navn": {
+        "fornavn": "Håkon",
+        "mellomnavn": null,
+        "etternavn": "Fjeld"
+      },
+      "foedselsdato": "2018-11-09",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Eventyrvegen",
+        "husnummer": 12,
+        "postnummer": "7056",
+        "poststed": "Trondheim",
+        "kommunenummer": "5001",
+        "kommune": "Trondheim"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-012",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-049",
+      "syntetiskFodselsnummer": "17891950020",
+      "navn": {
+        "fornavn": "Frida",
+        "mellomnavn": null,
+        "etternavn": "Rustad"
+      },
+      "foedselsdato": "2019-09-17",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Trondheimsveien",
+        "husnummer": 87,
+        "postnummer": "0565",
+        "poststed": "Oslo",
+        "kommunenummer": "0301",
+        "kommune": "Oslo"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-013",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-050",
+      "syntetiskFodselsnummer": "05922450023",
+      "navn": {
+        "fornavn": "Iver",
+        "mellomnavn": null,
+        "etternavn": "Haugen"
+      },
+      "foedselsdato": "2024-12-05",
+      "kjoenn": "MANN",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 20,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-014",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    },
+    {
+      "personId": "person-051",
+      "syntetiskFodselsnummer": "23901650020",
+      "navn": {
+        "fornavn": "Solveig",
+        "mellomnavn": null,
+        "etternavn": "Moen"
+      },
+      "foedselsdato": "2016-10-23",
+      "kjoenn": "KVINNE",
+      "bostedsadresse": {
+        "adressenavn": "Løkkeveien",
+        "husnummer": 33,
+        "postnummer": "4008",
+        "poststed": "Stavanger",
+        "kommunenummer": "1103",
+        "kommune": "Stavanger"
+      },
+      "sivilstand": "UGIFT",
+      "husstandId": "household-015",
+      "adressebeskyttelse": "UGRADERT",
+      "barn": [],
+      "ektefelle": null,
+      "kontakt": {}
+    }
+  ],
+  "husstander": [
+    {
+      "husstandId": "household-001",
+      "scenario": "Demobruker. Kvalifiserer til både redusert foreldrebetaling og gratis kjernetid."
+    },
+    {
+      "husstandId": "household-002",
+      "scenario": "To inntekter. Over alle grenser, kvalifiserer ikke til noe."
+    },
+    {
+      "husstandId": "household-003",
+      "scenario": "Ettåring. Under grensen for gratis kjernetid for 1-åringer."
+    },
+    {
+      "husstandId": "household-004",
+      "scenario": "Tre søsken i tre ordninger. Så vidt over grensen for redusert SFO 4. trinn."
+    },
+    {
+      "husstandId": "household-005",
+      "scenario": "Grensetilfelle for 6 %-regelen: full pris ligger så vidt over taket, så husstanden har akkurat rett til redusert foreldrebetaling."
+    },
+    {
+      "husstandId": "household-006",
+      "scenario": "To barn i barnehage. Så vidt under grensen for gratis kjernetid for 1-åringer."
+    },
+    {
+      "husstandId": "household-007",
+      "scenario": "Så vidt under grensen for gratis kjernetid 2–5 år."
+    },
+    {
+      "husstandId": "household-008",
+      "scenario": "Så vidt over grensen for gratis kjernetid 2–5 år."
+    },
+    {
+      "husstandId": "household-009",
+      "scenario": "Søsken i barnehage og SFO. Svært lav inntekt — så vidt under grensen for redusert SFO 2.–3. trinn, og under alle andre grenser."
+    },
+    {
+      "husstandId": "household-010",
+      "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for gratis SFO 1. trinn."
+    },
+    {
+      "husstandId": "household-011",
+      "scenario": "Har bare inntekt som ikke medregnes. Grunnlaget blir null."
+    },
+    {
+      "husstandId": "household-012",
+      "scenario": "To barn i SFO. Så vidt over grensen for redusert SFO 2.–3. trinn."
+    },
+    {
+      "husstandId": "household-013",
+      "scenario": "Søsken på 1. og 3. trinn. Så vidt over grensen for gratis SFO 1. trinn. Én forelder har skjermet identitet."
+    },
+    {
+      "husstandId": "household-014",
+      "scenario": "Ettåring i barnehage og barn på 3. trinn. Så vidt over grensen for gratis kjernetid for 1-åringer."
+    },
+    {
+      "husstandId": "household-015",
+      "scenario": "Søsken i barnehage og SFO. Så vidt under grensen for redusert SFO 4. trinn."
+    },
+    {
+      "husstandId": "household-016",
+      "scenario": "Edge case: ingen inntektsopplysninger registrert."
+    },
+    {
+      "husstandId": "household-017",
+      "scenario": "Edge case: inntekten falt kraftig, og årets skatteoppgjør er fortsatt UTKAST."
+    },
+    {
+      "husstandId": "household-018",
+      "scenario": "Edge case: husstand uten barn."
+    }
+  ],
+  "inntekter": [
+    {
+      "personId": "person-001",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 456000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 29000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-003",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 481000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 31000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-004",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 602000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 38000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-006",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 183000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 12000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-008",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 562000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 36000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-009",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 52000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 3000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-012",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 424000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 27000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-014",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 205000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 13000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-016",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 376000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 24000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-017",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 268000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 17000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-019",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 404000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 26000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-020",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 254000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 16000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-022",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 143000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 9000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-024",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 327000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 21000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-026",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "sosialhjelp",
+          "visningstekst": "Økonomisk sosialhjelp",
+          "beloep": 96000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Sosialhjelp inngår ikke i grunnlaget."
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-028",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 149000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 9000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-030",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 188000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 12000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-031",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 146000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 9000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-033",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 212000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 13000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-035",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 371000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 24000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-036",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 235000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 15000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-040",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 489000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 31000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-040",
+      "inntektsaar": 2026,
+      "stadie": "UTKAST",
+      "skatteoppgjoersdato": null,
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 169000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 11000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "barnetrygd",
+          "visningstekst": "Barnetrygd",
+          "beloep": 12648,
+          "kilde": "SKATTEETATEN",
+          "medregnes": false,
+          "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
+        }
+      ]
+    },
+    {
+      "personId": "person-042",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 282000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 18000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        }
+      ]
+    },
+    {
+      "personId": "person-043",
+      "inntektsaar": 2025,
+      "stadie": "OPPGJOER",
+      "skatteoppgjoersdato": "2026-06-15",
+      "poster": [
+        {
+          "tekniskNavn": "loennsinntekt",
+          "visningstekst": "Lønnsinntekt",
+          "beloep": 226000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        },
+        {
+          "tekniskNavn": "renteinntekt",
+          "visningstekst": "Renteinntekter",
+          "beloep": 14000,
+          "kilde": "SKATTEETATEN",
+          "medregnes": true
+        }
+      ]
+    }
+  ]
+}

@@ -59,6 +59,20 @@ jobs:
       - name: Vilkårsvurderingen
         run: pnpm test:vilkaar
 
+      # Modulus 11 and Skatteetaten's +80 marker, as pure functions. The seed only
+      # contains numbers we generate, so every *rejection* — an ordinary month, a
+      # wrong second control digit, an individual number whose mod-11 rest is 10 —
+      # exists here or nowhere. The D-number branch has no seed data at all.
+      - name: Fødselsnummer
+        run: pnpm test:foedselsnummer
+
+      # Who may act, and on whose behalf, as pure functions. The order of the
+      # refusals only exists in fixtures: the seed has no dead minor, and only 32
+      # of 250 children have foreldreansvar named to one parent rather than felles,
+      # so the narrowing path is thin there and load-bearing here.
+      - name: Handleevne
+        run: pnpm test:handleevne
+
       # The samtykke state machine, expiry and the write queue. Half pure functions,
       # half a real fiks-simulator on 18091 against a temp STATE_DIR — the lost-update
       # and double-answer cases only exist over HTTP.

@@ -1,0 +1,2118 @@
+{
+  "beskrivelse": "Tinglyst eierforhold. Eierskap horer i grunnboken, ikke i matrikkelen - derfor egen fil. En matrikkelenhet som ikke star her har ingen registrert eier i sandkassen. Forenkling: raden er nøklet paa adressen (matrikkelId), mens hjemmel i virkeligheten ligger paa matrikkelenheten (gnr/bnr), og flere adresser deler samme gnr/bnr. Utledet av scripts/importer-tenor.js.",
+  "syntetisk": true,
+  "antall": 176,
+  "eierforhold": [
+    {
+      "matrikkelId": "matr-geo-0301-11115-74",
+      "eiere": [
+        {
+          "eier": "person-196",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-11495-81",
+      "eiere": [
+        {
+          "eier": "person-073",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-11609-13",
+      "eiere": [
+        {
+          "eier": "person-233",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-234",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-12147-9B",
+      "eiere": [
+        {
+          "eier": "person-327",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-12205-31E",
+      "eiere": [
+        {
+          "eier": "person-321",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-12321-34A",
+      "eiere": [
+        {
+          "eier": "person-073",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-074",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-13099-7",
+      "eiere": [
+        {
+          "eier": "person-262",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-264",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-13729-32",
+      "eiere": [
+        {
+          "eier": "person-006",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-13729-73A",
+      "eiere": [
+        {
+          "eier": "person-060",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-13729-83",
+      "eiere": [
+        {
+          "eier": "person-327",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-14335-19B",
+      "eiere": [
+        {
+          "eier": "person-112",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-14335-35",
+      "eiere": [
+        {
+          "eier": "person-262",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-14335-46H",
+      "eiere": [
+        {
+          "eier": "person-278",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-14524-20B",
+      "eiere": [
+        {
+          "eier": "person-231",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-14582-32A",
+      "eiere": [
+        {
+          "eier": "person-075",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-15260-21",
+      "eiere": [
+        {
+          "eier": "person-278",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-15439-1C",
+      "eiere": [
+        {
+          "eier": "person-148",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-149",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-15484-9",
+      "eiere": [
+        {
+          "eier": "person-076",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-078",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-15614-5B",
+      "eiere": [
+        {
+          "eier": "person-042",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-043",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-16467-30A",
+      "eiere": [
+        {
+          "eier": "person-365",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-17749-497",
+      "eiere": [
+        {
+          "eier": "person-030",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-17749-87",
+      "eiere": [
+        {
+          "eier": "person-030",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-031",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-18064-10A",
+      "eiere": [
+        {
+          "eier": "person-311",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-18064-67",
+      "eiere": [
+        {
+          "eier": "person-231",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-0301-21533-8A",
+      "eiere": [
+        {
+          "eier": "person-060",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-061",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1103-1624-10",
+      "eiere": [
+        {
+          "eier": "person-008",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-009",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1103-1624-20",
+      "eiere": [
+        {
+          "eier": "person-033",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1103-1624-33",
+      "eiere": [
+        {
+          "eier": "person-035",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-036",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-14965-14",
+      "eiere": [
+        {
+          "eier": "person-024",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-24240-24",
+      "eiere": [
+        {
+          "eier": "person-301",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-24950-7",
+      "eiere": [
+        {
+          "eier": "person-096",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-097",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-3990-24",
+      "eiere": [
+        {
+          "eier": "person-129",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-131",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-5730-31C",
+      "eiere": [
+        {
+          "eier": "person-096",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1108-5730-64",
+      "eiere": [
+        {
+          "eier": "person-331",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1130-1060-17",
+      "eiere": [
+        {
+          "eier": "person-102",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1130-1060-9B",
+      "eiere": [
+        {
+          "eier": "person-343",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1149-1583-26",
+      "eiere": [
+        {
+          "eier": "person-251",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-252",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1506-1200-38",
+      "eiere": [
+        {
+          "eier": "person-315",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-316",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1508-18690-13A",
+      "eiere": [
+        {
+          "eier": "person-022",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1508-18690-29B",
+      "eiere": [
+        {
+          "eier": "person-317",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1508-18690-77A",
+      "eiere": [
+        {
+          "eier": "person-022",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1508-21170-4",
+      "eiere": [
+        {
+          "eier": "person-339",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1514-14029-46",
+      "eiere": [
+        {
+          "eier": "person-269",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-270",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1515-2780-14",
+      "eiere": [
+        {
+          "eier": "person-176",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1515-2780-2",
+      "eiere": [
+        {
+          "eier": "person-313",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1515-3405-16",
+      "eiere": [
+        {
+          "eier": "person-176",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1515-3405-3",
+      "eiere": [
+        {
+          "eier": "person-313",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1520-7214-168",
+      "eiere": [
+        {
+          "eier": "person-285",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1579-1073-25",
+      "eiere": [
+        {
+          "eier": "person-063",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-065",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1579-1524-449",
+      "eiere": [
+        {
+          "eier": "person-296",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1804-14500-9",
+      "eiere": [
+        {
+          "eier": "person-019",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-020",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1815-1409-32",
+      "eiere": [
+        {
+          "eier": "person-181",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-183",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1820-1112-17A",
+      "eiere": [
+        {
+          "eier": "person-052",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1824-14600-18",
+      "eiere": [
+        {
+          "eier": "person-155",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-156",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1824-14600-42",
+      "eiere": [
+        {
+          "eier": "person-155",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1824-2200-1",
+      "eiere": [
+        {
+          "eier": "person-195",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1837-1170-21",
+      "eiere": [
+        {
+          "eier": "person-145",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-146",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1841-2440-6B",
+      "eiere": [
+        {
+          "eier": "person-222",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1845-5040-9",
+      "eiere": [
+        {
+          "eier": "person-166",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-168",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1853-5001-13",
+      "eiere": [
+        {
+          "eier": "person-085",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1870-1202-26B",
+      "eiere": [
+        {
+          "eier": "person-069",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-070",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1870-1420-132",
+      "eiere": [
+        {
+          "eier": "person-369",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1870-1420-313",
+      "eiere": [
+        {
+          "eier": "person-369",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-1875-50469-79",
+      "eiere": [
+        {
+          "eier": "person-109",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-111",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3101-6515-13",
+      "eiere": [
+        {
+          "eier": "person-227",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-228",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3101-6515-8",
+      "eiere": [
+        {
+          "eier": "person-188",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3101-7545-5",
+      "eiere": [
+        {
+          "eier": "person-188",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-190",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3103-5310-12",
+      "eiere": [
+        {
+          "eier": "person-053",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3107-10300-18A",
+      "eiere": [
+        {
+          "eier": "person-312",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3107-94420-5B",
+      "eiere": [
+        {
+          "eier": "person-305",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-306",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3112-1076-493",
+      "eiere": [
+        {
+          "eier": "person-154",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3118-27850-15",
+      "eiere": [
+        {
+          "eier": "person-180",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3207-3900-19",
+      "eiere": [
+        {
+          "eier": "person-038",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3214-2283-3",
+      "eiere": [
+        {
+          "eier": "person-257",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3222-1260-3B",
+      "eiere": [
+        {
+          "eier": "person-157",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-159",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3222-7550-9",
+      "eiere": [
+        {
+          "eier": "person-361",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3228-6871-16",
+      "eiere": [
+        {
+          "eier": "person-268",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3232-4400-12",
+      "eiere": [
+        {
+          "eier": "person-247",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3240-10315-55",
+      "eiere": [
+        {
+          "eier": "person-352",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3301-1379-38",
+      "eiere": [
+        {
+          "eier": "person-082",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3301-1379-48A",
+      "eiere": [
+        {
+          "eier": "person-082",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3301-1483-4B",
+      "eiere": [
+        {
+          "eier": "person-012",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3301-1483-53",
+      "eiere": [
+        {
+          "eier": "person-126",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-127",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3303-6841-8",
+      "eiere": [
+        {
+          "eier": "person-062",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3312-7535-44",
+      "eiere": [
+        {
+          "eier": "person-099",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-100",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3312-9340-92",
+      "eiere": [
+        {
+          "eier": "person-185",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-186",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3316-2200-6",
+      "eiere": [
+        {
+          "eier": "person-135",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3403-2244-553",
+      "eiere": [
+        {
+          "eier": "person-258",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-260",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3411-7850-39",
+      "eiere": [
+        {
+          "eier": "person-356",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3412-5026-17",
+      "eiere": [
+        {
+          "eier": "person-106",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-107",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-108",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3416-1039-17",
+      "eiere": [
+        {
+          "eier": "person-293",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3416-2024-23",
+      "eiere": [
+        {
+          "eier": "person-295",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3416-4011-109",
+      "eiere": [
+        {
+          "eier": "person-359",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3416-4011-1094",
+      "eiere": [
+        {
+          "eier": "person-293",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3416-4011-329",
+      "eiere": [
+        {
+          "eier": "person-337",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3417-1062-10",
+      "eiere": [
+        {
+          "eier": "person-308",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3419-1080-22",
+      "eiere": [
+        {
+          "eier": "person-362",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3426-1006-640",
+      "eiere": [
+        {
+          "eier": "person-319",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-320",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3440-5280-682",
+      "eiere": [
+        {
+          "eier": "person-197",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-199",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3440-5280-78C",
+      "eiere": [
+        {
+          "eier": "person-197",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3446-3094-119",
+      "eiere": [
+        {
+          "eier": "person-054",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-056",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3454-1079-6720",
+      "eiere": [
+        {
+          "eier": "person-341",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3901-3950-12",
+      "eiere": [
+        {
+          "eier": "person-310",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3901-3950-18",
+      "eiere": [
+        {
+          "eier": "person-310",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3905-13050-25D",
+      "eiere": [
+        {
+          "eier": "person-095",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3905-13050-33",
+      "eiere": [
+        {
+          "eier": "person-095",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3907-41600-17",
+      "eiere": [
+        {
+          "eier": "person-240",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3907-41600-3",
+      "eiere": [
+        {
+          "eier": "person-240",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-241",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-3909-43302-3",
+      "eiere": [
+        {
+          "eier": "person-298",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-299",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4001-2335-52",
+      "eiere": [
+        {
+          "eier": "person-171",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-172",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4001-2335-60",
+      "eiere": [
+        {
+          "eier": "person-171",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4001-2885-4",
+      "eiere": [
+        {
+          "eier": "person-161",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-162",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4001-5574-31",
+      "eiere": [
+        {
+          "eier": "person-089",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4030-1012-86",
+      "eiere": [
+        {
+          "eier": "person-116",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-117",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-118",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4034-1109-640",
+      "eiere": [
+        {
+          "eier": "person-326",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4203-42200-5",
+      "eiere": [
+        {
+          "eier": "person-246",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4204-14253-8",
+      "eiere": [
+        {
+          "eier": "person-209",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-210",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4204-15250-9",
+      "eiere": [
+        {
+          "eier": "person-016",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-017",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4204-17470-123",
+      "eiere": [
+        {
+          "eier": "person-217",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4204-51242-18D",
+      "eiere": [
+        {
+          "eier": "person-340",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4205-50120-10",
+      "eiere": [
+        {
+          "eier": "person-121",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4214-1078-67",
+      "eiere": [
+        {
+          "eier": "person-254",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-255",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4228-1144-6A",
+      "eiere": [
+        {
+          "eier": "person-261",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-10370-3",
+      "eiere": [
+        {
+          "eier": "person-236",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-237",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-14990-35",
+      "eiere": [
+        {
+          "eier": "person-214",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-215",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-15070-2",
+      "eiere": [
+        {
+          "eier": "person-026",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-15950-70C",
+      "eiere": [
+        {
+          "eier": "person-329",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-16757-26",
+      "eiere": [
+        {
+          "eier": "person-040",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-33680-182",
+      "eiere": [
+        {
+          "eier": "person-203",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-206",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        },
+        {
+          "eier": "person-207",
+          "eierform": "SELVEIER",
+          "andel": 0.333
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-51318-32",
+      "eiere": [
+        {
+          "eier": "person-137",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-138",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4601-51863-12",
+      "eiere": [
+        {
+          "eier": "person-284",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4612-1063-785",
+      "eiere": [
+        {
+          "eier": "person-142",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4616-1122-11",
+      "eiere": [
+        {
+          "eier": "person-090",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4617-1309-61",
+      "eiere": [
+        {
+          "eier": "person-348",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-349",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4625-1040-61",
+      "eiere": [
+        {
+          "eier": "person-124",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-125",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4625-1120-41",
+      "eiere": [
+        {
+          "eier": "person-323",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-324",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4625-1120-48",
+      "eiere": [
+        {
+          "eier": "person-124",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4626-1016-5",
+      "eiere": [
+        {
+          "eier": "person-288",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4626-1217-140",
+      "eiere": [
+        {
+          "eier": "person-353",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4645-1026-275",
+      "eiere": [
+        {
+          "eier": "person-150",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4645-1026-31",
+      "eiere": [
+        {
+          "eier": "person-150",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-151",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4649-4840-46",
+      "eiere": [
+        {
+          "eier": "person-211",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-213",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4651-1063-1581",
+      "eiere": [
+        {
+          "eier": "person-292",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-4651-1115-324",
+      "eiere": [
+        {
+          "eier": "person-201",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-202",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5001-1680-12",
+      "eiere": [
+        {
+          "eier": "person-028",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5001-1680-2",
+      "eiere": [
+        {
+          "eier": "person-003",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-004",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5001-1680-43A",
+      "eiere": [
+        {
+          "eier": "person-003",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5006-3400-29A",
+      "eiere": [
+        {
+          "eier": "person-280",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5006-9625-55",
+      "eiere": [
+        {
+          "eier": "person-282",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-283",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5022-7031-18",
+      "eiere": [
+        {
+          "eier": "person-103",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-104",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5022-7039-12",
+      "eiere": [
+        {
+          "eier": "person-239",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5028-1091-10",
+      "eiere": [
+        {
+          "eier": "person-122",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-123",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5028-7019-60",
+      "eiere": [
+        {
+          "eier": "person-302",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-303",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5035-2140-22",
+      "eiere": [
+        {
+          "eier": "person-243",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-244",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5035-6150-22",
+      "eiere": [
+        {
+          "eier": "person-289",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5035-6150-9B",
+      "eiere": [
+        {
+          "eier": "person-243",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5042-2700-587",
+      "eiere": [
+        {
+          "eier": "person-364",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5053-4051-84",
+      "eiere": [
+        {
+          "eier": "person-194",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5053-5088-5",
+      "eiere": [
+        {
+          "eier": "person-267",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5058-1010-30",
+      "eiere": [
+        {
+          "eier": "person-322",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5059-1952-173",
+      "eiere": [
+        {
+          "eier": "person-281",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5059-2160-92",
+      "eiere": [
+        {
+          "eier": "person-177",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-179",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5501-21461-16",
+      "eiere": [
+        {
+          "eier": "person-080",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-081",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5501-25200-8",
+      "eiere": [
+        {
+          "eier": "person-256",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5501-38500-55",
+      "eiere": [
+        {
+          "eier": "person-014",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5501-66000-1008",
+      "eiere": [
+        {
+          "eier": "person-163",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-165",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5514-1034-57",
+      "eiere": [
+        {
+          "eier": "person-355",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5524-1158-511",
+      "eiere": [
+        {
+          "eier": "person-094",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5530-1217-459",
+      "eiere": [
+        {
+          "eier": "person-140",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-141",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5530-5028-2",
+      "eiere": [
+        {
+          "eier": "person-230",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5544-1053-10",
+      "eiere": [
+        {
+          "eier": "person-066",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-067",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5601-5254-26",
+      "eiere": [
+        {
+          "eier": "person-058",
+          "eierform": "UTLEIE",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5601-5254-70",
+      "eiere": [
+        {
+          "eier": "person-058",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-059",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5605-10600-26",
+      "eiere": [
+        {
+          "eier": "person-250",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-geo-5610-2460-17",
+      "eiere": [
+        {
+          "eier": "person-173",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        },
+        {
+          "eier": "person-174",
+          "eierform": "SELVEIER",
+          "andel": 0.5
+        }
+      ]
+    },
+    {
+      "matrikkelId": "matr-storg-003",
+      "eiere": [
+        {
+          "eier": "person-001",
+          "eierform": "SELVEIER",
+          "andel": 1
+        }
+      ]
+    }
+  ],
+  "statistikk": {
+    "husstanderSomEier": 147,
+    "husstanderSomLeier": 34,
+    "ekstraEiendommer": 29,
+    "flestEiendommerPerPerson": 3
+  }
+}

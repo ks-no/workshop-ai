@@ -330,7 +330,8 @@
       "utfall": [
         {
           "ordning": "fritidskort-stotte",
-          "godkjent": true
+          "godkjent": false,
+          "begrunnelse": "Endret for hånd 2026-08-22, ikke regenerert fra regelen. person-074 er far til person-072 i denne husstanden, men var klassifisert voksen fordi relasjonen bare var oppgitt fra farens side (barnFnr) og importen leste tenorRelasjoner. Med begge foreldre som foresatt går grunnlaget fra 260 500 til 740 500, mot grensen 360 000."
         }
       ]
     },

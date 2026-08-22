@@ -1,0 +1,47 @@
+{
+  "beskrivelse": "Case-til-person-tabellen i docs/deltakerstart.md, pinnet. Deltakerne velger bruker etter denne tabellen og forventer et bestemt utfall; sto den bare i prosa gikk den ut av takt neste gang en inntekt flyttet seg. Den anbefalte SFO-brukeren ga avslag i tre flater samtidig uten at noe fanget det.",
+  "merknad": "Leses ikke av noen tjeneste. Kun grunnlag for scripts/valider-data.js, som ogsaa sjekker at docs/deltakerstart.md navngir samme person.",
+  "syntetisk": true,
+  "caser": [
+    {
+      "prosessId": "reduced-kindergarten-payment",
+      "navn": "Redusert foreldrebetaling (barnehage)",
+      "personId": "person-001",
+      "ordning": "redusert-foreldrebetaling-barnehage",
+      "forventetUtfall": "innvilget",
+      "begrunnelse": "Grunnlaget er 485 000 og maanedsprisen ligger over 6 % av det."
+    },
+    {
+      "prosessId": "sfo-moderasjon",
+      "navn": "Redusert betaling i SFO",
+      "personId": "person-022",
+      "ordning": "redusert-sfo-2-3-trinn",
+      "forventetUtfall": "innvilget",
+      "begrunnelse": "Grunnlaget er 152 000 mot grensen 154 917, og barnet gaar paa 2. trinn. Var person-008 foer, som gir avslag paa 653 000."
+    },
+    {
+      "prosessId": "stottekontakt-behov",
+      "navn": "Behovsavklaring for stottekontakt",
+      "personId": "person-001",
+      "ordning": "stottekontakt",
+      "forventetUtfall": "innvilget",
+      "begrunnelse": "Alder og kommune avgjor, ikke inntekt. Bergen har et voksentilbud med ledig plass."
+    },
+    {
+      "prosessId": "fritidskort-stotte",
+      "navn": "Soknad om fritidskort-stotte",
+      "personId": "person-028",
+      "ordning": "fritidskort-stotte",
+      "forventetUtfall": "innvilget",
+      "begrunnelse": "Grunnlaget er 158 000 mot grensen 360 000."
+    },
+    {
+      "prosessId": "fartsdempende-tiltak",
+      "navn": "Soknad om fartsdempende tiltak",
+      "personId": "person-001",
+      "ordning": null,
+      "forventetUtfall": null,
+      "begrunnelse": "Gatenavnet avgjor, ikke en ordning: person-001 eier i Storgata og ikke i Fjosangerveien."
+    }
+  ]
+}

@@ -79,20 +79,71 @@ type Tjeneste = {
    * tilstandsmaskinen og informasjonsmodellen — den skal måles mot kilden.
    */
   kodeverk?: { skjema: string; verdier: () => Promise<readonly string[]> }[];
+  /**
+   * Nøstede kodeverk, målt mot verdiene dataene faktisk bruker. Relasjonen er
+   * inneslutning, ikke likhet: spesifikasjonen får lov til å tillate mer enn
+   * seeden inneholder (MEDMOR finnes i modellen og ikke i dataene), men aldri
+   * mindre — en verdi i dataene som spesifikasjonen ikke kjenner er en kontrakt
+   * som lyver.
+   */
+  datakodeverk?: {
+    skjema: string;
+    felt: string;
+    verdier: () => Promise<readonly (string | null)[]>;
+  }[];
 };
+
+/** Et datasett fra data/, for kodeverk som bare finnes der. */
+async function lesData(fil: string): Promise<any[]> {
+  return JSON.parse(await readFile(path.join(repoRoot, "data", fil), "utf8"));
+}
 
 // --- spesifikasjonen ------------------------------------------------------
 
-/** `enum: [A, B, C]` under et navngitt skjema i components.schemas. */
-function readEnum(tekst: string, skjema: string): string[] | null {
+/** Skjemablokka til `Person:` i components.schemas, uten resten av fila. */
+function skjemablokk(tekst: string, skjema: string): string | null {
   const start = tekst.indexOf(`\n    ${skjema}:\n`);
   if (start === -1) return null;
   // Etter skjemaets egen linje, ellers treffer søket under seg selv.
   const rest = tekst.slice(tekst.indexOf("\n", start + 1) + 1);
   const neste = rest.search(/^ {4}\w+:$/m);
-  const blokk = neste === -1 ? rest : rest.slice(0, neste);
+  return neste === -1 ? rest : rest.slice(0, neste);
+}
+
+/** `enum: [A, B, C]` på skjemaets eget øverste nivå. */
+function readEnum(tekst: string, skjema: string): string[] | null {
+  const blokk = skjemablokk(tekst, skjema);
+  if (blokk === null) return null;
   const treff = blokk.match(/^ {6}enum: \[([^\]]*)\]/m);
   return treff ? treff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean) : null;
+}
+
+/**
+ * `enum:` under et navngitt felt inne i et skjema, uansett hvor dypt.
+ *
+ * Dette manglet, og det er derfor `Person.foreldrebarnrelasjon.relasjon` kunne stå
+ * som `[BARN, FAR, MOR, MEDMOR]` i spesifikasjonen mens dataene skrev `FORELDER` —
+ * readEnum så bare skjemaets øverste nivå, så nøstede kodeverk var utenfor
+ * rekkevidde for enhver sjekk.
+ */
+function readNestedEnum(tekst: string, skjema: string, felt: string): string[] | null {
+  const blokk = skjemablokk(tekst, skjema);
+  if (blokk === null) return null;
+  const feltTreff = blokk.match(new RegExp(`^(\\s+)${felt}:\\s*$`, "m"));
+  if (!feltTreff) return null;
+  const innrykk = feltTreff[1].length;
+  const etter = blokk.slice(feltTreff.index! + feltTreff[0].length);
+  for (const linje of etter.split("\n")) {
+    const eget = linje.match(/^(\s*)\S/);
+    if (!eget) continue;
+    // Tilbake på feltets eget nivå eller grunnere: feltet er ferdig.
+    if (eget[1].length <= innrykk) return null;
+    const enumTreff = linje.match(/^\s+enum: \[([^\]]*)\]/);
+    if (enumTreff) {
+      return enumTreff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean);
+    }
+  }
+  return null;
 }
 
 // --- koden ----------------------------------------------------------------
@@ -243,7 +294,50 @@ const tjenester: Tjeneste[] = [
   {
     navn: "sandbox-backend",
     spesifikasjon: "openapi/sandbox-backend.yaml",
-    ruter: backendRuter
+    ruter: backendRuter,
+    // Kodeverk som bare finnes i dataene, ikke som en konstant i koden. Sjekk 7
+    // over sammenligner mot en eksportert liste; disse har ingen, så de måles mot
+    // seeden. Det er nettopp disse som hadde driftet: relasjon sto som
+    // [BARN, FAR, MOR, MEDMOR] mens dataene skrev FORELDER, og rolle manglet
+    // voksen.
+    datakodeverk: [
+      {
+        skjema: "Person",
+        felt: "personstatus",
+        verdier: async () => (await lesData("personer.json")).map((p: any) => p.personstatus)
+      },
+      {
+        skjema: "Person",
+        felt: "sivilstand",
+        verdier: async () => (await lesData("personer.json")).map((p: any) => p.sivilstand)
+      },
+      {
+        skjema: "Person",
+        felt: "rolle",
+        verdier: async () => (await lesData("personer.json")).map((p: any) => p.rolle)
+      },
+      {
+        skjema: "Person",
+        felt: "foreldreansvar",
+        verdier: async () => (await lesData("personer.json")).map((p: any) => p.foreldreansvar)
+      },
+      {
+        skjema: "Person",
+        felt: "relasjon",
+        verdier: async () =>
+          (await lesData("personer.json")).flatMap((p: any) =>
+            (p.foreldrebarnrelasjon || []).map((r: any) => r.relasjon)
+          )
+      },
+      {
+        skjema: "Husstand",
+        felt: "rolle",
+        verdier: async () =>
+          (await lesData("husstander.json")).flatMap((h: any) =>
+            h.medlemmer.map((m: any) => m.rolle)
+          )
+      }
+    ]
   },
   {
     navn: "fiks-simulator",
@@ -477,6 +571,27 @@ for (const tjeneste of tjenester) {
       feil.push(
         `${tjeneste.spesifikasjon}: ${kodeverk.skjema} lister ${JSON.stringify(dokumentert)}, ` +
         `men kodeverket i koden er ${JSON.stringify(ikode)}.`
+      );
+    }
+  }
+
+  // 9. Nøstede kodeverk mot verdiene dataene faktisk bruker.
+  for (const kodeverk of tjeneste.datakodeverk || []) {
+    const dokumentert = readNestedEnum(tekst, kodeverk.skjema, kodeverk.felt);
+    if (!dokumentert) {
+      feil.push(
+        `${tjeneste.spesifikasjon}: fant ingen enum under ${kodeverk.skjema}.${kodeverk.felt}.`
+      );
+      continue;
+    }
+    const iDataene = [...new Set((await kodeverk.verdier()).map((v) => (v === null ? "null" : v)))];
+    const ukjente = iDataene.filter((verdi) => !dokumentert.includes(verdi));
+    if (ukjente.length > 0) {
+      feil.push(
+        `${tjeneste.spesifikasjon}: ${kodeverk.skjema}.${kodeverk.felt} lister ` +
+        `${JSON.stringify(dokumentert)}, men dataene bruker ${JSON.stringify(ukjente)} ` +
+        `i tillegg. Spesifikasjonen er kontrakten — den kan tillate mer enn seeden ` +
+        `inneholder, aldri mindre.`
       );
     }
   }

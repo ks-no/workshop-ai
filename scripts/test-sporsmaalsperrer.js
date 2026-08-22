@@ -120,7 +120,7 @@ check(
 
 check(
   "fødselsnummer utenfor grunnlaget fanges",
-  validateAnswer("Fødselsnummeret ditt er 12018890001.", { tjeneste: "Test" }).sperre === "identifikator"
+  validateAnswer("Fødselsnummeret ditt er 12818800078.", { tjeneste: "Test" }).sperre === "identifikator"
 );
 check(
   "promptstruktur i svaret fanges",
@@ -242,7 +242,7 @@ const raa = {
   resultater: {
     "fetch-income": {
       beregningsbeloep: 456000,
-      personer: [{ identifikator: "12018890001", navn: { fornavn: "Maja", etternavn: "Solberg" } }]
+      personer: [{ identifikator: "12818800078", navn: { fornavn: "Maja", etternavn: "Solberg" } }]
     },
     "sjekk-rett": { godkjent: true, melding: "Du har rett til redusert betaling." }
   },
@@ -262,7 +262,7 @@ check(
   sanitizeSporsmaalKontekst({ personvern: { punkter: ["vi selger dataene dine"] } }).personvern.punkter[0] !==
     "vi selger dataene dine"
 );
-check("fødselsnummer fjernes fra konteksten", !rentTekst.includes("12018890001"));
+check("fødselsnummer fjernes fra konteksten", !rentTekst.includes("12818800078"));
 check("navn fjernes fra konteksten", !rentTekst.includes("Solberg"));
 check("utfallet beholdes", rent.resultater?.["sjekk-rett"]?.godkjent === true);
 check("satser beholdes", rent.satser?.ordninger?.length === 2);

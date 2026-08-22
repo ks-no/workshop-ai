@@ -77,12 +77,12 @@ async function main() {
   // Get by fnr
   const getResult = await sendRequest("tools/call", {
     name: "folkeregister_get_person",
-    arguments: { foedselsEllerDNummer: "12018890001" }
+    arguments: { foedselsEllerDNummer: "12818800078" }
   });
   if (getResult.error) throw new Error(`get failed: ${getResult.error.message}`);
   const person = getResult.result?.structuredContent;
-  if (person?.foedselsEllerDNummer !== "12018890001") {
-    throw new Error(`Expected fnr 12018890001, got ${person?.foedselsEllerDNummer}`);
+  if (person?.foedselsEllerDNummer !== "12818800078") {
+    throw new Error(`Expected fnr 12818800078, got ${person?.foedselsEllerDNummer}`);
   }
 
   // Get by sandbox personId
@@ -98,7 +98,7 @@ async function main() {
   // Verify skjermet person is blocked
   const skjermetResult = await sendRequest("tools/call", {
     name: "folkeregister_get_person",
-    arguments: { foedselsEllerDNummer: "16048390031" }
+    arguments: { foedselsEllerDNummer: "16848300180" }
   });
   if (!skjermetResult.error && !skjermetResult.result?.isError) {
     // Should error because person-031 (Siri Rustad) is skjermet

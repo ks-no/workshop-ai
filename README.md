@@ -284,7 +284,10 @@ Anbefalt demo-bruker for første flyt:
 
 - `person-001` — `Maja Solberg`
 
-Data finnes i `data/personer.json`.
+Data finnes i `data/personer.json`. **`docs/testpersoner.md` er den genererte
+oversikten over hele befolkningen** — 394 personer med alder, status, husstand og
+en kolonne som sier om personen kan logge inn, bare være part, eller ingen av
+delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 
 ## Demo-flyt
 
@@ -377,7 +380,7 @@ gateoppslag til en 500. `hybrid` prøver Geonorge først og faller tilbake til s
 Kodens egen default uten miljøvariabel er `mock`, men den ser du bare hvis du starter
 `mcp-services` utenfor compose.
 
-`matrikkel-mock` starter fra `data/matrikkel.json` — 220 Bergen-gater med koordinater —
+`matrikkel-mock` starter fra `data/matrikkel.json` — 388 gater i 97 kommuner med koordinater —
 og faller tilbake til live Geonorge-oppslag ved manglende treff. Den er den eneste
 leseren av matrikkelseeden; `sandbox-backend` går over HTTP via `MATRIKKEL_BASE_URL`.
 
@@ -475,7 +478,8 @@ Syntetiske data ligger under `data/`:
 - `data/satser.json`
 - `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` — grunnlaget for fritidskort
 - `data/tjenestetilbud.json` — kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
-- `data/matrikkel.json` — 220 gater og 8202 eiendommer, lest av `matrikkel-mock`
+- `data/matrikkel.json` — 388 gater og 18 349 eiendommer i 97 kommuner, lest av `matrikkel-mock`
+- `data/eierforhold.json` — tinglyst eierskap per matrikkelenhet, slått sammen av `matrikkel-mock` ved innlasting
 - `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`

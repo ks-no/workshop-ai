@@ -358,11 +358,38 @@ components:
           type: object
           additionalProperties: true
           nullable: true
+        personstatus:
+          type: string
+          enum: [BOSATT, UTFLYTTET, DOED, INAKTIV, MIDLERTIDIG, OPPHOERT, FORSVUNNET]
+        doedsfall:
+          type: object
+          nullable: true
+          properties:
+            doedsdato:
+              type: string
+              format: date
         forelderbarnrelasjon:
           type: array
+          description: >
+            Den grunne forelder/barn-visningen. relatertPersonsRolle er BARN, MOR,
+            FAR eller MEDMOR, og kantene går begge veier.
           items:
             type: object
             additionalProperties: true
+        familierelasjon:
+          type: array
+          description: >
+            Folkeregisterets egen Familierelasjon, med rollen sett fra begge ender
+            og registerets eget kodeverk (mor, far, medmor, barn, soesken,
+            ektefelleEllerPartner). Her ligger ektefellen; forelderbarnrelasjon
+            er navngitt for foreldre og barn.
+          items:
+            type: object
+            additionalProperties: true
+        foreldreansvar:
+          type: string
+          nullable: true
+          enum: [felles, mor, far, medmor, andre, ukjent, null]
         skjermet:
           type: boolean
         kontakt:

@@ -2,8 +2,9 @@
   {
     "husstandId": "household-001",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Eksempelveien 12",
+    "adresse": "Storgata 3",
     "kommune": "Bergen",
+    "kommunenummer": "4601",
     "medlemmer": [
       {
         "personId": "person-001",
@@ -20,8 +21,9 @@
   {
     "husstandId": "household-002",
     "type": "EKTEPAR",
-    "adresse": "Nedre gate 4",
+    "adresse": "Eventyrvegen 2",
     "kommune": "Trondheim",
+    "kommunenummer": "5001",
     "medlemmer": [
       {
         "personId": "person-003",
@@ -42,8 +44,9 @@
   {
     "husstandId": "household-003",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Kirkeveien 30",
+    "adresse": "Kirkeveien 32",
     "kommune": "Oslo",
+    "kommunenummer": "0301",
     "medlemmer": [
       {
         "personId": "person-006",
@@ -60,8 +63,9 @@
   {
     "husstandId": "household-004",
     "type": "SAMBOERE",
-    "adresse": "Fjellgata 7",
+    "adresse": "Løkkeveien 10",
     "kommune": "Stavanger",
+    "kommunenummer": "1103",
     "medlemmer": [
       {
         "personId": "person-008",
@@ -90,8 +94,9 @@
   {
     "husstandId": "household-005",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Elvebakken 18",
+    "adresse": "Markusveien 4B",
     "kommune": "Drammen",
+    "kommunenummer": "3301",
     "medlemmer": [
       {
         "personId": "person-012",
@@ -110,6 +115,7 @@
     "type": "ENSLIG_FORSORGER",
     "adresse": "Storgata 55",
     "kommune": "Tromsø",
+    "kommunenummer": "5501",
     "medlemmer": [
       {
         "personId": "person-014",
@@ -132,6 +138,7 @@
     "type": "EKTEPAR",
     "adresse": "Markens gate 9",
     "kommune": "Kristiansand",
+    "kommunenummer": "4204",
     "medlemmer": [
       {
         "personId": "person-016",
@@ -152,8 +159,9 @@
   {
     "husstandId": "household-008",
     "type": "SAMBOERE",
-    "adresse": "Havnegata 21",
+    "adresse": "Havnegata 9",
     "kommune": "Bodø",
+    "kommunenummer": "1804",
     "medlemmer": [
       {
         "personId": "person-019",
@@ -174,8 +182,9 @@
   {
     "husstandId": "household-009",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Borgundveien 3",
+    "adresse": "Inste Holen 13A",
     "kommune": "Ålesund",
+    "kommunenummer": "1508",
     "medlemmer": [
       {
         "personId": "person-022",
@@ -198,6 +207,7 @@
     "type": "ENSLIG_FORSORGER",
     "adresse": "Julie Eges gate 14",
     "kommune": "Sandnes",
+    "kommunenummer": "1108",
     "medlemmer": [
       {
         "personId": "person-024",
@@ -220,6 +230,7 @@
     "type": "ENSLIG_FORSORGER",
     "adresse": "Solbakken 2",
     "kommune": "Bergen",
+    "kommunenummer": "4601",
     "medlemmer": [
       {
         "personId": "person-026",
@@ -236,8 +247,9 @@
   {
     "husstandId": "household-012",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Bjørnstjerne Bjørnsons gate 41",
+    "adresse": "Eventyrvegen 12",
     "kommune": "Trondheim",
+    "kommunenummer": "5001",
     "medlemmer": [
       {
         "personId": "person-028",
@@ -258,8 +270,9 @@
   {
     "husstandId": "household-013",
     "type": "EKTEPAR",
-    "adresse": "Trondheimsveien 88",
+    "adresse": "Trondheimsveien 87",
     "kommune": "Oslo",
+    "kommunenummer": "0301",
     "medlemmer": [
       {
         "personId": "person-030",
@@ -284,8 +297,9 @@
   {
     "husstandId": "household-014",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Kongens gate 6",
+    "adresse": "Løkkeveien 20",
     "kommune": "Stavanger",
+    "kommunenummer": "1103",
     "medlemmer": [
       {
         "personId": "person-033",
@@ -308,6 +322,7 @@
     "type": "SAMBOERE",
     "adresse": "Løkkeveien 33",
     "kommune": "Stavanger",
+    "kommunenummer": "1103",
     "medlemmer": [
       {
         "personId": "person-035",
@@ -334,6 +349,7 @@
     "type": "ENSLIG_FORSORGER",
     "adresse": "Gamleveien 19",
     "kommune": "Nordre Follo",
+    "kommunenummer": "3207",
     "medlemmer": [
       {
         "personId": "person-038",
@@ -350,8 +366,9 @@
   {
     "husstandId": "household-017",
     "type": "ENSLIG_FORSORGER",
-    "adresse": "Kanalveien 27",
+    "adresse": "Kanalveien 26",
     "kommune": "Bergen",
+    "kommunenummer": "4601",
     "medlemmer": [
       {
         "personId": "person-040",
@@ -367,9 +384,10 @@
   },
   {
     "husstandId": "household-018",
-    "type": "EKTEPAR",
-    "adresse": "Parkveien 5",
+    "type": "PAR_UTEN_BARN",
+    "adresse": "Parkveien 5B",
     "kommune": "Oslo",
+    "kommunenummer": "0301",
     "medlemmer": [
       {
         "personId": "person-042",
@@ -456,7 +474,7 @@
       },
       {
         "personId": "person-059",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       }
     ],
     "kilde": "tenor",
@@ -588,7 +606,7 @@
       },
       {
         "personId": "person-074",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       }
     ],
     "kilde": "tenor",
@@ -648,7 +666,7 @@
       },
       {
         "personId": "person-080",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       },
       {
         "personId": "person-081",
@@ -1420,7 +1438,7 @@
       },
       {
         "personId": "person-162",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       }
     ],
     "kilde": "tenor",
@@ -1460,7 +1478,7 @@
     "medlemmer": [
       {
         "personId": "person-166",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       },
       {
         "personId": "person-167",
@@ -1552,7 +1570,7 @@
     "medlemmer": [
       {
         "personId": "person-177",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       },
       {
         "personId": "person-178",
@@ -1824,7 +1842,7 @@
     "medlemmer": [
       {
         "personId": "person-203",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       },
       {
         "personId": "person-204",
@@ -2540,7 +2558,7 @@
       },
       {
         "personId": "person-274",
-        "rolle": "voksen"
+        "rolle": "foresatt"
       }
     ],
     "kilde": "tenor",

@@ -18,6 +18,21 @@
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
+- **Five files under `data/` are generated and must not be hand-edited:**
+  `personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` and
+  `eierforhold.json`. `scripts/importer-tenor.js` builds all five, plus
+  `docs/testpersoner.md`, from two sources: `data/kuratert.json` (the 51 hand-authored
+  threshold fixtures) and `data/tenor/*.json` (the raw extracts). Edit a curated row in
+  `personer.json` directly and the next import reverts it — so `pnpm test` compares the
+  curated rows against `kuratert.json` and fails instead.
+- The import **rebuilds**; it used to be additive, which meant a second run was a no-op
+  and the data could only grow, never be cleaned. Ids stay stable because `personId` and
+  `husstandId` are read back from `personer.json` as a ledger; `--glem-id-er` assigns
+  from scratch and gives the same result on unchanged input.
+- **Three pure domain modules carry rules that more than one caller needs**, for the same
+  reason `alder.ts` does: `foedselsnummer.ts` (modulus 11 and Skatteetaten's +80 synthetic
+  marker), `handleevne.ts` (who may act, and on whose behalf — shared with `digdir-mock`),
+  and `vilkaar.ts` (the vedtak). None of them may import `regler.ts`.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
 - `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
@@ -140,6 +155,8 @@ pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.js: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
+pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
+pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -191,7 +208,8 @@ pnpm test:agent:matrikkel
   real client hung on `initialize`. Check with
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`, `test:vilkaar`,
-  `test:skjerming`, `test:samtykke`, `test:openapi` and `test:kontrakt` on every PR
+  `test:foedselsnummer`, `test:handleevne`, `test:skjerming`, `test:samtykke`,
+  `test:openapi` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) — run those locally.
@@ -241,9 +259,13 @@ pnpm test:agent:matrikkel
   callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only
   `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
 - `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
-  `data/matrikkel.json` — the full Bergen extract, 220 streets and 8202 properties with
-  coordinates. `data/matrikkel.seed.json` remains as the small four-street fixture the
-  mock's own tests point at.
+  `data/matrikkel.json` — 388 streets and 18349 properties across the 97 kommuner the
+  population lives in, fetched from Geonorge by `node scripts/hent-matrikkel.js`.
+  `data/matrikkel.seed.json` remains as the small four-street fixture the mock's own
+  tests point at. **Ownership is not in either file:** it lives in
+  `data/eierforhold.json` (`EIERFORHOLD_DATA_FILE`) and is merged in at load, because
+  title is in the grunnbok and not the matrikkel. `eiere` is only in the response from
+  `/mock/matrikkel/eiendommer` when `personId` is given.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
   lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **Two different
   defaults, and the distinction matters:** the code default is `mock`

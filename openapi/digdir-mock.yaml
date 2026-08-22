@@ -197,6 +197,11 @@ paths:
         Ekte ID-porten har ingenting slikt, og kunne ikke hatt det — det finnes
         ingen rute som lister befolkningen. Adressebeskyttede personer står oppført
         med personId og «Skjermet person», akkurat som i velgeren.
+
+        Lista er filtrert: bare personer som kan ha en elektronisk ID er med. MinID
+        kan bestilles fra det året man fyller 13, og en person som er død, utflyttet
+        eller har D-nummer har ingenting å logge inn med. Før filteret sto alle 394
+        testpersonene her, 65 av dem under 13 år og elleve under tre.
       responses:
         "200":
           description: Testbrukerne
@@ -478,6 +483,12 @@ components:
           description: «Skjermet person» for adressebeskyttede.
         kommune:
           type: string
+        kanOpptreSelv:
+          type: boolean
+          description: >
+            False for 13–17-åringer: en elektronisk ID finnes, men rettslig
+            handleevne gjør ikke. De kan logge inn, men kan ikke være avsender for
+            en sak på egen hånd — en foresatt med foreldreansvar må være det.
     Noekkelsett:
       type: object
       properties:

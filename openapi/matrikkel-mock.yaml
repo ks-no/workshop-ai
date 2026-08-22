@@ -32,6 +32,30 @@ paths:
                   tidspunkt:
                     type: string
                     format: date-time
+                  antallGater:
+                    type: integer
+                  antallEiendommer:
+                    type: integer
+                  eierforhold:
+                    type: object
+                    nullable: true
+                    description: >
+                      Hvilken fil eierforholdene ble lest fra, og hvor mange
+                      matrikkelenheter som har en registrert eier. En enhet som
+                      ikke star i fila har ingen.
+                    properties:
+                      fil:
+                        type: string
+                        nullable: true
+                      antall:
+                        type: integer
+                  kilde:
+                    type: object
+                    description: >
+                      Provenans. `metadata.kommuner` i fila oppsummeres her til
+                      `antallKommuner` og en liste kommunenummer - den fulle lista
+                      er 97 oppforinger og hoerer ikke i en helsesjekk.
+                    additionalProperties: true
   /openapi.yaml:
     get:
       summary: Denne spesifikasjonen
@@ -169,6 +193,10 @@ paths:
         - in: query
           name: personId
           required: false
+          description: >
+            Snevrer treffet inn til eiendommer denne personen eier, og er det
+            eneste som får `eiere` med i svaret. Uten den beskriver lista hva
+            eiendommene er, ikke hvem som eier dem.
           schema:
             type: string
         - in: query
@@ -203,9 +231,17 @@ paths:
           schema:
             type: integer
             minimum: 0
+      description: >
+        `eiere` og `eierforhold` er bare med når `personId` er oppgitt, og da bare
+        for den personen. Å spørre hvem som eier én eiendom er et grunnbokoppslag
+        og finnes på /mock/matrikkel/eiendom/{matrikkelId}; å hente eierlistene for
+        alle 227 eiendommene i en gate er bulkuttrekk. Eierforholdet kommer fra
+        data/eierforhold.json, ikke fra matrikkelen - hjemmel ligger i grunnboken.
       responses:
         "200":
-          description: Treffliste
+          description: >
+            Treffliste. Naken array uten `limit`/`offset`, ellers en konvolutt
+            `{ items, total, offset, limit }`.
   /mock/matrikkel/eiendom-oppslag:
     get:
       summary: Hent eiendom via eksakt adresse

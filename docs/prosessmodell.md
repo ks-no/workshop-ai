@@ -40,6 +40,7 @@ Tilgjengelige sjekker:
 | Sti | Vurderer |
 |---|---|
 | `/api/regler/sjekk/foreldrebetaling` | Rett til en moderasjonsordning i `data/satser.json` |
+| `/api/regler/sjekk/ordning` | Rett til en navngitt ordning, eller den ordningen barnets trinn peker på når bare `tjeneste` er oppgitt. Tre av fem demo-case bruker denne |
 | `/api/matrikkel/sjekk/eierforhold` | Om søker eier eiendom i en gitt gate |
 
 Nye sjekker legges til i ressurskatalogen i
@@ -144,9 +145,14 @@ Formålet er å demonstrere:
 Repoet inneholder også:
 
 - `sfo-moderasjon` — samme mønster som barnehage, men mot SFO-satsene.
-  Merk at demo-brukeren `person-001` ikke har barn i SFO. Bruk `person-008`,
-  som har et barn på 3. trinn, for å se et innvilget utfall.
-- `stottekontakt-behov` — ren dialog uten datahenting.
+  Merk at demo-brukeren `person-001` ikke har barn i SFO. Bruk `person-022`,
+  som har et barn på 2. trinn og et grunnlag på 152 000 mot grensen 154 917, for
+  å se et innvilget utfall. `person-008` sto her før, men har barn på 2. og 4.
+  trinn og et grunnlag på 653 000 — den ga avslag. Tabellen er pinnet i
+  `data/deltakercaser.json` nå.
+- `stottekontakt-behov` — ingen inntektshenting. Steget spør om samtykke til
+  kontaktinformasjon, og `SJEKK` leser `data/tjenestetilbud.json`; det er alder og
+  kommune som avgjør, ikke inntekt.
 - `fritidskort-stotte` — spørsmål, samtykke og inntektshenting.
 - `fartsdempende-tiltak` — den eneste casen som kombinerer `SJEKK`,
   matrikkeloppslag og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et

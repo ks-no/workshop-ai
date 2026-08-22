@@ -78,6 +78,50 @@ function createEmptyRegister(kilde) {
   };
 }
 
+// Ownership is not in the matrikkel — it is in the grunnbok. data/matrikkel.json
+// carried `eiere` on every property anyway, which is both wrong in kind and the
+// reason the distribution rotted unnoticed: 28 people held 1280 titles across 1225
+// of 8202 properties, one of them 70. The titles live in data/eierforhold.json now
+// and are merged in here, so matrikkel-mock is still the only reader of both.
+//
+// A property missing from that file has no registered owner. That is the honest
+// state for a synthetic register with 18349 properties and 200 households.
+async function readEierforhold() {
+  const kandidatfiler = [
+    process.env.EIERFORHOLD_DATA_FILE,
+    path.resolve(__dirname, "../../../data/eierforhold.json"),
+    path.resolve(__dirname, "../data/eierforhold.json")
+  ].filter(Boolean);
+
+  for (const fil of kandidatfiler) {
+    try {
+      const json = JSON.parse(await readFile(fil, "utf8"));
+      const perMatrikkelId = new Map();
+      for (const rad of json.eierforhold || []) {
+        perMatrikkelId.set(rad.matrikkelId, rad.eiere || []);
+      }
+      return { fil, perMatrikkelId };
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  // Missing is not fatal: the mock's own fixtures can be run without it, and a
+  // register with no titles is a coherent register.
+  return { fil: null, perMatrikkelId: new Map() };
+}
+
+function leggPaaEierforhold(register, eierforhold) {
+  register.eierforhold = { fil: eierforhold.fil, antall: eierforhold.perMatrikkelId.size };
+  for (const eiendom of register.eiendommer) {
+    const eiere = eierforhold.perMatrikkelId.get(eiendom.matrikkelId) || [];
+    // `eiere` stays a flat array of eier-ids on the wire — that is what
+    // matrikkel_hent_eiere, the SOAP HentEiere operation and every consumer read.
+    // The eierform and andel from the grunnbok sit beside it.
+    eiendom.eiere = eiere.map((e) => e.eier);
+    eiendom.eierforhold = eiere;
+  }
+}
+
 async function readMatrikkelData() {
   // matrikkel.json is the full Bergen extract: 220 streets, 8202 properties with
   // coordinates. It was 5.9 MB of dead weight that no code read, while the case
@@ -91,12 +135,15 @@ async function readMatrikkelData() {
     path.resolve(__dirname, "../data/matrikkel.seed.json")
   ].filter(Boolean);
 
+  const eierforhold = await readEierforhold();
   for (const fil of kandidatfiler) {
     try {
-      if (fil.endsWith(".jsonl") || fil.endsWith(".ndjson") || fil.endsWith(".jsonl.gz") || fil.endsWith(".ndjson.gz")) {
-        return await readJsonlRegister(fil);
-      }
-      return await readJsonRegister(fil);
+      const register = fil.endsWith(".jsonl") || fil.endsWith(".ndjson")
+        || fil.endsWith(".jsonl.gz") || fil.endsWith(".ndjson.gz")
+        ? await readJsonlRegister(fil)
+        : await readJsonRegister(fil);
+      leggPaaEierforhold(register, eierforhold);
+      return register;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -306,6 +353,29 @@ function addEiendom(register, gate, eiendomInput = {}) {
   if (!gate.poststed && eiendom.poststed) gate.poststed = eiendom.poststed;
 }
 
+// The extract used to be one kommune, so its provenance fitted in /helse. It is 97
+// now, and the full list would be 500 lines of a health check - and 500 lines of
+// every contract dump. Summarised here; the per-kommune detail stays in
+// data/matrikkel.json, which is where provenance belongs.
+function helsekilde(register) {
+  const metadata = register.kilde?.metadata;
+  if (!metadata?.kommuner) return register.kilde;
+  const { kommuner, ...resten } = metadata;
+  return {
+    ...register.kilde,
+    metadata: {
+      ...resten,
+      antallKommuner: kommuner.length,
+      kommunenummer: kommuner.map((k) => k.kommunenummer)
+    }
+  };
+}
+
+function utenEiere(eiendom) {
+  const { eiere, eierforhold, ...resten } = eiendom;
+  return resten;
+}
+
 function ferdigstillRegister(register) {
   addBonesheienIfMissing(register);
   register.gater.sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
@@ -445,9 +515,16 @@ function findGate(register, gateSoek) {
   return register.gater.find((gate) => normalize(gate.adressenavn).includes(soek)) || null;
 }
 
+// Substring matching was harmless when the register was one kommune: "Storgata"
+// meant Bergen's Storgata and nothing else. With 388 streets in 97 kommuner it also
+// returns Tromsø's Storgata and every "Storgatan"-shaped neighbour, so an exact
+// match now wins outright. Partial search still works — it is what the step tells
+// the citizen to do — but only when nothing matches exactly.
 function findGater(register, gateSoek) {
   const soek = normalize(gateSoek);
   if (!soek) return register.gater;
+  const eksakt = register.gaterPerNormalisertNavn.get(soek);
+  if (eksakt?.length) return eksakt;
   return register.gater.filter((gate) => normalize(gate.adressenavn).includes(soek));
 }
 
@@ -916,9 +993,10 @@ const server = createServer(async (request, response) => {
       jsonResponse(response, 200, {
         status: "ok",
         tjeneste: "matrikkel-mock",
-        kilde: register.kilde,
+        kilde: helsekilde(register),
         antallGater: register.gater.length,
         antallEiendommer: register.eiendommer.length,
+        eierforhold: register.eierforhold ?? null,
         wsdl: `${wsPath}?wsdl`,
         tidspunkt: new Date().toISOString(),
         lastetTidspunkt: register.lastetTidspunkt
@@ -1003,7 +1081,13 @@ const server = createServer(async (request, response) => {
           return adresse === norm || adresse.includes(norm) || norm.includes(adresse);
         });
       }
-      jsonResponse(response, 200, paginate(filtrert, url.searchParams));
+      // Asking who owns ONE property is a grunnbok lookup — public, and what
+      // matrikkel_hent_eiere exists to answer. Asking for the owner lists of all
+      // 227 properties in a street is bulk extraction, and this endpoint handed
+      // them out in clear text while sandbox-backend projected the same field away
+      // in two places (ressurser.ts:278 and :353). Without personId the list says
+      // what the properties are, not who holds them.
+      jsonResponse(response, 200, paginate(personId ? filtrert : filtrert.map(utenEiere), url.searchParams));
       return;
     }
 

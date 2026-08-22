@@ -808,7 +808,7 @@ paths:
                       description: >-
                         Fødselsnummer for `innbygger`, client_id for `system`, null for
                         `ukjent`.
-                      example: "12018890001"
+                      example: "12818800078"
                     acr:
                       type: string
                       description: Sikkerhetsnivået personen ble autentisert på.
@@ -975,15 +975,36 @@ components:
         foedselsdato:
           type: string
           format: date
+        personstatus:
+          type: string
+          enum: [BOSATT, UTFLYTTET, DOED, INAKTIV, MIDLERTIDIG, OPPHOERT, FORSVUNNET]
+          description: >
+            Folkeregisterpersonstatus. Bare BOSATT er medlem av en husstand og kan
+            være part i en prosess. De fem verdiene BOSATT, UTFLYTTET, DOED,
+            OPPHOERT og INAKTIV er de eneste som ikke er taushetsbelagte i det
+            ekte registeret.
+        doedsdato:
+          type: string
+          format: date
+          nullable: true
+          description: Satt hvis og bare hvis personstatus er DOED.
         bostedsadresse:
           $ref: "#/components/schemas/Adresse"
         sivilstand:
           type: string
+          enum: [UGIFT, GIFT, SEPARERT, ENKE_ELLER_ENKEMANN, UOPPGITT]
         rolle:
           type: string
-          enum: [foresatt, barn]
+          nullable: true
+          enum: [foresatt, barn, voksen, null]
+          description: >
+            Rollen inne i husstanden. `voksen` er en myndig person som ikke er
+            forelder til noe barn i husstanden — regelmotoren summerer bare
+            `foresatt`. null for alle som ikke er BOSATT: de har ingen husstand.
         husstandId:
           type: string
+          nullable: true
+          description: null for alle som ikke er BOSATT.
         skjermet:
           type: boolean
           description: True for både FORTROLIG og STRENGT_FORTROLIG.
@@ -1000,6 +1021,18 @@ components:
               relasjon:
                 type: string
                 enum: [BARN, FAR, MOR, MEDMOR]
+                description: >
+                  Den relaterte personens rolle overfor denne personen. Kantene
+                  går alltid begge veier: en MOR-kant har en BARN-kant tilbake.
+        foreldreansvar:
+          type: string
+          nullable: true
+          enum: [felles, mor, far, medmor, andre, ukjent, null]
+          description: >
+            Hvem som har foreldreansvar for denne personen. Speilet fra
+            Folkeregisteret, ikke utledet av foreldrelista — en far kan være far
+            uten å ha foreldreansvar. Grunnlaget for hvem som kan være avsender
+            for en mindreårig.
         kontakt:
           $ref: "#/components/schemas/Kontakt"
         syntetisk:
@@ -1021,6 +1054,10 @@ components:
             uansett.
         kommune:
           type: string
+          description: Visningsnavn. kommunenummer er nøkkelen.
+        kommunenummer:
+          type: string
+          description: Nøkkelen som joiner mot matrikkelen og tjenestetilbudet.
         medlemmer:
           type: array
           items:
@@ -1030,10 +1067,19 @@ components:
                 type: string
               rolle:
                 type: string
-                enum: [foresatt, barn]
+                enum: [foresatt, barn, voksen]
+        kilde:
+          type: string
+          enum: [tenor]
+          description: >
+            Bare på de importerte. De frosne fixturene har ingen kilde — de er
+            forfattet, og ligger i data/kuratert.json.
         scenario:
           type: string
-          description: Hva husstanden er kuratert for å vise. Bare på de frosne fixturene.
+          description: >
+            Hva husstanden er. På de 18 frosne fixturene er teksten forfattet og
+            sier hva husstanden demonstrerer; på de importerte er den utledet av
+            husstandstypen, slik at de to ikke kan motsi hverandre.
         syntetisk:
           type: boolean
     Barnehageplass:

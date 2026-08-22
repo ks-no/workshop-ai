@@ -63,7 +63,7 @@ check("person-031 mister telefonen", p031.kontakt.telefon === null);
 // What must survive, or the rules engine and the income lookup break quietly.
 check("person-031 beholder kommunenummer", p031.bostedsadresse.kommunenummer === "0301", String(p031.bostedsadresse.kommunenummer));
 check("person-031 beholder kommunenavn", p031.bostedsadresse.kommune === "Oslo");
-check("person-031 beholder fodselsnummer", p031.syntetiskFodselsnummer === "16048390031");
+check("person-031 beholder fodselsnummer", p031.syntetiskFodselsnummer === "16848300180");
 check("person-031 beholder fodselsdato", p031.foedselsdato === kilde("person-031").foedselsdato);
 check("person-031 beholder husstandId", p031.husstandId === "household-013");
 check("person-031 beholder graderingen", p031.adressebeskyttelse === "STRENGT_FORTROLIG");
@@ -131,10 +131,20 @@ for (const id of ["household-083", "household-093", "household-157"]) {
 
 // Deliberately untouched: three unprotected people live at this address and their
 // own records return it regardless. See the comment on maskHusstand.
+// The address the seed says the household has, before masking.
+const forventetAdresse = (husstandId) => {
+  const raa = kildeHusstander.find((h) => h.husstandId === husstandId);
+  return raa?.adresse ?? null;
+};
+
 check(
   "household-013 beholder adressen (har umaskerte medboere)",
-  husstand("household-013").adresse === "Trondheimsveien 88",
-  String(husstand("household-013").adresse)
+  // Read from the seed rather than hardcoded: the point is that the address
+  // survives masking, not which house number it happens to be. Twelve curated
+  // households were moved to real addresses in the same kommune, and this line
+  // asserted the invented one.
+  husstand("household-013").adresse === forventetAdresse("household-013"),
+  `${husstand("household-013").adresse} (forventet ${forventetAdresse("household-013")})`
 );
 
 const endredeHusstander = maskert.husstander

@@ -27,6 +27,8 @@
     "test:sperrer": "node scripts/test-sporsmaalsperrer.js",
     "test:skjerming": "node scripts/test-skjerming.js",
     "test:vilkaar": "node scripts/test-vilkaar.js",
+    "test:foedselsnummer": "node scripts/test-foedselsnummer.js",
+    "test:handleevne": "node scripts/test-handleevne.js",
     "test:samtykke": "node scripts/test-samtykke.js",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "ds:hent": "node scripts/hent-designsystem.js",

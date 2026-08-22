@@ -11,11 +11,20 @@ import {
   aktorFor,
   classifyKaller,
   requireTilgang,
+  manglerHandleevne,
   SCOPE_LES,
   SCOPE_REVISJON,
   type Caller,
   type Tilgang
 } from "./autentisering.ts";
+// Who may act, and on whose behalf. One module, shared with digdir-mock, so the
+// login screen and the process engine cannot disagree about the two thresholds.
+import {
+  vurderHandleevne,
+  finnRepresentanter,
+  forklarHandleevne,
+  representantPider
+} from "./handleevne.ts";
 import { openapiFile } from "./config.ts";
 import { routeOverview } from "../../shared-ui/openapi.ts";
 import { buildProsessoektRespons, createSoknad, runStegHandling } from "./prosess.ts";
@@ -324,6 +333,26 @@ const ruter: Rute[] = [
         jsonResponse(response, 404, { feil: "Fant ikke prosess eller person." });
         return;
       }
+      // Being the party to a case is not the same as being able to send one. A
+      // three-year-old is a party to their own kindergarten application; the parent
+      // is the sender. The sandbox listed all 394 test people as ID-porten users,
+      // 65 of them under 13, so this was reachable - and everything downstream
+      // (consent, audit, purpose limitation) rests on the sender being someone who
+      // may answer.
+      const handleevne = vurderHandleevne(person, tilstand.satser.gjelderFra);
+      const representanter = finnRepresentanter(
+        { personer: tilstand.personer },
+        person.personId,
+        tilstand.satser.gjelderFra
+      );
+      const kallerErRepresentant =
+        kaller.type === "system" ||
+        (kaller.type === "innbygger" &&
+          representantPider(tilstand, person.personId, tilstand.satser.gjelderFra)
+            .includes(kaller.pid));
+      if (!handleevne.kanOpptreSelv && !kallerErRepresentant) {
+        throw manglerHandleevne(forklarHandleevne(handleevne, representanter));
+      }
       const nyOekt: Prosessoekt = {
         oektsId: newId("oekt"),
         prosessId: prosess.id,
@@ -584,6 +613,9 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
           pid: personId
             ? findPerson(tilstand, personId)?.syntetiskFodselsnummer ?? null
             : null,
+          representantPider: personId
+            ? representantPider(tilstand, personId, tilstand.satser.gjelderFra)
+            : [],
           hva: `${treff.rute.metode} ${treff.rute.sti}`
         });
       } catch (feil) {

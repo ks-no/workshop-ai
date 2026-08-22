@@ -14,9 +14,9 @@ curl -s "http://localhost:8080/api/prosesser?inkluderMaler=true" # + mal-enkel-s
 | Prosess | Steg | Dekker |
 |---|---|---|
 | `reduced-kindergarten-payment` | 7 | Flaggskip-caset. Samtykke → inntekt → deterministisk `SJEKK` → KI-oppsummering |
-| `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-008` |
-| `stottekontakt-behov` | 5 | Korteste flyt, behovsavklaring |
-| `fritidskort-stotte` | 6 | Den `process-agent` bruker i `pnpm test:agent` |
+| `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-022` — `person-008` gir avslag |
+| `stottekontakt-behov` | 6 | Korteste flyt, behovsavklaring |
+| `fritidskort-stotte` | 7 | Den `process-agent` bruker i `pnpm test:agent` |
 | `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon |
 | `mal-enkel-soknad` | 6 | Kopi-mal. `redigering.mal: true` |
 

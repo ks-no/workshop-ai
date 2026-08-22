@@ -15,7 +15,7 @@ Two MCP tools:
 
 Default data file:
 
-- `data/folkeregister.seed.json` — 43 syntetiske testpersoner based on `data/personer.json`,
+- `data/folkeregister.seed.json` — 394 syntetiske testpersoner based on `data/personer.json`,
   formatted after the Folkeregisteret "Offentlig med hjemmel" v1.6.2 API schema.
 
 Override with:

@@ -26,14 +26,69 @@
           "navn": "Person",
           "beskrivelse": "Syntetisk representasjon av innbygger eller barn.",
           "attributter": [
-            { "navn": "personId", "type": "string", "beskrivelse": "Intern nøkkel i sandboxen." },
-            { "navn": "syntetiskFodselsnummer", "type": "string", "beskrivelse": "11 siffer. Tilsvarer identifikator i Fiks og folkeregisteridentifikator i FREG, men navngitt slik at det er tydelig syntetisk." },
-            { "navn": "navn", "type": "objekt", "beskrivelse": "fornavn, mellomnavn, etternavn." },
-            { "navn": "foedselsdato", "type": "dato" },
-            { "navn": "bostedsadresse", "type": "objekt", "beskrivelse": "adressenavn, husnummer, postnummer, poststed, kommune." },
-            { "navn": "sivilstand", "type": "kodeverdi", "beskrivelse": "GIFT eller UGIFT i denne forenklingen." },
-            { "navn": "foreldrebarnrelasjon", "type": "liste", "beskrivelse": "relatertPersonId og relasjon FORELDER eller BARN." },
-            { "navn": "skjermet", "type": "boolsk", "beskrivelse": "Opplysninger om personen kan ikke vises. Fra Fiks-modellen." }
+            {
+              "navn": "personId",
+              "type": "string",
+              "beskrivelse": "Intern nøkkel i sandboxen."
+            },
+            {
+              "navn": "syntetiskFodselsnummer",
+              "type": "string",
+              "beskrivelse": "11 siffer. Tilsvarer identifikator i Fiks og folkeregisteridentifikator i FREG, men navngitt slik at det er tydelig syntetisk."
+            },
+            {
+              "navn": "navn",
+              "type": "objekt",
+              "beskrivelse": "fornavn, mellomnavn, etternavn."
+            },
+            {
+              "navn": "foedselsdato",
+              "type": "dato"
+            },
+            {
+              "navn": "bostedsadresse",
+              "type": "objekt",
+              "beskrivelse": "adressenavn, husnummer, postnummer, poststed, kommune."
+            },
+            {
+              "navn": "sivilstand",
+              "type": "kodeverdi",
+              "beskrivelse": "Kodeverdiene som finnes i befolkningen. ENKE_ELLER_ENKEMANN utledes av at ektefellen er DOED.",
+              "kodeverdier": [
+                "ENKE_ELLER_ENKEMANN",
+                "GIFT",
+                "SEPARERT",
+                "UGIFT",
+                "UOPPGITT"
+              ]
+            },
+            {
+              "navn": "foreldrebarnrelasjon",
+              "type": "liste",
+              "beskrivelse": "relatertPersonId, og relasjon med kodeverdiene under. Kantene gaar alltid begge veier.",
+              "kodeverdier": [
+                "BARN",
+                "FAR",
+                "MOR"
+              ]
+            },
+            {
+              "navn": "skjermet",
+              "type": "boolsk",
+              "beskrivelse": "Opplysninger om personen kan ikke vises. Fra Fiks-modellen."
+            },
+            {
+              "navn": "personstatus",
+              "type": "string",
+              "beskrivelse": "Folkeregisterpersonstatus. Bare BOSATT er medlem av en husstand og kan vaere part i en prosess.",
+              "kodeverdier": [
+                "BOSATT",
+                "DOED",
+                "INAKTIV",
+                "MIDLERTIDIG",
+                "UTFLYTTET"
+              ]
+            }
           ]
         },
         {
@@ -41,10 +96,39 @@
           "navn": "Husstand",
           "beskrivelse": "Ektefeller, registrerte partnere og samboere regnes som én husholdning, jf. forskriften.",
           "attributter": [
-            { "navn": "husstandId", "type": "string" },
-            { "navn": "type", "type": "kodeverdi", "beskrivelse": "EKTEPAR, SAMBOERE eller ENSLIG_FORSORGER." },
-            { "navn": "medlemmer", "type": "liste", "beskrivelse": "personId og rolle foresatt eller barn." },
-            { "navn": "scenario", "type": "string", "beskrivelse": "Hva husstanden er ment å demonstrere. Kun for sandboxen." }
+            {
+              "navn": "husstandId",
+              "type": "string"
+            },
+            {
+              "navn": "type",
+              "type": "kodeverdi",
+              "beskrivelse": "Utledet av medlemmenes alder og sivilstand, aldri forfattet - saa typen kan ikke motsi scenario-teksten.",
+              "kodeverdier": [
+                "EKTEPAR",
+                "ENSLIG",
+                "ENSLIG_FORSORGER",
+                "FLERGENERASJON",
+                "PAR_UTEN_BARN",
+                "SAMBOERE",
+                "VOKSNE_SAMMEN"
+              ]
+            },
+            {
+              "navn": "medlemmer",
+              "type": "liste",
+              "beskrivelse": "personId, og rolle med kodeverdiene under. voksen er en myndig person som ikke er forelder til noe barn i husstanden; regelmotoren summerer bare foresatt.",
+              "kodeverdier": [
+                "barn",
+                "foresatt",
+                "voksen"
+              ]
+            },
+            {
+              "navn": "scenario",
+              "type": "string",
+              "beskrivelse": "Hva husstanden er ment å demonstrere. Kun for sandboxen."
+            }
           ]
         },
         {
@@ -52,11 +136,30 @@
           "navn": "Inntektsgrunnlag",
           "beskrivelse": "Skattepliktig person- og kapitalinntekt, beregnet av Fiks-simulatoren.",
           "attributter": [
-            { "navn": "inntektsaar", "type": "heltall" },
-            { "navn": "stadie", "type": "kodeverdi", "beskrivelse": "OPPGJOER, UTKAST eller UKJENT." },
-            { "navn": "poster", "type": "liste", "beskrivelse": "tekniskNavn, visningstekst, beloep, kilde og medregnes." },
-            { "navn": "kilde", "type": "kodeverdi", "beskrivelse": "SKATTEETATEN, MANUELL_INPUT eller MELLOMREGNING." },
-            { "navn": "beregningsbeloep", "type": "heltall", "beskrivelse": "Grunnlaget etter at ytelser som ikke medregnes er trukket fra." }
+            {
+              "navn": "inntektsaar",
+              "type": "heltall"
+            },
+            {
+              "navn": "stadie",
+              "type": "kodeverdi",
+              "beskrivelse": "OPPGJOER, UTKAST eller UKJENT."
+            },
+            {
+              "navn": "poster",
+              "type": "liste",
+              "beskrivelse": "tekniskNavn, visningstekst, beloep, kilde og medregnes."
+            },
+            {
+              "navn": "kilde",
+              "type": "kodeverdi",
+              "beskrivelse": "SKATTEETATEN, MANUELL_INPUT eller MELLOMREGNING."
+            },
+            {
+              "navn": "beregningsbeloep",
+              "type": "heltall",
+              "beskrivelse": "Grunnlaget etter at ytelser som ikke medregnes er trukket fra."
+            }
           ]
         },
         {
@@ -64,10 +167,35 @@
           "navn": "Ordning",
           "beskrivelse": "Moderasjonsordning med regel og eventuell inntektsgrense. Ligger i data/satser.json.",
           "attributter": [
-            { "navn": "id", "type": "string" },
-            { "navn": "regel", "type": "kodeverdi", "beskrivelse": "INNTEKTSGRENSE eller MAKS_ANDEL_AV_INNTEKT." },
-            { "navn": "inntektsgrense", "type": "heltall" },
-            { "navn": "tjeneste", "type": "kodeverdi", "beskrivelse": "barnehage eller sfo." }
+            {
+              "navn": "id",
+              "type": "string"
+            },
+            {
+              "navn": "regel",
+              "type": "kodeverdi",
+              "beskrivelse": "INNTEKTSGRENSE eller MAKS_ANDEL_AV_INNTEKT.",
+              "kodeverdier": [
+                "INNTEKTSGRENSE",
+                "MAKS_ANDEL_AV_INNTEKT",
+                "TJENESTEBEHOV"
+              ]
+            },
+            {
+              "navn": "inntektsgrense",
+              "type": "heltall"
+            },
+            {
+              "navn": "tjeneste",
+              "type": "kodeverdi",
+              "beskrivelse": "barnehage eller sfo.",
+              "kodeverdier": [
+                "barnehage",
+                "fritid",
+                "sfo",
+                "stottekontakt"
+              ]
+            }
           ]
         },
         {
@@ -75,23 +203,55 @@
           "navn": "Samtykke eller bekreftelse",
           "beskrivelse": "Innbyggerens godkjenning av databruk. Kreves før inntektsopplysninger kan hentes.",
           "attributter": [
-            { "navn": "samtykkeId", "type": "string" },
+            {
+              "navn": "samtykkeId",
+              "type": "string"
+            },
             {
               "navn": "status",
               "type": "kodeverdi",
               "beskrivelse": "Samtykkets tilstand. Tre av verdiene er endelige: et samtykke som er nektet, trukket eller utløpt gjenopplives ikke, kommunen må spørre på nytt. UTLOEPT utledes av utloper og skrives aldri til rad.",
-              "kodeverdier": ["VENTER_PAA_SVAR", "SAMTYKKET", "IKKE_SAMTYKKET", "TRUKKET", "UTLOEPT"]
+              "kodeverdier": [
+                "VENTER_PAA_SVAR",
+                "SAMTYKKET",
+                "IKKE_SAMTYKKET",
+                "TRUKKET",
+                "UTLOEPT"
+              ]
             },
-            { "navn": "utloper", "type": "tidspunkt", "beskrivelse": "30 dager etter at samtykket ble opprettet. Etter dette hjemler samtykket ingen lesning." },
-            { "navn": "dataKilder", "type": "liste" }
+            {
+              "navn": "utloper",
+              "type": "tidspunkt",
+              "beskrivelse": "30 dager etter at samtykket ble opprettet. Etter dette hjemler samtykket ingen lesning."
+            },
+            {
+              "navn": "dataKilder",
+              "type": "liste"
+            }
           ]
         }
       ],
       "relasjoner": [
-        { "from": "person", "to": "household", "type": "memberOf" },
-        { "from": "person", "to": "income", "type": "hasIncome" },
-        { "from": "person", "to": "consent", "type": "hasConsent" },
-        { "from": "household", "to": "scheme", "type": "evaluatedAgainst" }
+        {
+          "from": "person",
+          "to": "household",
+          "type": "memberOf"
+        },
+        {
+          "from": "person",
+          "to": "income",
+          "type": "hasIncome"
+        },
+        {
+          "from": "person",
+          "to": "consent",
+          "type": "hasConsent"
+        },
+        {
+          "from": "household",
+          "to": "scheme",
+          "type": "evaluatedAgainst"
+        }
       ]
     }
   ]

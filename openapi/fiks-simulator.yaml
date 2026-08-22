@@ -889,7 +889,7 @@ components:
           type: string
           nullable: true
         husnummer:
-          type: string
+          type: integer
           nullable: true
         postnummer:
           type: string
@@ -922,12 +922,22 @@ components:
         foedselsdato:
           type: string
           format: date
+        personstatus:
+          type: string
+          enum: [BOSATT, UTFLYTTET, DOED, INAKTIV, MIDLERTIDIG, OPPHOERT, FORSVUNNET]
+        doedsdato:
+          type: string
+          format: date
+          nullable: true
+          description: Satt hvis og bare hvis personstatus er DOED.
         bostedsadresse:
           $ref: "#/components/schemas/Adresse"
         kontakt:
           $ref: "#/components/schemas/Kontakt"
         husstandId:
           type: string
+          nullable: true
+          description: null for alle som ikke er BOSATT.
         adressebeskyttelse:
           type: string
           enum: [UGRADERT, FORTROLIG, STRENGT_FORTROLIG]
@@ -999,11 +1009,20 @@ components:
 
     Barnehageplass:
       type: object
+      description: >-
+        Raden returneres urørt fra data/barnehageplasser.json. Feltet het
+        `barnehage` her, som ikke finnes i dataene.
       properties:
         personId:
           type: string
-        barnehage:
+        barnehageId:
           type: string
+        barnehagenavn:
+          type: string
+        kommune:
+          type: string
+        plassprosent:
+          type: integer
         manedspris:
           type: integer
         syntetisk:

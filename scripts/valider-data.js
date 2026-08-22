@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
 // The vedtak itself, imported rather than mirrored. This file used to carry its own
 // copy of every rule below, which meant data/forventet-utfall.json — the pinned
@@ -12,6 +12,15 @@ import {
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { SAMTYKKESTATUSER } from "../apps/fiks-simulator/src/samtykke.ts";
+// The generated participant table, imported rather than re-rendered — the same
+// reason the vedtak is imported below instead of mirrored.
+import { buildTestpersondok } from "./testpersondok.js";
+// Modulus 11 and Skatteetaten's +80 marker, imported rather than mirrored — the
+// same reason vilkaar.ts is imported below rather than copied.
+import {
+  isSyntetiskFoedselsnummer,
+  stemmerMedFoedselsdato
+} from "../apps/sandbox-backend/src/foedselsnummer.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
 // created by the services on first write.
@@ -24,8 +33,12 @@ const files = [
   "data/satser.json",
   "data/prosessdefinisjoner.json",
   "data/informasjonsmodeller.json",
+  "data/folkeregister.seed.json",
+  "data/kuratert.json",
   "data/matrikkel.seed.json",
   "data/matrikkel.json",
+  "data/eierforhold.json",
+  "data/deltakercaser.json",
   "data/fritidsaktiviteter.json",
   "data/fritidsdeltakelse.json",
   "data/tjenestetilbud.json",
@@ -54,8 +67,24 @@ const personIder = new Set(personer.map((p) => p.personId));
 const husstandIder = new Set(husstander.map((h) => h.husstandId));
 
 for (const person of personer) {
-  if (!husstandIder.has(person.husstandId)) {
+  // A household is people living at an address, so someone who is dead, inactive
+  // or emigrated has none — and null is the honest value, not a placeholder
+  // household of one. GET /api/personer/:id/husstand answers 404 for them.
+  const boFast = person.personstatus === "BOSATT";
+  if (boFast && !husstandIder.has(person.husstandId)) {
     throw new Error(`${person.personId} peker på ukjent husstand ${person.husstandId}.`);
+  }
+  if (!boFast && person.husstandId !== null) {
+    throw new Error(
+      `${person.personId} har personstatus ${person.personstatus} men husstand ` +
+      `${person.husstandId}. Bare BOSATT er medlem av en husstand.`
+    );
+  }
+  if (!boFast && person.rolle !== null) {
+    throw new Error(
+      `${person.personId} har personstatus ${person.personstatus} men rolle ` +
+      `"${person.rolle}". Rollen gjelder inne i en husstand.`
+    );
   }
   for (const relasjon of person.foreldrebarnrelasjon || []) {
     if (!personIder.has(relasjon.relatertPersonId)) {
@@ -77,6 +106,570 @@ for (const rad of inntekter) {
   if (!identer.has(rad.identifikator)) {
     throw new Error(`Inntektsrad peker på ukjent identifikator ${rad.identifikator}.`);
   }
+}
+
+// --- Every identifier must be a well-formed synthetic one -------------------
+// The 51 curated fixtures used to carry numbers of the form 12018890001: the
+// personId encoded in the tail, an ordinary month, and control digits that failed
+// modulus 11. They were neither valid identifiers nor recognisable as synthetic,
+// and no check anywhere could see it — the only fnr validation in the repo was
+// `^[0-9]{11}$`.
+const ugyldigeFnr = personer.filter((p) => !isSyntetiskFoedselsnummer(p.syntetiskFodselsnummer));
+if (ugyldigeFnr.length > 0) {
+  const foerste = ugyldigeFnr
+    .slice(0, 5)
+    .map((p) => `${p.personId}=${p.syntetiskFodselsnummer}`)
+    .join(", ");
+  throw new Error(
+    `${ugyldigeFnr.length} personer har et fødselsnummer som ikke er syntetisk og ` +
+    `mod11-gyldig: ${foerste}. Syntetiske numre har +80 på fødselsmåneden ` +
+    `(måned 81–92) og kontrollsifre regnet ut etter påslaget.`
+  );
+}
+if (new Set(personer.map((p) => p.syntetiskFodselsnummer)).size !== personer.length) {
+  throw new Error("To personer deler fødselsnummer.");
+}
+
+// The date inside the identifier need not equal foedselsdato — real
+// Folkeregisteret allows a corrected birth date to keep the original number, and
+// Tenor ships two such people. But nothing this repo *generates* may disagree with
+// itself, so the rule binds the curated fixtures.
+// --- Life status, and what follows from it ----------------------------------
+// The population had no life status at all: no personstatus, no doedsdato, no
+// field of any kind. The importer dropped everyone who was not bosatt, so a
+// child's dead mother simply vanished and the family was left incomplete. Now
+// they are in the register — which means the two fields have to stay in step.
+const PERSONSTATUS = new Set([
+  "BOSATT",
+  "UTFLYTTET",
+  "DOED",
+  "INAKTIV",
+  "MIDLERTIDIG",
+  "OPPHOERT",
+  "FORSVUNNET"
+]);
+for (const person of personer) {
+  if (!PERSONSTATUS.has(person.personstatus)) {
+    throw new Error(
+      `${person.personId} har personstatus "${person.personstatus}". ` +
+      `Gyldige: ${[...PERSONSTATUS].join(", ")}.`
+    );
+  }
+  const doed = person.personstatus === "DOED";
+  if (doed !== Boolean(person.doedsdato)) {
+    throw new Error(
+      `${person.personId}: personstatus=${person.personstatus} og ` +
+      `doedsdato=${JSON.stringify(person.doedsdato)}. Dødsdato finnes hvis og bare ` +
+      `hvis statusen er DOED.`
+    );
+  }
+  if (doed && person.doedsdato < person.foedselsdato) {
+    throw new Error(
+      `${person.personId} døde ${person.doedsdato}, før fødselsdatoen ${person.foedselsdato}.`
+    );
+  }
+}
+if (!personer.some((p) => p.personstatus === "DOED")) {
+  throw new Error(
+    "Ingen person er DOED. Da har ingen sperre mot å opptre for en død person noe å " +
+    "hvile på, og et barn med en død forelder kan ikke demonstreres."
+  );
+}
+
+// Nobody who is not bosatt may hold anything that presumes an address or a case.
+const ikkeBosattIder = new Set(
+  personer.filter((p) => p.personstatus !== "BOSATT").map((p) => p.personId)
+);
+const ikkeBosattFnr = new Set(
+  personer.filter((p) => p.personstatus !== "BOSATT").map((p) => p.syntetiskFodselsnummer)
+);
+for (const husstand of husstander) {
+  for (const medlem of husstand.medlemmer) {
+    if (ikkeBosattIder.has(medlem.personId)) {
+      throw new Error(`${husstand.husstandId} har ${medlem.personId}, som ikke er BOSATT, som medlem.`);
+    }
+  }
+}
+for (const rad of inntekter) {
+  if (ikkeBosattFnr.has(rad.identifikator)) {
+    throw new Error(`Inntektsrad for ${rad.identifikator}, som ikke er BOSATT.`);
+  }
+}
+
+// --- Relations point both ways, and carry a role ----------------------------
+// 113 of 138 parent edges used to exist in one direction only: the child named
+// the parent, the parent named nobody. "Which children does this person have"
+// answered nothing for 102 Tenor families. And the value was a flat FORELDER,
+// while openapi/sandbox-backend.yaml has said enum [BARN, FAR, MOR, MEDMOR] all
+// along — the spec was right and the data was wrong.
+const RELASJONER = new Set(["MOR", "FAR", "MEDMOR", "BARN"]);
+const OMVENDT = { MOR: "BARN", FAR: "BARN", MEDMOR: "BARN" };
+const relasjonskanter = new Set();
+for (const person of personer) {
+  for (const rel of person.foreldrebarnrelasjon || []) {
+    if (!RELASJONER.has(rel.relasjon)) {
+      throw new Error(
+        `${person.personId}: relasjon "${rel.relasjon}" til ${rel.relatertPersonId}. ` +
+        `Gyldige: ${[...RELASJONER].join(", ")}.`
+      );
+    }
+    if (rel.relatertPersonId === person.personId) {
+      throw new Error(`${person.personId} er sin egen ${rel.relasjon}.`);
+    }
+    relasjonskanter.add(`${person.personId}|${rel.relatertPersonId}|${rel.relasjon}`);
+  }
+}
+const personPerIdForRelasjon = new Map(personer.map((p) => [p.personId, p]));
+for (const person of personer) {
+  for (const rel of person.foreldrebarnrelasjon || []) {
+    const forventet = OMVENDT[rel.relasjon];
+    if (forventet) {
+      if (!relasjonskanter.has(`${rel.relatertPersonId}|${person.personId}|BARN`)) {
+        throw new Error(
+          `${person.personId} har ${rel.relasjon} ${rel.relatertPersonId}, men ` +
+          `${rel.relatertPersonId} har ikke ${person.personId} som BARN. Relasjoner ` +
+          `skal gå begge veier.`
+        );
+      }
+      // A parent younger than their child is the kind of thing a symmetric graph
+      // hides: both directions agree, and both are wrong.
+      const forelder = personPerIdForRelasjon.get(rel.relatertPersonId);
+      const aldersforskjell =
+        alderVed(person.foedselsdato, satser.gjelderFra) === null
+          ? 0
+          : Number(forelder.foedselsdato.slice(0, 4)) - Number(person.foedselsdato.slice(0, 4));
+      if (aldersforskjell > -12) {
+        throw new Error(
+          `${rel.relatertPersonId} (f. ${forelder.foedselsdato}) er ${rel.relasjon} til ` +
+          `${person.personId} (f. ${person.foedselsdato}), men er ikke minst 12 år eldre.`
+        );
+      }
+    } else {
+      const barn = personPerIdForRelasjon.get(rel.relatertPersonId);
+      const harMotpart = (barn.foreldrebarnrelasjon || []).some(
+        (r) => r.relatertPersonId === person.personId && OMVENDT[r.relasjon]
+      );
+      if (!harMotpart) {
+        throw new Error(
+          `${person.personId} har BARN ${rel.relatertPersonId}, men ${rel.relatertPersonId} ` +
+          `har ikke ${person.personId} som forelder. Relasjoner skal gå begge veier.`
+        );
+      }
+    }
+  }
+}
+
+// --- data/kuratert.json is the source for the frozen fixtures ---------------
+// person-001..051 and household-001..018 are hand-authored. They live in
+// data/kuratert.json, and scripts/importer-tenor.js copies the authored fields
+// through while deriving rolle, skjermet, husstandstype, adresse, kommune and the
+// member list. This gate is what makes that split worth having: edit a curated row
+// in data/personer.json by hand and the next import silently reverts it, so the
+// mistake has to surface here instead of at the next regeneration.
+const kuratert = await read("data/kuratert.json");
+const personPerId = new Map(personer.map((p) => [p.personId, p]));
+const utenJoinnoekkel = (adresse) => {
+  if (!adresse) return adresse;
+  const { adresseIdentifikatorFraMatrikkelen, ...resten } = adresse;
+  return resten;
+};
+const FORFATTEDE_FELT = [
+  "syntetiskFodselsnummer",
+  "navn",
+  "foedselsdato",
+  "bostedsadresse",
+  "sivilstand",
+  "husstandId",
+  "adressebeskyttelse",
+  "kontakt"
+];
+
+for (const kilde of kuratert.personer) {
+  const bygget = personPerId.get(kilde.personId);
+  if (!bygget) {
+    throw new Error(
+      `${kilde.personId} står i data/kuratert.json men ikke i data/personer.json. ` +
+      `Kjør node scripts/importer-tenor.js.`
+    );
+  }
+  for (const felt of FORFATTEDE_FELT) {
+    // adresseIdentifikatorFraMatrikkelen is derived from data/matrikkel.json, not
+    // authored, so it lives in the built address and not in the source one.
+    const forfattet = felt === "bostedsadresse" ? utenJoinnoekkel(kilde[felt]) : kilde[felt];
+    const utledet = felt === "bostedsadresse" ? utenJoinnoekkel(bygget[felt]) : bygget[felt];
+    if (JSON.stringify(forfattet) !== JSON.stringify(utledet)) {
+      throw new Error(
+        `${kilde.personId}: ${felt} i data/personer.json stemmer ikke med ` +
+        `data/kuratert.json. Kilden er kuratert.json — rediger den og kjør ` +
+        `node scripts/importer-tenor.js.`
+      );
+    }
+  }
+  if (bygget.kilde) {
+    throw new Error(
+      `${kilde.personId} er merket kilde="${bygget.kilde}" men står i data/kuratert.json.`
+    );
+  }
+  if (!stemmerMedFoedselsdato(kilde.syntetiskFodselsnummer, kilde.foedselsdato)) {
+    throw new Error(
+      `${kilde.personId}: fødselsnummeret ${kilde.syntetiskFodselsnummer} beskriver ikke ` +
+      `${kilde.foedselsdato}. Genererte numre skal alltid stemme med datoen.`
+    );
+  }
+  // Relations are authored in ONE direction — the parent's `barn` list — precisely
+  // so the two directions cannot disagree. This checks the derivation kept it.
+  const bygdeBarn = (bygget.foreldrebarnrelasjon || [])
+    .filter((rel) => rel.relasjon === "BARN")
+    .map((rel) => rel.relatertPersonId)
+    .sort();
+  if (JSON.stringify(bygdeBarn) !== JSON.stringify([...(kilde.barn || [])].sort())) {
+    throw new Error(
+      `${kilde.personId}: barn i data/personer.json er ${JSON.stringify(bygdeBarn)}, ` +
+      `men data/kuratert.json sier ${JSON.stringify(kilde.barn || [])}.`
+    );
+  }
+}
+
+// The frozen ids are frozen in both directions: an imported person must never
+// land on one, which is what would happen if the allocation counter drifted.
+const kuraterteIder = new Set(kuratert.personer.map((p) => p.personId));
+for (const person of personer) {
+  if (person.kilde === "tenor" && kuraterteIder.has(person.personId)) {
+    throw new Error(
+      `${person.personId} er både kuratert og importert. Id-ene person-001..051 er frosne.`
+    );
+  }
+}
+
+const kuraterteHusstandIder = new Set(kuratert.husstander.map((h) => h.husstandId));
+for (const husstand of husstander) {
+  const erKuratert = kuraterteHusstandIder.has(husstand.husstandId);
+  if (erKuratert === Boolean(husstand.kilde)) {
+    throw new Error(
+      `${husstand.husstandId}: står ${erKuratert ? "" : "ikke "}i data/kuratert.json, ` +
+      `men har kilde=${JSON.stringify(husstand.kilde)}. Kuraterte husstander har ingen kilde.`
+    );
+  }
+}
+
+// --- The two person models must agree --------------------------------------
+// data/personer.json is the sandbox's own model and data/folkeregister.seed.json
+// is the FREG-shaped mirror. Both are written by the same import, both hold every
+// person — and nothing held them together: the seed was not in the files list
+// above, so no test read it at all. They drifted in key order for eight people
+// before anyone looked.
+const freg = await read("data/folkeregister.seed.json");
+if (freg.antall !== freg.personer.length) {
+  throw new Error(
+    `folkeregister.seed.json sier antall=${freg.antall} men har ${freg.personer.length} personer.`
+  );
+}
+const fregPerPersonId = new Map(freg.personer.map((p) => [p._sandbox?.personId, p]));
+if (fregPerPersonId.size !== freg.personer.length) {
+  throw new Error("folkeregister.seed.json har to rader med samme _sandbox.personId.");
+}
+if (fregPerPersonId.size !== personer.length) {
+  throw new Error(
+    `${personer.length} personer i personer.json, ${fregPerPersonId.size} i ` +
+    `folkeregister.seed.json. Begge skrives av samme import og skal ha samme befolkning.`
+  );
+}
+
+const SPEILEDE_FELT = [
+  ["syntetiskFodselsnummer", "foedselsEllerDNummer"],
+  ["navn", "personnavn"],
+  ["foedselsdato", "foedselsdato"],
+  ["personstatus", "personstatus"],
+  ["sivilstand", "sivilstand"],
+  ["bostedsadresse", "bostedsadresse"],
+  ["skjermet", "skjermet"],
+  ["adressebeskyttelse", "adressebeskyttelse"],
+  ["kontakt", "kontakt"]
+];
+for (const person of personer) {
+  const speil = fregPerPersonId.get(person.personId);
+  if (!speil) {
+    throw new Error(`${person.personId} finnes ikke i folkeregister.seed.json.`);
+  }
+  for (const [egen, fregNavn] of SPEILEDE_FELT) {
+    if (JSON.stringify(person[egen]) !== JSON.stringify(speil[fregNavn])) {
+      throw new Error(
+        `${person.personId}: ${egen} i personer.json er ` +
+        `${JSON.stringify(person[egen])}, men ${fregNavn} i folkeregister.seed.json er ` +
+        `${JSON.stringify(speil[fregNavn])}.`
+      );
+    }
+  }
+  if (JSON.stringify(person.doedsdato ? { doedsdato: person.doedsdato } : null) !==
+      JSON.stringify(speil.doedsfall)) {
+    throw new Error(
+      `${person.personId}: doedsdato=${JSON.stringify(person.doedsdato)} men ` +
+      `doedsfall=${JSON.stringify(speil.doedsfall)}.`
+    );
+  }
+  if (speil._sandbox.husstandId !== person.husstandId || speil._sandbox.rolle !== person.rolle) {
+    throw new Error(
+      `${person.personId}: _sandbox i folkeregister.seed.json sier husstand ` +
+      `${speil._sandbox.husstandId}/rolle ${speil._sandbox.rolle}, personer.json sier ` +
+      `${person.husstandId}/${person.rolle}.`
+    );
+  }
+  // The shallow view has to be the same relation set on both sides, and the fnr
+  // has to be resolved — it was null on all 61 curated rows before.
+  const egne = (person.foreldrebarnrelasjon || [])
+    .map((r) => `${r.relatertPersonId}|${r.relasjon}`)
+    .sort();
+  const speilet = (speil.forelderbarnrelasjon || [])
+    .map((r) => `${r._sandboxRelatertPersonId}|${r.relatertPersonsRolle}`)
+    .sort();
+  if (JSON.stringify(egne) !== JSON.stringify(speilet)) {
+    throw new Error(
+      `${person.personId}: relasjonene i de to modellene er ulike. ` +
+      `personer.json: ${egne.join(", ")}. folkeregister.seed.json: ${speilet.join(", ")}.`
+    );
+  }
+  for (const rel of speil.forelderbarnrelasjon || []) {
+    if (!rel.relatertPersonsIdent) {
+      throw new Error(
+        `${person.personId}: forelderbarnrelasjon til ${rel._sandboxRelatertPersonId} ` +
+        `mangler relatertPersonsIdent. Identifikatoren er alltid kjent.`
+      );
+    }
+  }
+}
+
+// --- Familierelasjon: Folkeregisterets egen modell ---------------------------
+// Wider than forelderbarnrelasjon: it carries the spouse, and the role seen from
+// both ends. GIFT with nobody to be married to was true for 78 of 224 people
+// before, because sivilstand was a scalar with no link behind it.
+const FREG_ROLLER = new Set(["mor", "far", "medmor", "barn", "soesken", "ektefelleEllerPartner"]);
+const fnrTilPersonId = new Map(personer.map((p) => [p.syntetiskFodselsnummer, p.personId]));
+const familiekanter = new Set();
+for (const speil of freg.personer) {
+  for (const rel of speil.familierelasjon || []) {
+    if (!FREG_ROLLER.has(rel.relatertPersonsRolle) || !FREG_ROLLER.has(rel.minRolleForPerson)) {
+      throw new Error(
+        `${speil._sandbox.personId}: familierelasjon med rolle ` +
+        `${rel.relatertPersonsRolle}/${rel.minRolleForPerson}. Gyldige: ` +
+        `${[...FREG_ROLLER].join(", ")}.`
+      );
+    }
+    if (fnrTilPersonId.get(rel.relatertPersonsIdent) !== rel._sandboxRelatertPersonId) {
+      throw new Error(
+        `${speil._sandbox.personId}: familierelasjon peker på ` +
+        `${rel.relatertPersonsIdent}, som ikke er ${rel._sandboxRelatertPersonId}.`
+      );
+    }
+    familiekanter.add(
+      `${speil._sandbox.personId}|${rel._sandboxRelatertPersonId}|` +
+      `${rel.relatertPersonsRolle}|${rel.minRolleForPerson}`
+    );
+  }
+}
+for (const kant of familiekanter) {
+  const [fra, til, rolle, minRolle] = kant.split("|");
+  if (!familiekanter.has(`${til}|${fra}|${minRolle}|${rolle}`)) {
+    throw new Error(
+      `Familierelasjonen ${fra} -> ${til} (${rolle}) har ingen motpart ` +
+      `${til} -> ${fra} (${minRolle}).`
+    );
+  }
+}
+
+// Married means married to someone. Where the spouse is outside the extract the
+// register still says GIFT — that is Tenor's fact, not a defect — so the rule is
+// that a spouse *inside* the extract must be alive, and a dead one makes the
+// survivor enke/enkemann.
+const statusPerPersonId = new Map(personer.map((p) => [p.personId, p.personstatus]));
+for (const speil of freg.personer) {
+  const ektefeller = (speil.familierelasjon || [])
+    .filter((rel) => rel.relatertPersonsRolle === "ektefelleEllerPartner");
+  if (ektefeller.length > 1) {
+    throw new Error(`${speil._sandbox.personId} har ${ektefeller.length} ektefeller.`);
+  }
+  const doedEktefelle = ektefeller.some(
+    (rel) => statusPerPersonId.get(rel._sandboxRelatertPersonId) === "DOED"
+  );
+  if (doedEktefelle && speil.sivilstand === "GIFT") {
+    throw new Error(
+      `${speil._sandbox.personId} er GIFT med ${ektefeller[0]._sandboxRelatertPersonId}, ` +
+      `som er DOED. Da er sivilstanden ENKE_ELLER_ENKEMANN.`
+    );
+  }
+  if (speil.sivilstand === "ENKE_ELLER_ENKEMANN" && !doedEktefelle) {
+    throw new Error(
+      `${speil._sandbox.personId} er ENKE_ELLER_ENKEMANN uten en død ektefelle i datasettet.`
+    );
+  }
+}
+if (!freg.personer.some((p) => p.sivilstand === "ENKE_ELLER_ENKEMANN")) {
+  throw new Error("Ingen er enke eller enkemann. Da demonstrerer ikke datasettet konsekvensen av et dødsfall.");
+}
+
+// Every imported fødselsnummer must appear verbatim in data/tenor/. The import
+// must pass them through, never mint one — the only numbers it generates belong to
+// the curated fixtures.
+const tenorFiler = (await readdir("data/tenor")).filter((f) => f.endsWith(".json"));
+const tenorFnr = new Set();
+for (const fil of tenorFiler) {
+  const innhold = await read(`data/tenor/${fil}`);
+  const samle = (dokument) => {
+    const ident = dokument?.identifikator;
+    const fnr = Array.isArray(ident) && ident.length ? ident[0] : dokument?.id;
+    if (fnr) tenorFnr.add(fnr);
+  };
+  for (const dokument of innhold.dokumentListe || []) {
+    samle(dokument);
+    for (const rel of dokument?.tenorRelasjoner?.freg || []) samle(rel);
+  }
+}
+const oppdiktede = personer
+  .filter((p) => p.kilde === "tenor")
+  .filter((p) => !tenorFnr.has(p.syntetiskFodselsnummer));
+if (oppdiktede.length > 0) {
+  throw new Error(
+    `${oppdiktede.length} personer er merket kilde=tenor men har et fødselsnummer som ` +
+    `ikke finnes i data/tenor/: ${oppdiktede.slice(0, 5).map((p) => p.personId).join(", ")}.`
+  );
+}
+
+// --- Every resident joins to a property --------------------------------------
+// adresseIdentifikatorFraMatrikkelen had 154 distinct values and matched exactly
+// zero matrikkelId: Tenor's value points into the real Kartverket register, and
+// this repo holds a synthetic one. The field looked like a working join key, which
+// is worse than an empty one. It resolves now, and this is what keeps it resolving.
+const matrikkel = await read("data/matrikkel.json");
+const matrikkelIder = new Set(
+  matrikkel.gater.flatMap((gate) => gate.eiendommer.map((e) => e.matrikkelId))
+);
+for (const gate of matrikkel.gater) {
+  if (gate.antallEiendommer !== gate.eiendommer.length) {
+    throw new Error(
+      `${gate.gateId} sier antallEiendommer=${gate.antallEiendommer} men har ` +
+      `${gate.eiendommer.length}. Tellerne løy på nøyaktig de fire kuraterte gatene.`
+    );
+  }
+  const bolig = gate.eiendommer.filter((e) => e.bruksenhetstype === "bolig").length;
+  if (gate.antallBoligeiendommer !== bolig) {
+    throw new Error(
+      `${gate.gateId} sier antallBoligeiendommer=${gate.antallBoligeiendommer} men har ${bolig}.`
+    );
+  }
+}
+
+for (const person of personer) {
+  const id = person.bostedsadresse?.adresseIdentifikatorFraMatrikkelen ?? null;
+  if (id !== null && !matrikkelIder.has(id)) {
+    throw new Error(
+      `${person.personId} peker på matrikkelenheten ${id}, som ikke finnes i ` +
+      `data/matrikkel.json.`
+    );
+  }
+  if (person.personstatus === "BOSATT" && id === null) {
+    throw new Error(
+      `${person.personId} er BOSATT på ${person.bostedsadresse?.adressenavn} ` +
+      `${person.bostedsadresse?.husnummer} i ${person.bostedsadresse?.kommunenummer}, men ` +
+      `adressen finnes ikke i matrikkelen. Kjør node scripts/hent-matrikkel.js, eller ` +
+      `flytt husstanden til en reell adresse i samme kommune i data/kuratert.json.`
+    );
+  }
+  // Someone who is not bosatt may well have no address at all — the D-number
+  // holders have none, which is exactly right — but if they have one it must join.
+}
+
+// --- Eierforhold ------------------------------------------------------------
+// Issue #8: 28 people held 1280 titles across 1225 of 8202 properties, all of them
+// in the curated band. person-026 held 70; person-012 and person-017 held 65 each
+// across 48 streets. 341 of 369 owned nothing, so a randomly chosen test person
+// could never pass an ownership check while the 28 passed almost everywhere. The
+// distribution is derived now — a household owns the home it lives in — and this
+// is what stops it drifting back.
+const eierforhold = await read("data/eierforhold.json");
+if (eierforhold.antall !== eierforhold.eierforhold.length) {
+  throw new Error(
+    `eierforhold.json sier antall=${eierforhold.antall} men har ` +
+    `${eierforhold.eierforhold.length} rader.`
+  );
+}
+const EIERFORMER = new Set(["SELVEIER", "UTLEIE", "UOPPGJORT_DODSBO"]);
+const eidAv = new Map();
+const seetteMatrikkelIder = new Set();
+for (const rad of eierforhold.eierforhold) {
+  if (!matrikkelIder.has(rad.matrikkelId)) {
+    throw new Error(
+      `eierforhold.json har ${rad.matrikkelId}, som ikke finnes i data/matrikkel.json.`
+    );
+  }
+  if (seetteMatrikkelIder.has(rad.matrikkelId)) {
+    throw new Error(`eierforhold.json har to rader for ${rad.matrikkelId}.`);
+  }
+  seetteMatrikkelIder.add(rad.matrikkelId);
+  if (!rad.eiere?.length) {
+    throw new Error(
+      `${rad.matrikkelId} står i eierforhold.json uten eiere. En eiendom uten ` +
+      `registrert eier utelates fra fila i stedet.`
+    );
+  }
+  const sumAndel = rad.eiere.reduce((sum, e) => sum + e.andel, 0);
+  if (Math.abs(sumAndel - 1) > 0.01) {
+    throw new Error(`${rad.matrikkelId}: andelene summerer til ${sumAndel}, ikke 1.`);
+  }
+  for (const eier of rad.eiere) {
+    if (!EIERFORMER.has(eier.eierform)) {
+      throw new Error(
+        `${rad.matrikkelId}: eierform "${eier.eierform}". Gyldige: ${[...EIERFORMER].join(", ")}.`
+      );
+    }
+    if (!personIder.has(eier.eier)) {
+      throw new Error(
+        `${rad.matrikkelId} eies av ${eier.eier}, som ikke finnes i data/personer.json.`
+      );
+    }
+    if (statusPerPersonId.get(eier.eier) === "DOED" && eier.eierform !== "UOPPGJORT_DODSBO") {
+      throw new Error(
+        `${rad.matrikkelId} eies av ${eier.eier}, som er DOED, med eierform ` +
+        `${eier.eierform}. Et dødsbo er UOPPGJORT_DODSBO til skiftet er ferdig.`
+      );
+    }
+    eidAv.set(eier.eier, (eidAv.get(eier.eier) || 0) + 1);
+  }
+}
+const TAK = 3;
+const forMange = [...eidAv.entries()].filter(([, antall]) => antall > TAK);
+if (forMange.length > 0) {
+  throw new Error(
+    `${forMange.length} personer eier mer enn ${TAK} eiendommer: ` +
+    `${forMange.slice(0, 5).map(([id, n]) => `${id}=${n}`).join(", ")}. ` +
+    `Det var slik issue #8 startet.`
+  );
+}
+if (eidAv.size < 50) {
+  throw new Error(
+    `Bare ${eidAv.size} personer eier noe. Da kan de fleste testpersonene aldri ` +
+    `passere en eierforholdssjekk, som er halve issue #8.`
+  );
+}
+// The fartsdempende case rests on exactly these two facts, and pnpm test:kontrakt
+// and pnpm test:mcp-matrikkel both assert them over HTTP. Pinned here too, so a
+// redistribution fails before the stack has to be up.
+const storgataEid = eierforhold.eierforhold.find((r) => r.matrikkelId === "matr-storg-003");
+if (!storgataEid?.eiere.some((e) => e.eier === "person-001")) {
+  throw new Error(
+    "person-001 eier ikke matr-storg-003. Godkjent-utfallet i fartsdempende-tiltak " +
+    "og pnpm test:mcp-matrikkel hviler på det."
+  );
+}
+const fjosangerGate = matrikkel.gater.find((g) => g.gateId === "gate-fjosangerveien-bergen");
+const eierIFjosanger = (fjosangerGate?.eiendommer || []).some((e) =>
+  eierforhold.eierforhold
+    .find((r) => r.matrikkelId === e.matrikkelId)
+    ?.eiere.some((eier) => eier.eier === "person-001")
+);
+if (eierIFjosanger) {
+  throw new Error(
+    "person-001 eier i Fjøsangerveien. Avvisningen i fartsdempende-tiltak er poenget " +
+    "med steget, og den forsvinner da."
+  );
 }
 
 // --- Scenario coverage -----------------------------------------------------
@@ -128,13 +721,19 @@ const fritidsdeltakelse = await read("data/fritidsdeltakelse.json");
 // that are not the seed — the exact trap findShadowedSeeds warns about. It also runs
 // maskBefolkning, which would make the "seed is not masked" check further down
 // assert against its own output. Both failures are silent.
+const tjenestetilbud = await read("data/tjenestetilbud.json");
 const tilstand = {
   personer,
   husstander,
   satser,
   barnehageplasser,
   sfoplasser,
-  fritidsdeltakelse
+  fritidsdeltakelse,
+  // TJENESTEBEHOV reads this through ordning.tilbudsdatasett. It was missing, so
+  // evaluateVilkaar answered avslag for every støttekontakt case driven from here —
+  // silently, because the block further down asks the question by hand and never
+  // called the rule.
+  tjenestetilbud
 };
 
 // Whose data a household is assessed on. The rules take a person; this file iterates
@@ -238,6 +837,7 @@ for (const ordning of satser.ordninger) {
 // silently turning a case into something the scenario text no longer describes.
 const pinnet = await read("data/forventet-utfall.json");
 const pinnetPerHusstand = new Map(pinnet.husstander.map((r) => [r.husstandId, r.utfall]));
+const husstandPerId = new Map(husstander.map((h) => [h.husstandId, h]));
 
 for (const husstand of husstander) {
   const forventet = pinnetPerHusstand.get(husstand.husstandId) || [];
@@ -352,7 +952,6 @@ for (const plass of sfoplasser) {
 // changes the contract dump for the støttekontakt flows, so it is its own
 // decision. Until then: the four-way classification here, the rule's own branches
 // covered by pnpm test:vilkaar.
-const tjenestetilbud = await read("data/tjenestetilbud.json");
 for (const ordning of satser.ordninger) {
   if (ordning.regel !== "TJENESTEBEHOV") continue;
   const utfall = { innvilget: 0, ingenTilbud: 0, utenforMaalgruppe: 0, fullt: 0 };
@@ -471,13 +1070,59 @@ for (const prosess of allProsesser) {
   }
 }
 
+const modeller = await read("data/informasjonsmodeller.json");
+
+// --- Informasjonsmodellens kodeverdier mot dataene --------------------------
+// Four of these had drifted into prose that was simply false: sivilstand said
+// «GIFT eller UGIFT i denne forenklingen» while the data also had SEPARERT,
+// household.type listed three of seven, scheme.regel two of three and
+// scheme.tjeneste two of four. Prose cannot be checked, so they are kodeverdier
+// now, and the rule is that the documented set equals the set the data actually
+// contains. A model that only claims what is there cannot go stale.
+const KODEVERDIER_FRA_DATA = [
+  ["person", "sivilstand", () => personer.map((p) => p.sivilstand)],
+  ["person", "personstatus", () => personer.map((p) => p.personstatus)],
+  ["person", "foreldrebarnrelasjon",
+    () => personer.flatMap((p) => (p.foreldrebarnrelasjon || []).map((r) => r.relasjon))],
+  ["household", "type", () => husstander.map((h) => h.type)],
+  ["household", "medlemmer",
+    () => husstander.flatMap((h) => h.medlemmer.map((m) => m.rolle))],
+  ["scheme", "regel", () => satser.ordninger.map((o) => o.regel)],
+  ["scheme", "tjeneste", () => satser.ordninger.map((o) => o.tjeneste)]
+];
+
+const begreperIModellen = new Map(
+  modeller.modeller
+    .flatMap((modell) => modell.begreper || modell.entiteter || [])
+    .map((begrep) => [begrep.id, begrep])
+);
+
+for (const [begrepId, attributtNavn, hentVerdier] of KODEVERDIER_FRA_DATA) {
+  const begrep = begreperIModellen.get(begrepId);
+  if (!begrep) {
+    throw new Error(`data/informasjonsmodeller.json mangler begrepet ${begrepId}.`);
+  }
+  const attributt = (begrep.attributter || []).find((a) => a.navn === attributtNavn);
+  if (!attributt) {
+    throw new Error(`${begrepId} mangler attributtet ${attributtNavn}.`);
+  }
+  const iDataene = [...new Set(hentVerdier())].sort();
+  const dokumentert = [...(attributt.kodeverdier || [])].sort();
+  if (JSON.stringify(dokumentert) !== JSON.stringify(iDataene)) {
+    throw new Error(
+      `${begrepId}.${attributtNavn}: informasjonsmodellen dokumenterer ` +
+      `${JSON.stringify(dokumentert)}, dataene inneholder ${JSON.stringify(iDataene)}.`
+    );
+  }
+}
+
 // --- Ett kodeverk for samtykkestatus ---------------------------------------
 // The statuses lived in three places with three different inventories: demo-gui
 // and mcp-services knew IKKE_SAMTYKKET, and the informasjonsmodell documented
 // three of the five and never mentioned UTLOEPT at all. The state machine in
 // apps/fiks-simulator/src/samtykke.ts is the kodeverk now, and this check makes
 // the documentation fail rather than quietly disagree with the code.
-const modeller = await read("data/informasjonsmodeller.json");
+
 const samtykkemodeller = modeller.modeller
   .flatMap((modell) => modell.begreper || modell.entiteter || [])
   .filter((begrep) => begrep.id === "consent");
@@ -500,6 +1145,115 @@ for (const modell of samtykkemodeller) {
     throw new Error(
       `Kodeverket for samtykkestatus er ute av takt. Informasjonsmodellen sier ` +
       `${dokumentert}, tilstandsmaskinen i apps/fiks-simulator/src/samtykke.ts sier ${ikode}.`
+    );
+  }
+}
+
+// --- docs/testpersoner.md må stemme med dataene ------------------------------
+// The one thing participants actually needed was a map of who they can use. A
+// hand-written table over 394 people goes stale the first time an income moves, so
+// it is generated — and this is what makes the generation worth anything: the file
+// is rebuilt here and compared byte for byte. A generated table that nobody checks
+// is just a table with a longer half-life.
+const plasser = {
+  barnehage: barnehageplasser,
+  sfo: sfoplasser,
+  fritid: fritidsdeltakelse
+};
+const forventetDok = buildTestpersondok(
+  personer,
+  husstander,
+  inntekter,
+  eierforhold,
+  plasser,
+  kuratert,
+  satser.gjelderFra
+);
+const faktiskDok = await readFile("docs/testpersoner.md", "utf8");
+if (faktiskDok !== forventetDok) {
+  const forventedeLinjer = forventetDok.split("\n");
+  const faktiskeLinjer = faktiskDok.split("\n");
+  const foerste = forventedeLinjer.findIndex((linje, i) => linje !== faktiskeLinjer[i]);
+  throw new Error(
+    `docs/testpersoner.md er ute av takt med dataene, fra linje ${foerste + 1}:\n` +
+    `  i fila:     ${JSON.stringify(faktiskeLinjer[foerste])}\n` +
+    `  skal være:  ${JSON.stringify(forventedeLinjer[foerste])}\n` +
+    `Kjør node scripts/importer-tenor.js.`
+  );
+}
+
+// --- Case-tabellen deltakerne faktisk bruker ---------------------------------
+// The recommended SFO user gave a rejection in three participant-facing surfaces at
+// once — deltakerstart.md, prosessmodell.md and the dashboard — and nothing caught
+// it, because the claim only ever lived in prose. It is pinned now, and the check
+// runs the same rule the flow will run.
+const deltakercaser = await read("data/deltakercaser.json");
+const deltakerstart = await readFile("docs/deltakerstart.md", "utf8");
+const prosessIder = new Set(allProsesser.map((p) => p.id));
+
+for (const sak of deltakercaser.caser) {
+  if (!prosessIder.has(sak.prosessId)) {
+    throw new Error(`data/deltakercaser.json peker på prosessen ${sak.prosessId}, som ikke finnes.`);
+  }
+  const person = personPerId.get(sak.personId);
+  if (!person) {
+    throw new Error(`data/deltakercaser.json peker på ${sak.personId}, som ikke finnes.`);
+  }
+  // A recommended demo user has to be someone a participant can actually log in as
+  // and act for themselves. Recommending a 15-year-old would send them into a 403.
+  if (person.personstatus !== "BOSATT") {
+    throw new Error(
+      `${sak.personId} er anbefalt for ${sak.prosessId} men har personstatus ` +
+      `${person.personstatus} og kan ikke logge inn.`
+    );
+  }
+  if (alderVed(person.foedselsdato, satser.gjelderFra) < 18) {
+    throw new Error(
+      `${sak.personId} er anbefalt for ${sak.prosessId} men er under 18 og kan ikke ` +
+      `være avsender på egen hånd.`
+    );
+  }
+  // The doc must name the same person. A pinned table nobody compares to the prose
+  // is just a second place to be wrong.
+  if (!deltakerstart.includes(`\`${sak.personId}\``)) {
+    throw new Error(
+      `docs/deltakerstart.md nevner ikke ${sak.personId}, som data/deltakercaser.json ` +
+      `anbefaler for ${sak.prosessId}.`
+    );
+  }
+  if (!sak.ordning) continue;
+  const ordning = satser.ordninger.find((o) => o.id === sak.ordning);
+  if (!ordning) {
+    throw new Error(`data/deltakercaser.json peker på ordningen ${sak.ordning}, som ikke finnes.`);
+  }
+  const forventetJa = sak.forventetUtfall === "innvilget";
+  let faktisk;
+  if (ordning.regel === "TJENESTEBEHOV") {
+    // Assessed per person, so vurder() deliberately returns null for it — the
+    // household loop above skips TJENESTEBEHOV for the same reason.
+    faktisk = evaluateVilkaar(ordning.regel, {
+      tilstand,
+      personId: sak.personId,
+      ordning,
+      satser,
+      grunnlag: null,
+      felles: {},
+      forbehold: ""
+    }).godkjent;
+  } else {
+    faktisk = vurder(husstandPerId.get(person.husstandId), ordning);
+    if (faktisk === null) {
+      throw new Error(
+        `${sak.personId} er anbefalt for ${sak.prosessId}, men husstanden har ingen ` +
+        `${ordning.tjeneste}-plass i målgruppen for ${sak.ordning}.`
+      );
+    }
+  }
+  if (faktisk !== forventetJa) {
+    throw new Error(
+      `data/deltakercaser.json sier ${sak.prosessId} med ${sak.personId} gir ` +
+      `${sak.forventetUtfall}, men reglene gir ${faktisk ? "innvilget" : "avslag"}. ` +
+      `Det er nøyaktig feilen som lå i SFO-caset: en anbefalt bruker som får avslag.`
     );
   }
 }

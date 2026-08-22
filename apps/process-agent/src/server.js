@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
+import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
 
 const port = Number(process.env.PORT || 8084);
 const mcpBaseUrl = process.env.MCP_BASE_URL || "http://mcp-services:8083";
@@ -526,9 +527,15 @@ function extractBrregQuery(text) {
   return value;
 }
 
+// Any eleven digits used to count as a fødselsnummer here, so "kontonummer
+// 12345678901" sent the agent looking up a person. A number that fails modulus 11
+// is not an identifier, and falling through to the free-text search is the right
+// answer for it.
 function extractPossibleFnr(text) {
-  const match = String(text || "").match(/\b(\d{11})\b/);
-  return match?.[1] || null;
+  for (const match of String(text || "").matchAll(/\b(\d{11})\b/g)) {
+    if (isGyldigFoedselsnummer(match[1])) return match[1];
+  }
+  return null;
 }
 
 function extractFolkeregisterQuery(text) {

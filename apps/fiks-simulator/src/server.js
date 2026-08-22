@@ -12,6 +12,10 @@ import { maskHusstand, maskPerson } from "../../sandbox-backend/src/skjerming.ts
 // them together — see the comment there.
 import { effektivStatus, validateSamtykkeovergang } from "./samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
+// Modulus 11, imported rather than re-regexed. The spec's ^[0-9]{11}$ accepted
+// numbers no register would ever have issued, and the sandbox's own population is
+// Tenor's +80 form — so "eleven digits" was never the actual rule.
+import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
 import { createStateReader, newId, updateJson } from "./state.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -215,12 +219,22 @@ function computeRedusertForeldrebetaling(body, personer, inntekter) {
   const personerResponse = [];
 
   for (const requested of body.personer) {
-    // The spec requires ^[0-9]{11}$. Without this check a malformed identifier
-    // returned PERSON_IKKE_FUNNET, which wrongly implies it was well-formed.
-    if (!/^[0-9]{11}$/.test(String(requested.identifikator || ""))) {
+    // Without this check a malformed identifier returned PERSON_IKKE_FUNNET, which
+    // wrongly implies it was well-formed. The two cases are kept apart because the
+    // caller can act on the difference: eleven digits is a typo in the request,
+    // wrong control digits is a typo in the number.
+    const identifikator = String(requested.identifikator || "");
+    if (!/^[0-9]{11}$/.test(identifikator)) {
       feilmeldinger.push({
         kode: "UGYLDIG_IDENTIFIKATOR",
         melding: `identifikator må være 11 siffer, fikk ${requested.identifikator}.`
+      });
+      continue;
+    }
+    if (!isGyldigFoedselsnummer(identifikator)) {
+      feilmeldinger.push({
+        kode: "UGYLDIG_IDENTIFIKATOR",
+        melding: `identifikator ${identifikator} har ugyldige kontrollsiffer.`
       });
       continue;
     }

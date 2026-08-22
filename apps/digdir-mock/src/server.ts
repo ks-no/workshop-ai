@@ -7,6 +7,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
 import { routeOverview } from "../../shared-ui/openapi.ts";
+// The one place the two age thresholds live. digdir-mock decides who gets a token
+// and sandbox-backend decides who may be party to a case; they must agree, so
+// neither carries its own copy of the rule.
+import { kanHaEid, kanOpptreSelv } from "../../sandbox-backend/src/handleevne.ts";
 
 // MOCK AV MASKINPORTEN OG ID-PORTEN
 //
@@ -103,6 +107,8 @@ type Testbruker = {
   pid: string;
   visningsnavn: string;
   kommune: string;
+  /** False for 13-17: an eID exists, rettslig handleevne does not. */
+  kanOpptreSelv: boolean;
 };
 
 async function readJson(fileName: string): Promise<any> {
@@ -121,18 +127,31 @@ async function readJson(fileName: string): Promise<any> {
 // syntetiskFodselsnummer survive masking precisely so lookups like this work.
 async function getPersoner(): Promise<Testbruker[]> {
   const personer = await readJson("personer.json");
-  return personer.map((person: any): Testbruker => ({
-    personId: person.personId,
-    pid: person.syntetiskFodselsnummer,
-    // The picker is a login screen, not a data surface: it shows the name so a
-    // participant can find their test person. Protected people are listed by
-    // personId only, so the picker does not become the way around Del A2.
-    visningsnavn: person.adressebeskyttelse === "UGRADERT"
-      ? [person.navn?.fornavn, person.navn?.mellomnavn, person.navn?.etternavn]
-          .filter(Boolean).join(" ")
-      : "Skjermet person",
-    kommune: person.bostedsadresse?.kommune || ""
-  }));
+  // Age is measured at satser.gjelderFra, like every other age in the sandbox, so
+  // the picker cannot drift out of step with the rules over time.
+  const referansedato = (await readJson("satser.json")).gjelderFra;
+  return personer
+    // No eID exists below 13 - MinID can be ordered from the year you turn 13 -
+    // and someone who is dead, emigrated or holds a D-number has nothing to log in
+    // with either. Listing all 394 meant 65 people under 13, eleven of them under
+    // three, appeared as ID-porten users. That is not a rounding error: it is a
+    // login screen offering credentials that cannot exist.
+    .filter((person: any) => kanHaEid(person, referansedato))
+    .map((person: any): Testbruker => ({
+      personId: person.personId,
+      pid: person.syntetiskFodselsnummer,
+      // The picker is a login screen, not a data surface: it shows the name so a
+      // participant can find their test person. Protected people are listed by
+      // personId only, so the picker does not become the way around Del A2.
+      visningsnavn: person.adressebeskyttelse === "UGRADERT"
+        ? [person.navn?.fornavn, person.navn?.mellomnavn, person.navn?.etternavn]
+            .filter(Boolean).join(" ")
+        : "Skjermet person",
+      kommune: person.bostedsadresse?.kommune || "",
+      // 13-17 can log in but cannot be party to a case on their own. Shown here so
+      // the picker says so before the flow refuses it.
+      kanOpptreSelv: kanOpptreSelv(person, referansedato)
+    }));
 }
 
 // --- http helpers ---------------------------------------------------------

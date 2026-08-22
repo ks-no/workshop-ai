@@ -52,14 +52,17 @@ passer alle:**
 | Case | Bruk denne brukeren |
 |---|---|
 | Redusert foreldrebetaling (barnehage) | `person-001` **Maja Solberg** |
-| Redusert betaling i SFO | `person-008` **Ingrid Dahl** |
+| Redusert betaling i SFO | `person-022` **Fatima Ali** |
 | Behovsavklaring for støttekontakt | `person-001` **Maja Solberg** |
-| Søknad om fritidskort-støtte | `person-028` **Håkon Fjeld** |
+| Søknad om fritidskort-støtte | `person-028` **Nora Fjeld** |
 | Søknad om fartsdempende tiltak | `person-001` |
+
+Tabellen er pinnet i `data/deltakercaser.json` og sjekket av `pnpm test`, så et
+innvilget utfall her er et innvilget utfall i sandkassen.
 
 > **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO, og heller
 > ikke barn i fritidskortets aldersgruppe. Prøver du de casene med henne, får du et
-> avslag som ser ut som en feil, men er riktig. Bruk `person-008` for SFO og
+> avslag som ser ut som en feil, men er riktig. Bruk `person-022` for SFO og
 > `person-028` for fritidskort.
 
 For **støttekontakt** avgjør alder og hvor søkeren bor, ikke inntekt — steget ber
@@ -70,7 +73,25 @@ For **fritidskort** avgjør husholdningens inntekt: `person-028` ligger på 158 
 får innvilget, mens `person-008` ligger på 653 000 og får avslag. Grensen er 360 000.
 
 For **fartsdempende tiltak** avgjør gatenavnet utfallet: `Storgata` gir godkjent,
-`Fjøsangerveien` gir avvist.
+`Fjøsangerveien` gir avvist. `person-001` bor og eier i Storgata 3.
+
+## 3b. Hvem kan logge inn
+
+Ikke alle testpersonene kan brukes som innlogget bruker, og det er med vilje:
+
+- **Under 13 år: ingen innlogging.** MinID kan bestilles fra det året man fyller 13,
+  så en elektronisk ID finnes ikke før det. 65 av testpersonene er under 13, og de
+  står ikke i velgeren på `:8086`.
+- **13–17 år: kan logge inn, men er bare part i saken.** Å opptre på egen hånd
+  overfor en kommune krever rettslig handleevne, altså 18 år. Prøver du å starte en
+  prosess som en 15-åring, får du et 403 som navngir de foresatte som kan være
+  avsender — og logger du inn som en av dem, går flyten gjennom.
+- **Død, utflyttet eller D-nummer: ingen innlogging.** De finnes i registeret, og et
+  barn med en død mor har fortsatt en mor — men de kan ikke være avsender.
+
+`docs/testpersoner.md` har hele befolkningen med en `Logg inn`-kolonne som sier
+`ja`, `part` eller `nei` for hver enkelt. `docs/syntetiske-data.md` forklarer
+datagrunnlaget: hvor det kommer fra, hva som er forfattet, og hvor grensene går.
 
 ## 4. Tre sjekker når noe ser rart ut
 

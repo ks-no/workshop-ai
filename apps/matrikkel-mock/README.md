@@ -4,12 +4,13 @@ Mock av Kartverket Matrikkel Geointegrasjon API i egen Docker-image.
 
 ## Datasett
 
-`matrikkel-mock` starter fra `data/matrikkel.json` — 220 Bergen-gater og 8202 eiendommer — og bygger et syntetisk matrikkelregister ved oppstart. Den er eneste leser av matrikkeldataene i sandkassen: `sandbox-backend` kaller den over HTTP via `MATRIKKEL_BASE_URL`. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
+`matrikkel-mock` starter fra `data/matrikkel.json` — 388 gater og 18 349 eiendommer i 97 kommuner — og bygger et syntetisk matrikkelregister ved oppstart. Eierforholdene ligger i `data/eierforhold.json` og slås sammen ved innlasting: eierskap hører i grunnboken, ikke i matrikkelen. `eiere` er bare med i svaret fra `/mock/matrikkel/eiendommer` når `personId` er oppgitt — å spørre hvem som eier én eiendom er et grunnbokoppslag, å hente eierlistene for en hel gate er bulkuttrekk. Den er eneste leser av matrikkeldataene i sandkassen: `sandbox-backend` kaller den over HTTP via `MATRIKKEL_BASE_URL`. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
 
 Bakgrunn:
 
 - `seeiendom.no` er fin til manuell utforsking, men frontend-en eksponerer ikke en stabil offentlig bulk-liste over alle veier i Bergen som egner seg godt for automatisert mocking.
 - Derfor holder vi `matrikkel-mock` lett og lokalt syntetisk, samtidig som vi beholder håndkuraterte demo-gater som `Storgata`, `Nordnesveien`, `Fjøsangerveien` og `Laksevågvegen`.
+- Adressegrunnlaget hentes med `node scripts/hent-matrikkel.js`, som henter de gatene befolkningen faktisk bor i fra Geonorges adresse-API. Nett kreves når skriptet kjøres, ikke når sandkassen kjører.
 
 Seedfila er stabil og skal være nok for vanlig lokal utvikling. Ved enkelte oppslag kan mocken hente data fra Geonorge dersom et treff mangler i seeden.
 

@@ -58,7 +58,7 @@
               "stadie": "OPPGJOER",
               "personer": [
                 {
-                  "identifikator": "12018890001",
+                  "identifikator": "12818800078",
                   "navn": {
                     "fornavn": "Maja",
                     "etternavn": "Solberg"
@@ -80,7 +80,7 @@
                       "beloep": 456000,
                       "personer": [
                         {
-                          "identifikator": "12018890001",
+                          "identifikator": "12818800078",
                           "beloep": 456000
                         }
                       ]
@@ -91,7 +91,7 @@
                       "beloep": 29000,
                       "personer": [
                         {
-                          "identifikator": "12018890001",
+                          "identifikator": "12818800078",
                           "beloep": 29000
                         }
                       ]
@@ -117,7 +117,7 @@
                         "beloep": 456000,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001"
+                        "identifikator": "12818800078"
                       },
                       {
                         "tekniskNavn": "renteinntekt",
@@ -126,7 +126,7 @@
                         "beloep": 29000,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001"
+                        "identifikator": "12818800078"
                       },
                       {
                         "tekniskNavn": "barnetrygd",
@@ -135,7 +135,7 @@
                         "beloep": 12648,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001",
+                        "identifikator": "12818800078",
                         "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
                       }
                     ]
@@ -159,7 +159,7 @@
                         "beloep": 12648,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001",
+                        "identifikator": "12818800078",
                         "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
                       }
                     ]
@@ -266,7 +266,7 @@
               "stadie": "OPPGJOER",
               "personer": [
                 {
-                  "identifikator": "12018890001",
+                  "identifikator": "12818800078",
                   "navn": {
                     "fornavn": "Maja",
                     "etternavn": "Solberg"
@@ -288,7 +288,7 @@
                       "beloep": 456000,
                       "personer": [
                         {
-                          "identifikator": "12018890001",
+                          "identifikator": "12818800078",
                           "beloep": 456000
                         }
                       ]
@@ -299,7 +299,7 @@
                       "beloep": 29000,
                       "personer": [
                         {
-                          "identifikator": "12018890001",
+                          "identifikator": "12818800078",
                           "beloep": 29000
                         }
                       ]
@@ -325,7 +325,7 @@
                         "beloep": 456000,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001"
+                        "identifikator": "12818800078"
                       },
                       {
                         "tekniskNavn": "renteinntekt",
@@ -334,7 +334,7 @@
                         "beloep": 29000,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001"
+                        "identifikator": "12818800078"
                       },
                       {
                         "tekniskNavn": "barnetrygd",
@@ -343,7 +343,7 @@
                         "beloep": 12648,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001",
+                        "identifikator": "12818800078",
                         "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
                       }
                     ]
@@ -367,7 +367,7 @@
                         "beloep": 12648,
                         "kilde": "SKATTEETATEN",
                         "kanEndreVisningstekst": false,
-                        "identifikator": "12018890001",
+                        "identifikator": "12818800078",
                         "infotekst": "Barnetrygd inngår ikke i grunnlaget for redusert foreldrebetaling."
                       }
                     ]

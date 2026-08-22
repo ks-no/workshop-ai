@@ -5,6 +5,7 @@ import {
   type Caller,
   type Tilgang
 } from "./autentisering.ts";
+import { representantPider } from "./handleevne.ts";
 import { HttpError } from "./errors.ts";
 import {
   hasGyldigSamtykke,
@@ -510,6 +511,12 @@ export async function runRessurs(
       pid: kontekst.personId
         ? findPerson(tilstand, kontekst.personId)?.syntetiskFodselsnummer ?? null
         : null,
+      // A guardian driving a minor's flow has to be able to read the minor's data,
+      // or the flow stops at the first DATA_FETCH. Only registered representatives,
+      // and only for that one person.
+      representantPider: kontekst.personId
+        ? representantPider(tilstand, kontekst.personId, tilstand.satser.gjelderFra)
+        : [],
       hva: `å lese ${ressurs.ressurs}`
     });
   } catch (feil) {

@@ -18,7 +18,7 @@ Forutsetter at sandboxen kjører (`./start.sh`). Porter:
 | `demo-gui` | 3001 |
 
 Eksemplene bruker `person-001` **Maja Solberg** (barnehage, `household-001`).
-`person-008` er den foresatte som faktisk har barn i SFO.
+`person-022` er den foresatte som faktisk får innvilget SFO-moderasjon.
 
 > **Ingen `jq`.** Alle kall pipes gjennom `node -e` for lesbar utskrift, siden Node
 > uansett er et krav. Vil du ha rå JSON, dropp pipen.
@@ -234,7 +234,8 @@ curl -s "http://localhost:8080/api/regler/sjekk/foreldrebetaling?personId=person
 
 Gyldige ordninger: `redusert-foreldrebetaling-barnehage`, `gratis-kjernetid-barnehage-2-5`,
 `gratis-kjernetid-barnehage-1`, `gratis-sfo-1-trinn`, `redusert-sfo-2-3-trinn`,
-`redusert-sfo-4-trinn`. Bommer du, får du en 400 som lister dem.
+`redusert-sfo-4-trinn`, `fritidskort-stotte`, `stottekontakt`. Bommer du, får du en
+400 som lister dem — og den lista er kilden, ikke denne.
 
 ---
 
@@ -260,7 +261,7 @@ h; n                                   # 0 INFO
 svar velg-gate "Storgata"; n           # 1 QUESTION
 h; n                                   # 2 DATA_FETCH — matrikkeloppslag på svaret over
 h; n                                   # 3 SJEKK eierforhold
-svar boliger-bekreft "12"; n           # 4 QUESTION
+svar boliger-bekreft "ja"; n           # 4 QUESTION — feltet er ja-nei, ikke et tall
 svar begrunnelse "Mange barn leker i gata og bilene kjører for fort."; n   # 5 QUESTION
 h; n                                   # 6 SUMMARY — går til modellen
 h                                      # 7 SUBMIT
