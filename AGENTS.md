@@ -12,7 +12,7 @@
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
-- `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter`). Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
+- `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) — persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/mcp-services` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
 - `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `mcp-services` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
@@ -122,6 +122,28 @@ pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
+- After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
+```bash
+./start.sh --reload          # recreates all Node services (picks up compose config changes too)
+docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
+```
+  Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed — a restart is enough.
+- All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `mcp-services`,
+  `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`) are
+  volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
+  - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` — inotify
+    events propagate natively; restarts are immediate.
+  - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
+    polling — inotify does not propagate through Docker Desktop's 9P volume mount, so `start.bat`
+    sets `WATCH_POLL=1` to switch to polling automatically.
+  Any file you save is detected and the Node process restarts — **no manual action needed for normal
+  code edits**. Watch for the log line `Change detected in '...'` (inotify) or `restarting due to changes...`
+  (nodemon) to confirm it triggered.
+- `matrikkel-mock` used to be the exception — a baked image with no volume mount, so every seed
+  change needed `--build`. It no longer is: it reads the work tree like the rest, and
+  `apps/matrikkel-mock/Dockerfile` survives only for running it standalone outside Compose.
+- `./start.sh --reload` is still useful when you change `docker-compose.yml` itself (e.g. environment
+  variables), since `--watch` only restarts the Node process, not the container.
 - `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
   timestamps are replaced with placeholders, so two runs of the same code are
   byte-identical. Use it as a regression gate around refactors:
@@ -159,7 +181,7 @@ pnpm test:agent:matrikkel
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
-- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `MCP_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `STATE_DIR`.
+- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `MCP_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `STATE_DIR`.
 - `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
   `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string

@@ -381,7 +381,20 @@
         };
       }
 
-      function byggSporsmaalsKontekst() {
+      async function byggSporsmaalsKontekst() {
+        let mineEiendommer = null;
+        if (oekt?.personId) {
+          try {
+            // req(), not a bare fetch: the lookup is egne-data, so it needs the
+            // ID-porten token. Without it AUTH_ENFORCE answers 401 and the field
+            // would silently stay null — a lookup that looks like it works.
+            mineEiendommer = await req(
+              `/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
+            );
+          } catch (_) {
+            // Best-effort — answer without ownership data if lookup fails
+          }
+        }
         return {
           tjeneste: aktivProsess?.navn || "ukjent prosess",
           prosess: aktivProsess || null,
@@ -398,6 +411,7 @@
               }
             : null),
           resultater: oekt?.resultater || null,
+          mineEiendommer: mineEiendommer,
           samtale: samtale.slice(-6)
         };
       }
@@ -413,7 +427,7 @@
             body: JSON.stringify({
               tekst: text,
               sporingsId: oekt?.sporingsId,
-              kontekst: byggSporsmaalsKontekst(),
+              kontekst: await byggSporsmaalsKontekst(),
               sprak: "nb"
             })
           });
@@ -756,11 +770,10 @@
 
         try {
           if (steg.type === "INFO") {
-            if (lower.includes("fortsett") || lower.includes("neste") || lower.includes("start") || lower.includes("klar") || erJaSvar(reellTekst)) {
-              await goNext();
-            } else {
-              addMsg("assistant", "Bare si fra når du er klar, så går vi videre.");
-            }
+            // Any input at an info step means the user has read the information
+            // and wants to move on — whether they say "fortsett", name a street,
+            // or anything else that is not a side-question.
+            await goNext();
             return;
           }
 

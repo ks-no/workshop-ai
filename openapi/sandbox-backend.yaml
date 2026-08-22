@@ -518,6 +518,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Feil"
 
+  /api/matrikkel/mine-eiendommer:
+    get:
+      summary: Hent eiendommer soekeren er registrert som eier av
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Egne data, ikke det aapne gateregisteret: matrikkelen filtrerer paa eier
+        serverside, saa eierlistene til andre i gaten naar aldri hit. Til forskjell
+        fra sjekk/eierforhold er den ikke bundet til en gate.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Eiendomsliste returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MineEiendommer"
+        "400":
+          description: personId mangler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
   /api/matrikkel/sjekk/eierforhold:
     get:
       summary: Vurder om soekeren eier eiendom i en gitt gate
@@ -1157,6 +1187,35 @@ components:
           type: integer
         antallBoligeiendommer:
           type: integer
+    MineEiendommer:
+      type: object
+      required: [personId, eiendommer, syntetisk]
+      properties:
+        personId:
+          type: string
+        eiendommer:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinEiendom"
+        syntetisk:
+          type: boolean
+    MinEiendom:
+      type: object
+      description: >
+        Projeksjon, ikke matrikkelenheten: eierlista er utelatt med vilje, saa
+        medeiere ikke foelger med ut av matrikkelen.
+      required: [matrikkelId, adresse]
+      properties:
+        matrikkelId:
+          type: string
+        adresse:
+          type: string
+        bruksenhetstype:
+          type: string
+        gate:
+          type: string
+        kommune:
+          type: string
     RedigeringMeta:
       type: object
       description: Valgfri metadata for enklere redigering av prosessdefinisjoner.

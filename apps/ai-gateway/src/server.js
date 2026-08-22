@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/klient.ts";
-import { readFile, appendFile, mkdir } from "node:fs/promises";
+import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
+import { createHash, createHmac } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -19,6 +20,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // which is gitignored and cleared by ./start.sh --reset.
 const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 const traceFile = path.join(stateDir, "ai-trace.jsonl");
+// Which provider is live and, for Bedrock, which model — changeable at runtime from
+// /admin without a restart. Kept as `let`, not `const`: the whole point of /admin is
+// to mutate these while the process is running. Survives a restart via providerStateFile.
+const providerStateFile = path.join(stateDir, "ai-provider-override.json");
 const port = Number(process.env.PORT) || 8082;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
@@ -31,11 +36,54 @@ const TOKEN = {
   scope: "ks:innbyggerdialog:revisjon",
   resource: "sandbox-backend"
 };
-const aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
+const AI_PROVIDERS = ["mock", "ollama", "openrouter", "bedrock"];
+let aiProvider = (process.env.AI_PROVIDER || "mock").toLowerCase();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
+
+// Curated, not fetched from AWS: bedrock:ListFoundationModels is a permission of its
+// own, and the IAM policy for this sandbox is meant to grant InvokeModel on a handful
+// of named models and nothing else. Add a line here once the policy allows a model.
+//
+// These are cross-region inference profile ids ("eu.anthropic...."), not bare
+// foundation-model ids. Bedrock rejects InvokeModel on these particular models with
+// a bare id — "on-demand throughput isn't supported ... retry with an inference
+// profile" — so the id here has to be the profile, and the IAM policy has to grant
+// InvokeModel on both the profile ARN and the foundation-model ARNs it fans out to
+// (scripts/aws-bedrock-setup.sh does both). Verified against a real account: an
+// earlier version of this list named Claude 3.x models that AWS has since retired.
+// claude-sonnet-5 was tried and dropped: Bedrock refuses it with "Model access is
+// denied due to IAM user or service role is not authorized to perform the required
+// AWS Marketplace actions" even with aws-marketplace:ViewSubscriptions/Subscribe
+// granted — it needs an account-level Marketplace subscription completed through the
+// Bedrock console first, which is not something an IAM policy alone can grant. Add
+// it back once that one-time step is done.
+// First entry is the fallback when BEDROCK_MODEL_ID is unset entirely (not just
+// commented out in .env) — keep it the same model .env.example documents as the
+// default, so the two do not silently disagree.
+const BEDROCK_MODELS = [
+  { id: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", label: "Claude Sonnet 4.5" },
+  { id: "eu.anthropic.claude-haiku-4-5-20251001-v1:0", label: "Claude Haiku 4.5" },
+  { id: "eu.anthropic.claude-opus-4-5-20251101-v1:0", label: "Claude Opus 4.5" },
+  { id: "eu.anthropic.claude-opus-5", label: "Claude Opus 5" }
+];
+// Deliberately not named AWS_REGION/AWS_ACCESS_KEY_ID/etc: those are exactly the
+// names a developer's own shell profile or AWS CLI setup is likely to already
+// export, ambiently, for their own (probably unrelated, probably more powerful)
+// credentials. Docker Compose's ${VAR:-default} substitution — and Node's
+// --env-file — both prefer an already-set environment variable over one from a
+// .env file, so a plain AWS_ACCESS_KEY_ID here would silently get overridden by
+// whatever the developer's shell already has, pairing their own permanent access
+// key with this service's short-lived Bedrock session token: "The security token
+// included in the request is invalid." Confirmed happening in practice, not
+// theoretical. A name nothing else will ever set ambiently sidesteps it entirely.
+const awsRegion = process.env.BEDROCK_AWS_REGION || "eu-north-1";
+const awsAccessKeyId = process.env.BEDROCK_AWS_ACCESS_KEY_ID || "";
+const awsSecretAccessKey = process.env.BEDROCK_AWS_SECRET_ACCESS_KEY || "";
+const awsSessionToken = process.env.BEDROCK_AWS_SESSION_TOKEN || "";
+let bedrockModel = process.env.BEDROCK_MODEL_ID || BEDROCK_MODELS[0].id;
 // A large model on a slow machine can spend well over a minute on a SUMMARY
 // step, so the ceiling is generous. The point is that the call eventually fails
 // instead of hanging forever.
@@ -116,6 +164,7 @@ function docsHtml() {
         <li><a href="/trace"><code>GET /trace</code></a> — hva modellen faktisk fikk og svarte</li>
         <li><code>GET /trace.json</code> — samme som JSON. <code>?sporingsId=</code>, <code>?task=</code>, <code>?limit=</code></li>
         <li><code>GET /helse</code> — svarer provideren?</li>
+        <li><a href="/admin"><code>GET /admin</code></a> — bytt provider (mock/ollama/openrouter/bedrock) uten restart</li>
       </ul>
     </body>
   </html>`;
@@ -324,6 +373,170 @@ function traceHtml(entries, filter = {}, alle = entries) {
 
       ${entries.length ? rows : "<p class=\"muted\"><em>Ingen modellkall registrert ennå. Kjør en flyt, og last siden på nytt.</em></p>"}
     </main>
+    </body>
+  </html>`;
+}
+
+// Static shell; all dynamic content is filled in client-side from
+// /admin/providers.json so the page never needs server-side templating (and so
+// nothing here needs escaping against the outer template literal).
+function adminHtml() {
+  return `
+  <!doctype html>
+  <html lang="nb">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>KI-provider</title>
+      <link rel="stylesheet" href="/assets/felles.css">
+      <style>
+        main { max-width: 640px; }
+        .providerValg label { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid var(--farge-kant-svak); border-radius: var(--radius); cursor: pointer; }
+        .providerValg label.valgt { border-color: var(--farge-primar); background: var(--farge-flate-dempet); }
+        .providerValg input { width: auto; }
+        .tag { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #eef2f7; color: var(--farge-tekst-dempet); font-family: var(--skrift-kode); }
+        .tag-ok { background: #e6f4ea; color: #1e6b38; }
+        .tag-feil { background: var(--farge-feil-bakgrunn); color: var(--farge-feil-tekst); }
+      </style>
+    </head>
+    <body>
+    <main>
+      <div class="top-links"><a href="http://localhost:3001/">Oversikt</a><a href="/docs">API-er</a><a href="/trace">KI-spor</a></div>
+      <h1>KI-provider</h1>
+      <p class="muted">Bytt hvilken leverandør ai-gateway bruker. Byttet gjelder umiddelbart,
+        uten restart, og lagres i <code>state/ai-provider-override.json</code> til neste bytte.</p>
+
+      <div class="card">
+        <div id="naavaerende">Laster status...</div>
+      </div>
+
+      <div class="card">
+        <h2>Velg leverandør</h2>
+        <div id="providerValg" class="providerValg"></div>
+        <div id="bedrockDetaljer" hidden>
+          <label for="bedrockModellValg">Bedrock-modell</label>
+          <select id="bedrockModellValg"></select>
+          <p class="muted small" id="bedrockCreds"></p>
+        </div>
+        <button id="byttKnapp">Bytt</button>
+        <div id="byttStatus" class="status"></div>
+      </div>
+    </main>
+    <script>
+      var providerNavn = { mock: "Mock (maltekst)", ollama: "Lokal (Ollama)", openrouter: "OpenRouter", bedrock: "AWS Bedrock" };
+
+      function escapeHtml(tekst) {
+        var div = document.createElement("div");
+        div.textContent = tekst == null ? "" : tekst;
+        return div.innerHTML;
+      }
+
+      function navnFor(id) {
+        return providerNavn[id] || id;
+      }
+
+      function hentStatus() {
+        return fetch("/admin/providers.json").then(function (res) { return res.json(); });
+      }
+
+      function tegnNaavaerende(data) {
+        var merke = data.modellNaaBar
+          ? '<span class="tag tag-ok">tilgjengelig</span>'
+          : '<span class="tag tag-feil">ikke tilgjengelig</span>';
+        var feilHtml = data.feil ? '<div class="muted small">' + escapeHtml(data.feil) + "</div>" : "";
+        document.getElementById("naavaerende").innerHTML =
+          "<div><strong>Aktiv leverandør:</strong> " + escapeHtml(navnFor(data.provider)) + "</div>" +
+          "<div><strong>Modell:</strong> " + escapeHtml(data.modell || "–") + " " + merke + "</div>" +
+          feilHtml;
+      }
+
+      function oppdaterBedrockSynlighet(valgtProvider) {
+        document.getElementById("bedrockDetaljer").hidden = valgtProvider !== "bedrock";
+      }
+
+      function tegnValg(data, valgtProvider) {
+        var container = document.getElementById("providerValg");
+        container.innerHTML = data.providers.map(function (p) {
+          return (
+            '<label class="' + (p === valgtProvider ? "valgt" : "") + '">' +
+            '<input type="radio" name="provider" value="' + escapeHtml(p) + '" ' + (p === valgtProvider ? "checked" : "") + ">" +
+            escapeHtml(navnFor(p)) +
+            "</label>"
+          );
+        }).join("");
+
+        var inputs = container.querySelectorAll("input");
+        for (var i = 0; i < inputs.length; i++) {
+          inputs[i].onchange = function (event) {
+            var labels = container.querySelectorAll("label");
+            for (var j = 0; j < labels.length; j++) {
+              labels[j].classList.toggle("valgt", labels[j].querySelector("input").checked);
+            }
+            oppdaterBedrockSynlighet(event.target.value);
+          };
+        }
+
+        var bedrockSelect = document.getElementById("bedrockModellValg");
+        bedrockSelect.innerHTML = data.bedrock.models.map(function (m) {
+          return (
+            '<option value="' + escapeHtml(m.id) + '" ' + (m.id === data.bedrock.currentModel ? "selected" : "") + ">" +
+            escapeHtml(m.label) +
+            "</option>"
+          );
+        }).join("");
+        document.getElementById("bedrockCreds").textContent = data.bedrock.credsConfigured
+          ? "Region: " + data.bedrock.region
+          : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
+
+        oppdaterBedrockSynlighet(valgtProvider);
+      }
+
+      function valgtProviderVerdi() {
+        var checked = document.querySelector('input[name="provider"]:checked');
+        return checked ? checked.value : null;
+      }
+
+      function bytt() {
+        var provider = valgtProviderVerdi();
+        var byttStatus = document.getElementById("byttStatus");
+        if (!provider) return;
+        var payload = { provider: provider };
+        if (provider === "bedrock") {
+          payload.bedrockModel = document.getElementById("bedrockModellValg").value;
+        }
+        byttStatus.textContent = "Bytter...";
+        fetch("/admin/provider", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok) throw new Error(data.feil || ("Feil " + res.status));
+              return data;
+            });
+          })
+          .then(function (data) {
+            byttStatus.textContent = "Byttet. Aktiv leverandør oppdatert.";
+            tegnNaavaerende(data);
+            tegnValg(data, data.provider);
+          })
+          .catch(function (error) {
+            byttStatus.textContent = "Feilet: " + error.message;
+          });
+      }
+
+      document.getElementById("byttKnapp").onclick = bytt;
+
+      hentStatus()
+        .then(function (data) {
+          tegnNaavaerende(data);
+          tegnValg(data, data.provider);
+        })
+        .catch(function (error) {
+          document.getElementById("naavaerende").textContent = "Kunne ikke laste status: " + error.message;
+        });
+    </script>
     </body>
   </html>`;
 }
@@ -563,7 +776,7 @@ async function chooseToolsWithAi(body) {
   const verktoyNavn = (body?.verktoy || []).map((v) => v.name || v);
   const prompt = buildToolChoicePrompt(body);
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
     return heuristisk;
   }
 
@@ -620,15 +833,27 @@ function buildPrompt(type, body, fallbackTekst) {
   }
 
   if (type === "sporsmaal") {
-    return [
+    const linjer = [
       "Du er en hjelpsom kommunal veileder i en demosandbox.",
       `Svar på ${sprak}.`,
       ...sperrer,
       `Tjeneste: ${kontekst.tjeneste || "ukjent"}`,
-      `Steg vi står på: ${kontekst.steg?.tittel || kontekst.steg?.type || "ingen"}`,
+      `Steg vi står på: ${kontekst.steg?.tittel || kontekst.steg?.type || "ingen"}`
+    ];
+
+    // Lift mineEiendommer out of the JSON blob and present it as plain text so
+    // the model does not have to locate it inside a large nested structure.
+    const eiendommer = kontekst.mineEiendommer?.eiendommer;
+    if (Array.isArray(eiendommer) && eiendommer.length > 0) {
+      const liste = eiendommer.map(e => `${e.adresse} (${e.bruksenhetstype}, ${e.kommune})`).join(", ");
+      linjer.push(`Søkerens registrerte eiendommer i matrikkelen: ${liste}`);
+    }
+
+    linjer.push(
       `Grunnlag JSON: ${JSON.stringify(kontekst)}`,
       `<sporsmaal>${body?.tekst || ""}</sporsmaal>`
-    ].join("\n");
+    );
+    return linjer.join("\n");
   }
 
   return [
@@ -1115,6 +1340,143 @@ async function callOpenRouter(prompt, temperature, systemMessage, signal) {
   };
 }
 
+// --- AWS SigV4, hand-rolled ---------------------------------------------------
+//
+// No AWS SDK: the rest of this gateway calls providers with raw fetch, and Bedrock
+// keeps that pattern. SigV4 itself is the well-documented, unchanging piece of
+// AWS's API surface — https://docs.aws.amazon.com/general/latest/gr/sigv4-signing-examples.html —
+// so hand-rolling it is a fixed amount of crypto, not an ongoing maintenance cost the
+// way keeping up with a full SDK would be.
+
+function sha256Hex(data) {
+  return createHash("sha256").update(data).digest("hex");
+}
+
+function hmac(key, data) {
+  return createHmac("sha256", key).update(data).digest();
+}
+
+function hmacHex(key, data) {
+  return createHmac("sha256", key).update(data).digest("hex");
+}
+
+// AWS's canonical-URI encoding is RFC 3986 with every reserved character escaped,
+// which is stricter than encodeURIComponent (it leaves !'()* unescaped). The escaped
+// path must be byte-identical between what gets signed and what actually goes on the
+// wire, so this same function builds both.
+function encodeRfc3986(value) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function encodeUriPath(rawPath) {
+  return rawPath.split("/").map(encodeRfc3986).join("/");
+}
+
+// Signs a single request for a JSON AWS API (no query string). Returns the headers
+// to send alongside Content-Type; the caller supplies the raw (unencoded) path.
+function signAwsRequestV4({ method, host, path, region, service, body }) {
+  // ISO "2026-08-21T12:34:56.789Z" -> AWS's "20260821T123456Z".
+  const amzDate = `${new Date().toISOString().replace(/[:-]|\.\d{3}Z$/g, "")}Z`;
+  const dateStamp = amzDate.slice(0, 8);
+
+  // The actual request path is URI-encoded once (this is what goes on the wire).
+  // The canonical request then encodes THAT again — every AWS service except S3
+  // wants the path double-encoded for the signature, since a colon in a Bedrock
+  // model id becomes %3A on the wire and AWS's own canonicalization re-encodes
+  // that %3A into %253A. Signing with only one encoding pass, as an earlier
+  // version of this function did, produces a byte-perfect-looking canonical
+  // request that AWS still rejects with SignatureDoesNotMatch.
+  const requestPath = encodeUriPath(path);
+  const canonicalUri = encodeUriPath(requestPath);
+
+  const headers = {
+    host,
+    "x-amz-date": amzDate,
+    ...(awsSessionToken ? { "x-amz-security-token": awsSessionToken } : {})
+  };
+  const signedHeaderKeys = Object.keys(headers).sort();
+  const canonicalHeaders = signedHeaderKeys.map((key) => `${key}:${headers[key]}\n`).join("");
+  const signedHeaders = signedHeaderKeys.join(";");
+
+  const canonicalRequest = [
+    method,
+    canonicalUri,
+    "",
+    canonicalHeaders,
+    signedHeaders,
+    sha256Hex(body)
+  ].join("\n");
+
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
+
+  const kDate = hmac(`AWS4${awsSecretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  const kSigning = hmac(kService, "aws4_request");
+  const signature = hmacHex(kSigning, stringToSign);
+
+  return {
+    requestPath,
+    headers: {
+      "X-Amz-Date": amzDate,
+      ...(awsSessionToken ? { "X-Amz-Security-Token": awsSessionToken } : {}),
+      Authorization:
+        `AWS4-HMAC-SHA256 Credential=${awsAccessKeyId}/${credentialScope}, ` +
+        `SignedHeaders=${signedHeaders}, Signature=${signature}`
+    }
+  };
+}
+
+// Bedrock's InvokeModel request/response body shape differs per model family (Titan,
+// Llama and Mistral each use their own schema). The curated list above is Anthropic
+// models only, so this speaks the one shape: the same Messages format the direct
+// Anthropic API uses, with "bedrock-2023-05-31" as the anthropic_version.
+async function callBedrock(prompt, temperature, systemMessage, signal) {
+  if (!awsAccessKeyId || !awsSecretAccessKey) {
+    throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
+  }
+
+  const host = `bedrock-runtime.${awsRegion}.amazonaws.com`;
+  // No `temperature`: the current model generation in BEDROCK_MODELS rejects it —
+  // "`temperature` is deprecated for this model" (400) — confirmed against a real
+  // account 2026-08-21. Unlike Ollama/OpenRouter, Bedrock responses here run at
+  // whatever the model's own default is; the temperature=0 callers pass for
+  // deterministic tasks (oppsummering, tolk-svar, ...) has no effect on this
+  // provider. The guardrails downstream of callModel still run regardless.
+  const body = JSON.stringify({
+    anthropic_version: "bedrock-2023-05-31",
+    max_tokens: 1024,
+    system: systemMessage,
+    messages: [{ role: "user", content: prompt }]
+  });
+
+  const { requestPath, headers: signedHeaders } = signAwsRequestV4({
+    method: "POST",
+    host,
+    path: `/model/${bedrockModel}/invoke`,
+    region: awsRegion,
+    service: "bedrock",
+    body
+  });
+
+  const svar = await fetch(`https://${host}${requestPath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...signedHeaders },
+    body,
+    signal
+  });
+
+  if (!svar.ok) {
+    const feilTekst = await svar.text().catch(() => "");
+    throw new Error(`Bedrock svarte med status ${svar.status}${feilTekst ? `: ${feilTekst.slice(0, 200)}` : ""}`);
+  }
+
+  const data = await svar.json();
+  const tekst = Array.isArray(data?.content) ? data.content.map((blokk) => blokk.text || "").join("") : "";
+  return { tekst: tekst.trim(), modell: `bedrock:${bedrockModel}` };
+}
+
 // --- Trace ------------------------------------------------------------------
 //
 // One JSONL line per model call. Without it you cannot see what the model
@@ -1129,6 +1491,53 @@ async function writeTrace(linje) {
   } catch (feil) {
     console.error(`Kunne ikke skrive KI-spor: ${feil.message}`);
   }
+}
+
+// --- Provider-bytte (/admin) --------------------------------------------------
+//
+// AI_PROVIDER (env) picks the provider at container start. This is the runtime
+// override on top of that: /admin can flip aiProvider/bedrockModel while the
+// process is running, and the choice survives a restart by living in state/ next
+// to the other runtime files — never in git, never in the image.
+async function loadProviderOverride() {
+  try {
+    const raw = await readFile(providerStateFile, "utf8");
+    const data = JSON.parse(raw);
+    if (AI_PROVIDERS.includes(data?.provider)) {
+      aiProvider = data.provider;
+    }
+    if (BEDROCK_MODELS.some((m) => m.id === data?.bedrockModel)) {
+      bedrockModel = data.bedrockModel;
+    }
+  } catch (feil) {
+    if (feil.code !== "ENOENT") {
+      console.warn(`Kunne ikke lese lagret provider-valg: ${feil.message}`);
+    }
+  }
+}
+
+async function saveProviderOverride() {
+  await mkdir(stateDir, { recursive: true });
+  await writeFile(providerStateFile, JSON.stringify({ provider: aiProvider, bedrockModel }, null, 2), "utf8");
+}
+
+async function buildProviderStatus() {
+  const helse = await checkProvider();
+  return {
+    provider: aiProvider,
+    providers: AI_PROVIDERS,
+    modell: helse.modell,
+    modellNaaBar: helse.naaBar,
+    ...(helse.feil ? { feil: helse.feil } : {}),
+    bedrock: {
+      models: BEDROCK_MODELS,
+      currentModel: bedrockModel,
+      region: awsRegion,
+      credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey)
+    },
+    ollama: { model: ollamaModel, baseUrl: ollamaBaseUrl },
+    openrouter: { model: openRouterModel, keyConfigured: Boolean(openRouterApiKey) }
+  };
 }
 
 // Cheap provider probe for /helse: lists models instead of generating text, so
@@ -1165,6 +1574,18 @@ async function checkProvider() {
     return { naaBar: true, modell };
   }
 
+  if (aiProvider === "bedrock") {
+    const modell = `bedrock:${bedrockModel}`;
+    if (!awsAccessKeyId || !awsSecretAccessKey) {
+      return { naaBar: false, modell, feil: "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler" };
+    }
+    // Like the OpenRouter check above: confirms credentials are configured, not that
+    // they are valid or that the IAM policy actually grants this model. A wrong key
+    // or a model outside the policy still reports as available here and only fails
+    // on the next real call.
+    return { naaBar: true, modell };
+  }
+
   return { naaBar: false, modell: null, feil: `Ukjent AI_PROVIDER: ${aiProvider}` };
 }
 
@@ -1196,6 +1617,8 @@ async function callModel(prompt, valg = {}) {
       svar = await callOllama(prompt, temperature, signal);
     } else if (aiProvider === "openrouter") {
       svar = await callOpenRouter(prompt, temperature, systemMessage, signal);
+    } else if (aiProvider === "bedrock") {
+      svar = await callBedrock(prompt, temperature, systemMessage, signal);
     } else {
       throw new Error(`Ukjent AI_PROVIDER: ${aiProvider}`);
     }
@@ -1311,7 +1734,7 @@ async function interpretReplyWithAi(body) {
     };
   }
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
     return {
       ...fallback,
       syntetisk: true,
@@ -1382,7 +1805,7 @@ async function chooseProcessWithAi(body) {
     };
   }
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
     return {
       ...fallback,
       syntetisk: true,
@@ -1422,7 +1845,7 @@ async function buildAiResponse(type, body) {
 
   const prompt = buildPrompt(type, body, mockSvar.tekst);
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
     return mockSvar;
   }
 
@@ -1504,7 +1927,7 @@ async function answerCitizenQuestion(body) {
     );
   }
 
-  if (aiProvider !== "ollama" && aiProvider !== "openrouter") {
+  if (aiProvider !== "ollama" && aiProvider !== "openrouter" && aiProvider !== "bedrock") {
     return { ...base, tekst: byggTryggSvar(kontekst), modell: "mock-ai-gateway" };
   }
 
@@ -1596,6 +2019,36 @@ const server = createServer(async (request, response) => {
         const alle = await readTrace({ limit: 500 });
         textResponse(response, 200, traceHtml(trace, filter, alle));
       }
+      return;
+    }
+
+    if (url.pathname === "/admin") {
+      textResponse(response, 200, adminHtml());
+      return;
+    }
+
+    if (url.pathname === "/admin/providers.json") {
+      jsonResponse(response, 200, await buildProviderStatus());
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/admin/provider") {
+      const body = await readBody(request);
+      const nyProvider = String(body?.provider || "").toLowerCase();
+      if (!AI_PROVIDERS.includes(nyProvider)) {
+        jsonResponse(response, 400, { feil: `Ukjent provider. Gyldige verdier: ${AI_PROVIDERS.join(", ")}` });
+        return;
+      }
+      if (nyProvider === "bedrock" && body?.bedrockModel) {
+        if (!BEDROCK_MODELS.some((m) => m.id === body.bedrockModel)) {
+          jsonResponse(response, 400, { feil: `Ukjent Bedrock-modell: ${body.bedrockModel}` });
+          return;
+        }
+        bedrockModel = body.bedrockModel;
+      }
+      aiProvider = nyProvider;
+      await saveProviderOverride();
+      jsonResponse(response, 200, await buildProviderStatus());
       return;
     }
 
@@ -1693,6 +2146,8 @@ const server = createServer(async (request, response) => {
   }
 });
 
+await loadProviderOverride();
+
 server.listen(port, () => {
-  console.log(`AI-gateway kjører på http://localhost:${port}`);
+  console.log(`AI-gateway kjører på http://localhost:${port} (provider: ${aiProvider})`);
 });

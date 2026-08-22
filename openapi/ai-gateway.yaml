@@ -4,7 +4,8 @@ info:
   version: 0.2.0
   description: |
     AI-abstraksjonslag for dialogforslag, oppsummering, klarspråk, intensjonstolkning og dynamisk verktøyoppdagelse.
-    Støtter mock, Ollama og OpenRouter som provider (AI_PROVIDER-env).
+    Støtter mock, Ollama, OpenRouter og AWS Bedrock som provider (AI_PROVIDER-env).
+    Provideren kan byttes i en kjørende instans via /admin, uten restart.
 servers:
   - url: http://localhost:8082
 # Ingen av rutene her krever token, og det er et valg, ikke en glipp.
@@ -49,7 +50,7 @@ paths:
                 properties:
                   status: { type: string, example: ok }
                   tjeneste: { type: string, example: ai-gateway }
-                  provider: { type: string, enum: [mock, ollama, openrouter] }
+                  provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
                   modell: { type: string, nullable: true, example: "ollama:qwen2.5:14b" }
                   modellNaaBar:
                     type: boolean
@@ -111,6 +112,56 @@ paths:
                         durationMs: { type: integer }
                         failed: { type: boolean }
                         error: { type: string }
+  /admin:
+    get:
+      summary: Provider-bytte, som en side
+      description: |
+        HTML-side som viser aktiv provider og lar deg bytte mellom
+        mock/ollama/openrouter/bedrock (og Bedrock-modell) uten restart.
+        Henter status fra /admin/providers.json og bytter via POST /admin/provider.
+      responses:
+        "200":
+          description: HTML-visning
+          content:
+            text/html:
+              schema: { type: string }
+  /admin/providers.json:
+    get:
+      summary: Aktiv provider og tilgjengelige valg
+      responses:
+        "200":
+          description: Status returnert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+  /admin/provider:
+    post:
+      summary: Bytt aktiv provider (og for Bedrock, modell) uten restart
+      description: |
+        Lagres til state/ai-provider-override.json, som overstyrer AI_PROVIDER/
+        BEDROCK_MODEL_ID fra miljøet ved neste oppstart.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
+                bedrockModel:
+                  type: string
+                  description: Må finnes i AdminStatus.bedrock.models. Brukes bare når provider=bedrock.
+      responses:
+        "200":
+          description: Byttet. Ny status returnert.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+        "400":
+          description: Ukjent provider eller ukjent Bedrock-modell
   /ai/dialogforslag:
     post:
       summary: Generer dialogforslag
@@ -274,6 +325,40 @@ paths:
 
 components:
   schemas:
+    AdminStatus:
+      type: object
+      required: [provider, providers, modellNaaBar]
+      properties:
+        provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
+        providers:
+          type: array
+          items: { type: string }
+        modell: { type: string, nullable: true }
+        modellNaaBar: { type: boolean }
+        feil: { type: string }
+        bedrock:
+          type: object
+          properties:
+            models:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, example: "anthropic.claude-3-5-sonnet-20241022-v2:0" }
+                  label: { type: string, example: "Claude 3.5 Sonnet v2" }
+            currentModel: { type: string }
+            region: { type: string }
+            credsConfigured: { type: boolean }
+        ollama:
+          type: object
+          properties:
+            model: { type: string }
+            baseUrl: { type: string }
+        openrouter:
+          type: object
+          properties:
+            model: { type: string }
+            keyConfigured: { type: boolean }
     SporsmaalRequest:
       type: object
       required: [tekst]

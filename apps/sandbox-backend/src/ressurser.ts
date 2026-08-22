@@ -15,7 +15,12 @@ import {
 import { regelKreverInntekt, velgOrdningForTjeneste } from "./vilkaar.ts";
 import { leggTilRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
-import { eiendommerForPersonIGate, finnGate, hentGater } from "./matrikkel.ts";
+import {
+  eiendommerForPerson,
+  eiendommerForPersonIGate,
+  finnGate,
+  hentGater
+} from "./matrikkel.ts";
 import {
   finnPerson,
   hentHusstandForPerson,
@@ -323,6 +328,34 @@ export const ressurser: Ressurs[] = [
           ? `Eierforhold i ${gateData.adressenavn} bekreftet.`
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
         grunnlag: { personId, gate: gateData.adressenavn, harEiendom, antallEiendommer: egne.length }
+      };
+    }
+  },
+  {
+    metode: "GET",
+    sti: "/api/matrikkel/mine-eiendommer",
+    ressurs: "matrikkel-mine-eiendommer",
+    beskrivelse: "Eiendommer i matrikkelen der søkeren er registrert som eier, på tvers av alle gater.",
+    // No tilgang here means "egne-data", which is what this is: the applicant's own
+    // holdings, not the open street register. And revisjon stays on — unlike a SJEKK
+    // lookup, nothing else logs this one, and it reads person data.
+    valider: ({ personId }) => {
+      if (!personId) {
+        throw new HttpError("personId er påkrevd.", 400);
+      }
+    },
+    handter: async ({ personId }) => {
+      const mine = await eiendommerForPerson(personId);
+      return {
+        personId,
+        eiendommer: mine.map((eiendom) => ({
+          matrikkelId: eiendom.matrikkelId,
+          adresse: eiendom.adresse,
+          bruksenhetstype: eiendom.bruksenhetstype,
+          gate: eiendom.adressenavn,
+          kommune: eiendom.kommune
+        })),
+        syntetisk: true
       };
     }
   },

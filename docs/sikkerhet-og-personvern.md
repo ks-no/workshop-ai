@@ -38,10 +38,12 @@ syntetiske fødselsnumre fra prosessøkten sendes til modellen. Det er ufarlig h
 fordi alt er syntetisk — men mønsteret er ikke ett du skal kopiere til en løsning
 med reelle data. En produksjonsvariant må minimere hva som forlater tjenesten.
 
-**`AI_PROVIDER=openrouter` sender promptene ut av maskinen.** Da forlater
-innholdet — inkludert det over — din maskin og går til en tredjepart. Med
-`AI_PROVIDER=ollama` blir alt lokalt. Velg bevisst, og vær klar over forskjellen
-når du demonstrerer for andre.
+**`AI_PROVIDER=openrouter` eller `bedrock` sender promptene ut av maskinen.** Da
+forlater innholdet — inkludert det over — din maskin og går til en tredjepart
+(OpenRouter) eller til AWS. Med `AI_PROVIDER=ollama` blir alt lokalt. Velg bevisst,
+og vær klar over forskjellen når du demonstrerer for andre. Provideren kan byttes i
+farten fra `http://localhost:8082/admin` — sjekk hvilken som er aktiv der før en
+demo med sensitivt rammede data, ikke bare i `.env`.
 
 **Revisjonsloggen og KI-sporet er to separate lag.** `state/revisjonslogg.json`
 vet *at* et KI-kall skjedde; `state/ai-trace.jsonl` vet *hva* som ble sagt.

@@ -28,6 +28,12 @@ export type Eiendom = {
   adresse: string;
   bruksenhetstype?: string;
   eiere?: string[];
+  // Denormalised onto every eiendom by the mock, so a lookup that spans streets
+  // does not have to resolve the gate separately. See leggTilEiendom there.
+  adressenavn?: string;
+  kommune?: string;
+  kommunenummer?: string;
+  gateId?: string;
 };
 
 // 404 is a real answer here — "no such street" — so it maps to null rather than
@@ -76,6 +82,17 @@ export async function eiendommerForPersonIGate(
   const treff = await hent(
     `/mock/matrikkel/eiendommer?gate=${encodeURIComponent(gateNavn)}` +
     `&personId=${encodeURIComponent(personId)}`
+  );
+  return Array.isArray(treff) ? treff : [];
+}
+
+// Same server-side owner filter as eiendommerForPersonIGate, without the street
+// bound. Asking the matrikkel is what keeps this from being a second read path:
+// the seed is the mock's business, and the owner lists of everyone else never
+// reach the backend either way.
+export async function eiendommerForPerson(personId: string): Promise<Eiendom[]> {
+  const treff = await hent(
+    `/mock/matrikkel/eiendommer?personId=${encodeURIComponent(personId)}`
   );
   return Array.isArray(treff) ? treff : [];
 }
