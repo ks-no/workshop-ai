@@ -283,7 +283,7 @@ paths:
     post:
       summary: LLM-as-judge — scorer en tekst mot et kriterium
       description: |
-        Utviklerverktøy for `scripts/eval.js`. Ligger her og ikke i eval-skriptet,
+        Utviklerverktøy for `scripts/eval.ts`. Ligger her og ikke i eval-skriptet,
         så den bruker konfigurert provider, arver timeouten og spores som `task: dommer`.
         Dommeren ser bare kriteriet og teksten, aldri forventet svar.
       requestBody:

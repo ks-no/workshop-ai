@@ -84,8 +84,8 @@ seks — én er hovedinngangen, resten er de du bruker.
 - **Egen frontend på egen port.** CORS er `*` med `Authorization` i
   `Allow-Headers`, så en app på `:5173` snakker rett med `:8080` uten proxy. Det
   virket allerede; det sto bare ingen steder.
-- `felles.js` som gjenbrukbart innloggingslag, med tabell over funksjonene. Den er et
-  klassisk skript, ikke en modul, så et `<script src="http://localhost:3001/assets/felles.js">`
+- `felles.ts` som gjenbrukbart innloggingslag, med tabell over funksjonene. Den er et
+  klassisk skript, ikke en modul, så et `<script src="http://localhost:3001/delt/felles.ts">`
   virker på tvers av porter.
 - Kaskadefella med `felles.css` gjentatt, fordi den koster en time hver gang.
 - Token, `401` mot `403`, og de tre katalogendepunktene som gjør sandkassen
@@ -168,4 +168,4 @@ verifisert mot en feil den var ment å fange.
 2. **Les `docs/oppdraget.md` med friske øyne** og vurder om rammen er åpen nok, eller
    for åpen.
 3. **Kjør hele veien gjennom `docs/bygg-selv.md`** med stacken oppe — særlig
-   `felles.js` fra en annen port, som er dokumentert ut fra koden og ikke prøvd.
+   `felles.ts` fra en annen port, som er dokumentert ut fra koden og ikke prøvd.

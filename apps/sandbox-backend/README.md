@@ -26,7 +26,7 @@ direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22
 | `ressurser.ts` | **Den delte ressurskatalogen.** Én oppføring blir samtidig et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål. |
 | `prosess.ts` | Stegmotoren. `stegHandlers` har én håndterer per stegtype. |
 | `vilkaar.ts` | Vilkårsvurdering mot `data/satser.json`. Rent og synkront: `grunnlag` kommer inn som parameter, så et utfall kan pinnes uten kjørende tjenester. `evaluateVilkaar` er eneste vei inn; `regelHandlers` er privat og har én håndterer per regeltype. |
-| `alder.ts` | `alderVed`. Delt av `vilkaar.ts`, `scripts/valider-data.js` og `scripts/importer-tenor.js`, som før hadde hver sin kopi. |
+| `alder.ts` | `alderVed`. Delt av `vilkaar.ts`, `scripts/valider-data.ts` og `scripts/importer-tenor.ts`, som før hadde hver sin kopi. |
 | `regler.ts` | I/O-halvdelen av vilkårsvurderingen: henter beregningen fra Fiks, og samtykkepredikatene. |
 | `state.ts` | Lesing og skriving av datasett, og oppslagshjelpere. `readJson` leser `state/` først med `data/` som fallback. |
 | `types.ts` | Domenetypene. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. |

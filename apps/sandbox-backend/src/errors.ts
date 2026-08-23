@@ -1,3 +1,5 @@
+import { feilmelding } from "../../shared-ui/errors.ts";
+
 // Lets domain code declare which HTTP status an error should produce without
 // knowing about request or response. The router and the process engine map it the
 // same way, so a missing samtykke yields 403 whichever path the call came in.
@@ -42,7 +44,7 @@ export function errorBody(feil: unknown): Record<string, unknown> {
   }
   return {
     feil: "Intern feil i sandbox-backend.",
-    detalj: feil instanceof Error ? feil.message : String(feil),
+    detalj: feilmelding(feil),
     syntetisk: true
   };
 }

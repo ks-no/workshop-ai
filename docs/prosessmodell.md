@@ -94,7 +94,7 @@ verktøynavnet `matrikkel_finn_veger`. Snarveiene er der fordi de var raskeste v
 til en fungerende demo, ikke fordi de er riktige.
 
 Ny funksjonalitet kobles inn ved å legge til heuristikk i
-`apps/ai-gateway/src/server.js` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
+`apps/ai-gateway/src/server.ts` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
 i funksjonen `heuristicToolChoice` og ikke på toppnivå — og/eller et nytt verktøy i
 `tools-api`.
 
@@ -109,7 +109,7 @@ De fleste caser krever ingen kode i det hele tatt.
 | hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
 | innføre en ny regeltype | `apps/sandbox-backend/src/vilkaar.ts` → `regelHandlers` | ~20 linjer |
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandlers` | ~20 linjer |
-| gi agenten et nytt verktøy for `QUESTION`-steg | `tools-api` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.js` | ~20 linjer |
+| gi agenten et nytt verktøy for `QUESTION`-steg | `tools-api` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.ts` | ~20 linjer |
 
 Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
 den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis

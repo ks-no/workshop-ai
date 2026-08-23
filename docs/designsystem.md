@@ -76,7 +76,7 @@ på `/assets/`. Dette er den eneste veien som virker når sandboxen kjører uten
 Uten nett laster ikke Inter, og nettleseren faller tilbake til `sans-serif`. Layout,
 farger og komponenter er upåvirket — bare bokstavformene blir andre.
 
-Oppdatere filene: `pnpm ds:hent`. Versjonen er pinnet i `scripts/hent-designsystem.js`.
+Oppdatere filene: `pnpm ds:hent`. Versjonen er pinnet i `scripts/hent-designsystem.ts`.
 
 ### 2.2 CDN — når du har nett
 
@@ -454,7 +454,7 @@ Fire temaer er offisielt støttet. Bytt fil, ikke kode:
 | Tilskudd | `tilskudd.css` | |
 
 Repoet har bare `ksdigital` sjekket inn. Vil du prøve et annet, endre `TEMA` i
-`scripts/hent-designsystem.js` og kjør `pnpm ds:hent`, eller pek på jsDelivr direkte.
+`scripts/hent-designsystem.ts` og kjør `pnpm ds:hent`, eller pek på jsDelivr direkte.
 
 Alle fire har full lys/mørk-støtte. Du kan forhåndsvise dem i
 [Storybook](https://design.ksdigital.no) med verktøylinjen øverst.

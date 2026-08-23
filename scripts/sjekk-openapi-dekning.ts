@@ -342,7 +342,7 @@ const tjenester: Tjeneste[] = [
   {
     navn: "fiks-simulator",
     spesifikasjon: "openapi/fiks-simulator.yaml",
-    kilde: "apps/fiks-simulator/src/server.js",
+    kilde: "apps/fiks-simulator/src/server.ts",
     kodeverk: [
       {
         skjema: "Samtykkestatus",
@@ -357,7 +357,7 @@ const tjenester: Tjeneste[] = [
   {
     navn: "ai-gateway",
     spesifikasjon: "openapi/ai-gateway.yaml",
-    kilde: "apps/ai-gateway/src/server.js",
+    kilde: "apps/ai-gateway/src/server.ts",
     utenfor: {
       "/assets/felles.css": "statisk stilark for /docs, ikke et API"
     },
@@ -370,17 +370,17 @@ const tjenester: Tjeneste[] = [
   {
     navn: "tools-api",
     spesifikasjon: "openapi/tools-api.yaml",
-    kilde: "apps/tools-api/src/server.js"
+    kilde: "apps/tools-api/src/server.ts"
   },
   {
     navn: "process-agent",
     spesifikasjon: "openapi/process-agent.yaml",
-    kilde: "apps/process-agent/src/server.js"
+    kilde: "apps/process-agent/src/server.ts"
   },
   {
     navn: "matrikkel-mock",
     spesifikasjon: "openapi/matrikkel-mock.yaml",
-    kilde: "apps/matrikkel-mock/src/server.js"
+    kilde: "apps/matrikkel-mock/src/server.ts"
   },
   {
     navn: "digdir-mock",

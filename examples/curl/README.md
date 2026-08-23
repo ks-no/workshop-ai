@@ -8,7 +8,7 @@ spesifikasjonene tjenestene selv serverer, velger riktig token for ruta, og skri
 Det utforskeren *ikke* kan uttrykke er en rekkefølge — sju kall der hvert bygger på det
 forrige. Det er det denne fila er til.
 
-Alle kall er hentet fra `scripts/kontrakt-smoke.js`, som kjører i CI. Virker et kall
+Alle kall er hentet fra `scripts/kontrakt-smoke.ts`, som kjører i CI. Virker et kall
 ikke, er det en reell feil.
 
 ## 1. Token, én gang

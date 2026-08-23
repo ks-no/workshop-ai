@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
 import { routeOverview } from "../../shared-ui/openapi.ts";
+import { cors, svarhjelpere } from "../../shared-ui/http.ts";
 // The one place the two age thresholds live. digdir-mock decides who gets a token
 // and sandbox-backend decides who may be party to a case; they must agree, so
 // neither carries its own copy of the rule.
@@ -159,36 +160,20 @@ async function getPersoner(): Promise<Testbruker[]> {
 // Authorization is in Allow-Headers because demo-gui calls this and the backend
 // cross-origin from :3001. Without it every browser call dies in preflight, and
 // only in the console.
-const CORS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization"
-};
+// Named, because the preflight 204 and the ID-porten 302 write the headers
+// directly rather than going through a response helper.
+const CORS = cors("GET,POST,OPTIONS");
 
-function jsonResponse(
-  response: ServerResponse,
-  statusCode: number,
-  data: unknown,
-  headers: Record<string, string> = {}
-): void {
-  response.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8",
-    // RFC 6749 section 5.1: token responses must not be cached.
-    "Cache-Control": "no-store",
-    ...CORS,
-    ...headers
-  });
-  response.end(JSON.stringify(data, null, 2));
-}
+const { jsonResponse, textResponse } = svarhjelpere({
+  cors: CORS,
+  // RFC 6749 section 5.1: token responses must not be cached. Only this service
+  // mints tokens, so only this service sets it.
+  jsonHeaders: { "Cache-Control": "no-store" }
+});
 
+// /docs and the person picker are HTML, which is textResponse's default type.
 function htmlResponse(response: ServerResponse, statusCode: number, body: string): void {
-  response.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8", ...CORS });
-  response.end(body);
-}
-
-function textResponse(response: ServerResponse, statusCode: number, body: string, contentType: string): void {
-  response.writeHead(statusCode, { "Content-Type": contentType, ...CORS });
-  response.end(body);
+  textResponse(response, statusCode, body);
 }
 
 /** RFC 6749 section 5.2. The shape every OAuth client already knows how to read. */

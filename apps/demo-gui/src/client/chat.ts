@@ -1,0 +1,911 @@
+// Sidescript for chat. Lastes som <script type="module">, så alt her har sitt
+// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
+// typene derfra er globale og trenger ingen import.
+export {};
+
+renderTopNav("/chat");
+
+const backendBase = "http://localhost:8080";
+const aiBase = "http://localhost:8082";
+
+/*
+ * Formene chat-siden leser fra backend og ai-gateway.
+ *
+ * Løsere enn typene på serversiden med vilje: siden viser hva den fikk, den
+ * håndhever ingenting. Alt som kan mangle er valgfritt, så en manglende nøkkel
+ * gir en tom visning i stedet for en tom side.
+ */
+
+/** Resultatet av ett steg. Formen avhenger av stegtypen — derfor åpen. */
+type Stegresultat = {
+  godkjent?: boolean;
+  melding?: string;
+  status?: string;
+  formaal?: string;
+  dataKilder?: string[];
+  tekst?: string;
+  advarsel?: string;
+  adressenavn?: string;
+  kommune?: string;
+  antallEiendommer?: number;
+  antallBoligeiendommer?: number;
+  beregningsbeloep?: number;
+  inntektsaar?: number;
+  stadie?: string;
+  husstandId?: string;
+  medlemmer?: unknown[];
+  oppgave?: { oppgaveId?: string };
+};
+
+type Handlingsresultat = { oekt: Prosessoekt; resultat?: Stegresultat | unknown[] };
+
+type Samtykke = { status: string; formaal?: string; dataKilder?: string[] };
+
+/** POST /ai/sporsmaal. `sperre` settes når svaret ble erstattet. */
+type SporsmaalSvar = {
+  tekst?: string;
+  sperre?: string;
+  advarsel?: string;
+  grunnlag?: Grunnlag;
+  feil?: string;
+};
+
+/** POST /ai/tolk-svar. */
+type Tolkning = { intent?: string; confidence?: number; modell?: string; advarsel?: string };
+
+type Revisjonsrad = {
+  handling: string;
+  ressurs?: string;
+  aktor?: { type: string; id?: string; paaVegneAv?: string };
+};
+
+type Hurtigknapp = { label: string; onClick: () => void; secondary?: boolean };
+
+type Samtalelinje = { rolle: string; tekst: string };
+
+const personEl = krevEl<HTMLSelectElement>("person");
+const prosessEl = krevEl<HTMLSelectElement>("prosess");
+const chatEl = krevEl("chat");
+const inputEl = krevEl<HTMLTextAreaElement>("input");
+const quickActionsEl = krevEl("quickActions");
+const sessionInfoEl = krevEl("sessionInfo");
+const oektStatusEl = krevEl("oektStatus");
+
+initChat(chatEl);
+
+let prosesser: Prosess[] = [];
+let oekt: Prosessoekt | null = null;
+let aktivProsess: Prosess | null = null;
+let aktivAutoHandling: string | null = null;
+
+// Grunnlag for frie spørsmål. satser er offentlig og krever ikke samtykke;
+// den hentes én gang og gjenbrukes.
+let satser: unknown = null;
+let sisteSamtykke: Samtykke | null = null;
+let ventendeOppfolging: string[] = [];
+const samtale: Samtalelinje[] = [];
+
+function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresultat | unknown[] | null | undefined): string {
+  if (!result) {
+    return "";
+  }
+
+  // En liste er sitt eget utfall og har ingen av feltene under. Sjekket her,
+  // ikke nede i DATA_FETCH, så resten kan lese felter uten omveier.
+  if (Array.isArray(result)) {
+    if (steg?.type !== "DATA_FETCH") return "Steget ble gjennomført.";
+    return result.length === 0
+      ? "Jeg fant ingen registrerte opplysninger for dette steget."
+      : `Jeg hentet ${result.length} registrerte oppføringer for dette steget.`;
+  }
+
+  if (steg?.type === "SJEKK") {
+    if (result.godkjent === false) {
+      return result.melding || "Sjekken feilet.";
+    }
+    return result.melding || "Sjekk fullført.";
+  }
+
+  if (steg?.type === "CONSENT_REQUEST") {
+    if (result.status === "SAMTYKKET") {
+      return "Takk. Samtykket er registrert, så da kan vi gå videre.";
+    }
+    if (result.status === "IKKE_SAMTYKKET") {
+      return "Skjønner. Jeg har registrert at du ikke vil samtykke akkurat nå.";
+    }
+    return "Samtykkevalget ditt er registrert.";
+  }
+
+  if (steg?.type === "DATA_FETCH") {
+    if (result.adressenavn && result.antallEiendommer !== undefined) {
+      return `Jeg fant gaten ${result.adressenavn} i ${result.kommune}. Matrikkelen viser ${result.antallBoligeiendommer} boligeiendommer og ${result.antallEiendommer} eiendommer totalt.`;
+    }
+    if (result.beregningsbeloep !== undefined) {
+      const utkast = result.stadie === "UTKAST" ? " Skatteoppgjoret er ikke ferdig, sa tallet kan endre seg." : "";
+      return `Jeg har hentet inntektsopplysningene. Husholdningens inntektsgrunnlag for ${result.inntektsaar} er ${formatNumber(result.beregningsbeloep)} kroner.${utkast}`;
+    }
+    if (result.husstandId && Array.isArray(result.medlemmer)) {
+      return `Jeg har hentet husstandsopplysninger for ${result.husstandId}. Husstanden har ${result.medlemmer.length} registrerte medlemmer.`;
+    }
+  }
+
+  if (steg?.type === "SUMMARY") {
+    if (result.tekst) {
+      return result.tekst;
+    }
+    return "Jeg har laget en oppsummering av opplysningene dine.";
+  }
+
+  if (steg?.type === "SUBMIT") {
+    const oppgave = result.oppgave?.oppgaveId ? " Det er også opprettet en oppgave for videre behandling." : "";
+    return `Søknaden er sendt inn.${oppgave}`.trim();
+  }
+
+  if (typeof result.tekst === "string" && result.tekst.trim()) {
+    return result.tekst.trim();
+  }
+
+  return "Steget ble gjennomført.";
+}
+
+function promptForStep(steg: ProsessSteg | null | undefined): string {
+  if (!steg) {
+    return "Vi er ferdige med prosessen.";
+  }
+
+  if (steg.type === "INFO") {
+    return steg.tekst || `Hei ${valgtPerson()}, jeg hjelper deg med ${aktivProsess?.navn || "prosessen"}. Når du er klar, kan vi starte.`;
+  }
+
+  if (steg.type === "QUESTION") {
+    const intro = steg.tekst || steg.tittel;
+    return `${intro}\n\n${buildSporsmaalsHjelp(steg)}`;
+  }
+
+  /*
+   * Samtykketeksten er deterministisk og skal forbli det. Et samtykke må
+   * være informert og utvetydig, så modellen får ikke skrive om selve
+   * spørsmålet — bare svare på oppfølgingsspørsmål om det, gjennom
+   * /ai/sporsmaal med sine sperrer.
+   *
+   * Det som er nytt her er ikke tonen, men at spørsmålet faktisk sier
+   * hva et informert samtykke krever: hva, hvorfor, hvor fra, hva om du
+   * sier nei, og at du kan ombestemme deg.
+   */
+  if (steg.type === "CONSENT_REQUEST") {
+    const dataKilder = (steg.dataKilder || []).join(", ") || "nødvendige opplysninger";
+    const formaal = String(steg.formaal || "behandle saken").toLowerCase();
+    return [
+      `For å komme videre trenger jeg samtykke fra deg til å hente ${dataKilder}.`,
+      "",
+      `• Hva vi henter: ${dataKilder}`,
+      `• Hvorfor: for å ${formaal}`,
+      "• Hvor fra: Skatteetaten, via KS Fiks — her simulert med syntetiske data",
+      "• Sier du nei: da henter vi ingenting, og vi kan ikke vurdere saken videre nå",
+      "• Du kan ombestemme deg og trekke samtykket etterpå",
+      "",
+      "Er det greit for deg? Spør gjerne først hvis noe er uklart."
+    ].join("\n");
+  }
+
+  if (steg.type === "DATA_FETCH") {
+    return steg.tekst || (steg.tittel ? `Takk. ${steg.tittel}.` : "Takk. Da henter jeg de opplysningene vi trenger nå.");
+  }
+
+  if (steg.type === "SJEKK") {
+    return steg.tekst || (steg.tittel ? `${steg.tittel}.` : "Nå gjør jeg en sjekk av opplysningene.");
+  }
+
+  if (steg.type === "SUMMARY") {
+    return "Flott. Nå lager jeg en kort oppsummering av det vi har gått gjennom.";
+  }
+
+  if (steg.type === "SUBMIT") {
+    return "Da er vi klare til å sende inn. Vil du at jeg skal sende søknaden nå?";
+  }
+
+  return steg.tittel || "Neste steg er klart.";
+}
+
+function updateSessionInfo(): void {
+  if (!oekt) {
+    sessionInfoEl.textContent = "Ingen aktiv prosess.";
+    oektStatusEl.textContent = "";
+    return;
+  }
+  sessionInfoEl.textContent = `Du er i ${aktivProsess?.navn || oekt.prosessId}. Steg ${oekt.stegIndex + 1} av ${oekt.totaltAntallSteg}.`;
+  renderOektStatus();
+}
+
+/*
+ * Samtykkestatus, syntetisk-merking og sporet, synlig hele veien.
+ * Ligger de bare i API-svaret, ser ingen dem under en demo.
+ */
+function renderOektStatus(): void {
+  oektStatusEl.innerHTML = "";
+  if (!oekt) return;
+
+  // Samtykkeobjektet opprettes først når innbygger svarer, så statusen må
+  // også lese hvilket steg vi står på. Ellers står det «ikke spurt om
+  // samtykke ennå» midt i samtykkespørsmålet.
+  const isOnSamtykke = oekt.aktivtSteg?.type === "CONSENT_REQUEST";
+  const samtykketekst: string | null = ({
+    SAMTYKKET: "samtykke gitt",
+    IKKE_SAMTYKKET: "samtykke ikke gitt",
+    TRUKKET: "samtykke trukket",
+    UTLOEPT: "samtykket er utløpt",
+    VENTER_PAA_SVAR: "venter på ditt samtykke"
+  } as Record<string, string | undefined>)[sisteSamtykke?.status ?? ""]
+    || (isOnSamtykke ? "venter på ditt samtykke" : null)
+    || (oekt.aktivtSamtykkeId ? "samtykke opprettet" : "ikke spurt om samtykke ennå");
+
+  const merker = [`🔒 ${samtykketekst}`, "🧪 syntetiske data"];
+  for (const merke of merker) {
+    const span = document.createElement("span");
+    span.textContent = merke;
+    oektStatusEl.appendChild(span);
+  }
+
+  if (oekt.sporingsId) {
+    // KI-sporet er ugradert og kan fortsatt åpnes i ny fane.
+    const spor = document.createElement("a");
+    spor.href = `${aiBase}/trace?sporingsId=${encodeURIComponent(oekt.sporingsId)}`;
+    spor.target = "_blank";
+    spor.rel = "noopener";
+    spor.textContent = "KI-spor";
+    oektStatusEl.appendChild(spor);
+
+    // Revisjonsloggen rendres i siden, ikke som lenke i ny fane. En <a href>
+    // kan ikke bære en Authorization-header, så under håndhevelse ville
+    // lenken blitt en 401-side — og loggen er den mest personsensitive
+    // flaten vi har. Den skal ikke være den ene uten port.
+    const knapp = document.createElement("a");
+    knapp.href = "#";
+    knapp.textContent = "revisjonslogg";
+    knapp.onclick = (hendelse) => {
+      hendelse.preventDefault();
+      showRevisjonslogg(oekt!.sporingsId);
+    };
+    oektStatusEl.appendChild(knapp);
+  }
+}
+
+async function showRevisjonslogg(sporingsId: string): Promise<void> {
+  try {
+    const rader = await req<Revisjonsrad[]>(`/api/revisjonslogg/${encodeURIComponent(sporingsId)}`);
+    if (rader.length === 0) {
+      addMsg("system", "Revisjonsloggen er tom for dette sporet ennå.");
+      return;
+    }
+    const linjer = rader.map((rad) => {
+      const aktor = rad.aktor
+        ? `${rad.aktor.type}${rad.aktor.id ? ` ${rad.aktor.id}` : ""}${rad.aktor.paaVegneAv ? ` på vegne av ${rad.aktor.paaVegneAv}` : ""}`
+        : "ukjent";
+      return `${rad.handling} — ${rad.ressurs || "?"} — ${aktor}`;
+    });
+    addMsg("system", `Revisjonslogg (${rader.length} hendelser):\n${linjer.join("\n")}`);
+  } catch (feil) {
+    addMsg("error", `Kunne ikke hente revisjonsloggen: ${feilmelding(feil)}`);
+  }
+}
+
+// «Takk, det har jeg notert» sa ingenting om hva som ble notert.
+function acknowledgeSvar(steg: ProsessSteg, tekst: string): string {
+  const kort = tekst.length > 90 ? `${tekst.slice(0, 90).trim()}…` : tekst;
+  if (Array.isArray(steg.felter) && steg.felter.length > 0) {
+    return `Takk. Jeg har notert svaret ditt på «${steg.tittel || steg.id}».`;
+  }
+  return `Takk. Jeg har notert: «${kort}»`;
+}
+
+function setQuickActions(buttons: Hurtigknapp[] = []): void {
+  quickActionsEl.innerHTML = "";
+  for (const button of buttons) {
+    const node = document.createElement("button");
+    node.textContent = button.label;
+    if (button.secondary) {
+      node.className = "secondary";
+    }
+    node.onclick = button.onClick;
+    quickActionsEl.appendChild(node);
+  }
+}
+
+function valgtPerson(): string {
+  return personEl.selectedOptions?.[0]?.textContent || "deg";
+}
+
+/* ── Sidespørsmål ──────────────────────────────────────────────────────
+ *
+ * Flyten er ryggraden, men et spørsmål underveis skal sette den på pause
+ * i stedet for å bli avvist. Ruten er tilstandsfri med vilje: den kaller
+ * aldri /svar, /handling eller /neste. Motoren er lineær, så et svar som
+ * feilaktig ble lest som spørsmål koster én tur — mens et spørsmål som
+ * ble lagret som svar er stille og ugjenkallelig.
+ */
+
+const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "kan jeg", "må jeg", "ma jeg", "får jeg", "far jeg", "hvilke", "hvilken"];
+
+// Lukket liste. Brukes bare på QUESTION-steg, der terskelen må være høy.
+const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
+
+function isSidesporsmaal(text: string, steg: ProsessSteg | null | undefined): boolean {
+  const lower = normalize(text);
+  if (!lower) return false;
+
+  // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
+  // er et svar med et spørreord midt inni.
+  const startsWithSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
+  const hasQuestionMark = text.includes("?");
+
+  // På QUESTION bærer teksten en verdi vi mister ved feilruting, så her
+  // kreves alle tre. Ellers kan innbygger uansett bare si ja eller nei.
+  if (steg?.type === "QUESTION") {
+    return startsWithSporreord && hasQuestionMark && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
+  }
+
+  return startsWithSporreord || hasQuestionMark;
+}
+
+/*
+ * Flyt-blokken er ikke pynt. Uten den leste modellen stegnavnet «Send
+ * søknad» i prosessdefinisjonen og svarte «nå har søknaden blitt sendt
+ * inn» mens vi fortsatt sto og ventet på bekreftelse. Grunnlaget må si
+ * hva som *ikke* har skjedd, ikke bare hva som finnes.
+ */
+function buildFlyt(): Record<string, unknown> | null {
+  if (!oekt) return null;
+  const steg: ProsessSteg[] = aktivProsess?.steg || [];
+  const submitSteg = steg.find((s) => s.type === "SUBMIT");
+  return {
+    staarPaa: oekt.aktivtSteg?.tittel || oekt.aktivtSteg?.type || null,
+    stegNummer: oekt.stegIndex + 1,
+    avTotalt: oekt.totaltAntallSteg,
+    status: oekt.status,
+    fullforteSteg: steg.slice(0, oekt.stegIndex).map((s) => s.tittel || s.id),
+    gjenstaaendeSteg: steg.slice(oekt.stegIndex).map((s) => s.tittel || s.id),
+    soknadSendt: Boolean(submitSteg && oekt.resultater?.[submitSteg.id])
+  };
+}
+
+async function buildSporsmaalsKontekst(): Promise<Record<string, unknown>> {
+  let mineEiendommer: unknown = null;
+  if (oekt?.personId) {
+    try {
+      // req(), not a bare fetch: the lookup is egne-data, so it needs the
+      // ID-porten token. Without it AUTH_ENFORCE answers 401 and the field
+      // would silently stay null — a lookup that looks like it works.
+      mineEiendommer = await req<unknown>(
+        `/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
+      );
+    } catch (_) {
+      // Best-effort — answer without ownership data if lookup fails
+    }
+  }
+  return {
+    tjeneste: aktivProsess?.navn || "ukjent prosess",
+    prosess: aktivProsess || null,
+    steg: oekt?.aktivtSteg || null,
+    flyt: buildFlyt(),
+    satser: satser,
+    // Står vi på samtykkesteget uten svar ennå, er «venter» sannere enn
+    // ingenting — og det er nettopp da innbygger spør hvorfor.
+    samtykke: sisteSamtykke || (oekt?.aktivtSteg?.type === "CONSENT_REQUEST"
+      ? {
+          status: "VENTER_PAA_SVAR",
+          formaal: oekt.aktivtSteg.formaal,
+          dataKilder: oekt.aktivtSteg.dataKilder
+        }
+      : null),
+    resultater: oekt?.resultater || null,
+    mineEiendommer: mineEiendommer,
+    samtale: samtale.slice(-6)
+  };
+}
+
+// fraKnapp: et forslag innbygger trykket på var aldri et feilrutet svar,
+// så da skal rømningsknappen ikke tilbys.
+async function answerSidesporsmaal(text: string, fraKnapp = false): Promise<void> {
+  addTyping();
+  try {
+    const res = await fetch(`${aiBase}/ai/sporsmaal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tekst: text,
+        sporingsId: oekt?.sporingsId,
+        kontekst: await buildSporsmaalsKontekst(),
+        sprak: "nb"
+      })
+    });
+    const data = (await res.json()) as SporsmaalSvar;
+    removeTyping();
+    if (!res.ok) {
+      throw new Error(data.feil || `Feil ${res.status}`);
+    }
+
+    // En sperre som ikke synes, er ikke demonstrerbar.
+    addMsg(data.sperre ? "guardrail" : "assistant", data.tekst ?? "");
+    addGrunnlagsfot(data.grunnlag);
+    samtale.push({ rolle: "assistent", tekst: data.tekst ?? "" });
+
+    if (data.sperre) {
+      addMsg("system", `Sperre «${data.sperre}»: ${data.advarsel || "svaret ble erstattet."}`);
+    } else if (data.advarsel) {
+      addMsg("system", `⚠️ ${data.advarsel}`);
+    }
+  } catch (error) {
+    removeTyping();
+    addMsg("error", `Fikk ikke svar på spørsmålet: ${feilmelding(error)}`);
+  }
+
+  resumeFlyt(fraKnapp ? null : text);
+}
+
+// Flyten gjenopptas eksplisitt. stegIndex er ikke rørt — vi viser bare
+// hvor vi står, og gir en vei ut av en feilruting.
+function resumeFlyt(opprinneligTekst: string | null): void {
+  const steg = oekt?.aktivtSteg;
+  if (!steg) return;
+  addMsg("system", `Sidespørsmål — flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
+  addMsg("assistant", promptForStep(steg));
+  renderQuickActionsFor(steg, opprinneligTekst);
+}
+
+// Generisk over svarformen, så hvert kallsted navngir hva det venter seg.
+async function req<T>(
+  path: string,
+  options: Omit<RequestInit, "headers"> & { headers?: Record<string, string> } = {}
+): Promise<T> {
+  const res = await fetch(`${backendBase}${path}`, {
+    ...options,
+    headers: withToken({ "Content-Type": "application/json", ...(options.headers || {}) })
+  });
+  const data = (await res.json()) as { feil?: string };
+  if (!res.ok) {
+    throw new Error(data.feil || `Feil ${res.status}`);
+  }
+  return data as T;
+}
+
+function isJaSvar(text: string): boolean {
+  const lower = normalize(text);
+  return ["ja", "japp", "yes", "klart", "greit", "okei", "ok", "gjerne", "ja takk", "send inn", "det går fint", "det er greit"].some((match) => lower.includes(match));
+}
+
+function isNeiSvar(text: string): boolean {
+  const lower = normalize(text);
+  return ["nei", "ikke", "stopp", "senere", "ikke nå", "nei takk"].some((match) => lower.includes(match));
+}
+
+function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
+  const felter = steg?.felter || [];
+  if (felter.length === 0) {
+    return "Fortell gjerne med dine egne ord.";
+  }
+  if (felter.length === 1) {
+    return `Fortell gjerne litt om dette: ${felter[0].label}.`;
+  }
+  const liste = felter.map((felt) => felt.label.toLowerCase());
+  const siste = liste.pop();
+  return `Du kan gjerne svare samlet og si litt om ${liste.join(", ")} og ${siste}.`;
+}
+
+function vent(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function interpretBrukersvar(
+  text: string,
+  intents: { ja: string; nei: string; ukjent: string },
+  kontekst: Record<string, unknown> = {}
+): Promise<Tolkning> {
+  try {
+    const res = await fetch(`${aiBase}/ai/tolk-svar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tekst: text,
+        jaIntent: intents.ja,
+        neiIntent: intents.nei,
+        ukjentIntent: intents.ukjent,
+        sporingsId: oekt?.sporingsId,
+        kontekst: {
+          tjeneste: aktivProsess?.navn || "ukjent prosess",
+          steg: oekt?.aktivtSteg,
+          ...kontekst
+        }
+      })
+    });
+    const data = (await res.json()) as Tolkning & { feil?: string };
+    if (!res.ok) {
+      throw new Error(data.feil || `Feil ${res.status}`);
+    }
+    return data;
+  } catch {
+    if (isJaSvar(text)) {
+      return { intent: intents.ja, confidence: 0.6, modell: "lokal-fallback" };
+    }
+    if (isNeiSvar(text)) {
+      return { intent: intents.nei, confidence: 0.6, modell: "lokal-fallback" };
+    }
+    return { intent: intents.ukjent, confidence: 0.1, modell: "lokal-fallback" };
+  }
+}
+
+async function aiExplain(promptType: string, context: Record<string, unknown> = {}): Promise<string> {
+  try {
+    const res = await fetch(`${aiBase}/ai/${promptType}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sporingsId: oekt?.sporingsId,
+        kontekst: {
+          tjeneste: aktivProsess?.navn || "ukjent prosess",
+          steg: oekt?.aktivtSteg,
+          ...context
+        },
+        sprak: "nb"
+      })
+    });
+    const data = (await res.json()) as { tekst?: string };
+    if (res.ok && data.tekst) {
+      return data.tekst;
+    }
+  } catch {
+    // Fallback text below.
+  }
+  return "";
+}
+
+async function goNext(): Promise<void> {
+  if (!oekt || oekt.status === "FULLFORT" || oekt.status === "AVVIST") return;
+  if (oekt.stegIndex >= ((oekt.totaltAntallSteg ?? 0) - 1)) return;
+  oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" });
+  updateSessionInfo();
+  await renderStep();
+}
+
+async function runHandling(payload: Record<string, unknown>, successText: string): Promise<void> {
+  const steg = oekt?.aktivtSteg;
+  addTyping();
+  let result: Handlingsresultat;
+  try {
+    result = await req<Handlingsresultat>(`/api/prosessoekter/${oekt!.oektsId}/handling`, {
+      method: "POST",
+      body: JSON.stringify(payload || {})
+    });
+  } finally {
+    removeTyping();
+  }
+  oekt = result.oekt;
+
+  // Samtykkestatus vises i statusstripa og sendes med som grunnlag når
+  // innbygger spør om databruk.
+  const resultat = Array.isArray(result.resultat) ? null : result.resultat;
+  if (steg?.type === "CONSENT_REQUEST" && resultat?.status) {
+    sisteSamtykke = {
+      status: resultat.status,
+      formaal: resultat.formaal,
+      dataKilder: resultat.dataKilder
+    };
+  }
+
+  updateSessionInfo();
+  addMsg("system", successText);
+  const summary = summarizeResult(steg, result.resultat);
+  if (summary) {
+    addMsg("assistant", summary);
+    samtale.push({ rolle: "assistent", tekst: summary });
+  }
+  warnAboutFallback(resultat);
+
+  // Et utfall reiser spørsmål. Å tilby dem er billigere enn å håpe at
+  // innbygger vet at de kan spørre. Settes her, men tegnes av
+  // renderQuickActionsFor — goNext() tegner knappene på nytt rett etter.
+  if (steg?.type === "SJEKK") {
+    ventendeOppfolging = ["Hvorfor ble det slik?", "Hvilke opplysninger brukte dere?", "Hva skjer med opplysningene mine?"];
+  } else if (steg?.type === "SUMMARY") {
+    ventendeOppfolging = ["Hva skjer videre nå?", "Hvilke opplysninger brukte dere?"];
+  }
+
+  await goNext();
+}
+
+async function ensureConsentDecision(status: string, successText: string): Promise<void> {
+  if (!oekt?.aktivtSamtykkeId) {
+    addMsg("system", "Jeg oppretter samtykkeforespørselen nå.");
+    const opprettet = await req<Handlingsresultat>(`/api/prosessoekter/${oekt!.oektsId}/handling`, {
+      method: "POST",
+      body: JSON.stringify({ handling: "opprett-samtykke" })
+    });
+    oekt = opprettet.oekt;
+    updateSessionInfo();
+  }
+  await runHandling({ handling: "samtykkesvar", status }, successText);
+}
+
+async function autoRunStep(steg: ProsessSteg, successText: string): Promise<void> {
+  if (!oekt || aktivAutoHandling === steg.id) {
+    return;
+  }
+  aktivAutoHandling = steg.id;
+  try {
+    await vent(250);
+    await runHandling({}, successText);
+  } finally {
+    aktivAutoHandling = null;
+  }
+}
+
+async function renderStep(): Promise<void> {
+  setQuickActions([]);
+  const steg = oekt?.aktivtSteg;
+  if (!steg || !oekt) {
+    addMsg("system", "Ingen aktivt steg.");
+    return;
+  }
+  if (oekt.status === "AVVIST") {
+    addMsg("error", oekt.avvistMelding || oekt.resultater?.[steg.id]?.melding || "Søknaden ble avvist.");
+    return;
+  }
+  if (oekt.status === "FULLFORT") {
+    addMsg("assistant", "Da er vi ferdige. Takk for at du gikk gjennom dette sammen med meg.");
+    return;
+  }
+
+  addMsg("assistant", promptForStep(steg));
+  renderQuickActionsFor(steg);
+
+  if (steg.type === "DATA_FETCH") {
+    await autoRunStep(steg, "Jeg henter opplysningene nå.");
+    return;
+  }
+
+  if (steg.type === "SJEKK") {
+    await autoRunStep(steg, "Jeg sjekker opplysningene nå.");
+    return;
+  }
+
+  if (steg.type === "SUMMARY") {
+    await autoRunStep(steg, "Jeg lager oppsummeringen nå.");
+    return;
+  }
+
+  if (!["INFO", "QUESTION", "CONSENT_REQUEST", "SUBMIT"].includes(steg.type)) {
+    addMsg("error", `Ukjent stegtype: ${steg.type}`);
+  }
+}
+
+/*
+ * Knappene for et steg. Egen funksjon fordi et sidespørsmål må kunne
+ * tegne dem på nytt uten å kjøre steget om igjen.
+ *
+ * feilrutetTekst er rømningsveien: ble en melding lest som spørsmål når
+ * den var et svar, sender knappen den inn som svar med ett trykk.
+ */
+function renderQuickActionsFor(steg: ProsessSteg, feilrutetTekst: string | null = null): void {
+  const knapper: Hurtigknapp[] = [];
+
+  if (steg.type === "INFO") {
+    knapper.push({ label: "Start", onClick: () => goNext() });
+  }
+
+  if (steg.type === "CONSENT_REQUEST") {
+    knapper.push(
+      { label: "Ja, det går fint", onClick: () => ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.") },
+      { label: "Nei, ikke nå", onClick: () => ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden."), secondary: true }
+    );
+  }
+
+  if (steg.type === "SUBMIT") {
+    knapper.push(
+      { label: "Ja, send inn", onClick: () => runHandling({}, "Da sender jeg inn søknaden.") },
+      { label: "Ikke ennå", onClick: () => addMsg("assistant", "Helt i orden. Gi beskjed når du vil sende den inn."), secondary: true }
+    );
+  }
+
+  for (const sporsmaal of ventendeOppfolging) {
+    knapper.push({
+      label: sporsmaal,
+      secondary: true,
+      onClick: () => {
+        addMsg("user", sporsmaal);
+        samtale.push({ rolle: "innbygger", tekst: sporsmaal });
+        answerSidesporsmaal(sporsmaal, true);
+      }
+    });
+  }
+
+  if (feilrutetTekst) {
+    knapper.push({
+      label: "Nei, dette var svaret mitt",
+      secondary: true,
+      onClick: () => sendMessage(feilrutetTekst, { hoppOverSporsmaalsruting: true })
+    });
+  }
+
+  setQuickActions(knapper);
+}
+
+function normalize(text: string): string {
+  return text.toLowerCase().trim();
+}
+
+async function sendMessage(
+  overstyrtTekst: string | null = null,
+  valg: { hoppOverSporsmaalsruting?: boolean } = {}
+): Promise<void> {
+  const text = typeof overstyrtTekst === "string" ? overstyrtTekst : inputEl.value.trim();
+  if (!text) return;
+  if (typeof overstyrtTekst !== "string") {
+    inputEl.value = "";
+  }
+  addMsg("user", text);
+  samtale.push({ rolle: "innbygger", tekst: text });
+
+  if (!oekt || !oekt.aktivtSteg) {
+    addMsg("error", "Start en prosess forst.");
+    return;
+  }
+
+  if (oekt?.status === "AVVIST") {
+    addMsg("error", "Søknaden ble avvist. Start en ny søknad om du vil prøve igjen.");
+    return;
+  }
+
+  const steg = oekt.aktivtSteg;
+  const lower = normalize(text);
+
+  // Eksplisitt rømningsvei begge veier: «svar:» tvinger teksten inn som
+  // svar på steget, og knappen fra gjenopptaFlyt setter samme flagg.
+  const tvungetSvar = valg.hoppOverSporsmaalsruting || lower.startsWith("svar:");
+  const reellTekst = lower.startsWith("svar:") ? text.slice(4).trim() : text;
+
+  if (!tvungetSvar && isSidesporsmaal(text, steg)) {
+    await answerSidesporsmaal(text);
+    return;
+  }
+
+  try {
+    if (steg.type === "INFO") {
+      // Any input at an info step means the user has read the information
+      // and wants to move on — whether they say "fortsett", name a street,
+      // or anything else that is not a side-question.
+      await goNext();
+      return;
+    }
+
+    if (steg.type === "QUESTION") {
+      oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
+        method: "POST",
+        body: JSON.stringify({ stegId: steg.id, svar: reellTekst })
+      });
+      addMsg("assistant", acknowledgeSvar(steg, reellTekst));
+      updateSessionInfo();
+      await goNext();
+      return;
+    }
+
+    if (steg.type === "CONSENT_REQUEST") {
+      const tolkning = await interpretBrukersvar(reellTekst, { ja: "samtykke-ja", nei: "samtykke-nei", ukjent: "ukjent" }, { handling: "consent" });
+      warnAboutFallback(tolkning);
+      if (tolkning.intent === "samtykke-ja") {
+        await ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.");
+        return;
+      }
+      if (tolkning.intent === "samtykke-nei") {
+        await ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden.");
+        return;
+      }
+      // Uklart svar på et samtykkespørsmål skal aldri gjettes på. Var det
+      // egentlig et spørsmål, svarer vi på det i stedet for å mase.
+      if (!tvungetSvar) {
+        await answerSidesporsmaal(reellTekst);
+        return;
+      }
+      addMsg("assistant", "Jeg vil være sikker på at jeg forstod deg riktig. Svar gjerne «ja» eller «nei» — samtykke må være utvetydig.");
+      return;
+    }
+
+    if (steg.type === "DATA_FETCH" || steg.type === "SJEKK" || steg.type === "SUMMARY") {
+      addMsg("assistant", "Jeg holder på med dette steget nå — men spør gjerne om noe imens.");
+      return;
+    }
+
+    if (steg.type === "SUBMIT") {
+      const tolkning = await interpretBrukersvar(reellTekst, { ja: "send-ja", nei: "send-nei", ukjent: "ukjent" }, { handling: "submit" });
+      warnAboutFallback(tolkning);
+      if (tolkning.intent === "send-ja") {
+        await runHandling({}, "Da sender jeg inn søknaden.");
+        return;
+      }
+      if (tolkning.intent === "send-nei") {
+        addMsg("assistant", "Helt i orden. Vi kan vente med innsendingen til du er klar.");
+        return;
+      }
+      if (!tvungetSvar) {
+        await answerSidesporsmaal(reellTekst);
+        return;
+      }
+      addMsg("assistant", "Du kan for eksempel svare «ja, send inn» eller «nei, ikke ennå».");
+      return;
+    }
+
+    addMsg("error", `Ukjent stegtype: ${steg.type}`);
+  } catch (error) {
+    addMsg("error", `Feil: ${feilmelding(error)}`);
+  }
+}
+
+async function startChat(): Promise<void> {
+  try {
+    const personId = personEl.value;
+    const prosessId = prosessEl.value;
+    aktivProsess = prosesser.find((p) => p.id === prosessId) || null;
+    sisteSamtykke = null;
+    ventendeOppfolging = [];
+    samtale.length = 0;
+    oekt = await req<Prosessoekt>("/api/prosessoekter", {
+      method: "POST",
+      body: JSON.stringify({ personId, prosessId, sporingsId: `flyt-${Date.now()}` })
+    });
+    chatEl.innerHTML = "";
+    updateSessionInfo();
+    addMsg("assistant", `Hei ${valgtPerson()}! Jeg kan hjelpe deg med ${aktivProsess?.navn || prosessId}.`);
+    await renderStep();
+  } catch (error) {
+    addMsg("error", `Kunne ikke starte chat: ${feilmelding(error)}`);
+  }
+}
+
+async function loadOptions(): Promise<Person[]> {
+  const personer = await req<Person[]>("/api/personer");
+  const prosessData = await req<Prosess[] | { prosesser?: Prosess[] }>("/api/prosesser");
+  // Offentlig ressurs, ingen samtykke. Dette er grunnlaget frie spørsmål
+  // om satser og inntektsgrenser besvares fra.
+  satser = await req<unknown>("/api/regler/satser").catch(() => null);
+  prosesser = Array.isArray(prosessData) ? prosessData : (prosessData?.prosesser || []);
+  // ID-porten decided who you are, so the person selector reports it rather
+  // than offering a choice. See showLoggedInPerson in felles.ts.
+  showLoggedInPerson(personEl, personer);
+  prosessEl.innerHTML = prosesser.map((p) => `<option value="${htmlEscape(p.id)}">${htmlEscape(p.navn)}</option>`).join("");
+  return personer;
+}
+
+krevEl("start").onclick = () => startChat();
+krevEl("send").onclick = () => sendMessage();
+krevEl("reset").onclick = () => {
+  oekt = null;
+  aktivProsess = null;
+  sisteSamtykke = null;
+  ventendeOppfolging = [];
+  samtale.length = 0;
+  chatEl.innerHTML = "";
+  setQuickActions([]);
+  updateSessionInfo();
+  addMsg("system", "Chat nullstilt.");
+};
+inputEl.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+checkModell(aiBase, {
+  konsekvens: "Svarene under kommer fra maler, ikke fra en modell."
+});
+
+requireLogin()
+  .then((innlogget) => {
+    // requireLogin() gir false når nettleseren allerede er på vei til ID-porten.
+    if (innlogget) return loadOptions();
+    return null;
+  })
+  .then((personer) => {
+    if (!personer) return;
+    addMsg("assistant", "Velg en prosess, så kan vi starte når du vil.");
+  })
+  .catch((error: unknown) => addMsg("error", `Kunne ikke laste grunnlag: ${feilmelding(error)}`));

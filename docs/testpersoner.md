@@ -1,4 +1,4 @@
-<!-- GENERERT AV scripts/importer-tenor.js. Ikke rediger for hånd. -->
+<!-- GENERERT AV scripts/importer-tenor.ts. Ikke rediger for hånd. -->
 # Testpersoner
 
 Hele befolkningen i sandkassen, generert fra `data/personer.json`. `pnpm test` feiler hvis denne fila er ute av takt med dataene, så tallene her er alltid de som faktisk gjelder.

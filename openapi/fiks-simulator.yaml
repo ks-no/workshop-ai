@@ -826,7 +826,7 @@ components:
       type: string
       description: >-
         Kodeverket ligger i apps/fiks-simulator/src/samtykke.ts, og
-        scripts/valider-data.js feiler hvis informasjonsmodellen kommer ut av
+        scripts/valider-data.ts feiler hvis informasjonsmodellen kommer ut av
         takt med det. `IKKE_SAMTYKKET`, `TRUKKET` og `UTLOEPT` er endelige.
         `UTLOEPT` utledes av `utloper` og skrives aldri til rad.
       enum: [VENTER_PAA_SVAR, SAMTYKKET, IKKE_SAMTYKKET, TRUKKET, UTLOEPT]

@@ -1,6 +1,6 @@
 {
   "beskrivelse": "Hva hver husstand er ment å demonstrere. Pinnet slik at en endret inntekt eller et flyttet trinn brekker pnpm test, i stedet for at en case stille blir noe annet enn scenario-teksten sier.",
-  "merknad": "Denne fila lastes ikke av noen tjeneste. Den er kun grunnlag for scripts/valider-data.js, og holdes derfor utenfor wire-formatet.",
+  "merknad": "Denne fila lastes ikke av noen tjeneste. Den er kun grunnlag for scripts/valider-data.ts, og holdes derfor utenfor wire-formatet.",
   "husstander": [
     {
       "husstandId": "household-001",

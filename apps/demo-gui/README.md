@@ -27,7 +27,9 @@ Tilgjengelige sider:
 - `http://localhost:3001/ds-eksempel` mal for KS Digital sitt designsystem. Denne siden
   laster med vilje **ikke** `felles.css` — se `docs/designsystem.md`
 
-De øvrige deler `apps/shared-ui/felles.css` og `felles.js`, servert på `/assets/*`.
+De øvrige deler `apps/shared-ui/felles.css` på `/assets/*` og `client/felles.ts` på
+`/delt/felles.ts`. Hver side har i tillegg sitt eget script under `src/client/`,
+servert på `/client/<side>.ts` og type-strippet ved servering.
 Prosessbyggeren på `:3000` serverer de samme filene fra sin egen `/assets/*`.
 
 Dette er en **referanseimplementasjon, ikke en tvungen klient.** Bygg gjerne din egen

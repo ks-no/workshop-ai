@@ -18,7 +18,7 @@ Reads `data/brreg.seed.json` (200 synthetic organisations from Tenor). Override
 with an absolute path:
 
 ```bash
-BRREG_DATA_FILE=/absolute/path/to/export.json node apps/brreg-mcp/src/server.js
+BRREG_DATA_FILE=/absolute/path/to/export.json node apps/brreg-mcp/src/server.ts
 ```
 
 The server resolves the default relative to its own location, so it works no
@@ -27,7 +27,7 @@ matter where you start it from.
 ## Run
 
 ```bash
-node apps/brreg-mcp/src/server.js
+node apps/brreg-mcp/src/server.ts
 ```
 
 It speaks stdio, so on its own it just waits. Point a client at it.
@@ -46,7 +46,7 @@ against a real client too:**
 
 ```bash
 npx -y @modelcontextprotocol/inspector --cli \
-  node apps/brreg-mcp/src/server.js --method tools/list
+  node apps/brreg-mcp/src/server.ts --method tools/list
 ```
 
 Both tools should be listed. `Connection timed out` means the framing broke.
@@ -63,7 +63,7 @@ Both tools should be listed. `Connection timed out` means the framing broke.
   "mcpServers": {
     "brreg": {
       "command": "node",
-      "args": ["apps/brreg-mcp/src/server.js"],
+      "args": ["apps/brreg-mcp/src/server.ts"],
       "cwd": "/absolute/path/to/workshop-ai"
     }
   }
@@ -73,5 +73,5 @@ Both tools should be listed. `Connection timed out` means the framing broke.
 Or, in Claude Code, from the repo root:
 
 ```bash
-claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.js"
+claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"
 ```

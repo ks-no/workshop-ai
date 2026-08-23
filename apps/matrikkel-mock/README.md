@@ -12,14 +12,14 @@ Bakgrunn:
 
 - `seeiendom.no` er fin til manuell utforsking, men frontend-en eksponerer ikke en stabil offentlig bulk-liste over alle veier i Bergen som egner seg godt for automatisert mocking.
 - Derfor holder vi `matrikkel-mock` lett og lokalt syntetisk, samtidig som vi beholder håndkuraterte demo-gater som `Storgata`, `Nordnesveien`, `Fjøsangerveien` og `Laksevågvegen`.
-- Adressegrunnlaget hentes med `node scripts/hent-matrikkel.js`, som henter de gatene befolkningen faktisk bor i fra Geonorges adresse-API. Nett kreves når skriptet kjøres, ikke når sandkassen kjører.
+- Adressegrunnlaget hentes med `node scripts/hent-matrikkel.ts`, som henter de gatene befolkningen faktisk bor i fra Geonorges adresse-API. Nett kreves når skriptet kjøres, ikke når sandkassen kjører.
 
 Seedfila er stabil og skal være nok for vanlig lokal utvikling. Ved enkelte oppslag kan mocken hente data fra Geonorge dersom et treff mangler i seeden.
 
 ## Kjør lokalt med Node
 
 ```bash
-node apps/matrikkel-mock/src/server.js
+node apps/matrikkel-mock/src/server.ts
 ```
 
 `MATRIKKEL_DATA_FILE` støtter fortsatt:
@@ -76,13 +76,13 @@ Responsene for eiendom inneholder nå også rikere mock-felter som `husnummer`, 
 Grunnleggende mocktest:
 
 ```bash
-node scripts/test-matrikkel-mock.js
+node scripts/test-matrikkel-mock.ts
 ```
 
 Bergen bulk-smoke test:
 
 ```bash
-node scripts/test-bergen-matrikkel-bulk.js
+node scripts/test-bergen-matrikkel-bulk.ts
 ```
 
 MCP-integrasjonstest for matrikkel-oppslag:

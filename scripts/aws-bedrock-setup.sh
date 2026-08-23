@@ -1,7 +1,7 @@
 #!/bin/sh
 # One-time setup: creates a single shared IAM role that can call bedrock:InvokeModel
 # on exactly the models ai-gateway's BEDROCK_MODELS list knows about (see
-# apps/ai-gateway/src/server.js), nothing broader.
+# apps/ai-gateway/src/server.ts), nothing broader.
 #
 # Run this once. Adding people who can use it is a separate, repeatable step —
 # see aws-bedrock-add-user.sh.
@@ -16,7 +16,7 @@ set -eu
 REGION="${AWS_REGION:-eu-north-1}"
 ROLE_NAME="${ROLE_NAME:-ai-gateway-bedrock-invoke}"
 
-# Keep this in sync with BEDROCK_MODELS in apps/ai-gateway/src/server.js. These are
+# Keep this in sync with BEDROCK_MODELS in apps/ai-gateway/src/server.ts. These are
 # inference-profile ids, not bare model ids: InvokeModel rejects a bare id for these
 # models with "on-demand throughput isn't supported ... retry with an inference
 # profile" (confirmed against a real account 2026-08-21 — an earlier version of this

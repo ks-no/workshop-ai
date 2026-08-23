@@ -138,7 +138,7 @@ den dyreste enkeltmangelen i dokumentasjonen.
 **Tiltak.** Ett nytt deltakerdokument — «bygg ditt eget» — som samler:
 
 - de fire utvidelsespunktene fra backend-README-en
-- oppskriften på egen frontend på egen port: CORS er åpen, `felles.js` løser
+- oppskriften på egen frontend på egen port: CORS er åpen, `felles.ts` løser
   innlogging og tokenhåndtering, `ds-eksempel.html` er malen
 - det frosne wire-formatet, så ingen døper om et svarfelt
 - katalogendepunktene (`GET /api/katalog/ressurser` med `tilgang` og
@@ -294,7 +294,7 @@ noe. Resten hører etter hackathonet.
 Seksten forekomster av `Del A`, `Del B`, `WP2`, `A2` og `Issue #8` brukt som
 forklaring — blant annet `autentisering.ts:7` og `:132`, `handleevne.ts:19`,
 `ressurser.ts:504` og `:525`, `fiks-simulator/src/samtykke.ts:76`,
-`felles.js:198`, `digdir-mock/src/client.ts:239`, `valider-data.js:582`.
+`felles.ts:198`, `digdir-mock/src/client.ts:239`, `valider-data.ts:582`.
 
 Ingen av kodene er definert noe sted i repoet. `autentisering.ts:7` sier at
 skillet er «the whole pedagogical point of Del B» — til en leser som ikke vet hva
@@ -315,7 +315,7 @@ healthcheck, en linje i `apps/shared-ui/tjenester.json`, og en fil i `openapi/`.
 Glemmer man ett av de to siste, feiler `pnpm test:openapi` eller `pnpm test:docs`.
 
 Nærmeste levende eksempel er `matrikkel-mock` på over tolv hundre linjer. Minste
-mal er `process-builder/src/server.js` på seksti.
+mal er `process-builder/src/server.ts` på seksti.
 
 **Tiltak.** En oppskrift på rundt tretti linjer i «bygg ditt eget» (funn 3). Et
 scaffold-skript er riktig, men hører etter hackathonet.
@@ -333,7 +333,7 @@ forankret i husregelen i `AGENTS.md:112-113`, og gjennomgående av høy kvalitet
 
 Det som faktisk finnes, i fallende alvorlighet:
 
-**Én støylomme.** `apps/process-agent/src/server.js` har 22 kommentarer som bare
+**Én støylomme.** `apps/process-agent/src/server.ts` har 22 kommentarer som bare
 gjentar linjen under. `:1555` sier «// Store answer to the current question» over
 `state.guidedInterviewAnswers[...] = text;`. Fila skiller seg også stilistisk fra
 resten av repoet — den bruker en-dash der alt annet bruker em-dash — og har død
@@ -342,7 +342,7 @@ linjer fra `:1193`. Det er her AI-støyen den som leser repoet reagerer på,
 faktisk sitter.
 
 **Rundt 116 endringslogg-kommentarer** som forteller hva koden pleide å være:
-`felles.js:98-102`, `ai-gateway/src/server.js:1282-1298`,
+`felles.ts:98-102`, `ai-gateway/src/server.ts:1282-1298`,
 `fiks-simulator/src/state.ts:4-16`. I valideringsskript er dette forsvarlig — «her
 er buggen denne testen finnes for» er testens eksistensberettigelse. I
 produksjonskode er det git-historikk på avveie.
@@ -352,10 +352,10 @@ filer som bytter språk midt i samme blokk: `shared-ui/openapi.ts:1-23` starter
 norsk, går til engelsk, og tilbake til norsk i siste avsnitt.
 
 **Fire utdaterte `fil.ts:NNN`-referanser** som har drevet.
-`matrikkel-mock/src/server.js:1088` peker på to linjer i `ressurser.ts` som ikke er
+`matrikkel-mock/src/server.ts:1088` peker på to linjer i `ressurser.ts` som ikke er
 det den sier de er.
 
-**Tiltak.** Rydd `apps/process-agent/src/server.js` først — det alene fjerner rundt
+**Tiltak.** Rydd `apps/process-agent/src/server.ts` først — det alene fjerner rundt
 60 prosent av den ekte støyen. Innfør regelen «aldri `fil.ts:NNN` i en kommentar,
 bruk funksjonsnavn», som ikke kan drive.
 
@@ -366,7 +366,7 @@ kommentarer som betaler for seg:
   utlede fra `if (alder < 13)`.
 - `autentisering.ts:209-211` — «Never returns a boolean — a caller that forgets to
   check a boolean fails open, and this must fail closed.»
-- `ai-gateway/src/server.js:73-82` — hvorfor Bedrock-variablene ikke heter `AWS_*`.
+- `ai-gateway/src/server.ts:73-82` — hvorfor Bedrock-variablene ikke heter `AWS_*`.
   En fallgruve som ellers koster en dag.
 
 Og: `scripts/dev.sh` ser ubrukt ut fordi den ikke står i `package.json`, men
@@ -415,7 +415,7 @@ automatisk rydde bort.
 eneste request, uten caching — i praksis rundt 700 kB JSON-parsing per kall.
 Uproblematisk på hackathon-skala, men en skjult kostnad.
 
-Videre: `matrikkel-mock/src/server.js:410` (`gateTreffSomListe`) er død kode,
+Videre: `matrikkel-mock/src/server.ts:410` (`gateTreffSomListe`) er død kode,
 `.idea/` er sjekket inn i git, og de tre `aws-bedrock-*.sh` er ikke referert fra
 `package.json` eller CI — bare fra en kommentar.
 
@@ -437,7 +437,7 @@ som er bra, og det meste er bra. Det som særlig bør bevares:
   mappe.
 - **`vilkaar.ts`.** Ren og synkron, med privat `regelHandlers` og `evaluateVilkaar`
   som eneste inngang. Vedtaket kan pinnes med literaler, uten kjørende tjenester.
-- **`sporsmaalsperrer.js`.** Skilt ut fra `server.js` nettopp fordi sperrene skal
+- **`sporsmaalsperrer.ts`.** Skilt ut fra `server.js` nettopp fordi sperrene skal
   kunne importeres av en test. Den beste enkeltavgjørelsen i KI-laget.
 - **CI-fila.** Hvert steg har en kommentar som navngir buggen steget fanger. Den er
   det nærmeste repoet kommer en arkitekturbegrunnelse, og den er kjørbar.

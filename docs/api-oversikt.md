@@ -60,7 +60,7 @@ Spesifikasjonen har signaturene. Dette er det den ikke sier:
   fra grunnlaget kalleren sender med, har ingen egen dataadgang, og kjører sperrer i kode
   på svaret. `tekst` ligger på toppnivå, som i `/ai/tolk-svar`. Se
   `apps/ai-gateway/README.md`.
-- `POST /ai/dommer` – LLM-as-judge for `scripts/eval.js`. Ikke en del av en innbyggerflyt.
+- `POST /ai/dommer` – LLM-as-judge for `scripts/eval.ts`. Ikke en del av en innbyggerflyt.
 - `POST /ai/velg-prosess`
 - `POST /ai/velg-verktoy` – Gitt et prosessteg og liste over tilgjengelige MCP-verktøy, returnerer hvilke som er relevante (`kontekst`, `validering`, eller `kontekst_og_validering`). Brukes av `tools-api/suggest_step_tools`.
 

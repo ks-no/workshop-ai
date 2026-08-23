@@ -144,7 +144,7 @@ Baseline før du endrer en prompt, og samme kommando etterpå:
 
 ```bash
 pnpm test:eval --json > /tmp/foer.json
-# ...endre buildPrompt i apps/ai-gateway/src/server.js...
+# ...endre buildPrompt i apps/ai-gateway/src/server.ts...
 pnpm test:eval --json > /tmp/etter.json
 ```
 
