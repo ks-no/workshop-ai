@@ -13,8 +13,8 @@
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) — persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
-- `apps/mcp-services` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **Not the MCP protocol** — it self-reports `protocol: "mcp-style-http"` and speaks REST, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`.
-- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `mcp-services` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
+- `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **REST, not the MCP protocol** — it answers `protocol: "rest"`, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`, so the road to real MCP is short. It was called `mcp-services` until 23.08.2026; the name was dropped rather than the disclaimer repeated in every doc. Its `/mcp/*` paths survive as wire format — the one place the prefix still claims a protocol the service does not speak.
+- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `tools-api` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
@@ -47,7 +47,7 @@
 - Flow is definition-driven (see `data/prosessdefinisjoner.json`), not UI-hardcoded.
 - Seven step types exist (`apps/sandbox-backend/src/types.ts`): `INFO`, `QUESTION`,
   `DATA_FETCH`, `CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT`. There is no `CONFIRMATION`.
-- Actual sequence in the flagship case `reduced-kindergarten-payment`:
+- Actual sequence in the flagship case `redusert-foreldrebetaling-barnehage`:
   `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
 - The engine is linear: `stegIndex` only counts up. No branching, no conditional jumps.
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
@@ -165,7 +165,7 @@ pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fr
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
   Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed — a restart is enough.
-- All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `mcp-services`,
+- All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
   `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`) are
   volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
   - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` — inotify
@@ -196,7 +196,7 @@ pnpm test:agent
 pnpm test:agent:nl
 pnpm test:matrikkel-mock
 pnpm test:bergen-matrikkel
-pnpm test:mcp-matrikkel
+pnpm test:tools-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
@@ -207,20 +207,21 @@ pnpm test:agent:matrikkel
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`, `test:vilkaar`,
-  `test:foedselsnummer`, `test:handleevne`, `test:skjerming`, `test:samtykke`,
-  `test:openapi` and `test:kontrakt` on every PR
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
+  `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
+  `test:samtykke`, `test:concurrency`, `test:openapi`, `test:docs` and
+  `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) — run those locally.
-- All eight services have a `healthcheck` in `docker-compose.yml`, and `mcp-services`
+- All nine services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
-- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `MCP_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `STATE_DIR`.
-- `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
+- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `STATE_DIR`.
+- `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
   `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string
   explaining why. Status is always 200: the service is alive even when the model is not.
@@ -266,16 +267,16 @@ pnpm test:agent:matrikkel
   `data/eierforhold.json` (`EIERFORHOLD_DATA_FILE`) and is merged in at load, because
   title is in the grunnbok and not the matrikkel. `eiere` is only in the response from
   `/mock/matrikkel/eiendommer` when `personId` is given.
-- `mcp-services` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
-  lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. **Two different
-  defaults, and the distinction matters:** the code default is `mock`
-  (`apps/mcp-services/src/server.js:10`), but compose sets `hybrid`
-  (`docker-compose.yml:200`) — so `hybrid` is what you actually run. Not `live`: `live`
-  rethrows on network failure, so bad conference wifi turns every street lookup into a
-  500. `hybrid` tries Geonorge first and falls back to the seed data.
-  Compose now defaults to `mock`, because the seed holds every Bergen street and a live
-  lookup has nothing left to add.
-  `MATRIKKEL_MODE` is read only by `mcp-services`; `matrikkel-mock` always falls back to
+- `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
+  lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. All three places
+  that set it — the code default, `docker-compose.yml` and `.env.example` — now say
+  `mock`, so there is one value to know. This paragraph used to reconcile two of them
+  against a third; it does not need to any more.
+  `mock` is right because the seed holds every Bergen street, so a live lookup has
+  nothing left to add and the conference network cannot break a street lookup. Pick
+  `hybrid` if you need streets outside the seed. Not `live` — it rethrows on network
+  failure, so every street lookup becomes a 500 when you are offline.
+  `MATRIKKEL_MODE` is read only by `tools-api`; `matrikkel-mock` always falls back to
   live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
   is down.
 
@@ -283,10 +284,10 @@ pnpm test:agent:matrikkel
 - `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
 - **It is the only reader of the matrikkel seed.** `sandbox-backend` reaches it over HTTP via `MATRIKKEL_BASE_URL`; nothing else opens the file. Keeping two read paths meant keeping two copies of the same post-processing in step by hand.
 - `data/matrikkel.seed.json` is the small curated fixture; keep it small, readable, and deterministic.
-- `mcp-services` kan gjore direkte gateoppslag mot Geonorge adresse-API i `live`-modus, uten lokal Norges-kopi.
-- `apps/mcp-services` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
-- `matrikkel_hent_eiendom` og `matrikkel_hent_eiere` kan brukes med eksakt adresse, for eksempel `Storgata 5`.
-- `apps/mcp-services` also exposes `suggest_step_tools`: given a process step definition, calls `ai-gateway /ai/velg-verktoy` and returns which tools are relevant (context and/or validation).
+- In `live` mode `tools-api` queries the Geonorge address API directly, with no local copy of Norway.
+- `apps/tools-api` wraps matrikkel via three tools: `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`.
+- `matrikkel_hent_eiendom` and `matrikkel_hent_eiere` accept an exact address, e.g. `Storgata 5`.
+- `apps/tools-api` also exposes `suggest_step_tools`: given a process step definition, calls `ai-gateway /ai/velg-verktoy` and returns which tools are relevant (context and/or validation).
 - `apps/process-agent` calls `suggest_step_tools` on every QUESTION step to discover tools
   dynamically. It *additionally* hardcodes step ids and one tool name for the
   `fartsdempende-tiltak` case — see the service map above. Improving that agent is a
@@ -295,6 +296,6 @@ pnpm test:agent:matrikkel
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
 - Frontend and styling: `docs/designsystem.md`, and `apps/demo-gui/src/ds-eksempel.html` for working markup.
-- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/mcp-services.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
-- End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-mcp-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`, `scripts/test-bergen-matrikkel-bulk.js`.
+- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
+- End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-tools-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`, `scripts/test-bergen-matrikkel-bulk.js`.
 

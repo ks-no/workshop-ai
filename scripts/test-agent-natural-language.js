@@ -65,8 +65,8 @@ async function run() {
     assert(Array.isArray(first.replies) && first.replies.length > 0, "Expected agent replies for ambiguous message");
 
     if (first?.selectedProcess?.id) {
-      const allowed = new Set(["reduced-kindergarten-payment", "sfo-moderasjon"]);
-      assert(allowed.has(first.selectedProcess.id), `Expected one of reduced-kindergarten-payment or sfo-moderasjon, got ${first.selectedProcess.id}`);
+      const allowed = new Set(["redusert-foreldrebetaling-barnehage", "sfo-moderasjon"]);
+      assert(allowed.has(first.selectedProcess.id), `Expected one of redusert-foreldrebetaling-barnehage or sfo-moderasjon, got ${first.selectedProcess.id}`);
       return;
     }
 

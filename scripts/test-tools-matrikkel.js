@@ -111,7 +111,7 @@ async function invoke(port, name, args = {}) {
 }
 
 function startMcp(port, extraEnv = {}) {
-  return spawn("node", ["apps/mcp-services/src/server.js"], {
+  return spawn("node", ["apps/tools-api/src/server.js"], {
     env: {
       ...process.env,
       PORT: String(port),
@@ -186,7 +186,7 @@ async function kjor() {
     const hybridEiendom = await invoke(mcpHybridPort, "matrikkel_hent_eiendom", { adresse: "Storgata 5" });
     assert(hybridEiendom.matrikkelId === "matr-storg-005", "Hybrid adresseoppslag skulle falt tilbake til mock for Storgata 5");
 
-    console.log("test:mcp-matrikkel OK");
+    console.log("test:tools-matrikkel OK");
   } finally {
     mcpHybrid.kill("SIGTERM");
     mcpLive.kill("SIGTERM");

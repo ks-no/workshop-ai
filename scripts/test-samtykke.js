@@ -21,6 +21,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { getInnbyggerToken, maskinportenHeader } from "../apps/digdir-mock/src/client.ts";
 import { hasGyldigSamtykke, hasUtloeptSamtykke } from "../apps/sandbox-backend/src/regler.ts";
 import {
   SAMTYKKESTATUSER,
@@ -33,6 +34,12 @@ import { validateOppgaveovergang } from "../apps/fiks-simulator/src/oppgave.ts";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.SAMTYKKE_FIKS_PORT) || 18091;
 const basisUrl = `http://127.0.0.1:${port}`;
+// The samtykke surface is behind Maskinporten as of Del B, so this test needs a
+// real issuer. It used to point DIGDIR_BASE_URL at 127.0.0.1:1 on purpose, on the
+// premise that minting a token must not decide whether a samtykke can be answered.
+// That premise no longer holds: it is exactly what decides it now.
+const digdirPort = Number(process.env.SAMTYKKE_DIGDIR_PORT) || 18094;
+const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 
 let bestatt = 0;
 const feil = [];
@@ -209,30 +216,70 @@ async function requireFreePort(portnummer) {
   });
 }
 
-async function waitForHealth(tidsfrist = 15000) {
+async function waitForHealth(url, navn, tidsfrist = 15000) {
   const innen = Date.now() + tidsfrist;
   while (Date.now() < innen) {
     try {
-      if ((await fetch(`${basisUrl}/helse`)).ok) return;
+      if ((await fetch(`${url}/helse`)).ok) return;
     } catch {
       // not up yet
     }
     await new Promise((klar) => setTimeout(klar, 100));
   }
-  throw new Error(`fiks-simulator svarte ikke på /helse innen ${tidsfrist} ms.`);
+  throw new Error(`${navn} svarte ikke på /helse innen ${tidsfrist} ms.`);
 }
 
+/*
+ * Every call carries the samtykke scope unless it says otherwise. `valg.token`
+ * sends a different one and `valg.utenToken` sends none — that is how 6h below
+ * checks that the door is actually locked.
+ */
 async function call(sti, valg = {}) {
+  const authorization = valg.utenToken
+    ? {}
+    : valg.token
+      ? { Authorization: `Bearer ${valg.token}` }
+      : await maskinportenHeader(tokenForSti(sti));
   const svar = await fetch(`${basisUrl}${sti}`, {
     method: valg.method || "GET",
-    headers: valg.body ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...authorization,
+      ...(valg.body ? { "Content-Type": "application/json" } : {})
+    },
     body: valg.body ? JSON.stringify(valg.body) : undefined
   });
   return { status: svar.status, kropp: await svar.json() };
 }
 
+/*
+ * One token per surface, because one scope per surface is the point: a client that
+ * may ask for consent is not thereby a client that may create tasks. The default
+ * is picked from the path so the 100-odd call sites did not have to name it, and
+ * `valg.token` / `valg.utenToken` still override for the negative checks in 6h.
+ */
+function fiksToken(scope) {
+  return {
+    digdirBaseUrl: digdirUrl,
+    issuer: digdirUrl,
+    clientId: "test-samtykke",
+    scope,
+    resource: "fiks-simulator"
+  };
+}
+
+const SAMTYKKE_TOKEN = fiksToken("ks:fiks:samtykke");
+const OPPGAVE_TOKEN = fiksToken("ks:fiks:oppgave");
+const MELDING_TOKEN = fiksToken("ks:fiks:melding");
+
+function tokenForSti(sti) {
+  if (sti.startsWith("/fiks/oppgaver")) return OPPGAVE_TOKEN;
+  if (sti.startsWith("/fiks/meldinger")) return MELDING_TOKEN;
+  return SAMTYKKE_TOKEN;
+}
+
 const stateDir = await mkdtemp(path.join(tmpdir(), "samtykke-test-"));
 await requireFreePort(port);
+await requireFreePort(digdirPort);
 
 // sandbox-backend owns the audit log, and what gets written to it is half the
 // point of a samtykke event — so it is collected here rather than thrown away.
@@ -253,9 +300,14 @@ const revisjonstjener = createServer((request, response) => {
 await new Promise((klar) => revisjonstjener.listen(0, "127.0.0.1", klar));
 const revisjonsUrl = `http://127.0.0.1:${revisjonstjener.address().port}`;
 
-// No digdir on 127.0.0.1:1, on purpose: minting a token must not be what decides
-// whether a samtykke can be answered. The address refuses instantly rather than
-// hanging on a timeout, and the client falls back to calling without a token.
+const digdir = spawn(process.execPath, [path.join(repoRoot, "apps/digdir-mock/src/server.ts")], {
+  cwd: repoRoot,
+  env: { ...process.env, PORT: String(digdirPort), STATE_DIR: stateDir, DIGDIR_ISSUER: digdirUrl },
+  stdio: ["ignore", "pipe", "pipe"]
+});
+digdir.stdout.on("data", () => {});
+digdir.stderr.on("data", (chunk) => process.stderr.write(`[digdir] ${chunk}`));
+
 const tjeneste = spawn(process.execPath, [path.join(repoRoot, "apps/fiks-simulator/src/server.js")], {
   cwd: repoRoot,
   env: {
@@ -263,7 +315,8 @@ const tjeneste = spawn(process.execPath, [path.join(repoRoot, "apps/fiks-simulat
     PORT: String(port),
     STATE_DIR: stateDir,
     BACKEND_BASE_URL: revisjonsUrl,
-    DIGDIR_BASE_URL: "http://127.0.0.1:1"
+    DIGDIR_BASE_URL: digdirUrl,
+    DIGDIR_ISSUER: digdirUrl
   },
   stdio: ["ignore", "pipe", "pipe"]
 });
@@ -279,7 +332,10 @@ tjeneste.stderr.on("data", (chunk) => {
 const samtykkeFil = path.join(stateDir, "samtykker.json");
 
 try {
-  await waitForHealth();
+  await Promise.all([
+    waitForHealth(digdirUrl, "digdir-mock"),
+    waitForHealth(basisUrl, "fiks-simulator")
+  ]);
 
   const nytt = async (personId = "person-001") =>
     call("/fiks/samtykke", {
@@ -430,7 +486,70 @@ try {
   const ukjentOppgave = await call("/fiks/oppgaver/oppgave-finnes-ikke/status", { method: "PUT", body: { status: "FERDIG" } });
   check("ukjent oppgaveId gir 404", ukjentOppgave.status === 404, String(ukjentOppgave.status));
 
-  // 6j. revisjonsloggen
+  /*
+   * 6j. hjemmelen på samtykkeflaten.
+   *
+   * These are the checks the whole surface exists for. The samtykke gate in
+   * sandbox-backend — pid binding, resource catalogue, purpose taken from the
+   * consent — could be satisfied by two unauthenticated calls to this port, because
+   * the register surface was behind Maskinporten and the samtykke surface was not.
+   * The gate was real; the back door was next to it.
+   *
+   * A citizen's own token is refused too, and that is the substantive half: consent
+   * is asked for by a municipality and answered through it. sandbox-backend holds
+   * the verified citizen token, decides, and names the citizen in `aktor` on the way
+   * out — the hjemmel is the machine's, the act is the citizen's.
+   */
+  const utenToken = await call("/fiks/samtykke", {
+    method: "POST",
+    utenToken: true,
+    body: { personId: "person-001", formaal: "Uten hjemmel", dataKilder: ["inntekt"] }
+  });
+  check("POST /fiks/samtykke uten token gir 401", utenToken.status === 401, String(utenToken.status));
+  check("401 sier hvilket scope som mangler",
+    String(utenToken.kropp.feil || "").includes("ks:fiks:samtykke"),
+    JSON.stringify(utenToken.kropp));
+
+  const innbyggerToken = await getInnbyggerToken({
+    digdirBaseUrl: digdirUrl,
+    personId: "person-001",
+    clientId: "test-samtykke",
+    resource: "fiks-simulator"
+  });
+  const somInnbygger = await call("/fiks/samtykke", {
+    method: "POST",
+    token: innbyggerToken,
+    body: { personId: "person-001", formaal: "Feil hjemmel", dataKilder: ["inntekt"] }
+  });
+  check("et ID-porten-token gir 403 KREVER_MASKINPORTEN", somInnbygger.status === 403,
+    String(somInnbygger.status));
+  check("403-en navngir kravet",
+    somInnbygger.kropp.feilmeldinger?.[0]?.kode === "KREVER_MASKINPORTEN",
+    JSON.stringify(somInnbygger.kropp));
+
+  // Right issuer, wrong authority: the oppgave scope does not open the samtykke
+  // surface. One scope per surface only means something if this fails.
+  const feilScope = await call("/fiks/samtykke", {
+    method: "POST",
+    token: await (async () => {
+      const { Authorization } = await maskinportenHeader(OPPGAVE_TOKEN);
+      return Authorization.slice("Bearer ".length);
+    })(),
+    body: { personId: "person-001", formaal: "Feil scope", dataKilder: ["inntekt"] }
+  });
+  check("oppgave-scope åpner ikke samtykkeflaten", feilScope.status === 403, String(feilScope.status));
+  check("403-en sier at scopet mangler",
+    feilScope.kropp.feilmeldinger?.[0]?.kode === "MANGLER_SCOPE",
+    JSON.stringify(feilScope.kropp));
+
+  const svarUtenToken = await call(`/fiks/samtykke/${id}/svar`, {
+    method: "PUT",
+    utenToken: true,
+    body: { status: "SAMTYKKET" }
+  });
+  check("PUT /svar uten token gir 401", svarUtenToken.status === 401, String(svarUtenToken.status));
+
+  // 6k. revisjonsloggen
   const hendelser = (handling) => revisjon.filter((h) => h.handling === handling);
 
   check("svaret revisjonslogges", hendelser("SAMTYKKE_SVART").length >= 1);
@@ -464,6 +583,7 @@ try {
     String(hendelser("OPPGAVE_STATUS_ENDRET").length));
 } finally {
   tjeneste.kill("SIGTERM");
+  digdir.kill("SIGTERM");
   revisjonstjener.close();
   await rm(stateDir, { recursive: true, force: true });
 }

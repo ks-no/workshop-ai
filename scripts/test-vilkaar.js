@@ -26,6 +26,7 @@
  * asserted it is because the message IS the contract for that branch.
  */
 
+import { readFile } from "node:fs/promises";
 import { plasserSomKvalifiserer, regelKreverInntekt, evaluateVilkaar } from "../apps/sandbox-backend/src/vilkaar.ts";
 
 let bestatt = 0;
@@ -266,6 +267,40 @@ try {
   kastet = error.message.startsWith("Ukjent regeltype: FINNES_IKKE. Gyldige: ");
 }
 check("ukjent regeltype kaster med de gyldige listet opp", kastet);
+
+// --- the import direction -------------------------------------------------
+//
+// vilkaar.ts, alder.ts and handleevne.ts are pure and synchronous so an outcome
+// can be pinned with a literal tilstand object and no running services. That only
+// holds while the arrow points one way: regler.ts does the I/O and imports the
+// rules, never the reverse. handleevne.ts likewise stays out of regler.ts.
+//
+// Both rules used to live only as a comment saying "must never import" — a rule
+// addressed at whoever read it next, enforced by nobody. An import added by
+// accident would have cost this file its whole premise: importing regler.ts pulls
+// in state.ts and a 2048-bit RSA keygen, and the pure test would quietly start
+// paying for it.
+{
+  const forbidden = [
+    // state.ts is allowed and intended: vilkaar.ts needs finnPerson and
+    // hentPlasserForTjeneste, and state.ts costs ~18 ms to import. What must stay
+    // out is regler.ts, which reaches klient.ts and its 2048-bit RSA keygen.
+    { file: "apps/sandbox-backend/src/vilkaar.ts", mustNotImport: ["regler.ts", "klient.ts"] },
+    { file: "apps/sandbox-backend/src/alder.ts", mustNotImport: ["regler.ts", "state.ts", "vilkaar.ts"] },
+    { file: "apps/sandbox-backend/src/handleevne.ts", mustNotImport: ["regler.ts", "vilkaar.ts"] }
+  ];
+  for (const { file, mustNotImport } of forbidden) {
+    const source = await readFile(file, "utf8");
+    const imported = [...source.matchAll(/^\s*import[^;]*?from\s+"([^"]+)"/gm)].map((m) => m[1]);
+    for (const unwanted of mustNotImport) {
+      check(
+        `${file.split("/").pop()} importerer ikke ${unwanted}`,
+        !imported.some((importPath) => importPath.endsWith(unwanted)),
+        `importene er ${JSON.stringify(imported)}`
+      );
+    }
+  }
+}
 
 // --- report ----------------------------------------------------------------
 if (feil.length > 0) {
