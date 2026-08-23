@@ -6,7 +6,7 @@ import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
 import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
 
 const port = Number(process.env.PORT || 8084);
-const mcpBaseUrl = process.env.MCP_BASE_URL || "http://mcp-services:8083";
+const mcpBaseUrl = process.env.TOOLS_BASE_URL || "http://tools-api:8083";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const openapiFile = path.resolve(__dirname, "../../../openapi/process-agent.yaml");
 
@@ -1739,7 +1739,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
       json(response, 200, await routeOverview(openapiFile));
       return;

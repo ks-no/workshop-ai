@@ -2,7 +2,7 @@
   { "navn": "sandbox-backend", "port": 8080, "rolle": "Prosessmotor, samtykke, regler, revisjon", "spesifikasjon": true },
   { "navn": "fiks-simulator", "port": 8081, "rolle": "Mock av KS Fiks", "spesifikasjon": true },
   { "navn": "ai-gateway", "port": 8082, "rolle": "Modellkall og KI-spor", "spesifikasjon": true },
-  { "navn": "mcp-services", "port": 8083, "rolle": "Verktøykatalog over de andre", "spesifikasjon": true },
+  { "navn": "tools-api", "port": 8083, "rolle": "Verktøykatalog over de andre", "spesifikasjon": true },
   { "navn": "process-agent", "port": 8084, "rolle": "Agent-API", "spesifikasjon": true },
   { "navn": "matrikkel-mock", "port": 8085, "rolle": "Mock av Kartverket Matrikkel", "spesifikasjon": true },
   { "navn": "digdir-mock", "port": 8086, "rolle": "ID-porten og Maskinporten", "spesifikasjon": true },

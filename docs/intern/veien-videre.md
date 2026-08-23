@@ -1,8 +1,12 @@
 # Veien videre
 
-> **Merk:** Dette var et overleveringsdokument skrevet i juni 2026, før det meste av
-> arbeidet ble gjort. Statusdelene er oppdatert i august 2026. De åpne arkitekturvalgene
-> lenger ned står fortsatt — de er dokumentets varige verdi.
+> **Internt dokument. Ikke deltakermateriell, og ikke gjeldende status.**
+>
+> Dette var en overlevering skrevet i juni 2026, før det meste av arbeidet ble gjort.
+> Statusdelene er etterjustert, men de rekker aldri koden — den flytter seg raskere enn
+> dokumentet. **Kod ikke mot statusdelene her; les koden, `README.md` eller
+> `apps/shared-ui/tjenester.json`.** Den varige verdien ligger i de åpne
+> arkitekturvalgene lenger ned, og i formuleringen av hva oppgaven er.
 
 ## Formål med dette dokumentet
 
@@ -12,14 +16,15 @@ fortsatt er åpne og bør eies eksplisitt.
 
 ## Hva som er på plass nå (august 2026)
 
-Åtte kjørende tjenester: `sandbox-backend` (TypeScript), `fiks-simulator`, `ai-gateway`,
-`mcp-services`, `process-agent`, `matrikkel-mock`, `demo-gui`, `process-builder`.
-Null runtime-avhengigheter i alle.
+Ni kjørende tjenester, listet med port og rolle i `apps/shared-ui/tjenester.json` —
+den er kilden, og denne siden gjentar den ikke. Null runtime-avhengigheter i alle.
+I tillegg `brreg-mcp` og `folkeregister-mcp`, som er ekte MCP over stdio og ikke har
+port.
 
 Minimumslista fra juni er i hovedsak innfridd:
 
 - ✅ stabil oppstart — `./start.sh` med plattformdeteksjon, modellvalg og `--reset`
-- ✅ helse-endepunkter på alle åtte tjenestene
+- ✅ helse-endepunkter på alle ni tjenestene
 - ✅ fem komplette demo-case, ikke ett: barnehage, SFO, støttekontakt, fritidskort,
   fartsdempende tiltak
 - ✅ fungerende samtykkeflyt, med sperre på inntektsdata uten samtykke
@@ -39,42 +44,45 @@ Minimumslista fra juni er i hovedsak innfridd:
   viser en gul stripe når modellen er nede
 - ✅ evals av KI-laget — `pnpm test:eval` scorer mot datasett i `evals/`, med terskel
   per datasett og exit≠0 under. Harnesset nekter å score maltekst
-- ✅ API-dokumentasjon — alle seks spesifikasjoner dekker hver rute i koden, med
+- ✅ API-dokumentasjon — alle sju spesifikasjonene dekker hver rute i koden, med
   `security:` per rute. `pnpm test:openapi` sammenligner de to i begge retninger og
   feiler i CI hvis de kommer ut av takt
 
 ## Hva som gjenstår
 
-- **Evalene og stack-testene er ikke i CI.** `.github/workflows/ci.yml` kjører `lint`,
-  `test`, `test:sperrer`, `test:skjerming`, `test:samtykke`, `test:openapi` og
-  `test:kontrakt`, som ikke trenger modell eller kjørende tjenester.
+- **Evalene og stack-testene er ikke i CI.** Workflowen kjører de sjekkene som verken
+  trenger modell eller kjørende tjenester; lista står i `.github/workflows/ci.yml` og
+  gjengis ikke her, fordi den ble utdatert to steder da den ble kopiert.
   `test:eval` krever en modell og holdes bevisst utenfor; `test:agent*` krever at
   stacken er oppe. Å kjøre dem i CI ville krevd Ollama i workflowen.
-- **`mcp-services` er ikke MCP-protokollen** — REST med `protocol: "mcp-style-http"`.
+- **`tools-api` er ikke MCP-protokollen** — REST med `protocol: "rest"`. Den het
+  `mcp-services`; navnet ble droppet 23.08.2026.
   Verktøyene har korrekte `inputSchema`, så veien dit er kort. Men det er ikke
   nødvendigvis verdt å gå: verktøyene er tynne proxier over dokumenterte HTTP-API-er,
   og verktøysettet er formet rundt vår lineære stegmotor. Komplett OpenAPI er mer verdt.
-- **KI-laget har tynn evaldekning.** `evals/` har 11 caser for 9 endepunkter, og 5 av de
-  8 samtykke-casene treffer heuristikken i stedet for modellen — de er fine
+- **KI-laget har tynn evaldekning.** `evals/` har 20 caser fordelt på tre endepunkter,
+  og flere av samtykke-casene treffer heuristikken i stedet for modellen — de er fine
   regresjonstester, men de sier ingenting om modellen. Ingen datasett for
   `velg-prosess`, `velg-verktoy`, `klarsprak`, `risikosjekk`, `forklar-databruk` eller
   `dialogforslag`. Å utvide dekningen er en god og avgrenset oppgave.
-- **`process-agent` er urørt** siden før KI-sporet: 1421 linjer, egen norsk stemming
+- **`process-agent` er urørt** siden før KI-sporet: godt over 1 700 linjer, egen norsk stemming
   duplisert fra `ai-gateway`, hardkodede snarveier for `fartsdempende-tiltak`, og
   sesjoner i minnet som tapes ved restart. Å slå den er hackathon-oppgaven.
-- **Windows-oppstart.** Batchfiler for ledeteksten er under arbeid i egen pull request
-  (`start-og-stop-windows`). Merk at branchen ble laget før TypeScript-konverteringen, så
-  den trenger en rebase mot `main` før merge. Inntil videre går Windows-brukere via
-  Git Bash eller WSL.
+- ~~**Windows-oppstart.**~~ Løst: `start.bat` og `stop.bat` er i repoet og dokumentert i
+  `README.md`. Merk at `start.bat --reload` utelater `digdir-mock`, slik `start.sh`
+  advarer mot — hvert autentisert kall feiler da mens stacken ser sunn ut.
 
 ## Hva som fortsatt kan vente
 
 - avansert prosessbygger
 - penere UI
-- produksjonsklar autentisering
 - full versjonering av alle API-er
 - Altinn Studio-integrasjon og avanserte adaptere
 - omfattende testdekning
+
+Autentisering sto på denne lista fram til Del B. Den er nå bygget og håndhevet som
+standard — `digdir-mock` utsteder ID-porten- og Maskinporten-tokener, og
+`AUTH_ENFORCE` er på. Se `apps/sandbox-backend/src/autentisering.ts`.
 
 ## Hva som bevisst ikke skal bygges
 

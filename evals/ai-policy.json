@@ -10,9 +10,9 @@
         "kontekst": {
           "tjeneste": "Redusert foreldrebetaling",
           "personId": "person-001",
-          "prosessId": "reduced-kindergarten-payment",
+          "prosessId": "redusert-foreldrebetaling-barnehage",
           "data": {
-            "fetch-household": {
+            "hent-husstand": {
               "husstandId": "household-001",
               "type": "ENSLIG_FORSORGER",
               "adresse": "Eksempelveien 12",
@@ -30,7 +30,7 @@
               "syntetisk": true,
               "scenario": "Demobruker. Kvalifiserer til både redusert foreldrebetaling og gratis kjernetid."
             },
-            "consent-income": {
+            "samtykke-inntekt": {
               "samtykkeId": "samtykke-1786045082637-xhfopw",
               "personId": "person-001",
               "formaal": "Vurdere rett til redusert foreldrebetaling",
@@ -53,7 +53,7 @@
               ],
               "syntetisk": true
             },
-            "fetch-income": {
+            "hent-inntekt": {
               "inntektsaar": 2025,
               "stadie": "OPPGJOER",
               "personer": [
@@ -218,9 +218,9 @@
         "kontekst": {
           "tjeneste": "Redusert foreldrebetaling",
           "personId": "person-001",
-          "prosessId": "reduced-kindergarten-payment",
+          "prosessId": "redusert-foreldrebetaling-barnehage",
           "data": {
-            "fetch-household": {
+            "hent-husstand": {
               "husstandId": "household-001",
               "type": "ENSLIG_FORSORGER",
               "adresse": "Eksempelveien 12",
@@ -238,7 +238,7 @@
               "syntetisk": true,
               "scenario": "Demobruker. Kvalifiserer til både redusert foreldrebetaling og gratis kjernetid."
             },
-            "consent-income": {
+            "samtykke-inntekt": {
               "samtykkeId": "samtykke-1786045082637-xhfopw",
               "personId": "person-001",
               "formaal": "Vurdere rett til redusert foreldrebetaling",
@@ -261,7 +261,7 @@
               ],
               "syntetisk": true
             },
-            "fetch-income": {
+            "hent-inntekt": {
               "inntektsaar": 2025,
               "stadie": "OPPGJOER",
               "personer": [
@@ -425,7 +425,7 @@
         "kontekst": {
           "tjeneste": "Redusert foreldrebetaling",
           "personId": "person-004",
-          "prosessId": "reduced-kindergarten-payment",
+          "prosessId": "redusert-foreldrebetaling-barnehage",
           "data": {
             "sjekk-rett": {
               "godkjent": false,

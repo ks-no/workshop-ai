@@ -19,14 +19,14 @@ Ti, alle `POST`:
 | Endepunkt | Bruk | Kalles av |
 |---|---|---|
 | `/ai/oppsummering` | Formulerer `SUMMARY`-steget | `sandbox-backend` |
-| `/ai/tolk-svar` | Ja/nei/ukjent-klassifisering | `process-agent`, `mcp-services` |
+| `/ai/tolk-svar` | Ja/nei/ukjent-klassifisering | `process-agent`, `tools-api` |
 | `/ai/velg-prosess` | Matcher fritekst mot prosess | `process-agent` |
-| `/ai/velg-verktoy` | Velger MCP-verktøy per steg | `mcp-services` |
+| `/ai/velg-verktoy` | Velger MCP-verktøy per steg | `tools-api` |
 | `/ai/klarsprak` | Klarspråk-omskriving | ingen — fritt vilt |
 | `/ai/forklar-databruk` | Forklarer hvilke data som brukes | ingen — fritt vilt |
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen — fritt vilt |
 | `/ai/risikosjekk` | Enkel risikovurdering | ingen — fritt vilt |
-| `/ai/sporsmaal` | Fritt spørsmål fra innbygger, midt i en flyt | `demo-gui /chat`, `mcp-services` |
+| `/ai/sporsmaal` | Fritt spørsmål fra innbygger, midt i en flyt | `demo-gui /chat`, `tools-api` |
 | `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.js` |
 
 **Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` og
@@ -237,10 +237,15 @@ dør når vinduet lukkes — bruk `brew services start ollama` og sjekk med
 
 ## Legge til en ny provider
 
-Provider-laget er ett sted. `callModel` velger mellom `callOllama` og `callOpenRouter`,
-som begge tar `(prompt, temperatur, signal)` og returnerer `{ tekst, modell }`. En ny
-provider er én funksjon med den signaturen pluss en gren i `callModel` — ikke seks
-kopier slik det var før.
+Provider-laget er ett sted. `callModel` velger mellom `callOllama`, `callOpenRouter` og
+`callBedrock`, som alle tar `(prompt, temperatur, signal)` og returnerer
+`{ tekst, modell }`. En ny provider er én funksjon med den signaturen pluss en gren i
+`callModel` — ikke seks kopier slik det var før.
+
+**Én gren er ikke helt sant i dag.** Providernavnet står også som literal i
+`checkProvider` og i fire fallback-strenger, så en femte provider berører flere steder
+enn dette avsnittet lover. Å samle dem i én tabell er en avgrenset oppgave, og en god
+førsteoppgave for et team som vil inn i KI-laget.
 
 ## macOS: kjør Ollama nativt
 
@@ -253,11 +258,14 @@ brew services start ollama
 ollama pull qwen2.5:14b
 # .env: AI_PROVIDER=ollama, OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  mcp-services process-agent demo-gui process-builder matrikkel-mock
+  tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
 `--no-deps` er nødvendig fordi `ai-gateway` har `depends_on: ollama`, som ellers drar
-opp container-Ollama likevel.
+opp container-Ollama likevel. Men det slår av `depends_on` for alle, så `digdir-mock`
+må navngis eksplisitt — uten den svarer hvert autentisert kall `401`.
+
+Enklere: `./start.sh` gjør dette, med riktig liste.
 
 Med standard `docker compose up --build` startes `ollama`, men modeller pulles ikke automatisk.
 

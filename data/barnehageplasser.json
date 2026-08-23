@@ -46,7 +46,7 @@
   },
   {
     "personId": "person-015",
-    "barnehageId": "kg-tromsø-006",
+    "barnehageId": "kg-tromso-006",
     "barnehagenavn": "Nordlys barnehage",
     "kommune": "Tromsø",
     "plassprosent": 100,
@@ -64,7 +64,7 @@
   },
   {
     "personId": "person-021",
-    "barnehageId": "kg-bodø-008",
+    "barnehageId": "kg-bodo-008",
     "barnehagenavn": "Havna barnehage",
     "kommune": "Bodø",
     "plassprosent": 100,
@@ -73,7 +73,7 @@
   },
   {
     "personId": "person-023",
-    "barnehageId": "kg-ålesund-009",
+    "barnehageId": "kg-alesund-009",
     "barnehagenavn": "Borgund barnehage",
     "kommune": "Ålesund",
     "plassprosent": 100,
@@ -100,7 +100,7 @@
   },
   {
     "personId": "person-039",
-    "barnehageId": "kg-nordre follo-016",
+    "barnehageId": "kg-nordre-follo-016",
     "barnehagenavn": "Ski barnehage",
     "kommune": "Nordre Follo",
     "plassprosent": 100,
@@ -118,7 +118,7 @@
   },
   {
     "personId": "person-045",
-    "barnehageId": "kg-tromsø-006",
+    "barnehageId": "kg-tromso-006",
     "barnehagenavn": "Nordlys barnehage",
     "kommune": "Tromsø",
     "plassprosent": 100,

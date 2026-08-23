@@ -16,12 +16,12 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Services that run in Docker on every platform.
 # matrikkel-mock must stay in this list: on macOS we start only these by name, and
-# mcp-services proxies its three matrikkel_* tools to it over MATRIKKEL_BASE_URL.
+# tools-api proxies its three matrikkel_* tools to it over MATRIKKEL_BASE_URL.
 # Leave it out and those tools fail with "fetch failed" while everything else looks fine.
 # digdir-mock must stay in this list for the same reason as matrikkel-mock: on
 # macOS we start only these by name, and everything that needs a token dials it.
 # Leave it out and every authenticated call fails while the stack looks healthy.
-NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway mcp-services process-agent matrikkel-mock digdir-mock demo-gui process-builder)
+NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder)
 SERVICE_PORTS=(8080 8081 8082 8083 8084 8085 8086 3000 3001)
 OLLAMA_PORT=11434
 

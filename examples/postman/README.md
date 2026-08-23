@@ -6,32 +6,30 @@ driver fra koden. Importer i stedet.
 
 ## Importer
 
-`File → Import` og pek på filene i `openapi/`:
+`File → Import` og pek på filene i `openapi/` — én per API-tjeneste.
 
-| Fil | Tjeneste | Port |
-|---|---|---|
-| `openapi/sandbox-backend.yaml` | Orkestrering, data, prosesser, revisjon | 8080 |
-| `openapi/fiks-simulator.yaml` | Samtykke, register, oppgaver | 8081 |
-| `openapi/ai-gateway.yaml` | KI-støtte | 8082 |
-| `openapi/mcp-services.yaml` | Verktøy over backend | 8083 |
-| `openapi/process-agent.yaml` | Agent i naturlig språk | 8084 |
-| `openapi/matrikkel-mock.yaml` | Kartverket Matrikkel-mock | 8085 |
-
-Tre av tjenestene serverer også sin egen spesifikasjon mens de kjører, så du kan
-importere via URL: `sandbox-backend` (`http://localhost:8080/openapi.yaml`),
-`fiks-simulator` (`:8081`) og `ai-gateway` (`:8082`). `mcp-services`,
-`process-agent` og `matrikkel-mock` gjør det ikke — for dem må du importere fila
-fra `openapi/` direkte.
+Alle sju API-tjenestene serverer også spesifikasjonen sin mens de kjører, så du kan importere
+via URL i stedet: `http://localhost:<port>/openapi.yaml`. Hvilken port hver tjeneste har,
+står i `apps/shared-ui/tjenester.json` og på dashboardet <http://localhost:3001> — samme
+kilde som API-utforskeren leser, så den kan ikke drive fra koden slik en tabell her ville
+gjort.
 
 Sett en environment-variabel `basisUrl` per tjeneste, eller bruk `http://localhost:<port>`
 direkte.
 
-## Dekningsgrad, per august 2026
+**Rutene krever token.** `AUTH_ENFORCE` er på som standard, og alt som ikke er
+uttrykkelig åpent svarer 401 uten `Authorization`. Hent et token med
+`node scripts/token.ts` — eller la <http://localhost:3001/utforsker> velge det riktige
+tokenet for ruta og gi deg en `curl` som virker.
 
-**Alle seks spesifikasjoner dekker nå hver rute i koden**, med `security:` per rute:
-`sandbox-backend` 33, `fiks-simulator` 21, `ai-gateway` 16, `matrikkel-mock` 8,
-`mcp-services` 6, `process-agent` 5. Beregningsendepunktet — det eneste som speiler et
-ekte KS-API — er beskrevet i `openapi/fiks-simulator.yaml` med lenke til
+## Dekningsgrad
+
+**Hver spesifikasjon dekker hver rute i koden**, med `security:` per rute.
+Rutetallene står ikke her: `pnpm test:openapi` skriver dem ut per tjeneste, og et tall i
+denne fila ville vært en kopi som ryker ved neste rute.
+
+Beregningsendepunktet — det eneste som speiler et ekte KS-API — er beskrevet i
+`openapi/fiks-simulator.yaml` med lenke til
 [det ekte register-API-et](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json).
 
 `pnpm test:openapi` sammenligner kode og spesifikasjon i begge retninger og feiler i CI

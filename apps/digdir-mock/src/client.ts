@@ -1,7 +1,7 @@
 // HOW TO GET A TOKEN
 //
 // One implementation, imported by every client that needs one: sandbox-backend,
-// mcp-services, fiks-simulator, ai-gateway, the test scripts and scripts/token.sh.
+// tools-api, fiks-simulator, ai-gateway, the test scripts and scripts/token.sh.
 // It lives next to the issuer because this is where the protocol is defined —
 // putting a copy in each service is how five slightly different token clients
 // happen.

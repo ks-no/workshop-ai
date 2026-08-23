@@ -1,6 +1,8 @@
 # matrikkel-mock
 
-Mock av Kartverket Matrikkel Geointegrasjon API i egen Docker-image.
+Mock av Kartverket Matrikkel Geointegrasjon BasisService — SOAP, med REST-hjelpere ved
+siden av. Kjører fra det delte `node:24-alpine`-imaget som alle de andre tjenestene;
+Dockerfilen her er bare for å kjøre den frittstående, se nederst.
 
 ## Datasett
 
@@ -14,13 +16,13 @@ Bakgrunn:
 
 Seedfila er stabil og skal være nok for vanlig lokal utvikling. Ved enkelte oppslag kan mocken hente data fra Geonorge dersom et treff mangler i seeden.
 
-## Kjor lokalt med Node
+## Kjør lokalt med Node
 
 ```bash
 node apps/matrikkel-mock/src/server.js
 ```
 
-`MATRIKKEL_DATA_FILE` stotter fortsatt:
+`MATRIKKEL_DATA_FILE` støtter fortsatt:
 
 - vanlig JSON (`data/matrikkel.json`-format)
 - `jsonl` / `ndjson`
@@ -30,7 +32,7 @@ I `docker compose` leser `matrikkel-mock` standardfilen `data/matrikkel.json`. `
 
 Ved store datamengder kan du bruke `limit` og `offset` paa `GET /mock/matrikkel/gater` og `GET /mock/matrikkel/eiendommer`.
 
-Sjekk aktiv datakilde i en kjoerende mock:
+Sjekk aktiv datakilde i en kjørende mock:
 
 ```bash
 pnpm check:matrikkel-source
@@ -42,14 +44,14 @@ Mot en annen URL:
 pnpm check:matrikkel-source -- --url=http://localhost:18085/helse
 ```
 
-## Bygg og kjor egen Docker-image
+## Bygg og kjør eget Docker-image
 
-Sandkassens `docker-compose.yml` bruker **ikke** denne Dockerfilen. Der kjorer mocken fra
+Sandkassens `docker-compose.yml` bruker **ikke** denne Dockerfilen. Der kjører mocken fra
 `node:24-alpine` med `./:/workspace` montert inn, som alle de andre tjenestene, slik at
 `data/matrikkel.json` i arbeidstreet alltid er kilden.
 
-Dockerfilen finnes for a kjore mocken frittstaende, uten resten av sandkassen. Da bakes
-matrikkelen inn i imaget, og du ma bygge pa nytt hver gang `data/matrikkel.json` endrer seg:
+Dockerfilen finnes for å kjøre mocken frittstående, uten resten av sandkassen. Da bakes
+matrikkelen inn i imaget, og du må bygge på nytt hver gang `data/matrikkel.json` endrer seg:
 
 ```bash
 docker build -t workshop-ai/matrikkel-mock:local -f apps/matrikkel-mock/Dockerfile .
@@ -86,10 +88,10 @@ node scripts/test-bergen-matrikkel-bulk.js
 MCP-integrasjonstest for matrikkel-oppslag:
 
 ```bash
-pnpm test:mcp-matrikkel
+pnpm test:tools-matrikkel
 ```
 
-## Stoettede SOAP-operasjoner
+## Støttede SOAP-operasjoner
 
 - `FinnVeger`
 - `FinnMatrikkelenheter`

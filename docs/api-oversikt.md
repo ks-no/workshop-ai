@@ -24,7 +24,7 @@ Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell
 | sandbox-backend | 8080 | `openapi/sandbox-backend.yaml` |
 | fiks-simulator | 8081 | `openapi/fiks-simulator.yaml` |
 | ai-gateway | 8082 | `openapi/ai-gateway.yaml` |
-| mcp-services | 8083 | `openapi/mcp-services.yaml` |
+| tools-api | 8083 | `openapi/tools-api.yaml` |
 | process-agent | 8084 | `openapi/process-agent.yaml` |
 | matrikkel-mock | 8085 | `openapi/matrikkel-mock.yaml` |
 | digdir-mock | 8086 | `openapi/digdir-mock.yaml` |
@@ -62,9 +62,9 @@ Spesifikasjonen har signaturene. Dette er det den ikke sier:
   `apps/ai-gateway/README.md`.
 - `POST /ai/dommer` – LLM-as-judge for `scripts/eval.js`. Ikke en del av en innbyggerflyt.
 - `POST /ai/velg-prosess`
-- `POST /ai/velg-verktoy` – Gitt et prosessteg og liste over tilgjengelige MCP-verktøy, returnerer hvilke som er relevante (`kontekst`, `validering`, eller `kontekst_og_validering`). Brukes av `mcp-services/suggest_step_tools`.
+- `POST /ai/velg-verktoy` – Gitt et prosessteg og liste over tilgjengelige MCP-verktøy, returnerer hvilke som er relevante (`kontekst`, `validering`, eller `kontekst_og_validering`). Brukes av `tools-api/suggest_step_tools`.
 
-## MCP Services (port 8083)
+## Tools API (port 8083)
 
 `GET /mcp/tools` er fasit og svarer med den levende katalogen. Tabellen under er der for
 den som leser uten å kjøre stacken.
@@ -111,4 +111,5 @@ REST-hjelpeendepunktene står i `openapi/matrikkel-mock.yaml`.
 
 ## Videre API-retning
 
-Se også `docs/api-foerst-integrasjoner.md` for forslag til hvordan alle tilkoblinger kan behandles som tydelige API-kontrakter mellom tjenestene.
+Historikk og forslag som aldri ble bygget: `docs/intern/api-foerst-integrasjoner.md`.
+Den skiller selv mellom «slik er det» og «forslag — ikke kod mot det».

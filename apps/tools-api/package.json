@@ -1,5 +1,5 @@
 {
-  "name": "@innbyggerdialog/mcp-services",
+  "name": "@innbyggerdialog/tools-api",
   "version": "0.1.0",
   "private": true,
   "description": "MCP-style tool service for process guidance.",

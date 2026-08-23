@@ -70,7 +70,7 @@ En sjekk er ikke en egen mekanisme. Det er bare en ressurs hvis svar inneholder
 ## Dynamisk agentassistanse for `QUESTION`
 
 Når `process-agent` møter et `QUESTION`-steg kaller den `suggest_step_tools`-verktøyet
-i `mcp-services`. Dette kallet sender stegdefinisjonens tekst, tittel og feltlabeler
+i `tools-api`. Dette kallet sender stegdefinisjonens tekst, tittel og feltlabeler
 til `ai-gateway POST /ai/velg-verktoy`, som bruker heuristikk (og LLM-fallback) til å
 avgjøre hvilke MCP-verktøy som er relevante.
 
@@ -96,7 +96,7 @@ ikke noe som skal fikses først.
 Ny funksjonalitet kobles inn ved å legge til heuristikk i
 `apps/ai-gateway/src/server.js` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
 i funksjonen `heuristicToolChoice` og ikke på toppnivå — og/eller et nytt verktøy i
-`mcp-services`.
+`tools-api`.
 
 ## Slik legger du til en ny case
 
@@ -109,7 +109,7 @@ De fleste caser krever ingen kode i det hele tatt.
 | hente en ny datakilde, eller lage en ny sjekk | `apps/sandbox-backend/src/ressurser.ts` | ~10 linjer |
 | innføre en ny regeltype | `apps/sandbox-backend/src/vilkaar.ts` → `regelHandlers` | ~20 linjer |
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandlers` | ~20 linjer |
-| gi agenten et nytt verktøy for `QUESTION`-steg | `mcp-services` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.js` | ~20 linjer |
+| gi agenten et nytt verktøy for `QUESTION`-steg | `tools-api` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.js` | ~20 linjer |
 
 Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
 den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis
@@ -130,7 +130,7 @@ En ny ressurs ser slik ut:
 
 ## Første demo-prosess
 
-Prosessen `reduced-kindergarten-payment` er definert i `data/prosessdefinisjoner.json`.
+Prosessen `redusert-foreldrebetaling-barnehage` er definert i `data/prosessdefinisjoner.json`.
 
 Formålet er å demonstrere:
 

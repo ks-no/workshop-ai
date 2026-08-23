@@ -1,7 +1,9 @@
 # KS Digital designsystem i denne sandboxen
 
-Denne siden er referansen når du bygger frontend — enten du utvider `demo-gui` eller lager
-din egen. Den er skrevet for å kunne limes inn i en KI-agent som eneste kontekst.
+> **For deg som bygger frontend.** Trenger du ikke det, kan du hoppe over hele fila.
+
+Referansen når du bygger frontend — enten du utvider `demo-gui` eller lager din egen. Den
+er komplett med vilje, så den også kan limes inn i en KI-agent som eneste kontekst.
 
 Se det kjøre: **<http://localhost:3001/ds-eksempel>**. Den siden viser hver komponent med
 markupen sin rett under, lest ut av DOM-en, så kodeeksemplene der kan ikke bli utdaterte.
@@ -512,18 +514,17 @@ vil se en forskjell.
 
 ---
 
-## 9. Regler for KI-agenter i dette repoet
+## 9. Regler når du skriver frontend her
 
-Skriver du frontend i `workshop-ai`, gjelder disse. De er ikke stilpreferanser — hver av
-dem hindrer en konkret feil.
+Disse gjelder alle som skriver frontend i `workshop-ai` — deg og enhver KI-agent du
+bruker. De er ikke stilpreferanser: hver av dem hindrer en konkret feil.
 
 1. **Ikke bland designsystemet inn i `felles.css` eller i eksisterende sider.** Ny
    frontend = ny fil. `demo-gui` og `process-builder` er referanseimplementasjoner andre
    team leser for å forstå sandboxen; de skal fortsatt virke.
 2. **Aldri `felles.css` og ds-CSS på samme side.** Se seksjon 8.
-3. **Ingen npm-avhengigheter og ingen byggesteg i dette repoet.** AGENTS.md: *«Do not
-   introduce new frameworks or heavy dependencies unless explicitly requested.»*
-   Designsystemet passer nettopp fordi det er ren CSS. Vil du bruke React-pakken, gjør
+3. **Ingen npm-avhengigheter og ingen byggesteg i dette repoet.** Designsystemet passer
+   nettopp fordi det er ren CSS. Vil du bruke React-pakken, gjør
    det i et eget prosjekt.
 4. **Ikke finn opp klassenavn.** Står den ikke i
    `apps/shared-ui/ds-base.css` eller i [Storybook](https://design.ksdigital.no),

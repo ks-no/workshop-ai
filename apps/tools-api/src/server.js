@@ -21,7 +21,7 @@ const digdirIssuer = process.env.DIGDIR_ISSUER || "http://localhost:8086";
 const TOKEN = {
   digdirBaseUrl,
   issuer: digdirIssuer,
-  clientId: "mcp-services",
+  clientId: "tools-api",
   scope: "ks:innbyggerdialog:les",
   resource: "sandbox-backend"
 };
@@ -33,7 +33,7 @@ const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const brregDataFile = process.env.BRREG_DATA_FILE || path.resolve(__dirname, "../../../data/brreg.seed.json");
 const folkeregisterDataFile = process.env.FOLKEREGISTER_DATA_FILE || path.resolve(__dirname, "../../../data/folkeregister.seed.json");
-const openapiFile = path.resolve(__dirname, "../../../openapi/mcp-services.yaml");
+const openapiFile = path.resolve(__dirname, "../../../openapi/tools-api.yaml");
 let brregRegisterPromise = null;
 let folkeregisterRegisterPromise = null;
 
@@ -396,7 +396,7 @@ async function readBody(request) {
 
 // A 400 from the backend is the caller's fault, not ours. Without the status code
 // here, "Ukjent ordning: ... Gyldige: ..." was repackaged as a 500 "Intern feil i
-// mcp-services", and whoever called the tool — human or model — lost the message
+// tools-api", and whoever called the tool — human or model — lost the message
 // about what was wrong and could not correct itself.
 function upstreamError(data, status, kilde) {
   const feil = new Error(data.feil || `${kilde} feil ${status}`);
@@ -1250,7 +1250,7 @@ const server = createServer(async (request, response) => {
 
   try {
     if (url.pathname === "/helse") {
-      json(response, 200, { status: "ok", tjeneste: "mcp-services", tidspunkt: new Date().toISOString() });
+      json(response, 200, { status: "ok", tjeneste: "tools-api", tidspunkt: new Date().toISOString() });
       return;
     }
 
@@ -1272,10 +1272,19 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    /*
+     * The paths keep the /mcp prefix. They are wire format — process-agent, the
+     * cookbook and the spec all name them — and renaming a path is a different
+     * decision from renaming a service. It is the one place left where the prefix
+     * still claims a protocol this service does not speak.
+     *
+     * `protocol` is not a path, and it did describe the service. It said
+     * "mcp-style-http", which is what the whole rename was for.
+     */
     if (request.method === "GET" && url.pathname === "/mcp") {
       json(response, 200, {
-        name: "innbyggerdialog-mcp-services",
-        protocol: "mcp-style-http",
+        name: "innbyggerdialog-tools-api",
+        protocol: "rest",
         version: "0.1.0"
       });
       return;
@@ -1312,12 +1321,12 @@ const server = createServer(async (request, response) => {
       json(response, status, { feil: error.message });
       return;
     }
-    json(response, 500, { feil: "Intern feil i mcp-services.", detalj: error.message });
+    json(response, 500, { feil: "Intern feil i tools-api.", detalj: error.message });
   }
 });
 
 server.listen(port, () => {
-  console.log(`MCP-services kjører på http://localhost:${port}`);
+  console.log(`Tools-api kjører på http://localhost:${port}`);
 });
 
 

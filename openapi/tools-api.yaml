@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
-  title: MCP Services API
+  title: Tools API
   version: 0.1.0
-  description: MCP-style HTTP tool endpoints for process orchestration.
+  description: REST tool endpoints over the other services, for process orchestration.
 servers:
   - url: http://localhost:8083
 # Ingen av rutene her krever token, og det er et valg, ikke en glipp.
-# mcp-services er en intern verktøyflate som kalles av process-agent og demo-GUI-ene, og som selv henter et Maskinporten-token når den kaller sandbox-backend. Innkommende kall verifiseres ikke.
+# tools-api er en intern verktøyflate som kalles av process-agent og demo-GUI-ene, og som selv henter et Maskinporten-token når den kaller sandbox-backend. Innkommende kall verifiseres ikke.
 # En tom security på dokumentnivå gjelder alle operasjonene under paths.
 security: []
 
@@ -111,8 +111,8 @@ paths:
     get:
       summary: Tjenestens navn, protokoll og versjon
       description: >-
-        Merk `protocol: mcp-style-http`. Dette er ikke Model Context Protocol:
-        det finnes ingen JSON-RPC, ingen stdio og ingen SSE, så en MCP-klient kan
+        Svarer `protocol: rest`. Dette er ikke Model Context Protocol: det finnes
+        ingen JSON-RPC, ingen stdio og ingen SSE, så en MCP-klient kan
         ikke koble seg på. Verktøydefinisjonene har derimot riktig formede
         inputSchema, så veien til ekte MCP er kort.
       responses:
@@ -127,7 +127,7 @@ paths:
                     type: string
                   protocol:
                     type: string
-                    enum: [mcp-style-http]
+                    enum: [rest]
                   version:
                     type: string
   /mcp/tools:

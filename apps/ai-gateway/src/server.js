@@ -683,8 +683,8 @@ function buildTemplateResponse(type, body) {
     "forklar-databruk": `Vi bruker opplysningene i denne demoen for å vise hvordan saksflyten kan bli enklere å forstå. Dataene er syntetiske og brukes ikke til reelle vedtak.`,
     klarsprak: "Dette betyr kort fortalt at du får en enklere forklaring på hvilke opplysninger som brukes og hvorfor.",
     risikosjekk: "Ingen kritiske risikoer funnet i denne demoen, men løsningen må fortsatt unngå reelle persondata og automatiserte vedtak.",
-    // Not a placeholder: this is what the citizen gets whenever a guardrail
-    // fires, and it is the whole answer when AI_PROVIDER=mock.
+    // What the citizen gets whenever a guardrail fires, and the whole answer
+    // when AI_PROVIDER=mock.
     sporsmaal: buildTryggSvar(body?.kontekst)
   };
 
@@ -1290,13 +1290,21 @@ function validateIntent(data, body) {
 const SYSTEM_FREETEXT = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
 const SYSTEM_JSON = "Du returnerer kun valid JSON uten kodeblokker eller forklarende tekst.";
 
-async function callOllama(prompt, temperature, signal) {
+// systemMessage is fourth here to match callOpenRouter and callBedrock. It used to be
+// absent entirely, so callModel passed the system message to the two cloud providers
+// and silently dropped it on Ollama — the workshop default. That made
+// SYSTEM_JSON ("return only valid JSON, no code fences") a no-op for judgeWithAi,
+// getIntentFromModel and getProcessChoiceFromModel, which are exactly the three
+// callers that parse the reply as JSON.
+async function callOllama(prompt, temperature, systemMessage, signal) {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: ollamaModel,
       prompt,
+      // /api/generate takes the system prompt as a top-level field, not as a message.
+      ...(systemMessage ? { system: systemMessage } : {}),
       stream: false,
       options: { temperature: temperature }
     }),
@@ -1616,7 +1624,7 @@ async function callModel(prompt, valg = {}) {
   try {
     let svar;
     if (aiProvider === "ollama") {
-      svar = await callOllama(prompt, temperature, signal);
+      svar = await callOllama(prompt, temperature, systemMessage, signal);
     } else if (aiProvider === "openrouter") {
       svar = await callOpenRouter(prompt, temperature, systemMessage, signal);
     } else if (aiProvider === "bedrock") {
@@ -2054,7 +2062,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
       jsonResponse(
         response,

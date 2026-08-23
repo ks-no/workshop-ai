@@ -1,5 +1,9 @@
 # Contributing
 
+> **For deg som endrer selve sandkassen.** Er du deltaker på hackathon, er
+> `docs/deltakerstart.md` inngangen — du trenger ikke lese denne fila, og ingenting her
+> fordeler oppgaver til hackathon-team.
+
 Takk for at du bidrar til `innbyggerdialog-sandbox`.
 
 ## Mål for samarbeid
@@ -15,15 +19,6 @@ Vi bygger en pedagogisk og teknisk fungerende sandbox for hackathon og videre ar
 - sørg for at policyer er synlige både i kode og dokumentasjon
 - bevar høy autonomi for team som bygger egne løsninger oppå sandboxen
 - skill tydelig mellom felles kapabiliteter og valgfrie referanseimplementasjoner
-
-## Forslag til teamfordeling
-
-- Team 1: `apps/sandbox-backend`
-- Team 2: `apps/fiks-simulator`
-- Team 3: `apps/ai-gateway`
-- Team 4: `apps/demo-gui`
-- Team 5: `apps/process-builder`
-- Tverrgående: `data/`, `openapi/`, `policies/`, `docs/`
 
 ## Branching og PR-er
 
