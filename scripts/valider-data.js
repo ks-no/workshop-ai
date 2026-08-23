@@ -1189,8 +1189,38 @@ if (faktiskDok !== forventetDok) {
 // it, because the claim only ever lived in prose. It is pinned now, and the check
 // runs the same rule the flow will run.
 const deltakercaser = await read("data/deltakercaser.json");
-const deltakerstart = await readFile("docs/deltakerstart.md", "utf8");
 const prosessIder = new Set(allProsesser.map((p) => p.id));
+
+// deltakercaser.json is ASCII-only on purpose, the surfaces are not: "Soknad om
+// fritidskort-stotte" has to match "Søknad om fritidskort-støtte". Same folding the
+// matrikkel mock does on street names.
+function foldNorsk(tekst) {
+  return String(tekst)
+    .toLowerCase()
+    .replaceAll("ø", "o")
+    .replaceAll("æ", "ae")
+    .replaceAll("å", "aa")
+    .replace(/\s+/g, " ");
+}
+
+// deltakerstart.md and the dashboard both carry the table itself, one row per case,
+// so the check is row-level: the row for a case has to name that case's pinned
+// person. Checking a file as a whole would pass a row recommending the wrong person
+// as long as the right one appeared somewhere else on the page — and the page is
+// what the participant reads. prosessmodell.md keys its bullets on prosessId rather
+// than on the case names, so it has no rows to match; it is covered by the
+// prose sweep below instead.
+const caseFlater = [
+  { fil: "docs/deltakerstart.md", radSkille: /\n/ },
+  { fil: "apps/demo-gui/src/dashboard.html", radSkille: /<\/tr>/ },
+  { fil: "docs/prosessmodell.md", radSkille: null }
+];
+for (const flate of caseFlater) {
+  flate.tekst = await readFile(flate.fil, "utf8");
+  flate.rader = flate.radSkille
+    ? flate.tekst.split(flate.radSkille).map(foldNorsk)
+    : null;
+}
 
 for (const sak of deltakercaser.caser) {
   if (!prosessIder.has(sak.prosessId)) {
@@ -1214,13 +1244,24 @@ for (const sak of deltakercaser.caser) {
       `være avsender på egen hånd.`
     );
   }
-  // The doc must name the same person. A pinned table nobody compares to the prose
-  // is just a second place to be wrong.
-  if (!deltakerstart.includes(`\`${sak.personId}\``)) {
-    throw new Error(
-      `docs/deltakerstart.md nevner ikke ${sak.personId}, som data/deltakercaser.json ` +
-      `anbefaler for ${sak.prosessId}.`
-    );
+  // The surfaces must name the same person, row by row. A pinned table nobody
+  // compares to the pages participants actually read is just a second place to be
+  // wrong — which is how the SFO case managed to be wrong in three of them at once.
+  for (const flate of caseFlater) {
+    if (!flate.rader) continue;
+    const rader = flate.rader.filter((rad) => rad.includes(foldNorsk(sak.navn)));
+    if (rader.length === 0) {
+      throw new Error(
+        `${flate.fil} har ingen rad for «${sak.navn}», som data/deltakercaser.json ` +
+        `pinner til ${sak.personId}.`
+      );
+    }
+    if (rader.some((rad) => !rad.includes(sak.personId))) {
+      throw new Error(
+        `${flate.fil} anbefaler ikke ${sak.personId} i raden for «${sak.navn}», ` +
+        `som data/deltakercaser.json pinner for ${sak.prosessId}.`
+      );
+    }
   }
   if (!sak.ordning) continue;
   const ordning = satser.ordninger.find((o) => o.id === sak.ordning);
@@ -1255,6 +1296,83 @@ for (const sak of deltakercaser.caser) {
       `data/deltakercaser.json sier ${sak.prosessId} med ${sak.personId} gir ` +
       `${sak.forventetUtfall}, men reglene gir ${faktisk ? "innvilget" : "avslag"}. ` +
       `Det er nøyaktig feilen som lå i SFO-caset: en anbefalt bruker som får avslag.`
+    );
+  }
+}
+
+// prosessmodell.md recommends in prose rather than in a table, so the row check
+// above never reaches it. "Bruk `person-008`" for SFO is the exact sentence that
+// was wrong, so pin the shape it was wrong in: a recommended user has to be one the
+// table actually recommends somewhere.
+const anbefalteBrukere = new Set(deltakercaser.caser.map((sak) => sak.personId));
+for (const flate of caseFlater) {
+  for (const treff of flate.tekst.matchAll(/Bruk `(person-\d+)`/g)) {
+    if (!anbefalteBrukere.has(treff[1])) {
+      throw new Error(
+        `${flate.fil} sier «Bruk \`${treff[1]}\`», men ${treff[1]} er ikke anbefalt ` +
+        `for noe case i data/deltakercaser.json.`
+      );
+    }
+  }
+}
+
+// Next to the recommended støttekontakt user the surfaces name two counterexamples,
+// and neither was asserted anywhere: person-003 meets a full tilbud, person-062
+// lives in a kommune with none at all. Both rest on nobody having edited
+// data/tjenestetilbud.json, and being wrong there is worse than being silent — a
+// participant reads them as the explanation for the avslag they just got.
+const stottekontaktOrdning = satser.ordninger.find((o) => o.id === "stottekontakt");
+const stottekontaktMoteksempler = [
+  { personId: "person-003", melding: "ingen ledige plasser" },
+  { personId: "person-062", melding: "har ikke registrert et tilbud" }
+];
+for (const eksempel of stottekontaktMoteksempler) {
+  const utfall = evaluateVilkaar("TJENESTEBEHOV", {
+    tilstand,
+    personId: eksempel.personId,
+    ordning: stottekontaktOrdning,
+    satser,
+    grunnlag: null,
+    felles: {},
+    forbehold: ""
+  });
+  if (utfall.godkjent) {
+    throw new Error(
+      `${eksempel.personId} er dokumentert som et avslag i stottekontakt-behov, men ` +
+      `reglene gir innvilget nå.`
+    );
+  }
+  if (!utfall.melding.includes(eksempel.melding)) {
+    throw new Error(
+      `${eksempel.personId} skulle gi «${eksempel.melding}» i stottekontakt-behov, ` +
+      `men ga: ${utfall.melding}`
+    );
+  }
+}
+
+
+// The dashboard tells the participant why person-001 is the wrong user for two of
+// the five cases: no child in SFO, and no child in fritidskort's 6–18 band. Both
+// are true because Ella is 4, which stops being true on its own as gjelderFra
+// moves. Pin the claim rather than the age, so the surface has to be rewritten
+// rather than quietly turning into a lie.
+const fritidskortOrdning = satser.ordninger.find((o) => o.id === "fritidskort-stotte");
+const majasBarn = husstandPerId
+  .get(personPerId.get("person-001").husstandId)
+  .medlemmer.filter((m) => m.rolle === "barn")
+  .map((m) => personPerId.get(m.personId));
+for (const barn of majasBarn) {
+  const alder = alderVed(barn.foedselsdato, satser.gjelderFra);
+  if (alder >= fritidskortOrdning.alderFraAar && alder <= fritidskortOrdning.alderTilAar) {
+    throw new Error(
+      `${barn.personId} er ${alder} år og dermed i fritidskortets målgruppe. ` +
+      `Dashboardet og docs/deltakerstart.md sier person-001 ikke har barn der.`
+    );
+  }
+  if (sfoplasser.some((p) => p.personId === barn.personId)) {
+    throw new Error(
+      `${barn.personId} har fått en SFO-plass. Dashboardet og docs/deltakerstart.md ` +
+      `sier person-001 ikke har barn i SFO — det er den vanligste snublesteinen.`
     );
   }
 }

@@ -66,6 +66,12 @@ export async function getGater(): Promise<Gate[]> {
   return (await hent("/mock/matrikkel/gater")) || [];
 }
 
+// treff[0] and not a kommune match: the caller has a street name and nothing else,
+// because that is all the participant typed. "Storgata" exists twice in the register
+// — Bergen 4601 with 10 eiendommer and Tromsø 5501 with 171 — and the documented
+// "Storgata gives an approval" for person-001 holds because Bergen happens to be
+// seeded first. Filtering on the applicant's own kommunenummer would be the honest
+// fix; until then the seed order is load-bearing.
 export async function findGate(gateNavn: string | null): Promise<Gate | null> {
   if (!gateNavn) return null;
   const treff = await hent(`/mock/matrikkel/gater?gate=${encodeURIComponent(gateNavn)}`);
