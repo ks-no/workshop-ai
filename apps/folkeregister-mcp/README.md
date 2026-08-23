@@ -2,7 +2,7 @@
 
 A real Model Context Protocol server for synthetic Folkeregisteret test data —
 JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
-to it. Unlike `apps/mcp-services`, which is REST that only borrows the name.
+to it. Unlike `apps/tools-api`, which is REST that only borrows the name.
 
 ## What it does
 

@@ -13,11 +13,10 @@
 // its own regex, the 51 curated fixtures ended up with neither valid control
 // digits nor the +80 marker, and nothing could see it.
 //
-// Deliberately NOT here: a function that turns a fnr into a birth date. The
-// individual number encodes the century ambiguously, and every record in the
-// sandbox carries `foedselsdato` as its own field. Reading the date out of the
-// identifier would be a second source for something we already have - so the
-// module compares against `foedselsdato` instead of deriving it.
+// There is no function here that turns a fnr into a birth date, because the
+// individual number encodes the century ambiguously and every record already
+// carries `foedselsdato` as its own field. Deriving the date would be a second
+// source for something we have, so this module compares against `foedselsdato`.
 
 const VEKTER_1 = [3, 7, 6, 1, 8, 9, 4, 5, 2];
 const VEKTER_2 = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];

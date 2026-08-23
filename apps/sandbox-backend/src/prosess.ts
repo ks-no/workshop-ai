@@ -1,5 +1,6 @@
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { aktorFor, type Caller } from "./autentisering.ts";
-import { aiBaseUrl, fiksBaseUrl } from "./config.ts";
+import { aiBaseUrl, fiksBaseUrl, fiksDialogToken } from "./config.ts";
 import { HttpError } from "./errors.ts";
 import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
@@ -113,7 +114,10 @@ export async function createSoknad(tilstand: State, body: any, kaller: Caller) {
   try {
     const svar = await fetch(`${fiksBaseUrl}/fiks/oppgaver`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await maskinportenHeader(fiksDialogToken))
+      },
       body: JSON.stringify({
         personId: nySoknad.personId,
         soknadId: nySoknad.soknadId,
@@ -160,7 +164,10 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
     if (body.handling === "opprett-samtykke") {
       const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await maskinportenHeader(fiksDialogToken))
+        },
         body: JSON.stringify({
           personId: oekt.personId,
           formaal: steg.formaal,
@@ -182,7 +189,10 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
       }
       const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke/${samtykkeId}/svar`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await maskinportenHeader(fiksDialogToken))
+        },
         body: JSON.stringify({
           status,
           sporingsId: oekt.sporingsId,

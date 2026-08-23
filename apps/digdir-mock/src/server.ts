@@ -30,7 +30,7 @@ import { kanHaEid, kanOpptreSelv } from "../../sandbox-backend/src/handleevne.ts
 // all. Its error bodies are unmodelled plain text and Tomcat HTML. So this is
 // modelled on Digdir's published contract and RFC 6749/6750 instead, not on it.
 //
-// DELIBERATE SIMPLIFICATION, in one place so it is easy to find: the client
+// The one simplification, kept in a single place so it is easy to find: the client
 // assertion in the jwt-bearer grant is validated on *shape*, not on signature.
 // Real Maskinporten holds a registered public key per client and checks it. We have
 // no key registry, so any well-formed assertion is accepted and its `iss` is taken
@@ -576,7 +576,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       return;
     }
 
-    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     if (request.method === "GET" && sti === "/openapi-ruter.json") {
       jsonResponse(response, 200, await routeOverview(openapiFile));
       return;

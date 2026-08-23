@@ -1,6 +1,6 @@
 # Process Agent
 
-Generic process-guide agent that uses MCP-style tools from `mcp-services`.
+Generic process-guide agent that uses MCP-style tools from `tools-api`.
 
 ## Purpose
 
@@ -14,7 +14,7 @@ The agent helps a user to:
 
 ## How tool discovery works
 
-When the agent reaches a `QUESTION` step it calls `suggest_step_tools` in `mcp-services`.
+When the agent reaches a `QUESTION` step it calls `suggest_step_tools` in `tools-api`.
 That tool calls `ai-gateway /ai/velg-verktoy`, which uses heuristics (LLM fallback) on the
 step definition to return which tools are relevant and how to use them:
 
@@ -29,7 +29,7 @@ and a step-keyed interview script in `guidedInterviewDefinitions`. Cleaning that
 or replacing this agent entirely — is a hackathon task, not a bug to fix first.
 
 New data sources are wired in by adding heuristics in `ai-gateway` and a tool in
-`mcp-services`.
+`tools-api`.
 
 ## Endpoints
 

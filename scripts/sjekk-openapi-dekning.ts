@@ -368,9 +368,9 @@ const tjenester: Tjeneste[] = [
     ]
   },
   {
-    navn: "mcp-services",
-    spesifikasjon: "openapi/mcp-services.yaml",
-    kilde: "apps/mcp-services/src/server.js"
+    navn: "tools-api",
+    spesifikasjon: "openapi/tools-api.yaml",
+    kilde: "apps/tools-api/src/server.js"
   },
   {
     navn: "process-agent",

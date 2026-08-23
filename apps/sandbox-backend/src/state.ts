@@ -2,8 +2,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { seedDir, stateDir } from "./config.ts";
 import { maskBefolkning } from "./skjerming.ts";
-
-type State = any;
+// The real type, not a local `any`. Three modules used to shadow it — this one,
+// routes.ts and ressurser.ts — so the one file that assembles the state was the
+// one place with no idea what it was assembling.
+import type { Datasettnoekkel, State } from "./types.ts";
 
 // Reads from state/ once something has been written there, and falls back to
 // the seed in data/. Pure seed files are never written, so they always come
@@ -109,7 +111,39 @@ export function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export async function readState() {
+/*
+ * The seed datasets this service reads, as one list.
+ *
+ * GET /api/katalog/datasett used to be a hardcoded literal in routes.ts with four
+ * entries, so the catalogue advertised personer, husstander, inntekter and
+ * barnehageplasser and hid satser, sfoplasser, fritidsaktiviteter,
+ * fritidsdeltakelse and tjenestetilbud — the data behind three of the five
+ * published cases. A team discovering the sandbox through its own API could not
+ * see what SFO, fritidskort or støttekontakt run on.
+ *
+ * The list lives here rather than in routes.ts because this is the module that
+ * loads them, and `pnpm test` fails if the two ever name different files.
+ * Runtime state (soknader, samtykker, revisjonslogg, prosessoekter) is not a
+ * dataset and is deliberately absent: it starts empty and is gitignored.
+ */
+export const SEED_DATASETS = [
+  { id: "personer", file: "personer.json" },
+  { id: "husstander", file: "husstander.json" },
+  { id: "inntekter", file: "inntekter.json" },
+  { id: "barnehageplasser", file: "barnehageplasser.json" },
+  { id: "sfoplasser", file: "sfoplasser.json" },
+  { id: "prosessdefinisjoner", file: "prosessdefinisjoner.json" },
+  { id: "informasjonsmodeller", file: "informasjonsmodeller.json" },
+  { id: "satser", file: "satser.json" },
+  { id: "fritidsdeltakelse", file: "fritidsdeltakelse.json" },
+  { id: "fritidsaktiviteter", file: "fritidsaktiviteter.json" },
+  { id: "tjenestetilbud", file: "tjenestetilbud.json" }
+] as const;
+
+// Annotated rather than inferred, so the assembler and the type cannot drift:
+// add a key to State without loading it here, or load one without publishing it,
+// and this signature is where it fails.
+export async function readState(): Promise<State> {
   const [
     personer,
     husstander,
@@ -187,8 +221,44 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
   return tilstand.prosessoekter.find((oekt: any) => oekt.oektsId === oektsId) || null;
 }
 
-export async function writeProsessoekter(prosessoekter: unknown) {
-  await writeJson("prosessoekter.json", prosessoekter);
+/*
+ * One queue for prosessoekter.json.
+ *
+ * Copied in shape from fiks-simulator/src/state.ts, which is itself copied from
+ * revisjon.ts. Three copies is one too many and the shared layer should own it
+ * (K2 in the architecture review) — but the bug this closes is live, and moving
+ * the layer is not.
+ *
+ * The chain must survive a rejected link, or one failed write would wedge every
+ * later one. The caller still sees the rejection.
+ */
+let skrivekoe: Promise<unknown> = Promise.resolve();
+
+/**
+ * Write one prosessoekt back, into data read fresh inside the queue.
+ *
+ * The bug: every handler used to mutate its own request-scoped copy of the whole
+ * array and write all of it. Two requests on *different* økter therefore raced,
+ * and the second writer silently dropped the first one's change — no error, no
+ * 409, the participant's step simply gone. Two teams demoing at once hit it.
+ *
+ * Only the one økt is merged, rather than running the whole handler inside the
+ * queue, because a SUMMARY step calls the model and can take a minute. Serialising
+ * that would block every other session's writes for as long.
+ *
+ * Two writes to the *same* økt still resolve last-writer-wins. That is one person
+ * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
+ */
+export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
+  const neste = skrivekoe.then(async () => {
+    const alle: { oektsId: string }[] = await readJson("prosessoekter.json", []);
+    const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
+    if (i === -1) alle.push(oekt);
+    else alle[i] = oekt;
+    await writeJson("prosessoekter.json", alle);
+  });
+  skrivekoe = neste.catch(() => {});
+  return neste;
 }
 
 export function getHusstandForPerson(tilstand: State, personId: string) {
@@ -222,11 +292,34 @@ export function getBarnaIHusstand(tilstand: State, personId: string): string[] {
     .map((medlem: any) => medlem.personId) || [person.personId];
 }
 
+/*
+ * A dataset named at runtime rather than in code. State has no index signature on
+ * purpose, so this is the one place that takes a string key — and it checks the key
+ * instead of trusting it. Everything else indexes State by a literal, and a typo in
+ * a literal is now a compile error.
+ */
+const DATASETTNOEKLER: readonly Datasettnoekkel[] = [
+  "barnehageplasser",
+  "sfoplasser",
+  "fritidsdeltakelse",
+  "fritidsaktiviteter",
+  "tjenestetilbud"
+];
+
+export function datasettFor(tilstand: State, noekkel: string): any[] {
+  if (!(DATASETTNOEKLER as readonly string[]).includes(noekkel)) {
+    throw new Error(
+      `Ukjent datasett: ${noekkel}. Gyldige: ${DATASETTNOEKLER.join(", ")}.`
+    );
+  }
+  return tilstand[noekkel as Datasettnoekkel];
+}
+
 export function getPlasserForTjeneste(tilstand: State, personId: string, tjeneste: string) {
   const datasett = (tjenesteDatasett as Record<string, string>)[tjeneste];
   if (!datasett) {
     throw new Error(`Ukjent tjeneste: ${tjeneste}. Gyldige: ${Object.keys(tjenesteDatasett).join(", ")}.`);
   }
   const barnIds = getBarnaIHusstand(tilstand, personId);
-  return tilstand[datasett].filter((plass: any) => barnIds.includes(plass.personId));
+  return datasettFor(tilstand, datasett).filter((plass: any) => barnIds.includes(plass.personId));
 }

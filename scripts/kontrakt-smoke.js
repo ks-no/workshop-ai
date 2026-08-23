@@ -243,7 +243,7 @@ async function staticLookups() {
   await call("satser", "/api/regler/satser");
   await call("prosesser", "/api/prosesser");
   await call("prosesser-med-maler", "/api/prosesser?inkluderMaler=true");
-  await call("prosess", "/api/prosesser/reduced-kindergarten-payment");
+  await call("prosess", "/api/prosesser/redusert-foreldrebetaling-barnehage");
   await call("prosess-ukjent", "/api/prosesser/finnes-ikke");
   await call("datasett", "/api/katalog/datasett");
   await call("informasjonsmodeller", "/api/katalog/informasjonsmodeller");
@@ -380,7 +380,7 @@ async function fartsdempingsflyt(gate, merkelapp) {
 async function soknadOgRevisjon() {
   const soknad = await call("soknad-opprett", "/api/soknader", {
     method: "POST",
-    body: { personId: "person-001", prosessId: "reduced-kindergarten-payment", prosessNavn: "Royktest" }
+    body: { personId: "person-001", prosessId: "redusert-foreldrebetaling-barnehage", prosessNavn: "Royktest" }
   });
   await call("soknad-hent", `/api/soknader/${soknad.soknadId}`);
   // With hjemmel, so the dump still records the 404 for an unknown id. Without a
@@ -431,7 +431,7 @@ async function run() {
     ]);
 
     await staticLookups();
-    await foreldrebetalingsflyt("reduced-kindergarten-payment", "barnehage");
+    await foreldrebetalingsflyt("redusert-foreldrebetaling-barnehage", "barnehage");
     await foreldrebetalingsflyt("sfo-moderasjon", "sfo");
     // household-013 is the only household with both a protected guardian
     // (person-031, kode 6) and an unprotected one (person-030). It is therefore the

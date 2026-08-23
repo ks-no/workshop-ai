@@ -4,35 +4,35 @@ import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 // simplification it already lived with — so importing the rule is strictly better
 // than keeping a second copy of it here that can drift.
 import { effektivStatus } from "../../fiks-simulator/src/samtykke.ts";
-import { digdirBaseUrl, digdirIssuer, fiksBaseUrl, fiksRolleId } from "./config.ts";
+import { HttpError } from "./errors.ts";
+import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { findPerson, getHusstandForPerson } from "./state.ts";
 import type { Satser, SjekkResultat, State } from "./types.ts";
 // The rules themselves live in vilkaar.ts and are pure. This file is the I/O half:
-// it fetches the beregning, then hands the numbers over. The arrow points one way —
-// vilkaar.ts must never import this file back.
+// it fetches the beregning, then hands the numbers over. The arrow points one way,
+// and pnpm test:vilkaar fails if vilkaar.ts imports this file back.
 import { regelKreverInntekt, evaluateVilkaar } from "./vilkaar.ts";
 
 // Fetches the household income basis from the Fiks simulator. Spouses, registered
 // partners and cohabitants count as one household, per forskrift om
 // foreldrebetaling. Return type stays any until the Fiks response is modelled in
 // types.ts.
-// The register surface in Fiks is behind Maskinporten, so this service needs its
-// own token to reach it. `resource: "fiks-simulator"` matters: a token minted for
-// this backend is rejected there, which is what audience restriction is for.
-const FIKS_TOKEN = {
-  digdirBaseUrl,
-  issuer: digdirIssuer,
-  clientId: "sandbox-backend",
-  scope: "ks:fiks:register",
-  resource: "fiks-simulator"
-};
-
 async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaar: number): Promise<any> {
   const husstand = getHusstandForPerson(tilstand, personId);
   const personer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
     .map((medlem: any) => {
       const person = findPerson(tilstand, medlem.personId);
+      // `pnpm test` holds referential integrity across data/, so this cannot
+      // happen from the seed. It can happen from a shadowed state/husstander.json
+      // or a hand edit — and the old `any` turned that into «Cannot read
+      // properties of null» from inside a Fiks call, which names nothing.
+      if (!person) {
+        throw new HttpError(
+          `Husstanden viser til ${medlem.personId}, som ikke finnes i personregisteret.`,
+          500
+        );
+      }
       return {
         identifikator: person.syntetiskFodselsnummer,
         type: medlem.personId === personId ? "SOEKER" : "ANNET"
@@ -45,7 +45,7 @@ async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaa
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(await maskinportenHeader(FIKS_TOKEN))
+        ...(await maskinportenHeader(fiksRegisterToken))
       },
       body: JSON.stringify({ inntektsaar, personer })
     }

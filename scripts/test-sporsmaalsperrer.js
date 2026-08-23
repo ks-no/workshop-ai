@@ -7,6 +7,7 @@
  * and cannot run in CI.
  */
 
+import { readFile } from "node:fs/promises";
 import {
   buildGrunnlagsIndeks,
   buildPersonvernSvar,
@@ -238,9 +239,9 @@ check(
 const raa = {
   tjeneste: "Redusert foreldrebetaling",
   satser: kontekst.satser,
-  steg: { id: "consent-income", type: "CONSENT_REQUEST", tittel: "Kan vi hente inntekt?", dataKilder: ["inntekt"], internt: "skal bort" },
+  steg: { id: "samtykke-inntekt", type: "CONSENT_REQUEST", tittel: "Kan vi hente inntekt?", dataKilder: ["inntekt"], internt: "skal bort" },
   resultater: {
-    "fetch-income": {
+    "hent-inntekt": {
       beregningsbeloep: 456000,
       personer: [{ identifikator: "12818800078", navn: { fornavn: "Maja", etternavn: "Solberg" } }]
     },
@@ -270,8 +271,8 @@ check("ukjente stegfelter fjernes", rent.steg?.internt === undefined);
 check("samtalehistorikk kappes til seks turer", rent.samtale?.length === 6);
 check(
   "steg uten utfall droppes helt",
-  rent.resultater?.["fetch-income"] === undefined,
-  "fetch-income hadde bare rådata"
+  rent.resultater?.["hent-inntekt"] === undefined,
+  "hent-inntekt hadde bare rådata"
 );
 
 /* ── Grunnlagsfoten ───────────────────────────────────────────────────────── */
@@ -279,6 +280,43 @@ check(
 const grunnlag = buildGrunnlag(rent);
 check("grunnlaget er et objekt med kilder", Array.isArray(grunnlag.kilder) && grunnlag.kilder.length > 0);
 check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes("2026-08-01")));
+
+/* ── The provider signatures ──────────────────────────────────────────────── */
+//
+// callOllama used to take (prompt, temperature, signal) while callOpenRouter and
+// callBedrock took a systemMessage in third place. callModel passed the system
+// message to all three, so on Ollama — the workshop default — it landed in the
+// `signal` slot and vanished. SYSTEM_JSON ("return only valid JSON, no code
+// fences") was therefore a no-op for exactly the three callers that parse the
+// reply as JSON.
+//
+// server.js calls server.listen at top level and exports nothing, so it cannot be
+// imported (see K3 in the architecture review). Until it can, the signatures are
+// checked as source text — crude, but it fails on the regression, which is more
+// than existed before.
+{
+  const source = await readFile("apps/ai-gateway/src/server.js", "utf8");
+  for (const name of ["callOllama", "callOpenRouter", "callBedrock"]) {
+    const match = source.match(new RegExp(`async function ${name}\\(([^)]*)\\)`));
+    const parameters = (match?.[1] ?? "").split(",").map((p) => p.trim());
+    check(
+      `${name} tar systemMessage`,
+      parameters.includes("systemMessage"),
+      `signaturen er (${parameters.join(", ")})`
+    );
+    check(
+      `${name} har systemMessage som tredje parameter`,
+      parameters[2] === "systemMessage",
+      `tredje parameter er «${parameters[2]}» — callModel sender posisjonelt til alle tre`
+    );
+  }
+  const passedToOllama = /callOllama\(prompt, temperature, systemMessage, signal\)/.test(source);
+  check(
+    "callModel sender systemMessage til callOllama",
+    passedToOllama,
+    "kallstedet i callModel utelater systemMessage"
+  );
+}
 
 /* ── Oppsummering ─────────────────────────────────────────────────────────── */
 

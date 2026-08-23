@@ -28,6 +28,41 @@ export const fiksRolleId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 // dialled what, so tokens minted for a browser verify here too.
 export const digdirBaseUrl = process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086";
 export const digdirIssuer = process.env.DIGDIR_ISSUER || "http://localhost:8086";
+
+// --- this service's own hjemmel at fiks-simulator -------------------------
+//
+// Every surface in Fiks is behind Maskinporten, so this service needs its own
+// token to reach any of them. Two configs rather than one because they carry
+// different scopes, and the scope is the hjemmel: reading the register is not the
+// same authority as asking a citizen for consent.
+//
+// `resource: "fiks-simulator"` matters. A token minted for this backend is rejected
+// there, which is what audience restriction is for.
+//
+// The token client caches per clientId:scope:resource, so two configs cost two
+// cached tokens, not two per request.
+const fiksTokenBase = {
+  digdirBaseUrl,
+  issuer: digdirIssuer,
+  clientId: "sandbox-backend",
+  resource: "fiks-simulator"
+};
+
+/** Reading the skatte- og inntektsregister. Used by regler.ts. */
+export const fiksRegisterToken = { ...fiksTokenBase, scope: "ks:fiks:register" };
+
+/**
+ * Asking for consent, answering it, and putting the resulting søknad in a
+ * caseworker's queue. Used by prosess.ts.
+ *
+ * This service is a machine here, deliberately — it holds the verified citizen
+ * token, decides, and then names the citizen in `aktor` on the way out. A service
+ * that handed itself the citizen's identity would be the wrong lesson.
+ */
+export const fiksDialogToken = {
+  ...fiksTokenBase,
+  scope: "ks:fiks:samtykke ks:fiks:oppgave"
+};
 export const maskinportenIssuer = digdirIssuer;
 export const idportenIssuer = `${digdirIssuer}/idporten`;
 

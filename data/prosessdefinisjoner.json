@@ -3,7 +3,7 @@
   "beskrivelse": "Prosesskatalog for workshop. Inneholder publiserte prosesser og gjenbrukbare maler.",
   "prosesser": [
     {
-      "id": "reduced-kindergarten-payment",
+      "id": "redusert-foreldrebetaling-barnehage",
       "navn": "Redusert foreldrebetaling",
       "beskrivelse": "Demo av dialogbasert søknad om redusert foreldrebetaling",
       "versjon": "0.1.0",
@@ -23,7 +23,7 @@
           }
         },
         {
-          "id": "fetch-household",
+          "id": "hent-husstand",
           "type": "DATA_FETCH",
           "tittel": "Henter husstandsopplysninger",
           "api": {
@@ -32,7 +32,7 @@
           }
         },
         {
-          "id": "consent-income",
+          "id": "samtykke-inntekt",
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente inntektsopplysninger?",
           "formaal": "Vurdere rett til redusert foreldrebetaling",
@@ -41,7 +41,7 @@
           ]
         },
         {
-          "id": "fetch-income",
+          "id": "hent-inntekt",
           "type": "DATA_FETCH",
           "tittel": "Henter inntektsopplysninger",
           "kreverSamtykke": "inntekt",
@@ -65,12 +65,12 @@
           }
         },
         {
-          "id": "summary",
+          "id": "oppsummering",
           "type": "SUMMARY",
           "tittel": "Oppsummering"
         },
         {
-          "id": "submit",
+          "id": "send-inn",
           "type": "SUBMIT",
           "tittel": "Send søknad"
         }

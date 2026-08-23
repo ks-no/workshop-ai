@@ -21,7 +21,9 @@
 //
 // Pure and synchronous, like vilkaar.ts and alder.ts, and for the same reason: an
 // outcome can be pinned with a literal tilstand object and no running services.
-// This module must never import regler.ts.
+// The arrow points one way, and pnpm test:vilkaar fails if regler.ts is imported
+// here: that import would pull in state.ts and a 2048-bit RSA keygen, and the pure
+// test would start paying for it.
 
 import { alderVed } from "./alder.ts";
 

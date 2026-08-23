@@ -43,7 +43,7 @@ ignorable. Do not duplicate it here; a second copy is how it went stale before.
 5. Consent-dependent steps interact with `fiks-simulator` before protected data access.
 6. AI summary/explanation steps call `ai-gateway` (which can use Ollama locally).
 7. Completion creates relevant outcomes/tasks and writes audit events.
-8. `mcp-services` and `process-agent` provide tool-driven/agent-driven access to the same capabilities.
+8. `tools-api` and `process-agent` provide tool-driven/agent-driven access to the same capabilities.
 
 ## Important folders
 - `apps/`: runnable services and UIs.

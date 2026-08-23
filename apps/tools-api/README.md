@@ -1,6 +1,15 @@
-# MCP Services
+# Tools API
 
-MCP-style HTTP tools for process guidance, AI interpretation, and Matrikkel data access.
+REST tool endpoints over the other services, for process guidance, AI interpretation
+and Matrikkel data access.
+
+It was called `mcp-services` and answered `protocol: "mcp-style-http"` until
+23.08.2026. It is not the MCP protocol and never was — no JSON-RPC, no stdio, no SSE
+— so the name has been dropped rather than the claim repeated. `apps/brreg-mcp` and
+`apps/folkeregister-mcp` *are* MCP, and are now the only things here called that.
+
+The `/mcp/*` paths remain: they are wire format, and renaming a path is a separate
+decision from renaming a service.
 
 ## Purpose
 
@@ -58,9 +67,10 @@ This service exposes tool endpoints a generic agent can call to:
 - `BACKEND_BASE_URL` (default `http://sandbox-backend:8080`)
 - `AI_BASE_URL` (default `http://ai-gateway:8082`)
 - `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`)
-- `MATRIKKEL_MODE` (kodedefault `mock`, men `docker compose` setter `hybrid` — se
-  `docker-compose.yml:200`. `live` og `hybrid` slår opp gater direkte via Geonorge;
-  `live` kaster videre ved nettfeil, `hybrid` faller tilbake til seed-dataene)
+- `MATRIKKEL_MODE` — kodedefault og compose-default er begge `mock`, men
+  `.env.example` setter `hybrid`, og `start.sh` kopierer den til `.env`. **Kjørte du
+  `./start.sh`, er `hybrid` det du har.** `live` og `hybrid` slår opp gater direkte via
+  Geonorge; `live` kaster videre ved nettfeil, `hybrid` faller tilbake til seed-dataene
 - `GEONORGE_ADRESSE_API_BASE_URL` (default `https://ws.geonorge.no/adresser/v1`)
 - `MATRIKKEL_HTTP_TIMEOUT_MS` (default `6000`)
 

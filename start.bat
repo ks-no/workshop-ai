@@ -45,7 +45,7 @@ if %DOWN%==1 (
 
 if %RELOAD%==1 (
     echo Reloading Node services...
-    docker compose up -d sandbox-backend fiks-simulator ai-gateway mcp-services process-agent matrikkel-mock demo-gui process-builder
+    docker compose up -d sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
     echo.
     echo Done. Code changes are live.
     exit /b 0

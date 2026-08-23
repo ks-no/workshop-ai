@@ -10,7 +10,7 @@
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
 import { alderVed } from "./alder.ts";
-import { findPerson, getPlasserForTjeneste } from "./state.ts";
+import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 
 function formatBelop(belop: number) {
@@ -102,7 +102,7 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
     }
     const alder = alderVed(person.foedselsdato, satser.gjelderFra);
     const kommunenummer = person.bostedsadresse?.kommunenummer || null;
-    const alle = tilstand[ordning.tilbudsdatasett || "tjenestetilbud"] || [];
+    const alle = datasettFor(tilstand, ordning.tilbudsdatasett || "tjenestetilbud");
     const iKommunen = alle.filter(
       (tilbud: any) => tilbud.tjeneste === ordning.tjeneste && tilbud.kommunenummer === kommunenummer
     );

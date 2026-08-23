@@ -124,12 +124,14 @@ det nesten alltid `matrikkel-mock` som ikke er oppe.
 ## 5. Nullstille
 
 ```bash
-./start.sh --reset
+./start.sh --mock --reset
 ```
+
+`--reset` tømmer `state/` og starter deretter alt på vanlig måte. **Ta med `--mock` hvis
+du kjørte med `--mock`** — uten det begynner den å laste ned språkmodellen.
 
 `data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner
 i `state/`, som er gitignorert — en demokjøring skitner ikke til arbeidstreet.
-`--reset` tømmer `state/`.
 
 ---
 

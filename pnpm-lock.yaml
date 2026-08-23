@@ -24,19 +24,21 @@ importers:
 
   apps/demo-gui: {}
 
+  apps/digdir-mock: {}
+
   apps/fiks-simulator: {}
 
   apps/folkeregister-mcp: {}
 
   apps/matrikkel-mock: {}
 
-  apps/mcp-services: {}
-
   apps/process-agent: {}
 
   apps/process-builder: {}
 
   apps/sandbox-backend: {}
+
+  apps/tools-api: {}
 
 packages:
 

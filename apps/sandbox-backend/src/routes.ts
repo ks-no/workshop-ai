@@ -31,21 +31,22 @@ import { buildProsessoektRespons, createSoknad, runStegHandling } from "./proses
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
-import type { Prosessoekt } from "./types.ts";
+import type { Prosessoekt, State } from "./types.ts";
 import {
+  SEED_DATASETS,
   isMalProsess,
   findPerson,
   findProsess,
   findProsessoekt,
   getProsesserForVisning,
   writeProsessdefinisjoner,
-  writeProsessoekter,
+  lagreProsessoekt,
   readState,
   normalizeProsess,
   newId
 } from "./state.ts";
 
-type State = any;
+
 
 type Kontekst = {
   request: IncomingMessage;
@@ -191,9 +192,9 @@ const ruter: Rute[] = [
   },
   {
     metode: "GET",
-    // Process definitions are not person data. They are the workshop's raw
-    // material, and the prosessbygger reads and writes them without a token —
-    // a deliberate line, not an oversight. Do not "fix" it.
+    // Open because process definitions are not person data. They are the
+    // workshop's raw material, and the prosessbygger reads and writes them
+    // without a token — a deliberate line, not an oversight. Do not "fix" it.
     tilgang: "aapen",
     sti: "/api/prosesser",
     handter: ({ response, url, tilstand }) => {
@@ -241,12 +242,15 @@ const ruter: Rute[] = [
     tilgang: "aapen",
     sti: "/api/katalog/datasett",
     handter: ({ response }) => {
-      jsonResponse(response, 200, [
-        { id: "personer", fil: "data/personer.json", syntetisk: true },
-        { id: "husstander", fil: "data/husstander.json", syntetisk: true },
-        { id: "inntekter", fil: "data/inntekter.json", syntetisk: true },
-        { id: "barnehageplasser", fil: "data/barnehageplasser.json", syntetisk: true }
-      ]);
+      // Built from state.ts's SEED_DATASETS, not from a literal here: the literal
+      // listed four of eleven and hid the data three of the five cases run on.
+      // The response key stays `fil` — it is published wire format; only the
+      // constant's own property is English.
+      jsonResponse(
+        response,
+        200,
+        SEED_DATASETS.map(({ id, file }) => ({ id, fil: `data/${file}`, syntetisk: true }))
+      );
     }
   },
   {
@@ -368,7 +372,7 @@ const ruter: Rute[] = [
         syntetisk: true
       };
       tilstand.prosessoekter.push(nyOekt);
-      await writeProsessoekter(tilstand.prosessoekter);
+      await lagreProsessoekt(nyOekt);
       await addRevisjon({
         sporingsId: nyOekt.sporingsId,
         handling: "PROSESSOEKT_OPPRETTET",
@@ -410,7 +414,7 @@ const ruter: Rute[] = [
       }
       oekt.svar[body.stegId || steg.id] = body.svar;
       oekt.oppdatert = new Date().toISOString();
-      await writeProsessoekter(tilstand.prosessoekter);
+      await lagreProsessoekt(oekt);
       await addRevisjon({
         sporingsId: oekt.sporingsId,
         handling: "STEG_SVAR_LAGRET",
@@ -432,9 +436,18 @@ const ruter: Rute[] = [
         return;
       }
       const prosess = findProsess(tilstand, oekt.prosessId);
+      // The prosessbygger can delete a published process while an økt is mid-flow,
+      // and then the økt points at nothing. The old `any` let that reach
+      // runStegHandling and crash on prosess.steg; 409 says what actually happened.
+      if (!prosess) {
+        jsonResponse(response, 409, {
+          feil: `Prosessøkten peker på prosessen ${oekt.prosessId}, som ikke finnes lenger.`
+        });
+        return;
+      }
       const resultat = await runStegHandling(tilstand, oekt, prosess, body, kaller);
       oekt.oppdatert = new Date().toISOString();
-      await writeProsessoekter(tilstand.prosessoekter);
+      await lagreProsessoekt(oekt);
       jsonResponse(response, 200, {
         oekt: buildProsessoektRespons(oekt, prosess),
         resultat
@@ -456,13 +469,19 @@ const ruter: Rute[] = [
         return;
       }
       const prosess = findProsess(tilstand, oekt.prosessId);
+      if (!prosess) {
+        jsonResponse(response, 409, {
+          feil: `Prosessøkten peker på prosessen ${oekt.prosessId}, som ikke finnes lenger.`
+        });
+        return;
+      }
       if (oekt.stegIndex >= prosess.steg.length - 1) {
         jsonResponse(response, 400, { feil: "Prosessøkten er allerede på siste steg." });
         return;
       }
       oekt.stegIndex += 1;
       oekt.oppdatert = new Date().toISOString();
-      await writeProsessoekter(tilstand.prosessoekter);
+      await lagreProsessoekt(oekt);
       jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
     }
   },
@@ -483,7 +502,7 @@ const ruter: Rute[] = [
       }
       oekt.stegIndex -= 1;
       oekt.oppdatert = new Date().toISOString();
-      await writeProsessoekter(tilstand.prosessoekter);
+      await lagreProsessoekt(oekt);
       jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
     }
   },
@@ -583,7 +602,13 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     // credentials cannot tell you the service is unhealthy.
     if (treff && systemPaths.has(treff.rute.sti)) {
       await treff.rute.handter({
-        request, response, url, parametere: treff.parametere, tilstand: null,
+        request, response, url, parametere: treff.parametere,
+        // The cast states the invariant rather than guessing at it: these are
+        // exactly the routes in systemPaths, and they are the only handlers that
+        // never touch tilstand — which is the whole reason they are called before
+        // readState(). Widening Kontekst.tilstand to `State | null` instead would
+        // push a null check into all forty handlers to describe five.
+        tilstand: null as unknown as State,
         kaller: { type: "anonym" }
       });
       return;

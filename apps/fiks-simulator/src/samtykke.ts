@@ -7,7 +7,7 @@
  * revived by answering it again, and `utloper` was written 30 days ahead and then
  * never read by anyone.
  *
- * The kodeverk was also split in three. `IKKE_SAMTYKKET` lived in mcp-services
+ * The kodeverk was also split in three. `IKKE_SAMTYKKET` lived in tools-api
  * and demo-gui, `data/informasjonsmodeller.json` documented only three of the
  * statuses and never mentioned `UTLOEPT`. This module is the one kodeverk;
  * scripts/valider-data.js fails if the informasjonsmodell drifts from it.

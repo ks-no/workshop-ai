@@ -13,9 +13,9 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 
 Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen gjennom en dialogbasert flyt i stedet for tradisjonelle skjemaer.
 
-Første demo-case er:
-
-- `Redusert foreldrebetaling i barnehage`
+Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
+flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
+testbruker som hører til hver, står i `docs/deltakerstart.md`.
 
 Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser mellom frontend, backend, simulatorer, policyer og datasett.
 
@@ -34,7 +34,7 @@ Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal d
 
 ## Status
 
-Åtte kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På plass:
+Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -42,14 +42,24 @@ Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal d
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
-- OpenAPI for alle seks tjenester, komplett og holdt i takt med koden av
+- OpenAPI for alle sju API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
-Se `docs/veien-videre.md` for hva som gjenstår og hvilke arkitekturvalg som er åpne.
+Åpne arkitekturvalg og historikk: `docs/intern/veien-videre.md`. Det er et internt
+dokument, ikke gjeldende status — les koden for status.
 
 ## Hvordan starte den
 
-Du trenger **Docker** installert og startet. På macOS må du ha [Homebrew](https://brew.sh), så skriptet kan installere Ollama for deg. Node og pnpm trengs ikke for å kjøre sandboxen — bare for testskriptene.
+**Forutsetninger:**
+
+| | Trengs til |
+|---|---|
+| **Docker**, installert og startet | å kjøre sandboxen. Det eneste kravet for `./start.sh --mock` |
+| **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
+| **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
+| **pnpm** | bare testskriptene. `pnpm install` først |
+
+På Windows: kjør fra Git Bash eller WSL.
 
 **Vil du bare se noe kjøre? Start her:**
 
@@ -98,9 +108,14 @@ Du skal normalt ikke trenge noen av disse.
 | `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
 | `-y, --yes` | Ikke spør før installasjon eller nedlasting |
 | `--mock` | Kjør uten språkmodell. Raskeste vei inn, og redningen når nedlasting ikke er mulig |
-| `--reset` | Glem alle tidligere demokjøringer og start fra kildedataene |
+| `--reload` | Start Node-tjenestene på nytt så kodeendringer blir live. Det du trenger oftest etter første endring |
+| `--reset` | Tøm `state/` og start fra kildedataene igjen |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
+
+> **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
+> vanlig måte — inkludert modellnedlasting. Kjørte du `--mock`, skriv
+> **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.
 
 ### Hva skriptet gjør for deg
 
@@ -161,14 +176,21 @@ brew services start ollama    # ikke "ollama serve" — den dør når terminalen
 ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  mcp-services process-agent matrikkel-mock demo-gui process-builder
+  tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
-`matrikkel-mock` må være med. `--no-deps` hopper over `mcp-services`' `depends_on`,
-så uten den feiler alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen
-med «fetch failed» mens alt annet ser normalt ut.
+**Hele lista må med, og de to siste tilleggene er de som svikter stille:**
 
-`--no-deps` hindrer at `depends_on: ollama` i `ai-gateway` drar opp container-Ollama.
+- `digdir-mock` utsteder alle tokener. Uten den svarer hvert autentisert kall `401`
+  mens `docker compose ps` ser frisk ut — tokenfeilen svelges i klienten og står bare
+  i en containerlogg.
+- `matrikkel-mock`: uten den feiler alle `matrikkel_*`-verktøy og hele
+  `fartsdempende-tiltak`-casen med «fetch failed», mens alt annet ser normalt ut.
+
+`--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
+ellers drar opp container-Ollama — men det er også grunnen til at lista må være
+komplett: `--no-deps` slår av `depends_on` for *alle* tjenestene, `digdir-mock`
+inkludert.
 
 Linux og WSL, alt i Docker:
 
@@ -197,77 +219,39 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 
 ## Oversikt over tjenester og porter
 
-`./start.sh` starter alle sammen, så du trenger ikke velge. Kolonnen til venstre sier
-hva du må bry deg om hvis noe feiler.
+`./start.sh` starter alle sammen, så du trenger ikke velge.
 
-| | Tjeneste | Port | Rolle |
-|---|---|---:|---|
-| **Kjerne** | `sandbox-backend` | `8080` | Orkestrering, data, revisjon og prosesser |
-| **Kjerne** | `fiks-simulator` | `8081` | Mock av samtykke, register og oppgaver |
-| **Kjerne** | `ai-gateway` | `8082` | KI-støtte og forklaringer (Ollama, OpenRouter eller mock) |
-| **Kjerne** | `matrikkel-mock` | `8085` | Mock av Kartverket Matrikkel Geointegrasjon BasisService |
-| **Kjerne** | `demo-gui` | `3001` | Demo-app for innbyggerdialog |
-| Nyttig | `process-builder` | `3000` | Prosessbygger for dialogflyter |
-| Nyttig | `mcp-services` | `8083` | 25 verktøy over backend- og AI-tjenester (REST, ikke MCP-protokollen) |
-| Nyttig | `process-agent` | `8084` | Generisk agent som guider bruker gjennom prosesser |
-| Støtte | `ollama` | `11434` | Lokal LLM-runtime. Kjører ikke med `--mock`, og på macOS kjører den nativt utenfor Docker |
-| Til editoren din | `brreg-mcp` | — | Ekte MCP (stdio) — oppslag i Enhetsregisteret |
-| Til editoren din | `folkeregister-mcp` | — | Ekte MCP (stdio) — oppslag i Folkeregisteret |
+**Tabellen står ikke her.** Tjenestene, portene og rollene deres ligger i
+`apps/shared-ui/tjenester.json`, og <http://localhost:3001> viser dem med levende
+helsestatus og en lenke rett inn i API-utforskeren for hver. Fire håndholdte kopier av
+den tabellen hadde drevet fra hverandre — tre av dem manglet `digdir-mock`, tjenesten
+hver 401 peker på — så kopien her er fjernet framfor å bli en femte.
 
-**De to siste er ikke en del av demoflyten.** Ingenting i sandboxen snakker med dem —
-de er ekte MCP-servere som en klient som Claude Code eller Cursor starter selv. De
-fire verktøyene deres finnes også i `mcp-services` over REST, mot de samme
-seed-filene, så de utvider ikke sandboxen. Vil du ha dem i editoren, se
-`## Koble MCP-serverne til editoren din` under.
+Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 
-Ikke forveksle `mcp-services` med disse: den er REST, ikke MCP-protokollen, tross navnet.
+- **`digdir-mock` (`8086`) utsteder alle tokens.** Er den nede, svarer hvert autentisert
+  kall 401 mens `docker compose ps` ser helt frisk ut, fordi tokenfeilen svelges i
+  klienten. Den skal alltid med når du starter tjenester manuelt.
+- **`matrikkel-mock` (`8085`) er kjerne, selv om den ser valgfri ut.** Uten den feiler
+  alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed»,
+  mens alt annet ser normalt ut.
+- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`. Den het
+  `mcp-services` fram til 23.08.2026; navnet er droppet framfor at avviket skulle
+  gjentas i hver doc. `/mcp/*`-stiene står igjen — de er wire-format.
+- **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
+  er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
+  fire verktøyene deres finnes også i `tools-api` over REST, mot de samme
+  seed-filene, så de utvider ikke sandboxen. Se avsnittet under.
 
-**`matrikkel-mock` er kjerne, selv om den ser valgfri ut.** Uten den feiler alle
-`matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed», mens
-alt annet ser normalt ut.
+Hver API-tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, samme spesifikasjon
+lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`. Den midterste er det
+API-utforskeren rendrer, og `pnpm test:openapi` holder alle tre i takt med koden.
 
-Alle tjenestene kjører når `./start.sh` er ferdig:
-
-- [http://localhost:3001](http://localhost:3001) — oversikt, start her
-- [http://localhost:3001/chat](http://localhost:3001/chat)
-- [http://localhost:3001/agent](http://localhost:3001/agent)
-- [http://localhost:3001/stegvis](http://localhost:3001/stegvis)
-- [http://localhost:3001/utforsker](http://localhost:3001/utforsker) — API-utforskeren: alle sju
-  tjenestenes endepunkter, med skjema per rute og en `curl` som virker når den limes inn.
-  Tokenet velges automatisk ut fra hjemmelen ruta krever: logg inn med ID-porten én gang,
-  så hentes Maskinporten-tokenene av seg selv
-- [http://localhost:3001/ds-eksempel](http://localhost:3001/ds-eksempel) — KS Digital sitt
-  designsystem kjørende i sandboxen, med markup for hver komponent. Mal hvis du lager din
-  egen frontend. Se `docs/designsystem.md`
-- [http://localhost:3000](http://localhost:3000) — prosessbygger
-- [http://localhost:8080/helse](http://localhost:8080/helse)
-- [http://localhost:8081/helse](http://localhost:8081/helse)
-- [http://localhost:8085/helse](http://localhost:8085/helse)
-- [http://localhost:8082/helse](http://localhost:8082/helse)
-- [http://localhost:8083/helse](http://localhost:8083/helse)
-- [http://localhost:8084/helse](http://localhost:8084/helse)
-- [http://localhost:8086/helse](http://localhost:8086/helse)
-- [http://localhost:8080/docs](http://localhost:8080/docs)
-- [http://localhost:8081/docs](http://localhost:8081/docs)
-- [http://localhost:8082/docs](http://localhost:8082/docs)
-- [http://localhost:8083/docs](http://localhost:8083/docs)
-- [http://localhost:8084/docs](http://localhost:8084/docs)
-- [http://localhost:8085/docs](http://localhost:8085/docs)
-- [http://localhost:8086/docs](http://localhost:8086/docs)
-
-Hver tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, og den samme
-spesifikasjonen lest som JSON på `/openapi-ruter.json`. Den siste er det
-API-utforskeren rendrer, og `pnpm test:openapi` holder begge i takt med koden.
-
-Nye API-er:
-
-- `GET /mcp/tools` pa `http://localhost:8083`
-- `POST /agent/sessions` pa `http://localhost:8084`
 
 ## Koble MCP-serverne til editoren din
 
 `brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
-oppslagsverktøy mot registerdataene — de samme oppslagene `mcp-services` allerede
+oppslagsverktøy mot registerdataene — de samme oppslagene `tools-api` allerede
 eksponerer over REST, så de utvider ikke sandboxen. I Claude Code, fra repo-roten:
 
 ```bash
@@ -318,104 +302,30 @@ Demo-GUI-en bruker også prosessøkt-API i backend for å starte flyter, lagre s
 
 ## Eksempel på API-kall
 
-Hent personer:
+**Kall krever token.** `AUTH_ENFORCE` er på som standard, og alt som ikke er uttrykkelig
+åpent svarer `401` uten `Authorization`-header.
 
 ```bash
-curl http://localhost:8080/api/personer
+export TOKEN=$(node scripts/token.ts --innbygger person-001)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8080/api/personer/person-001/husstand
 ```
 
-Hent husstand for demo-bruker:
+Ett token er én person: `person-001`s token åpner ikke `person-031`s data — det gir
+`403`. `pnpm token` treffer pnpms egen innebygde kommando, så kall skriptet direkte.
 
-```bash
-curl http://localhost:8080/api/personer/person-001/husstand
-```
+Åpne ruter trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`, `/api/prosesser`,
+`/api/katalog/*`, `/api/regler/satser`. `GET /api/katalog/ressurser` oppgir `tilgang` og
+`kreverSamtykke` per rute, så du kan lese ut av API-et selv hva som krever hva.
 
-Forsøk å hente inntekt før samtykke:
+**Videre:**
 
-```bash
-curl http://localhost:8080/api/personer/person-001/inntekt
-```
+- <http://localhost:3001/utforsker> — hver rute med skjema, riktig token valgt
+  automatisk, og en `curl` som virker når den limes inn. Raskeste vei til et enkeltkall.
+- `examples/curl/README.md` — flytene: hele barnehagesøknaden i rekkefølge, og de tre
+  ulike svarene samme URL gir avhengig av token og samtykke. `pnpm test:kokebok` kjører
+  hvert kall i fila, så et eksempel som ikke virker er en reell feil.
 
-Opprett samtykke i simulator:
-
-```bash
-curl -X POST http://localhost:8081/fiks/samtykke \
-  -H "Content-Type: application/json" \
-  -d '{
-    "personId": "person-001",
-    "formaal": "Vurdere rett til redusert foreldrebetaling",
-    "dataKilder": ["inntekt"]
-  }'
-```
-
-Opprett agentsesjon (generisk prosessguide):
-
-```bash
-curl -s -X POST http://localhost:8084/agent/sessions \
-  -H "Content-Type: application/json" \
-  -d '{"personId":"person-001"}'
-```
-
-Liste tilgjengelige MCP-tools:
-
-```bash
-curl -s http://localhost:8083/mcp/tools
-```
-
-Gateoppslag kan kjore direkte mot Geonorge fra `mcp-services`, og `matrikkel-mock` starter fra seed-datasettet ved oppstart:
-
-```bash
-MATRIKKEL_MODE=live pnpm start:mcp
-```
-
-Sjekk hvilken datakilde `matrikkel-mock` faktisk bruker akkurat naa:
-
-```bash
-pnpm check:matrikkel-source
-```
-
-I `docker compose` er `mcp-services` satt opp med `MATRIKKEL_MODE=hybrid` som standard —
-ikke `live`. `live` kaster videre ved nettfeil, så dårlig konferansenett gjør hvert
-gateoppslag til en 500. `hybrid` prøver Geonorge først og faller tilbake til seed-dataene.
-Kodens egen default uten miljøvariabel er `mock`, men den ser du bare hvis du starter
-`mcp-services` utenfor compose.
-
-`matrikkel-mock` starter fra `data/matrikkel.json` — 388 gater i 97 kommuner med koordinater —
-og faller tilbake til live Geonorge-oppslag ved manglende treff. Den er den eneste
-leseren av matrikkelseeden; `sandbox-backend` går over HTTP via `MATRIKKEL_BASE_URL`.
-
-Hent matrikkeldata (REST-hjelpeendepunkt):
-
-```bash
-curl -s "http://localhost:8085/mock/matrikkel/eiendommer?gate=Storgata"
-```
-
-Hent én konkret adresse i matrikkel-mocken:
-
-```bash
-curl -s "http://localhost:8085/mock/matrikkel/eiendom-oppslag?adresse=Storgata%205"
-```
-
-Hent matrikkeldata (SOAP, Geointegrasjon-sti):
-
-```bash
-curl -s -X POST http://localhost:8085/geointegrasjon/matrikkel/wsapi/v1/BasisService \
-  -H "Content-Type: text/xml; charset=utf-8" \
-  -d '<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:mat="http://rep.geointegrasjon.no/Matrikkel/Basis/xml.wsdl/2012.01.31">
-  <soapenv:Body>
-    <mat:HentMatrikkelenhet>
-      <matrikkelId>matr-storg-003</matrikkelId>
-    </mat:HentMatrikkelenhet>
-  </soapenv:Body>
-</soapenv:Envelope>'
-```
-
-Kjør en enkel end-to-end smoke test mot agenten:
-
-```bash
-npx pnpm test:agent
-```
 
 ## Sjekker du kan kjøre
 
@@ -443,7 +353,7 @@ kjørende modell og nekter å score maltekst. Ta en baseline før du endrer, og
 sammenlign etterpå — se `evals/README.md`.
 
 Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl`,
-`test:matrikkel-mock`, `test:mcp-matrikkel`, `test:agent:matrikkel`,
+`test:matrikkel-mock`, `test:tools-matrikkel`, `test:agent:matrikkel`,
 `test:bergen-matrikkel`.
 
 Bulk-smoketesten mot matrikkel-mocken sampler 40 gater og 25 adresser fra
@@ -468,7 +378,7 @@ pnpm test:folkeregister-mcp
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json` — 369 personer
+- `data/personer.json` — 394 personer
 - `data/husstander.json` — 200 husstander
 - `data/tenor/` — rå uttrekk fra Tenor, kilden importen bygger på
 - `data/forventet-utfall.json` — hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
@@ -515,13 +425,10 @@ Dette repoet er lagt opp for flere team. Se:
 - `openapi/README.md`
 - `docs/architecture.md`
 - `docs/api-oversikt.md`
-- `docs/api-foerst-integrasjoner.md`
 - `docs/designsystem.md`
-- `docs/veien-videre.md`
 
 Anbefalt arbeidsform:
 
-- ett team per tjeneste eller arbeidsstrøm
 - små PR-er med tydelig scope
 - dokumentasjon oppdateres sammen med kode
 - API-kontrakter avklares før implementasjon
@@ -530,22 +437,26 @@ Anbefalt arbeidsform:
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
-- CI kjører `pnpm lint`, `pnpm test`, `pnpm test:sperrer`, `pnpm test:skjerming`,
-  `pnpm test:samtykke`, `pnpm test:openapi` og `pnpm test:kontrakt` på PR. Evalene og
-  stack-testene gjør den ikke — de krever en modell eller en kjørende stack
+- CI kjører sjekkene som verken trenger modell eller kjørende stack. Lista står i
+  `.github/workflows/ci.yml`, med en kommentar per steg om hva det fanger — den er
+  kilden, og `pnpm test:docs` feiler hvis en doc gjengir den feil. Evalene og
+  stack-testene er bevisst utenfor: de krever en modell eller en oppe stack
 - Ingen persistensstrategi utover flate JSON-filer. `process-agent` holder sesjoner i
   minnet og mister dem ved restart
 - Datasett og policyer er laget for demo og hackathon, ikke produksjon
-- Ingen ekte integrasjoner mot Altinn, Fiks, ID-porten eller Maskinporten
-- `mcp-services` er **ikke** MCP-protokollen, tross navnet. Se `docs/architecture.md`
+- Ingen ekte integrasjoner mot Altinn eller Fiks. ID-porten og Maskinporten er
+  mocket i `digdir-mock`, og **håndhevingen er ekte**: `AUTH_ENFORCE` er på, tokener
+  verifiseres mot utstederens nøkler, og pid-bindingen holder. Det som er forenklet er
+  klientassertionen — den valideres på form, ikke signatur. Se
+  `apps/digdir-mock/README.md`
+- `tools-api` er REST, ikke MCP. Bare `/mcp/*`-stiene bærer prefikset videre, som
+  wire-format. Se `docs/architecture.md`
 
 ## Viktige filer
 
-- `docker-compose.yml`
-- `pnpm-workspace.yaml`
-- `package.json`
-- `docs/architecture.md`
-- `docs/api-foerst-integrasjoner.md`
-- `docs/veien-videre.md`
-- `docs/sikkerhet-og-personvern.md`
-- `policies/data-policy.yaml`
+- `docs/deltakerstart.md` — start her hvis du er deltaker
+- `apps/shared-ui/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
+- `data/` — de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
+- `openapi/` — én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`
+- `policies/` — datapolicy, KI-policy, tilgangspolicy
+- `docker-compose.yml`, `package.json`, `tsconfig.json`

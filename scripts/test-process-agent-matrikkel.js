@@ -312,7 +312,7 @@ async function run() {
     env: {
       ...process.env,
       PORT: String(agentPort),
-      MCP_BASE_URL: `http://127.0.0.1:${mcpPort}`
+      TOOLS_BASE_URL: `http://127.0.0.1:${mcpPort}`
     },
     stdio: "inherit"
   });

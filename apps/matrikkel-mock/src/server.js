@@ -1166,7 +1166,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
       jsonResponse(response, 200, await routeOverview(openapiFile));
       return;

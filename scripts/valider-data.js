@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
+import { SEED_DATASETS } from "../apps/sandbox-backend/src/state.ts";
 // The vedtak itself, imported rather than mirrored. This file used to carry its own
 // copy of every rule below, which meant data/forventet-utfall.json — the pinned
 // outcomes the workshop text rests on — was validated against the copy instead of
@@ -650,13 +651,13 @@ if (eidAv.size < 50) {
   );
 }
 // The fartsdempende case rests on exactly these two facts, and pnpm test:kontrakt
-// and pnpm test:mcp-matrikkel both assert them over HTTP. Pinned here too, so a
+// and pnpm test:tools-matrikkel both assert them over HTTP. Pinned here too, so a
 // redistribution fails before the stack has to be up.
 const storgataEid = eierforhold.eierforhold.find((r) => r.matrikkelId === "matr-storg-003");
 if (!storgataEid?.eiere.some((e) => e.eier === "person-001")) {
   throw new Error(
     "person-001 eier ikke matr-storg-003. Godkjent-utfallet i fartsdempende-tiltak " +
-    "og pnpm test:mcp-matrikkel hviler på det."
+    "og pnpm test:tools-matrikkel hviler på det."
   );
 }
 const fjosangerGate = matrikkel.gater.find((g) => g.gateId === "gate-fjosangerveien-bergen");
@@ -1118,7 +1119,7 @@ for (const [begrepId, attributtNavn, hentVerdier] of KODEVERDIER_FRA_DATA) {
 
 // --- Ett kodeverk for samtykkestatus ---------------------------------------
 // The statuses lived in three places with three different inventories: demo-gui
-// and mcp-services knew IKKE_SAMTYKKET, and the informasjonsmodell documented
+// and tools-api knew IKKE_SAMTYKKET, and the informasjonsmodell documented
 // three of the five and never mentioned UTLOEPT at all. The state machine in
 // apps/fiks-simulator/src/samtykke.ts is the kodeverk now, and this check makes
 // the documentation fail rather than quietly disagree with the code.
@@ -1254,6 +1255,48 @@ for (const sak of deltakercaser.caser) {
       `data/deltakercaser.json sier ${sak.prosessId} med ${sak.personId} gir ` +
       `${sak.forventetUtfall}, men reglene gir ${faktisk ? "innvilget" : "avslag"}. ` +
       `Det er nøyaktig feilen som lå i SFO-caset: en anbefalt bruker som får avslag.`
+    );
+  }
+}
+
+// --- the catalogue against the loader ---------------------------------------
+//
+// GET /api/katalog/datasett is one of two machine-readable ways a team discovers
+// the data foundation, and it was a literal in routes.ts with four of eleven
+// entries — it hid satser, sfoplasser, fritidsaktiviteter, fritidsdeltakelse and
+// tjenestetilbud, the data three of the five published cases run on. It is now
+// built from SEED_DATASETS. This keeps that list honest in both directions:
+// every file it names must exist, and every seed file readState loads without a
+// default must be named. The second half is what catches a *new* dataset that
+// someone loads and forgets to publish.
+{
+  for (const { id, file } of SEED_DATASETS) {
+    try {
+      await readFile(`data/${file}`, "utf8");
+    } catch {
+      throw new Error(
+        `SEED_DATASETS oppgir data/${file} for «${id}», men fila kan ikke leses. ` +
+        `Katalogen på GET /api/katalog/datasett ville pekt på ingenting.`
+      );
+    }
+  }
+
+  // readState's calls are read as text on purpose: a readJson with a second
+  // argument is runtime state (starts empty, gitignored), not a dataset.
+  const source = await readFile("apps/sandbox-backend/src/state.ts", "utf8");
+  const readStateBody = source.slice(source.indexOf("export async function readState()"));
+  const loaded = [...readStateBody.matchAll(/readJson\("([^"]+)"\s*\)/g)].map((m) => m[1]);
+  const inCatalogue = SEED_DATASETS.map((dataset) => dataset.file);
+
+  const unpublished = loaded.filter((file) => !inCatalogue.includes(file));
+  const notLoaded = inCatalogue.filter((file) => !loaded.includes(file));
+  if (unpublished.length > 0 || notLoaded.length > 0) {
+    throw new Error(
+      `SEED_DATASETS og readState() navngir ulike filer. ` +
+      (unpublished.length ? `Lastet, men ikke i katalogen: ${unpublished.join(", ")}. ` : "") +
+      (notLoaded.length ? `I katalogen, men ikke lastet: ${notLoaded.join(", ")}. ` : "") +
+      `Katalogen er det et team oppdager datagrunnlaget gjennom — den skal si det ` +
+      `samme som lasteren.`
     );
   }
 }

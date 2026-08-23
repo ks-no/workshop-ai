@@ -113,8 +113,11 @@ paths:
         fram. Det er kommunen som spør; innbyggeren svarer på
         `PUT /fiks/samtykke/{samtykkeId}/svar`.
 
-        Åpen flate i sandkassen, i motsetning til registerflaten under.
-      security: []
+        Krever `ks:fiks:samtykke`. Flaten var åpen fram til 23.08.2026, og det var
+        en bakdør til samtykkesperren i `sandbox-backend`: den sperren kunne
+        tilfredsstilles med to uautentiserte kall hit.
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       requestBody:
         required: true
         content:
@@ -145,6 +148,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Samtykke"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/samtykke/{samtykkeId}:
     get:
       summary: Hent ett samtykke
@@ -153,7 +160,8 @@ paths:
         fortida svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
         Utløp utledes på vei ut, på samme måte som skjermingen av
         adressebeskyttede — se apps/fiks-simulator/src/samtykke.ts.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       parameters:
         - $ref: "#/components/parameters/SamtykkeId"
       responses:
@@ -165,6 +173,10 @@ paths:
                 $ref: "#/components/schemas/Samtykke"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/samtykke/{samtykkeId}/historikk:
     get:
       summary: Samtykkets hendelsesforløp
@@ -172,7 +184,8 @@ paths:
         Hver overgang som faktisk ble gjennomført, i rekkefølge. Avviste forsøk
         står ikke her — de havner i revisjonsloggen som `SAMTYKKE_AVVIST`.
         Utløp står heller ikke her: ingenting *gjorde* det.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       parameters:
         - $ref: "#/components/parameters/SamtykkeId"
       responses:
@@ -186,6 +199,10 @@ paths:
                   $ref: "#/components/schemas/Samtykkehendelse"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/samtykke/{samtykkeId}/svar:
     put:
       summary: Innbyggerens svar på en samtykkeforespørsel
@@ -196,7 +213,8 @@ paths:
         Fra `VENTER_PAA_SVAR` går det til `SAMTYKKET` eller `IKKE_SAMTYKKET`. Et
         samtykke som er nektet, trukket eller utløpt er endelig, og et nytt svar
         gir 409 — kommunen må spørre på nytt.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       parameters:
         - $ref: "#/components/parameters/SamtykkeId"
       requestBody:
@@ -226,13 +244,18 @@ paths:
           $ref: "#/components/responses/IkkeFunnet"
         "409":
           $ref: "#/components/responses/UgyldigOvergang"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/samtykke/{samtykkeId}/trekk:
     put:
       summary: Trekk et samtykke
       description: >-
         Bare fra `SAMTYKKET`. Et samtykke som allerede er trukket eller utløpt
         kan ikke trekkes igjen, og svaret er da 409 med hva statusen var.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       parameters:
         - $ref: "#/components/parameters/SamtykkeId"
       requestBody:
@@ -257,10 +280,15 @@ paths:
           $ref: "#/components/responses/IkkeFunnet"
         "409":
           $ref: "#/components/responses/UgyldigOvergang"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/personer/{personId}/samtykker:
     get:
       summary: Alle samtykker for én person
-      security: []
+      security:
+        - maskinporten: [ks:fiks:samtykke]
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
@@ -272,6 +300,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Samtykke"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/register/person/{personId}:
     get:
       summary: Folkeregisterliknende oppslag på én person
@@ -400,7 +432,8 @@ paths:
     post:
       summary: Opprett en oppgave til saksbehandling
       description: Åpen flate i sandkassen, som samtykkeflaten.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:oppgave]
       requestBody:
         required: true
         content:
@@ -424,10 +457,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Oppgave"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/oppgaver/{oppgaveId}:
     get:
       summary: Hent én oppgave
-      security: []
+      security:
+        - maskinporten: [ks:fiks:oppgave]
       parameters:
         - $ref: "#/components/parameters/OppgaveId"
       responses:
@@ -439,6 +477,10 @@ paths:
                 $ref: "#/components/schemas/Oppgave"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/oppgaver/{oppgaveId}/status:
     put:
       summary: Flytt en oppgave i saksbehandlingen
@@ -446,7 +488,8 @@ paths:
         `OPPRETTET → UNDER_BEHANDLING → FERDIG | AVVIST`. En sak avvises etter at
         noen har sett på den, ikke før, og ingen av de to sluttilstandene kan
         gjøres om. Ugyldig overgang gir 409.
-      security: []
+      security:
+        - maskinporten: [ks:fiks:oppgave]
       parameters:
         - $ref: "#/components/parameters/OppgaveId"
       requestBody:
@@ -476,10 +519,15 @@ paths:
           $ref: "#/components/responses/IkkeFunnet"
         "409":
           $ref: "#/components/responses/UgyldigOvergang"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/meldinger:
     post:
       summary: Legg en melding i innbyggerens innboks
-      security: []
+      security:
+        - maskinporten: [ks:fiks:melding]
       requestBody:
         required: true
         content:
@@ -498,10 +546,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Melding"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /fiks/meldinger/{meldingId}:
     get:
       summary: Hent én melding
-      security: []
+      security:
+        - maskinporten: [ks:fiks:melding]
       parameters:
         - name: meldingId
           in: path
@@ -517,6 +570,10 @@ paths:
                 $ref: "#/components/schemas/Melding"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
   /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling:
     post:
       summary: Beregn inntektsgrunnlag for redusert foreldrebetaling
@@ -1036,9 +1093,21 @@ components:
       description: >-
         Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
         grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
-        Krever scope `ks:fiks:register` og aud `fiks-simulator` — et token utstedt for en annen
-        tjeneste avvises med 401, som er hele poenget med audience-begrensning.
-        Hent ett med `scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulator`.
+        Krever aud `fiks-simulator` — et token utstedt for en annen tjeneste avvises
+        med 401, som er hele poenget med audience-begrensning.
+
+        Fire flater, fire scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
+        for registeroppslag, `ks:fiks:samtykke` for å be om, svare på og trekke et
+        samtykke, `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for
+        meldinger. Et oppgave-scope åpner ikke samtykkeflaten.
+
+        Innbyggerens eget ID-porten-token avvises på alle fire med 403
+        `KREVER_MASKINPORTEN`: samtykke *spørres om* av en kommune og svares
+        gjennom den. `sandbox-backend` holder det verifiserte innbyggertokenet,
+        avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er maskinens,
+        handlingen er innbyggerens.
+
+        Hent ett med `scripts/token.ts --maskinporten <scope> --resource fiks-simulator`.
     idporten:
       type: http
       scheme: bearer

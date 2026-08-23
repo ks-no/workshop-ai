@@ -317,7 +317,7 @@ paths:
       description: |
         Gitt et prosessteg (id, tittel, tekst, felter) og en liste over tilgjengelige verktøy,
         returnerer et rangert forslag med brukstype (kontekst, validering, kontekst_og_validering).
-        Brukes av mcp-services/suggest_step_tools. Heuristikk-first, LLM-fallback.
+        Brukes av tools-api/suggest_step_tools. Heuristikk-first, LLM-fallback.
       requestBody:
         required: true
         content:

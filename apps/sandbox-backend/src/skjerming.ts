@@ -1,7 +1,7 @@
 // Masking for address-protected people, applied once in the data layer.
 //
 // Six people in the seed carry a confidentiality code. Three other services hide
-// them in their own way — folkeregister-mcp and mcp-services refuse the lookup,
+// them in their own way — folkeregister-mcp and tools-api refuse the lookup,
 // fiks-simulator omits the name from a calculation — but each reads its own copy of
 // the data, so none of them covered sandbox-backend. A team building its own
 // frontend against the backend got the full name and address back in the same
