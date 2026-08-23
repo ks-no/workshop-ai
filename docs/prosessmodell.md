@@ -90,8 +90,8 @@ viser da tilgjengelige testgater som hint, og normaliserer brukerens svar
 Den dynamiske veien er reell, men den er ikke den eneste: `process-agent`
 har i tillegg hardkodede snarveier for `fartsdempende-tiltak` — steg-ID-ene
 `velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, pluss
-verktøynavnet `matrikkel_finn_veger`. Å rydde det opp er en hackathon-oppgave,
-ikke noe som skal fikses først.
+verktøynavnet `matrikkel_finn_veger`. Snarveiene er der fordi de var raskeste vei
+til en fungerende demo, ikke fordi de er riktige.
 
 Ny funksjonalitet kobles inn ved å legge til heuristikk i
 `apps/ai-gateway/src/server.js` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne

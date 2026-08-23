@@ -2,16 +2,21 @@
 
 En samarbeidsvennlig sandbox for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
 
-Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype dialogbaserte tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner.
+Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får — dialog, skjema, oversikt, varsling eller noe annet — er teamets valg.
 
-> **Deltaker på hackathon? Start med [`docs/deltakerstart.md`](docs/deltakerstart.md).**
-> Én side med det du trenger den første timen: én kommando, fire URL-er, hvilken
-> demobruker som hører til hvilken case, og tre feilsjekker. Kom tilbake hit når du
-> vil ha hele bildet.
+> **Deltaker på hackathon? Denne fila er ikke inngangen din.** Tre sider, i rekkefølge:
+>
+> 1. [`docs/oppdraget.md`](docs/oppdraget.md) — hva dere skal lage, og hva som er fritt
+> 2. [`docs/deltakerstart.md`](docs/deltakerstart.md) — én kommando, URL-ene, hvilken
+>    demobruker som hører til hvilken case, første eget API-kall, og feilsøking
+> 3. [`docs/bygg-selv.md`](docs/bygg-selv.md) — egen frontend på egen port, egne
+>    tjenester, og hva som er frosset
+>
+> Kom tilbake hit når du vil ha hele bildet: alle flagg, porter og kjente begrensninger.
 
 ## Hva sandkassen er
 
-Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen gjennom en dialogbasert flyt i stedet for tradisjonelle skjemaer.
+Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
 Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
@@ -95,9 +100,10 @@ automatisk modellvalg basert på minnet i maskinen, og verifisering av at modell
 faktisk svarer.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
-ekvivalent: `start.bat` kjører blankt `docker compose up -d` og venter 15 sekunder.
-Den tar ingen flagg — heller ikke `--mock` — laster ikke ned modell, og sjekker ikke
-at noe faktisk kom opp. Foretrekk Git Bash eller WSL hvis du har valget.
+ekvivalent: `start.bat` kjører blankt `docker compose up -d` og venter 20 sekunder uten
+å sjekke at noe faktisk kom opp. Den tar `--reload`, `-d` og `--down`, men **ikke
+`--mock`** — den laster verken ned eller velger modell. Foretrekk Git Bash eller WSL
+hvis du har valget.
 
 ### Valg
 
