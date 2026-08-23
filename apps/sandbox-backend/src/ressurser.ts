@@ -44,7 +44,7 @@ import {
 // To expose new data during the workshop: add one entry at the bottom. Nothing
 // else needs to change.
 
-type State = any;
+import type { State } from "./types.ts";
 
 // The rule type decides. An ordning assessed on need and capacity — støttekontakt —
 // never reads income, so demanding consent for income would collect a basis the

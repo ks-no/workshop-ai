@@ -2,18 +2,14 @@
 
 ## Målbilde
 
-Sandboxen er delt i følgende tjenester:
+Tjenestene, portene og rollene deres står **ett sted**:
+`apps/shared-ui/tjenester.json`. Dashboardet på <http://localhost:3001> og
+API-utforskeren leser den fila, og `pnpm test:openapi` holder den i takt med koden.
+Denne siden gjentar den ikke — fire håndholdte kopier av den tabellen hadde drevet
+fra hverandre, og tre av dem manglet `digdir-mock`, tjenesten hver 401 peker på.
 
-- `process-builder`
-- `demo-gui`
-- `sandbox-backend`
-- `fiks-simulator`
-- `matrikkel-mock`
-- `ai-gateway`
-- `mcp-services`
-- `process-agent`
-
-Dette gir en enkel og samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å blokkere hverandre unødvendig.
+Delingen gir en samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å
+blokkere hverandre unødvendig.
 
 ## Arkitekturprinsipper
 
@@ -59,17 +55,6 @@ Derfor skiller vi mellom:
 
 Disse finnes for å senke terskelen og spare tid, ikke for å definere én riktig måte å bygge på.
 
-## Foreslått arbeidsdeling
-
-- `apps/sandbox-backend`: data, prosess-API, revisjon og policyhåndheving
-- `apps/fiks-simulator`: samtykke, register og oppgaver
-- `apps/matrikkel-mock`: Geointegrasjon BasisService og matrikkeldata (SOAP + REST)
-- `apps/ai-gateway`: mockede AI-endepunkter inkl. `velg-verktoy` for dynamisk verktøyoppdagelse
-- `apps/mcp-services`: MCP-stil verktøy over backend, AI og matrikkel
-- `apps/process-agent`: agentdialog med dynamisk steghåndtering via MCP
-- `apps/demo-gui`: innbyggerreisen
-- `apps/process-builder`: definisjon og visualisering av flyter
-
 ## Samspill mellom tjenestene
 
 1. `process-builder` viser prosesser via `sandbox-backend`
@@ -78,13 +63,13 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 4. `sandbox-backend` blokkerer inntektsdata uten gyldig samtykke
 5. `sandbox-backend` kaller `ai-gateway` for oppsummering og forklaring
 6. `sandbox-backend` henter matrikkeldata fra `matrikkel-mock` over HTTP (`MATRIKKEL_BASE_URL`, se `apps/sandbox-backend/src/matrikkel.ts`) og eksponerer dem via `GET /api/matrikkel/gater` og `SJEKK`-steg. Mocken er eneste leser av seeden, og eneste vei til SOAP-flaten
-7. `mcp-services` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
-8. `process-agent` bruker `mcp-services` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
+7. `tools-api` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
+8. `process-agent` bruker `tools-api` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
 9. alle relevante hendelser sendes til revisjonslogg
 
 ## Dynamisk verktøyoppdagelse i agenten
 
-Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `mcp-services`.
+Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `tools-api`.
 Dette kallet sender stegdefinisjonens tekst og feltlabeler til `ai-gateway /ai/velg-verktoy`,
 som returnerer hvilke MCP-verktøy som er relevante (`kontekst`, `validering` eller begge).
 Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktøy til å normalisere
@@ -107,15 +92,21 @@ Det betyr at:
 
 ## Status og kjente avvik
 
-Alle åtte tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+Alle ni tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og fem demo-case er på plass. Det som følger er
 avvik mellom hvordan sandboxen presenterer seg og hva den faktisk gjør — verdt å
 kjenne til før du bygger på den.
 
-**`mcp-services` er ikke MCP-protokollen.** Den svarer `protocol: "mcp-style-http"`
-og eksponerer 25 verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller
-SSE-transport, så en MCP-klient som Claude Code eller Cursor kan ikke koble seg på.
-Verktøyene har derimot korrekt formede `inputSchema`, så veien til ekte MCP er kort.
+**`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
+verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, så en
+MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
+korrekt formede `inputSchema`, så veien til ekte MCP er kort.
+
+Tjenesten het `mcp-services` fram til 23.08.2026. Navnet er droppet framfor at
+avviket skulle gjentas i hver doc — `apps/brreg-mcp` og `apps/folkeregister-mcp` er
+nå de eneste tingene i repoet som heter MCP, og de *er* MCP. Stiene `/mcp`,
+`/mcp/tools` og `/mcp/tools/invoke` står igjen, fordi en sti er wire-format: det er
+det ene stedet prefikset fortsatt hevder en protokoll tjenesten ikke snakker.
 
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
@@ -152,6 +143,17 @@ tro og love — tokenets `pid` må slå opp til den personen forespørselen gjel
 Utstederen er en etterlikning, og klientassertionen verifiseres ikke, så
 identitetslaget er ekte i form og syntetisk i tillit.
 
-**Samtykke- og oppgaveflatene i `fiks-simulator` er fortsatt åpne.**
-Registerflaten er bak Maskinporten; `/fiks/samtykke*`, `/fiks/oppgaver*` og
-`/fiks/meldinger*` er ikke. Bevisst avgrensning, ikke en glipp.
+**Hele `fiks-simulator` er bak Maskinporten, med ett scope per flate.**
+`ks:fiks:register`, `ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding` —
+scopet *er* hjemmelen, så et oppgave-scope åpner ikke samtykkeflaten. Samtykke- og
+oppgaveflatene sto åpne fram til 23.08.2026, og det var en bakdør: samtykkesperren
+`sandbox-backend` håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra
+samtykket — kunne tilfredsstilles med to uautentiserte kall mot 8081. Sperren var
+ekte; bakdøren lå ved siden av.
+
+Innbyggerens eget ID-porten-token avvises på alle fire flatene med `403
+KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en
+kommune og svares gjennom den. `sandbox-backend` holder det verifiserte
+innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er
+maskinens, handlingen er innbyggerens. `pnpm test:samtykke` pinner begge
+avvisningene.

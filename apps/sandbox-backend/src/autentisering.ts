@@ -17,7 +17,7 @@
 //   Maskinporten  a machine. Carries `scope` and `client_id`, and no person at all.
 //                 Its hjemmel is the scope its organisation was granted.
 //
-// A machine is never treated as the citizen. mcp-services reading a person's data
+// A machine is never treated as the citizen. tools-api reading a person's data
 // is logged as a system with `paaVegneAv`, not as the citizen — a service that can
 // hand itself any citizen's identity is exactly the wrong lesson.
 
@@ -185,7 +185,10 @@ function manglerToken(hva: string): HttpError {
   // 401, not 403: we do not know who this is. The distinction is the whole point —
   // authentication is "who are you", hjemmel is "may you".
   return new HttpError(
-    `Dette kallet krever innlogging. ${hva} er ikke åpent uten token. ` +
+    // A colon, not a full stop: `hva` arrives both as a route ("GET /api/personer")
+    // and as a phrase from runRessurs ("å lese inntekt"), and a capital is wrong for
+    // one of the two. Mid-sentence it reads correctly for both.
+    `Dette kallet krever innlogging: ${hva} er ikke åpent uten token. ` +
     `Hent et med scripts/token.ts.`,
     401,
     { syntetisk: true },

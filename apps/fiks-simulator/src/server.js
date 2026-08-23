@@ -38,6 +38,18 @@ const authEnforce = process.env.AUTH_ENFORCE !== "false";
 // behind Maskinporten, and so does this.
 const SCOPE_REGISTER = "ks:fiks:register";
 
+// Creating a samtykke, answering it or withdrawing it is writing to a hjemmel
+// surface, and so is putting work in a caseworker's queue. Both were open, which
+// meant the samtykke gate sandbox-backend enforces so carefully — pid binding,
+// resource catalogue, purpose taken from the consent — could be satisfied by two
+// unauthenticated calls to this port. The gate was real; the back door was next to it.
+//
+// Separate scopes rather than one: a service that may ask for consent is not
+// automatically a service that may create tasks. Three surfaces, three scopes.
+const SCOPE_SAMTYKKE = "ks:fiks:samtykke";
+const SCOPE_OPPGAVE = "ks:fiks:oppgave";
+const SCOPE_MELDING = "ks:fiks:melding";
+
 const verifyToken = createVerifier({
   digdirBaseUrl,
   maskinportenIssuer: digdirIssuer,
@@ -322,14 +334,18 @@ class FiksError extends Error {
   }
 }
 
-async function requireRegisterHjemmel(request) {
+/**
+ * Maskinporten for one named scope. `flate` names the surface in the 401 so the
+ * message says which door was locked, not just that one was.
+ */
+async function requireMaskinportenHjemmel(request, scope, flate) {
   if (!authEnforce) return null;
 
   const header = request.headers.authorization;
   if (!header) {
     throw new FiksError(
-      "Registerflaten i Fiks krever et Maskinporten-token. " +
-      "Hent et med scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulator.",
+      `${flate} i Fiks krever et Maskinporten-token. ` +
+      `Hent et med scripts/token.ts --maskinporten ${scope} --resource fiks-simulator.`,
       401,
       "MANGLER_TOKEN",
       { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' }
@@ -356,12 +372,14 @@ async function requireRegisterHjemmel(request) {
     throw feil;
   }
 
-  // A citizen's ID-porten token cannot open a register API. The register is a
-  // machine-to-machine surface: the hjemmel belongs to the municipality, not to
-  // whoever happens to be logged in.
+  // A citizen's ID-porten token cannot open these. They are machine-to-machine
+  // surfaces: the hjemmel belongs to the municipality, not to whoever happens to be
+  // logged in. sandbox-backend holds the verified citizen token, decides, and then
+  // acts here as a machine with `aktor` naming the citizen — which is exactly the
+  // hjemmel/aktør distinction the sandbox exists to show.
   if (verified.utsteder !== "maskinporten") {
     throw new FiksError(
-      "Registerflaten er en maskin-til-maskin-flate. Et personlig ID-porten-token " +
+      `${flate} er en maskin-til-maskin-flate. Et personlig ID-porten-token ` +
       "gir ikke hjemmel her, uansett sikkerhetsnivå.",
       403,
       "KREVER_MASKINPORTEN"
@@ -369,9 +387,9 @@ async function requireRegisterHjemmel(request) {
   }
 
   const scopes = String(verified.krav.scope || "").split(" ").filter(Boolean);
-  if (!scopes.includes(SCOPE_REGISTER)) {
+  if (!scopes.includes(scope)) {
     throw new FiksError(
-      `Klienten ${verified.krav.client_id} mangler scope ${SCOPE_REGISTER} ` +
+      `Klienten ${verified.krav.client_id} mangler scope ${scope} ` +
       `(har: ${scopes.join(" ") || "ingen"}).`,
       403,
       "MANGLER_SCOPE"
@@ -383,6 +401,20 @@ async function requireRegisterHjemmel(request) {
     consumer: verified.krav.consumer?.ID || null
   };
 }
+
+/** The register surface keeps its own name at the call sites. */
+function requireRegisterHjemmel(request) {
+  return requireMaskinportenHjemmel(request, SCOPE_REGISTER, "Registerflaten");
+}
+
+const requireSamtykkeHjemmel = (request) =>
+  requireMaskinportenHjemmel(request, SCOPE_SAMTYKKE, "Samtykkeflaten");
+
+const requireOppgaveHjemmel = (request) =>
+  requireMaskinportenHjemmel(request, SCOPE_OPPGAVE, "Oppgaveflaten");
+
+const requireMeldingHjemmel = (request) =>
+  requireMaskinportenHjemmel(request, SCOPE_MELDING, "Meldingsflaten");
 
 // The masking A2 applies in sandbox-backend's readState(), applied here too. Without
 // it a machine with register hjemmel still received an address-protected person in
@@ -545,7 +577,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // Den samme spesifikasjonen, lest. Se kommentaren i mcp-services.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
       jsonResponse(
         response,
@@ -606,6 +638,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && url.pathname === "/fiks/samtykke") {
+      await requireSamtykkeHjemmel(request);
       const body = await readBody(request);
       const newSamtykke = {
         samtykkeId: newId("samtykke"),
@@ -637,6 +670,7 @@ const server = createServer(async (request, response) => {
 
     const samtykkeTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)$/);
     if (request.method === "GET" && samtykkeTreff) {
+      await requireSamtykkeHjemmel(request);
       const samtykker = await tilstand.samtykker();
       const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === samtykkeTreff[1]);
       if (!samtykke) {
@@ -649,6 +683,7 @@ const server = createServer(async (request, response) => {
 
     const historikkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/historikk$/);
     if (request.method === "GET" && historikkTreff) {
+      await requireSamtykkeHjemmel(request);
       const samtykker = await tilstand.samtykker();
       const samtykke = samtykker.find((kandidat) => kandidat.samtykkeId === historikkTreff[1]);
       if (!samtykke) {
@@ -661,6 +696,7 @@ const server = createServer(async (request, response) => {
 
     const svarTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/svar$/);
     if (request.method === "PUT" && svarTreff) {
+      await requireSamtykkeHjemmel(request);
       const body = await readBody(request);
       const samtykke = await setSamtykkestatus(svarTreff[1], body.status || "SAMTYKKET", body);
       await addRevisjon({
@@ -678,6 +714,7 @@ const server = createServer(async (request, response) => {
 
     const trekkTreff = url.pathname.match(/^\/fiks\/samtykke\/([^/]+)\/trekk$/);
     if (request.method === "PUT" && trekkTreff) {
+      await requireSamtykkeHjemmel(request);
       const body = await readBody(request);
       // A withdrawal is a transition like any other: from SAMTYKKET and nowhere
       // else. Before this it overwrote whatever the status was, so a consent could
@@ -695,6 +732,7 @@ const server = createServer(async (request, response) => {
 
     const personSamtykkeTreff = url.pathname.match(/^\/fiks\/personer\/([^/]+)\/samtykker$/);
     if (request.method === "GET" && personSamtykkeTreff) {
+      await requireSamtykkeHjemmel(request);
       const samtykker = await tilstand.samtykker();
       jsonResponse(response, 200, samtykker
         .filter((samtykke) => samtykke.personId === personSamtykkeTreff[1])
@@ -758,6 +796,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && url.pathname === "/fiks/oppgaver") {
+      await requireOppgaveHjemmel(request);
       const body = await readBody(request);
       const oppgave = {
         oppgaveId: newId("oppgave"),
@@ -783,6 +822,7 @@ const server = createServer(async (request, response) => {
 
     const oppgaveTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)$/);
     if (request.method === "GET" && oppgaveTreff) {
+      await requireOppgaveHjemmel(request);
       const oppgave = (await tilstand.oppgaver()).find((kandidat) => kandidat.oppgaveId === oppgaveTreff[1]);
       jsonResponse(response, oppgave ? 200 : 404, oppgave || { feil: "Fant ikke oppgave." });
       return;
@@ -793,6 +833,7 @@ const server = createServer(async (request, response) => {
     // OPPRETTET yet — this is the surface a saksbehandlerflate would use.
     const oppgaveStatusTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)\/status$/);
     if (request.method === "PUT" && oppgaveStatusTreff) {
+      await requireOppgaveHjemmel(request);
       const body = await readBody(request);
       const oppgave = await updateJson("oppgaver.json", [], (oppgaver) => {
         const treff = oppgaver.find((kandidat) => kandidat.oppgaveId === oppgaveStatusTreff[1]);
@@ -816,6 +857,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && url.pathname === "/fiks/meldinger") {
+      await requireMeldingHjemmel(request);
       const body = await readBody(request);
       const melding = {
         meldingId: newId("melding"),
@@ -831,6 +873,7 @@ const server = createServer(async (request, response) => {
 
     const meldingTreff = url.pathname.match(/^\/fiks\/meldinger\/([^/]+)$/);
     if (request.method === "GET" && meldingTreff) {
+      await requireMeldingHjemmel(request);
       const melding = (await tilstand.meldinger()).find((kandidat) => kandidat.meldingId === meldingTreff[1]);
       jsonResponse(response, melding ? 200 : 404, melding || { feil: "Fant ikke melding." });
       return;

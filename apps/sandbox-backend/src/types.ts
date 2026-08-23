@@ -192,5 +192,24 @@ export type State = {
   revisjonslogg: MedFelter[];
   prosessoekter: Prosessoekt[];
   satser: Satser;
-  [datasett: string]: any;
+  fritidsdeltakelse: MedFelter[];
+  fritidsaktiviteter: MedFelter[];
+  tjenestetilbud: MedFelter[];
 };
+
+/*
+ * The datasets a tjeneste or an ordning can name at *runtime* rather than in code:
+ * tjenesteDatasett maps barnehage/sfo/fritid to one of these, and an ordning's
+ * `tilbudsdatasett` names one directly.
+ *
+ * State deliberately has no `[key: string]: any` index signature — it used to, and
+ * that one line meant `tilstand.prosessokter` (a typo for prosessoekter) compiled
+ * as `any` and failed at runtime instead. The dynamic lookups go through
+ * datasettFor() in state.ts, which narrows against this union once.
+ */
+export type Datasettnoekkel =
+  | "barnehageplasser"
+  | "sfoplasser"
+  | "fritidsdeltakelse"
+  | "fritidsaktiviteter"
+  | "tjenestetilbud";
