@@ -25,8 +25,8 @@ step definition to return which tools are relevant and how to use them:
 The dynamic discovery above is real, but it is **not the only path**. The agent also
 carries hardcoded shortcuts for the `fartsdempende-tiltak` case: step ids `velg-gate`,
 `hent-gate`, `boliger-bekreft` and `begrunnelse`, the tool name `matrikkel_finn_veger`,
-and a step-keyed interview script in `guidedInterviewDefinitions`. Cleaning that up —
-or replacing this agent entirely — is a hackathon task, not a bug to fix first.
+and a step-keyed interview script in `guidedInterviewDefinitions`. The shortcuts exist
+because they were the fastest route to a working demo, not because they are right.
 
 New data sources are wired in by adding heuristics in `ai-gateway` and a tool in
 `tools-api`.

@@ -470,15 +470,21 @@ if ! $MOCK; then
 fi
 
 printf '\n✅ Ready\n'
-printf '   🧭 Start here:      http://localhost:3001\n'
+printf '\n   Read first:\n'
+printf '   📖 What to build:   docs/oppdraget.md\n'
+printf '   🚀 Getting started: docs/deltakerstart.md\n'
+printf '\n   Overview and APIs:\n'
+printf '   🧭 Dashboard:       http://localhost:3001\n'
+printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'
+printf '   📚 API docs:        http://localhost:8080/docs\n'
+printf '\n   Reference clients — examples, not the answer:\n'
+printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
 printf '   🌐 Chat:            http://localhost:3001/chat\n'
 printf '   🧠 Agent:           http://localhost:3001/agent\n'
-printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
-printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'
 printf '   🔧 Process Builder: http://localhost:3000\n'
+printf '\n   When the AI looks wrong:\n'
 printf '   🔍 AI trace:        http://localhost:8082/trace\n'
 printf '   🔀 AI provider:     http://localhost:8082/admin\n'
-printf '   📚 API docs:        http://localhost:8080/docs\n'
 
 if $MOCK; then
   printf '\n   ⚠️  Running with --mock: AI replies are canned template text, not a model.\n'

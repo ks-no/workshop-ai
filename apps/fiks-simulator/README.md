@@ -12,8 +12,11 @@ Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-21 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. Samtykke-, oppgave- og
-meldingsflatene er foreløpig åpne; registerflaten og beregningen er bak Maskinporten.
+21 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
+Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`,
+`ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så et oppgave-token
+åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises på alle fire med
+`403 KREVER_MASKINPORTEN` — et samtykke spørres om av en kommune og svares gjennom den.
 
 `POST`/`PUT`-rutene kalles normalt bare av prosessmotoren i sandbox-backend, og aktøren i
 revisjonsloggen settes fra tokenet den holder: `SAMTYKKE_OPPRETTET` er tjenesten som *ber*

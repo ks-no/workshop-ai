@@ -244,8 +244,7 @@ Provider-laget er ett sted. `callModel` velger mellom `callOllama`, `callOpenRou
 
 **Én gren er ikke helt sant i dag.** Providernavnet står også som literal i
 `checkProvider` og i fire fallback-strenger, så en femte provider berører flere steder
-enn dette avsnittet lover. Å samle dem i én tabell er en avgrenset oppgave, og en god
-førsteoppgave for et team som vil inn i KI-laget.
+enn dette avsnittet lover. Å samle dem i én tabell er en avgrenset opprydding.
 
 ## macOS: kjør Ollama nativt
 

@@ -120,8 +120,32 @@ const NOUNS: Record<string, Category> = {
   personene: "personer",
   husstander: "husstander",
   husstandene: "husstander",
-  datasett: "datasett"
+  datasett: "datasett",
+  /*
+   * English forms, because AGENTS.md and four app READMEs are written in English
+   * and a claim there drifts exactly like a Norwegian one. Only digits count in
+   * front of these — see WORD_NUMBER_NOUNS below.
+   */
+  services: "tjenester",
+  specifications: "spesifikasjoner",
+  tools: "verktøy",
+  schemes: "ordninger",
+  people: "personer",
+  households: "husstander",
+  datasets: "datasett"
 };
+
+/*
+ * A spelled-out number is only read as a count in front of a Norwegian noun.
+ * "to" and "fire" are ordinary English words, so "proxies to services" and
+ * "fire services" would otherwise be read as claims of 2 and 4. English prose
+ * writes these counts as digits, and digits are unambiguous.
+ */
+const WORD_NUMBER_NOUNS = new Set([
+  "tjenester", "tjenestene", "spesifikasjoner", "spesifikasjonene", "verktøy",
+  "ordninger", "ordningene", "personer", "personene", "husstander",
+  "husstandene", "datasett"
+]);
 
 const NUMBER_WORDS: Record<string, number> = {
   én: 1, en: 1, ett: 1, to: 2, tre: 3, fire: 4, fem: 5, seks: 6, sju: 7, syv: 7,
@@ -198,6 +222,7 @@ for (const file of markdown) {
       const claimed = /^\d+$/.test(raw) ? Number(raw) : NUMBER_WORDS[match[1].toLowerCase()];
       if (claimed === undefined) continue;
       const noun = match[2].toLowerCase();
+      if (!/^\d/.test(raw) && !WORD_NUMBER_NOUNS.has(noun.replace(/^api-/, ""))) continue;
       const isApi = noun.startsWith("api-");
       const baseForm = isApi ? noun.slice(4) : noun;
       const category: Category =
@@ -248,6 +273,37 @@ for (const file of markdown) {
       );
     }
   });
+}
+
+// --- check 3: hand-copied tool lists --------------------------------------
+
+/*
+ * A table of tool names is not a number claim, so check 1 could never see it:
+ * apps/tools-api/README.md listed 18 of the 25 tools for months while every
+ * count in the repo was right. Names are what drift here, not totals.
+ *
+ * Ten is the threshold because the distribution is bimodal — the two files that
+ * mean to be the list name 25 and 19, and every file that merely mentions a tool
+ * in passing names four or fewer. Below ten is a mention; at ten it is a claim.
+ */
+const toolNames = new Set(
+  [...toolsSource.matchAll(/name:\s*"([a-z_0-9]+)"/g)].map((m) => m[1])
+);
+
+for (const file of markdown) {
+  const text = readFileSync(file, "utf8");
+  const named = new Set(
+    [...text.matchAll(/`([a-z_0-9]+)`/g)].map((m) => m[1]).filter((n) => toolNames.has(n))
+  );
+  if (named.size < 10) continue;
+  const missing = [...toolNames].filter((n) => !named.has(n));
+  if (missing.length > 0) {
+    failures.push(
+      `${file}: verktøylista er ute av takt med apps/tools-api/src/server.js ` +
+      `(${toolNames.size} verktøy). Mangler: ${missing.join(", ")}. ` +
+      `Rett lista, eller slett den og pek på GET /mcp/tools.`
+    );
+  }
 }
 
 // --- report ---------------------------------------------------------------

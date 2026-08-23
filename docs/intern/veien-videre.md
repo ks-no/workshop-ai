@@ -69,8 +69,8 @@ Minimumslista fra juni er i hovedsak innfridd:
   duplisert fra `ai-gateway`, hardkodede snarveier for `fartsdempende-tiltak`, og
   sesjoner i minnet som tapes ved restart. Å slå den er hackathon-oppgaven.
 - ~~**Windows-oppstart.**~~ Løst: `start.bat` og `stop.bat` er i repoet og dokumentert i
-  `README.md`. Merk at `start.bat --reload` utelater `digdir-mock`, slik `start.sh`
-  advarer mot — hvert autentisert kall feiler da mens stacken ser sunn ut.
+  `README.md`. Advarselen som sto her om at `start.bat --reload` utelot `digdir-mock`,
+  var utdatert — `start.bat` lister den.
 
 ## Hva som fortsatt kan vente
 

@@ -26,26 +26,13 @@ This service exposes tool endpoints a generic agent can call to:
 
 ## Tool list
 
-| Tool | Description |
-|---|---|
-| `list_processes` | List available processes |
-| `list_people` | List demo users |
-| `start_process_session` | Start a process session |
-| `get_session` | Get session state and active step |
-| `answer_question` | Save answer for question step |
-| `consent_response` | Create and answer consent step |
-| `run_current_action` | Execute DATA_FETCH, SUMMARY or SUBMIT |
-| `next_step` / `previous_step` | Navigate steps |
-| `interpret_reply` | Classify user reply via AI |
-| `get_household_income` | Household income basis |
-| `check_eligibility` | Check reduced-payment eligibility |
-| `list_schemes` | List payment schemes |
-| `match_process_choice` | Match free text to process via AI |
-| `get_audit_log` | Fetch audit events by tracking id |
-| `matrikkel_finn_veger` | Search streets in matrikkel |
-| `matrikkel_hent_eiendom` | Fetch property by matrikkelId, gnr+bnr, or exact address |
-| `matrikkel_hent_eiere` | Fetch owners for a property by matrikkelId, gnr+bnr, or exact address |
-| `suggest_step_tools` | Ask AI gateway which tools are relevant for a step |
+`GET /mcp/tools` answers with the live catalogue — names, descriptions and
+`inputSchema` — and is the only list that cannot drift. `docs/api-oversikt.md`
+has the same names in prose for reading without the stack up.
+
+A hand-copied table stood here and had lost six tools by the time anyone
+noticed, so `pnpm test:docs` now fails any doc that names ten or more tools
+without naming all of them.
 
 ## Matrikkel tools
 
