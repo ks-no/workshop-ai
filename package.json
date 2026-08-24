@@ -44,7 +44,8 @@
     "test:brreg-mcp": "node scripts/test-brreg-mcp.ts",
     "test:folkeregister-mcp": "node scripts/test-folkeregister-mcp.ts",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.ts",
-    "lint": "tsc --noEmit && tsc -p tsconfig.client.json",
+    "lint": "tsc --noEmit && pnpm lint:klient",
+    "lint:klient": "tsc -p apps/shared-ui/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   },
   "engines": {

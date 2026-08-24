@@ -34,13 +34,19 @@ porter følger etter av seg selv.
 - **Nettleserkoden ligger i `client/`, og er `.ts` som alt annet.** Den kompileres
   ikke: `assets.ts` kjører den gjennom `module.stripTypeScriptTypes()` når den
   serveres, så typene forsvinner og linjenumrene står. Katalognavnet er ikke pynt —
-  rot-`tsconfig.json` ekskluderer `**/client/**`, og `tsconfig.client.json` plukker den
-  opp i stedet, med DOM-typer og uten `@types/node`. Legger du en nettleserfil utenfor
-  `client/`, blir den sjekket mot feil miljø.
+  rot-`tsconfig.json` ekskluderer `**/client/**`, og hver `client/`-katalog har sin
+  egen `tsconfig.json` som utvider `tsconfig.client-base.json`, med DOM-typer og uten
+  `@types/node`. Legger du en nettleserfil utenfor `client/`, blir den sjekket mot
+  feil miljø.
 - **`felles.ts` er et klassisk skript, sidescriptene er moduler.** Derfor er
   funksjonene og typene i `felles.ts` globale, mens hver side har sitt eget scope og
-  kan gjenbruke navn. Det er `moduleDetection: "legacy"` i `tsconfig.client.json` som
-  gjør at tsc ser det slik.
+  kan gjenbruke navn. Det er `moduleDetection: "legacy"` i klient-configene som gjør
+  at tsc ser det slik.
+- **Hver `client/`-katalog må ha en fil som heter nøyaktig `tsconfig.json`.** Editorer
+  finner en fils prosjekt ved å gå oppover og lete etter det navnet — en config med et
+  annet navn blir aldri funnet, og da lyser hele fila rødt med «Cannot find name
+  renderTopNav». Configen må også inkludere `felles.ts`, ellers er ikke de globale
+  funksjonene i samme program.
 
 Lager du din egen frontend: ny fil, ikke endringer i `demo-gui`. De to eksisterende er
 det andre team leser for å forstå sandkassen, og de skal fortsatt virke.

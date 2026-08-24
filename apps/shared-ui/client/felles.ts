@@ -7,7 +7,8 @@
  *
  * Because there is no module system, the types declared here are global too, and
  * the page scripts under each app's src/client/ use them without importing anything.
- * That only works because tsconfig.client.json sets moduleDetection: "legacy".
+ * That only works because the client tsconfigs set moduleDetection: "legacy",
+ * and because hver app sin client/tsconfig.json også inkluderer denne fila.
  *
  * Served by both frontends at /assets/felles.ts, type-stripped on the way out —
  * see apps/shared-ui/assets.ts.

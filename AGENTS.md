@@ -49,10 +49,17 @@
   the six copies it replaced had drifted apart), `errors.ts` (`feilmelding`/`feilkode`
   for caught `unknown`), `assets.ts` (static files and type stripping), and
   `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json`).
-- **Browser code lives in a `client/` directory** and is checked by
-  `tsconfig.client.json` (DOM lib, no `@types/node`, `moduleDetection: "legacy"`), not
-  by the root config, which excludes `**/client/**`. `felles.ts` is a classic script
-  so its declarations are global; each page script is a module with its own scope.
+- **Browser code lives in a `client/` directory, and each one has its own
+  `tsconfig.json`** extending `tsconfig.client-base.json` (DOM lib, no `@types/node`,
+  `moduleDetection: "legacy"`). The root config excludes `**/client/**`.
+  The per-directory configs are not cosmetic: tsserver — the language service behind
+  IntelliJ, WebStorm and VS Code — picks a file's project by walking up for a file
+  named exactly `tsconfig.json`. A single `tsconfig.client.json` at the root was
+  invisible to it, so every editor put the client files in an inferred project and
+  reported `Cannot find name renderTopNav` on every line that used felles.ts.
+  Each app's client config must include `../../../shared-ui/client/**/*.ts` too:
+  `felles.ts` is a classic script, so its declarations are global rather than
+  imported, and they only resolve inside the same program.
 
 ## Process-engine behavior to preserve
 - Flow is definition-driven (see `data/prosessdefinisjoner.json`), not UI-hardcoded.
