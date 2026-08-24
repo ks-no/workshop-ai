@@ -27,7 +27,7 @@ FOLKEREGISTER_DATA_FILE=/absolute/path/to/seed.json
 ## Run
 
 ```bash
-node apps/folkeregister-mcp/src/server.js
+node apps/folkeregister-mcp/src/server.ts
 ```
 
 ## Verify
@@ -42,7 +42,7 @@ against a real client too:**
 
 ```bash
 npx -y @modelcontextprotocol/inspector --cli \
-  node apps/folkeregister-mcp/src/server.js --method tools/list
+  node apps/folkeregister-mcp/src/server.ts --method tools/list
 ```
 
 Both tools should be listed. `Connection timed out` means the framing broke. See
@@ -55,7 +55,7 @@ Both tools should be listed. `Connection timed out` means the framing broke. See
   "mcpServers": {
     "folkeregister": {
       "command": "node",
-      "args": ["apps/folkeregister-mcp/src/server.js"],
+      "args": ["apps/folkeregister-mcp/src/server.ts"],
       "cwd": "/absolute/path/to/workshop-ai"
     }
   }
@@ -65,6 +65,6 @@ Both tools should be listed. `Connection timed out` means the framing broke. See
 Or, in Claude Code, from the repo root:
 
 ```bash
-claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.js"
+claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.ts"
 ```
 

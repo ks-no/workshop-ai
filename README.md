@@ -261,8 +261,8 @@ oppslagsverktøy mot registerdataene — de samme oppslagene `tools-api` allered
 eksponerer over REST, så de utvider ikke sandboxen. I Claude Code, fra repo-roten:
 
 ```bash
-claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.js"
-claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.js"
+claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"
+claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.ts"
 ```
 
 Detaljer, klientkonfigurasjon for andre editorer og verifisering med

@@ -66,9 +66,14 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/process-builder/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/process-builder/src/server.ts"]
     environment:
       - WATCH_POLL=${WATCH_POLL:-0}
+      # Klientkoden er .ts og strippes ved servering med
+      # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en
+      # advarsel per kall. Bare disse to serverer klientfiler, så bare de demper
+      # den — en global demping ville skjult ekte advarsler andre steder.
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
       - "3000:3000"
     volumes:
@@ -80,9 +85,14 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/demo-gui/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/demo-gui/src/server.ts"]
     environment:
       - WATCH_POLL=${WATCH_POLL:-0}
+      # Klientkoden er .ts og strippes ved servering med
+      # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en
+      # advarsel per kall. Bare disse to serverer klientfiler, så bare de demper
+      # den — en global demping ville skjult ekte advarsler andre steder.
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
       - "3001:3001"
     volumes:
@@ -149,7 +159,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8081/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/fiks-simulator/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/fiks-simulator/src/server.ts"]
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - DIGDIR_BASE_URL=http://digdir-mock:8086
@@ -167,7 +177,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8085/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/matrikkel-mock/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/matrikkel-mock/src/server.ts"]
     environment:
       - PORT=8085
       - WATCH_POLL=${WATCH_POLL:-0}
@@ -179,7 +189,7 @@ services:
   brreg-mcp:
     image: node:24-alpine
     working_dir: /workspace
-    command: ["node", "apps/brreg-mcp/src/server.js"]
+    command: ["node", "apps/brreg-mcp/src/server.ts"]
     environment:
       - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
     stdin_open: true
@@ -190,7 +200,7 @@ services:
   folkeregister-mcp:
     image: node:24-alpine
     working_dir: /workspace
-    command: ["node", "apps/folkeregister-mcp/src/server.js"]
+    command: ["node", "apps/folkeregister-mcp/src/server.ts"]
     environment:
       - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
     stdin_open: true
@@ -204,7 +214,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8082/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/ai-gateway/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/ai-gateway/src/server.ts"]
     depends_on:
       ollama:
         condition: service_healthy
@@ -241,13 +251,13 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8083/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/tools-api/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/tools-api/src/server.ts"]
     # service_healthy, not just service_started: tools-api proxies straight
     # through to all three on the first request.
     #
     # brreg-mcp and folkeregister-mcp are deliberately NOT listed. tools-api
     # never calls them — it reads data/brreg.seed.json and
-    # data/folkeregister.seed.json straight off disk (see src/server.js) and
+    # data/folkeregister.seed.json straight off disk (see src/server.ts) and
     # exposes its own REST equivalents. They are standalone stdio MCP servers for
     # external clients, with no HTTP surface, so service_healthy could never be
     # satisfied for them either.
@@ -288,7 +298,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8084/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    command: ["/bin/sh", "scripts/dev.sh", "apps/process-agent/src/server.js"]
+    command: ["/bin/sh", "scripts/dev.sh", "apps/process-agent/src/server.ts"]
     depends_on:
       tools-api:
         condition: service_healthy

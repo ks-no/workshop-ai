@@ -1,5 +1,5 @@
 {
-  "beskrivelse": "Handskrevne terskelfixturer. Kilden til person-001..051 og household-001..018. Bare forfattede felter star her: relasjoner er oppgitt i EN retning (barn og ektefelle), og rolle, skjermet, husstandstype, adresse, kommune, medlemmer, relasjonenes motretning og inntektenes identifikator utledes av scripts/importer-tenor.js. Id-ene er frosne; ingen omnummerering.",
+  "beskrivelse": "Handskrevne terskelfixturer. Kilden til person-001..051 og household-001..018. Bare forfattede felter star her: relasjoner er oppgitt i EN retning (barn og ektefelle), og rolle, skjermet, husstandstype, adresse, kommune, medlemmer, relasjonenes motretning og inntektenes identifikator utledes av scripts/importer-tenor.ts. Id-ene er frosne; ingen omnummerering.",
   "syntetisk": true,
   "personer": [
     {

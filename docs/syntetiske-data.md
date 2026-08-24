@@ -93,17 +93,17 @@ ute av takt.
 
 ### Generert, ikke redigert
 
-Fem filer skrives av `scripts/importer-tenor.js` og skal ikke redigeres for hånd:
+Fem filer skrives av `scripts/importer-tenor.ts` og skal ikke redigeres for hånd:
 `personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` og
 `eierforhold.json`. Redigerer du en kuratert rad direkte, reverterer neste import
 den — så `pnpm test` sammenligner de kuraterte radene mot `kuratert.json` og feiler
 i stedet.
 
 ```bash
-node scripts/importer-tenor.js                # bygger alt fra kilde
-node scripts/importer-tenor.js --tørrkjør     # viser tallene uten å skrive
-node scripts/importer-tenor.js --glem-id-er   # tildeler id-er fra bunnen
-node scripts/hent-matrikkel.js                # topper opp matrikkelen fra Geonorge
+node scripts/importer-tenor.ts                # bygger alt fra kilde
+node scripts/importer-tenor.ts --tørrkjør     # viser tallene uten å skrive
+node scripts/importer-tenor.ts --glem-id-er   # tildeler id-er fra bunnen
+node scripts/hent-matrikkel.ts                # topper opp matrikkelen fra Geonorge
 ```
 
 Importen bygger på nytt hver gang, men **id-ene er stabile**: `personId` og

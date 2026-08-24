@@ -19,6 +19,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Husstand, Person, Plass, Samtykke } from "../../sandbox-backend/src/types.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,6 +93,65 @@ export function updateJson<T>(
  * Make one at the top of a request and hand it to the handlers; a route that only
  * touches samtykker never opens personer.json.
  */
+/*
+ * Datasettene denne tjenesten leser. Person, Husstand, Samtykke og Plass er
+ * sandbox-backend sine — samme filer på disk, så samme typer. Inntekt, Oppgave
+ * og Melding finnes bare her.
+ *
+ * readJson gir `any`, som er riktig for en generisk JSON-leser. Typene settes
+ * her, der filnavnet er kjent, slik at kallstedene ikke arver den any-en.
+ */
+export type Inntektspost = {
+  tekniskNavn: string;
+  visningstekst: string;
+  beloep: number;
+  kilde?: string;
+  medregnes?: boolean;
+  infotekst?: string;
+  referanse?: string;
+};
+
+export type Inntekt = {
+  personId: string;
+  identifikator: string;
+  inntektsaar: number;
+  stadie?: string;
+  skatteoppgjoersdato?: string;
+  poster: Inntektspost[];
+};
+
+export type Historikklinje = { tidspunkt: string; status: string };
+
+export type Oppgave = {
+  oppgaveId: string;
+  personId?: string;
+  soknadId?: string;
+  tittel: string;
+  status: string;
+  opprettet: string;
+  sporingsId: string;
+  historikk?: Historikklinje[];
+  syntetisk?: boolean;
+};
+
+export type Melding = {
+  meldingId: string;
+  tittel: string;
+  innhold: string;
+  opprettet: string;
+  syntetisk?: boolean;
+};
+
+/** Samtykket slik denne tjenesten skriver det — videre enn backendens lesing. */
+export type FiksSamtykke = Samtykke & {
+  formaal?: string;
+  opprettet: string;
+  utloper?: string;
+  sporingsId: string;
+  historikk?: Historikklinje[];
+  syntetisk?: boolean;
+};
+
 export function createStateReader() {
   const loaded = new Map<string, Promise<any>>();
 
@@ -103,13 +163,13 @@ export function createStateReader() {
   }
 
   return {
-    personer: () => read("personer.json"),
-    husstander: () => read("husstander.json"),
-    inntekter: () => read("inntekter.json"),
-    barnehageplasser: () => read("barnehageplasser.json"),
-    samtykker: () => read("samtykker.json", []),
-    oppgaver: () => read("oppgaver.json", []),
-    meldinger: () => read("meldinger.json", [])
+    personer: (): Promise<Person[]> => read("personer.json"),
+    husstander: (): Promise<Husstand[]> => read("husstander.json"),
+    inntekter: (): Promise<Inntekt[]> => read("inntekter.json"),
+    barnehageplasser: (): Promise<Plass[]> => read("barnehageplasser.json"),
+    samtykker: (): Promise<FiksSamtykke[]> => read("samtykker.json", []),
+    oppgaver: (): Promise<Oppgave[]> => read("oppgaver.json", []),
+    meldinger: (): Promise<Melding[]> => read("meldinger.json", [])
   };
 }
 

@@ -19,5 +19,5 @@ ENV PORT=8085
 
 EXPOSE 8085
 
-CMD ["node", "src/server.js"]
+CMD ["node", "src/server.ts"]
 

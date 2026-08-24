@@ -17,15 +17,14 @@
     // parameter properties). Uten denne oppdages feilen foerst ved
     // kjoering, som ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
     "erasableSyntaxOnly": true,
-    "verbatimModuleSyntax": true,
-
-    // Inkrementell migrering: .js kjoerer videre uten aa bli sjekket,
-    // og sjekking slaas paa per fil med // @ts-check.
-    "allowJs": true,
-    "checkJs": false
+    // Ingen allowJs: det finnes ingen .js igjen. Importerer noen en ny .js-fil
+    // fra en .ts-fil, stopper tsc paa den (TS7016). En .js-fil ingen importerer
+    // er fortsatt usynlig for tsc — det er kjoerbar kode, ikke en type-sperre,
+    // som avgjoer om den betyr noe.
+    "verbatimModuleSyntax": true
   },
-  // scripts/**/*.ts maa staa her, ellers er et .ts-skript usjekket: token.ts og
+  // scripts/ maa staa her, ellers er et skript usjekket: token.ts og
   // sjekk-openapi-dekning.ts falt utenfor til 21.08.2026.
-  "include": ["apps/**/*.ts", "apps/**/*.js", "scripts/**/*.js", "scripts/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["apps/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "**/client/**"]
 }

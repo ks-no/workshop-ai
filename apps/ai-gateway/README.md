@@ -27,7 +27,7 @@ Ti, alle `POST`:
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen — fritt vilt |
 | `/ai/risikosjekk` | Enkel risikovurdering | ingen — fritt vilt |
 | `/ai/sporsmaal` | Fritt spørsmål fra innbygger, midt i en flyt | `demo-gui /chat`, `tools-api` |
-| `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.js` |
+| `/ai/dommer` | Scorer en tekst mot et kriterium (LLM-as-judge) | `scripts/eval.ts` |
 
 **Kroppsformat:** alt innhold ligger under `kontekst`, *unntatt* `/ai/tolk-svar` og
 `/ai/sporsmaal`, som tar `tekst` på toppnivå.
@@ -56,7 +56,7 @@ tilbake. Alle andre KI-svar gjengir enten en verdi `sandbox-backend` allerede ha
 avgjort, eller er en klassifisering som valideres mot en hviteliste. Her komponerer
 modellen, og da er promptinstrukser alene ingen sperre.
 
-Sperrene ligger i `src/sporsmaalsperrer.js` — en modul uten avhengigheter, holdt utenfor
+Sperrene ligger i `src/sporsmaalsperrer.ts` — en modul uten avhengigheter, holdt utenfor
 `server.js` fordi den fila kaller `server.listen` på toppnivå og derfor ikke kan
 importeres av en test. `pnpm test:sperrer` dekker dem og kjører i CI uten stack og uten
 modell.
@@ -145,7 +145,7 @@ curl -s -X POST http://localhost:8082/admin/provider \
 ```
 
 `provider` valideres mot en hviteliste og `bedrockModel` mot listen i `BEDROCK_MODELS`
-(`src/server.js`) — en ukjent verdi for begge gir 400, ikke et forsøk på å bruke den.
+(`src/server.ts`) — en ukjent verdi for begge gir 400, ikke et forsøk på å bruke den.
 
 Lagt inn som en fjerde provider, ikke en erstatning: koden fortsatt velger mellom
 `callOllama`/`callOpenRouter`/`callBedrock` i `callModel`, akkurat som beskrevet i
@@ -157,7 +157,7 @@ et navn lagt til i `AI_PROVIDERS`.
 
 Gatewayen kaller Bedrock med rå `fetch` og signerer selv med AWS Signature Version 4
 (`node:crypto`, ingen AWS SDK — samme "ingen SDK"-linje som resten av tjenesten). Se
-`signAwsRequestV4`/`callBedrock` i `src/server.js`. Modellene i `/admin` er en
+`signAwsRequestV4`/`callBedrock` i `src/server.ts`. Modellene i `/admin` er en
 kuratert liste (`BEDROCK_MODELS`), ikke hentet live fra AWS.
 
 Du får utdelte AWS-nøkler, ferdig begrenset til `bedrock:InvokeModel` på de riktige

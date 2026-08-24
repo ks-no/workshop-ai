@@ -35,13 +35,18 @@ Hvordan du får tak i tokenet, står under.
 
 ### Vil du slippe å skrive innlogging selv
 
-`apps/shared-ui/felles.js` løser ID-porten-runden, lagrer tokenet per audience og
-sjekker at det er gyldig. Fila serveres på `/assets/felles.js` av både `demo-gui` og
+`apps/shared-ui/client/felles.ts` løser ID-porten-runden, lagrer tokenet per audience
+og sjekker at det er gyldig. Fila serveres på `/delt/felles.ts` av både `demo-gui` og
 prosessbyggeren, og et `<script>`-tag henter den på tvers av porter:
 
 ```html
-<script src="http://localhost:3001/assets/felles.js"></script>
+<script src="http://localhost:3001/delt/felles.ts"></script>
 ```
+
+`.ts` i en `<script src>` ser rart ut, men virker: serveren type-stripper fila på vei
+ut og setter `Content-Type: text/javascript`, og nettleseren går etter typen — ikke
+etter filendelsen. Du trenger verken byggsteg eller TypeScript i ditt eget prosjekt for
+å bruke den.
 
 Den er et vanlig skript, ikke en modul, så funksjonene ligger globalt:
 
@@ -154,15 +159,17 @@ respektere. Trenger du noe annet, bygg det.
 Seks steg, og de to siste er de som gjør at CI feiler hvis du glemmer dem:
 
 1. `apps/<navn>/` med en `package.json` på sju linjer — kopier en eksisterende
-2. `apps/<navn>/src/server.js` — `createServer` fra `node:http`, ingen rammeverk.
-   `apps/process-builder/src/server.js` er den minste å kopiere fra
+2. `apps/<navn>/src/server.ts` — `createServer` fra `node:http`, ingen rammeverk.
+   `apps/process-builder/src/server.ts` er den minste å kopiere fra
 3. Svar på `GET /helse`
 4. En blokk i `docker-compose.yml` — kopier en eksisterende, inkludert `healthcheck`
 5. En linje i `apps/shared-ui/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
 
 Repoet har ingen runtime-avhengigheter og ikke noe byggesteg. Node type-stripper
-`.ts`-filer selv, så `node src/server.ts` kjører direkte.
+`.ts`-filer selv, så `node src/server.ts` kjører direkte — også nettleserkoden, som
+strippes av serveren når den hentes. Alt i repoet er TypeScript; `pnpm lint` sjekker
+både Node-siden og nettleserkoden.
 
 ---
 

@@ -34,7 +34,7 @@ rules:
       sperre.
 
       Derfor gjelder følgende, håndhevet i kode i
-      apps/ai-gateway/src/sporsmaalsperrer.js og dekket av pnpm test:sperrer:
+      apps/ai-gateway/src/sporsmaalsperrer.ts og dekket av pnpm test:sperrer:
 
       1. Endepunktet har ingen egen dataadgang. Det slår ingenting opp og kaller
          ikke sandbox-backend for data, og kan derfor ikke omgå samtykkesperren i
@@ -55,9 +55,9 @@ rules:
   - id: revisjon-av-alle-ki-kall
     description: >-
       Alle kall til AI-gateway skal logges i revisjonsloggen. Ett unntak:
-      /ai/dommer, som bare kalles fra evalene (scripts/eval.js) og ikke er en
+      /ai/dommer, som bare kalles fra evalene (scripts/eval.ts) og ikke er en
       del av en innbyggerflyt. Den logges derfor ikke — se kommentaren i
-      apps/ai-gateway/src/server.js. Loggingen er også best-effort: kallet mot
+      apps/ai-gateway/src/server.ts. Loggingen er også best-effort: kallet mot
       backend har kort timeout og svelger feil, fordi revisjon aldri skal velte
       operasjonen den revisjonslogger.
     enforcement: technical

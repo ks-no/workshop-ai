@@ -7,7 +7,7 @@
 ## Service map (compose defaults)
 - `apps/process-builder` (`3000`): process definition UI.
 - `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances —
-  `/chat`, `/agent` and `/stegvis`. Shares `apps/shared-ui/felles.css` and `felles.js`
+  `/chat`, `/agent` and `/stegvis`. Shares `apps/shared-ui/felles.css` and `client/felles.ts`
   with `process-builder`, both served at `/assets/*`.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
@@ -20,7 +20,7 @@
 ## Data and state model (important)
 - **Five files under `data/` are generated and must not be hand-edited:**
   `personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` and
-  `eierforhold.json`. `scripts/importer-tenor.js` builds all five, plus
+  `eierforhold.json`. `scripts/importer-tenor.ts` builds all five, plus
   `docs/testpersoner.md`, from two sources: `data/kuratert.json` (the 51 hand-authored
   threshold fixtures) and `data/tenor/*.json` (the raw extracts). Edit a curated row in
   `personer.json` directly and the next import reverts it — so `pnpm test` compares the
@@ -37,11 +37,29 @@
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
 - `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
   `./start.sh --reset` clears `state/`.
-- `apps/sandbox-backend` is TypeScript, split into modules (`routes.ts`, `prosess.ts`,
+- **The whole repo is TypeScript** — every service, every script, and the browser
+  code. There is no build step: Node type-strips `.ts` on load, and the two frontends
+  strip the client files at serve time (`apps/shared-ui/assets.ts`). `tsconfig.json`
+  has no `allowJs`, so a `.js` file imported from `.ts` is a compile error.
+- `apps/sandbox-backend` is split into modules (`routes.ts`, `prosess.ts`,
   `ressurser.ts`, `vilkaar.ts`, `alder.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
-  `errors.ts`, `config.ts`, `http.ts`).
-  There is no `server.js` — `server.ts` only wires up the HTTP server.
-  Node type-strips the `.ts` files directly; there is no build step.
+  `errors.ts`, `config.ts`). `server.ts` only wires up the HTTP server.
+- **Four modules in `apps/shared-ui/` are shared by every service**: `http.ts` (CORS,
+  JSON and text responses, request bodies — the CORS policy is a parameter, because
+  the six copies it replaced had drifted apart), `errors.ts` (`feilmelding`/`feilkode`
+  for caught `unknown`), `assets.ts` (static files and type stripping), and
+  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json`).
+- **Browser code lives in a `client/` directory, and each one has its own
+  `tsconfig.json`** extending `tsconfig.client-base.json` (DOM lib, no `@types/node`,
+  `moduleDetection: "legacy"`). The root config excludes `**/client/**`.
+  The per-directory configs are not cosmetic: tsserver — the language service behind
+  IntelliJ, WebStorm and VS Code — picks a file's project by walking up for a file
+  named exactly `tsconfig.json`. A single `tsconfig.client.json` at the root was
+  invisible to it, so every editor put the client files in an inferred project and
+  reported `Cannot find name renderTopNav` on every line that used felles.ts.
+  Each app's client config must include `../../../shared-ui/client/**/*.ts` too:
+  `felles.ts` is a classic script, so its declarations are global rather than
+  imported, and they only resolve inside the same program.
 
 ## Process-engine behavior to preserve
 - Flow is definition-driven (see `data/prosessdefinisjoner.json`), not UI-hardcoded.
@@ -60,13 +78,13 @@
   the I/O half (the Fiks beregning, the samtykke predicates) and `vilkaar.ts` must never
   import it back: that arrow is what keeps a rules test from paying for a 2048-bit RSA
   keypair at module load.
-  **`scripts/valider-data.js` imports the rule rather than mirroring it.** It used to
+  **`scripts/valider-data.ts` imports the rule rather than mirroring it.** It used to
   carry its own copy of every rule, so `data/forventet-utfall.json` — the pinned
   outcomes the workshop text rests on — was validated against the copy. Never reintroduce
   a second implementation for the gate's convenience, and never regenerate
   `forventet-utfall.json` from the rules: an oracle derived from what it tests cannot
   fail. `alderVed` lives in `alder.ts` for the same reason, shared by the rules, the gate
-  and `scripts/importer-tenor.js`.
+  and `scripts/importer-tenor.ts`.
 - Consent gating is enforced before protected data reads; do not bypass this in UI or agent logic.
 - A citizen may ask a free question at any point (`POST /ai/sporsmaal`). That path is
   **stateless by design**: it never calls `/svar`, `/handling` or `/neste`, and it never
@@ -201,12 +219,12 @@ pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - **Touching either MCP server's transport? Verify against a real client, not the
-  test script.** `scripts/test-brreg-mcp.js` and `test-folkeregister-mcp.js`
+  test script.** `scripts/test-brreg-mcp.ts` and `test-folkeregister-mcp.js`
   implement the client side themselves, so they prove the two halves agree — not
   that the framing matches the spec. The first version used LSP `Content-Length`
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
-  `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.js --method tools/list`.
+  `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:concurrency`, `test:openapi`, `test:docs` and
@@ -226,7 +244,7 @@ pnpm test:agent:matrikkel
   `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string
   explaining why. Status is always 200: the service is alive even when the model is not.
   `demo-gui` shows a banner on `/chat` and `/agent`, and `./start.sh` warns on startup.
-- **All model calls go through one function**, `callModel` in `apps/ai-gateway/src/server.js`.
+- **All model calls go through one function**, `callModel` in `apps/ai-gateway/src/server.ts`.
   Adding a provider is one function with the signature `(prompt, temperatur, signal)`
   returning `{ tekst, modell }`, plus a branch in `callModel`. Do not reintroduce
   per-provider copies of each task — that is what this replaced.
@@ -238,7 +256,7 @@ pnpm test:agent:matrikkel
   hanging.
 - **`/ai/sporsmaal` is the one endpoint where a citizen writes free text and gets free
   text back, so its guardrails run in code, not only in the prompt.** They live in
-  `apps/ai-gateway/src/sporsmaalsperrer.js`, a dependency-free module kept separate from
+  `apps/ai-gateway/src/sporsmaalsperrer.ts`, a dependency-free module kept separate from
   `server.js` because that file calls `server.listen` at the top level and cannot be
   imported by a test. `pnpm test:sperrer` covers them and runs in CI — it needs neither
   the stack nor a model. The endpoint has no data access of its own: it answers only from
@@ -261,7 +279,7 @@ pnpm test:agent:matrikkel
   `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
 - `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
   `data/matrikkel.json` — 388 streets and 18349 properties across the 97 kommuner the
-  population lives in, fetched from Geonorge by `node scripts/hent-matrikkel.js`.
+  population lives in, fetched from Geonorge by `node scripts/hent-matrikkel.ts`.
   `data/matrikkel.seed.json` remains as the small four-street fixture the mock's own
   tests point at. **Ownership is not in either file:** it lives in
   `data/eierforhold.json` (`EIERFORHOLD_DATA_FILE`) and is merged in at load, because
@@ -297,5 +315,5 @@ pnpm test:agent:matrikkel
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
 - Frontend and styling: `docs/designsystem.md`, and `apps/demo-gui/src/ds-eksempel.html` for working markup.
 - Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
-- End-to-end behavior examples: `scripts/test-agent-flow.js`, `scripts/test-agent-natural-language.js`, `scripts/test-tools-matrikkel.js`, `scripts/test-process-agent-matrikkel.js`, `scripts/test-bergen-matrikkel-bulk.js`.
+- End-to-end behavior examples: `scripts/test-agent-flow.ts`, `scripts/test-agent-natural-language.ts`, `scripts/test-tools-matrikkel.ts`, `scripts/test-process-agent-matrikkel.ts`, `scripts/test-bergen-matrikkel-bulk.ts`.
 

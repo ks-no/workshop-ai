@@ -61,7 +61,7 @@ function count(filePath: string, key?: string): number {
   return list.length;
 }
 
-const toolsSource = readFileSync("apps/tools-api/src/server.js", "utf8");
+const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
 
 /**
  * The CI job names its checks as `run: pnpm <name>`. Parsing the yaml as text is
@@ -84,7 +84,7 @@ const sources = {
   verktøy: {
     // toolDefs and invokeTool live 470 lines apart; the names are the overlap.
     count: new Set([...toolsSource.matchAll(/name:\s*"([a-z_0-9]+)"/g)].map((m) => m[1])).size,
-    source: "apps/tools-api/src/server.js"
+    source: "apps/tools-api/src/server.ts"
   },
   ordninger: { count: count("data/satser.json", "ordninger"), source: "data/satser.json" },
   personer: { count: count("data/personer.json"), source: "data/personer.json" },
@@ -299,7 +299,7 @@ for (const file of markdown) {
   const missing = [...toolNames].filter((n) => !named.has(n));
   if (missing.length > 0) {
     failures.push(
-      `${file}: verktøylista er ute av takt med apps/tools-api/src/server.js ` +
+      `${file}: verktøylista er ute av takt med apps/tools-api/src/server.ts ` +
       `(${toolNames.size} verktøy). Mangler: ${missing.join(", ")}. ` +
       `Rett lista, eller slett den og pek på GET /mcp/tools.`
     );

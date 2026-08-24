@@ -1,12 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { errorBody, headersFor, HttpError, statusFor } from "./errors.ts";
-import {
-  docsHtml,
-  jsonResponse,
-  readRequestBody,
-  textResponse
-} from "./http.ts";
+import { readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
+
 import {
   aktorFor,
   classifyKaller,
@@ -45,6 +41,36 @@ import {
   normalizeProsess,
   newId
 } from "./state.ts";
+
+// Default policy: GET,POST,PUT,OPTIONS and Content-Type,Authorization, on both
+// JSON and text responses. Same bytes this service has always sent.
+const { jsonResponse, textResponse } = svarhjelpere();
+
+// Hand-written, not generated from the spec: it lists the routes a newcomer
+// needs first, not all of them. routeOverview() below serves the complete list.
+
+function docsHtml() {
+  return `
+  <!doctype html>
+  <html lang="nb">
+    <head><meta charset="utf-8"><title>Sandbox Backend API</title></head>
+    <body style="font-family: Arial, sans-serif; padding: 24px;">
+      <h1>Sandbox Backend API</h1>
+      <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
+      <ul>
+        <li><code>GET /helse</code></li>
+        <li><code>GET /api/personer</code></li>
+        <li><code>GET /api/prosesser</code></li>
+        <li><code>POST /api/prosessoekter</code></li>
+        <li><code>GET /api/prosessoekter/{oektsId}</code></li>
+        <li><code>POST /api/prosessoekter/{oektsId}/svar</code></li>
+        <li><code>POST /api/prosessoekter/{oektsId}/handling</code></li>
+        <li><code>POST /api/prosessoekter/{oektsId}/neste</code></li>
+        <li><code>POST /api/prosessoekter/{oektsId}/forrige</code></li>
+      </ul>
+    </body>
+  </html>`;
+}
 
 
 

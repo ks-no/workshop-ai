@@ -8,7 +8,7 @@ info:
 servers:
   - url: http://localhost:8085
 # Ingen av rutene her krever token, og det er et valg, ikke en glipp.
-# Matrikkelen er et offentlig register, og oppslagene her har ikke noe personsubjekt — de svarer på gater og eiendommer. Eierfiltreringen skjer på forespørselen, se apps/matrikkel-mock/src/server.js.
+# Matrikkelen er et offentlig register, og oppslagene her har ikke noe personsubjekt — de svarer på gater og eiendommer. Eierfiltreringen skjer på forespørselen, se apps/matrikkel-mock/src/server.ts.
 # En tom security på dokumentnivå gjelder alle operasjonene under paths.
 security: []
 

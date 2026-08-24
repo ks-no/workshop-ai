@@ -114,7 +114,14 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
 }
 
 // Every samtykke this person has given for this source, whatever state it is in.
-function samtykkerFor(tilstand: State, personId: string, datakilde: string) {
+/*
+ * De tre samtykkepredikatene leser bare tilstand.samtykker. Parameteren sier det,
+ * framfor å kreve hele State — da kan de kalles med et par rader fra en test uten
+ * at testen må bygge en hel tilstand den ikke bruker.
+ */
+type Samtykketilstand = Pick<State, "samtykker">;
+
+function samtykkerFor(tilstand: Samtykketilstand, personId: string, datakilde: string) {
   return tilstand.samtykker.filter((samtykke: any) =>
     samtykke.personId === personId &&
     Array.isArray(samtykke.dataKilder) &&
@@ -141,7 +148,7 @@ function samtykkerFor(tilstand: State, personId: string, datakilde: string) {
  * fiks-simulator/src/samtykke.ts.
  */
 export function hasGyldigSamtykke(
-  tilstand: State,
+  tilstand: Samtykketilstand,
   personId: string,
   datakilde: string,
   foretrukketId?: string | null
@@ -169,7 +176,7 @@ export function hasGyldigSamtykke(
  * samtykke" is a confusing thing to read when you remember agreeing — the useful
  * answer says the consent expired and has to be given again.
  */
-export function hasUtloeptSamtykke(tilstand: State, personId: string, datakilde: string) {
+export function hasUtloeptSamtykke(tilstand: Samtykketilstand, personId: string, datakilde: string) {
   return samtykkerFor(tilstand, personId, datakilde)
     .some((samtykke: any) => effektivStatus(samtykke) === "UTLOEPT");
 }

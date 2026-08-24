@@ -1,5 +1,5 @@
 {
-  "beskrivelse": "Tinglyst eierforhold. Eierskap horer i grunnboken, ikke i matrikkelen - derfor egen fil. En matrikkelenhet som ikke star her har ingen registrert eier i sandkassen. Forenkling: raden er nøklet paa adressen (matrikkelId), mens hjemmel i virkeligheten ligger paa matrikkelenheten (gnr/bnr), og flere adresser deler samme gnr/bnr. Utledet av scripts/importer-tenor.js.",
+  "beskrivelse": "Tinglyst eierforhold. Eierskap horer i grunnboken, ikke i matrikkelen - derfor egen fil. En matrikkelenhet som ikke star her har ingen registrert eier i sandkassen. Forenkling: raden er nøklet paa adressen (matrikkelId), mens hjemmel i virkeligheten ligger paa matrikkelenheten (gnr/bnr), og flere adresser deler samme gnr/bnr. Utledet av scripts/importer-tenor.ts.",
   "syntetisk": true,
   "antall": 176,
   "eierforhold": [

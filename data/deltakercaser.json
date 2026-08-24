@@ -1,6 +1,6 @@
 {
   "beskrivelse": "Case-til-person-tabellen i docs/deltakerstart.md, pinnet. Deltakerne velger bruker etter denne tabellen og forventer et bestemt utfall; sto den bare i prosa gikk den ut av takt neste gang en inntekt flyttet seg. Den anbefalte SFO-brukeren ga avslag i tre flater samtidig uten at noe fanget det.",
-  "merknad": "Leses ikke av noen tjeneste. Kun grunnlag for scripts/valider-data.js, som ogsaa sjekker at docs/deltakerstart.md navngir samme person.",
+  "merknad": "Leses ikke av noen tjeneste. Kun grunnlag for scripts/valider-data.ts, som ogsaa sjekker at docs/deltakerstart.md navngir samme person.",
   "syntetisk": true,
   "caser": [
     {
