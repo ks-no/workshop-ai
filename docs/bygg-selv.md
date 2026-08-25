@@ -66,12 +66,14 @@ Vil du heller skrive det selv, er hele runden dokumentert i
 ### Stil
 
 `http://localhost:3001/ds-eksempel` viser KS Digital-designsystemet med markupen under
-hver komponent, lest ut av DOM-en. Kopier derfra. Hele referansen står i
-`docs/designsystem.md`, og komponentkatalogen ligger på <https://design.ksdigital.no>
-med et Figma-bibliotek — begge virker uten at sandkassen kjører.
+hver komponent, lest ut av DOM-en. Kopier derfra. Komponentene er dokumentert på
+<https://designsystemet.no/no>, med [Storybook](https://design.ksdigital.no) og et
+Figma-bibliotek for KS Digital-temaet. Oppsettet i sandkassen står i
+`docs/designsystem.md`.
 
-Designsystemet er ren CSS, uten byggesteg. Har du allerede en bundler, finnes
-komponentene også som React- og Angular-pakker.
+I ditt eget prosjekt installerer du det fra npm — `pnpm add @ks-digital/designsystem-themes`
+og importer `base.css` + `ksdigital.css`. Da er resten klasser og `data-`-attributter på
+vanlig HTML. Har du React, finnes `@ks-digital/designsystem-react` med samme attributter.
 
 > **Én hard regel:** last aldri `/assets/felles.css` og designsystemets CSS på samme
 > side. `felles.css` har ingen `@layer`, og ulagde regler slår hver layer i kaskaden, så
@@ -97,8 +99,15 @@ Ett token er én person: `person-001`s token åpner ikke `person-031`s data, det
 node scripts/token.ts --maskinporten ks:fiks:samtykke --resource fiks-simulator
 ```
 
-Åpne ruter trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`, `/api/prosesser`,
-`/api/katalog/*` og `/api/regler/satser`.
+Åpne ruter trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`,
+`/openapi-ruter.json`, `/api/prosesser`, `/api/katalog/*` og `/api/regler/satser`.
+
+**Og hjemmel håndheves bare av `sandbox-backend` (`:8080`) og `fiks-simulator`
+(`:8081`).** Det er de eneste som leser `AUTH_ENFORCE`. `ai-gateway` (`:8082`),
+`tools-api` (`:8083`), `process-agent` (`:8084`) og `matrikkel-mock` (`:8085`) tar imot
+kall uten `Authorization` i det hele tatt — spesifikasjonene deres sier `security: []`.
+Bygger du mot dem, trenger du ikke token. Hjemmelslaget er noe sandkassen *viser fram*
+på persondata, ikke noe som gjelder overalt.
 
 ---
 
@@ -154,9 +163,39 @@ respektere. Trenger du noe annet, bygg det.
 
 ---
 
+## Egne testdata
+
+Skyggingen over er også verktøyet ditt. `readJson` leter i `state/` før `data/` for
+**hvilken som helst fil**, ikke bare de tre den advarer om. Trenger du flere
+barnehageplasser enn de som finnes, kopierer du hele fila og legger til dine egne:
+
+```bash
+cp data/barnehageplasser.json state/barnehageplasser.json
+# rediger state/-kopien
+```
+
+Fra da av er det din versjon tjenestene leser. Du har ikke rørt repoet, så ingen
+merge-konflikt med de andre teamene, og `pnpm test` er upåvirket — den validerer
+`data/`, ikke `state/`.
+
+Det er verdt å vite hvorfor dette trengs: begge inntektsreglene krever en registrert
+plass. Har husstanden ingen barnehageplass, svarer `SJEKK`-steget «Fant ingen
+barnehageplass registrert på husstanden» uansett hvor lav inntekten er. Seed-dataene
+dekker de kuraterte husstandene, ikke hele befolkningen.
+
+To ting å huske:
+
+- **`./start.sh --reset` sletter `state/`.** Hold en kopi av dine egne datafiler et
+  sted du ikke tømmer, eller sett `STATE_DIR` til en mappe utenfor repoet.
+- **Skyggingen er stille** for alle andre filer enn `prosessdefinisjoner.json`,
+  `personer.json` og `satser.json`. Lurer du på hvorfor en endring i `data/` ikke slår
+  gjennom, se etter en fil med samme navn i `state/`.
+
+---
+
 ## Helt ny tjeneste
 
-Seks steg, og de to siste er de som gjør at CI feiler hvis du glemmer dem:
+Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
 
 1. `apps/<navn>/` med en `package.json` på sju linjer — kopier en eksisterende
 2. `apps/<navn>/src/server.ts` — `createServer` fra `node:http`, ingen rammeverk.
@@ -165,6 +204,10 @@ Seks steg, og de to siste er de som gjør at CI feiler hvis du glemmer dem:
 4. En blokk i `docker-compose.yml` — kopier en eksisterende, inkludert `healthcheck`
 5. En linje i `apps/shared-ui/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
+7. En oppføring i `tjenester`-lista i `scripts/sjekk-openapi-dekning.ts`. Den lista
+   sjekkes mot `tjenester.json`, så uten den feiler `pnpm test:openapi` med «Star i
+   registeret, men ikke i lista her» — en melding som ikke sier hvilken fil du skal
+   åpne. Det er her folk står fast
 
 Repoet har ingen runtime-avhengigheter og ikke noe byggesteg. Node type-stripper
 `.ts`-filer selv, så `node src/server.ts` kjører direkte — også nettleserkoden, som

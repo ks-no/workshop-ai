@@ -124,8 +124,8 @@ tenor/*.json   ─┴─→ importer-tenor.js ─→ personer.json ────�
 
 | Nøkkel | Hvor den finnes |
 |---|---|
-| `personId` | `personer.json`, `husstander.medlemmer[]`, `folkeregister._sandbox.personId`, `inntekter`, plassfilene, `eierforhold.eiere[].eier` |
-| `syntetiskFodselsnummer` | `personer.json`. Heter `foedselsEllerDNummer` i FREG-modellen og `identifikator` i inntekt og Fiks-beregningen. Det er dette ID-porten legger i `pid` |
+| `personId` | `personer.json`, `husstander.medlemmer[]`, `folkeregister._sandbox.personId`, plassfilene, `eierforhold.eiere[].eier`. **Ikke i `inntekter`** — se raden under |
+| `syntetiskFodselsnummer` | `personer.json`. Heter `foedselsEllerDNummer` i FREG-modellen og `identifikator` i inntekt og Fiks-beregningen. Det er dette ID-porten legger i `pid`. **Inntekt nøkles på dette, ikke på `personId`:** bare de 25 kuraterte radene bærer også et `personId`-felt, så en join på `personId` finner 25 av 281 rader. API-et gjør koblingen for deg — dette gjelder bare om du leser `data/inntekter.json` direkte |
 | `husstandId` | `personer.json`, `husstander.json`, `forventet-utfall.json`. `null` for alle som ikke er `BOSATT` |
 | `adresseIdentifikatorFraMatrikkelen` | `personer.bostedsadresse` og `folkeregister.seed.json`. Peker på `matrikkel.json` sin `matrikkelId`. Alle bosatte har en |
 | `matrikkelId` | `matrikkel.json`, `eierforhold.json` |

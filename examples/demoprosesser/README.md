@@ -98,9 +98,9 @@ videre med `{svar.<stegId>}`, og `{personId}` fylles alltid inn fra økta:
 ## Verifiser at det du la til er gyldig
 
 ```bash
-pnpm test           # valider-data.js — referanseintegritet i alle datasett
+pnpm test           # valider-data.ts — referanseintegritet i alle datasett
 pnpm test:kontrakt  # kjører alle flyter mot fersk state, deterministisk dump
 ```
 
-`valider-data.js` fanger opp brutte referanser mellom prosesser, personer og ordninger.
+`valider-data.ts` fanger opp brutte referanser mellom prosesser, personer og ordninger.
 Legger du til en case som peker på en person eller ordning som ikke finnes, feiler den der.

@@ -87,7 +87,7 @@ jobs:
       - name: Samtidige prosessøkter
         run: pnpm test:concurrency
 
-      # Every route in the code against every path in the six specs: coverage both
+      # Every route in the code against every path in the seven specs: coverage both
       # ways, methods, duplicate path keys, security per route and the kodeverk the
       # specs repeat. Needs neither stack nor model.
       - name: OpenAPI-dekning

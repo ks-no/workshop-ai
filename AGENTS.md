@@ -8,7 +8,9 @@
 - `apps/process-builder` (`3000`): process definition UI.
 - `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances —
   `/chat`, `/agent` and `/stegvis`. Shares `apps/shared-ui/felles.css` and `client/felles.ts`
-  with `process-builder`, both served at `/assets/*`.
+  with `process-builder`. The stylesheet is served at `/assets/*`; `felles.ts` is at
+  `/delt/felles.ts`, type-stripped on the way out, because it is code rather than a
+  static asset.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
@@ -138,10 +140,15 @@ if a comment restates the code, delete it instead of translating it.
 - Keep changes scoped to one app unless cross-service change is required.
 
 ## Frontend: the KS Digital design system
-- `docs/designsystem.md` is the reference for any frontend work, and
-  `http://localhost:3001/ds-eksempel` is it running. Read the doc before writing markup;
-  it carries the `ds-` class API, the token names and the rules below.
-- The design system ships as **plain CSS** (`apps/shared-ui/ds-base.css` +
+- Components, their API and their accessibility requirements are documented at
+  <https://designsystemet.no/no>. Look them up there.
+- **Participant frontends are expected to live in their own project, outside this repo**,
+  talking to the sandbox APIs (every service answers `Access-Control-Allow-Origin: *`; see
+  `docs/bygg-selv.md`). There they install the design system from npm. The rules below are
+  for work done *inside* this repo.
+- `docs/designsystem.md` covers both setups, the cascade trap and the pitfalls, and
+  `http://localhost:3001/ds-eksempel` is it running. Read the doc before writing markup.
+- Inside this repo the design system ships as **plain CSS** (`apps/shared-ui/ds-base.css` +
   `ds-ksdigital.css`, vendored from `@ks-digital/designsystem-themes`, refreshed by
   `pnpm ds:hent`). That is the only reason it fits a repo with no dependencies and no
   build step. Do not reach for the React or Angular packages here.
@@ -170,7 +177,7 @@ docker compose down -t 0
 - Quick checks that need no running services — run these first:
 ```bash
 pnpm lint            # tsc --noEmit
-pnpm test            # valider-data.js: referential integrity across all datasets
+pnpm test            # valider-data.ts: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
@@ -219,7 +226,7 @@ pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - **Touching either MCP server's transport? Verify against a real client, not the
-  test script.** `scripts/test-brreg-mcp.ts` and `test-folkeregister-mcp.js`
+  test script.** `scripts/test-brreg-mcp.ts` and `test-folkeregister-mcp.ts`
   implement the client side themselves, so they prove the two halves agree — not
   that the framing matches the spec. The first version used LSP `Content-Length`
   framing instead of MCP's newline-delimited JSON: both tests passed while every
@@ -257,7 +264,7 @@ pnpm test:agent:matrikkel
 - **`/ai/sporsmaal` is the one endpoint where a citizen writes free text and gets free
   text back, so its guardrails run in code, not only in the prompt.** They live in
   `apps/ai-gateway/src/sporsmaalsperrer.ts`, a dependency-free module kept separate from
-  `server.js` because that file calls `server.listen` at the top level and cannot be
+  `server.ts` because that file calls `server.listen` at the top level and cannot be
   imported by a test. `pnpm test:sperrer` covers them and runs in CI — it needs neither
   the stack nor a model. The endpoint has no data access of its own: it answers only from
   the grounding the caller sends, which is what makes it structurally unable to reach
