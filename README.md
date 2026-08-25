@@ -100,10 +100,11 @@ automatisk modellvalg basert på minnet i maskinen, og verifisering av at modell
 faktisk svarer.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
-ekvivalent: `start.bat` kjører blankt `docker compose up -d` og venter 20 sekunder uten
-å sjekke at noe faktisk kom opp. Den tar `--reload`, `-d` og `--down`, men **ikke
-`--mock`** — den laster verken ned eller velger modell. Foretrekk Git Bash eller WSL
-hvis du har valget.
+ekvivalent. `start.bat` venter 20 sekunder uten å sjekke at noe faktisk kom opp, og tar
+`--reload`, `-d` og `--down`, men ingen modellflagg. **Den kjører alltid uten
+språkmodell** — den laster verken ned eller velger modell, så alt annet enn maltekst
+ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
+`./start.sh`. Foretrekk uansett den veien hvis du har valget.
 
 ### Valg
 

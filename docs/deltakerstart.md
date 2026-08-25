@@ -97,6 +97,32 @@ Ikke alle testpersonene kan brukes som innlogget bruker, og det er med vilje:
 `ja`, `part` eller `nei` for hver enkelt. `docs/syntetiske-data.md` forklarer
 datagrunnlaget: hvor det kommer fra, hva som er forfattet, og hvor grensene går.
 
+## 3c. Startpunkter, så demoene ikke kolliderer
+
+Tabellen over anbefaler samme bruker til flere case, og `person-001` dekker tre av
+dem. Er dere flere team, ender alle på henne — og alle demoene ser like ut.
+
+Velg heller ett startpunkt hver herfra. Alle utfallene er pinnet i
+`data/forventet-utfall.json` og sjekket av `pnpm test`, så det som står her er det du
+faktisk får:
+
+| Bruker | Kommune | Grunnlag | Hva husstanden viser |
+|---|---|---:|---|
+| `person-022` Fatima Ali | Ålesund | 152 000 | Bredest dekning: barnehage, SFO og fritidskort, alt innvilget |
+| `person-024` Sofie Eide | Sandnes | 348 000 | Barnehage, gratis SFO på 1. trinn og fritidskort, alt innvilget |
+| `person-028` Nora Fjeld | Trondheim | 158 000 | Blandet: gratis SFO og fritidskort ja, moderasjon på 2.–3. trinn nei |
+| `person-033` Bjørn Haugen | Stavanger | 225 000 | Blandet på tvers av barnas alder — to ja, to nei |
+| `person-035` Even Moen | Stavanger | 645 000 | Eneste med innvilget moderasjon på 4. trinn, men avslag på 6 %-regelen |
+| `person-008` Ingrid Dahl | Stavanger | 653 000 | Tre barn og for høy inntekt: avslag nesten overalt. Avslagsveien er også en vei |
+| `person-001` Maja Solberg | Bergen | 485 000 | Barnehage innvilget, og den eneste som også eier i Storgata 3 |
+
+To kanttilfeller når dere vil ha noe vanskeligere: `person-026` Randi Ås har et
+grunnlag på null fordi hun bare mottar ytelser som ikke medregnes, og `person-062`
+bor i en kommune uten registrert tilbud.
+
+> Vil du ha flere husstander med barnehage- eller SFO-plass enn de som finnes,
+> trenger du ikke redigere `data/`. Se «Egne testdata» i `docs/bygg-selv.md`.
+
 ## 4. Ditt første eget kall
 
 Klikker du bare i sidene, trenger du ingenting mer. Skal du kalle et API selv, må du
@@ -122,9 +148,16 @@ To feil er verdt å kjenne fra hverandre:
 **Ett token er én person.** `person-001`s token åpner ikke `person-031`s data; det
 gir `403`. Skal du bruke en annen testbruker, hent et nytt token.
 
-Disse rutene trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`, `/api/prosesser`,
-`/api/katalog/*` og `/api/regler/satser`. `GET /api/katalog/ressurser` sier selv hvilken
-tilgang og hvilket samtykke hver rute krever, så du kan lese det ut av API-et.
+Disse rutene trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`,
+`/openapi-ruter.json`, `/api/prosesser`, `/api/katalog/*` og `/api/regler/satser`.
+`GET /api/katalog/ressurser` sier selv hvilken tilgang og hvilket samtykke hver
+*dataressurs* krever, så du kan lese det ut av API-et.
+
+**Token gjelder bare `sandbox-backend` (`:8080`) og `fiks-simulator` (`:8081`).**
+De er de eneste som håndhever hjemmel. `ai-gateway` (`:8082`), `tools-api`
+(`:8083`), `process-agent` (`:8084`) og `matrikkel-mock` (`:8085`) svarer uten
+`Authorization`. Får du 401 fra en av de fire, er det ikke hjemmelslaget — se etter noe
+annet.
 
 Raskeste vei uten å tenke på noe av dette: **<http://localhost:3001/utforsker>** velger
 riktig token for ruta og skriver ut en `curl` som virker når du limer den inn.
@@ -142,6 +175,11 @@ curl -s http://localhost:8082/helse
 Les `modellNaaBar`. Er den `false`, forklarer et `feil`-felt hvorfor. Merk at status
 alltid er 200 — tjenesten lever selv om modellen ikke gjør det. Kjørte du med
 `--mock`, skal den være `false`, og det er som forventet.
+
+> **Har du klikket i <http://localhost:8082/admin> én gang, vinner det valget over
+> `--mock` og over `.env`.** Det lagres i `state/ai-provider-override.json` og overlever
+> omstart. Får du maltekst du ikke ba om — eller en modell du trodde du hadde skrudd av
+> — er det den fila. `./start.sh --mock --reset` nullstiller den.
 
 **Hva fikk modellen egentlig?**
 

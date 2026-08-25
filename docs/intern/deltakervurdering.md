@@ -419,6 +419,9 @@ Videre: `matrikkel-mock/src/server.ts:410` (`gateTreffSomListe`) er død kode,
 `.idea/` er sjekket inn i git, og de tre `aws-bedrock-*.sh` er ikke referert fra
 `package.json` eller CI — bare fra en kommentar.
 
+> **To av tre er lukket.** `gateTreffSomListe` finnes ikke lenger, og `.idea/` er
+> gitignorert med null sporede filer. `aws-bedrock-*.sh` står fortsatt urørt.
+
 ---
 
 ## Det som ikke skal røres

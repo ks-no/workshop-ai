@@ -229,6 +229,12 @@ services:
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
+      # Both timeouts are read by the gateway but were not passed through here,
+      # so setting AI_TIMEOUT_MS in .env — which .env.example documents — did
+      # nothing at all. A documented knob that is not wired up is worse than no
+      # knob: it sends people looking for the problem somewhere else.
+      - AI_TIMEOUT_MS=${AI_TIMEOUT_MS:-180000}
+      - AI_SPORSMAAL_TIMEOUT_MS=${AI_SPORSMAAL_TIMEOUT_MS:-45000}
       # Named BEDROCK_AWS_* rather than the plain AWS_* names on purpose: a
       # developer's shell commonly already exports AWS_ACCESS_KEY_ID/etc for their
       # own unrelated credentials, and both Compose's ${VAR:-default} and Node's

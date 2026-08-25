@@ -57,7 +57,7 @@ avgjort, eller er en klassifisering som valideres mot en hviteliste. Her kompone
 modellen, og da er promptinstrukser alene ingen sperre.
 
 Sperrene ligger i `src/sporsmaalsperrer.ts` — en modul uten avhengigheter, holdt utenfor
-`server.js` fordi den fila kaller `server.listen` på toppnivå og derfor ikke kan
+`server.ts` fordi den fila kaller `server.listen` på toppnivå og derfor ikke kan
 importeres av en test. `pnpm test:sperrer` dekker dem og kjører i CI uten stack og uten
 modell.
 

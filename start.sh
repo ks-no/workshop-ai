@@ -336,9 +336,13 @@ ensure_model() {
 # --- 6. Services ------------------------------------------------------------
 
 start_services() {
-  if [[ "$PROFILE" == "macos-native" ]]; then
+  if [[ "$PROFILE" == "macos-native" ]] || $MOCK; then
     # --no-deps because ai-gateway depends_on the ollama container, which we
-    # deliberately do not use here.
+    # deliberately do not use here: on macOS Ollama runs natively on the host,
+    # and with --mock no model is used at all. Naming the services explicitly is
+    # what keeps the 4 GB ollama image from being pulled — it has no profile, so
+    # a bare "up -d" would start it even under --mock, on exactly the bad
+    # connection that flag exists for.
     docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
   else
     docker compose "${COMPOSE_FILES[@]}" up -d
@@ -393,6 +397,17 @@ verify_llm() {
     return 1
   fi
   VERIFIED_MODEL="$(json_field modell <<<"$response")"
+  # The advarsel check above cannot see the one case this whole step exists for.
+  # A template answer carries no advarsel at all — it only names itself in
+  # `modell` — so a gateway running mock (from AI_PROVIDER, or from a /admin
+  # choice stored in state/ai-provider-override.json that outlives a restart)
+  # would be reported as a confirmed working model.
+  if [[ "$VERIFIED_MODEL" == "mock-ai-gateway" ]]; then
+    warn "ai-gateway answered with template text, not a model."
+    warn "the active provider is mock — check http://localhost:8082/admin,"
+    warn "which overrides AI_PROVIDER and survives a restart."
+    return 1
+  fi
 }
 
 # --- Run --------------------------------------------------------------------
@@ -408,10 +423,18 @@ fi
 
 if $RELOAD; then
   step "🔄 Reloading Node services"
+  # --mock has to be exported here too, not only on the start path below, which
+  # this branch exits before reaching. "up -d" recreates the container from the
+  # current environment, so without this line a --mock --reload silently swaps
+  # working template text for AI_PROVIDER=ollama out of .env — and the first
+  # code change a participant makes turns into "the model is not connected".
+  if $MOCK; then
+    export AI_PROVIDER=mock
+  fi
   # Use the same up-path as start_services so platform differences are respected.
   # "up -d" recreates a container when its config (e.g. command:) has changed;
   # plain "restart" reuses the old container and never picks up compose changes.
-  if [[ "$PROFILE" == "macos-native" ]]; then
+  if [[ "$PROFILE" == "macos-native" ]] || $MOCK; then
     docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
   else
     docker compose "${COMPOSE_FILES[@]}" up -d "${NODE_SERVICES[@]}"
@@ -473,6 +496,7 @@ printf '\n✅ Ready\n'
 printf '\n   Read first:\n'
 printf '   📖 What to build:   docs/oppdraget.md\n'
 printf '   🚀 Getting started: docs/deltakerstart.md\n'
+printf '   🔨 Build your own:  docs/bygg-selv.md\n'
 printf '\n   Overview and APIs:\n'
 printf '   🧭 Dashboard:       http://localhost:3001\n'
 printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'

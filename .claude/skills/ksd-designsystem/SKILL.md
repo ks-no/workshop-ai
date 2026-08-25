@@ -1,13 +1,22 @@
 ---
 name: ksd-designsystem
-description: Bruk KS Digital sitt designsystem når du skriver frontend, HTML, CSS eller GUI i dette repoet — enten du utvider demo-gui/process-builder eller lager en ny frontend. Dekker oppsett, ds-klasser, data-attributter og tokens. Bruk også når noen spør om styling, komponenter, temaer, lys/mørk-modus eller universell utforming.
+description: Bruk KS Digital sitt designsystem når du skriver frontend, HTML, CSS eller GUI i dette repoet — enten du utvider demo-gui/process-builder eller lager en ny frontend. Dekker oppsett, kaskaderegler og hvor komponentene er dokumentert. Bruk også når noen spør om styling, komponenter, ds-klasser, tokens, temaer, lys/mørk-modus eller universell utforming.
 ---
 
 # KS Digital designsystem
 
-Full referanse: **`docs/designsystem.md`**. Les den før du skriver mer enn noen få linjer
-frontend. Kjørende eksempel med markup for hver komponent:
-`apps/demo-gui/src/ds-eksempel.html`, servert på <http://localhost:3001/ds-eksempel>.
+Komponenter, API og tilgjengelighet er dokumentert hos Digdir:
+**<https://designsystemet.no/no>**. Slå opp der.
+
+**Forventningen er at frontend bygges i et eget prosjekt utenfor dette repoet**, mot
+sandkassens API-er (`docs/bygg-selv.md`). Der installeres designsystemet fra npm
+(`@ks-digital/designsystem-themes`), og «Aldri»-punkt 1–3 under gjelder ikke — de er
+regler for *dette* repoet. Bygger du likevel her inne, gjelder alt.
+
+`docs/designsystem.md` dekker begge oppsettene, kaskadefella og fallgruvene. Les den før
+du skriver mer enn noen få linjer frontend.
+Kjørende markup for hver komponent: `apps/demo-gui/src/ds-eksempel.html`, servert på
+<http://localhost:3001/ds-eksempel>, serialisert fra DOM-en og derfor aldri utdatert.
 
 ## Oppsett
 
