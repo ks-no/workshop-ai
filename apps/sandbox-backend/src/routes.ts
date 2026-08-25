@@ -27,7 +27,7 @@ import { buildProsessoektRespons, createSoknad, runStegHandling } from "./proses
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
-import type { Prosessoekt, State } from "./types.ts";
+import type { ProsessDefinisjon, Prosessoekt, State } from "./types.ts";
 import {
   SEED_DATASETS,
   isMalProsess,
@@ -111,7 +111,7 @@ type Rute = {
 // A prosessoekt belongs to a person. Binding the token to the session's owner is
 // the second half of the pid binding — without it the process path stays open even
 // though the direct HTTP path is closed, because a SJEKK step runs with
-// oekt.personId regardless of who asked.
+// session.personId regardless of who asked.
 function eierAvOekt({ parametere, tilstand }: { parametere: PathParams; tilstand: State }) {
   return findProsessoekt(tilstand, parametere.oektsId)?.personId ?? null;
 }
@@ -142,6 +142,60 @@ async function readBodyOnce(request: IncomingMessage): Promise<any> {
 
 function getSporingsId(url: URL) {
   return url.searchParams.get("sporingsId") || newId("flyt");
+}
+
+// --- the økt contract, in one place ----------------------------------------
+
+/**
+ * Every route on one prosessoekt goes through here. The five handlers used to
+ * carry their own copies of lookup, 404, 409, oppdatert-stamp and save, and the
+ * copies had drifted: the closed-økt guard existed only in /neste, so a replayed
+ * POST /handling on a FULLFORT økt ran the SUBMIT handler again and produced a
+ * duplicate søknad and a new Fiks task per call. One owner, one drift surface.
+ *
+ * `krevAapen` is the guard: an AVVIST or FULLFORT økt takes no further svar,
+ * handling or navigation. Reads pass `krevAapen: false` — demo-gui renders
+ * finished and rejected økter, and a rejection you cannot look at afterwards
+ * would be worse than the replay bug this closes.
+ *
+ * `lagre: false` is for those same reads: a GET must not touch `oppdatert` or
+ * the write queue.
+ *
+ * `fn` is the handler's single mutation. Returning nothing answers with the
+ * plain økt response; returning a value answers `{ oekt, resultat }`, which is
+ * the published shape of POST /handling. Domain errors inside `fn` are thrown
+ * as HttpError and reach the client before anything is saved.
+ */
+async function withSession(
+  { response, parametere, tilstand }: Pick<Kontekst, "response" | "parametere" | "tilstand">,
+  { krevAapen = true, lagre = true }: { krevAapen?: boolean; lagre?: boolean },
+  fn: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<unknown> | unknown
+) {
+  const session = findProsessoekt(tilstand, parametere.oektsId);
+  if (!session) {
+    throw new HttpError("Fant ikke prosessøkt.", 404);
+  }
+  if (krevAapen && (session.status === "AVVIST" || session.status === "FULLFORT")) {
+    throw new HttpError("Prosessøkten er avsluttet og kan ikke fortsette.", 400);
+  }
+  // The prosessbygger can delete a published process while an økt is mid-flow,
+  // and then the økt points at nothing. 409 says what actually happened.
+  const prosess = findProsess(tilstand, session.prosessId);
+  if (!prosess) {
+    throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
+  }
+  const resultat = await fn(session, prosess);
+  if (lagre) {
+    session.oppdatert = new Date().toISOString();
+    await lagreProsessoekt(session);
+  }
+  jsonResponse(
+    response,
+    200,
+    resultat === undefined
+      ? buildProsessoektRespons(session, prosess)
+      : { oekt: buildProsessoektRespons(session, prosess), resultat }
+  );
 }
 
 // --- system routes: answer without reading state --------------------------
@@ -383,7 +437,7 @@ const ruter: Rute[] = [
       if (!handleevne.kanOpptreSelv && !kallerErRepresentant) {
         throw manglerHandleevne(forklarHandleevne(handleevne, representanter));
       }
-      const nyOekt: Prosessoekt = {
+      const newSession: Prosessoekt = {
         oektsId: newId("oekt"),
         prosessId: prosess.id,
         personId: person.personId,
@@ -397,140 +451,73 @@ const ruter: Rute[] = [
         oppdatert: new Date().toISOString(),
         syntetisk: true
       };
-      tilstand.prosessoekter.push(nyOekt);
-      await lagreProsessoekt(nyOekt);
+      tilstand.prosessoekter.push(newSession);
+      await lagreProsessoekt(newSession);
       await addRevisjon({
-        sporingsId: nyOekt.sporingsId,
+        sporingsId: newSession.sporingsId,
         handling: "PROSESSOEKT_OPPRETTET",
         ressurs: "prosessoekt",
-        aktor: aktorFor(kaller, nyOekt.personId)
+        aktor: aktorFor(kaller, newSession.personId)
       });
-      jsonResponse(response, 201, buildProsessoektRespons(nyOekt, prosess));
+      jsonResponse(response, 201, buildProsessoektRespons(newSession, prosess));
     }
   },
   {
     metode: "GET",
     sti: "/api/prosessoekter/:oektsId",
     finnPersonId: eierAvOekt,
-    handter: ({ response, parametere, tilstand }) => {
-      const oekt = findProsessoekt(tilstand, parametere.oektsId);
-      if (!oekt) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
-        return;
-      }
-      jsonResponse(response, 200, buildProsessoektRespons(oekt, findProsess(tilstand, oekt.prosessId)));
-    }
+    // A read: closed økter stay readable, and nothing is stamped or saved.
+    handter: (kontekst) => withSession(kontekst, { krevAapen: false, lagre: false }, () => {})
   },
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/svar",
     finnPersonId: eierAvOekt,
-    handter: async ({ request, response, parametere, tilstand, kaller }) => {
-      const body = await readBodyOnce(request);
-      const oekt = findProsessoekt(tilstand, parametere.oektsId);
-      if (!oekt) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
-        return;
-      }
-      const prosess = findProsess(tilstand, oekt.prosessId);
-      const steg = prosess?.steg?.[oekt.stegIndex];
+    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess) => {
+      const body = await readBodyOnce(kontekst.request);
+      const steg = prosess.steg[session.stegIndex];
       if (!steg) {
-        jsonResponse(response, 400, { feil: "Fant ikke aktivt steg." });
-        return;
+        throw new HttpError("Fant ikke aktivt steg.", 400);
       }
-      oekt.svar[body.stegId || steg.id] = body.svar;
-      oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekt(oekt);
+      session.svar[body.stegId || steg.id] = body.svar;
       await addRevisjon({
-        sporingsId: oekt.sporingsId,
+        sporingsId: session.sporingsId,
         handling: "STEG_SVAR_LAGRET",
         ressurs: "prosessoekt",
-        aktor: aktorFor(kaller, oekt.personId)
+        aktor: aktorFor(kontekst.kaller, session.personId)
       });
-      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
-    }
+    })
   },
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/handling",
     finnPersonId: eierAvOekt,
-    handter: async ({ request, response, parametere, tilstand, kaller }) => {
-      const body = await readBodyOnce(request);
-      const oekt = findProsessoekt(tilstand, parametere.oektsId);
-      if (!oekt) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
-        return;
-      }
-      const prosess = findProsess(tilstand, oekt.prosessId);
-      // The prosessbygger can delete a published process while an økt is mid-flow,
-      // and then the økt points at nothing. The old `any` let that reach
-      // runStegHandling and crash on prosess.steg; 409 says what actually happened.
-      if (!prosess) {
-        jsonResponse(response, 409, {
-          feil: `Prosessøkten peker på prosessen ${oekt.prosessId}, som ikke finnes lenger.`
-        });
-        return;
-      }
-      const resultat = await runStegHandling(tilstand, oekt, prosess, body, kaller);
-      oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekt(oekt);
-      jsonResponse(response, 200, {
-        oekt: buildProsessoektRespons(oekt, prosess),
-        resultat
-      });
-    }
+    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess) => {
+      const body = await readBodyOnce(kontekst.request);
+      return runStegHandling(kontekst.tilstand, session, prosess, body, kontekst.kaller);
+    })
   },
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/neste",
     finnPersonId: eierAvOekt,
-    handter: async ({ response, parametere, tilstand }) => {
-      const oekt = findProsessoekt(tilstand, parametere.oektsId);
-      if (!oekt) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
-        return;
+    handter: (kontekst) => withSession(kontekst, {}, (session, prosess) => {
+      if (session.stegIndex >= prosess.steg.length - 1) {
+        throw new HttpError("Prosessøkten er allerede på siste steg.", 400);
       }
-      if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
-        jsonResponse(response, 400, { feil: "Prosessøkten er avsluttet og kan ikke fortsette." });
-        return;
-      }
-      const prosess = findProsess(tilstand, oekt.prosessId);
-      if (!prosess) {
-        jsonResponse(response, 409, {
-          feil: `Prosessøkten peker på prosessen ${oekt.prosessId}, som ikke finnes lenger.`
-        });
-        return;
-      }
-      if (oekt.stegIndex >= prosess.steg.length - 1) {
-        jsonResponse(response, 400, { feil: "Prosessøkten er allerede på siste steg." });
-        return;
-      }
-      oekt.stegIndex += 1;
-      oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekt(oekt);
-      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
-    }
+      session.stegIndex += 1;
+    })
   },
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/forrige",
     finnPersonId: eierAvOekt,
-    handter: async ({ response, parametere, tilstand }) => {
-      const oekt = findProsessoekt(tilstand, parametere.oektsId);
-      if (!oekt) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosessøkt." });
-        return;
+    handter: (kontekst) => withSession(kontekst, {}, (session) => {
+      if (session.stegIndex <= 0) {
+        throw new HttpError("Prosessøkten er allerede på første steg.", 400);
       }
-      const prosess = findProsess(tilstand, oekt.prosessId);
-      if (oekt.stegIndex <= 0) {
-        jsonResponse(response, 400, { feil: "Prosessøkten er allerede på første steg." });
-        return;
-      }
-      oekt.stegIndex -= 1;
-      oekt.oppdatert = new Date().toISOString();
-      await lagreProsessoekt(oekt);
-      jsonResponse(response, 200, buildProsessoektRespons(oekt, prosess));
-    }
+      session.stegIndex -= 1;
+    })
   },
   {
     metode: "POST",
@@ -584,7 +571,7 @@ const ruter: Rute[] = [
     // transparency surface demo-gui renders — so the subject is whoever the flow
     // was about. A flow with no person in it is open to any authenticated caller.
     finnPersonId: ({ parametere, tilstand }) =>
-      tilstand.prosessoekter.find((oekt: any) => oekt.sporingsId === parametere.sporingsId)?.personId
+      tilstand.prosessoekter.find((session: any) => session.sporingsId === parametere.sporingsId)?.personId
       ?? tilstand.soknader.find((s: any) => s.sporingsId === parametere.sporingsId)?.personId
       ?? null,
     handter: ({ response, parametere, tilstand }) => {

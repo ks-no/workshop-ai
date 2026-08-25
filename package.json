@@ -31,6 +31,7 @@
     "test:handleevne": "node scripts/test-handleevne.ts",
     "test:samtykke": "node scripts/test-samtykke.ts",
     "test:concurrency": "node scripts/test-prosessoekt-concurrency.ts",
+    "test:replay": "node scripts/test-prosessoekt-lukket.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:docs": "node scripts/check-dokumentasjon.ts",
     "ds:hent": "node scripts/hent-designsystem.ts",

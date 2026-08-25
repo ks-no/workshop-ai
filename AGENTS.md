@@ -234,7 +234,7 @@ pnpm test:agent:matrikkel
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:concurrency`, `test:openapi`, `test:docs` and
+  `test:samtykke`, `test:concurrency`, `test:replay`, `test:openapi`, `test:docs` and
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts

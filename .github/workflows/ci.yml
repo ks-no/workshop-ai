@@ -87,6 +87,13 @@ jobs:
       - name: Samtidige prosessøkter
         run: pnpm test:concurrency
 
+      # The closed-økt guard in withSession (routes.ts). A replayed POST /handling
+      # on a FULLFORT økt used to run SUBMIT again and create a duplicate søknad
+      # plus a new Fiks task per call; the guard existed only in /neste. Backend +
+      # digdir on their own ports against a temp STATE_DIR; no model, no stack.
+      - name: Lukkede prosessøkter
+        run: pnpm test:replay
+
       # Every route in the code against every path in the seven specs: coverage both
       # ways, methods, duplicate path keys, security per route and the kodeverk the
       # specs repeat. Needs neither stack nor model.
