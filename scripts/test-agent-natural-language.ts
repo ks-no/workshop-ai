@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 
 const agentBaseUrl = process.env.AGENT_BASE_URL || "http://localhost:8084";

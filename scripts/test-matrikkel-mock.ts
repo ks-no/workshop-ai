@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 const port = 18085;
 const baseUrl = `http://127.0.0.1:${port}`;

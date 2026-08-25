@@ -29,7 +29,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { feilkode, feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;

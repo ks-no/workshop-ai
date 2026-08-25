@@ -10,7 +10,7 @@ driver fra koden. Importer i stedet.
 
 Alle sju API-tjenestene serverer også spesifikasjonen sin mens de kjører, så du kan importere
 via URL i stedet: `http://localhost:<port>/openapi.yaml`. Hvilken port hver tjeneste har,
-står i `apps/shared-ui/tjenester.json` og på dashboardet <http://localhost:3001> — samme
+står i `apps/shared/tjenester.json` og på dashboardet <http://localhost:3001> — samme
 kilde som API-utforskeren leser, så den kan ikke drive fra koden slik en tabell her ville
 gjort.
 

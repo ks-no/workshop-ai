@@ -3,7 +3,7 @@ import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 // is part of it. This backend reads state/samtykker.json directly — a sandbox
 // simplification it already lived with — so importing the rule is strictly better
 // than keeping a second copy of it here that can drift.
-import { effektivStatus } from "../../fiks-simulator/src/samtykke.ts";
+import { effektivStatus } from "../../shared/samtykke.ts";
 import { HttpError } from "./errors.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { findPerson, getHusstandForPerson } from "./state.ts";

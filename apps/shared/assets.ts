@@ -8,7 +8,7 @@
 // numbers in devtools still match the source file 1:1.
 //
 // Measured at 1.15 ms for 1258 lines, so nothing is cached. That is deliberate —
-// apps/shared-ui/ lies outside the `node --watch` path in scripts/dev.sh, so a
+// apps/shared/ lies outside the `node --watch` path in scripts/dev.sh, so a
 // cache would mean editing felles.ts had no visible effect until a manual
 // restart. Reading fresh per request is exactly how felles.js behaved.
 

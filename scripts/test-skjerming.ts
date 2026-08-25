@@ -7,14 +7,14 @@
  * fail — it can only differ. This file can fail.
  *
  * The masking rules themselves, and why fnr/foedselsdato/kommunenummer survive
- * them, are documented in apps/sandbox-backend/src/skjerming.ts.
+ * them, are documented in apps/shared/skjerming.ts.
  */
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { maskBefolkning } from "../apps/sandbox-backend/src/skjerming.ts";
-import type { Husstand, Person } from "../apps/sandbox-backend/src/types.ts";
+import { maskBefolkning } from "../apps/shared/skjerming.ts";
+import type { Husstand, Person } from "../apps/shared/innbyggerdata.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 

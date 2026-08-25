@@ -7,7 +7,7 @@
  * mostly a surface for the workshop to build a saksbehandlerflate against.
  */
 
-import { createTilstandsmaskin } from "./statemachine.ts";
+import { createTilstandsmaskin } from "../../shared/statemachine.ts";
 
 export type Oppgavestatus = "OPPRETTET" | "UNDER_BEHANDLING" | "FERDIG" | "AVVIST";
 

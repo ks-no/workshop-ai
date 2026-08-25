@@ -45,9 +45,9 @@
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
+import { alderVed } from "../apps/shared/alder.ts";
 import { buildTestpersondok } from "./testpersondok.ts";
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = path.join(repoRoot, "data");

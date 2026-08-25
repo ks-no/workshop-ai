@@ -16,7 +16,7 @@
  *
  * samtykker.json is the same bug, fixed first in fiks-simulator and pinned by
  * test-samtykke.ts §6f. All of them now go through the one write queue in
- * apps/shared-ui/jsonstore.ts. kontrakt-smoke.ts runs strictly sequentially, so
+ * apps/shared/jsonstore.ts. kontrakt-smoke.ts runs strictly sequentially, so
  * it can never see any of this.
  *
  * Backend and digdir-mock on their own ports against a fresh STATE_DIR, so this
@@ -33,7 +33,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getInnbyggerToken } from "../apps/digdir-mock/src/client.ts";
-import { feilkode } from "../apps/shared-ui/errors.ts";
+import { feilkode } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.CONCURRENCY_BACKEND_PORT) || 18092;

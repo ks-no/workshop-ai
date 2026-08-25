@@ -5,12 +5,12 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { routeOverview } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared/openapi.ts";
 import { createGunzip } from "node:zlib";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { cors, readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
-import { feilkode, feilmelding } from "../../shared-ui/errors.ts";
-import type { GeonorgeAdresse } from "../../shared-ui/registerdata.ts";
+import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { feilkode, feilmelding } from "../../shared/errors.ts";
+import type { GeonorgeAdresse } from "../../shared/registerdata.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const openapiFile = path.resolve(__dirname, "../../../openapi/matrikkel-mock.yaml");

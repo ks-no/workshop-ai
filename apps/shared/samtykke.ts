@@ -10,7 +10,7 @@
  * The kodeverk was also split in three. `IKKE_SAMTYKKET` lived in tools-api
  * and demo-gui, `data/informasjonsmodeller.json` documented only three of the
  * statuses and never mentioned `UTLOEPT`. This module is the one kodeverk;
- * scripts/valider-data.js fails if the informasjonsmodell drifts from it.
+ * scripts/valider-data.ts fails if the informasjonsmodell drifts from it.
  */
 
 import { createTilstandsmaskin } from "./statemachine.ts";

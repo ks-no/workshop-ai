@@ -32,7 +32,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getInnbyggerToken } from "../apps/digdir-mock/src/client.ts";
-import { feilkode } from "../apps/shared-ui/errors.ts";
+import { feilkode } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.LUKKET_BACKEND_PORT) || 18094;

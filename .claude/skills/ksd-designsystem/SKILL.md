@@ -46,10 +46,10 @@ nedover i treet; `data-variant` gjør ikke.
 3. **Aldri npm-avhengigheter eller byggesteg i dette repoet.** Designsystemet passer
    nettopp fordi temapakken er ren CSS.
 4. **Aldri finn opp klassenavn.** Sannheten er
-   `grep -o '\.ds-[a-z-]*' apps/shared-ui/ds-base.css | sort -u`.
+   `grep -o '\.ds-[a-z-]*' apps/shared/ds-base.css | sort -u`.
 5. **Aldri egne hex-farger eller px-avstander.** Bruk `--ds-*`-tokens, ellers brekker
    mørk modus.
-6. **Aldri rediger `apps/shared-ui/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
+6. **Aldri rediger `apps/shared/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
    uendret fra pakken og overskrives av `pnpm ds:hent`.
 
 ## Husk

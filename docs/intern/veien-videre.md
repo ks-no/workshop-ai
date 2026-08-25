@@ -5,7 +5,7 @@
 > Dette var en overlevering skrevet i juni 2026, før det meste av arbeidet ble gjort.
 > Statusdelene er etterjustert, men de rekker aldri koden — den flytter seg raskere enn
 > dokumentet. **Kod ikke mot statusdelene her; les koden, `README.md` eller
-> `apps/shared-ui/tjenester.json`.** Den varige verdien ligger i de åpne
+> `apps/shared/tjenester.json`.** Den varige verdien ligger i de åpne
 > arkitekturvalgene lenger ned, og i formuleringen av hva oppgaven er.
 
 ## Formål med dette dokumentet
@@ -16,7 +16,7 @@ fortsatt er åpne og bør eies eksplisitt.
 
 ## Hva som er på plass nå (august 2026)
 
-Ni kjørende tjenester, listet med port og rolle i `apps/shared-ui/tjenester.json` —
+Ni kjørende tjenester, listet med port og rolle i `apps/shared/tjenester.json` —
 den er kilden, og denne siden gjentar den ikke. Null runtime-avhengigheter i alle.
 I tillegg `brreg-mcp` og `folkeregister-mcp`, som er ekte MCP over stdio og ikke har
 port.

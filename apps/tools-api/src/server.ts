@@ -3,16 +3,16 @@ import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
+import { docsHtml, routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { cors, readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
-import { feilkode, feilmelding } from "../../shared-ui/errors.ts";
+import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { feilkode, feilmelding } from "../../shared/errors.ts";
 import type {
   FolkeregisterPerson,
   GeonorgeAdresse,
   Organisasjon,
   TenorEnhet
-} from "../../shared-ui/registerdata.ts";
+} from "../../shared/registerdata.ts";
 
 const port = Number(process.env.PORT || 8083);
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";

@@ -54,7 +54,8 @@ avvises også — `--resource fiks-simulator` er nødvendig, og det er hele poen
 audience-begrensning.
 
 Person-, husstands- og kontaktinfo-rutene **maskerer adressebeskyttede personer** med
-samme regler som sandbox-backend, ved å importere `skjerming.ts` framfor å gjenskape den.
+samme regler som sandbox-backend, ved å importere `apps/shared/skjerming.ts` framfor å
+gjenskape den.
 Fram til Del B leste denne tjenesten `data/personer.json` selv uten å maskere, så
 `/fiks/register/person/person-031` ga en kode 6-persons fulle navn og gateadresse — og
 `/fiks/register/inntekt/person-001` ga full inntekt uten samtykke og uten token.
@@ -78,7 +79,8 @@ Pluss `/helse`, `/docs`, `/openapi.yaml` og `/openapi-ruter.json`.
 ## Samtykket har regler
 
 Samtykke er sandkassens viktigste policyregel, og kan derfor ikke være det slappeste i
-stacken. Kodeverket og tilstandsmaskinen ligger i `src/samtykke.ts`:
+stacken. Kodeverket og tilstandsmaskinen ligger i `apps/shared/samtykke.ts`, delt fordi
+`sandbox-backend` svarer for det samme samtykket når det porter en `DATA_FETCH`:
 
 ```
 VENTER_PAA_SVAR → SAMTYKKET | IKKE_SAMTYKKET
@@ -101,7 +103,7 @@ UTLOEPT         → endelig
   for.
 - **Skriving er serialisert.** Ti samtidige `POST /fiks/samtykke` ga tre samtykker før
   skrivekøen; nå gir de ti. Fem samtidige svar på samme samtykke gir ett `200` og fire
-  `409`. Køen ble skrevet her, men bor nå i `apps/shared-ui/jsonstore.ts` — den fantes i
+  `409`. Køen ble skrevet her, men bor nå i `apps/shared/jsonstore.ts` — den fantes i
   tre kopier, og de to filene ingen av kopiene dekket ble skrevet uten kø i det hele
   tatt. `src/state.ts` peker dit.
 

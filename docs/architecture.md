@@ -3,7 +3,7 @@
 ## Målbilde
 
 Tjenestene, portene og rollene deres står **ett sted**:
-`apps/shared-ui/tjenester.json`. Dashboardet på <http://localhost:3001> og
+`apps/shared/tjenester.json`. Dashboardet på <http://localhost:3001> og
 API-utforskeren leser den fila, og `pnpm test:openapi` holder den i takt med koden.
 Denne siden gjentar den ikke — fire håndholdte kopier av den tabellen hadde drevet
 fra hverandre, og tre av dem manglet `digdir-mock`, tjenesten hver 401 peker på.

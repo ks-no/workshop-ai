@@ -54,7 +54,7 @@ Setter du opp Tailwind ved siden av, må lagrekkefølgen deklareres først:
 ## Oppsett inne i sandkassen
 
 Utvider du `demo-gui` eller prosessbyggeren, er CSS-en allerede vendoret i
-`apps/shared-ui/` og servert på `/assets/`. Tre stilark og ett attributt på `<html>` —
+`apps/shared/` og servert på `/assets/`. Tre stilark og ett attributt på `<html>` —
 ingen npm, ingen bundler, ingen byggesteg:
 
 ```html
@@ -133,7 +133,7 @@ Disse gjelder uansett hvor du bygger.
 Gjelder uansett hvor frontenden din bor:
 
 - **Ikke finn opp klassenavn.** Sannheten er
-  `grep -o '\.ds-[a-z-]*' apps/shared-ui/ds-base.css | sort -u`.
+  `grep -o '\.ds-[a-z-]*' apps/shared/ds-base.css | sort -u`.
 - **Ingen egne farge-, avstands- eller radiusverdier.** Bruk `--ds-*`-tokens.
 - **Wire-formatet er frosset** — `melding`, `steg`, `stegId`, `grunnlag`, `samtykke`,
   `svar`, `sporingsId` beholder navnene sine i JSON, uansett hvor pen frontenden blir.
@@ -150,7 +150,7 @@ Gjelder bare hvis du likevel bygger inne i dette repoet:
   skal beholde det — derfor er den vendorede CSS-en eneste vei her inne.
 - **Ny frontend = ny fil.** `demo-gui` og `process-builder` er referanseimplementasjoner
   andre team leser; de skal fortsatt virke.
-- **Aldri rediger `apps/shared-ui/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
+- **Aldri rediger `apps/shared/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
   uendret fra temapakken, og `pnpm ds:hent` overskriver endringene dine.
 - **Navnekonvensjonen fra `AGENTS.md` gjelder:** engelsk for teknikk, norsk for fagspråk.
 - **Bygg DOM med `createElement` og `textContent`, ikke `innerHTML`.** Det er konvensjonen

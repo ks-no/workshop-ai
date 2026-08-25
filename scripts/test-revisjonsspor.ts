@@ -25,7 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
-import { feilkode, feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.REVISJON_BACKEND_PORT) || 18110;

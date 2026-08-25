@@ -1,8 +1,15 @@
-# shared-ui
+# shared
 
-Det delte laget: frontend, spesifikasjonslesing og tilstands-I/O. Ingen server, ingen
-port, ingen `package.json` — filene serveres på `/assets/*` av både `demo-gui` og
-`process-builder`, og `openapi.ts` og `jsonstore.ts` importeres direkte av tjenestene.
+Det delte laget, og det ligger **under** tjenestene: frontend, spesifikasjonslesing,
+tilstands-I/O og de domenenøytrale bladene mer enn én tjeneste trenger. Ingen server,
+ingen port, ingen `package.json` — filene serveres på `/assets/*` av både `demo-gui` og
+`process-builder`, resten importeres direkte.
+
+Katalogen het `shared-ui` til 25.08.2026. Navnet var sant da den bare inneholdt
+frontend, men laget hadde siden fått `http.ts`, `errors.ts`, `openapi.ts`,
+`registerdata.ts` og `jsonstore.ts` — og med denne endringen også maskering,
+fødselsnummer og samtykkets kodeverk. Et navn som sier «ui» om et lag hvor de fleste
+filene ikke er ui, sender neste leser til feil sted.
 
 | Fil | Hva | Lest av |
 |---|---|---|
@@ -13,6 +20,12 @@ port, ingen `package.json` — filene serveres på `/assets/*` av både `demo-gu
 | `http.ts`, `errors.ts` | CORS, JSON- og tekstsvar, innsnevring av fanget feil | alle tjenestene |
 | `jsonstore.ts` | `state/`-før-`data/`-lesing, og **den ene skrivekøen** | `sandbox-backend`, `fiks-simulator` |
 | `registerdata.ts` | Formene i `brreg.seed.json` og `folkeregister.seed.json` | `brreg-mcp`, `folkeregister-mcp`, `tools-api` |
+| `innbyggerdata.ts` | Formene i `personer.json`, `husstander.json`, plass-datasettene og `samtykker.json` | `sandbox-backend`, `fiks-simulator` |
+| `alder.ts` | `alderVed` — alder på en gitt dato, ikke i dag | reglene, porten, importøren |
+| `foedselsnummer.ts` | Modulus 11 og Skatteetatens +80-markør | `sandbox-backend`, `fiks-simulator`, `process-agent`, porten |
+| `skjerming.ts` | Maskering av adressebeskyttede personer | `sandbox-backend`, `fiks-simulator` |
+| `handleevne.ts` | Hvem som kan opptre, og på hvems vegne | `sandbox-backend`, `digdir-mock` |
+| `samtykke.ts`, `statemachine.ts` | Samtykkets kodeverk, tilstandsmaskin og utløp | `sandbox-backend`, `fiks-simulator` |
 | `felles.css` | Stilen `demo-gui` og `process-builder` faktisk bruker | samme |
 | `ds-base.css`, `ds-ksdigital.css` | KS Digital designsystem, vendoret som ren CSS | `ds-eksempel.html` |
 
@@ -22,6 +35,30 @@ Den fila er grunnen til at det ikke finnes en tjenestetabell i `README.md` lenge
 håndholdte kopier hadde drevet fra hverandre, og tre av dem manglet `digdir-mock`.
 Legger du til en tjeneste, er dette fila du endrer — dashboardet, API-utforskeren og to
 porter følger etter av seg selv.
+
+## Pilene peker én vei, og `pnpm test:imports` feller det
+
+`sandbox-backend` og `fiks-simulator` importerte hverandre: motoren hentet samtykkets
+kodeverk fra fiks, mens fiks hentet maskering, fødselsnummervalidering og sin egen
+`Person`-type fra motoren. `sandbox-backend` og `digdir-mock` hadde samme knute, ett
+blad bred. **Hver enkelt pil var lokalt riktig** — å importere regelen slår å ha en kopi
+til av den — og feilen fantes bare i summen: et par ingen kunne lese, teste eller flytte
+hver for seg. Det er nettopp den feilen ingen fanger i en diff, så den sjekkes i stedet
+for å huskes.
+
+To regler, og de er ikke samme regel:
+
+- **Ingen sykler mellom apper.** Ikke «ingen kryssimport»: `digdir-mock` eier
+  tokenprotokollen, og alle som trenger et token henter klienten sin derfra. Det er én
+  pil som peker én vei, og det er hva en tjenestegrense er til for. Det som er forbudt,
+  er pila tilbake.
+- **`apps/shared` importerer ingenting fra en app.** Et delt lag som strekker seg
+  tilbake i en tjeneste ligger ikke under tjenestene, det ligger ved siden av — og drar
+  med seg den tjenesten inn i hver test som importerer laget.
+
+Hva som hører hjemme her: en regel mer enn én tjeneste trenger. Ikke symmetri.
+`oppgave.ts` ble værende i `fiks-simulator` selv om `samtykke.ts` flyttet, fordi
+oppgaven har én leser og samtykket har to — `sandbox-backend` svarer også for det.
 
 ## Reglene som gjelder her
 

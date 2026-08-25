@@ -1,5 +1,5 @@
-import { feilmelding } from "../../shared-ui/errors.ts";
-import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { feilmelding } from "../../shared/errors.ts";
+import { updateJson } from "../../shared/jsonstore.ts";
 import { newId } from "./state.ts";
 
 // This service is the only writer of the audit log — fiks-simulator posts its

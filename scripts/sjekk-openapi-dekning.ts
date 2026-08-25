@@ -19,9 +19,9 @@
  *   5. an operation with no `security:` — neither its own nor a document default
  *   6. a security requirement that disagrees with the route's tilgang or scope
  *   7. an enum in the spec that has drifted from the kodeverk in the code
- *   8. a service in apps/shared-ui/tjenester.json that this list disagrees with
+ *   8. a service in apps/shared/tjenester.json that this list disagrees with
  *
- * The spec is read by apps/shared-ui/openapi.ts, which every service also serves
+ * The spec is read by apps/shared/openapi.ts, which every service also serves
  * from GET /openapi-ruter.json. One reader, two consumers: what the gate compares
  * against the code is the same text the API explorer renders.
  *
@@ -41,7 +41,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readSpec } from "../apps/shared-ui/openapi.ts";
+import { readSpec } from "../apps/shared/openapi.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_METODER = ["get", "post", "put", "patch", "delete", "head", "options"];
@@ -346,7 +346,7 @@ const tjenester: Tjeneste[] = [
     kodeverk: [
       {
         skjema: "Samtykkestatus",
-        verdier: async () => (await import("../apps/fiks-simulator/src/samtykke.ts")).SAMTYKKESTATUSER
+        verdier: async () => (await import("../apps/shared/samtykke.ts")).SAMTYKKESTATUSER
       },
       {
         skjema: "Oppgavestatus",
@@ -402,13 +402,13 @@ const notater: string[] = [];
 
 // 8. Registeret og denne lista skal beskrive de samme tjenestene.
 //
-// apps/shared-ui/tjenester.json er det dashboardet og API-utforskeren leser. Lista
+// apps/shared/tjenester.json er det dashboardet og API-utforskeren leser. Lista
 // her kan ikke slaas sammen med den: oppfoeringene under baerer `kilde`, `ikkeRuter`
 // og `utenfor` — unntak som bare denne porten har bruk for. Men navnene skal stemme,
 // ellers faar en ny tjeneste spesifikasjon uten aa dukke opp for deltakerne, eller
 // omvendt.
 const registeret: { navn: string; spesifikasjon: boolean }[] = JSON.parse(
-  await readFile(path.join(repoRoot, "apps/shared-ui/tjenester.json"), "utf8")
+  await readFile(path.join(repoRoot, "apps/shared/tjenester.json"), "utf8")
 );
 const iRegisteret = registeret.filter((t) => t.spesifikasjon).map((t) => t.navn).sort();
 const iLista = tjenester.map((t) => t.navn).sort();
@@ -416,7 +416,7 @@ if (iRegisteret.join(",") !== iLista.join(",")) {
   const mangler = iLista.filter((n) => !iRegisteret.includes(n));
   const ekstra = iRegisteret.filter((n) => !iLista.includes(n));
   feil.push(
-    "apps/shared-ui/tjenester.json er ikke enig med tjenester-lista i dette skriptet." +
+    "apps/shared/tjenester.json er ikke enig med tjenester-lista i dette skriptet." +
       (mangler.length ? `\n    Mangler i registeret med spesifikasjon: true: ${mangler.join(", ")}` : "") +
       (ekstra.length ? `\n    Star i registeret, men ikke i lista her: ${ekstra.join(", ")}` : "")
   );

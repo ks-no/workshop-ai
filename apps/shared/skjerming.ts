@@ -31,7 +31,7 @@
 // disappears in JSON.stringify — which would change the key set, not just the
 // values.
 
-import type { Adressegradering, Husstand, Person, Personnavn } from "./types.ts";
+import type { Adressegradering, Husstand, Person, Personnavn } from "./innbyggerdata.ts";
 
 const SKJERMET_NAVN: Personnavn = { fornavn: "Skjermet", mellomnavn: null, etternavn: "person" };
 
@@ -61,7 +61,7 @@ type Maskeringsregel = {
 };
 
 // Record<Adressegradering, ...> is the point of the closed union: add a fourth
-// grade to types.ts and the compiler demands a rule for it here, the same way
+// grade to innbyggerdata.ts and the compiler demands a rule for it here, the same way
 // regelHandlers in vilkaar.ts demands a handler for a new Regeltype.
 const REGLER: Record<Adressegradering, Maskeringsregel> = {
   UGRADERT: { skjulNavn: false, skjulAdresse: false },

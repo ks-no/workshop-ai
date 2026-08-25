@@ -28,7 +28,7 @@
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const aiBaseUrl = process.env.AI_BASE_URL || "http://localhost:8082";

@@ -94,6 +94,14 @@ jobs:
       - name: Lukkede prosessøkter
         run: pnpm test:replay
 
+      # The import graph between apps, checked for cycles. sandbox-backend and
+      # fiks-simulator used to import each other, and so did sandbox-backend and
+      # digdir-mock — one leaf wide in each case. Every arrow was locally right, so
+      # this is precisely the defect a diff review cannot see: the cycle exists only
+      # in the sum. Pure text analysis, no import, no port.
+      - name: Importgrafen
+        run: pnpm test:imports
+
       # Every route in the code against every path in the seven specs: coverage both
       # ways, methods, duplicate path keys, security per route and the kodeverk the
       # specs repeat. Needs neither stack nor model.

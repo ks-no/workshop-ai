@@ -35,7 +35,7 @@ Hvordan du får tak i tokenet, står under.
 
 ### Vil du slippe å skrive innlogging selv
 
-`apps/shared-ui/client/felles.ts` løser ID-porten-runden, lagrer tokenet per audience
+`apps/shared/client/felles.ts` løser ID-porten-runden, lagrer tokenet per audience
 og sjekker at det er gyldig. Fila serveres på `/delt/felles.ts` av både `demo-gui` og
 prosessbyggeren, og et `<script>`-tag henter den på tvers av porter:
 
@@ -202,7 +202,7 @@ Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
    `apps/process-builder/src/server.ts` er den minste å kopiere fra
 3. Svar på `GET /helse`
 4. En blokk i `docker-compose.yml` — kopier en eksisterende, inkludert `healthcheck`
-5. En linje i `apps/shared-ui/tjenester.json`, ellers står den ikke i oversikten
+5. En linje i `apps/shared/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
 7. En oppføring i `tjenester`-lista i `scripts/sjekk-openapi-dekning.ts`. Den lista
    sjekkes mot `tjenester.json`, så uten den feiler `pnpm test:openapi` med «Star i

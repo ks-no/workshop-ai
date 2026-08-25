@@ -9,17 +9,17 @@
  * only what the route asks for.
  *
  * The other half of the fix, `updateJson`, has moved to
- * apps/shared-ui/jsonstore.ts. Two more copies of it had grown in
+ * apps/shared/jsonstore.ts. Two more copies of it had grown in
  * sandbox-backend, and the two files neither copy covered — soknader.json and
  * prosessdefinisjoner.json — were written with no queue at all. One queue now,
  * in the shared layer, and this file only points at it.
  */
 
-import type { Husstand, Person, Plass, Samtykke } from "../../sandbox-backend/src/types.ts";
+import type { Husstand, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
 // Same split as sandbox-backend, and the same two paths, because it is the same
 // module: data/ is seed and stays untouched, state/ holds everything written at
 // runtime and is gitignored. server.ts imports `updateJson` from there directly.
-import { readJson } from "../../shared-ui/jsonstore.ts";
+import { readJson } from "../../shared/jsonstore.ts";
 
 /**
  * A per-request reader that loads each dataset at most once, on first use.

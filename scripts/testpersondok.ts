@@ -5,7 +5,7 @@
 // table over 394 people goes stale the first time anything moves; a generated one
 // checked byte for byte cannot.
 
-import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
+import { alderVed } from "../apps/shared/alder.ts";
 
 // docs/testpersoner.md is generated, and that is the whole point. The one thing
 // participants asked for was a map of who they can use, and a hand-written table
@@ -169,7 +169,7 @@ export function buildTestpersondok(
   linjer.push(
     "- **Adressebeskyttede personer står med fullt navn og adresse i `data/personer.json`.** " +
     "Det er med vilje: maskeringen skjer ved innlasting, i " +
-    "`apps/sandbox-backend/src/skjerming.ts`, og hadde seeden vært maskert ville det " +
+    "`apps/shared/skjerming.ts`, og hadde seeden vært maskert ville det " +
     "ikke vært noe å beskytte. Leser du fila direkte ser du klartekst; går du gjennom " +
     "API-et ser du maskeringen. `pnpm test:skjerming` holder den på plass."
   );

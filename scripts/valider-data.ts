@@ -1,7 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
-import { alderVed } from "../apps/sandbox-backend/src/alder.ts";
+import { alderVed } from "../apps/shared/alder.ts";
 import { SEED_DATASETS } from "../apps/sandbox-backend/src/state.ts";
-import type { Husstand, Ordning, Person, Plass, Satser, State } from "../apps/sandbox-backend/src/types.ts";
+import type { Ordning, Satser, State } from "../apps/sandbox-backend/src/types.ts";
+import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
 // The vedtak itself, imported rather than mirrored. This file used to carry its own
 // copy of every rule below, which meant data/forventet-utfall.json — the pinned
 // outcomes the workshop text rests on — was validated against the copy instead of
@@ -13,7 +14,7 @@ import {
   regelKreverInntekt,
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
-import { SAMTYKKESTATUSER } from "../apps/fiks-simulator/src/samtykke.ts";
+import { SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
 // The generated participant table, imported rather than re-rendered — the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
@@ -22,7 +23,7 @@ import { buildTestpersondok } from "./testpersondok.ts";
 import {
   isSyntetiskFoedselsnummer,
   stemmerMedFoedselsdato
-} from "../apps/sandbox-backend/src/foedselsnummer.ts";
+} from "../apps/shared/foedselsnummer.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
 // created by the services on first write.
@@ -1035,7 +1036,7 @@ if (!personer.some((p) => p.adressebeskyttelse === "FORTROLIG")) {
 }
 
 // The seed must NOT be masked. Masking is a runtime concern, applied on the way out
-// of readState() in apps/sandbox-backend/src/skjerming.ts.
+// of readState() in apps/shared/skjerming.ts.
 //
 // This looks backwards until you see the failure mode: someone finds a protected
 // person's name in data/personer.json, reads it as the leak, and empties the field.
@@ -1148,7 +1149,7 @@ for (const [begrepId, attributtNavn, hentVerdier] of KODEVERDIER_FRA_DATA) {
 // The statuses lived in three places with three different inventories: demo-gui
 // and tools-api knew IKKE_SAMTYKKET, and the informasjonsmodell documented
 // three of the five and never mentioned UTLOEPT at all. The state machine in
-// apps/fiks-simulator/src/samtykke.ts is the kodeverk now, and this check makes
+// apps/shared/samtykke.ts is the kodeverk now, and this check makes
 // the documentation fail rather than quietly disagree with the code.
 
 const samtykkemodeller = modeller.modeller
@@ -1158,7 +1159,7 @@ const samtykkemodeller = modeller.modeller
 if (samtykkemodeller.length === 0) {
   throw new Error(
     "Fant ingen informasjonsmodell med id \"consent\". Kodeverket for samtykkestatus " +
-    "skal dokumenteres der — se apps/fiks-simulator/src/samtykke.ts."
+    "skal dokumenteres der — se apps/shared/samtykke.ts."
   );
 }
 
@@ -1172,7 +1173,7 @@ for (const modell of samtykkemodeller) {
   if (dokumentert !== ikode) {
     throw new Error(
       `Kodeverket for samtykkestatus er ute av takt. Informasjonsmodellen sier ` +
-      `${dokumentert}, tilstandsmaskinen i apps/fiks-simulator/src/samtykke.ts sier ${ikode}.`
+      `${dokumentert}, tilstandsmaskinen i apps/shared/samtykke.ts sier ${ikode}.`
     );
   }
 }

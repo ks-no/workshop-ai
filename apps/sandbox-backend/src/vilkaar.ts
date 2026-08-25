@@ -9,9 +9,10 @@
 // stays in regler.ts. Nothing in this file may import it: the point of the split is
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
-import { alderVed } from "./alder.ts";
+import { alderVed } from "../../shared/alder.ts";
 import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
-import type { Ordning, Plass, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
+import type { Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
+import type { Plass } from "../../shared/innbyggerdata.ts";
 
 function formatBelop(belop: number) {
   return new Intl.NumberFormat("nb-NO").format(Math.round(belop));

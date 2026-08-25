@@ -1,5 +1,5 @@
 /*
- * Unit tests for apps/sandbox-backend/src/foedselsnummer.ts.
+ * Unit tests for apps/shared/foedselsnummer.ts.
  *
  * Pure functions, no stack, no port, no model.
  *
@@ -21,8 +21,8 @@ import {
   stemmerMedFoedselsdato,
   lagSyntetiskFoedselsnummer,
   SYNTETISK_MAANEDSPAALEGG
-} from "../apps/sandbox-backend/src/foedselsnummer.ts";
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+} from "../apps/shared/foedselsnummer.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 let bestatt = 0;
 const feil: string[] = [];

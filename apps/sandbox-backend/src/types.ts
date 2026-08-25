@@ -9,6 +9,11 @@
 // point is that step types and rule types are closed unions, so a new variant
 // cannot be added without the compiler demanding a handler.
 
+// The citizen datasets themselves live in the shared layer: fiks-simulator reads
+// the same files off the same disk, so Person and Husstand belong to neither
+// service. Re-exported nowhere — a caller that needs Person imports it from there.
+import type { Husstand, MedFelter, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+
 // --- process model --------------------------------------------------------
 
 export type Stegtype =
@@ -130,51 +135,6 @@ export type SjekkResultat = {
 };
 
 // --- data and state -------------------------------------------------------
-
-// The datasets are synthetic and loosely shaped. We model the fields the code
-// actually reads and leave the rest open.
-type MedFelter = { [key: string]: any };
-
-// FREG grades address protection: kode 7 (FORTROLIG) and kode 6
-// (STRENGT_FORTROLIG), plus the ungraded majority. Closed, so the masking rules in
-// skjerming.ts must cover every grade the compiler knows about. The boolean
-// `skjermet` is derived from this field and never the other way round — the same
-// invariant scripts/valider-data.js enforces on the seed.
-export type Adressegradering = "UGRADERT" | "FORTROLIG" | "STRENGT_FORTROLIG";
-
-// mellomnavn is null rather than absent throughout the seed, and masking writes
-// null too. Typing it as string only would reject both.
-export type Personnavn = { fornavn: string; mellomnavn?: string | null; etternavn: string };
-
-export type Person = MedFelter & {
-  personId: string;
-  husstandId: string;
-  syntetiskFodselsnummer: string;
-  foedselsdato?: string;
-  navn: Personnavn;
-  adressebeskyttelse: Adressegradering;
-  skjermet: boolean;
-};
-
-export type Husstandsmedlem = { personId: string; rolle: "foresatt" | "barn" | string };
-
-export type Husstand = MedFelter & {
-  husstandId: string;
-  medlemmer: Husstandsmedlem[];
-};
-
-export type Plass = MedFelter & {
-  personId: string;
-  manedspris: number;
-  trinn?: number;
-};
-
-export type Samtykke = MedFelter & {
-  samtykkeId: string;
-  personId: string;
-  status: string;
-  dataKilder: string[];
-};
 
 /**
  * prosessdefinisjoner.json, parsed — what a katalog write reads and hands back.

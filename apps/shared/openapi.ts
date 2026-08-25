@@ -293,7 +293,7 @@ function readParameterFields(
       throw new Error(
         `${where}:${i + 1}: ukjent nøkkel «${key}» på en parameter. Leseren kjenner ` +
         `${PARAMETER_KEYS.join(", ")}. Hører den hjemme, hører formen i ` +
-        `apps/shared-ui/openapi.ts — en parameter som forsvinner i stillhet er verre enn en feil.`
+        `apps/shared/openapi.ts — en parameter som forsvinner i stillhet er verre enn en feil.`
       );
     }
     if (key === "schema") {
@@ -435,7 +435,7 @@ function readBodyExample(
       throw new Error(
         `${where}:${i + 1}: requestBody-eksempelet er tomt eller en nestet mapping. Leseren ` +
         `leser bare strenger — skriv eksempelet som blokkskalar med JSON i, eller lær formen ` +
-        `i apps/shared-ui/openapi.ts.`
+        `i apps/shared/openapi.ts.`
       );
     }
     return read.value;
@@ -614,7 +614,7 @@ function readPaths(
         if (key !== "summary" && key !== "description") {
           throw new Error(
             `${where}:${j + 1}: «${key}» står på path-nivå under ${path.path}. Leseren leser ` +
-            `bare operasjoner der. Hører den hjemme, hører formen i apps/shared-ui/openapi.ts.`
+            `bare operasjoner der. Hører den hjemme, hører formen i apps/shared/openapi.ts.`
           );
         }
         j++;

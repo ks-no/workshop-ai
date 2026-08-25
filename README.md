@@ -229,7 +229,7 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 `./start.sh` starter alle sammen, så du trenger ikke velge.
 
 **Tabellen står ikke her.** Tjenestene, portene og rollene deres ligger i
-`apps/shared-ui/tjenester.json`, og <http://localhost:3001> viser dem med levende
+`apps/shared/tjenester.json`, og <http://localhost:3001> viser dem med levende
 helsestatus og en lenke rett inn i API-utforskeren for hver. Fire håndholdte kopier av
 den tabellen hadde drevet fra hverandre — tre av dem manglet `digdir-mock`, tjenesten
 hver 401 peker på — så kopien her er fjernet framfor å bli en femte.
@@ -462,7 +462,7 @@ Anbefalt arbeidsform:
 ## Viktige filer
 
 - `docs/deltakerstart.md` — start her hvis du er deltaker
-- `apps/shared-ui/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
+- `apps/shared/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
 - `data/` — de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
 - `openapi/` — én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`
 - `policies/` — datapolicy, KI-policy, tilgangspolicy

@@ -159,7 +159,7 @@ konvensjon for Tenor-data, og den er det som gjør et syntetisk nummer gjenkjenn
 som syntetisk uten å slutte å være et velformet nummer. NAV bruker +40 på måneden;
 vi bruker Skatts, fordi befolkningen kommer fra Tenor.
 
-`apps/sandbox-backend/src/foedselsnummer.ts` bærer regelen, og
+`apps/shared/foedselsnummer.ts` bærer regelen, og
 `pnpm test:foedselsnummer` dekker den. Skal du lese en dato ut av et nummer, må du
 trekke fra 80 først — men `foedselsdato` er eget felt, så du trenger det sjelden.
 **Tre personer har et nummer som beskriver en annen dato enn `foedselsdato`.** Det er
@@ -179,7 +179,7 @@ To terskler, begge reelle:
   avsender for en sak — der må en foresatt med foreldreansvar, eller en verge, være
   det. Barnet er fortsatt part.
 
-Reglene ligger i `apps/sandbox-backend/src/handleevne.ts`, delt mellom
+Reglene ligger i `apps/shared/handleevne.ts`, delt mellom
 `digdir-mock` og prosessmotoren så de ikke kan bli uenige, og dekket av
 `pnpm test:handleevne`. Prøver du å starte en prosess som en 15-åring får du et 403
 som navngir de foresatte som kan gjøre det i stedet.
@@ -218,7 +218,7 @@ da gir alle demoene samme utfall igjen.
 
 `data/personer.json` inneholder fullt navn, gateadresse, e-post og telefon for de seks
 adressebeskyttede personene, i klartekst. **Det er med vilje.** Maskeringen skjer ved
-innlasting, i `apps/sandbox-backend/src/skjerming.ts`, og gjelder alle lesere gjennom
+innlasting, i `apps/shared/skjerming.ts`, og gjelder alle lesere gjennom
 API-et. Hadde seeden vært maskert ville det ikke vært noe å beskytte, og
 maskeringstestene ville målt tomme strenger.
 

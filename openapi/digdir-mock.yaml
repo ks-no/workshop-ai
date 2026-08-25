@@ -60,7 +60,7 @@ paths:
       security: []
       description: >
         Den samme spesifikasjonen som /openapi.yaml, lest av
-        apps/shared-ui/openapi.ts: én oppføring per operasjon, med sammendrag,
+        apps/shared/openapi.ts: én oppføring per operasjon, med sammendrag,
         hjemmel og parametere. Finnes fordi en nettleser ikke kan lese YAML uten en
         parser, og sandkassen har ingen. Dette er kilden API-utforskeren på
         http://localhost:3001/utforsker rendrer.

@@ -222,7 +222,7 @@ lette etter:
 
 `README.md:224-228` · `docs/architecture.md:5-9` · `docs/api-oversikt.md:3-9` ·
 `examples/curl/README.md:3-6` · `examples/postman/README.md:3-5` ·
-`apps/shared-ui/README.md:17-18`
+`apps/shared/README.md:17-18`
 
 Argumentet er riktig — fire håndholdte kopier av samme tabell driver fra hverandre.
 Men det er en redaksjonell begrunnelse, og deltakeren så aldri den gamle tabellen.
@@ -293,7 +293,7 @@ noe. Resten hører etter hackathonet.
 
 Seksten forekomster av `Del A`, `Del B`, `WP2`, `A2` og `Issue #8` brukt som
 forklaring — blant annet `autentisering.ts:7` og `:132`, `handleevne.ts:19`,
-`ressurser.ts:504` og `:525`, `fiks-simulator/src/samtykke.ts:76`,
+`ressurser.ts:504` og `:525`, `shared/samtykke.ts:76`,
 `felles.ts:198`, `digdir-mock/src/client.ts:239`, `valider-data.ts:582`.
 
 Ingen av kodene er definert noe sted i repoet. `autentisering.ts:7` sier at
@@ -311,7 +311,7 @@ teamet.
 
 Å legge til en tjeneste er seks manuelle steg: mappe under `apps/`, en
 `package.json` på sju linjer, en server, en blokk i `docker-compose.yml` med
-healthcheck, en linje i `apps/shared-ui/tjenester.json`, og en fil i `openapi/`.
+healthcheck, en linje i `apps/shared/tjenester.json`, og en fil i `openapi/`.
 Glemmer man ett av de to siste, feiler `pnpm test:openapi` eller `pnpm test:docs`.
 
 Nærmeste levende eksempel er `matrikkel-mock` på over tolv hundre linjer. Minste
@@ -348,7 +348,7 @@ er buggen denne testen finnes for» er testens eksistensberettigelse. I
 produksjonskode er det git-historikk på avveie.
 
 **172 norske kommentarlinjer** mot husregelen «Comments are English». Verst er
-filer som bytter språk midt i samme blokk: `shared-ui/openapi.ts:1-23` starter
+filer som bytter språk midt i samme blokk: `shared/openapi.ts:1-23` starter
 norsk, går til engelsk, og tilbake til norsk i siste avsnitt.
 
 **Fire utdaterte `fil.ts:NNN`-referanser** som har drevet.
@@ -394,7 +394,7 @@ pnpm-workspacen er nominell: app-`package.json`-ene er sju–åtte linjer uten
 `exports`, så ingenting i verktøykjeden håndhever en grense. Et team som bygger en
 ny tjeneste har derfor ingen regel å følge for hva det har lov til å importere.
 
-Deler av dette er et ekte delt lag (`shared-ui/openapi.ts`, `digdir-mock/client.ts`)
+Deler av dette er et ekte delt lag (`shared/openapi.ts`, `digdir-mock/client.ts`)
 og helt legitimt. Poenget er at ingenting skiller det fra tilfeldig gjenbruk.
 
 ## 16. Duplisert infrastruktur

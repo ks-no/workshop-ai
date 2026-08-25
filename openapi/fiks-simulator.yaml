@@ -62,7 +62,7 @@ paths:
       security: []
       description: >
         Den samme spesifikasjonen som /openapi.yaml, lest av
-        apps/shared-ui/openapi.ts: én oppføring per operasjon, med sammendrag,
+        apps/shared/openapi.ts: én oppføring per operasjon, med sammendrag,
         hjemmel og parametere. Finnes fordi en nettleser ikke kan lese YAML uten en
         parser, og sandkassen har ingen. Dette er kilden API-utforskeren på
         http://localhost:3001/utforsker rendrer.
@@ -159,7 +159,7 @@ paths:
         Statusen som returneres er den *effektive*: et samtykke med `utloper` i
         fortida svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
         Utløp utledes på vei ut, på samme måte som skjermingen av
-        adressebeskyttede — se apps/fiks-simulator/src/samtykke.ts.
+        adressebeskyttede — se apps/shared/samtykke.ts.
       security:
         - maskinporten: [ks:fiks:samtykke]
       parameters:
@@ -311,7 +311,7 @@ paths:
         Adressebeskyttede personer maskeres på vei ut, uavhengig av hvem som
         spør: en person med kode 6 svarer «Skjermet person» uten adresse, men
         beholder fødselsnummer, fødselsdato og kommunenummer — beregningen
-        trenger dem. Se apps/sandbox-backend/src/skjerming.ts.
+        trenger dem. Se apps/shared/skjerming.ts.
       security:
         - maskinporten: [ks:fiks:register]
       parameters:
@@ -825,7 +825,7 @@ components:
     Samtykkestatus:
       type: string
       description: >-
-        Kodeverket ligger i apps/fiks-simulator/src/samtykke.ts, og
+        Kodeverket ligger i apps/shared/samtykke.ts, og
         scripts/valider-data.ts feiler hvis informasjonsmodellen kommer ut av
         takt med det. `IKKE_SAMTYKKET`, `TRUKKET` og `UTLOEPT` er endelige.
         `UTLOEPT` utledes av `utloper` og skrives aldri til rad.

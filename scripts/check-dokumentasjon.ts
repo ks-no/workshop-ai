@@ -4,7 +4,7 @@
  * Keeps the prose honest about numbers the code already knows.
  *
  * Every service list, tool count and population figure in this repo exists in a
- * machine-readable source — apps/shared-ui/tjenester.json, data/satser.json,
+ * machine-readable source — apps/shared/tjenester.json, data/satser.json,
  * the toolDefs table in tools-api, ci.yml itself. The markdown carries
  * hand-typed copies of all of them, and on 22.08.2026 a sweep found that every
  * single measured mismatch sat in a copy and never in the source: three service
@@ -74,8 +74,8 @@ function ciChecks(): string[] {
 
 const sources = {
   tjenester: {
-    count: count("apps/shared-ui/tjenester.json"),
-    source: "apps/shared-ui/tjenester.json"
+    count: count("apps/shared/tjenester.json"),
+    source: "apps/shared/tjenester.json"
   },
   spesifikasjoner: {
     count: readdirSync("openapi").filter((f) => f.endsWith(".yaml")).length,
@@ -99,9 +99,9 @@ const sources = {
    * both, so "API-tjenester" resolves here and bare "tjenester" to the nine.
    */
   "api-tjenester": {
-    count: (readJson("apps/shared-ui/tjenester.json") as { spesifikasjon: boolean }[])
+    count: (readJson("apps/shared/tjenester.json") as { spesifikasjon: boolean }[])
       .filter((service) => service.spesifikasjon).length,
-    source: "apps/shared-ui/tjenester.json (spesifikasjon: true)"
+    source: "apps/shared/tjenester.json (spesifikasjon: true)"
   }
 } as const;
 

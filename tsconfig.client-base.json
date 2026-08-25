@@ -14,7 +14,7 @@
   // ut som om de fantes i en nettleser.
   //
   // Filene serveres som .ts og type-strippes ved servering
-  // (apps/shared-ui/assets.ts). Derfor gjelder samme regel som på Node-siden:
+  // (apps/shared/assets.ts). Derfor gjelder samme regel som på Node-siden:
   // bare syntaks som kan viskes ut, se erasableSyntaxOnly.
   "compilerOptions": {
     "target": "esnext",

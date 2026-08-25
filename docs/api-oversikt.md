@@ -29,7 +29,7 @@ Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell
 | matrikkel-mock | 8085 | `openapi/matrikkel-mock.yaml` |
 | digdir-mock | 8086 | `openapi/digdir-mock.yaml` |
 
-Lista over tjenester bor i `apps/shared-ui/tjenester.json`, som dashboardet og
+Lista over tjenester bor i `apps/shared/tjenester.json`, som dashboardet og
 API-utforskeren begge leser. `pnpm test:openapi` krever at den er enig med seg selv.
 
 Alle sju svarer også på `GET /helse`. Det finnes ingen `/health` — den var et alias som

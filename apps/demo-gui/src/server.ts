@@ -2,11 +2,11 @@ import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { KLIENTSKRIPT, send, sendFil } from "../../shared-ui/assets.ts";
+import { KLIENTSKRIPT, send, sendFil } from "../../shared/assets.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const sharedUiDir = path.join(__dirname, "..", "..", "shared-ui");
-const deltKlientDir = path.join(sharedUiDir, "client");
+const sharedDir = path.join(__dirname, "..", "..", "shared");
+const deltKlientDir = path.join(sharedDir, "client");
 const klientDir = path.join(__dirname, "client");
 const port = 3001;
 
@@ -19,18 +19,18 @@ const ASSETS: Record<string, string> = {
   "ds-base.css": "text/css; charset=utf-8",
   "ds-ksdigital.css": "text/css; charset=utf-8",
   // The service registry. Dashboard and API explorer both read it, so the list of
-  // services exists once instead of once per page. See apps/shared-ui/tjenester.json.
+  // services exists once instead of once per page. See apps/shared/tjenester.json.
   "tjenester.json": "application/json; charset=utf-8"
 };
 
 // Delt klientkode, servert til begge frontendene. .ts, og nettleseren merker
-// ingenting: den gaar etter Content-Type, og shared-ui/assets.ts stripper
+// ingenting: den gaar etter Content-Type, og shared/assets.ts stripper
 // typene paa vei ut.
 const DELTE_KLIENTFILER: Record<string, string> = {
   "felles.ts": KLIENTSKRIPT
 };
 
-// One script per page, served from this app rather than shared-ui because that is
+// One script per page, served from this app rather than shared because that is
 // where they belong. Same whitelist rule as above, same reason.
 const KLIENTFILER: Record<string, string> = {
   "dashboard.ts": KLIENTSKRIPT,
@@ -74,7 +74,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     // filer som sendes uendret. Rekkefoelgen betyr ingenting her siden
     // prefiksene ikke overlapper, men holder de to slagene fra hverandre.
     ["/delt/", deltKlientDir, DELTE_KLIENTFILER],
-    ["/assets/", sharedUiDir, ASSETS],
+    ["/assets/", sharedDir, ASSETS],
     ["/client/", klientDir, KLIENTFILER]
   ] as const) {
     if (!sti.startsWith(prefiks)) continue;

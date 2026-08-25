@@ -11,7 +11,7 @@
  * and because hver app sin client/tsconfig.json også inkluderer denne fila.
  *
  * Served by both frontends at /assets/felles.ts, type-stripped on the way out —
- * see apps/shared-ui/assets.ts.
+ * see apps/shared/assets.ts.
  */
 
 // --- Delte former, synlige for alle sidescript ------------------------------

@@ -4,8 +4,8 @@ import path from "node:path";
 // the shared store: revisjon.ts and fiks-simulator had grown their own copies of
 // all of it. Every reader and writer imports from there directly — a re-export
 // here would only be one more hop that can drift.
-import { readJson, seedDir, stateDir, updateJson } from "../../shared-ui/jsonstore.ts";
-import { maskBefolkning } from "./skjerming.ts";
+import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
+import { maskBefolkning } from "../../shared/skjerming.ts";
 // The real type, not a local `any`. Three modules used to shadow it — this one,
 // routes.ts and ressurser.ts — so the one file that assembles the state was the
 // one place with no idea what it was assembling.

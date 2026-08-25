@@ -28,10 +28,10 @@ import {
   effektivStatus,
   isUtloept,
   validateSamtykkeovergang
-} from "../apps/fiks-simulator/src/samtykke.ts";
+} from "../apps/shared/samtykke.ts";
 import { validateOppgaveovergang } from "../apps/fiks-simulator/src/oppgave.ts";
-import type { Overgangsutfall } from "../apps/fiks-simulator/src/statemachine.ts";
-import { feilkode } from "../apps/shared-ui/errors.ts";
+import type { Overgangsutfall } from "../apps/shared/statemachine.ts";
+import { feilkode } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.SAMTYKKE_FIKS_PORT) || 18091;

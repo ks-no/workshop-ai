@@ -2,11 +2,11 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { docsHtml, routeOverview } from "../../shared-ui/openapi.ts";
-import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
+import { docsHtml, routeOverview } from "../../shared/openapi.ts";
+import { isGyldigFoedselsnummer } from "../../shared/foedselsnummer.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { cors, readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
-import { feilmelding } from "../../shared-ui/errors.ts";
+import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { feilmelding } from "../../shared/errors.ts";
 
 const port = Number(process.env.PORT || 8084);
 const mcpBaseUrl = process.env.TOOLS_BASE_URL || "http://tools-api:8083";

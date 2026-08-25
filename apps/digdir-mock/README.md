@@ -44,7 +44,7 @@ det ut fra hjemmelen ruta krever, og skriver ut en `curl` som virker når den li
 ## Hvem kan logge inn
 
 Ikke alle testpersoner, og det er med vilje. Aldersgrensene bor **ett sted**,
-`apps/sandbox-backend/src/handleevne.ts`, som både denne tjenesten og prosessmotoren
+`apps/shared/handleevne.ts`, som både denne tjenesten og prosessmotoren
 importerer — så de kan ikke bli uenige.
 
 - **Under 13 år: ingen innlogging.** MinID kan bestilles fra året man fyller 13, så en

@@ -6,28 +6,28 @@ import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 // which is why /fiks/register/person/person-031 handed out a kode 6 person's name
 // and street address in full. The repo already carries four masking
 // implementations; this makes it three rather than five.
-import { maskHusstand, maskPerson } from "../../sandbox-backend/src/skjerming.ts";
+import { maskHusstand, maskPerson } from "../../shared/skjerming.ts";
 // Consent has rules now: which statuses exist, what may follow what, and when a
 // samtykke has run out. All three live in samtykke.ts so the compiler can hold
 // them together — see the comment there.
-import { effektivStatus, validateSamtykkeovergang } from "./samtykke.ts";
+import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
-import type { Overgangsutfall } from "./statemachine.ts";
+import type { Overgangsutfall } from "../../shared/statemachine.ts";
 // Modulus 11, imported rather than re-regexed. The spec's ^[0-9]{11}$ accepted
 // numbers no register would ever have issued, and the sandbox's own population is
 // Tenor's +80 form — so "eleven digits" was never the actual rule.
-import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
-import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { isGyldigFoedselsnummer } from "../../shared/foedselsnummer.ts";
+import { updateJson } from "../../shared/jsonstore.ts";
 import { createStateReader, newId } from "./state.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { routeOverview } from "../../shared-ui/openapi.ts";
-import { cors, readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
-import { feilmelding } from "../../shared-ui/errors.ts";
+import { routeOverview } from "../../shared/openapi.ts";
+import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { feilmelding } from "../../shared/errors.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Inntekt, Inntektspost, Oppgave, FiksSamtykke } from "./state.ts";
-import type { Person } from "../../sandbox-backend/src/types.ts";
+import type { Person } from "../../shared/innbyggerdata.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PORT lar testskript starte en isolert instans ved siden av docker compose.

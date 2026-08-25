@@ -4,7 +4,7 @@ import { aiBaseUrl, fiksBaseUrl, fiksDialogToken } from "./config.ts";
 import { HttpError } from "./errors.ts";
 import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
-import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { updateJson } from "../../shared/jsonstore.ts";
 import { newId } from "./state.ts";
 import type {
   ProsessDefinisjon,

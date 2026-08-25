@@ -4,5 +4,5 @@
   // erklærer er globale — de importeres ikke. Uten felles.ts i include-lista
   // blir hver bruk av renderTopNav, krevEl og Person en TS2304.
   "extends": "../../../../tsconfig.client-base.json",
-  "include": ["./**/*.ts", "../../../shared-ui/client/**/*.ts"]
+  "include": ["./**/*.ts", "../../../shared/client/**/*.ts"]
 }

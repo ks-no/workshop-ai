@@ -4,10 +4,10 @@ import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash, createHmac } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { routeOverview } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { cors, readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
-import { feilkode, feilmelding } from "../../shared-ui/errors.ts";
+import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { feilkode, feilmelding } from "../../shared/errors.ts";
 import type { Sporsmaalskontekst } from "./sporsmaalsperrer.ts";
 import {
   buildGrunnlag,
@@ -2114,7 +2114,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     // The trace page uses the same stylesheet as the demo frontends, so it has
     // to be able to serve it. Whitelisted: the name comes from the URL.
     if (url.pathname === "/assets/felles.css") {
-      const css = await readFile(path.resolve(__dirname, "../../shared-ui/felles.css"), "utf8");
+      const css = await readFile(path.resolve(__dirname, "../../shared/felles.css"), "utf8");
       textResponse(response, 200, css, "text/css; charset=utf-8");
       return;
     }

@@ -6,12 +6,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
-import { routeOverview } from "../../shared-ui/openapi.ts";
-import { cors, svarhjelpere } from "../../shared-ui/http.ts";
+import { routeOverview } from "../../shared/openapi.ts";
+import { cors, svarhjelpere } from "../../shared/http.ts";
 // The one place the two age thresholds live. digdir-mock decides who gets a token
 // and sandbox-backend decides who may be party to a case; they must agree, so
 // neither carries its own copy of the rule.
-import { kanHaEid, kanOpptreSelv } from "../../sandbox-backend/src/handleevne.ts";
+import { kanHaEid, kanOpptreSelv } from "../../shared/handleevne.ts";
 
 // MOCK AV MASKINPORTEN OG ID-PORTEN
 //

@@ -32,6 +32,7 @@
     "test:samtykke": "node scripts/test-samtykke.ts",
     "test:revisjon": "node scripts/test-revisjonsspor.ts",
     "test:concurrency": "node scripts/test-concurrency.ts",
+    "test:imports": "node scripts/test-imports.ts",
     "test:replay": "node scripts/test-prosessoekt-lukket.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:docs": "node scripts/check-dokumentasjon.ts",
@@ -47,7 +48,7 @@
     "test:folkeregister-mcp": "node scripts/test-folkeregister-mcp.ts",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.ts",
     "lint": "tsc --noEmit && pnpm lint:klient",
-    "lint:klient": "tsc -p apps/shared-ui/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client",
+    "lint:klient": "tsc -p apps/shared/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   },
   "engines": {

@@ -15,7 +15,7 @@ renderTopNav("/utforsker");
 // digdir-mock. Nå står den ett sted, og pnpm test:openapi krever at den er
 // enig med tjenestelista i scripts/sjekk-openapi-dekning.ts.
 // Formene tjenestene faktisk sender på GET /openapi-ruter.json. Fasiten er
-// Route, Parameter og RouteOverview i apps/shared-ui/openapi.ts — dette er den
+// Route, Parameter og RouteOverview i apps/shared/openapi.ts — dette er den
 // samme kontrakten sett fra nettleseren, som ikke kan importere den.
 type RuteParameter = {
   navn: string;

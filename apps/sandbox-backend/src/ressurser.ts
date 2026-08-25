@@ -5,7 +5,7 @@ import {
   type Caller,
   type Tilgang
 } from "./autentisering.ts";
-import { representantPider } from "./handleevne.ts";
+import { representantPider } from "../../shared/handleevne.ts";
 import { HttpError } from "./errors.ts";
 import {
   hasGyldigSamtykke,

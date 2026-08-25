@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { feilmelding } from "../apps/shared-ui/errors.ts";
+import { feilmelding } from "../apps/shared/errors.ts";
 
 const matrikkelPort = 18085;
 const mcpMockPort = 18083;

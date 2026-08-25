@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { feilmelding } from "../../shared-ui/errors.ts";
-import type { Adresse, Organisasjon, TenorEnhet } from "../../shared-ui/registerdata.ts";
+import { feilmelding } from "../../shared/errors.ts";
+import type { Adresse, Organisasjon, TenorEnhet } from "../../shared/registerdata.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.BRREG_DATA_FILE || path.resolve(__dirname, "../../../data/brreg.seed.json");

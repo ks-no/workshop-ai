@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { errorBody, headersFor, HttpError, statusFor } from "./errors.ts";
-import { readRequestBody, svarhjelpere } from "../../shared-ui/http.ts";
+import { readRequestBody, svarhjelpere } from "../../shared/http.ts";
 
 import {
   aktorFor,
@@ -20,9 +20,9 @@ import {
   finnRepresentanter,
   forklarHandleevne,
   representantPider
-} from "./handleevne.ts";
+} from "../../shared/handleevne.ts";
 import { openapiFile } from "./config.ts";
-import { routeOverview } from "../../shared-ui/openapi.ts";
+import { routeOverview } from "../../shared/openapi.ts";
 import { buildProsessoektRespons, createSoknad, runStegHandling } from "./prosess.ts";
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";

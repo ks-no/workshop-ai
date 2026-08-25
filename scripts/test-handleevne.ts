@@ -1,5 +1,5 @@
 /*
- * Unit tests for apps/sandbox-backend/src/handleevne.ts.
+ * Unit tests for apps/shared/handleevne.ts.
  *
  * Pure functions, no stack, no port, no model — the same reason test-vilkaar.js
  * exists: an outcome can be pinned with a literal tilstand object.
@@ -26,7 +26,7 @@ import {
   forklarHandleevne,
   ALDER_EID,
   ALDER_MYNDIG
-} from "../apps/sandbox-backend/src/handleevne.ts";
+} from "../apps/shared/handleevne.ts";
 
 const REF = "2026-08-01";
 

@@ -7,7 +7,7 @@
 ## Service map (compose defaults)
 - `apps/process-builder` (`3000`): process definition UI.
 - `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances —
-  `/chat`, `/agent` and `/stegvis`. Shares `apps/shared-ui/felles.css` and `client/felles.ts`
+  `/chat`, `/agent` and `/stegvis`. Shares `apps/shared/felles.css` and `client/felles.ts`
   with `process-builder`. The stylesheet is served at `/assets/*`; `felles.ts` is at
   `/delt/felles.ts`, type-stripped on the way out, because it is code rather than a
   static asset.
@@ -31,13 +31,15 @@
   and the data could only grow, never be cleaned. Ids stay stable because `personId` and
   `husstandId` are read back from `personer.json` as a ledger; `--glem-id-er` assigns
   from scratch and gives the same result on unchanged input.
-- **Three pure domain modules carry rules that more than one caller needs**, for the same
-  reason `alder.ts` does: `foedselsnummer.ts` (modulus 11 and Skatteetaten's +80 synthetic
-  marker), `handleevne.ts` (who may act, and on whose behalf — shared with `digdir-mock`),
-  and `vilkaar.ts` (the vedtak). None of them may import `regler.ts`.
+- **A rule that more than one caller needs lives in one module, and that module lives
+  in `apps/shared/`** — `alder.ts`, `foedselsnummer.ts` (modulus 11 and Skatteetaten's
+  +80 synthetic marker), `handleevne.ts` (who may act, and on whose behalf),
+  `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry). None of
+  them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
+  stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
-- `readJson` (`apps/shared-ui/jsonstore.ts`) reads `state/` first and falls back to
+- `readJson` (`apps/shared/jsonstore.ts`) reads `state/` first and falls back to
   `data/`. `./start.sh --reset` clears `state/`.
 - **Every write to a *shared* file under `state/` goes through `updateJson`** in that
   same module, which does the whole read-modify-write inside one queue. The store
@@ -51,21 +53,36 @@
   each, in one service, so there is no second reader to lose an update to.
 - **The whole repo is TypeScript** — every service, every script, and the browser
   code. There is no build step: Node type-strips `.ts` on load, and the two frontends
-  strip the client files at serve time (`apps/shared-ui/assets.ts`). `tsconfig.json`
+  strip the client files at serve time (`apps/shared/assets.ts`). `tsconfig.json`
   has no `allowJs`, so a `.js` file imported from `.ts` is a compile error.
 - `apps/sandbox-backend` is split into modules (`routes.ts`, `prosess.ts`,
-  `ressurser.ts`, `vilkaar.ts`, `alder.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
+  `ressurser.ts`, `vilkaar.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
   `errors.ts`, `config.ts`). `server.ts` only wires up the HTTP server.
-- **Five modules in `apps/shared-ui/` are the shared layer.** Two are used by every
-  service: `http.ts` (CORS, JSON and text responses, request bodies — the CORS policy
-  is a parameter, because the six copies it replaced had drifted apart) and `errors.ts`
-  (`feilmelding`/`feilkode` for caught `unknown`). The other three are used by whoever
-  needs them: `assets.ts` (static files and type stripping — the two frontends),
-  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` —
-  the two MCP servers and `tools-api`), and `jsonstore.ts` (`seedDir`/`stateDir`,
-  `readJson`, `updateJson` — the state I/O above and the one write queue that replaced
-  three copies of it; `sandbox-backend` and `fiks-simulator`, the two services that
-  share files on disk).
+- **`apps/shared/` is the shared layer, and it is below every service.** It was called
+  `shared-ui` while it only held frontend files; it now holds backend plumbing and the
+  domain leaves as well, so the name was a claim it had stopped meeting. Two modules are
+  used by every service: `http.ts` (CORS, JSON and text responses, request bodies — the
+  CORS policy is a parameter, because the six copies it replaced had drifted apart) and
+  `errors.ts` (`feilmelding`/`feilkode` for caught `unknown`). The rest are used by
+  whoever needs them: `assets.ts` (static files and type stripping — the two frontends),
+  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` — the
+  two MCP servers and `tools-api`), `innbyggerdata.ts` (the shapes of `personer.json`,
+  `husstander.json`, the two plass-datasets and `samtykker.json` — `sandbox-backend` and
+  `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` — the
+  state I/O above and the one write queue that replaced three copies of it), the five
+  domain modules above, and `statemachine.ts` under `samtykke.ts`.
+- **The arrows between apps form a DAG, and `pnpm test:imports` fails if they stop.**
+  `sandbox-backend` and `fiks-simulator` used to import each other — the backend took the
+  samtykke kodeverk from fiks, fiks took masking, fødselsnummer validation and its
+  `Person` type from the backend — and `sandbox-backend` and `digdir-mock` had the same
+  knot, one leaf wide. Every single arrow was locally right: importing the rule beats
+  keeping a second copy of it. The defect existed only in the sum, which is why no
+  reviewer caught it in a diff and why it is checked instead of remembered. What the
+  check bans is the arrow *back*, not the arrow: four services get their token client
+  from `digdir-mock`, which owns the protocol, and that is what a service boundary is
+  for. `apps/shared` additionally must import nothing from any app — a shared layer that
+  reaches back into a service is beside the services, not below them, and drags whatever
+  it touched into every test.
 - **Browser code lives in a `client/` directory, and each one has its own
   `tsconfig.json`** extending `tsconfig.client-base.json` (DOM lib, no `@types/node`,
   `moduleDetection: "legacy"`). The root config excludes `**/client/**`.
@@ -74,7 +91,7 @@
   named exactly `tsconfig.json`. A single `tsconfig.client.json` at the root was
   invisible to it, so every editor put the client files in an inferred project and
   reported `Cannot find name renderTopNav` on every line that used felles.ts.
-  Each app's client config must include `../../../shared-ui/client/**/*.ts` too:
+  Each app's client config must include `../../../shared/client/**/*.ts` too:
   `felles.ts` is a classic script, so its declarations are global rather than
   imported, and they only resolve inside the same program.
 
@@ -163,7 +180,7 @@ if a comment restates the code, delete it instead of translating it.
   for work done *inside* this repo.
 - `docs/designsystem.md` covers both setups, the cascade trap and the pitfalls, and
   `http://localhost:3001/ds-eksempel` is it running. Read the doc before writing markup.
-- Inside this repo the design system ships as **plain CSS** (`apps/shared-ui/ds-base.css` +
+- Inside this repo the design system ships as **plain CSS** (`apps/shared/ds-base.css` +
   `ds-ksdigital.css`, vendored from `@ks-digital/designsystem-themes`, refreshed by
   `pnpm ds:hent`). That is the only reason it fits a repo with no dependencies and no
   build step. Do not reach for the React or Angular packages here.
@@ -197,6 +214,7 @@ pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
+pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -249,7 +267,8 @@ pnpm test:agent:matrikkel
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:concurrency`, `test:replay`, `test:openapi`, `test:docs` and
+  `test:samtykke`, `test:concurrency`, `test:replay`, `test:imports`, `test:openapi`,
+  `test:docs` and
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts

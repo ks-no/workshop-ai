@@ -1,4 +1,4 @@
-import { feilmelding } from "../../shared-ui/errors.ts";
+import { feilmelding } from "../../shared/errors.ts";
 
 // Lets domain code declare which HTTP status an error should produce without
 // knowing about request or response. The router and the process engine map it the
