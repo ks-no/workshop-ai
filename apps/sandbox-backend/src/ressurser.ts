@@ -149,8 +149,6 @@ export type Ressurs = {
   valider?: (kontekst: RessursContext) => void;
   /** For resources where the person is not in the path but must be resolved before the consent check. */
   finnPersonId?: (kontekst: RessursContext) => string;
-  /** Set false for lookups the caller logs instead (the SJEKK step). */
-  revisjon?: boolean;
   handter: (kontekst: RessursContext) => unknown | Promise<unknown>;
 };
 
@@ -312,8 +310,6 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/sjekk/eierforhold",
     ressurs: "matrikkel-eierforhold",
     beskrivelse: "SJEKK: eier søkeren en eiendom i den oppgitte gaten?",
-    // The SJEKK step writes SJEKK_OK/SJEKK_AVVIST itself.
-    revisjon: false,
     handter: async ({ sok, personId, steg }) => {
       const gateNavn = sok.get("gate") || "";
       const gateData = await findGate(gateNavn);
@@ -340,8 +336,7 @@ export const ressurser: Ressurs[] = [
     ressurs: "matrikkel-mine-eiendommer",
     beskrivelse: "Eiendommer i matrikkelen der søkeren er registrert som eier, på tvers av alle gater.",
     // No tilgang here means "egne-data", which is what this is: the applicant's own
-    // holdings, not the open street register. And revisjon stays on — unlike a SJEKK
-    // lookup, nothing else logs this one, and it reads person data.
+    // holdings, not the open street register.
     valider: ({ personId }) => {
       if (!personId) {
         throw new HttpError("personId er påkrevd.", 400);
@@ -372,7 +367,6 @@ export const ressurser: Ressurs[] = [
     kreverSamtykke: "inntekt",
     kreverSamtykkeFor: samtykkeForOrdningssjekk,
     formaal: "Vurdere rett til dialogrelatert tjeneste",
-    revisjon: false,
     valider: ({ sok, personId }) => {
       if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
         throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
@@ -403,7 +397,6 @@ export const ressurser: Ressurs[] = [
     kreverSamtykke: "inntekt",
     kreverSamtykkeFor: samtykkeForOrdningssjekk,
     formaal: "Vurdere rett til dialogrelatert tjeneste",
-    revisjon: false,
     valider: ({ sok, personId }) => {
       if (!personId || (!sok.get("ordning") && !sok.get("tjeneste"))) {
         throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
@@ -585,7 +578,12 @@ export async function runRessurs(
 
   const data = await ressurs.handter(kontekst);
 
-  if (ressurs.revisjon !== false) {
+  // The SJEKK step logs SJEKK_OK/SJEKK_AVVIST itself, so a lookup running under it
+  // stays out of the log. That used to be a per-resource flag, but the resource is
+  // the wrong place to know it: the same resource called directly over HTTP has no
+  // SJEKK caller, and a successful read that leaves no DATA_LES breaks
+  // revisjon-av-all-datatilgang. The call context decides, not the catalog entry.
+  if (kontekst.steg?.type !== "SJEKK") {
     // Purpose limitation is the point of asking for consent, so the audit entry
     // records the purpose the person actually consented to. The catalogue label
     // is a generic fallback for reads with no consent behind them; logging it

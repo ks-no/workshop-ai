@@ -30,6 +30,7 @@
     "test:foedselsnummer": "node scripts/test-foedselsnummer.ts",
     "test:handleevne": "node scripts/test-handleevne.ts",
     "test:samtykke": "node scripts/test-samtykke.ts",
+    "test:revisjon": "node scripts/test-revisjonsspor.ts",
     "test:concurrency": "node scripts/test-prosessoekt-concurrency.ts",
     "test:replay": "node scripts/test-prosessoekt-lukket.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
