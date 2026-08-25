@@ -1,8 +1,8 @@
 # shared-ui
 
-Det delte laget for frontend og spesifikasjonslesing. Ingen server, ingen port, ingen
-`package.json` — filene serveres på `/assets/*` av både `demo-gui` og `process-builder`,
-og `openapi.ts` importeres direkte av tjenestene.
+Det delte laget: frontend, spesifikasjonslesing og tilstands-I/O. Ingen server, ingen
+port, ingen `package.json` — filene serveres på `/assets/*` av både `demo-gui` og
+`process-builder`, og `openapi.ts` og `jsonstore.ts` importeres direkte av tjenestene.
 
 | Fil | Hva | Lest av |
 |---|---|---|
@@ -11,6 +11,7 @@ og `openapi.ts` importeres direkte av tjenestene.
 | `client/felles.ts` | Innlogging, tokenhåndtering, helsestatus, felles DOM-hjelpere | alle sidene i `demo-gui` og `process-builder`, på `/delt/felles.ts` |
 | `assets.ts` | Serverer statiske filer, og type-stripper `.ts` på vei ut | `demo-gui`, `process-builder` |
 | `http.ts`, `errors.ts` | CORS, JSON- og tekstsvar, innsnevring av fanget feil | alle tjenestene |
+| `jsonstore.ts` | `state/`-før-`data/`-lesing, og **den ene skrivekøen** | `sandbox-backend`, `fiks-simulator` |
 | `registerdata.ts` | Formene i `brreg.seed.json` og `folkeregister.seed.json` | `brreg-mcp`, `folkeregister-mcp`, `tools-api` |
 | `felles.css` | Stilen `demo-gui` og `process-builder` faktisk bruker | samme |
 | `ds-base.css`, `ds-ksdigital.css` | KS Digital designsystem, vendoret som ren CSS | `ds-eksempel.html` |
@@ -31,6 +32,14 @@ porter følger etter av seg selv.
   `@layer side;` og legg reglene der.
 - **Aldri rediger `ds-base.css` eller `ds-ksdigital.css`.** `pnpm ds:hent` overskriver
   dem.
+- **All skriving til delte filer i `state/` går gjennom `updateJson` i `jsonstore.ts`.**
+  Den gjør hele read-modify-write inne i køen, og den rene skriveren er privat med
+  vilje: å skrive en kopi requesten leste tidligere er nettopp lost update-en som
+  kostet repoet en søknad, en prosess og et deltakersteg — på fire steder, hvorav ett
+  hadde kø. En sperre som må huskes, er ingen sperre. `pnpm test:concurrency` og
+  `pnpm test:samtykke` pinner det. `ai-gateway` og `digdir-mock` skriver fortsatt hver
+  sin egen fil i `state/` utenfor lageret; de har én skriver hver, så det finnes ingen
+  andre å miste en oppdatering til.
 - **Nettleserkoden ligger i `client/`, og er `.ts` som alt annet.** Den kompileres
   ikke: `assets.ts` kjører den gjennom `module.stripTypeScriptTypes()` når den
   serveres, så typene forsvinner og linjenumrene står. Katalognavnet er ikke pynt —

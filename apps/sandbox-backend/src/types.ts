@@ -176,6 +176,21 @@ export type Samtykke = MedFelter & {
   dataKilder: string[];
 };
 
+/**
+ * prosessdefinisjoner.json, parsed — what a katalog write reads and hands back.
+ *
+ * The file's own shape is looser than this: an old version is a bare array, and
+ * `meta` is whatever keys sat beside `prosesser` and `maler`. State carries the
+ * same four fields flattened with a `prosess`-prefix, because a request reads
+ * the whole state as one object.
+ */
+export type Prosesskatalog = {
+  formatVersion: string;
+  prosesser: ProsessDefinisjon[];
+  maler: ProsessDefinisjon[];
+  meta: Record<string, unknown>;
+};
+
 export type State = {
   personer: Person[];
   husstander: Husstand[];
@@ -185,8 +200,6 @@ export type State = {
   soknader: MedFelter[];
   prosesser: ProsessDefinisjon[];
   prosessMaler: ProsessDefinisjon[];
-  prosessFormatVersion: string;
-  prosessKatalogMeta: Record<string, unknown>;
   informasjonsmodeller: unknown;
   samtykker: Samtykke[];
   revisjonslogg: MedFelter[];

@@ -17,7 +17,8 @@ import type { Overgangsutfall } from "./statemachine.ts";
 // numbers no register would ever have issued, and the sandbox's own population is
 // Tenor's +80 form — so "eleven digits" was never the actual rule.
 import { isGyldigFoedselsnummer } from "../../sandbox-backend/src/foedselsnummer.ts";
-import { createStateReader, newId, updateJson } from "./state.ts";
+import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { createStateReader, newId } from "./state.ts";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

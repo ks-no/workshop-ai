@@ -4,7 +4,8 @@ import { aiBaseUrl, fiksBaseUrl, fiksDialogToken } from "./config.ts";
 import { HttpError } from "./errors.ts";
 import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
-import { newId, writeJson } from "./state.ts";
+import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { newId } from "./state.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
@@ -90,7 +91,16 @@ async function fiksSvar(svar: Response, hva: string) {
   return data;
 }
 
-export async function createSoknad(tilstand: State, body: any, kaller: Caller) {
+/*
+ * The søknad is appended inside the write queue, not pushed onto the request's
+ * own copy of the array and written whole. That was a lost update with no queue
+ * at all: two SUBMIT at once, and the second writer's array never contained the
+ * first søknad — no error, nothing in the log, one citizen's application gone.
+ *
+ * It takes no State any more, and that is the point: there is no request-scoped
+ * copy left for it to write.
+ */
+export async function createSoknad(body: any, kaller: Caller) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -101,8 +111,9 @@ export async function createSoknad(tilstand: State, body: any, kaller: Caller) {
     syntetisk: true
   };
 
-  tilstand.soknader.push(nySoknad);
-  await writeJson("soknader.json", tilstand.soknader);
+  await updateJson("soknader.json", [], (soknader: unknown[]) => {
+    soknader.push(nySoknad);
+  });
   await addRevisjon({
     sporingsId: nySoknad.sporingsId,
     handling: "SOKNAD_SENDT_INN",
@@ -254,8 +265,8 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
     return data;
   },
 
-  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
-    const data = await createSoknad(tilstand, {
+  SUBMIT: async ({ oekt, prosess, steg, kaller }) => {
+    const data = await createSoknad({
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,

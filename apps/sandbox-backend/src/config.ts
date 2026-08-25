@@ -3,11 +3,6 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// data/ holds seed data and is tracked in git. Nothing here is ever written
-// to at runtime. Everything the services change lives in state/, which is
-// gitignored, so a demo run never dirties the working tree.
-export const seedDir = path.resolve(__dirname, "../../../data");
-export const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 export const openapiFile = path.resolve(__dirname, "../../../openapi/sandbox-backend.yaml");
 // PORT lets test scripts run an isolated instance alongside docker compose.
 export const port = Number(process.env.PORT) || 8080;

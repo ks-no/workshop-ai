@@ -1,24 +1,29 @@
-import { readJson, newId, writeJson } from "./state.ts";
+import { feilmelding } from "../../shared-ui/errors.ts";
+import { updateJson } from "../../shared-ui/jsonstore.ts";
+import { newId } from "./state.ts";
 
 // This service is the only writer of the audit log — fiks-simulator posts its
 // events to /api/revisjonslogg rather than touching the file.
 //
-// Writes are chained so that concurrent requests cannot interleave their
-// read-modify-write and drop each other's events.
-let revisjonQueue = Promise.resolve();
+// The read-modify-write runs inside the shared write queue, so concurrent
+// requests cannot interleave and drop each other's events. This module used to
+// carry its own copy of that queue; the copy is what fiks-simulator's updateJson
+// was in turn copied from.
 
 export async function addRevisjon(hendelse: Record<string, unknown>) {
-  revisjonQueue = revisjonQueue.then(async () => {
-    const revisjonslogg = await readJson("revisjonslogg.json", []);
-    revisjonslogg.push({
-      hendelseId: newId("revisjon"),
-      tidspunkt: new Date().toISOString(),
-      syntetisk: true,
-      ...hendelse
+  try {
+    await updateJson("revisjonslogg.json", [], (revisjonslogg: Record<string, unknown>[]) => {
+      revisjonslogg.push({
+        hendelseId: newId("revisjon"),
+        tidspunkt: new Date().toISOString(),
+        syntetisk: true,
+        ...hendelse
+      });
     });
-    await writeJson("revisjonslogg.json", revisjonslogg);
-  }).catch((error: Error) => {
-    console.warn(`Kunne ikke skrive revisjonslogg: ${error.message}`);
-  });
-  return revisjonQueue;
+  } catch (feil) {
+    // Swallowed on purpose, and the one writer that does: logging must never
+    // break the operation it logs. Everything else lets the error reach the
+    // caller — see updateJson.
+    console.warn(`Kunne ikke skrive revisjonslogg: ${feilmelding(feil)}`);
+  }
 }

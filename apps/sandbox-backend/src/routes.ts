@@ -33,9 +33,10 @@ import {
   isMalProsess,
   findPerson,
   findProsess,
+  findProsessIKatalog,
   findProsessoekt,
   getProsesserForVisning,
-  writeProsessdefinisjoner,
+  updateProsesskatalog,
   lagreProsessoekt,
   readState,
   normalizeProsess,
@@ -286,7 +287,7 @@ const ruter: Rute[] = [
     metode: "POST",
     tilgang: "aapen",
     sti: "/api/prosesser",
-    handter: async ({ request, response, tilstand }) => {
+    handter: async ({ request, response }) => {
       const body = await readBodyOnce(request);
       const nyProsess = normalizeProsess({
         id: body.id || newId("prosess"),
@@ -297,17 +298,15 @@ const ruter: Rute[] = [
         redigering: body.redigering || {},
         syntetisk: true
       });
-      const allProsesser = getProsesserForVisning(tilstand, true);
-      if (allProsesser.some((prosess: any) => prosess.id === nyProsess.id)) {
-        jsonResponse(response, 409, { feil: "Prosess med samme id finnes allerede." });
-        return;
-      }
-      if (isMalProsess(nyProsess)) {
-        tilstand.prosessMaler.push(nyProsess);
-      } else {
-        tilstand.prosesser.push(nyProsess);
-      }
-      await writeProsessdefinisjoner(tilstand);
+      // The duplicate check belongs inside the queue, next to the append: run
+      // against the request's own copy of the katalog and two saves at once both
+      // pass it, and one of them is then written away.
+      await updateProsesskatalog((katalog) => {
+        if (findProsessIKatalog(katalog, nyProsess.id)) {
+          throw new HttpError("Prosess med samme id finnes allerede.", 409);
+        }
+        (isMalProsess(nyProsess) ? katalog.maler : katalog.prosesser).push(nyProsess);
+      });
       await addRevisjon({
         sporingsId: newId("flyt"),
         handling: "PROSESS_OPPRETTET",
@@ -372,29 +371,30 @@ const ruter: Rute[] = [
     metode: "PUT",
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
-    handter: async ({ request, response, parametere, tilstand }) => {
+    handter: async ({ request, response, parametere }) => {
       const body = await readBodyOnce(request);
-      const index = tilstand.prosesser.findIndex((prosess: any) => prosess.id === parametere.prosessId);
-      const malIndeks = tilstand.prosessMaler.findIndex((prosess: any) => prosess.id === parametere.prosessId);
-      if (index === -1 && malIndeks === -1) {
-        jsonResponse(response, 404, { feil: "Fant ikke prosess." });
-        return;
-      }
-      const erMal = malIndeks !== -1;
-      const liste = erMal ? tilstand.prosessMaler : tilstand.prosesser;
-      const listeIndeks = erMal ? malIndeks : index;
-      const eksisterende = liste[listeIndeks];
-      const oppdatertProsess = normalizeProsess({
-        ...eksisterende,
-        navn: body.navn ?? eksisterende.navn,
-        beskrivelse: body.beskrivelse ?? eksisterende.beskrivelse,
-        versjon: body.versjon ?? eksisterende.versjon,
-        steg: Array.isArray(body.steg) ? body.steg : eksisterende.steg,
-        redigering: body.redigering ? { ...eksisterende.redigering, ...body.redigering } : eksisterende.redigering,
-        syntetisk: true
+      // Lookup, merge and write all happen against the same fresh read: the
+      // prosessbygger sends the whole prosess, so a merge onto a stale copy
+      // would silently undo whatever the other save had just added.
+      const oppdatertProsess = await updateProsesskatalog((katalog) => {
+        const plassering = findProsessIKatalog(katalog, parametere.prosessId);
+        if (!plassering) {
+          throw new HttpError("Fant ikke prosess.", 404);
+        }
+        const { liste, indeks } = plassering;
+        const eksisterende = liste[indeks];
+        const ny = normalizeProsess({
+          ...eksisterende,
+          navn: body.navn ?? eksisterende.navn,
+          beskrivelse: body.beskrivelse ?? eksisterende.beskrivelse,
+          versjon: body.versjon ?? eksisterende.versjon,
+          steg: Array.isArray(body.steg) ? body.steg : eksisterende.steg,
+          redigering: body.redigering ? { ...eksisterende.redigering, ...body.redigering } : eksisterende.redigering,
+          syntetisk: true
+        });
+        liste[indeks] = ny;
+        return ny;
       });
-      liste[listeIndeks] = oppdatertProsess;
-      await writeProsessdefinisjoner(tilstand);
       await addRevisjon({
         sporingsId: newId("flyt"),
         handling: "PROSESS_OPPDATERT",
@@ -523,9 +523,9 @@ const ruter: Rute[] = [
     metode: "POST",
     sti: "/api/soknader",
     finnPersonId: personIdFromBody,
-    handter: async ({ request, response, tilstand, kaller }) => {
+    handter: async ({ request, response, kaller }) => {
       const body = await readBodyOnce(request);
-      jsonResponse(response, 201, await createSoknad(tilstand, body, kaller));
+      jsonResponse(response, 201, await createSoknad(body, kaller));
     }
   },
   {

@@ -1,32 +1,15 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { seedDir, stateDir } from "./config.ts";
+// The state/-then-data/ read, the two paths and the single write queue live in
+// the shared store: revisjon.ts and fiks-simulator had grown their own copies of
+// all of it. Every reader and writer imports from there directly — a re-export
+// here would only be one more hop that can drift.
+import { readJson, seedDir, stateDir, updateJson } from "../../shared-ui/jsonstore.ts";
 import { maskBefolkning } from "./skjerming.ts";
 // The real type, not a local `any`. Three modules used to shadow it — this one,
 // routes.ts and ressurser.ts — so the one file that assembles the state was the
 // one place with no idea what it was assembling.
-import type { Datasettnoekkel, State } from "./types.ts";
-
-// Reads from state/ once something has been written there, and falls back to
-// the seed in data/. Pure seed files are never written, so they always come
-// from data/.
-//
-// Datasets that only exist at runtime have no seed at all, so they pass a
-// default. Anything called without one is required, and a missing file fails
-// loudly rather than quietly looking empty.
-export async function readJson(fileName: string, standardverdi?: unknown): Promise<any> {
-  for (const mappe of [stateDir, seedDir]) {
-    try {
-      return JSON.parse(await readFile(path.join(mappe, fileName), "utf8"));
-    } catch (error: any) {
-      if (error.code !== "ENOENT") throw error;
-    }
-  }
-  if (standardverdi !== undefined) {
-    return standardverdi;
-  }
-  throw new Error(`Fant ikke ${fileName} i verken state/ eller data/.`);
-}
+import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "./types.ts";
 
 // Which seed files are currently shadowed by a copy in state/.
 //
@@ -49,11 +32,6 @@ export async function findShadowedSeeds(): Promise<string[]> {
   return skygget;
 }
 
-export async function writeJson(fileName: string, data: unknown) {
-  await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, fileName), JSON.stringify(data, null, 2) + "\n");
-}
-
 export function normalizeProsess(prosess: any) {
   return {
     ...prosess,
@@ -65,7 +43,7 @@ export function normalizeProsess(prosess: any) {
   };
 }
 
-function parseProsessDefinisjoner(data: any) {
+function parseProsessDefinisjoner(data: any): Prosesskatalog {
   if (Array.isArray(data)) {
     return {
       formatVersion: "0.1.0",
@@ -98,12 +76,51 @@ export function getProsesserForVisning(tilstand: State, inkluderMaler = false) {
   return tilstand.prosesser;
 }
 
-export async function writeProsessdefinisjoner(tilstand: State) {
-  await writeJson("prosessdefinisjoner.json", {
-    ...tilstand.prosessKatalogMeta,
-    formatVersion: tilstand.prosessFormatVersion || "0.2.0",
-    prosesser: tilstand.prosesser,
-    maler: tilstand.prosessMaler
+/**
+ * Where a prosess sits in the katalog: which of the two lists holds it, and at
+ * which index. Null when neither does.
+ *
+ * Maler are searched first, which is the precedence the PUT route has always had
+ * for an id that somehow appears in both. Both katalog writers need this walk —
+ * one to refuse a duplicate, one to merge onto what is there — and it is the
+ * katalog's own business, not the route's.
+ */
+export function findProsessIKatalog(
+  katalog: Prosesskatalog,
+  prosessId: string
+): { liste: ProsessDefinisjon[]; indeks: number } | null {
+  for (const liste of [katalog.maler, katalog.prosesser]) {
+    const indeks = liste.findIndex((prosess) => prosess.id === prosessId);
+    if (indeks !== -1) return { liste, indeks };
+  }
+  return null;
+}
+
+/**
+ * Change the prosesskatalog, against the katalog that is on disk right now.
+ *
+ * The prosessbygger used to save by mutating the request's own copy of
+ * `tilstand.prosesser` and writing the whole catalogue back — the same lost
+ * update `lagreProsessoekt` fixed for the økter, and unqueued on top of it. Two
+ * saves at once dropped one prosess with no error anywhere.
+ *
+ * `change` therefore decides against fresh data: the duplicate-id 409 and the
+ * missing-prosess 404 are thrown from inside the queue, so no reply can promise
+ * something the file does not hold. The file's own shape is not the katalog's —
+ * a legacy version is a bare array — so the serialised form goes back via
+ * `replace`.
+ */
+export function updateProsesskatalog<T>(change: (katalog: Prosesskatalog) => T): Promise<T> {
+  return updateJson("prosessdefinisjoner.json", undefined, (data, replace) => {
+    const katalog = parseProsessDefinisjoner(data);
+    const result = change(katalog);
+    replace({
+      ...katalog.meta,
+      formatVersion: katalog.formatVersion || "0.2.0",
+      prosesser: katalog.prosesser,
+      maler: katalog.maler
+    });
+    return result;
   });
 }
 
@@ -195,8 +212,6 @@ export async function readState(): Promise<State> {
     soknader,
     prosesser: prosesskatalog.prosesser,
     prosessMaler: prosesskatalog.maler,
-    prosessFormatVersion: prosesskatalog.formatVersion,
-    prosessKatalogMeta: prosesskatalog.meta,
     informasjonsmodeller,
     samtykker,
     revisjonslogg,
@@ -221,19 +236,6 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
   return tilstand.prosessoekter.find((oekt: any) => oekt.oektsId === oektsId) || null;
 }
 
-/*
- * One queue for prosessoekter.json.
- *
- * Copied in shape from fiks-simulator/src/state.ts, which is itself copied from
- * revisjon.ts. Three copies is one too many and the shared layer should own it
- * (K2 in the architecture review) — but the bug this closes is live, and moving
- * the layer is not.
- *
- * The chain must survive a rejected link, or one failed write would wedge every
- * later one. The caller still sees the rejection.
- */
-let skrivekoe: Promise<unknown> = Promise.resolve();
-
 /**
  * Write one prosessoekt back, into data read fresh inside the queue.
  *
@@ -250,15 +252,11 @@ let skrivekoe: Promise<unknown> = Promise.resolve();
  * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
  */
 export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
-  const neste = skrivekoe.then(async () => {
-    const alle: { oektsId: string }[] = await readJson("prosessoekter.json", []);
+  return updateJson("prosessoekter.json", [], (alle: { oektsId: string }[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
     if (i === -1) alle.push(oekt);
     else alle[i] = oekt;
-    await writeJson("prosessoekter.json", alle);
   });
-  skrivekoe = neste.catch(() => {});
-  return neste;
 }
 
 export function getHusstandForPerson(tilstand: State, personId: string) {

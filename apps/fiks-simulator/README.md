@@ -100,8 +100,10 @@ UTLOEPT         → endelig
   Et forsøk på å gjenopplive et trukket samtykke er nettopp det en revisjonslogg er til
   for.
 - **Skriving er serialisert.** Ti samtidige `POST /fiks/samtykke` ga tre samtykker før
-  skrivekøen i `src/state.ts`; nå gir de ti. Fem samtidige svar på samme samtykke gir ett
-  `200` og fire `409`.
+  skrivekøen; nå gir de ti. Fem samtidige svar på samme samtykke gir ett `200` og fire
+  `409`. Køen ble skrevet her, men bor nå i `apps/shared-ui/jsonstore.ts` — den fantes i
+  tre kopier, og de to filene ingen av kopiene dekket ble skrevet uten kø i det hele
+  tatt. `src/state.ts` peker dit.
 
 Oppgaven har samme form, i `src/oppgave.ts`: `OPPRETTET → UNDER_BEHANDLING → FERDIG |
 AVVIST`. Ingen case driver en oppgave videre ennå — flaten finnes for en

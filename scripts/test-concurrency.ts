@@ -1,24 +1,29 @@
 #!/usr/bin/env node
 
 /*
- * The lost update on prosessoekter.json.
+ * The lost update, on every file the backend writes.
  *
- * Every handler in routes.ts used to mutate its own request-scoped copy of the
- * whole prosessoekter array and write all of it back. Two requests on *different*
- * økter therefore raced: the second writer overwrote the first one's change with
- * an array that never contained it. No error, no 409 — the participant's step was
- * simply gone, and the only symptom was a session that had quietly moved backwards.
+ * Every handler in routes.ts used to mutate its own request-scoped copy of a
+ * whole array and write all of it back. Two requests therefore raced: the second
+ * writer overwrote the first one's change with an array that never contained it.
+ * No error, no 409 — the participant's step, søknad or prosess was simply gone.
  *
- * This is the same bug fiks-simulator/src/state.ts:11-16 describes fixing for
- * samtykker.json, and that one is pinned by test-samtykke.js §6f. Nothing pinned
- * it for the økter, and kontrakt-smoke.js runs strictly sequentially so it could
- * never see it.
+ * Four files had the bug, and only one of them had a queue:
+ *
+ *   §1–3  prosessoekter.json — a session that had quietly moved backwards
+ *   §4    soknader.json      — two SUBMIT at once, one application lost
+ *   §5–6  prosessdefinisjoner.json — two saves in the prosessbygger, one prosess lost
+ *
+ * samtykker.json is the same bug, fixed first in fiks-simulator and pinned by
+ * test-samtykke.ts §6f. All of them now go through the one write queue in
+ * apps/shared-ui/jsonstore.ts. kontrakt-smoke.ts runs strictly sequentially, so
+ * it can never see any of this.
  *
  * Backend and digdir-mock on their own ports against a fresh STATE_DIR, so this
  * runs alongside a docker stack without touching it. Needs no model.
  *
  * Usage:
- *   node scripts/test-prosessoekt-concurrency.ts
+ *   node scripts/test-concurrency.ts
  */
 
 import { spawn } from "node:child_process";
@@ -106,6 +111,8 @@ await requireFreePort(digdirPort);
 
 const stateDir = await mkdtemp(path.join(tmpdir(), "concurrency-"));
 const oektFile = path.join(stateDir, "prosessoekter.json");
+const soknadFile = path.join(stateDir, "soknader.json");
+const prosessFile = path.join(stateDir, "prosessdefinisjoner.json");
 const env = {
   STATE_DIR: stateDir,
   BACKEND_BASE_URL: backendUrl,
@@ -189,6 +196,92 @@ try {
     return expected && expected.body.personId !== oekt.personId;
   });
   check("ingen økt byttet eier under kappløpet", wrongOwner.length === 0, String(wrongOwner.length));
+
+  /*
+   * 4. soknader.json. This is what a SUBMIT step writes, and it had no queue at
+   * all — push onto the request's own array, then write the whole thing.
+   *
+   * POST /api/soknader rather than driving ten flows to their SUBMIT step: it is
+   * the same createSoknad, and it takes seconds instead of needing samtykke, a
+   * beregning and the model. The Fiks task it tries to create afterwards fails on
+   * an unreachable FIKS_BASE_URL and comes back as `advarsel`, which is expected
+   * here and not what is under test.
+   */
+  const soknader = await Promise.all(
+    PERSON_IDS.map((personId: any, i: any) =>
+      call("/api/soknader", tokens[i], { method: "POST", body: { personId, prosessId: PROSESS } })
+    )
+  );
+  check("alle ti søknader gir 201", soknader.every((s: any) => s.status === 201),
+    soknader.map((s: any) => s.status).join(","));
+
+  const soknadIds = soknader.map((s: any) => s.body?.soknadId).filter(Boolean);
+  const soknaderOnDisk = JSON.parse(await readFile(soknadFile, "utf8"));
+  check("ti samtidige søknader gir ti søknader på disk", soknaderOnDisk.length === 10,
+    `${soknaderOnDisk.length} av 10 — dette er lost update-en`);
+  check("alle ti søknader finnes igjen på disk",
+    soknadIds.every((id: any) => soknaderOnDisk.some((soknad: any) => soknad.soknadId === id)),
+    `${soknadIds.filter((id: any) => !soknaderOnDisk.some((s: any) => s.soknadId === id)).length} forsvant`);
+
+  /*
+   * 5. prosessdefinisjoner.json, created. Same missing queue, and this is the
+   * file the prosessbygger saves to — the one a team edits live during the
+   * workshop while someone else is demoing.
+   *
+   * The seed count comes from the API rather than a literal, so adding a prosess
+   * to data/prosessdefinisjoner.json does not break this file.
+   */
+  const foerProsesser = (await call("/api/prosesser", tokens[0])).body as any[];
+  const nyeIds = Array.from({ length: COUNT }, (unused, i) => `samtidig-prosess-${i}`);
+  const opprettede = await Promise.all(
+    nyeIds.map((id) =>
+      call("/api/prosesser", tokens[0], {
+        method: "POST",
+        body: { id, navn: `Samtidig ${id}`, steg: [] }
+      })
+    )
+  );
+  check("alle ti prosesser gir 201", opprettede.every((s: any) => s.status === 201),
+    opprettede.map((s: any) => s.status).join(","));
+
+  const katalog = JSON.parse(await readFile(prosessFile, "utf8"));
+  check("ti samtidige prosesser gir ti nye prosesser på disk",
+    katalog.prosesser.length === foerProsesser.length + COUNT,
+    `${katalog.prosesser.length} av ${foerProsesser.length + COUNT} — dette er lost update-en`);
+  check("alle ti prosesser finnes igjen på disk",
+    nyeIds.every((id) => katalog.prosesser.some((prosess: any) => prosess.id === id)),
+    `${nyeIds.filter((id) => !katalog.prosesser.some((p: any) => p.id === id)).length} forsvant`);
+  // The katalog is parsed on read and serialised back on write, so the halves the
+  // writer does not touch have to survive the round trip. maler and the meta keys
+  // are the two that would go missing without a sound.
+  check("malene overlevde skrivingen", Array.isArray(katalog.maler) && katalog.maler.length > 0,
+    String(katalog.maler?.length));
+  check("katalog-metaen overlevde skrivingen",
+    typeof katalog.formatVersion === "string" && typeof katalog.beskrivelse === "string",
+    JSON.stringify({ formatVersion: katalog.formatVersion, beskrivelse: katalog.beskrivelse }));
+
+  /*
+   * 6. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
+   * prosessbygger actually calls, and it sends the whole prosess — so a merge
+   * onto a stale copy of the katalog undoes whatever the other save added.
+   */
+  const omdoept = await Promise.all(
+    nyeIds.map((id, i) =>
+      call(`/api/prosesser/${id}`, tokens[0], { method: "PUT", body: { navn: `Omdøpt ${i}` } })
+    )
+  );
+  check("alle ti oppdateringer gir 200", omdoept.every((s: any) => s.status === 200),
+    omdoept.map((s: any) => s.status).join(","));
+
+  const etterPut = JSON.parse(await readFile(prosessFile, "utf8"));
+  const omdoepte = nyeIds.filter((id, i) =>
+    etterPut.prosesser.some((prosess: any) => prosess.id === id && prosess.navn === `Omdøpt ${i}`)
+  );
+  check("alle ti navneendringer står på disk", omdoepte.length === COUNT,
+    `${omdoepte.length} av ${COUNT} — de øvrige mistet endringen sin i en samtidig skriving`);
+  check("ingen prosess forsvant under oppdateringene",
+    etterPut.prosesser.length === foerProsesser.length + COUNT,
+    String(etterPut.prosesser.length));
 } finally {
   for (const service of services) service.kill("SIGTERM");
   await rm(stateDir, { recursive: true, force: true });

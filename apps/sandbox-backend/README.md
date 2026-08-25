@@ -28,7 +28,7 @@ direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22
 | `vilkaar.ts` | Vilkårsvurdering mot `data/satser.json`. Rent og synkront: `grunnlag` kommer inn som parameter, så et utfall kan pinnes uten kjørende tjenester. `evaluateVilkaar` er eneste vei inn; `regelHandlers` er privat og har én håndterer per regeltype. |
 | `alder.ts` | `alderVed`. Delt av `vilkaar.ts`, `scripts/valider-data.ts` og `scripts/importer-tenor.ts`, som før hadde hver sin kopi. |
 | `regler.ts` | I/O-halvdelen av vilkårsvurderingen: henter beregningen fra Fiks, og samtykkepredikatene. |
-| `state.ts` | Lesing og skriving av datasett, og oppslagshjelpere. `readJson` leser `state/` først med `data/` som fallback. |
+| `state.ts` | Sammenstilling av datasettene og oppslagshjelperne. Selve I/O-en ligger i `apps/shared-ui/jsonstore.ts`: `readJson` leser `state/` først med `data/` som fallback, og all skriving går gjennom `updateJson`-køen der. |
 | `types.ts` | Domenetypene. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. |
 | `routing.ts`, `errors.ts`, `http.ts`, `config.ts`, `revisjon.ts` | Småting. |
 

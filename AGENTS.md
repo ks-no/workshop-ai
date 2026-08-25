@@ -37,8 +37,18 @@
   and `vilkaar.ts` (the vedtak). None of them may import `regler.ts`.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
-- `readJson` (`state.ts`) reads `state/` first and falls back to `data/`.
-  `./start.sh --reset` clears `state/`.
+- `readJson` (`apps/shared-ui/jsonstore.ts`) reads `state/` first and falls back to
+  `data/`. `./start.sh --reset` clears `state/`.
+- **Every write to a *shared* file under `state/` goes through `updateJson`** in that
+  same module, which does the whole read-modify-write inside one queue. The store
+  exports no plain writer at all, and that is deliberate: writing a copy the request
+  read earlier is the lost update that cost this repo a søknad, a prosess and a
+  participant's step, in four separate places. A guard that has to be remembered is not
+  a guard. `pnpm test:concurrency` pins it for `prosessoekter.json`, `soknader.json`
+  and `prosessdefinisjoner.json`, and `pnpm test:samtykke` for `samtykker.json`.
+  Two files stay outside the store and may: `state/ai-provider-override.json`
+  (`ai-gateway`) and `state/digdir-nokkel.json` (`digdir-mock`) have exactly one writer
+  each, in one service, so there is no second reader to lose an update to.
 - **The whole repo is TypeScript** — every service, every script, and the browser
   code. There is no build step: Node type-strips `.ts` on load, and the two frontends
   strip the client files at serve time (`apps/shared-ui/assets.ts`). `tsconfig.json`
@@ -46,11 +56,16 @@
 - `apps/sandbox-backend` is split into modules (`routes.ts`, `prosess.ts`,
   `ressurser.ts`, `vilkaar.ts`, `alder.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
   `errors.ts`, `config.ts`). `server.ts` only wires up the HTTP server.
-- **Four modules in `apps/shared-ui/` are shared by every service**: `http.ts` (CORS,
-  JSON and text responses, request bodies — the CORS policy is a parameter, because
-  the six copies it replaced had drifted apart), `errors.ts` (`feilmelding`/`feilkode`
-  for caught `unknown`), `assets.ts` (static files and type stripping), and
-  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json`).
+- **Five modules in `apps/shared-ui/` are the shared layer.** Two are used by every
+  service: `http.ts` (CORS, JSON and text responses, request bodies — the CORS policy
+  is a parameter, because the six copies it replaced had drifted apart) and `errors.ts`
+  (`feilmelding`/`feilkode` for caught `unknown`). The other three are used by whoever
+  needs them: `assets.ts` (static files and type stripping — the two frontends),
+  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` —
+  the two MCP servers and `tools-api`), and `jsonstore.ts` (`seedDir`/`stateDir`,
+  `readJson`, `updateJson` — the state I/O above and the one write queue that replaced
+  three copies of it; `sandbox-backend` and `fiks-simulator`, the two services that
+  share files on disk).
 - **Browser code lives in a `client/` directory, and each one has its own
   `tsconfig.json`** extending `tsconfig.client-base.json` (DOM lib, no `@types/node`,
   `moduleDetection: "legacy"`). The root config excludes `**/client/**`.
