@@ -154,7 +154,7 @@ export function lagSyntetiskFoedselsnummer(foedselsdato: string, forsoek = 0): s
     treff += 1;
   }
   throw new Error(
-    `Fant ikke syntetisk foedselsnummer nummer ${forsoek} for ${foedselsdato}. ` +
+    `Fant ikke syntetisk fødselsnummer nummer ${forsoek} for ${foedselsdato}. ` +
     `Bare ${treff} gyldige individnummer finnes for den datoen.`
   );
 }

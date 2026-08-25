@@ -76,7 +76,7 @@ let kastetForMange = false;
 try {
   lagSyntetiskFoedselsnummer("1990-06-15", 10000);
 } catch (error) {
-  kastetForMange = feilmelding(error).includes("Fant ikke syntetisk foedselsnummer");
+  kastetForMange = feilmelding(error).includes("Fant ikke syntetisk fødselsnummer");
 }
 check("for hoey forsoeksteller kaster", kastetForMange);
 
