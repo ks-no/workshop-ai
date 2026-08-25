@@ -6,6 +6,7 @@ import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { updateJson } from "../../shared/jsonstore.ts";
 import { newId } from "./state.ts";
+import { callUpstream, tryUpstream } from "./upstream.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
@@ -69,28 +70,6 @@ async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kall
   });
 }
 
-/**
- * The Fiks answer, or the Fiks error raised as our own.
- *
- * The samtykke routes have a state machine from Del D on, so answering the same
- * request twice, or answering one that was withdrawn, comes back as 409. This code
- * called `svar.json()` without looking at the status: the error body was stored as
- * the step's result and the flow carried on with HTTP 200, which is a worse outcome
- * than the 409 it hid. The status and the melding are passed through unchanged, so
- * the citizen reads what the samtykke service said rather than a paraphrase.
- */
-async function fiksSvar(svar: Response, hva: string) {
-  const data = await svar.json() as any;
-  if (!svar.ok) {
-    throw new HttpError(
-      data?.feil || `${hva} feilet i Fiks-simulatoren (status ${svar.status}).`,
-      svar.status,
-      { syntetisk: true, ...(data?.feilmeldinger ? { feilmeldinger: data.feilmeldinger } : {}) }
-    );
-  }
-  return data;
-}
-
 /*
  * The søknad is appended inside the write queue, not pushed onto the request's
  * own copy of the array and written whole. That was a lost update with no queue
@@ -121,9 +100,17 @@ export async function createSoknad(body: any, kaller: Caller) {
     aktor: aktorFor(kaller, nySoknad.personId)
   });
 
-  let oppgave = null;
-  try {
-    const svar = await fetch(`${fiksBaseUrl}/fiks/oppgaver`, {
+  /*
+   * The Fiks task is best effort: the søknad is already recorded, and the citizen
+   * is not made to send it again because a downstream queue is unhappy. But best
+   * effort means *one* way of degrading. This used to read only `svar.ok`, so a
+   * 403 left `oppgave: null` — indistinguishable from a søknad that never asked
+   * for a task — while an unreachable Fiks produced an advarsel. Same failure,
+   * two answers, and the silent one is the answer a scope mistake produces.
+   */
+  const oppgave = await tryUpstream<unknown>(
+    { service: "Fiks-simulatoren", action: "Å opprette oppgave" },
+    async () => fetch(`${fiksBaseUrl}/fiks/oppgaver`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -135,15 +122,17 @@ export async function createSoknad(body: any, kaller: Caller) {
         tittel: `Behandle ${body.prosessNavn || "søknad"}`,
         sporingsId: nySoknad.sporingsId
       })
-    });
-    if (svar.ok) {
-      oppgave = await svar.json();
-    }
-  } catch {
-    oppgave = { advarsel: "Kunne ikke opprette oppgave i Fiks-simulator." };
-  }
+    })
+  );
 
-  return { ...nySoknad, oppgave };
+  return {
+    ...nySoknad,
+    oppgave: oppgave.ok ? oppgave.data : {
+      advarsel: "Oppgaven i Fiks-simulatoren ble ikke opprettet. Søknaden er lagret.",
+      detalj: oppgave.error.message,
+      syntetisk: true
+    }
+  };
 }
 
 type StegContext = {
@@ -173,20 +162,22 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
 
   CONSENT_REQUEST: async ({ oekt, steg, body, kaller }) => {
     if (body.handling === "opprett-samtykke") {
-      const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(await maskinportenHeader(fiksDialogToken))
-        },
-        body: JSON.stringify({
-          personId: oekt.personId,
-          formaal: steg.formaal,
-          dataKilder: steg.dataKilder || [],
-          sporingsId: oekt.sporingsId
+      const data = await callUpstream<any>(
+        { service: "Fiks-simulatoren", action: "Å opprette samtykke", relayStatus: true },
+        async () => fetch(`${fiksBaseUrl}/fiks/samtykke`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(await maskinportenHeader(fiksDialogToken))
+          },
+          body: JSON.stringify({
+            personId: oekt.personId,
+            formaal: steg.formaal,
+            dataKilder: steg.dataKilder || [],
+            sporingsId: oekt.sporingsId
+          })
         })
-      });
-      const data = await fiksSvar(svar, "Å opprette samtykke");
+      );
       oekt.aktivtSamtykkeId = data.samtykkeId;
       oekt.resultater[steg.id] = data;
       return data;
@@ -198,22 +189,30 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
       if (!samtykkeId) {
         throw new HttpError("Ingen aktiv samtykkeforespørsel finnes.", 400);
       }
-      const svar = await fetch(`${fiksBaseUrl}/fiks/samtykke/${samtykkeId}/svar`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(await maskinportenHeader(fiksDialogToken))
-        },
-        body: JSON.stringify({
-          status,
-          sporingsId: oekt.sporingsId,
-          // Only this service holds the verified token, so only it can say who
-          // agreed. Without this the samtykke event would name fiks-simulator as
-          // the actor — honest, but far less useful than the truth.
-          aktor: aktorFor(kaller, oekt.personId)
+      /*
+       * The samtykke routes have a state machine from Del D on, so answering the
+       * same request twice, or answering one that was withdrawn, comes back as
+       * 409. Fiks's status and melding are passed through unchanged, so the
+       * citizen reads what the samtykke service said rather than a paraphrase.
+       */
+      const data = await callUpstream<any>(
+        { service: "Fiks-simulatoren", action: "Å svare på samtykket", relayStatus: true },
+        async () => fetch(`${fiksBaseUrl}/fiks/samtykke/${samtykkeId}/svar`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(await maskinportenHeader(fiksDialogToken))
+          },
+          body: JSON.stringify({
+            status,
+            sporingsId: oekt.sporingsId,
+            // Only this service holds the verified token, so only it can say who
+            // agreed. Without this the samtykke event would name fiks-simulator as
+            // the actor — honest, but far less useful than the truth.
+            aktor: aktorFor(kaller, oekt.personId)
+          })
         })
-      });
-      const data = await fiksSvar(svar, "Å svare på samtykket");
+      );
       oekt.resultater[steg.id] = data;
       return data;
     }
@@ -244,23 +243,33 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
     return resultat;
   },
 
+  /*
+   * The gateway answers 200 with an `advarsel` when the model is unavailable and
+   * it falls back to template text, so a failure here means the gateway itself
+   * broke. That used to be `svar.json()` with no ok-check: the gateway's error
+   * body was stored as the step's result, and the citizen's summary of their own
+   * application was a feilmelding. Failing the step leaves the økt on SUMMARY —
+   * withSession saves nothing when the handler throws — so a retry is a retry.
+   */
   SUMMARY: async ({ oekt, prosess, steg }) => {
-    const svar = await fetch(`${aiBaseUrl}/ai/oppsummering`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sporingsId: oekt.sporingsId,
-        kontekst: {
-          tjeneste: prosess.navn,
-          personId: oekt.personId,
-          prosessId: oekt.prosessId,
-          data: oekt.resultater,
-          svar: oekt.svar
-        },
-        sprak: "nb"
+    const data = await callUpstream<any>(
+      { service: "KI-tjenesten", action: "Å lage oppsummeringen" },
+      () => fetch(`${aiBaseUrl}/ai/oppsummering`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sporingsId: oekt.sporingsId,
+          kontekst: {
+            tjeneste: prosess.navn,
+            personId: oekt.personId,
+            prosessId: oekt.prosessId,
+            data: oekt.resultater,
+            svar: oekt.svar
+          },
+          sprak: "nb"
+        })
       })
-    });
-    const data = await svar.json();
+    );
     oekt.resultater[steg.id] = data;
     return data;
   },

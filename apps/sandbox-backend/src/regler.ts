@@ -7,6 +7,7 @@ import { effektivStatus } from "../../shared/samtykke.ts";
 import { HttpError } from "./errors.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { findPerson, getHusstandForPerson } from "./state.ts";
+import { callUpstream } from "./upstream.ts";
 import type { Satser, SjekkResultat, State } from "./types.ts";
 // The rules themselves live in vilkaar.ts and are pure. This file is the I/O half:
 // it fetches the beregning, then hands the numbers over. The arrow points one way,
@@ -39,21 +40,23 @@ async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaa
       };
     });
 
-  const svar = await fetch(
-    `${fiksBaseUrl}/register/api/v1/ks/${fiksRolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(await maskinportenHeader(fiksRegisterToken))
-      },
-      body: JSON.stringify({ inntektsaar, personer })
-    }
+  // A plain Error here became «Intern feil i sandbox-backend» with the status
+  // buried in `detalj`, which named this service for a failure in another one.
+  // upstream.ts owns that reading now — see the header comment there.
+  return callUpstream<any>(
+    { service: "Fiks-simulatoren", action: "Beregningen av inntektsgrunnlaget" },
+    async () => fetch(
+      `${fiksBaseUrl}/register/api/v1/ks/${fiksRolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(await maskinportenHeader(fiksRegisterToken))
+        },
+        body: JSON.stringify({ inntektsaar, personer })
+      }
+    )
   );
-  if (!svar.ok) {
-    throw new Error(`Beregning i Fiks-simulatoren feilet med status ${svar.status}.`);
-  }
-  return svar.json();
 }
 
 function sisteInntektsaar(tilstand: State, personId: string) {

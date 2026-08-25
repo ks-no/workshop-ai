@@ -57,7 +57,7 @@
   has no `allowJs`, so a `.js` file imported from `.ts` is a compile error.
 - `apps/sandbox-backend` is split into modules (`routes.ts`, `prosess.ts`,
   `ressurser.ts`, `vilkaar.ts`, `regler.ts`, `state.ts`, `revisjon.ts`, `types.ts`, `routing.ts`,
-  `errors.ts`, `config.ts`). `server.ts` only wires up the HTTP server.
+  `errors.ts`, `upstream.ts`, `config.ts`). `server.ts` only wires up the HTTP server.
 - **`apps/shared/` is the shared layer, and it is below every service.** It was called
   `shared-ui` while it only held frontend files; it now holds backend plumbing and the
   domain leaves as well, so the name was a claim it had stopped meeting. Two modules are
@@ -130,6 +130,23 @@
   (`apps/sandbox-backend/src/ressurser.ts`), not per route. One catalog entry is
   simultaneously an HTTP endpoint, a valid `DATA_FETCH` target and a valid `SJEKK`
   target. Do not route around this.
+- **What a non-ok answer from another service means is decided in one place:
+  `upstream.ts`.** `callUpstream` raises the failure as ours, `tryUpstream` hands it
+  back so a best-effort call can degrade into an advarsel — and no fetch in the
+  engine is awaited anywhere else. Four readings of the same status existed before
+  it, each locally reasonable: the samtykke calls raised the upstream status, the
+  beregning threw a plain Error and so reported «Intern feil i sandbox-backend» for
+  a Fiks that broke, the Fiks task looked only at `ok` so a 403 was silence where an
+  unreachable Fiks was an advarsel — and `matrikkel.ts` had it right, alone. Three
+  were wrong; the fourth is now the shared one.
+  The rule: no contact, a 5xx, or a body that is not JSON is 502 — the last of those
+  used to be a SyntaxError thrown from inside the failure path. A 4xx is passed
+  through only where the call sets `relayStatus`, which the two samtykke calls do
+  because there the upstream is judging the citizen's own request. The beregning and
+  the matrikkel lookups do not: Fiks refusing our machine token is our
+  infrastructure problem, and answering 403 for it would collide with the 403 this
+  backend uses for «samtykke mangler». `pnpm test:upstream` pins all of it,
+  including that the call sites still hand their fetches over.
 - Audit events are first-class output (`state/revisjonslogg.json`); keep behavior observable.
 
 ## Naming: English for code, Norwegian for domain
@@ -215,6 +232,7 @@ pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtu
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
+pnpm test:upstream        # what a non-ok answer from another service means, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -267,8 +285,8 @@ pnpm test:agent:matrikkel
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:concurrency`, `test:replay`, `test:imports`, `test:openapi`,
-  `test:docs` and
+  `test:samtykke`, `test:upstream`, `test:concurrency`, `test:replay`, `test:imports`,
+  `test:openapi`, `test:docs` and
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts

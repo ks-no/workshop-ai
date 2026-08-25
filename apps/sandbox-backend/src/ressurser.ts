@@ -6,6 +6,7 @@ import {
   type Tilgang
 } from "./autentisering.ts";
 import { representantPider } from "../../shared/handleevne.ts";
+import { feilmelding } from "../../shared/errors.ts";
 import { HttpError } from "./errors.ts";
 import {
   hasGyldigSamtykke,
@@ -152,6 +153,28 @@ export type Ressurs = {
   handter: (kontekst: RessursContext) => unknown | Promise<unknown>;
 };
 
+/*
+ * A domain lookup throws a plain Error, which carries no status, so each route says
+ * which one it means: «fant ikke person» is a 404, «ukjent ordning» a 400.
+ *
+ * What this must not do is flatten an error that already knows its status. Seven
+ * handlers used to `catch (error: any)` and rebuild every failure as the route's
+ * own — so the beregning's 502 from upstream.ts came back as 400 on the sjekk
+ * routes and 404 on the inntekt routes, blaming the citizen's request for a
+ * service that was down. That is the same conflation of «feil» and «svar» the
+ * process engine was just cleaned of; it made no more sense one layer out.
+ */
+async function withStatus<T>(status: number, read: () => T | Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+    throw new HttpError(feilmelding(error), status);
+  }
+}
+
 export const ressurser: Ressurs[] = [
   {
     metode: "GET",
@@ -172,13 +195,8 @@ export const ressurser: Ressurs[] = [
     ressurs: "husstand",
     beskrivelse: "Husstanden personen tilhører, med roller for foresatte og barn.",
     omfatter: allIHusstand,
-    handter: ({ tilstand, personId }) => {
-      try {
-        return getHusstandForPerson(tilstand, personId);
-      } catch (error: any) {
-        throw new HttpError(error.message, 404);
-      }
-    }
+    handter: ({ tilstand, personId }) =>
+      withStatus(404, () => getHusstandForPerson(tilstand, personId))
   },
   {
     metode: "GET",
@@ -190,13 +208,8 @@ export const ressurser: Ressurs[] = [
     omfatter: foresatteIHusstand,
     kreverSamtykke: "inntekt",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
-    handter: async ({ tilstand, personId }) => {
-      try {
-        return await getInntektForPerson(tilstand, personId);
-      } catch (error: any) {
-        throw new HttpError(error.message, 404);
-      }
-    }
+    handter: ({ tilstand, personId }) =>
+      withStatus(404, () => getInntektForPerson(tilstand, personId))
   },
   {
     metode: "GET",
@@ -204,13 +217,8 @@ export const ressurser: Ressurs[] = [
     ressurs: "barnehageplass",
     beskrivelse: "Barnehageplasser registrert på barna i husstanden.",
     omfatter: (kontekst) => barnMedPlass(kontekst, "barnehage"),
-    handter: ({ tilstand, personId }) => {
-      try {
-        return getPlasserForTjeneste(tilstand, personId, "barnehage");
-      } catch (error: any) {
-        throw new HttpError(error.message, 404);
-      }
-    }
+    handter: ({ tilstand, personId }) =>
+      withStatus(404, () => getPlasserForTjeneste(tilstand, personId, "barnehage"))
   },
   {
     // SFO data used to be reachable only indirectly, through the rules check.
@@ -220,13 +228,8 @@ export const ressurser: Ressurs[] = [
     ressurs: "sfoplass",
     beskrivelse: "SFO-plasser registrert på barna i husstanden.",
     omfatter: (kontekst) => barnMedPlass(kontekst, "sfo"),
-    handter: ({ tilstand, personId }) => {
-      try {
-        return getPlasserForTjeneste(tilstand, personId, "sfo");
-      } catch (error: any) {
-        throw new HttpError(error.message, 404);
-      }
-    }
+    handter: ({ tilstand, personId }) =>
+      withStatus(404, () => getPlasserForTjeneste(tilstand, personId, "sfo"))
   },
   {
     metode: "GET",
@@ -235,13 +238,8 @@ export const ressurser: Ressurs[] = [
     beskrivelse: "Fritidsaktiviteter barna i husstanden deltar i.",
     omfatter: (kontekst) => barnMedPlass(kontekst, "fritid"),
     formaal: "Vise fritidsaktiviteter i husstanden",
-    handter: ({ tilstand, personId }) => {
-      try {
-        return getPlasserForTjeneste(tilstand, personId, "fritid");
-      } catch (error: any) {
-        throw new HttpError(error.message, 404);
-      }
-    }
+    handter: ({ tilstand, personId }) =>
+      withStatus(404, () => getPlasserForTjeneste(tilstand, personId, "fritid"))
   },
   {
     metode: "GET",
@@ -372,18 +370,15 @@ export const ressurser: Ressurs[] = [
         throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
       }
     },
-    handter: async ({ tilstand, sok, personId }) => {
-      try {
+    handter: ({ tilstand, sok, personId }) =>
+      withStatus(400, () => {
         // `tjeneste` lets a process say "assess SFO" and leave the choice of ordning
         // to the child's actual trinn, instead of naming one and being wrong for
         // every household outside it.
         const ordning = sok.get("ordning")
           || selectOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
-        return await evaluateOrdning(tilstand, personId, ordning);
-      } catch (error: any) {
-        throw new HttpError(error.message, 400);
-      }
-    }
+        return evaluateOrdning(tilstand, personId, ordning);
+      })
   },
   {
     metode: "GET",
@@ -402,15 +397,12 @@ export const ressurser: Ressurs[] = [
         throw new HttpError("personId og enten ordning eller tjeneste er påkrevd.", 400);
       }
     },
-    handter: async ({ tilstand, sok, personId }) => {
-      try {
+    handter: ({ tilstand, sok, personId }) =>
+      withStatus(400, () => {
         const ordning = sok.get("ordning")
           || selectOrdningForTjeneste(tilstand, personId, sok.get("tjeneste")!);
-        return await evaluateOrdning(tilstand, personId, ordning);
-      } catch (error: any) {
-        throw new HttpError(error.message, 400);
-      }
-    }
+        return evaluateOrdning(tilstand, personId, ordning);
+      })
   }
 ];
 

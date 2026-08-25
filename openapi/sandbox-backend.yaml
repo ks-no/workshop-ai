@@ -216,6 +216,17 @@ paths:
       responses:
         "200":
           description: Handling utført
+        "409":
+          description: >
+            Samtykkesteget: fiks-simulator avviste svaret, typisk fordi
+            forespørselen alt er besvart eller trukket. Status og melding er
+            samtykketjenestens egne, ikke omskrevet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
   /api/prosessoekter/{oektsId}/neste:
     post:
       summary: Gå til neste steg
@@ -332,6 +343,8 @@ paths:
           $ref: "#/components/responses/ManglerSamtykke"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
 
   /api/personer/{personId}/barnehage:
     get:
@@ -447,7 +460,15 @@ paths:
                   type: string
       responses:
         "201":
-          description: Soeknad opprettet
+          description: >
+            Søknaden er lagret. Oppgaven i fiks-simulator er best effort: går
+            den ikke gjennom, står `oppgave.advarsel` i stedet, med årsaken i
+            `oppgave.detalj`. Et avvist kall og en utilgjengelig tjeneste ser
+            like ut her — søknaden er lagret uansett.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SoknadMedOppgave"
 
   /api/soknader/{soknadId}:
     get:
@@ -657,6 +678,8 @@ paths:
             Samtykke mangler. Vurderingen roeper husholdningens
             inntektsgrunnlag og er derfor underlagt samme samtykkekrav som
             /api/personer/{personId}/inntekt.
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
 
   /api/regler/sjekk/ordning:
     get:
@@ -710,6 +733,8 @@ paths:
                 $ref: "#/components/schemas/Feil"
         "403":
           $ref: "#/components/responses/ManglerSamtykke"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
 
   /api/husstander/{husstandId}/inntektsgrunnlag:
     get:
@@ -737,6 +762,8 @@ paths:
           $ref: "#/components/responses/ManglerSamtykke"
         "404":
           $ref: "#/components/responses/IkkeFunnet"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
 
   /api/revisjonslogg:
     get:
@@ -884,6 +911,17 @@ components:
         Tokenet er gyldig, men gir ikke hjemmel her: `pid` er en annen person enn
         forespørselen gjelder, eller maskinen mangler scope. `grunn` er
         mangler_hjemmel.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Feil"
+    OppstroemsFeil:
+      description: >
+        Et kall videre til fiks-simulator, ai-gateway eller matrikkel-mock nådde
+        ikke fram, eller tjenesten svarte 5xx. `detalj` sier hva som feilet og
+        `hint` hva som mangler å kjøre. Én ting sendes videre med sin egen status
+        i stedet: samtykkekallenes 4xx, der tjenesten har vurdert innbyggerens
+        egen forespørsel. Se upstream.ts.
       content:
         application/json:
           schema:
@@ -1152,6 +1190,25 @@ components:
           type: string
         syntetisk:
           type: boolean
+    SoknadMedOppgave:
+      allOf:
+        - $ref: "#/components/schemas/Soknad"
+        - type: object
+          properties:
+            oppgave:
+              description: >
+                Oppgaven fiks-simulator opprettet, eller advarselen om at den
+                ikke ble opprettet — en søknad uten oppgaveId sier hvorfor.
+              type: object
+              properties:
+                oppgaveId:
+                  type: string
+                advarsel:
+                  type: string
+                detalj:
+                  type: string
+                syntetisk:
+                  type: boolean
     Inntektsgrunnlag:
       type: object
       description: >

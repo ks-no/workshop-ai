@@ -79,6 +79,16 @@ jobs:
       - name: Samtykkets tilstandsmaskin
         run: pnpm test:samtykke
 
+      # What a non-ok answer from an upstream service means, as pure functions:
+      # `send` is a callback, so a Response is handed in as a literal. Every case
+      # is one the kontrakt dump cannot reach — that dump records the flows where
+      # upstream answers ok, which is exactly why it stays byte-identical here.
+      # It also holds the structural half: the engine hands its fetches to
+      # upstream.ts instead of reading a status itself, which is the property that
+      # had drifted into four separate readings.
+      - name: Oppstrømssvar
+        run: pnpm test:upstream
+
       # The lost update on prosessoekter.json. Every handler used to write the whole
       # array from its own request-scoped copy, so two requests on different økter
       # raced and the second silently dropped the first one's change. With the bug

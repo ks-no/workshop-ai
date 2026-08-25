@@ -1,5 +1,5 @@
 import { matrikkelBaseUrl } from "./config.ts";
-import { HttpError } from "./errors.ts";
+import { callUpstream } from "./upstream.ts";
 
 // MATRIKKEL CLIENT
 //
@@ -38,28 +38,21 @@ export type Eiendom = {
 
 // 404 is a real answer here — "no such street" — so it maps to null rather than
 // an error. Everything else means the matrikkel is unreachable or broken, and
-// that must not be mistaken for "the street does not exist".
+// that must not be mistaken for "the street does not exist". `emptyOn` is the only
+// thing this call needs on top of upstream.ts, and no `relayStatus`: a matrikkel
+// that judges our request is a matrikkel that is broken from here, not a verdict
+// to hand the citizen. The reading of every other status is now shared with the
+// Fiks and KI calls, and used not to be.
 async function hent(sti: string): Promise<any> {
-  let svar: Response;
-  try {
-    svar = await fetch(`${matrikkelBaseUrl}${sti}`);
-  } catch (feil) {
-    throw new HttpError(
-      `Fikk ikke kontakt med matrikkeltjenesten på ${matrikkelBaseUrl}. ` +
-      `Kjører matrikkel-mock?`,
-      502,
-      { detalj: feil instanceof Error ? feil.message : String(feil), syntetisk: true }
-    );
-  }
-  if (svar.status === 404) return null;
-  if (!svar.ok) {
-    throw new HttpError(
-      `Matrikkeltjenesten svarte ${svar.status} på ${sti}.`,
-      502,
-      { syntetisk: true }
-    );
-  }
-  return svar.json();
+  return callUpstream<any>(
+    {
+      service: "matrikkeltjenesten",
+      action: `Oppslaget mot ${sti}`,
+      emptyOn: [404],
+      hintWhenDown: `Kjører matrikkel-mock på ${matrikkelBaseUrl}?`
+    },
+    () => fetch(`${matrikkelBaseUrl}${sti}`)
+  );
 }
 
 export async function getGater(): Promise<Gate[]> {
