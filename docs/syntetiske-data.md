@@ -143,8 +143,11 @@ Datamodellen låner vokabular fra ekte spesifikasjoner, men er bevisst forenklet
   `syntetiskFodselsnummer` og ikke `folkeregisteridentifikator`, fordi
   `policies/data-policy.yaml` krever at syntetiske data er tydelig merket.
 - **Inntekt** følger [KS Fiks sitt beregnings-API](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json),
-  beregningstype `BARNEHAGE_SFO`. `fiks-simulator` eksponerer endepunktet på den
-  ekte stien, så kall kan kopieres fra Fiks-dokumentasjonen.
+  beregningstypene `BARNEHAGE_SFO`, `PRAKTISK_BISTAND` og
+  `LANGTIDSOPPHOLD_INSTITUSJON`. `fiks-simulator` eksponerer endepunktene på de
+  ekte stiene, så kall kan kopieres fra Fiks-dokumentasjonen. De syntetiske
+  dataene har ingen formue- eller gjeldsposter, så kategoriene FORMUE, GJELD og
+  ANNET forekommer aldri i sandkassen.
 - **Eiendom** kommer fra [Geonorges adresse-API](https://ws.geonorge.no/adresser/v1),
   som er offentlige adressedata. Eierskapet er vårt eget og syntetisk.
 - **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i
