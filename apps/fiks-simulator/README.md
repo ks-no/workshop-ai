@@ -12,7 +12,7 @@ Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-21 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
+23 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
 Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`,
 `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så et oppgave-token
 åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises på alle fire med
@@ -66,13 +66,17 @@ Oppgaver og meldinger:
 - `PUT /fiks/oppgaver/{oppgaveId}/status`
 - `POST /fiks/meldinger`, `GET /fiks/meldinger/{meldingId}`
 
-Beregning — den eneste ruta som speiler et ekte KS-API, også bak `ks:fiks:register`:
+Beregning — de eneste rutene som speiler et ekte KS-API, også bak `ks:fiks:register`:
 
 - `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
+- `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/praktisk-bistand`
+- `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/langtidsopphold-institusjon`
 
 Modellert etter
 [register-skatteoginntektsopplysninger-beregning-api-v1](https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json),
-beregningstype `BARNEHAGE_SFO`.
+beregningstypene `BARNEHAGE_SFO`, `PRAKTISK_BISTAND` og `LANGTIDSOPPHOLD_INSTITUSJON`.
+Typene deler svarform; forskjellene er persontypene per type og at langtidsopphold
+i tillegg viser kategorien `FRADRAG`, bygget av postene med `medregnes: false`.
 
 Pluss `/helse`, `/docs`, `/openapi.yaml` og `/openapi-ruter.json`.
 

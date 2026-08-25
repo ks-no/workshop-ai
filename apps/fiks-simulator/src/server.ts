@@ -88,7 +88,7 @@ const { jsonResponse, textResponse } = svarhjelpere({
  *
  * Kroppene er JSON fra tråden og har ikke vært gjennom noen validering når de
  * navngis her — typen sier hva ruta regner med, ikke hva den har fått. Derfor
- * står feilmeldingene i computeRedusertForeldrebetaling fortsatt: de sjekker det
+ * står feilmeldingene i computeBeregning fortsatt: de sjekker det
  * typen ikke kan.
  */
 type Aktor = { type: string; id?: string; paaVegneAv?: string; consumer?: string };
@@ -160,12 +160,42 @@ async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
 // --------------------------------------------------------------------------
 // Skatte- og inntektsopplysninger: beregning
 //
-// Modelled on the KS Fiks register API, beregningstype BARNEHAGE_SFO:
+// Modelled on the KS Fiks register API:
 // https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
+//
+// Three beregningstyper live on the same path family and share the response
+// shape and this machinery; a Typeoppsett holds what differs between them.
+// The /pdf variants and the generic /beregning route are not implemented
+// (flagged as deviations in openapi/fiks-simulator.yaml).
 //
 // The simulator computes the grunnlag. The income thresholds belong to the
 // municipality and live in data/satser.json, which sandbox-backend reads.
 // --------------------------------------------------------------------------
+
+/** What separates the beregningstyper the register surface serves. */
+type Typeoppsett = {
+  beregningstype: string;
+  persontyper: string[];
+  /** Extra visningskategori built from medregnes: false posts; omitted when empty. */
+  fradragskategori?: string;
+};
+
+const BARNEHAGE_SFO: Typeoppsett = {
+  beregningstype: "BARNEHAGE_SFO",
+  persontyper: ["SOEKER", "ANNET"]
+};
+const PRAKTISK_BISTAND: Typeoppsett = {
+  beregningstype: "PRAKTISK_BISTAND",
+  persontyper: ["SOEKER", "ANNET"]
+};
+// The synthetic data has no formue/gjeld posts, so FRADRAG only ever holds the
+// medregnes: false ytelser. Putting formue into data/inntekter.json would change
+// the answers on the existing routes and break the contract dump.
+const LANGTIDSOPPHOLD_INSTITUSJON: Typeoppsett = {
+  beregningstype: "LANGTIDSOPPHOLD_INSTITUSJON",
+  persontyper: ["SOEKER", "EKTEFELLE", "PARTNER", "SAMBOER", "BARN"],
+  fradragskategori: "FRADRAG"
+};
 
 // Entries excluded from the grunnlag are recorded as ADDERE under inntekt and
 // SUBTRAHERE under fradrag. That keeps beregningsbeloep correct while still letting
@@ -236,12 +266,12 @@ type Visningspost = {
   infotekst?: string;
 };
 
-function buildVisningsposter(deltakere: Deltaker[]) {
+function collectVisningsposter(deltakere: Deltaker[], medregnes: boolean) {
   const byType = new Map<string, Visningspost>();
 
   for (const d of deltakere) {
     for (const post of d.poster) {
-      if (!post.medregnes) continue;
+      if (Boolean(post.medregnes) !== medregnes) continue;
       if (!byType.has(post.tekniskNavn)) {
         byType.set(post.tekniskNavn, {
           tekniskNavn: post.tekniskNavn,
@@ -260,10 +290,21 @@ function buildVisningsposter(deltakere: Deltaker[]) {
     }
   }
 
-  return [{ kategori: "INNTEKT", poster: [...byType.values()] }];
+  return [...byType.values()];
 }
 
-function computeRedusertForeldrebetaling(body: BeregningKropp, personer: Person[], inntekter: Inntekt[]) {
+function buildVisningsposter(deltakere: Deltaker[], fradragskategori?: string) {
+  const kategorier = [{ kategori: "INNTEKT", poster: collectVisningsposter(deltakere, true) }];
+  if (fradragskategori) {
+    const poster = collectVisningsposter(deltakere, false);
+    if (poster.length > 0) {
+      kategorier.push({ kategori: fradragskategori, poster });
+    }
+  }
+  return kategorier;
+}
+
+function computeBeregning(body: BeregningKropp, personer: Person[], inntekter: Inntekt[], typeoppsett: Typeoppsett) {
   const feilmeldinger: Feilmelding[] = [];
   const inntektsaar = body.inntektsaar;
 
@@ -303,10 +344,16 @@ function computeRedusertForeldrebetaling(body: BeregningKropp, personer: Person[
     }
 
     const type = requested.type || "SOEKER";
-    if (!["SOEKER", "ANNET"].includes(type)) {
+    if (!typeoppsett.persontyper.includes(type)) {
+      // « eller » before the last element: the BARNEHAGE_SFO message predates
+      // the other beregningstyper and must stay byte-identical.
+      const gyldige = typeoppsett.persontyper;
+      const liste = [gyldige.slice(0, -1).join(", "), gyldige[gyldige.length - 1]]
+        .filter(Boolean)
+        .join(" eller ");
       feilmeldinger.push({
         kode: "UGYLDIG_PERSONTYPE",
-        melding: `type må være SOEKER eller ANNET for beregningstype BARNEHAGE_SFO, fikk ${type}.`
+        melding: `type må være ${liste} for beregningstype ${typeoppsett.beregningstype}, fikk ${type}.`
       });
       continue;
     }
@@ -621,6 +668,54 @@ function docsHtml(): string {
   </html>`;
 }
 
+async function handleBeregning(
+  request: IncomingMessage,
+  response: ServerResponse,
+  tilstand: ReturnType<typeof createStateReader>,
+  typeoppsett: Typeoppsett
+) {
+  const klient = await requireRegisterHjemmel(request);
+  const body = await readRequestBody(request) as BeregningKropp;
+  const { feilmeldinger, deltakere, personerResponse } = computeBeregning(
+    body, await tilstand.personer(), await tilstand.inntekter(), typeoppsett
+  );
+  const { inntekt, fradrag, beregningsbeloep } = buildBeregning(deltakere);
+  const stages = personerResponse.map((p) => p.stadie);
+
+  await addRevisjon({
+    sporingsId: body.sporingsId,
+    handling: "BEREGNING_UTFOERT",
+    ressurs: "skatteoginntektsopplysninger",
+    // Who asked, not just who computed. The consumer claim names the
+    // organisation behind the client, which is what makes "which municipality
+    // looked this up" answerable.
+    aktor: klient
+      ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
+      : { type: "system", id: "fiks-simulator" },
+    // The BARNEHAGE_SFO event predates the other beregningstyper and stays as
+    // it was; for the newer types the audit log says which beregning ran.
+    ...(typeoppsett.beregningstype === "BARNEHAGE_SFO"
+      ? {}
+      : { grunnlag: { beregningstype: typeoppsett.beregningstype } })
+  });
+
+  jsonResponse(response, 200, {
+    inntektsaar: body.inntektsaar,
+    stadie: stages.length === 0 || stages.includes("UKJENT")
+      ? "UKJENT"
+      : stages.includes("UTKAST") ? "UTKAST" : "OPPGJOER",
+    personer: personerResponse,
+    visningsposter: buildVisningsposter(deltakere, typeoppsett.fradragskategori),
+    beregningsbeloep,
+    inntekt,
+    fradrag,
+    soeketidspunkt: new Date().toISOString(),
+    beregningstype: typeoppsett.beregningstype,
+    feilmeldinger,
+    syntetisk: true
+  });
+}
+
 const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
   const url = new URL(request.url!, `http://${request.headers.host}`);
 
@@ -668,41 +763,23 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/redusert-foreldrebetaling$/
     );
     if (request.method === "POST" && beregningTreff) {
-      const klient = await requireRegisterHjemmel(request);
-      const body = await readRequestBody(request) as BeregningKropp;
-      const { feilmeldinger, deltakere, personerResponse } = computeRedusertForeldrebetaling(
-        body, await tilstand.personer(), await tilstand.inntekter()
-      );
-      const { inntekt, fradrag, beregningsbeloep } = buildBeregning(deltakere);
-      const stages = personerResponse.map((p) => p.stadie);
+      await handleBeregning(request, response, tilstand, BARNEHAGE_SFO);
+      return;
+    }
 
-      await addRevisjon({
-        sporingsId: body.sporingsId,
-        handling: "BEREGNING_UTFOERT",
-        ressurs: "skatteoginntektsopplysninger",
-        // Who asked, not just who computed. The consumer claim names the
-        // organisation behind the client, which is what makes "which municipality
-        // looked this up" answerable.
-        aktor: klient
-          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
-          : { type: "system", id: "fiks-simulator" }
-      });
+    const praktiskBistandTreff = url.pathname.match(
+      /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/praktisk-bistand$/
+    );
+    if (request.method === "POST" && praktiskBistandTreff) {
+      await handleBeregning(request, response, tilstand, PRAKTISK_BISTAND);
+      return;
+    }
 
-      jsonResponse(response, 200, {
-        inntektsaar: body.inntektsaar,
-        stadie: stages.length === 0 || stages.includes("UKJENT")
-          ? "UKJENT"
-          : stages.includes("UTKAST") ? "UTKAST" : "OPPGJOER",
-        personer: personerResponse,
-        visningsposter: buildVisningsposter(deltakere),
-        beregningsbeloep,
-        inntekt,
-        fradrag,
-        soeketidspunkt: new Date().toISOString(),
-        beregningstype: "BARNEHAGE_SFO",
-        feilmeldinger,
-        syntetisk: true
-      });
+    const langtidsoppholdTreff = url.pathname.match(
+      /^\/register\/api\/v1\/ks\/([^/]+)\/skatteoginntektsopplysninger\/beregning\/langtidsopphold-institusjon$/
+    );
+    if (request.method === "POST" && langtidsoppholdTreff) {
+      await handleBeregning(request, response, tilstand, LANGTIDSOPPHOLD_INSTITUSJON);
       return;
     }
 

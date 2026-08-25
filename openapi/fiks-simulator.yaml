@@ -709,6 +709,282 @@ paths:
                         melding:
                           type: string
 
+  /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/praktisk-bistand:
+    post:
+      summary: Beregn inntektsgrunnlag for praktisk bistand
+      description: >
+        Simulerer KS Fiks sitt register-API, beregningstype PRAKTISK_BISTAND.
+        Samme stifamilie, kropp og svarform som redusert foreldrebetaling;
+        forskjellen er `beregningstype`-verdien og hvilke persontyper som er
+        gyldige (SOEKER og ANNET). Stien og modellen følger
+        https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
+
+        Avvik fra det ekte API-et: `/pdf`-variantene og den generiske
+        `/beregning`-ruta er ikke implementert.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - name: rolleId
+          in: path
+          required: true
+          description: Kommunens rolle-id. Simulatoren aksepterer enhver verdi.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inntektsaar, personer]
+              properties:
+                inntektsaar:
+                  type: integer
+                  example: 2025
+                personer:
+                  type: array
+                  items:
+                    type: object
+                    required: [identifikator, type]
+                    properties:
+                      identifikator:
+                        type: string
+                        pattern: "^[0-9]{11}$"
+                      type:
+                        type: string
+                        enum: [SOEKER, ANNET]
+                      ekstraposter:
+                        type: array
+                        description: Inntekt innbyggeren oppgir selv. Får kilde MANUELL_INPUT.
+                        items:
+                          type: object
+                          required: [tekniskNavn, beloep]
+                          properties:
+                            tekniskNavn:
+                              type: string
+                            visningstekst:
+                              type: string
+                            beloep:
+                              type: integer
+                              format: int64
+                            referanse:
+                              type: string
+      responses:
+        "200":
+          description: Beregning utfoert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inntektsaar:
+                    type: integer
+                  stadie:
+                    type: string
+                    enum: [OPPGJOER, UTKAST, UKJENT]
+                  personer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifikator:
+                          type: string
+                        navn:
+                          type: object
+                          properties:
+                            fornavn:
+                              type: string
+                            mellomnavn:
+                              type: string
+                            etternavn:
+                              type: string
+                        type:
+                          type: string
+                        skjermet:
+                          type: boolean
+                        skatteoppgjoersdato:
+                          type: string
+                          format: date
+                        stadie:
+                          type: string
+                  visningsposter:
+                    type: array
+                    description: Presentasjonsvennlig oppstilling per inntektstype. Som for redusert foreldrebetaling har praktisk bistand kun kategorien INNTEKT.
+                    items:
+                      type: object
+                      properties:
+                        kategori:
+                          type: string
+                          enum: [INNTEKT]
+                        poster:
+                          type: array
+                          items:
+                            type: object
+                  beregningsbeloep:
+                    type: integer
+                    format: int64
+                    description: Grunnlaget etter fradrag. Dette er tallet regelsjekken bruker.
+                  inntekt:
+                    type: object
+                    description: Grupper med operasjon ADDERE.
+                  fradrag:
+                    type: object
+                    description: Ytelser som ikke inngaar i grunnlaget, med operasjon SUBTRAHERE.
+                  beregningstype:
+                    type: string
+                    enum: [PRAKTISK_BISTAND]
+                  feilmeldinger:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kode:
+                          type: string
+                        melding:
+                          type: string
+  /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/langtidsopphold-institusjon:
+    post:
+      summary: Beregn inntektsgrunnlag for langtidsopphold i institusjon
+      description: >
+        Simulerer KS Fiks sitt register-API, beregningstype
+        LANGTIDSOPPHOLD_INSTITUSJON. Samme stifamilie, kropp og svarform som
+        redusert foreldrebetaling; forskjellene er `beregningstype`-verdien,
+        persontypene (SOEKER, EKTEFELLE, PARTNER, SAMBOER, BARN) og at
+        visningspostene i tillegg får kategorien FRADRAG, bygget av postene
+        med `medregnes: false` og utelatt når den er tom. Stien og modellen
+        følger
+        https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
+
+        Avvik fra det ekte API-et: `/pdf`-variantene og den generiske
+        `/beregning`-ruta er ikke implementert.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - name: rolleId
+          in: path
+          required: true
+          description: Kommunens rolle-id. Simulatoren aksepterer enhver verdi.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inntektsaar, personer]
+              properties:
+                inntektsaar:
+                  type: integer
+                  example: 2025
+                personer:
+                  type: array
+                  items:
+                    type: object
+                    required: [identifikator, type]
+                    properties:
+                      identifikator:
+                        type: string
+                        pattern: "^[0-9]{11}$"
+                      type:
+                        type: string
+                        enum: [SOEKER, EKTEFELLE, PARTNER, SAMBOER, BARN]
+                      ekstraposter:
+                        type: array
+                        description: Inntekt innbyggeren oppgir selv. Får kilde MANUELL_INPUT.
+                        items:
+                          type: object
+                          required: [tekniskNavn, beloep]
+                          properties:
+                            tekniskNavn:
+                              type: string
+                            visningstekst:
+                              type: string
+                            beloep:
+                              type: integer
+                              format: int64
+                            referanse:
+                              type: string
+      responses:
+        "200":
+          description: Beregning utfoert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inntektsaar:
+                    type: integer
+                  stadie:
+                    type: string
+                    enum: [OPPGJOER, UTKAST, UKJENT]
+                  personer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifikator:
+                          type: string
+                        navn:
+                          type: object
+                          properties:
+                            fornavn:
+                              type: string
+                            mellomnavn:
+                              type: string
+                            etternavn:
+                              type: string
+                        type:
+                          type: string
+                        skjermet:
+                          type: boolean
+                        skatteoppgjoersdato:
+                          type: string
+                          format: date
+                        stadie:
+                          type: string
+                  visningsposter:
+                    type: array
+                    description: >-
+                      Presentasjonsvennlig oppstilling per inntektstype. Enumen
+                      er spekkens fulle kategorisett, men de syntetiske dataene
+                      har ingen formue- eller gjeldsposter, så FORMUE, GJELD og
+                      ANNET forekommer aldri i sandkassen. FRADRAG bygges av
+                      postene med `medregnes: false` og utelates når den er tom.
+                    items:
+                      type: object
+                      properties:
+                        kategori:
+                          type: string
+                          enum: [INNTEKT, FRADRAG, FORMUE, GJELD, ANNET]
+                        poster:
+                          type: array
+                          items:
+                            type: object
+                  beregningsbeloep:
+                    type: integer
+                    format: int64
+                    description: Grunnlaget etter fradrag. Dette er tallet regelsjekken bruker.
+                  inntekt:
+                    type: object
+                    description: Grupper med operasjon ADDERE.
+                  fradrag:
+                    type: object
+                    description: Ytelser som ikke inngaar i grunnlaget, med operasjon SUBTRAHERE.
+                  beregningstype:
+                    type: string
+                    enum: [LANGTIDSOPPHOLD_INSTITUSJON]
+                  feilmeldinger:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kode:
+                          type: string
+                        melding:
+                          type: string
 components:
   parameters:
     SamtykkeId:
