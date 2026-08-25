@@ -39,7 +39,7 @@ paths:
                   feil:
                     type: string
                     description: Kun til stede når modellNaaBar er false.
-                    example: "Ollama kjoerer, men modellen qwen2.5:14b er ikke lastet ned"
+                    example: "Ollama kjører, men modellen qwen2.5:14b er ikke lastet ned"
                   tidspunkt: { type: string, format: date-time }
   /openapi-ruter.json:
     get:

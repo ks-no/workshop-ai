@@ -639,7 +639,7 @@ paths:
                               type: string
       responses:
         "200":
-          description: Beregning utfoert
+          description: Beregning utført
           content:
             application/json:
               schema:
@@ -697,7 +697,7 @@ paths:
                     description: Grupper med operasjon ADDERE.
                   fradrag:
                     type: object
-                    description: Ytelser som ikke inngaar i grunnlaget, med operasjon SUBTRAHERE.
+                    description: Ytelser som ikke inngår i grunnlaget, med operasjon SUBTRAHERE.
                   beregningstype:
                     type: string
                     enum: [BARNEHAGE_SFO]
