@@ -10,7 +10,8 @@ du demonstrerer for andre.
 Provideren avgjør om promptene forlater maskinen:
 
 - `mock` — ingen modell kalles; svarene er maltekst bygget lokalt.
-- `ollama` — til din lokale Ollama (`OLLAMA_BASE_URL`); ingenting forlater maskinen.
+- `ollama` — til Ollama-en `OLLAMA_BASE_URL` peker på. Lokal i standardoppsettet, og
+  da forlater ingenting maskinen.
 - `openrouter` — til openrouter.ai: hele prompten går ut av maskinen, til en tredjepart.
 - `bedrock` — til AWS Bedrock: hele prompten går ut av maskinen, til AWS.
 
