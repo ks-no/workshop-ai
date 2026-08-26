@@ -108,8 +108,3 @@ står her:
   `FinnMatrikkelenheter`, `HentMatrikkelenhet`, `HentEiere`
 
 REST-hjelpeendepunktene står i `openapi/matrikkel-mock.yaml`.
-
-## Videre API-retning
-
-Historikk og forslag som aldri ble bygget: `docs/intern/api-foerst-integrasjoner.md`.
-Den skiller selv mellom «slik er det» og «forslag — ikke kod mot det».

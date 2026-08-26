@@ -50,9 +50,6 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 - OpenAPI for alle sju API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
-Åpne arkitekturvalg og historikk: `docs/intern/veien-videre.md`. Det er et internt
-dokument, ikke gjeldende status — les koden for status.
-
 ## Hvordan starte den
 
 **Forutsetninger:**
