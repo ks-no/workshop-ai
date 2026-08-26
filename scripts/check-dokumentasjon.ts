@@ -180,9 +180,12 @@ const NOUNS: Record<string, Category> = {
   husstandene: "husstander",
   datasett: "datasett",
   /*
-   * English forms, because AGENTS.md and four app READMEs are written in English
-   * and a claim there drifts exactly like a Norwegian one. Only digits count in
-   * front of these - see WORD_NUMBER_NOUNS below.
+   * English forms, for the English files: AGENTS.md, CLAUDE.md and
+   * .github/copilot-instructions.md. A count there drifts exactly like a Norwegian one.
+   * The four app READMEs that used to be English are Norwegian now, so this is the
+   * whole English surface, and it is small: the only claim that reaches these today is
+   * "25 tool endpoints" in AGENTS.md, silenced in EXCEPTIONS below because it is right.
+   * Only digits count in front of them - see WORD_NUMBER_NOUNS.
    */
   services: "tjenester",
   specifications: "spesifikasjoner",
@@ -361,9 +364,10 @@ for (const file of markdown) {
  * apps/tools-api/README.md listed 18 of the 25 tools for months while every
  * count in the repo was right. Names are what drift here, not totals.
  *
- * Ten is the threshold because the distribution is bimodal - the two files that
- * mean to be the list name 25 and 19, and every file that merely mentions a tool
- * in passing names four or fewer. Below ten is a mention; at ten it is a claim.
+ * Ten is the threshold because the distribution is bimodal. One file means to be the
+ * list, docs/api-oversikt.md, and names all 25; every other file mentions a tool in
+ * passing and names four or fewer. tools-api/README.md used to be a second list with
+ * 19 until it was cut down to a pointer. Below ten is a mention; at ten it is a claim.
  */
 const toolNames = new Set(
   [...toolsSource.matchAll(/name:\s*"([a-z_0-9]+)"/g)].map((m) => m[1])
