@@ -279,7 +279,7 @@ check("ukjent regeltype kaster med de gyldige listet opp", kastet);
 //
 // This is the case pnpm test:imports cannot see: vilkaar.ts and regler.ts are
 // siblings inside the same app, and the graph check only watches arrows between
-// apps and into apps/shared.
+// apps and out of apps/shared.
 {
   const forbidden = [
     // state.ts is allowed and intended: vilkaar.ts needs finnPerson and
