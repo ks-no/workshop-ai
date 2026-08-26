@@ -295,6 +295,17 @@ const tjenester: Tjeneste[] = [
     navn: "sandbox-backend",
     spesifikasjon: "openapi/sandbox-backend.yaml",
     ruter: backendRuter,
+    // Forsendelsesstatus står i to spesifikasjoner fordi to tjenester svarer med
+    // det: fiks-simulator utleder statusen, og sandbox-backend proxer den videre
+    // til søknadens eier. Kopien er greit så lenge den er portet — begge måles mot
+    // den ene kodeverkslisten i koden.
+    kodeverk: [
+      {
+        skjema: "Forsendelsesstatus",
+        verdier: async () =>
+          (await import("../apps/fiks-simulator/src/forsendelse.ts")).FORSENDELSESSTATUSER
+      }
+    ],
     // Kodeverk som bare finnes i dataene, ikke som en konstant i koden. Sjekk 7
     // over sammenligner mot en eksportert liste; disse har ingen, så de måles mot
     // seeden. Det er nettopp disse som hadde driftet: relasjon sto som

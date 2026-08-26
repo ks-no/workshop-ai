@@ -28,7 +28,7 @@ import { spawn } from "node:child_process";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { FOLKEREGISTERROLLER } from "../apps/fiks-simulator/src/folkeregister.ts";
 import { createServer } from "node:http";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -424,13 +424,26 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
   if (!tilSubmit) return;
 
   // The only flow in this script reaching SUMMARY and SUBMIT — everything else
-  // deliberately stops earlier. Pins the new soknadsdokument field alongside the
-  // deterministic mock oppsummeringstekst it embeds.
+  // deliberately stops earlier. Pins the soknadsdokument field alongside the
+  // deterministic mock oppsummeringstekst it embeds, and the SvarUt kvittering
+  // the same step sends.
   await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  const innsending = await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST", body: {}
+  }) as { resultat: { soknadId: string } };
   await call(`${merkelapp}-oekt-fullfort`, `/api/prosessoekter/${id}`);
+
+  // The kvittering's own route, read right after the send: the derivation's first
+  // threshold is ten seconds out, so MOTTATT is the deterministic answer here the
+  // same way it is for forsendelseFlyt's status-sok below.
+  //
+  // somPerson is explicit because the søknadId is nested inside `resultat` on the
+  // POST /handling response, which learnOwner does not walk — the route is the
+  // citizen's own, and reading it as nobody would only pin a 401.
+  const soknadId = innsending.resultat.soknadId;
+  await call(`${merkelapp}-forsendelse`, `/api/soknader/${soknadId}/forsendelse`, { somPerson: personId });
 }
 
 // The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
@@ -656,6 +669,57 @@ async function forsendelseFlyt() {
   });
 }
 
+/*
+ * The revisjonslogg, asserted rather than dumped.
+ *
+ * Everything else in this script is a diff baseline — a dump cannot fail, it can
+ * only differ — and that is enough for wire format. It is not enough for a leak:
+ * an address appearing in the log would show up as a diff a reader has to notice,
+ * and the ticket's «uten at adresse eller kontaktinfo havner i … revisjonsloggen»
+ * has to be able to fail a build on its own. So this one reads the whole log after
+ * the flow and throws.
+ *
+ * The strings come off the seed rather than being written out here: the point is
+ * that the protected person's real address is absent, not which street the
+ * curated row happens to carry. kommune and kommunenummer are not in the list —
+ * masking keeps those on purpose, see apps/shared/skjerming.ts.
+ *
+ * For person-218 the poststed and the kommune are the same word, so a future
+ * audit row that recorded the kommune *by name* would trip this. That is the
+ * right way round: the check fails closed and asks for a human to look, and the
+ * answer is to look, never to shorten the list.
+ */
+async function krevIngenAdresselekkasje(personId: string) {
+  const personer = JSON.parse(
+    await readFile(path.join(repoRoot, "data/personer.json"), "utf8")
+  ) as { personId: string; bostedsadresse?: Record<string, unknown>; kontakt?: Record<string, unknown> }[];
+  const person = personer.find((kandidat) => kandidat.personId === personId);
+  if (!person) {
+    throw new Error(`Fant ikke ${personId} i seeden. Er data/personer.json endret?`);
+  }
+  const adresse = person.bostedsadresse || {};
+  const hemmeligheter = [
+    adresse.adressenavn, adresse.postnummer, adresse.poststed,
+    adresse.adresseIdentifikatorFraMatrikkelen,
+    person.kontakt?.epost, person.kontakt?.telefon
+  ].filter((verdi): verdi is string => typeof verdi === "string" && verdi.length > 0);
+
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
+  });
+  const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const logg = JSON.stringify(await svar.json());
+  const lekket = hemmeligheter.filter((hemmelig) => logg.includes(hemmelig));
+  if (lekket.length) {
+    throw new Error(
+      `Revisjonsloggen inneholder skjermet informasjon om ${personId}: ${lekket.join(", ")}.`
+    );
+  }
+}
+
 // The kontaktinfo resource in front of KRR: the consent gate closed, then open,
 // then the two shapes the 200 has. The consents are created on fiks-simulator's
 // samtykke surface directly — the same rows stottekontakt-behov's CONSENT_REQUEST
@@ -783,6 +847,18 @@ async function run() {
     await fritidskortflyt("person-008", "fritidskort-avslag");
     await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
+    // person-218 has kode 7 and is reservert in KRR: no digital channel, and
+    // masking left no postal address for the print channel either. SvarUt refuses
+    // the forsendelse, the kvittering degrades into an advarsel, and the søknad is
+    // stored regardless — with no forsendelseId, so its status route answers 404.
+    //
+    // This is the leak-shaped case, and the dump is where it is pinned end to end:
+    // the address must be absent from the søknadsdokument, from the SUBMIT
+    // response, and from every revisjonsrad the flow leaves. Hattfjelldal has a
+    // støttekontakt-tilbud for the age group, so the SJEKK still approves and the
+    // flow reaches SUBMIT for an ordinary reason.
+    await stottekontaktflyt("person-218", "stottekontakt-skjermet", true);
+    await krevIngenAdresselekkasje("person-218");
     await stottekontaktUtenSamtykke("stottekontakt-uten-samtykke");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
