@@ -10,8 +10,7 @@ Nåværende MVP:
 - statisk HTML og JavaScript, null avhengigheter
 - prosessdrevet flyt fra `data/prosessdefinisjoner.json`
 - prosessøkt-API via `sandbox-backend`
-- støtte for alle sju stegtypene: `INFO`, `QUESTION`, `DATA_FETCH`, `CONSENT_REQUEST`,
-  `SJEKK`, `SUMMARY` og `SUBMIT`
+- støtte for alle sju stegtypene — lista bor i `docs/prosessmodell.md`
 
 Sidene og hva de er til står i `docs/deltakerstart.md` §2 — den lista bor der, ikke her.
 Én side skiller seg ut teknisk: `/ds-eksempel` laster med vilje **ikke** `felles.css` —
