@@ -459,6 +459,7 @@ Anbefalt arbeidsform:
 ## Viktige filer
 
 - `docs/deltakerstart.md` — start her hvis du er deltaker
+- `docs/ordliste.md` — forvaltningstermene forklart slik de brukes i sandkassen
 - `apps/shared/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
 - `data/` — de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
 - `openapi/` — én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`

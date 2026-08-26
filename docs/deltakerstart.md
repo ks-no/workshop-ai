@@ -223,3 +223,6 @@ inne i prosessmotoren.
 
 **Vil du forstå hvordan sandkassen henger sammen?** `docs/architecture.md` — men den er
 skrevet for den som vedlikeholder sandkassen, ikke for den som bygger på den.
+
+**Støter du på et forvaltningsord du ikke kjenner?** `docs/ordliste.md` forklarer termene —
+hjemmel, matrikkel, KRR, SvarUt og resten — slik de brukes i sandkassen.
