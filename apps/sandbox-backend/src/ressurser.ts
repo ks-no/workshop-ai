@@ -37,7 +37,7 @@ import {
 // One entry here is simultaneously three things: an HTTP endpoint, a valid
 // DATA_FETCH target and a valid SJEKK target. Before the catalog existed, the
 // router and the process engine each had their own implementation of the same
-// lookups, and they had drifted apart — the HTTP path skipped the revisjonslogg,
+// lookups, and they had drifted apart - the HTTP path skipped the revisjonslogg,
 // and the matrikkel lookup leaked owner lists that the process path filtered out.
 //
 // The catalog is also where policy is actually enforced, rather than once per
@@ -50,7 +50,7 @@ import {
 
 import type { State } from "./types.ts";
 
-// The rule type decides. An ordning assessed on need and capacity — støttekontakt —
+// The rule type decides. An ordning assessed on need and capacity - støttekontakt -
 // never reads income, so demanding consent for income would collect a basis the
 // decision does not use. Anything unresolvable keeps the strict requirement.
 function samtykkeForOrdningssjekk(kontekst: RessursContext): string | null {
@@ -78,7 +78,7 @@ export type RessursContext = {
   kaller: Caller;
 };
 
-// The foresatte whose income the calculation combines — the same set regler.ts
+// The foresatte whose income the calculation combines - the same set regler.ts
 // sends to Fiks. Derived here rather than read back off the response so the audit
 // entry is written even when the lookup fails.
 function foresatteIHusstand(kontekst: RessursContext): string[] {
@@ -122,7 +122,7 @@ export type Ressurs = {
   beskrivelse: string;
   /**
    * Which authorisation this resource requires. Omitted means the closed value,
-   * "egne-data" — a resource added during the hackathon is protected by default.
+   * "egne-data" - a resource added during the hackathon is protected by default.
    */
   tilgang?: Tilgang;
   /** Scope a machine caller must hold. Defaults to SCOPE_LES. */
@@ -152,7 +152,7 @@ export type Ressurs = {
    * 68 of 200 households with two foresatte, a partner's tax data is read on the
    * strength of the applicant's samtykke, and the partner never agreed to anything.
    * An audit log that records only the actor cannot answer the question a person
-   * actually asks it — whose data was read — so it records both.
+   * actually asks it - whose data was read - so it records both.
    */
   omfatter?: (kontekst: RessursContext) => string[];
   /** Runs before the consent check, so missing parameters give 400 and not 403. */
@@ -250,7 +250,7 @@ export const ressurser: Ressurs[] = [
     // KRR through the real Fiks path, so «sjekk reservasjon før valg av kanal»
     // is a valid DATA_FETCH step.
     //
-    // The SUBMIT kvittering does not read this resource — SvarUt decides the
+    // The SUBMIT kvittering does not read this resource - SvarUt decides the
     // channel from KRR on its own side, the way the real one does (svarut.ts).
     // This resource is the participants' build surface for everything past the
     // receipt: the vedtaksbrev, the varsling, and channel logic of their own.
@@ -269,8 +269,8 @@ export const ressurser: Ressurs[] = [
       }
       // Best effort, like the Fiks task in createSoknad: a reservation check
       // that gets no answer must not sink the process session. Everything
-      // non-ok — Fiks down, or KRR holding no row for the person (under 15,
-      // not bosatt) — degrades into the one advarsel shape, and detalj says
+      // non-ok - Fiks down, or KRR holding no row for the person (under 15,
+      // not bosatt) - degrades into the one advarsel shape, and detalj says
       // which it was. The DATA_LES below is still written: the attempt is
       // what the log audits, not the luck of the lookup.
       const svar = await tryUpstream<unknown>(
@@ -281,7 +281,7 @@ export const ressurser: Ressurs[] = [
             "Content-Type": "application/json",
             ...(await maskinportenHeader(fiksRegisterToken))
           },
-          // syntetiskFodselsnummer survives masking — see skjerming.ts — and
+          // syntetiskFodselsnummer survives masking - see skjerming.ts - and
           // Fiks nulls epost/tlf for kode 6/7 on its side of the wire.
           body: JSON.stringify({ fnr: person.syntetiskFodselsnummer })
         })
@@ -321,7 +321,7 @@ export const ressurser: Ressurs[] = [
     sti: "/api/matrikkel/gater",
     ressurs: "matrikkel-gate",
     beskrivelse: "Gater i matrikkelen. Med ?gate= gis nøkkeltall for én gate.",
-    // The street register is public and has no person subject — there is no one
+    // The street register is public and has no person subject - there is no one
     // whose data this is. That is why its revisjonslogg rows say aktor: ukjent.
     tilgang: "aapen",
     handter: async ({ sok }) => {
@@ -438,7 +438,7 @@ export const ressurser: Ressurs[] = [
   {
     metode: "GET",
     // Alias of /api/regler/sjekk/ordning. The name says foreldrebetaling, but the
-    // route has always taken any ordning id — including fritidskort, which is not a
+    // route has always taken any ordning id - including fritidskort, which is not a
     // parental payment at all. Process definitions, the curl cookbook and the
     // OpenAPI spec all point here, so the path stays.
     sti: "/api/regler/sjekk/foreldrebetaling",
@@ -601,7 +601,7 @@ export async function runRessurs(
       // A consent that ran out is not the same refusal as one that was never
       // given, and telling a citizen who remembers agreeing that they must
       // "register a samtykke" reads as the system having forgotten. Both are
-      // DATA_NEKTET — hjemmel was there, samtykke was not — but the reason differs.
+      // DATA_NEKTET - hjemmel was there, samtykke was not - but the reason differs.
       const utloept = hasUtloeptSamtykke(tilstand, kontekst.personId, kreverSamtykke);
       await addRevisjon({
         sporingsId: kontekst.sporingsId,
@@ -611,7 +611,7 @@ export async function runRessurs(
         ...omfatterFelt,
         aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
-      // The refusal names what was asked for — from the catalog entry, so a new
+      // The refusal names what was asked for - from the catalog entry, so a new
       // gated resource does not grow a name cascade here. The fallback is the
       // original wording, byte-frozen for the resources that carry no emne.
       const emne = ressurs.samtykkeEmne ?? "Denne vurderingen";

@@ -1,19 +1,19 @@
 #!/bin/sh
 # One-time setup: turns on Bedrock model-invocation logging so
 # aws-bedrock-dashboard.ts can show per-user request volume. Without this,
-# there is no way to see who is calling Bedrock or how often — CloudTrail's
+# there is no way to see who is calling Bedrock or how often - CloudTrail's
 # management-events trail records sts:AssumeRole (who assumed the role, when,
 # from where) but not the InvokeModel calls made with the resulting session.
 #
 # Deliberately metadata-only: textDataDeliveryEnabled / imageDataDeliveryEnabled
 # / embeddingDataDeliveryEnabled / videoDataDeliveryEnabled are all set to
-# false explicitly — AWS defaults videoDataDeliveryEnabled to true if it's
+# false explicitly - AWS defaults videoDataDeliveryEnabled to true if it's
 # left out of the request, even though nothing here ever sends video. This
 # sandbox proxies
 # citizen data (KRR, Folkeregister, SvarUt) through Bedrock prompts, so logging
-# prompt/response content would put that data at rest in CloudWatch Logs — not
+# prompt/response content would put that data at rest in CloudWatch Logs - not
 # a call this script should make on its own. What's captured either way:
-# caller identity (assumed-role session ARN, which carries the username —
+# caller identity (assumed-role session ARN, which carries the username -
 # see aws-bedrock-assume.sh), model id, timestamp, token counts, latency.
 # That's enough to attribute usage per person and spot volume spikes without
 # capturing what was actually asked or answered.
@@ -59,7 +59,7 @@ EOF
 
 if aws iam get-role --role-name "$LOGGING_ROLE_NAME" >/dev/null 2>&1; then
   aws iam update-assume-role-policy --role-name "$LOGGING_ROLE_NAME" --policy-document "$TRUST_POLICY"
-  echo "Role ${LOGGING_ROLE_NAME} already exists — trust policy refreshed."
+  echo "Role ${LOGGING_ROLE_NAME} already exists - trust policy refreshed."
 else
   aws iam create-role \
     --role-name "$LOGGING_ROLE_NAME" \

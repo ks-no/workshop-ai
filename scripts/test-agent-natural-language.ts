@@ -99,8 +99,8 @@ async function run() {
     assert(choose?.selectedProcess?.id === "fartsdempende-tiltak", "Expected fartsdempende process to be selected");
 
     // Storgata, not Nordnesveien: person-001 owns matr-storg-003 and nothing else.
-    // The old fixture worked because ownership was spread absurdly thin — 28 people
-    // held 1280 titles, person-001 in 44 of 220 streets — so almost any street
+    // The old fixture worked because ownership was spread absurdly thin - 28 people
+    // held 1280 titles, person-001 in 44 of 220 streets - so almost any street
     // passed the eierforhold check. Issue #8 was exactly that, and the flow stops at
     // that step when the applicant owns nothing in the street they name.
     const gate = await req(`/agent/sessions/${session.sessionId}/messages`, {

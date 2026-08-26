@@ -4,7 +4,7 @@
  * These need neither the stack nor a port: skjerming.ts is pure functions, so the
  * tests run against the real seed straight off disk. That matters because the wire
  * behaviour is otherwise only pinned by the kontrakt-smoke dump, and a dump cannot
- * fail — it can only differ. This file can fail.
+ * fail - it can only differ. This file can fail.
  *
  * The masking rules themselves, and why fnr/foedselsdato/kommunenummer survive
  * them, are documented in apps/shared/skjerming.ts.
@@ -19,7 +19,7 @@ import type { FolkeregisterPerson } from "../apps/shared/registerdata.ts";
 // The kvittering half: the two pure modules the SUBMIT step's SvarUt send is
 // built out of. Neither opens a socket or a state file, so they belong in this
 // suite rather than behind the contract smoke. chooseKanal is imported from the
-// simulator on purpose — what the backend hands over and what SvarUt does with it
+// simulator on purpose - what the backend hands over and what SvarUt does with it
 // have to be checked against each other, not each against its own idea.
 import { buildKvitteringKropp, buildSoknadsdokument } from "../apps/sandbox-backend/src/kvittering.ts";
 import { chooseKanal, hasPostadresse } from "../apps/fiks-simulator/src/forsendelse.ts";
@@ -35,7 +35,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 function likeNokler(a: object, b: object): boolean {
@@ -215,7 +215,7 @@ check("ukjent gradering maskerer KRR-kontakten", ukjentGrad.epost === null && uk
 // nulls everything that says where the person lives (address fields, the
 // matrikkel identifier, the Tenor extract's grunnkrets/skolekrets) plus
 // contact; STRENGT_FORTROLIG hides the name too. adressebeskyttelse always
-// survives — the code explains why the other fields are empty.
+// survives - the code explains why the other fields are empty.
 
 const fregSeed = await readJson<{ personer: FolkeregisterPerson[] }>("data/folkeregister.seed.json");
 const fregFor = (personId: string): FolkeregisterPerson => {
@@ -250,7 +250,7 @@ check(
 );
 
 // person-194 is FORTROLIG and Tenor-imported, so the row carries grunnkrets and
-// skolekrets — place-identifying, and therefore masked with the address.
+// skolekrets - place-identifying, and therefore masked with the address.
 const freg194 = maskFregPerson(fregFor("person-194"));
 check("person-194 BEHOLDER personnavnet i FREG", freg194.personnavn!.fornavn === "Utmerket", String(freg194.personnavn!.fornavn));
 check("person-194 mister gatenavnet i FREG", freg194.bostedsadresse!.adressenavn === null);
@@ -281,7 +281,7 @@ check(
 // the document is the one place it could come back to be read.
 //
 // The document text and the forsendelse body are deterministic pure functions, so
-// the checks below are the whole behaviour — there is no server-side leftover for
+// the checks below are the whole behaviour - there is no server-side leftover for
 // a leak to hide in.
 
 const prosessdefinisjoner = await readJson<{ prosesser: ProsessDefinisjon[] }>("data/prosessdefinisjoner.json");
@@ -291,8 +291,8 @@ const stottekontakt = finn(
   "prosessen stottekontakt-behov"
 );
 
-// What the kontaktinfo resource left in oekt.resultater: the masked KRR row, or —
-// for a person KRR holds no row for, which person-219 is — the advarsel shape it
+// What the kontaktinfo resource left in oekt.resultater: the masked KRR row, or -
+// for a person KRR holds no row for, which person-219 is - the advarsel shape it
 // degrades into. Both are documented as-is, so both have to be safe to document.
 function kontaktinfoResultatFor(personId: string): unknown {
   const fnr = kilde(personId).syntetiskFodselsnummer;
@@ -350,7 +350,7 @@ for (const id of forventetSkjermede) {
   // The rule the two services have to agree on: with no postal address SvarUt
   // cannot pick PRINT, whatever else the body says.
   check(`${id} har ingen postadresse SvarUt kan bruke`, !hasPostadresse(mottaker));
-  // The fnr survives — SvarUt needs it to read KRR — and it is not contact info.
+  // The fnr survives - SvarUt needs it to read KRR - and it is not contact info.
   check(`${id} beholder fodselsnummeret som digitalId`, mottaker.digitalId === kilde(id).syntetiskFodselsnummer);
 }
 
@@ -361,7 +361,7 @@ check("person-031 sendes som «Skjermet person»", mottaker031.navn === "Skjerme
 const mottaker194 = buildKvitteringKropp(person("person-194"), "soknad-0000000000000-skjerm").mottaker;
 check("person-194 BEHOLDER navnet på forsendelsen", mottaker194.navn === "Utmerket Håndkrem", mottaker194.navn);
 
-// person-031 can be notified in KRR, so the kvittering still reaches them —
+// person-031 can be notified in KRR, so the kvittering still reaches them -
 // digitally, with no address anywhere in the request. Protection is not a reason
 // to withhold the receipt.
 const utfall031 = chooseKanal(mottaker031, false, krrFor("person-031"));
@@ -374,7 +374,7 @@ check(
 // person-219 is FORTROLIG and has no KRR row at all: no digital channel, and a
 // masked address means no print channel either. SvarUt refuses, sendKvittering
 // degrades into an advarsel, and the søknad is stored regardless. That is the
-// safe degradation — the alternative would be reaching for the real address.
+// safe degradation - the alternative would be reaching for the real address.
 const mottaker219 = buildKvitteringKropp(person("person-219"), "soknad-0000000000000-skjerm").mottaker;
 const utfall219 = chooseKanal(mottaker219, false, undefined);
 check("person-219 uten KRR-rad får ingen kanal (degraderer trygt)", utfall219.lovlig === false);
@@ -407,7 +407,7 @@ for (const id of forventetSkjermede) {
     check(`"${hemmelig}" finnes ikke i søknadsdokumentet til ${id}`, !dokument.includes(hemmelig));
   }
   check(`søknadsdokumentet til ${id} har ingen e-post`, !/@/.test(dokument), dokument);
-  // The fnr is on the wire to SvarUt and must not be in the document — the
+  // The fnr is on the wire to SvarUt and must not be in the document - the
   // citizen's copy is not the place for it, and neither is the audit log.
   check(
     `søknadsdokumentet til ${id} har ikke fødselsnummeret`,
@@ -418,7 +418,7 @@ for (const id of forventetSkjermede) {
 // The unprotected case, for the same reason as person-001 above: the document is
 // built from the same DATA_FETCH result, and an unmasked KRR row carries epost
 // and tlf as objects. They are dropped because they are not primitives, not
-// because they were masked — so this would catch a document builder that started
+// because they were masked - so this would catch a document builder that started
 // flattening nested fields into the text.
 const dokument001 = buildSoknadsdokument(stottekontakt, oektFor("person-001"), person("person-001"));
 const navn001 = [kilde("person-001").navn.fornavn, kilde("person-001").navn.etternavn].join(" ");

@@ -4,11 +4,11 @@
  * Keeps the prose honest about numbers the code already knows.
  *
  * Every service list, tool count, route count and population figure in this repo
- * exists in a machine-readable source — apps/shared/tjenester.json, data/satser.json,
+ * exists in a machine-readable source - apps/shared/tjenester.json, data/satser.json,
  * the toolDefs table in tools-api, the paths in openapi/*.yaml, ci.yml itself.
  * The markdown carries
  * hand-typed copies of all of them, and a measured mismatch sits in a copy,
- * never in the source — so the copies are compared against the sources here.
+ * never in the source - so the copies are compared against the sources here.
  *
  * It fails on:
  *
@@ -18,15 +18,15 @@
  * Check 1 scans for `<tall> [ord] <substantiv>` over the nouns where a global
  * count is meaningful. Norwegian number words count as numbers, because that is
  * how the prose writes them ("Åtte kjørende tjenester"). Some hits legitimately
- * mean something local rather than the global total — "søsken i to ordninger" is
- * about one household, not about data/satser.json — so those are listed in
+ * mean something local rather than the global total - "søsken i to ordninger" is
+ * about one household, not about data/satser.json - so those are listed in
  * EXCEPTIONS, keyed by text rather than by line so they survive an edit above them.
  *
  * Adding a number to a doc therefore costs one of two things: being right, or
  * saying here why the number means something else. That is the point.
  *
  * The keys of `sources`, `NOUNS` and `NUMBER_WORDS` are Norwegian because they are
- * the vocabulary the prose uses — they are data, not identifiers.
+ * the vocabulary the prose uses - they are data, not identifiers.
  *
  * Usage:
  *   node scripts/check-dokumentasjon.ts
@@ -92,7 +92,7 @@ const sources = {
     source: "data/*.json"
   },
   /*
-   * Nine services run; seven of them carry an OpenAPI spec — demo-gui and
+   * Nine services run; seven of them carry an OpenAPI spec - demo-gui and
    * process-builder are pages, not APIs. Both numbers are true and the prose says
    * both, so "API-tjenester" resolves here and bare "tjenester" to the nine.
    */
@@ -108,14 +108,14 @@ type Category = keyof typeof sources;
 /*
  * Paths and routes are claims about one spec, not about the repo: sandbox-backend
  * has 36 paths where the seven specs together have 118. So these nouns do not get
- * a single global source. The spec a claim is about is resolved from context —
+ * a single global source. The spec a claim is about is resolved from context -
  * a `<name>.yaml` named on the same line, then in the same paragraph, then the
  * app directory the markdown file sits in. A claim none of those resolve is read
  * against the total across openapi/*.yaml, since that is the only global reading
  * left; the failure message says how to scope it.
  *
  * The vocabulary is the one apps/shared/openapi.ts already serves: a "sti" is a
- * path key, a "rute" (and an "endepunkt") is an operation — method plus path —
+ * path key, a "rute" (and an "endepunkt") is an operation - method plus path -
  * which is what routeOverview returns as `ruter`.
  */
 const specCounts = new Map<string, { stier: number; ruter: number }>();
@@ -182,7 +182,7 @@ const NOUNS: Record<string, Category> = {
   /*
    * English forms, because AGENTS.md and four app READMEs are written in English
    * and a claim there drifts exactly like a Norwegian one. Only digits count in
-   * front of these — see WORD_NUMBER_NOUNS below.
+   * front of these - see WORD_NUMBER_NOUNS below.
    */
   services: "tjenester",
   specifications: "spesifikasjoner",
@@ -221,7 +221,7 @@ const EXCEPTIONS: { file: string; text: string; reason: string }[] = [
   { file: "README.md", text: "ett bestemt verktøy",
     reason: "om å ikke låse teamene til et valg, ikke om verktøykatalogen" },
   { file: "docs/syntetiske-data.md", text: "to ordninger",
-    reason: "søsken i to ordninger — én husstand, ikke satstabellen" },
+    reason: "søsken i to ordninger - én husstand, ikke satstabellen" },
   { file: "docs/syntetiske-data.md", text: "Tre personer",
     reason: "de tre med avvikende fnr-dato" },
   { file: "docs/syntetiske-data.md", text: "Tolv personer",
@@ -231,9 +231,9 @@ const EXCEPTIONS: { file: string; text: string; reason: string }[] = [
   { file: "docs/testpersoner.md", text: "Tolv personer",
     reason: "generert fra samme delmengde som syntetiske-data.md" },
   { file: "docs/syntetiske-data.md", text: "Sytten personer",
-    reason: "de 17 med D-nummer — verifisert delmengde av de 394" },
+    reason: "de 17 med D-nummer - verifisert delmengde av de 394" },
   { file: "docs/syntetiske-data.md", text: "18 kuraterte husstandene",
-    reason: "terskelfixturene i data/kuratert.json — verifisert delmengde av de 200" },
+    reason: "terskelfixturene i data/kuratert.json - verifisert delmengde av de 200" },
   { file: "AGENTS.md", text: "25 tool endpoints",
     reason: "verktøykatalogen i tools-api, ikke ruter i en spesifikasjon" }
 ];
@@ -241,7 +241,7 @@ const EXCEPTIONS: { file: string; text: string; reason: string }[] = [
 // --- check 1: numbers in prose --------------------------------------------
 
 /*
- * `git ls-files` reads the index, which can name a file the disk no longer has —
+ * `git ls-files` reads the index, which can name a file the disk no longer has -
  * exactly the state a half-staged rename leaves behind. Reading it blind crashed
  * with ENOENT on apps/mcp-services/README.md mid-rename, which reads like a bug in
  * a doc rather than an unstaged `git mv`. Skip and say so.
@@ -294,7 +294,7 @@ for (const file of markdown) {
         checked++;
         if (claimed !== expected) {
           failures.push(
-            `${file}:${i + 1}: «${whole.trim()}» — ${source} har ${expected}. ` +
+            `${file}:${i + 1}: «${whole.trim()}» - ${source} har ${expected}. ` +
             `Rett tallet` +
             (resolved
               ? ""
@@ -312,7 +312,7 @@ for (const file of markdown) {
       checked++;
       if (claimed !== source.count) {
         failures.push(
-          `${file}:${i + 1}: «${whole.trim()}» — ${source.source} har ${source.count}. ` +
+          `${file}:${i + 1}: «${whole.trim()}» - ${source.source} har ${source.count}. ` +
           `Rett tallet, slett kopien og pek på kilden, eller legg den i EXCEPTIONS ` +
           `med en grunn hvis den betyr noe annet.`
         );
@@ -330,7 +330,7 @@ for (const file of markdown) {
   lines.forEach((line, i) => {
     // Both spellings occur: "CI kjører `pnpm lint`" and "`ci.yml` kjører `lint`".
     // `runs` is here because AGENTS.md is written in English, and it was the one
-    // file whose CI list had actually drifted — matching only «kjører» let the
+    // file whose CI list had actually drifted - matching only «kjører» let the
     // drift the check exists for walk straight past it.
     if (!/(\bCI\b|ci\.yml)/i.test(line) || !/(kj(ø|oe)rer|\bruns\b)/i.test(line)) return;
     // The list usually wraps, so read the sentence, not the line.
@@ -361,7 +361,7 @@ for (const file of markdown) {
  * apps/tools-api/README.md listed 18 of the 25 tools for months while every
  * count in the repo was right. Names are what drift here, not totals.
  *
- * Ten is the threshold because the distribution is bimodal — the two files that
+ * Ten is the threshold because the distribution is bimodal - the two files that
  * mean to be the list name 25 and 19, and every file that merely mentions a tool
  * in passing names four or fewer. Below ten is a mention; at ten it is a claim.
  */
@@ -412,7 +412,7 @@ console.log(
 if (renamed.length > 0) {
   console.log(
     `Merk: ${renamed.length} fil(er) står i git-indeksen men ikke på disk, ` +
-    `og er hoppet over — stage flyttingen: ${renamed.join(", ")}`
+    `og er hoppet over - stage flyttingen: ${renamed.join(", ")}`
   );
 }
 

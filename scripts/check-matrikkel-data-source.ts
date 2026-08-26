@@ -40,7 +40,7 @@ async function main() {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+    // Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
     // Parametrene og hjelperne er typet som ellers.
     const body = (await res.json()) as any;
     const kilde = body.kilde || null;

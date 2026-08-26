@@ -2,7 +2,7 @@
  * Shared frontend helpers for demo-gui and process-builder.
  *
  * Plain globals, no module system: the pages are static HTML that load this and
- * one page script, and keeping it that way is the point — a participant can read
+ * one page script, and keeping it that way is the point - a participant can read
  * the whole client without a build step.
  *
  * Because there is no module system, the types declared here are global too, and
@@ -10,7 +10,7 @@
  * That only works because the client tsconfigs set moduleDetection: "legacy",
  * and because hver app sin client/tsconfig.json også inkluderer denne fila.
  *
- * Served by both frontends at /assets/felles.ts, type-stripped on the way out —
+ * Served by both frontends at /assets/felles.ts, type-stripped on the way out -
  * see apps/shared/assets.ts.
  */
 
@@ -40,7 +40,7 @@ type ModellHelse = {
  * Prosessdefinisjonen slik nettleseren ser den.
  *
  * Fasiten er ProsessDefinisjon i apps/sandbox-backend/src/types.ts. Denne kopien
- * finnes fordi nettleseren ikke har noe modulsystem å importere gjennom — men den
+ * finnes fordi nettleseren ikke har noe modulsystem å importere gjennom - men den
  * er med vilje løsere: siden viser hva serveren sender, den håndhever ingenting.
  */
 type SpoersmaalsFelt = {
@@ -88,7 +88,7 @@ type Prosess = {
   steg?: ProsessSteg[];
 };
 
-/** En rad i /assets/tjenester.json — tjenesteregisteret dashboard og utforsker deler. */
+/** En rad i /assets/tjenester.json - tjenesteregisteret dashboard og utforsker deler. */
 type Tjeneste = {
   navn: string;
   port: number;
@@ -112,7 +112,7 @@ type TokenKrav = {
  * getElementById for et element siden ikke kan virke uten.
  *
  * document.getElementById gir HTMLElement | null, og null-sjekk på hver eneste
- * oppslag drukner koden. Denne kaster i stedet — med id-en i meldinga, som er en
+ * oppslag drukner koden. Denne kaster i stedet - med id-en i meldinga, som er en
  * god del mer nyttig enn «Cannot read properties of null» én linje senere.
  * Bruk document.getElementById direkte der elementet faktisk kan mangle.
  */
@@ -230,7 +230,7 @@ const PAGES = [
 /**
  * Fills <div class="top-links" id="toppmeny"> with the site's pages.
  *
- * `activePath` is rendered as plain text rather than a link — a link to the page
+ * `activePath` is rendered as plain text rather than a link - a link to the page
  * you are already on is a dead end, and aria-current says the same thing to a
  * screen reader.
  */
@@ -257,7 +257,7 @@ function renderTopNav(activePath: string): void {
  *
  * ai-gateway answers with template text when the model is down and sets an
  * advarsel field. Without this banner a broken setup looks exactly like a
- * working one — well-formed Norwegian prose, just from a template.
+ * working one - well-formed Norwegian prose, just from a template.
  */
 
 type ModellValg = { konsekvens?: string; elementId?: string };
@@ -314,7 +314,7 @@ function warnAboutFallback(result: { advarsel?: unknown } | null | undefined): v
  * tab. It is a bearer token, and a workshop machine is shared.
  *
  * There is no person picker here: under ID-porten you do not choose who you are
- * in the application — you prove it at the identity provider. The dropdown holds
+ * in the application - you prove it at the identity provider. The dropdown holds
  * only the person you logged in as, and switching person means logging in again.
  * digdir-mock's /idporten/authorize is the picker.
  */
@@ -327,7 +327,7 @@ const VERIFIER_KEY = "sandkasse-pkce-verifier";
  * ET TOKEN PER AUDIENCE.
  *
  * `resource` på /authorize blir tokenets `aud`, og en tjeneste avviser et token
- * som er issuedAt for en annen — det er hele poenget med audience-begrensning. De
+ * som er issuedAt for en annen - det er hele poenget med audience-begrensning. De
  * tre prosessidene snakker bare med sandbox-backend, så de holder seg til
  * standarden og merker ingenting; API-utforskeren kan kalle sju tjenester og
  * trenger å holde ett token per audience samtidig.
@@ -471,7 +471,7 @@ async function completeLogin(): Promise<string> {
  * ut" wherever it likes; showLoggedInPerson wires up the common case.
  *
  * Reloading is what triggers requireLogin() again, which sends the browser to
- * ID-porten's picker — so "log out" and "switch user" are the same action. There is
+ * ID-porten's picker - so "log out" and "switch user" are the same action. There is
  * no session at the issuer to end: it hands out a code per authorize request and
  * remembers nothing.
  */
@@ -485,11 +485,11 @@ function switchUser(): void {
  * Fills a <select> with the single person the token belongs to, and returns them.
  *
  * The element stays a <select> so every downstream caller of valgtPersonId() keeps
- * working unchanged — but it now shows who you are rather than offering a choice.
+ * working unchanged - but it now shows who you are rather than offering a choice.
  *
  * A "bytt bruker" link is inserted right after it. That lives here rather than in
  * each page because this is the one place that knows the selector has stopped being
- * a choice — and a disabled dropdown with no way out is a dead end.
+ * a choice - and a disabled dropdown with no way out is a dead end.
  */
 function showLoggedInPerson(velgerElement: HTMLSelectElement, personer: Person[]): Person {
   const pid = loggedInPid();

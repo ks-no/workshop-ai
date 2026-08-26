@@ -2,10 +2,10 @@
 // basis arrives as a parameter, never as a fetch, so an outcome can be pinned with
 // a literal tilstand object and no running services. That is what makes a vedtak
 // etterprøvbar, and it is why scripts/valider-data.js imports this file instead of
-// mirroring the rules by hand — it used to carry its own copy of every rule below,
+// mirroring the rules by hand - it used to carry its own copy of every rule below,
 // and a copy that cannot be executed by the gate is a copy that will drift.
 //
-// The I/O half — fetching the beregning from Fiks, and the samtykke predicates —
+// The I/O half - fetching the beregning from Fiks, and the samtykke predicates -
 // stays in regler.ts. Nothing in this file may import it: the point of the split is
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
@@ -94,7 +94,7 @@ export const regelKreverInntekt: Record<Regeltype, boolean> = {
 // rule type is added to types.ts.
 const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
   // Need and capacity, not money. The applicant is assessed against the municipality's
-  // own tilbud, so the answer depends on where they live and how old they are — never
+  // own tilbud, so the answer depends on where they live and how old they are - never
   // on what they earn.
   TJENESTEBEHOV: ({ tilstand, personId, ordning, satser, felles }) => {
     const person = findPerson(tilstand, personId);
@@ -189,7 +189,7 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
 
 // Picks the ordning within a tjeneste that the household can actually be assessed
 // for. Hardcoding one ordning would tell a household whose only child is in first
-// or fourth grade "no SFO place in 2nd-3rd grade" — true, but it reads as a bug,
+// or fourth grade "no SFO place in 2nd-3rd grade" - true, but it reads as a bug,
 // and it hides that the child qualifies elsewhere.
 export function selectOrdningForTjeneste(
   tilstand: State,

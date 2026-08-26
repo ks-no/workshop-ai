@@ -11,8 +11,8 @@
 //   export TOKEN=$(scripts/token.ts --innbygger person-031)
 //   curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/personer/person-031
 //
-// Only the token goes to stdout, so command substitution works. Everything else —
-// help, errors, decoded claims — goes to stderr.
+// Only the token goes to stdout, so command substitution works. Everything else -
+// help, errors, decoded claims - goes to stderr.
 
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { decodeJwt } from "../apps/digdir-mock/src/jwt.ts";

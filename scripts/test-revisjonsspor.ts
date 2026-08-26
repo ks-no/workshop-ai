@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * Revisjonsspor for direkte HTTP-kall til SJEKK-ressursene — issue #2.
+ * Revisjonsspor for direkte HTTP-kall til SJEKK-ressursene - issue #2.
  *
  * SJEKK-steget i prosessmotoren logger SJEKK_OK/SJEKK_AVVIST selv, så oppslaget
  * under steget skal ikke gi noen DATA_LES i tillegg. Men de samme ressursene er
@@ -14,7 +14,7 @@
  *   2. Direkte sjekk med gyldig samtykke (regelvurdering) gir DATA_LES med
  *      samtykkets formaal og grunnlag.
  *   3. Motor-stien (fartsdempende-tiltak) logger SJEKK_OK uten DATA_LES for
- *      sjekk-ressursen — og DATA_FETCH-steget logger fortsatt sin.
+ *      sjekk-ressursen - og DATA_FETCH-steget logger fortsatt sin.
  */
 
 import { spawn } from "node:child_process";
@@ -45,7 +45,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // --- process startup, same shape as kontrakt-smoke -------------------------

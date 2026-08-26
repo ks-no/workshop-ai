@@ -264,7 +264,7 @@ paths:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
-        Hele befolkningen, 369 personer. Ingen innbygger har hjemmel til dette —
+        Hele befolkningen, 369 personer. Ingen innbygger har hjemmel til dette -
         ruta er i bandet «bred» og krever et maskin-token. Adressebeskyttede
         personer er maskert, se Person.
       responses:
@@ -284,7 +284,7 @@ paths:
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
         Folkeregisterliknende grunndata. Adressebeskyttede personer maskeres ved
-        innlasting, ikke i denne ruta — se Person, og merk at maskeringen er
+        innlasting, ikke i denne ruta - se Person, og merk at maskeringen er
         kaller-uavhengig: person-031 ser «Skjermet person» også om seg selv.
       parameters:
         - $ref: "#/components/parameters/PersonId"
@@ -432,20 +432,20 @@ paths:
         Selve kanalvalget gjøres ikke her, og gjøres heller ikke av backend: et
         SUBMIT-steg sender kvitteringen på SvarUt, og SvarUt slår opp KRR på
         `mottaker.digitalId` og velger kanal selv. Det som fortsatt er byggeflate,
-        er alt etter kvitteringen — vedtaksbrev, varsling og egen kanallogikk. Da
+        er alt etter kvitteringen - vedtaksbrev, varsling og egen kanallogikk. Da
         er dette ruta å lese den av.
 
         Krever registrert samtykke for datakilden "kontaktinfo", som
         inntektsruta. Avvik fra ekte forvaltning: der slås KRR opp med hjemmel
-        i eForvaltningsforskriften, uten samtykke — sandkassen samtykkegater
+        i eForvaltningsforskriften, uten samtykke - sandkassen samtykkegater
         ressursen fordi samtykke-før-data er mønsteret katalogen lærer bort.
 
-        Oppslaget er best effort: får ressursen ikke noe svar fra registeret —
+        Oppslaget er best effort: får ressursen ikke noe svar fra registeret -
         fiks-simulator nede, eller personen står ikke i kontaktregisteret
-        (under 15 år / ikke bosatt) — svarer den 200 med `advarsel` og `detalj`
+        (under 15 år / ikke bosatt) - svarer den 200 med `advarsel` og `detalj`
         i stedet for å feile, slik at et DATA_FETCH-steg ikke velter
         prosessøkten. Oppslag revisjonslogges som DATA_LES med ressurs
-        kontaktinfo, også de som degraderte til advarsel — unntatt under et
+        kontaktinfo, også de som degraderte til advarsel - unntatt under et
         SJEKK-steg, der SJEKK-utfallet logges i stedet, som for resten av
         katalogen.
       parameters:
@@ -511,7 +511,7 @@ paths:
             Søknaden er lagret. Oppgaven i fiks-simulator er best effort: går
             den ikke gjennom, står `oppgave.advarsel` i stedet, med årsaken i
             `oppgave.detalj`. Et avvist kall og en utilgjengelig tjeneste ser
-            like ut her — søknaden er lagret uansett.
+            like ut her - søknaden er lagret uansett.
           content:
             application/json:
               schema:
@@ -548,7 +548,7 @@ paths:
         SvarUt-flaten bare tar Maskinporten: nettleseren holder innbyggerens
         ID-porten-token, og kommunens hjemmel møter innbyggerens her.
 
-        Statusen er utledet av tiden siden forsendelsen ble opprettet — MOTTATT,
+        Statusen er utledet av tiden siden forsendelsen ble opprettet - MOTTATT,
         så SENDT_DIGITALT/SENDT_PRINT etter 10 sekunder, så LEST/PRINTET etter 60.
         En klient kan derfor polle ruta og se progresjonen; sluttilstandene er
         LEST, PRINTET og IKKE_LEVERT.
@@ -557,7 +557,7 @@ paths:
         innbyggeren har gjort: søknaden finnes ikke, søknaden har ingen
         forsendelse (den kom fra POST /api/soknader, eller kvitteringen
         degraderte til en advarsel), eller SvarUt kjenner ikke forsendelsen.
-        Meldingen sier hvilken. Er fiks-simulator utilgjengelig, er svaret 502 —
+        Meldingen sier hvilken. Er fiks-simulator utilgjengelig, er svaret 502 -
         dette er en lesing, ikke en best-effort-skriving.
       parameters:
         - name: soknadId
@@ -779,11 +779,11 @@ paths:
       description: >
         Vurderer én ordning i data/satser.json. Oppgi `ordning` direkte, eller
         `tjeneste` og la barnets trinn eller alder avgjøre hvilken ordning som
-        gjelder — det siste er grunnen til at en husstand med barn i 1. trinn
+        gjelder - det siste er grunnen til at en husstand med barn i 1. trinn
         ikke lenger får «ingen SFO-plass på 2.–3. trinn» i svaret.
 
         Samtykke til inntekt kreves bare for ordninger som faktisk måles mot
-        inntekt. Støttekontakt vurderes på behov, og henter da ingen inntekt —
+        inntekt. Støttekontakt vurderes på behov, og henter da ingen inntekt -
         se regelKreverInntekt i vilkaar.ts.
 
         `/api/regler/sjekk/foreldrebetaling` er et alias for denne. Navnet sier
@@ -884,7 +884,7 @@ paths:
                     `DATA_LES` og `DATA_NEKTET` gjelder datatilgang; `DATA_NEKTET`
                     betyr hjemmel uten samtykke. `TILGANG_NEKTET` er noe annet: der
                     manglet hjemmelen selv, altså 401 eller 403 før samtykke i det hele
-                    tatt ble vurdert. De to skal ikke slås sammen — forskjellen er hele
+                    tatt ble vurdert. De to skal ikke slås sammen - forskjellen er hele
                     poenget.
                   example: SAMTYKKE_OPPRETTET
                 ressurs:
@@ -905,7 +905,7 @@ paths:
                 aktor:
                   type: object
                   description: >-
-                    Hvem som kalte, avledet av tokenet — ikke hvem det ble spurt om.
+                    Hvem som kalte, avledet av tokenet - ikke hvem det ble spurt om.
                     Identifikatorrommene er bevisst ulike: `id` er fødselsnummer for
                     en innbygger, fordi det er hva ID-porten-tokenet bærer, mens
                     `paaVegneAv` er personId, som er sandkassens domeneidentifikator.
@@ -917,7 +917,7 @@ paths:
                         `innbygger` er en autentisert person via ID-porten. `system` er
                         en maskinklient med eget scope. `utvikler` er prosessbyggeren,
                         som ikke er en innbygger. `ukjent` betyr at ingen ble
-                        autentisert — det skjer bare med AUTH_ENFORCE=false, og skal se
+                        autentisert - det skjer bare med AUTH_ENFORCE=false, og skal se
                         feil ut.
                     id:
                       type: string
@@ -966,7 +966,7 @@ components:
       description: >-
         Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
         grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
-        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` — et token utstedt for en annen
+        Krever scope `ks:innbyggerdialog:les` og aud `sandbox-backend` - et token utstedt for en annen
         tjeneste avvises med 401, som er hele poenget med audience-begrensning.
         Hent ett med `scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend`.
     idporten:
@@ -976,7 +976,7 @@ components:
       description: >-
         Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
         PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
-        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
+        den personen forespørselen gjelder - ellers 403, ikke 401: forskjellen på
         «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
         Hent ett med `scripts/token.ts --innbygger <personId>`.
   parameters:
@@ -1041,7 +1041,7 @@ components:
     Kontakt:
       type: object
       description: >
-        Tenor-importerte personer har `kontakt: {}` — ingen nøkler i det hele
+        Tenor-importerte personer har `kontakt: {}` - ingen nøkler i det hele
         tatt. Nøkkelsettet er frosset wire-format.
       properties:
         epost:
@@ -1081,7 +1081,7 @@ components:
         derfor alle lesere. STRENGT_FORTROLIG (kode 6) mister navn og adresse:
         navnet blir «Skjermet person». FORTROLIG (kode 7) mister adressen og
         beholder navnet. Begge beholder fødselsnummer, fødselsdato, husstandId og
-        kommunenummer — beregningen og regelmotoren trenger dem, og uten dem
+        kommunenummer - beregningen og regelmotoren trenger dem, og uten dem
         ville skjermingen stilt personen utenfor tjenestene sine.
       properties:
         personId:
@@ -1126,7 +1126,7 @@ components:
           enum: [foresatt, barn, voksen, null]
           description: >
             Rollen inne i husstanden. `voksen` er en myndig person som ikke er
-            forelder til noe barn i husstanden — regelmotoren summerer bare
+            forelder til noe barn i husstanden - regelmotoren summerer bare
             `foresatt`. null for alle som ikke er BOSATT: de har ingen husstand.
         husstandId:
           type: string
@@ -1157,7 +1157,7 @@ components:
           enum: [felles, mor, far, medmor, andre, ukjent, null]
           description: >
             Hvem som har foreldreansvar for denne personen. Speilet fra
-            Folkeregisteret, ikke utledet av foreldrelista — en far kan være far
+            Folkeregisteret, ikke utledet av foreldrelista - en far kan være far
             uten å ha foreldreansvar. Grunnlaget for hvem som kan være avsender
             for en mindreårig.
         kontakt:
@@ -1177,7 +1177,7 @@ components:
           nullable: true
           description: >
             Null bare når alle medlemmene er skjermet. En adresse man deler med
-            en umaskert medboer kan ikke skjules — medboerens egen post viser den
+            en umaskert medboer kan ikke skjules - medboerens egen post viser den
             uansett.
         kommune:
           type: string
@@ -1199,7 +1199,7 @@ components:
           type: string
           enum: [tenor]
           description: >
-            Bare på de importerte. De frosne fixturene har ingen kilde — de er
+            Bare på de importerte. De frosne fixturene har ingen kilde - de er
             forfattet, og ligger i data/kuratert.json.
         scenario:
           type: string
@@ -1263,8 +1263,8 @@ components:
     Kontaktinfo:
       type: object
       description: >
-        KRR-raden fra fiks-simulator, uendret — se openapi/fiks-simulator.yaml
-        for hele formen — eller advarselsformen når oppslaget ikke fikk svar.
+        KRR-raden fra fiks-simulator, uendret - se openapi/fiks-simulator.yaml
+        for hele formen - eller advarselsformen når oppslaget ikke fikk svar.
         Adressebeskyttede personer (kode 6/7) får epost og tlf nullet av
         simulatoren; reservert, spraak og kanVarsles beholdes.
       properties:
@@ -1285,7 +1285,7 @@ components:
           type: boolean
         spraak:
           type: string
-          description: nb, nn eller en. Lånt fra Digdirs KRR — se fiks-simulator.yaml.
+          description: nb, nn eller en. Lånt fra Digdirs KRR - se fiks-simulator.yaml.
         advarsel:
           type: string
           description: >
@@ -1322,12 +1322,12 @@ components:
             og id, spørsmålssvarene, toppnivå-primitiver fra hvert
             DATA_FETCH-resultat, sjekk-stegets utfall og oppsummeringsteksten hvis
             den finnes. Bare til stede når søknaden kom fra et SUBMIT-steg i en
-            prosessøkt — POST /api/soknader direkte har det aldri.
+            prosessøkt - POST /api/soknader direkte har det aldri.
         forsendelseId:
           type: string
           description: >
             SvarUt-forsendelsen kvitteringen ble sendt som. Bare til stede når
-            utsendingen gikk gjennom — feilet den, står advarselen i `forsendelse`
+            utsendingen gikk gjennom - feilet den, står advarselen i `forsendelse`
             på SUBMIT-svaret og raden har ingen id. Nøkkelen
             GET /api/soknader/{soknadId}/forsendelse slår opp på.
     SoknadMedOppgave:
@@ -1338,7 +1338,7 @@ components:
             oppgave:
               description: >
                 Oppgaven fiks-simulator opprettet, eller advarselen om at den
-                ikke ble opprettet — en søknad uten oppgaveId sier hvorfor.
+                ikke ble opprettet - en søknad uten oppgaveId sier hvorfor.
               type: object
               properties:
                 oppgaveId:
@@ -1352,13 +1352,13 @@ components:
             forsendelse:
               description: >
                 SvarUt-kvitteringen, eller advarselen om at den ikke ble sendt.
-                Bare til stede når søknaden kom fra et SUBMIT-steg — POST
+                Bare til stede når søknaden kom fra et SUBMIT-steg - POST
                 /api/soknader direkte sender ingen kvittering.
 
                 Best effort på samme måte som oppgaven: en kvittering som ikke
                 kan sendes velter aldri innsendingen, og søknaden er lagret
                 uansett. En mottaker uten digital kanal og uten gyldig
-                postadresse — en skjermet person uten KRR-rad er nettopp det —
+                postadresse - en skjermet person uten KRR-rad er nettopp det -
                 havner her som en advarsel, ikke som en feil innbyggeren betaler
                 for. Verken adressen eller kontaktinformasjonen står i svaret.
 
@@ -1381,14 +1381,14 @@ components:
       description: >-
         Kodeverket ligger i apps/fiks-simulator/src/forsendelse.ts og gjengis her
         fordi denne ruta svarer med det. Utledes av tid, skrives aldri. LEST,
-        PRINTET og IKKE_LEVERT er sluttilstander — der kan en poller slutte.
+        PRINTET og IKKE_LEVERT er sluttilstander - der kan en poller slutte.
       enum: [MOTTATT, SENDT_DIGITALT, SENDT_PRINT, IKKE_LEVERT, LEST, PRINTET]
 
     Forsendelsesstatussvar:
       type: object
       description: >
         Statusen på én forsendelse, slik SvarUt svarte om den. Ingenting om
-        mottakeren står her — hvilket brev som gikk ut og hvor langt det har
+        mottakeren står her - hvilket brev som gikk ut og hvor langt det har
         kommet er spørsmålet ruta svarer på, og adressen hører ikke med.
       properties:
         id:
@@ -1409,7 +1409,7 @@ components:
       type: object
       description: >
         Svaret fra fiks-simulator sitt register-API, beregningstype
-        BARNEHAGE_SFO. Modellen er Fiks sin egen — se openapi/fiks-simulator.yaml
+        BARNEHAGE_SFO. Modellen er Fiks sin egen - se openapi/fiks-simulator.yaml
         for hele formen. Husholdningsinntekten er summen for alle foresatte i
         husstanden, jf. forskrift om foreldrebetaling, og for en husstand med to
         foresatte betyr det at også den andres skattedata leses. Revisjonsloggen

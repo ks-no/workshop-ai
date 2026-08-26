@@ -2,7 +2,7 @@
 //
 // Sibling of registerdata.ts, and there for the same reason: personer.json,
 // husstander.json, the two plass-datasets and samtykker.json are read off the same
-// disk by more than one service, so their shapes belong to neither of them —
+// disk by more than one service, so their shapes belong to neither of them -
 // housed in one service, the other has to import from a peer.
 //
 // What stays in sandbox-backend/src/types.ts is the process engine: steg, oekt,
@@ -16,7 +16,7 @@ export type MedFelter = { [key: string]: any };
 // FREG grades address protection: kode 7 (FORTROLIG) and kode 6
 // (STRENGT_FORTROLIG), plus the ungraded majority. Closed, so the masking rules in
 // skjerming.ts must cover every grade the compiler knows about. The boolean
-// `skjermet` is derived from this field and never the other way round — the same
+// `skjermet` is derived from this field and never the other way round - the same
 // invariant scripts/valider-data.ts enforces on the seed.
 export type Adressegradering = "UGRADERT" | "FORTROLIG" | "STRENGT_FORTROLIG";
 
@@ -56,7 +56,7 @@ export type Samtykke = MedFelter & {
 
 // One row in data/krr.json, mirroring Fiks' KrrDefinisjon. Keyed on fnr like
 // inntekter.json, because that is what the real KRR looks people up by. epost
-// and tlf are null — not absent — when the person has no contact info, so the
+// and tlf are null - not absent - when the person has no contact info, so the
 // key set stays the same for every row.
 export type KrrEpost = { adresse: string; sistOppdatert: string; sistVerifisert: string };
 

@@ -2,7 +2,7 @@
 
 **For deg som skal demonstrere en case, eller lurer på hvordan sidene på `:3001` henger
 sammen.** Referansefrontenden: velg testbruker, kjør en flyt steg for steg, og se data,
-samtykke og revisjonslogg underveis. Bygger du egen klient, er API-ene inngangen din —
+samtykke og revisjonslogg underveis. Bygger du egen klient, er API-ene inngangen din -
 ikke denne koden.
 
 Nåværende MVP:
@@ -10,10 +10,10 @@ Nåværende MVP:
 - statisk HTML og JavaScript, null avhengigheter
 - prosessdrevet flyt fra `data/prosessdefinisjoner.json`
 - prosessøkt-API via `sandbox-backend`
-- støtte for alle sju stegtypene — lista bor i `docs/prosessmodell.md`
+- støtte for alle sju stegtypene - lista bor i `docs/prosessmodell.md`
 
-Sidene og hva de er til står i `docs/deltakerstart.md` §2 — den lista bor der, ikke her.
-Én side skiller seg ut teknisk: `/ds-eksempel` laster med vilje **ikke** `felles.css` —
+Sidene og hva de er til står i `docs/deltakerstart.md` §2 - den lista bor der, ikke her.
+Én side skiller seg ut teknisk: `/ds-eksempel` laster med vilje **ikke** `felles.css` -
 se `docs/designsystem.md`.
 
 De øvrige sidene deler `apps/shared/felles.css` på `/assets/*` og `client/felles.ts` på
@@ -40,7 +40,7 @@ To rømningsveier når rutingen likevel bommer: knappen «Nei, dette var svaret 
 prefikset `svar:` som sender teksten inn som svar uansett.
 
 Svarene kommer fra `POST /ai/sporsmaal`, som svarer utelukkende fra grunnlaget denne
-siden sender med — satser, prosessdefinisjonen, hvor i flyten økten står, og det økten
+siden sender med - satser, prosessdefinisjonen, hvor i flyten økten står, og det økten
 allerede har hentet. Slår en sperre inn, vises svaret med egen markering og en linje om
 hvorfor.
 

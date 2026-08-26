@@ -1,6 +1,6 @@
 # Only the checks that need neither a running stack nor a language model.
 #
-# Deliberately excluded: pnpm test:eval (needs a live model — see evals/README.md)
+# Deliberately excluded: pnpm test:eval (needs a live model - see evals/README.md)
 # and the test:agent* / test:*-matrikkel scripts (need the compose stack up).
 name: CI
 
@@ -27,7 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Type-checks the .ts modules in sandbox-backend. checkJs is off, so the
-      # .js services are not covered — see tsconfig.json.
+      # .js services are not covered - see tsconfig.json.
       - name: Typesjekk
         run: pnpm lint
 
@@ -45,14 +45,14 @@ jobs:
 
       # Address-protection masking as pure functions against the real seed. The
       # kontrakt dump below records the masked shape on the wire, but a dump can
-      # only differ — it cannot fail. This step can.
+      # only differ - it cannot fail. This step can.
       - name: Skjerming av adressebeskyttede
         run: pnpm test:skjerming
 
       # The vedtak itself, as pure functions against literal fixtures. Needs no
       # stack and no model. This is not a duplicate of `pnpm test`: that one drives
       # the same rule over the seed, and the seed cannot reach an ordning with only
-      # one bound set — the shape where the gate's old hand-written mirror disagreed
+      # one bound set - the shape where the gate's old hand-written mirror disagreed
       # with the rule. Only fixtures reach it. Same for TJENESTEBEHOV's dead
       # rejection branches and the UTKAST forbehold, which the kontrakt dump never
       # touches because every household it visits has a finished skatteoppgjør.
@@ -60,8 +60,8 @@ jobs:
         run: pnpm test:vilkaar
 
       # Modulus 11 and Skatteetaten's +80 marker, as pure functions. The seed only
-      # contains numbers we generate, so every *rejection* — an ordinary month, a
-      # wrong second control digit, an individual number whose mod-11 rest is 10 —
+      # contains numbers we generate, so every *rejection* - an ordinary month, a
+      # wrong second control digit, an individual number whose mod-11 rest is 10 -
       # exists here or nowhere. The D-number branch has no seed data at all.
       - name: Fødselsnummer
         run: pnpm test:foedselsnummer
@@ -74,21 +74,21 @@ jobs:
         run: pnpm test:handleevne
 
       # The samtykke state machine, expiry and the write queue. Half pure functions,
-      # half a real fiks-simulator on 18091 against a temp STATE_DIR — the lost-update
+      # half a real fiks-simulator on 18091 against a temp STATE_DIR - the lost-update
       # and double-answer cases only exist over HTTP.
       - name: Samtykkets tilstandsmaskin
         run: pnpm test:samtykke
 
       # The forsendelse channel decision and the derived status progression, as
       # pure functions with an injected clock. Every step the derivation takes is
-      # checked against the state machine — the progression is never written, so
+      # checked against the state machine - the progression is never written, so
       # this is the only place an illegal step could be caught.
       - name: Forsendelsens kanalvalg og utledning
         run: pnpm test:forsendelse
 
       # What a non-ok answer from an upstream service means, as pure functions:
       # `send` is a callback, so a Response is handed in as a literal. Every case
-      # is one the kontrakt dump cannot reach — that dump records the flows where
+      # is one the kontrakt dump cannot reach - that dump records the flows where
       # upstream answers ok, which is exactly why it stays byte-identical here.
       # It also holds the structural half: the engine hands its fetches to
       # upstream.ts instead of reading a status itself, which is the property that
@@ -113,7 +113,7 @@ jobs:
 
       # The import graph between apps, checked for cycles. sandbox-backend and
       # fiks-simulator used to import each other, and so did sandbox-backend and
-      # digdir-mock — one leaf wide in each case. Every arrow was locally right, so
+      # digdir-mock - one leaf wide in each case. Every arrow was locally right, so
       # this is precisely the defect a diff review cannot see: the cycle exists only
       # in the sum. Pure text analysis, no import, no port.
       - name: Importgrafen
@@ -127,7 +127,7 @@ jobs:
 
       # Every service list, tool count and population figure in the prose has a
       # machine-readable source. On 22.08.2026 every measured mismatch sat in a
-      # hand-typed copy and never in the source — three service tables said eight
+      # hand-typed copy and never in the source - three service tables said eight
       # where there are nine, and this CI list itself was documented as seven
       # checks in two files. Nothing compared the two until this step.
       - name: Dokumentasjonen mot kilden

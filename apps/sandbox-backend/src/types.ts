@@ -1,7 +1,7 @@
 // Domain types for the sandbox.
 //
 // Hand-written, not generated from openapi/. Those specs are currently too thin to
-// generate anything usable — prosessoekt, sjekkresultat, satser, person, husstand
+// generate anything usable - prosessoekt, sjekkresultat, satser, person, husstand
 // and inntekt have no schema at all. The right direction is the opposite: this file
 // is the source, and the gaps in OpenAPI get filled from it.
 //
@@ -11,7 +11,7 @@
 
 // The citizen datasets themselves live in the shared layer: fiks-simulator reads
 // the same files off the same disk, so Person and Husstand belong to neither
-// service. Re-exported nowhere — a caller that needs Person imports it from there.
+// service. Re-exported nowhere - a caller that needs Person imports it from there.
 import type { Husstand, MedFelter, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
 
 // --- process model --------------------------------------------------------
@@ -95,7 +95,7 @@ export type Prosessoekt = {
 // A closed union so the compiler demands a handler in regelHandlers (vilkaar.ts) the moment a
 // new rule type appears. TJENESTEBEHOV is the first one that is not about money:
 // støttekontakt is assessed on need and capacity, and must not drag an income
-// lookup — and its consent — along with it.
+// lookup - and its consent - along with it.
 export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT" | "TJENESTEBEHOV";
 
 export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt";
@@ -137,7 +137,7 @@ export type SjekkResultat = {
 // --- data and state -------------------------------------------------------
 
 /**
- * prosessdefinisjoner.json, parsed — what a katalog write reads and hands back.
+ * prosessdefinisjoner.json, parsed - what a katalog write reads and hands back.
  *
  * The file's own shape is looser than this: an old version is a bare array, and
  * `meta` is whatever keys sat beside `prosesser` and `maler`. State carries the
@@ -175,7 +175,7 @@ export type State = {
  * tjenesteDatasett maps barnehage/sfo/fritid to one of these, and an ordning's
  * `tilbudsdatasett` names one directly.
  *
- * State deliberately has no `[key: string]: any` index signature — that one line
+ * State deliberately has no `[key: string]: any` index signature - that one line
  * would make `tilstand.prosessokter` (a typo for prosessoekter) compile as `any`
  * and fail at runtime instead. The dynamic lookups go through datasettFor() in
  * state.ts, which narrows against this union once.

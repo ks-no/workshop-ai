@@ -14,7 +14,7 @@
  *      claims in prose against the specs
  *
  * IT FAILS LOUDLY, AND THE BOUNDARY IS THE POINT. It throws on a construct it does
- * not understand *within what it claims to read* — a fifth parameter shape, a $ref
+ * not understand *within what it claims to read* - a fifth parameter shape, a $ref
  * that does not resolve, a body example that is not a string. It does not look at
  * `responses:` or `components.schemas` at all, and must not start: without that
  * boundary the next change turns this into a general YAML parser, which has been
@@ -29,7 +29,7 @@ import { readFile } from "node:fs/promises";
 
 export type Parameter = {
   navn: string;
-  /** `in:` fra OpenAPI — path, query, header eller cookie. */
+  /** `in:` fra OpenAPI - path, query, header eller cookie. */
   plassering: string;
   paakrevd: boolean;
   /** Fra `example:` på parameteren eller under `schema:`, ellers `default:`. */
@@ -162,7 +162,7 @@ function readFieldValue(lines: string[], index: number): { value: string; next: 
  *
  * ai-gateway.yaml writes its parameters on one line, and the shape is closed
  * enough to read directly: mappings, sequences and scalars. No anchors, no tags,
- * no commas inside values — and anything else throws rather than guessing.
+ * no commas inside values - and anything else throws rather than guessing.
  */
 function readFlowScalar(text: string, where: string): any {
   let i = 0;
@@ -295,7 +295,7 @@ function readParameterFields(
       throw new Error(
         `${where}:${i + 1}: ukjent nøkkel «${key}» på en parameter. Leseren kjenner ` +
         `${PARAMETER_KEYS.join(", ")}. Hører den hjemme, hører formen i ` +
-        `apps/shared/openapi.ts — en parameter som forsvinner i stillhet er verre enn en feil.`
+        `apps/shared/openapi.ts - en parameter som forsvinner i stillhet er verre enn en feil.`
       );
     }
     if (key === "schema") {
@@ -419,7 +419,7 @@ function readParameters(
  * med.
  *
  * Bare strengformene leses: `example: "…"` og en blokkskalar. Et example skrevet
- * som en nestet mapping — formen OpenAPI egentlig mener — kaster, fordi å lese den
+ * som en nestet mapping - formen OpenAPI egentlig mener - kaster, fordi å lese den
  * ville krevd en YAML-parser. Når skriving lander og eksempler skal inn i filene,
  * skriv dem som blokkskalar med JSON i, eller lær formen her. Ikke la leseren
  * droppe dem i stillhet.
@@ -436,7 +436,7 @@ function readBodyExample(
     if (read.value === "") {
       throw new Error(
         `${where}:${i + 1}: requestBody-eksempelet er tomt eller en nestet mapping. Leseren ` +
-        `leser bare strenger — skriv eksempelet som blokkskalar med JSON i, eller lær formen ` +
+        `leser bare strenger - skriv eksempelet som blokkskalar med JSON i, eller lær formen ` +
         `i apps/shared/openapi.ts.`
       );
     }
@@ -609,7 +609,7 @@ function readPaths(
       const metode = lines[j].match(/^ {4}([a-z]+):\s*$/);
       if (!metode || !HTTP_METHODS.includes(metode[1])) {
         // Alt annet på path-nivå enn en metode. `summary` og `description` er ren
-        // prosa og kan ignoreres; `parameters` kan det ikke — den gjelder hver
+        // prosa og kan ignoreres; `parameters` kan det ikke - den gjelder hver
         // operasjon under stien, og å hoppe over den ville gitt utforskeren et
         // skjema uten feltet og et kall som 404-er uten å si hvorfor.
         const key = keyOf(lines[j]);
@@ -726,7 +726,7 @@ export async function routeOverview(filePath: string): Promise<RouteOverview> {
   const spec = readSpec(await readFile(filePath, "utf8"), filePath);
   return {
     tjeneste: spec.title,
-    // beskrivelse, ikke description: dette er wire. TypeScript ser det ikke — et
+    // beskrivelse, ikke description: dette er wire. TypeScript ser det ikke - et
     // spread-uttrykk omgår excess property-sjekken, så nøkkelen kan skifte navn
     // uten at tsc sier fra. Sjekken som fanger det er en diff av
     // /openapi-ruter.json før og etter.

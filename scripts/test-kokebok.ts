@@ -12,7 +12,7 @@
  * the gate if the shell exits non-zero, or if any line of its output looks like an
  * HTTP status the prose did not ask for.
  *
- * Needs the stack up, so it is not in CI — same reason as test:agent. Run it before
+ * Needs the stack up, so it is not in CI - same reason as test:agent. Run it before
  * touching the cookbook, and after.
  *
  * Usage:
@@ -98,7 +98,7 @@ const output = await new Promise<{ text: string; code: number | null }>((resolve
 
 /*
  * Only lines that are a *status readout* are judged. The first version matched any
- * three digits anywhere, and read "200" out of "Full pris er 35 200 kr" — a chart of
+ * three digits anywhere, and read "200" out of "Full pris er 35 200 kr" - a chart of
  * false positives on the one block that works. A readout has no JSON punctuation and
  * ends in the code: "uten token:          401", or "8086 200".
  */
@@ -126,7 +126,7 @@ for (const line of output.text.split("\n")) {
 
 /*
  * The end-to-end assertion. Every status in §4 can read 200 while the flow still
- * fails to finish — that is exactly what the \{} quoting bug did: the steps answered
+ * fails to finish - that is exactly what the \{} quoting bug did: the steps answered
  * 500, `neste` answered 200, and the session sat at AKTIV. The cookbook claims the
  * session reaches FULLFORT, so the gate checks the claim rather than the codes.
  */

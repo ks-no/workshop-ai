@@ -1,6 +1,6 @@
 # Folkeregister MCP Service
 
-A real Model Context Protocol server for synthetic Folkeregisteret test data —
+A real Model Context Protocol server for synthetic Folkeregisteret test data -
 JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
 to it. Unlike `apps/tools-api`, which is REST that only borrows the name.
 
@@ -15,7 +15,7 @@ Two MCP tools:
 
 Default data file:
 
-- `data/folkeregister.seed.json` — 394 syntetiske testpersoner based on `data/personer.json`,
+- `data/folkeregister.seed.json` - 394 syntetiske testpersoner based on `data/personer.json`,
   formatted after the Folkeregisteret "Offentlig med hjemmel" v1.6.2 API schema.
 
 Override with:
@@ -36,7 +36,7 @@ node apps/folkeregister-mcp/src/server.ts
 pnpm test:folkeregister-mcp
 ```
 
-That test implements the client side itself, so it proves the two halves agree —
+That test implements the client side itself, so it proves the two halves agree -
 not that the framing matches the MCP spec. **When you touch the transport, check
 against a real client too:**
 

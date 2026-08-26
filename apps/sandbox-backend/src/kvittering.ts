@@ -2,7 +2,7 @@
  * What the citizen gets back when a søknad is sent in: the søknadsdokument and
  * the SvarUt-forsendelsen it is delivered as.
  *
- * Both halves are pure — no fetch, no state, no token client — so the skjerming
+ * Both halves are pure - no fetch, no state, no token client - so the skjerming
  * test can run them straight off the seed without a stack and without paying for
  * digdir-mock's 2048-bit keypair at module load. svarut.ts is the I/O half and
  * imports this one; the arrow never goes back.
@@ -13,7 +13,7 @@ import type { Person } from "../../shared/innbyggerdata.ts";
 import type { ProsessDefinisjon, ProsessSteg, Prosessoekt, SjekkResultat } from "./types.ts";
 
 // A DATA_FETCH result's own id-fields and fødselsnummer never belong in a document
-// the citizen reads back — those are for the audit log and the wire, not for the
+// the citizen reads back - those are for the audit log and the wire, not for the
 // application content. "Id-suffikser" catches personId/husstandId/matrikkelId/...
 // without a per-resource allowlist that would need updating for every new ressurs.
 const FODSELSNUMMER_MOENSTER = /fodselsnummer|fnr/i;
@@ -27,7 +27,7 @@ function erDokumenterbartFelt([noekkel, verdi]: [string, unknown]): boolean {
 
 // oekt.svar holds either the field-keyed object demo-gui's stegvis-side posts, or
 // the bare value /chat posts for a one-field spørsmål (see replaceParametere in
-// prosess.ts) — both are handled here so the document reads the same regardless
+// prosess.ts) - both are handled here so the document reads the same regardless
 // of which client answered.
 function svarLinjerForSteg(steg: ProsessSteg, verdi: unknown): string[] {
   if (steg.type !== "QUESTION" || verdi === undefined || verdi === null) {
@@ -53,7 +53,7 @@ function dataFetchLinjeForSteg(steg: ProsessSteg, resultat: unknown): string | n
 }
 
 /*
- * Builds the søknadsdokument as plain text — no PDF, no KI-kall. Walked off
+ * Builds the søknadsdokument as plain text - no PDF, no KI-kall. Walked off
  * prosess.steg in definition order rather than Object.keys(oekt.svar /
  * oekt.resultater), so the section order cannot drift with insertion order, and
  * off oekt.svar/resultater rather than re-deriving anything, so the document
@@ -92,7 +92,7 @@ export function buildSoknadsdokument(
     if (steg.type !== "SJEKK") continue;
     const resultat = oekt.resultater[steg.id] as SjekkResultat | undefined;
     if (!resultat) continue;
-    linjer.push(`Sjekk: ${resultat.godkjent ? "Godkjent" : "Avvist"} — ${resultat.melding}`, "");
+    linjer.push(`Sjekk: ${resultat.godkjent ? "Godkjent" : "Avvist"} - ${resultat.melding}`, "");
   }
 
   for (const steg of prosess.steg) {
@@ -110,7 +110,7 @@ export function buildSoknadsdokument(
 }
 
 /*
- * The forsendelse body, as SvarUt' send-API wants it — the metadata part of the
+ * The forsendelse body, as SvarUt' send-API wants it - the metadata part of the
  * real multipart, which is all fiks-simulator accepts and all it stores. The
  * document text itself stays on the søknadsrad: the simulator never keeps
  * document bytes, so `dokumenter` names the attachment rather than carrying it.
@@ -142,7 +142,7 @@ export type Kvitteringskropp = {
  * not a rule the next caller can find, and a masking change two modules away
  * should not be able to open a channel here. Without a postal address SvarUt
  * falls back to the digital channel, and refuses the forsendelse when there is
- * no digital channel either — which is the safe degradation, not an error the
+ * no digital channel either - which is the safe degradation, not an error the
  * citizen pays for.
  */
 function postadresseFor(person: Person): Pick<Kvitteringsmottaker, "adresselinje1" | "postnummer" | "poststed"> {
@@ -164,7 +164,7 @@ function fulltNavn(person: Person): string {
 /**
  * Nothing here decides a channel: `digitalId` is handed over and SvarUt reads
  * KRR itself, exactly as the real one does. A kanalvalg computed in this service
- * would be a second implementation of a rule that already has one — and the
+ * would be a second implementation of a rule that already has one - and the
  * choosing is what participants build on top of.
  */
 export function buildKvitteringKropp(

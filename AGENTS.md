@@ -1,7 +1,7 @@
 # AGENTS Guide
 
 > **The maintainer document, for agents changing the sandbox itself.** If you are a
-> hackathon participant, `docs/oppdraget.md` is your starting point — you do not
+> hackathon participant, `docs/oppdraget.md` is your starting point - you do not
 > need to read this file, and nothing here is part of the participant materials.
 
 ## What this repo is
@@ -10,7 +10,7 @@
 
 ## Service map (compose defaults)
 - `apps/process-builder` (`3000`): process definition UI.
-- `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances —
+- `apps/demo-gui` (`3001`): dashboard at `/`, then three citizen-facing entrances -
   `/chat`, `/agent` and `/stegvis`. Shares `apps/shared/felles.css` and `client/felles.ts`
   with `process-builder`. The stylesheet is served at `/assets/*`; `felles.ts` is at
   `/delt/felles.ts`, type-stripped on the way out, because it is code rather than a
@@ -18,10 +18,10 @@
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
-- `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) — persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
-- `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **REST, not the MCP protocol** — it answers `protocol: "rest"`, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`, so the road to real MCP is short. It was called `mcp-services` until 23.08.2026; the name was dropped rather than the disclaimer repeated in every doc. Its `/mcp/*` paths survive as wire format — the one place the prefix still claims a protocol the service does not speak.
-- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** — JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `tools-api` does **not** — it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
-- `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
+- `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) - persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
+- `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **REST, not the MCP protocol** - it answers `protocol: "rest"`, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`, so the road to real MCP is short. It was called `mcp-services` until 23.08.2026; the name was dropped rather than the disclaimer repeated in every doc. Its `/mcp/*` paths survive as wire format - the one place the prefix still claims a protocol the service does not speak.
+- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** - JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `tools-api` does **not** - it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
+- `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` - but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
 - **Six files under `data/` are generated and must not be hand-edited:**
@@ -30,14 +30,14 @@
   `eierforhold.json`. `scripts/importer-tenor.ts` builds all six, plus
   `docs/testpersoner.md`, from two sources: `data/kuratert.json` (the 51 hand-authored
   threshold fixtures) and `data/tenor/*.json` (the raw extracts). Edit a curated row in
-  `personer.json` directly and the next import reverts it — so `pnpm test` compares the
+  `personer.json` directly and the next import reverts it - so `pnpm test` compares the
   curated rows against `kuratert.json` and fails instead.
 - The import **rebuilds**; it used to be additive, which meant a second run was a no-op
   and the data could only grow, never be cleaned. Ids stay stable because `personId` and
   `husstandId` are read back from `personer.json` as a ledger; `--glem-id-er` assigns
   from scratch and gives the same result on unchanged input.
 - **A rule that more than one caller needs lives in one module, and that module lives
-  in `apps/shared/`** — `alder.ts`, `foedselsnummer.ts` (modulus 11 and Skatteetaten's
+  in `apps/shared/`** - `alder.ts`, `foedselsnummer.ts` (modulus 11 and Skatteetaten's
   +80 synthetic marker), `handleevne.ts` (who may act, and on whose behalf),
   `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry). None of
   them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
@@ -56,7 +56,7 @@
   Two files stay outside the store and may: `state/ai-provider-override.json`
   (`ai-gateway`) and `state/digdir-nokkel.json` (`digdir-mock`) have exactly one writer
   each, in one service, so there is no second reader to lose an update to.
-- **The whole repo is TypeScript** — every service, every script, and the browser
+- **The whole repo is TypeScript** - every service, every script, and the browser
   code. There is no build step: Node type-strips `.ts` on load, and the two frontends
   strip the client files at serve time (`apps/shared/assets.ts`). `tsconfig.json`
   has no `allowJs`, so a `.js` file imported from `.ts` is a compile error.
@@ -66,33 +66,33 @@
 - **`apps/shared/` is the shared layer, and it is below every service.** It was called
   `shared-ui` while it only held frontend files; it now holds backend plumbing and the
   domain leaves as well, so the name was a claim it had stopped meeting. Two modules are
-  used by every service: `http.ts` (CORS, JSON and text responses, request bodies — the
+  used by every service: `http.ts` (CORS, JSON and text responses, request bodies - the
   CORS policy is a parameter, because the six copies it replaced had drifted apart) and
   `errors.ts` (`feilmelding`/`feilkode` for caught `unknown`). The rest are used by
-  whoever needs them: `assets.ts` (static files and type stripping — the two frontends),
-  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` — the
+  whoever needs them: `assets.ts` (static files and type stripping - the two frontends),
+  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` - the
   two MCP servers and `tools-api`), `innbyggerdata.ts` (the shapes of `personer.json`,
-  `husstander.json`, the two plass-datasets and `samtykker.json` — `sandbox-backend` and
-  `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` — the
+  `husstander.json`, the two plass-datasets and `samtykker.json` - `sandbox-backend` and
+  `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` - the
   state I/O above and the one write queue that replaced three copies of it), the five
   domain modules above, and `statemachine.ts` under `samtykke.ts`.
 - **The arrows between apps form a DAG, and `pnpm test:imports` fails if they stop.**
-  `sandbox-backend` and `fiks-simulator` used to import each other — the backend took the
+  `sandbox-backend` and `fiks-simulator` used to import each other - the backend took the
   samtykke kodeverk from fiks, fiks took masking, fødselsnummer validation and its
-  `Person` type from the backend — and `sandbox-backend` and `digdir-mock` had the same
+  `Person` type from the backend - and `sandbox-backend` and `digdir-mock` had the same
   knot, one leaf wide. Every single arrow was locally right: importing the rule beats
   keeping a second copy of it. The defect existed only in the sum, which is why no
   reviewer caught it in a diff and why it is checked instead of remembered. What the
   check bans is the arrow *back*, not the arrow: four services get their token client
   from `digdir-mock`, which owns the protocol, and that is what a service boundary is
-  for. `apps/shared` additionally must import nothing from any app — a shared layer that
+  for. `apps/shared` additionally must import nothing from any app - a shared layer that
   reaches back into a service is beside the services, not below them, and drags whatever
   it touched into every test.
 - **Browser code lives in a `client/` directory, and each one has its own
   `tsconfig.json`** extending `tsconfig.client-base.json` (DOM lib, no `@types/node`,
   `moduleDetection: "legacy"`). The root config excludes `**/client/**`.
-  The per-directory configs are not cosmetic: tsserver — the language service behind
-  IntelliJ, WebStorm and VS Code — picks a file's project by walking up for a file
+  The per-directory configs are not cosmetic: tsserver - the language service behind
+  IntelliJ, WebStorm and VS Code - picks a file's project by walking up for a file
   named exactly `tsconfig.json`. A single `tsconfig.client.json` at the root was
   invisible to it, so every editor put the client files in an inferred project and
   reported `Cannot find name renderTopNav` on every line that used felles.ts.
@@ -108,18 +108,18 @@
   `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
 - The engine is linear: `stegIndex` only counts up. No branching, no conditional jumps.
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
-  reproducible and auditable — never move eligibility logic into the model. The model
+  reproducible and auditable - never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
 - **Eligibility logic lives in one place: `vilkaar.ts`.** `evaluateVilkaar` is the only way
   in; `regelHandlers` is private, so a new rule type does not widen the interface. The
-  module is pure and synchronous — the income basis arrives as a parameter — so an outcome
+  module is pure and synchronous - the income basis arrives as a parameter - so an outcome
   can be pinned with a literal `tilstand` object and no running services. `regler.ts` is
   the I/O half (the Fiks beregning, the samtykke predicates) and `vilkaar.ts` must never
   import it back: that arrow is what keeps a rules test from paying for a 2048-bit RSA
   keypair at module load.
   **`scripts/valider-data.ts` imports the rule rather than mirroring it.** It used to
-  carry its own copy of every rule, so `data/forventet-utfall.json` — the pinned
-  outcomes the workshop text rests on — was validated against the copy. Never reintroduce
+  carry its own copy of every rule, so `data/forventet-utfall.json` - the pinned
+  outcomes the workshop text rests on - was validated against the copy. Never reintroduce
   a second implementation for the gate's convenience, and never regenerate
   `forventet-utfall.json` from the rules: an oracle derived from what it tests cannot
   fail. `alderVed` lives in `alder.ts` for the same reason, shared by the rules, the gate
@@ -128,7 +128,7 @@
 - A citizen may ask a free question at any point (`POST /ai/sporsmaal`). That path is
   **stateless by design**: it never calls `/svar`, `/handling` or `/neste`, and it never
   changes `stegIndex`. The flow pauses and is redisplayed; it does not move. Keep it that
-  way — the engine is linear, so a question mistaken for an answer is unrecoverable.
+  way - the engine is linear, so a question mistaken for an answer is unrecoverable.
 - The audit entry for a consented read records the purpose from the **consent**, not the
   catalogue label. Purpose limitation is the reason consent was asked for.
 - Consent gating and audit are enforced centrally in `runRessurs()`
@@ -137,14 +137,14 @@
   target. Do not route around this.
 - **What a non-ok answer from another service means is decided in one place:
   `upstream.ts`.** `callUpstream` raises the failure as ours, `tryUpstream` hands it
-  back so a best-effort call can degrade into an advarsel — and no fetch in the
+  back so a best-effort call can degrade into an advarsel - and no fetch in the
   engine is awaited anywhere else. Four readings of the same status existed before
   it, each locally reasonable: the samtykke calls raised the upstream status, the
   beregning threw a plain Error and so reported «Intern feil i sandbox-backend» for
   a Fiks that broke, the Fiks task looked only at `ok` so a 403 was silence where an
-  unreachable Fiks was an advarsel — and `matrikkel.ts` had it right, alone. Three
+  unreachable Fiks was an advarsel - and `matrikkel.ts` had it right, alone. Three
   were wrong; the fourth is now the shared one.
-  The rule: no contact, a 5xx, or a body that is not JSON is 502 — the last of those
+  The rule: no contact, a 5xx, or a body that is not JSON is 502 - the last of those
   used to be a SyntaxError thrown from inside the failure path. A 4xx is passed
   through only where the call sets `relayStatus`, which the two samtykke calls do
   because there the upstream is judging the citizen's own request. The beregning and
@@ -366,7 +366,7 @@ is the one place prose transliterates, and the file carries a `rem` saying why s
 - **Never load `felles.css` and the design system CSS on the same page.** `felles.css` has
   no `@layer`, and unlayered rules outrank every layer in the cascade, so it silently
   overrides `@layer ds` and `@layer ksd`: Inter disappears and every button variant
-  collapses to the same blue. It looks like the stylesheet failed to load. It did not — it
+  collapses to the same blue. It looks like the stylesheet failed to load. It did not - it
   was overridden. To override the design system deliberately, declare `@layer side;` (it
   lands after `ksd`) and put your rules there.
 - Never edit the two vendored files. `pnpm ds:hent` overwrites them.
@@ -385,7 +385,7 @@ docker compose up --build
 ```bash
 docker compose down -t 0
 ```
-- Quick checks that need no running services — run these first:
+- Quick checks that need no running services - run these first:
 ```bash
 pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.ts: referential integrity across all datasets
@@ -403,24 +403,24 @@ pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fr
 ./start.sh --reload          # recreates all Node services (picks up compose config changes too)
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
-  Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed — a restart is enough.
+  Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed - a restart is enough.
 - All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
   `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`) are
   volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
-  - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` — inotify
+  - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` - inotify
     events propagate natively; restarts are immediate.
   - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
-    polling — inotify does not propagate through Docker Desktop's 9P volume mount, so `start.bat`
+    polling - inotify does not propagate through Docker Desktop's 9P volume mount, so `start.bat`
     sets `WATCH_POLL=1` to switch to polling automatically.
-  Any file you save is detected and the Node process restarts — **no manual action needed for normal
+  Any file you save is detected and the Node process restarts - **no manual action needed for normal
   code edits**. Watch for the log line `Change detected in '...'` (inotify) or `restarting due to changes...`
   (nodemon) to confirm it triggered.
-- `matrikkel-mock` used to be the exception — a baked image with no volume mount, so every seed
+- `matrikkel-mock` used to be the exception - a baked image with no volume mount, so every seed
   change needed `--build`. It no longer is: it reads the work tree like the rest, and
   `apps/matrikkel-mock/Dockerfile` survives only for running it standalone outside Compose.
 - `./start.sh --reload` is still useful when you change `docker-compose.yml` itself (e.g. environment
   variables), since `--watch` only restarts the Node process, not the container.
-- `pnpm test:kontrakt` writes a normalised, deterministic dump — identifiers and
+- `pnpm test:kontrakt` writes a normalised, deterministic dump - identifiers and
   timestamps are replaced with placeholders, so two runs of the same code are
   byte-identical. Use it as a regression gate around refactors:
 ```bash
@@ -441,7 +441,7 @@ pnpm test:agent:matrikkel
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - **Touching either MCP server's transport? Verify against a real client, not the
   test script.** `scripts/test-brreg-mcp.ts` and `test-folkeregister-mcp.ts`
-  implement the client side themselves, so they prove the two halves agree — not
+  implement the client side themselves, so they prove the two halves agree - not
   that the framing matches the spec. The first version used LSP `Content-Length`
   framing instead of MCP's newline-delimited JSON: both tests passed while every
   real client hung on `initialize`. Check with
@@ -454,7 +454,7 @@ pnpm test:agent:matrikkel
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
-  (need the compose stack up) — run those locally.
+  (need the compose stack up) - run those locally.
 - All nine services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.
@@ -464,13 +464,13 @@ pnpm test:agent:matrikkel
 - Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `STATE_DIR`.
 - `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
-  `advarsel` field. Check `GET /helse` — it reports `modellNaaBar` plus a `feil` string
+  `advarsel` field. Check `GET /helse` - it reports `modellNaaBar` plus a `feil` string
   explaining why. Status is always 200: the service is alive even when the model is not.
   `demo-gui` shows a banner on `/chat` and `/agent`, and `./start.sh` warns on startup.
 - **All model calls go through one function**, `callModel` in `apps/ai-gateway/src/server.ts`.
   Adding a provider is one function with the signature `(prompt, temperatur, signal)`
   returning `{ tekst, modell }`, plus a branch in `callModel`. Do not reintroduce
-  per-provider copies of each task — that is what this replaced.
+  per-provider copies of each task - that is what this replaced.
 - Every model call is traced to `state/ai-trace.jsonl`: prompt, response, model, duration,
   and whether it failed. Read it at `GET /trace` (HTML) or `GET /trace.json` (JSON, filterable
   by `sporingsId`, `task`, `limit`). This is the fastest way to see what the model
@@ -481,27 +481,27 @@ pnpm test:agent:matrikkel
   text back, so its guardrails run in code, not only in the prompt.** They live in
   `apps/ai-gateway/src/sporsmaalsperrer.ts`, a dependency-free module kept separate from
   `server.ts` because that file calls `server.listen` at the top level and cannot be
-  imported by a test. `pnpm test:sperrer` covers them and runs in CI — it needs neither
+  imported by a test. `pnpm test:sperrer` covers them and runs in CI - it needs neither
   the stack nor a model. The endpoint has no data access of its own: it answers only from
   the grounding the caller sends, which is what makes it structurally unable to reach
   consent-gated data. Do not give it a backend data client.
   Two topics never reach the model at all: prompt-injection attempts, and privacy
   questions, which are answered from `PERSONVERN` in that module. An invented privacy
-  claim has no tell a code check can find — no number, no decision — so it gets a fixed
+  claim has no tell a code check can find - no number, no decision - so it gets a fixed
   answer instead.
 - **Changing a prompt? Run the evals.** `pnpm test:eval` scores the AI layer against
   datasets in `evals/`, with a pass threshold per dataset and a non-zero exit below it.
   `evals/ai-policy.json` is the executable form of `ai-no-decisions`: the model phrases,
-  it does not compute or decide. Baseline before, compare after — see `evals/README.md`.
+  it does not compute or decide. Baseline before, compare after - see `evals/README.md`.
   Deliberately kept out of CI, since it needs a running model.
-- `/ai/*` request bodies put everything under `kontekst` — except `/ai/tolk-svar` and
+- `/ai/*` request bodies put everything under `kontekst` - except `/ai/tolk-svar` and
   `/ai/sporsmaal`, which take `tekst` at the top level.
 - `/ai/tolk-svar`, `/ai/velg-prosess` and `/ai/velg-verktoy` run heuristics first and only
   call the model when the heuristic does not match. Four endpoints work but have no code
   callers in the sandbox: `/ai/dialogforslag`, `/ai/risikosjekk`, `/ai/klarsprak` (only
   `start.sh` probes it) and `/ai/forklar-databruk`. They are there for teams to use.
 - `MATRIKKEL_DATA_FILE` overrides the file `matrikkel-mock` seeds from; the default is
-  `data/matrikkel.json` — 388 streets and 18349 properties across the 97 kommuner the
+  `data/matrikkel.json` - 388 streets and 18349 properties across the 97 kommuner the
   population lives in, fetched from Geonorge by `node scripts/hent-matrikkel.ts`.
   `data/matrikkel.seed.json` remains as the small four-street fixture the mock's own
   tests point at. **Ownership is not in either file:** it lives in
@@ -510,15 +510,15 @@ pnpm test:agent:matrikkel
   `/mock/matrikkel/eiendommer` when `personId` is given.
 - `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) for mock
   lookups, and `MATRIKKEL_MODE=live|mock|hybrid` for street lookups. All three places
-  that set it — the code default, `docker-compose.yml` and `.env.example` — now say
+  that set it - the code default, `docker-compose.yml` and `.env.example` - now say
   `mock`, so there is one value to know. This paragraph used to reconcile two of them
   against a third; it does not need to any more.
   `mock` is right because the seed holds every Bergen street, so a live lookup has
   nothing left to add and the conference network cannot break a street lookup. Pick
-  `hybrid` if you need streets outside the seed. Not `live` — it rethrows on network
+  `hybrid` if you need streets outside the seed. Not `live` - it rethrows on network
   failure, so every street lookup becomes a 500 when you are offline.
   `MATRIKKEL_MODE` is read only by `tools-api`; `matrikkel-mock` always falls back to
-  live when a lookup misses the seed, and degrades to 404 («Fant ikke …») — not a 5xx —
+  live when a lookup misses the seed, and degrades to 404 («Fant ikke …») - not a 5xx -
   when the network is down.
 
 ## Matrikkel integration pattern
@@ -531,7 +531,7 @@ pnpm test:agent:matrikkel
 - `apps/tools-api` also exposes `suggest_step_tools`: given a process step definition, calls `ai-gateway /ai/velg-verktoy` and returns which tools are relevant (context and/or validation).
 - `apps/process-agent` calls `suggest_step_tools` on every QUESTION step to discover tools
   dynamically. It *additionally* hardcodes step ids and one tool name for the
-  `fartsdempende-tiltak` case — see the service map above. Improving that agent is a
+  `fartsdempende-tiltak` case - see the service map above. Improving that agent is a
   hackathon task, not a bug to fix before the event.
 
 ## Useful places before editing

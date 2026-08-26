@@ -1,6 +1,6 @@
 # digdir-mock
 
-**For deltakere som får 401.** Mock av **Maskinporten** og **ID-porten** — to utstedere i
+**For deltakere som får 401.** Mock av **Maskinporten** og **ID-porten** - to utstedere i
 én prosess, med ulik `iss`, fordi de er to porter med ulikt formål.
 
 | | Hvem | Beviser | Bærer |
@@ -17,8 +17,8 @@ Uten `Authorization` får du `401`. Med token, men uten hjemmel, får du `403`. 
 poenget:
 
 ```
-401  vi vet ikke hvem du er          (autentisering — her)
-403  vi vet, og du får likevel ikke  (hjemmel — i sandbox-backend)
+401  vi vet ikke hvem du er          (autentisering - her)
+403  vi vet, og du får likevel ikke  (hjemmel - i sandbox-backend)
 ```
 
 Håndhevingen ligger i `apps/sandbox-backend/src/autentisering.ts`, ikke her. Denne
@@ -39,13 +39,13 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/personer/person
 Slipper du å huske hvilket token en rute vil ha: <http://localhost:3001/utforsker> velger
 det ut fra hjemmelen ruta krever, og skriver ut en `curl` som virker når den limes inn.
 
-`pnpm token` treffer pnpms egen innebygde kommando — kall skriptet direkte.
+`pnpm token` treffer pnpms egen innebygde kommando - kall skriptet direkte.
 
 ## Hvem kan logge inn
 
 Ikke alle testpersoner, og det er med vilje. Aldersgrensene bor **ett sted**,
 `apps/shared/handleevne.ts`, som både denne tjenesten og prosessmotoren
-importerer — så de kan ikke bli uenige.
+importerer - så de kan ikke bli uenige.
 
 - **Under 13 år: ingen innlogging.** MinID kan bestilles fra året man fyller 13, så en
   elektronisk ID finnes ikke før det. De står ikke i velgeren.
@@ -73,7 +73,7 @@ Begge står som kommentar i koden, på ett sted hver, slik at de er lette å fin
 - **Klientassertionen i `jwt-bearer` valideres på *form*, ikke på signatur.** Ekte
   Maskinporten har en registrert offentlig nøkkel per klient. Vi har ikke noe
   nøkkelregister, så enhver velformet assertion godtas og `iss` tas som `client_id`.
-  Det er greit her fordi leksjonen ligger på ressursserveren — men ingen andre steder.
+  Det er greit her fordi leksjonen ligger på ressursserveren - men ingen andre steder.
 - **Nøklene genereres ved oppstart.** `docker compose up -d` gir tjenesten nye nøkler,
   og andre tjenester kan cache et token signert med den gamle. Symptomet er
   «Tokenet er signert med en nøkkel utstederen ikke kjenner». Fiks:

@@ -3,18 +3,18 @@
  *
  * These need neither the stack, nor a port, nor a model: vilkaar.ts is pure and
  * takes the income basis as a parameter, so every outcome can be pinned with a
- * literal tilstand object. Importing it costs two Node builtins and no crypto —
+ * literal tilstand object. Importing it costs two Node builtins and no crypto -
  * regler.ts, the I/O half, builds a 2048-chunk RSA keypair at module load, and this
  * file deliberately never touches it.
  *
  * What this covers that nothing else can:
  *
  *  1. Ordning shapes with only ONE bound. Every ordning in data/satser.json sets
- *     both bounds or neither, so the seed cannot reach these paths — fixtures,
+ *     both bounds or neither, so the seed cannot reach these paths - fixtures,
  *     not seed data, are the only way to hold that line.
  *  2. TJENESTEBEHOV's rejection branches. The seed reaches two of them; the other
  *     two are dead as far as any other test knows.
- *  3. `forbehold` — the UTKAST caveat. The contract dump never sees it: every
+ *  3. `forbehold` - the UTKAST caveat. The contract dump never sees it: every
  *     household it touches has an OPPGJOER income year, so the concatenation
  *     `...for ${ordning.navn}.${forbehold}`, where forbehold supplies its own
  *     leading space, is invisible there. Someone "fixing" that missing space would
@@ -37,7 +37,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // --- fixtures ---------------------------------------------------------------
@@ -165,7 +165,7 @@ function vurder(ordning: any, grunnlag: any, opts: Record<string, any> = {}) {
 check("under grensen innvilges", vurder(ORDNING_INNTEKT, 499999).godkjent === true);
 check("over grensen avslås", vurder(ORDNING_INNTEKT, 500001).godkjent === false);
 // The boundary is strict: grunnlag < grense. Equal means over.
-check("på grensen avslås — sammenligningen er streng", vurder(ORDNING_INNTEKT, 500000).godkjent === false);
+check("på grensen avslås - sammenligningen er streng", vurder(ORDNING_INNTEKT, 500000).godkjent === false);
 check(
   "ingen kvalifiserende plass gir avslag, ikke null",
   vurder(ORDNING_INNTEKT, 1, { plasser: { sfoplasser: [] } }).godkjent === false
@@ -273,7 +273,7 @@ check("ukjent regeltype kaster med de gyldige listet opp", kastet);
 // vilkaar.ts is pure and synchronous so an outcome can be pinned with a literal
 // tilstand object and no running services. That only holds while the arrow points
 // one way: regler.ts does the I/O and imports the rules, never the reverse. An
-// import added by accident would cost this file its whole premise — importing
+// import added by accident would cost this file its whole premise - importing
 // regler.ts pulls in state.ts and a 2048-bit RSA keygen, and the pure test would
 // quietly start paying for it.
 //

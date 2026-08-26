@@ -6,13 +6,13 @@
  * Every handler in routes.ts used to mutate its own request-scoped copy of a
  * whole array and write all of it back. Two requests therefore raced: the second
  * writer overwrote the first one's change with an array that never contained it.
- * No error, no 409 — the participant's step, søknad or prosess was simply gone.
+ * No error, no 409 - the participant's step, søknad or prosess was simply gone.
  *
  * Four files had the bug, and only one of them had a queue:
  *
- *   §1–3  prosessoekter.json — a session that had quietly moved backwards
- *   §4    soknader.json      — two SUBMIT at once, one application lost
- *   §5–6  prosessdefinisjoner.json — two saves in the prosessbygger, one prosess lost
+ *   §1–3  prosessoekter.json - a session that had quietly moved backwards
+ *   §4    soknader.json      - two SUBMIT at once, one application lost
+ *   §5–6  prosessdefinisjoner.json - two saves in the prosessbygger, one prosess lost
  *
  * samtykker.json is the same bug, fixed first in fiks-simulator and pinned by
  * test-samtykke.ts §6f. All of them now go through the one write queue in
@@ -48,7 +48,7 @@ let passed = 0;
 const failures: string[] = [];
 function check(name: string, condition: unknown, detail = "") {
   if (condition) { passed += 1; return; }
-  failures.push(`${name}${detail ? ` — ${detail}` : ""}`);
+  failures.push(`${name}${detail ? ` - ${detail}` : ""}`);
 }
 
 function start(name: string, relativePath: string, env: any) {
@@ -134,7 +134,7 @@ try {
   await Promise.all([waitForHealth(digdirUrl), waitForHealth(backendUrl)]);
 
   /*
-   * Ten different people, so every write lands on a different økt — same-person
+   * Ten different people, so every write lands on a different økt - same-person
    * concurrency is a different and accepted race, see lagreProsessoekt.
    *
    * Picked from digdir-mock rather than hardcoded: person-002 is a child, and 65 of
@@ -169,7 +169,7 @@ try {
 
   const onDisk = JSON.parse(await readFile(oektFile, "utf8"));
   check("ti samtidige opprettelser gir ti økter på disk", onDisk.length === 10,
-    `${onDisk.length} av 10 — dette er lost update-en`);
+    `${onDisk.length} av 10 - dette er lost update-en`);
   check("alle ti finnes igjen på disk",
     ids.every((id: any) => onDisk.some((oekt: any) => oekt.oektsId === id)),
     `${ids.filter((id: any) => !onDisk.some((oekt: any) => oekt.oektsId === id)).length} forsvant`);
@@ -187,7 +187,7 @@ try {
   check(
     "alle ti økter står på stegIndex 1",
     atSteg1.length === 10,
-    `${atSteg1.length} av 10 — de øvrige mistet endringen sin i en samtidig skriving`
+    `${atSteg1.length} av 10 - de øvrige mistet endringen sin i en samtidig skriving`
   );
 
   // 3. The økt must belong to whoever created it, after all that racing.
@@ -199,7 +199,7 @@ try {
 
   /*
    * 4. soknader.json. This is what a SUBMIT step writes, and it had no queue at
-   * all — push onto the request's own array, then write the whole thing.
+   * all - push onto the request's own array, then write the whole thing.
    *
    * POST /api/soknader rather than driving ten flows to their SUBMIT step: it is
    * the same createSoknad, and it takes seconds instead of needing samtykke, a
@@ -218,14 +218,14 @@ try {
   const soknadIds = soknader.map((s: any) => s.body?.soknadId).filter(Boolean);
   const soknaderOnDisk = JSON.parse(await readFile(soknadFile, "utf8"));
   check("ti samtidige søknader gir ti søknader på disk", soknaderOnDisk.length === 10,
-    `${soknaderOnDisk.length} av 10 — dette er lost update-en`);
+    `${soknaderOnDisk.length} av 10 - dette er lost update-en`);
   check("alle ti søknader finnes igjen på disk",
     soknadIds.every((id: any) => soknaderOnDisk.some((soknad: any) => soknad.soknadId === id)),
     `${soknadIds.filter((id: any) => !soknaderOnDisk.some((s: any) => s.soknadId === id)).length} forsvant`);
 
   /*
    * 5. prosessdefinisjoner.json, created. Same missing queue, and this is the
-   * file the prosessbygger saves to — the one a team edits live during the
+   * file the prosessbygger saves to - the one a team edits live during the
    * workshop while someone else is demoing.
    *
    * The seed count comes from the API rather than a literal, so adding a prosess
@@ -247,7 +247,7 @@ try {
   const katalog = JSON.parse(await readFile(prosessFile, "utf8"));
   check("ti samtidige prosesser gir ti nye prosesser på disk",
     katalog.prosesser.length === foerProsesser.length + COUNT,
-    `${katalog.prosesser.length} av ${foerProsesser.length + COUNT} — dette er lost update-en`);
+    `${katalog.prosesser.length} av ${foerProsesser.length + COUNT} - dette er lost update-en`);
   check("alle ti prosesser finnes igjen på disk",
     nyeIds.every((id) => katalog.prosesser.some((prosess: any) => prosess.id === id)),
     `${nyeIds.filter((id) => !katalog.prosesser.some((p: any) => p.id === id)).length} forsvant`);
@@ -262,7 +262,7 @@ try {
 
   /*
    * 6. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
-   * prosessbygger actually calls, and it sends the whole prosess — so a merge
+   * prosessbygger actually calls, and it sends the whole prosess - so a merge
    * onto a stale copy of the katalog undoes whatever the other save added.
    */
   const omdoept = await Promise.all(
@@ -278,7 +278,7 @@ try {
     etterPut.prosesser.some((prosess: any) => prosess.id === id && prosess.navn === `Omdøpt ${i}`)
   );
   check("alle ti navneendringer står på disk", omdoepte.length === COUNT,
-    `${omdoepte.length} av ${COUNT} — de øvrige mistet endringen sin i en samtidig skriving`);
+    `${omdoepte.length} av ${COUNT} - de øvrige mistet endringen sin i en samtidig skriving`);
   check("ingen prosess forsvant under oppdateringene",
     etterPut.prosesser.length === foerProsesser.length + COUNT,
     String(etterPut.prosesser.length));

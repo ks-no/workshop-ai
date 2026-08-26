@@ -19,7 +19,7 @@
     "erasableSyntaxOnly": true,
     // Ingen allowJs: det finnes ingen .js igjen. Importerer noen en ny .js-fil
     // fra en .ts-fil, stopper tsc på den (TS7016). En .js-fil ingen importerer
-    // er fortsatt usynlig for tsc — det er kjørbar kode, ikke en type-sperre,
+    // er fortsatt usynlig for tsc - det er kjørbar kode, ikke en type-sperre,
     // som avgjør om den betyr noe.
     "verbatimModuleSyntax": true
   },

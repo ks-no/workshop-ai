@@ -3,7 +3,7 @@
  *
  * Real FREG access is role-scoped: every call happens in a rollekontekst that
  * bounds the legal basis, and the role decides which informasjonsdeler come
- * back. That is what this surface demonstrates — data minimisation as API
+ * back. That is what this surface demonstrates - data minimisation as API
  * behaviour, not as prose. Asking for a part outside the role is a 403, not an
  * empty field: the refusal is the lesson.
  *
@@ -114,11 +114,11 @@ function stripSandboxFelter(verdi: unknown): unknown {
 
 /**
  * The lookup response: the requested informasjonsdeler in canonical order,
- * nothing else. Mask the person *before* building — this function decides which
+ * nothing else. Mask the person *before* building - this function decides which
  * parts leave, skjerming.ts decides what a protected person's parts contain.
  *
  * Every requested part is present in the answer, as null when the register
- * holds nothing — an absent key would make "not asked for" and "empty" look
+ * holds nothing - an absent key would make "not asked for" and "empty" look
  * the same on the wire.
  */
 export function buildFregPersonSvar(

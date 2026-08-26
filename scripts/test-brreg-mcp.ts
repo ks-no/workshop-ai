@@ -7,13 +7,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const serverPath = path.resolve(repoRoot, "apps/brreg-mcp/src/server.ts");
 
-// Newline-delimited JSON, exactly as MCP's stdio transport specifies — and as a
+// Newline-delimited JSON, exactly as MCP's stdio transport specifies - and as a
 // real client (Claude Code, @modelcontextprotocol/sdk) speaks it. Keep this in
 // step with the server: if both sides drift to some other framing again, this
 // test goes green while no real client can connect.
 /*
  * Svarformen fra en MCP-server. Testen er nettopp til for å sjekke at svaret har
- * den formen, så feltene står som valgfrie — en type som lover dem ville skjult
+ * den formen, så feltene står som valgfrie - en type som lover dem ville skjult
  * det testen finnes for å oppdage.
  */
 type McpSvar = {

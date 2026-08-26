@@ -1,5 +1,5 @@
 // Sidescript for index. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 export {};
@@ -97,7 +97,7 @@ function showProsess(prosess: Prosess): void {
   const stegHtml = (prosess.steg || [])
     .map((steg, indeks) => {
       const feltInfo = steg.felter?.length ? ` (${steg.felter.length} felt)` : "";
-      return `<li><strong>${indeks + 1}. ${steg.tittel}</strong> — ${steg.type}${feltInfo}</li>`;
+      return `<li><strong>${indeks + 1}. ${steg.tittel}</strong> - ${steg.type}${feltInfo}</li>`;
     })
     .join("");
 

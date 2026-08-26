@@ -13,8 +13,8 @@ import { alderVed } from "../apps/shared/alder.ts";
 // lie; scripts/valider-data.ts fails if it is out of step with the data.
 //
 // Protected people are listed as "Skjermet person", the same way the login picker
-// does it. The seed holds their names in clear text on purpose — masking happens at
-// load, in skjerming.ts — but a document in the repo should not become the way
+// does it. The seed holds their names in clear text on purpose - masking happens at
+// load, in skjerming.ts - but a document in the repo should not become the way
 // around that.
 export function buildTestpersondok(
   personer: any,
@@ -73,11 +73,11 @@ export function buildTestpersondok(
   linjer.push("| | Antall |");
   linjer.push("|---|---:|");
   linjer.push(`| Personer i registeret | ${antall} |`);
-  linjer.push(`| Bosatte — kan være part i en sak | ${bosatt.length} |`);
+  linjer.push(`| Bosatte - kan være part i en sak | ${bosatt.length} |`);
   linjer.push(`| Kan ha elektronisk ID (13 år eller mer, bosatt) | ${medEid.length} |`);
   linjer.push(`| Kan opptre på egen hånd (18 år eller mer, bosatt) | ${bosatt.filter(kanSelv).length} |`);
-  linjer.push(`| Mindreårige — part i saken, men foresatt må være avsender | ${mindreaarige.length} |`);
-  linjer.push(`| Under 13 — kan aldri logge inn, ingen eID finnes | ${bosatt.filter((p: any) => alderFor(p) < 13).length} |`);
+  linjer.push(`| Mindreårige - part i saken, men foresatt må være avsender | ${mindreaarige.length} |`);
+  linjer.push(`| Under 13 - kan aldri logge inn, ingen eID finnes | ${bosatt.filter((p: any) => alderFor(p) < 13).length} |`);
   linjer.push(`| 67 år eller mer | ${bosatt.filter((p: any) => alderFor(p) >= 67).length} |`);
   linjer.push(`| Ikke bosatt (død, utflyttet, inaktiv, midlertidig) | ${antall - bosatt.length} |`);
   linjer.push(`| Med adressebeskyttelse | ${personer.filter((p: any) => p.skjermet).length} |`);
@@ -85,7 +85,7 @@ export function buildTestpersondok(
   linjer.push(`| Med registrert eiendom | ${personer.filter((p: any) => eierPersonIder.has(p.personId)).length} |`);
   linjer.push("");
   linjer.push(
-    "Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato — samme " +
+    "Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato - samme " +
     "referansedato som reglene bruker, så en testperson gir samme utfall uansett " +
     "når demoen kjøres."
   );
@@ -96,7 +96,7 @@ export function buildTestpersondok(
   linjer.push("|---|---:|---|");
   const statusforklaring: Record<string, string | undefined> = {
     BOSATT: "Bor i en norsk kommune. Har husstand, adresse og kan være part i en sak.",
-    DOED: "Registrert død. Kan ikke logge inn eller være avsender, men relasjonene står — et barn har fortsatt en mor.",
+    DOED: "Registrert død. Kan ikke logge inn eller være avsender, men relasjonene står - et barn har fortsatt en mor.",
     UTFLYTTET: "Flyttet ut av Norge. Ingen husstand, ingen kommune å ha dialog med.",
     INAKTIV: "Nesten alle disse har D-nummer, ikke fødselsnummer, og ingen norsk bostedsadresse.",
     MIDLERTIDIG: "Midlertidig identifikator. Samme som over."
@@ -112,8 +112,8 @@ export function buildTestpersondok(
   linjer.push("## Kontaktregisteret (KRR)");
   linjer.push("");
   linjer.push(
-    "`data/krr.json` har én rad per bosatt person på 15 år eller mer — KRRs reelle " +
-    "aldersgrense — og `POST /register/api/v1/ks/{rolleId}/krr/person` i " +
+    "`data/krr.json` har én rad per bosatt person på 15 år eller mer - KRRs reelle " +
+    "aldersgrense - og `POST /register/api/v1/ks/{rolleId}/krr/person` i " +
     "fiks-simulator svarer fra den, nøklet på fødselsnummer. Reservasjon og målform " +
     "er utledet deterministisk; hos de kuraterte vinner forfattede verdier."
   );
@@ -139,7 +139,7 @@ export function buildTestpersondok(
   linjer.push("");
   linjer.push(
     "`Logg inn`: **ja** betyr at en elektronisk ID kan finnes. **part** betyr 13–17 år " +
-    "— kan logge inn, men en foresatt med foreldreansvar må være avsender. **nei** " +
+    "- kan logge inn, men en foresatt med foreldreansvar må være avsender. **nei** " +
     "betyr at ingen eID kan finnes."
   );
   linjer.push("");
@@ -149,14 +149,14 @@ export function buildTestpersondok(
     const logg = !kanEid(person) ? "nei" : kanSelv(person) ? "ja" : "part";
     const husstand = person.husstandId
       ? `${person.husstandId} (${(husstandPerId.get(person.husstandId) as { type?: string } | undefined)?.type ?? "?"})`
-      : "—";
+      : "-";
     linjer.push(
       `| \`${person.personId}\` | ${navnFor(person)} | ${alderFor(person)} | ` +
-      `${person.personstatus} | ${husstand} | ${person.rolle ?? "—"} | ` +
-      `${person.bostedsadresse.kommune || "—"} | ${logg} | ` +
-      `${eierPersonIder.has(person.personId) ? "ja" : "—"} | ` +
-      `${inntektFnr.has(person.syntetiskFodselsnummer) ? "ja" : "—"} | ` +
-      `${(medPlass.get(person.personId) || []).join(", ") || "—"} | ` +
+      `${person.personstatus} | ${husstand} | ${person.rolle ?? "-"} | ` +
+      `${person.bostedsadresse.kommune || "-"} | ${logg} | ` +
+      `${eierPersonIder.has(person.personId) ? "ja" : "-"} | ` +
+      `${inntektFnr.has(person.syntetiskFodselsnummer) ? "ja" : "-"} | ` +
+      `${(medPlass.get(person.personId) || []).join(", ") || "-"} | ` +
       `${kuraterteIder.has(person.personId) ? "kuratert" : "tenor"} |`
     );
   }
@@ -167,13 +167,13 @@ export function buildTestpersondok(
     "- **Fødselsnumrene er syntetiske og merket som det.** Måneden har 80 lagt til, " +
     "så januar er 81 og desember er 92, og kontrollsifrene er regnet ut etter " +
     "påslaget. Det er Skatteetatens konvensjon for Tenor-data. Skal du lese en dato " +
-    "ut av et nummer, må du trekke fra 80 først — men `foedselsdato` er eget felt, " +
+    "ut av et nummer, må du trekke fra 80 først - men `foedselsdato` er eget felt, " +
     "så du trenger det sjelden."
   );
   linjer.push(
     "- **Tre personer har et fødselsnummer som beskriver en annen dato enn " +
-    "`foedselsdato`.** Det er lovlig i Folkeregisteret — en rettet fødselsdato " +
-    "beholder det opprinnelige nummeret — og det kommer fra Tenor."
+    "`foedselsdato`.** Det er lovlig i Folkeregisteret - en rettet fødselsdato " +
+    "beholder det opprinnelige nummeret - og det kommer fra Tenor."
   );
   linjer.push(
     "- **Inntekten er forfattet, ikke hentet.** Tenor hadde inntektsdata for 6 av 120 " +

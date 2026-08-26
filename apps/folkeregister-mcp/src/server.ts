@@ -231,7 +231,7 @@ function createSuccessResponse(id: JsonRpcId, result: unknown): JsonRpcSvar {
   return { jsonrpc: "2.0", id, result };
 }
 
-// Newline-delimited JSON framing, mirrored from apps/brreg-mcp/src/server.ts —
+// Newline-delimited JSON framing, mirrored from apps/brreg-mcp/src/server.ts -
 // see the comments there (encodeMessage and createMessageReader included).
 function encodeMessage(message: JsonRpcSvar): Buffer {
   return Buffer.from(JSON.stringify(message) + "\n", "utf8");
@@ -266,7 +266,7 @@ async function main(): Promise<void> {
       process.stdout.write(encodeMessage(createErrorResponse(message.id ?? null, -32600, "Invalid Request")));
       return;
     }
-    // Notification — no response
+    // Notification - no response
     if (message.id === undefined) return;
 
     try {

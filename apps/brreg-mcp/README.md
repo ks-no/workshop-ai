@@ -1,6 +1,6 @@
 # BRREG MCP Service
 
-A real Model Context Protocol server for BRREG Enhetsregisteret test data —
+A real Model Context Protocol server for BRREG Enhetsregisteret test data -
 JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
 to it. Unlike `apps/tools-api`, which is REST that only borrows the name.
 
@@ -8,9 +8,9 @@ to it. Unlike `apps/tools-api`, which is REST that only borrows the name.
 
 Two MCP tools:
 
-- `brreg_search_organisations` — search by name or organisation number, with
+- `brreg_search_organisations` - search by name or organisation number, with
   optional `kommune` and `organisasjonsform` filters, paged via `offset`/`limit`.
-- `brreg_get_organisation` — fetch one organisation by `organisasjonsnummer`.
+- `brreg_get_organisation` - fetch one organisation by `organisasjonsnummer`.
 
 ## Data source
 
@@ -40,7 +40,7 @@ The bundled script spawns the server and drives it end to end:
 pnpm test:brreg-mcp
 ```
 
-That test implements the client side itself, so it proves the two halves agree —
+That test implements the client side itself, so it proves the two halves agree -
 not that the framing matches the MCP spec. **When you touch the transport, check
 against a real client too:**
 
@@ -53,7 +53,7 @@ Both tools should be listed. `Connection timed out` means the framing broke.
 
 > This is not hypothetical. The first version framed messages with LSP's
 > `Content-Length` header instead of MCP's newline-delimited JSON. `pnpm
-> test:brreg-mcp` passed — because the test used the same wrong framing — while
+> test:brreg-mcp` passed - because the test used the same wrong framing - while
 > every real client hung on `initialize`.
 
 ## MCP client config example

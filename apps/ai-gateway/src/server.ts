@@ -25,14 +25,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // which is gitignored and cleared by ./start.sh --reset.
 const stateDir = process.env.STATE_DIR || path.resolve(__dirname, "../../../state");
 const traceFile = path.join(stateDir, "ai-trace.jsonl");
-// Which provider is live and, for Bedrock, which model — changeable at runtime from
+// Which provider is live and, for Bedrock, which model - changeable at runtime from
 // /admin without a restart. Kept as `let`, not `const`: the whole point of /admin is
 // to mutate these while the process is running. Survives a restart via providerStateFile.
 const providerStateFile = path.join(stateDir, "ai-provider-override.json");
 const port = Number(process.env.PORT) || 8082;
 const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://sandbox-backend:8080";
 
-// The AI layer touches the backend for one thing only — writing audit events — so
+// The AI layer touches the backend for one thing only - writing audit events - so
 // that is the whole of its hjemmel. It never reads person data, and the scope says so.
 const TOKEN = {
   digdirBaseUrl: process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086",
@@ -46,7 +46,7 @@ const TOKEN = {
  * Kroppene ai-gateway tar imot, og formene rundt modellkallet.
  *
  * Kroppene er JSON fra tråden og har ikke vært gjennom noen validering når de
- * navngis her. Typen sier hva ruta regner med, ikke hva den har fått — derfor
+ * navngis her. Typen sier hva ruta regner med, ikke hva den har fått - derfor
  * står alle feltene som valgfrie, og koden coercer fortsatt selv.
  */
 type Aktor = { type: string; id?: string; paaVegneAv?: string };
@@ -126,19 +126,19 @@ const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-in
 //
 // These are cross-region inference profile ids ("eu.anthropic...."), not bare
 // foundation-model ids. Bedrock rejects InvokeModel on these particular models with
-// a bare id — "on-demand throughput isn't supported ... retry with an inference
-// profile" — so the id here has to be the profile, and the IAM policy has to grant
+// a bare id - "on-demand throughput isn't supported ... retry with an inference
+// profile" - so the id here has to be the profile, and the IAM policy has to grant
 // InvokeModel on both the profile ARN and the foundation-model ARNs it fans out to
 // (scripts/aws-bedrock-setup.sh does both). Verified against a real account: an
 // earlier version of this list named Claude 3.x models that AWS has since retired.
 // claude-sonnet-5 was tried and dropped: Bedrock refuses it with "Model access is
 // denied due to IAM user or service role is not authorized to perform the required
 // AWS Marketplace actions" even with aws-marketplace:ViewSubscriptions/Subscribe
-// granted — it needs an account-level Marketplace subscription completed through the
+// granted - it needs an account-level Marketplace subscription completed through the
 // Bedrock console first, which is not something an IAM policy alone can grant. Add
 // it back once that one-time step is done.
 // First entry is the fallback when BEDROCK_MODEL_ID is unset entirely (not just
-// commented out in .env) — keep it the same model .env.example documents as the
+// commented out in .env) - keep it the same model .env.example documents as the
 // default, so the two do not silently disagree.
 const BEDROCK_MODELS = [
   { id: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", label: "Claude Sonnet 4.5" },
@@ -149,8 +149,8 @@ const BEDROCK_MODELS = [
 // Deliberately not named AWS_REGION/AWS_ACCESS_KEY_ID/etc: those are exactly the
 // names a developer's own shell profile or AWS CLI setup is likely to already
 // export, ambiently, for their own (probably unrelated, probably more powerful)
-// credentials. Docker Compose's ${VAR:-default} substitution — and Node's
-// --env-file — both prefer an already-set environment variable over one from a
+// credentials. Docker Compose's ${VAR:-default} substitution - and Node's
+// --env-file - both prefer an already-set environment variable over one from a
 // .env file, so a plain AWS_ACCESS_KEY_ID here would silently get overridden by
 // whatever the developer's shell already has, pairing their own permanent access
 // key with this service's short-lived Bedrock session token: "The security token
@@ -170,7 +170,7 @@ const { jsonResponse, textResponse } = svarhjelpere({
   cors: cors("GET,POST,OPTIONS"),
   // /docs, /trace og /admin har bare Allow-Origin, ikke Allow-Methods og
   // Allow-Headers. Slik har denne tjenesten alltid svart, og det er bevart her
-  // framfor rettet i en migrering — men det er neppe med vilje: process-agent
+  // framfor rettet i en migrering - men det er neppe med vilje: process-agent
   // har en kommentar som sier at CORS hører på alle tre.
   tekstCors: { "Access-Control-Allow-Origin": "*" }
 });
@@ -218,14 +218,14 @@ function docsHtml(): string {
         <li><code>POST /ai/tolk-svar</code></li>
         <li><code>POST /ai/velg-prosess</code></li>
         <li><code>POST /ai/velg-verktoy</code></li>
-        <li><code>POST /ai/dommer</code> — LLM-dommer for <code>pnpm test:eval</code>. Revisjonslogges ikke.</li>
+        <li><code>POST /ai/dommer</code> - LLM-dommer for <code>pnpm test:eval</code>. Revisjonslogges ikke.</li>
       </ul>
       <h2>Innsyn</h2>
       <ul>
-        <li><a href="/trace"><code>GET /trace</code></a> — hva modellen faktisk fikk og svarte</li>
-        <li><code>GET /trace.json</code> — samme som JSON. <code>?sporingsId=</code>, <code>?task=</code>, <code>?limit=</code></li>
-        <li><code>GET /helse</code> — svarer provideren?</li>
-        <li><a href="/admin"><code>GET /admin</code></a> — bytt provider (mock/ollama/openrouter/bedrock) uten restart</li>
+        <li><a href="/trace"><code>GET /trace</code></a> - hva modellen faktisk fikk og svarte</li>
+        <li><code>GET /trace.json</code> - samme som JSON. <code>?sporingsId=</code>, <code>?task=</code>, <code>?limit=</code></li>
+        <li><code>GET /helse</code> - svarer provideren?</li>
+        <li><a href="/admin"><code>GET /admin</code></a> - bytt provider (mock/ollama/openrouter/bedrock) uten restart</li>
       </ul>
     </body>
   </html>`;
@@ -288,7 +288,7 @@ function splitPrompt(prompt: string) {
       try {
         innhold = JSON.stringify(JSON.parse(jsonTreff[2]), null, 2);
       } catch {
-        // Not valid JSON on its own line — show it as it was.
+        // Not valid JSON on its own line - show it as it was.
       }
       datablokker.push({ tittel: jsonTreff[1], innhold });
       continue;
@@ -432,7 +432,7 @@ function traceHtml(
       <div class="top-links"><a href="http://localhost:3001/">Oversikt</a><a href="/docs">API-er</a><a href="/trace.json">Rå JSON</a></div>
       <h1>KI-spor</h1>
       <p class="muted">Ett modellkall per kort, nyeste øverst. Du ser prompten modellen
-        faktisk fikk og hva den svarte — <strong>før</strong> heuristikk og sperrer har
+        faktisk fikk og hva den svarte - <strong>før</strong> heuristikk og sperrer har
         vært innom. Sporet ligger i <code>state/ai-trace.jsonl</code> og nullstilles av
         <code>./start.sh --reset</code>.</p>
 
@@ -617,7 +617,7 @@ function buildTemplateResponse(type: string, body: AiKropp) {
   /*
    * Maltekstene finner det de trenger ved å lete etter formen, ikke etter
    * nøkkelen: `data` er resultatene fra alle utførte steg, og hvert steg har sin
-   * egen form. Returtypen er `any` med vilje — å navngi en union av alle
+   * egen form. Returtypen er `any` med vilje - å navngi en union av alle
    * stegresultater her ville vært en kopi av seks andre tjenesters typer, for en
    * kodesti som bare kjører når modellen er nede.
    */
@@ -769,7 +769,7 @@ function buildTemplateResponse(type: string, body: AiKropp) {
   };
 }
 
-// Tool selection — which MCP tools are relevant for a given process step
+// Tool selection - which MCP tools are relevant for a given process step
 
 function heuristicToolChoice(body: AiKropp) {
   const steg = body?.steg || {};
@@ -857,7 +857,7 @@ async function chooseToolsWithAi(body: AiKropp) {
     // This step expects JSON but runs on the free-text settings (temperature 0.2,
     // free-text system message). That was preserved, not chosen. Whether
     // temperature 0 and the JSON system message pick better tools is an empirical
-    // question — measure it with the eval rather than guessing.
+    // question - measure it with the eval rather than guessing.
     const { tekst, modell } = await callModel(prompt, {
       task: "velg-verktoy",
       sporingsId: body?.sporingsId
@@ -896,7 +896,7 @@ function buildPrompt(type: string, body: AiKropp, fallbackTekst: string): string
 
   // Free text from a citizen is the one place the model is not restating a
   // value the backend already decided, so the prompt says more here. It is
-  // still only the first layer — validateAnswer runs on what comes back.
+  // still only the first layer - validateAnswer runs on what comes back.
   if (type === "sporsmaal") {
     sperrer.push(
       "Svar bare ut fra grunnlaget under. Står ikke svaret der, si at du ikke vet.",
@@ -1176,7 +1176,7 @@ type Prosessvalgsvar = {
 
 function validateProcessChoice(raa: unknown, body: AiKropp): Prosessvalgsvar | null {
   // Rå JSON fra modellen. Hele funksjonen finnes for å ikke stole på den, så
-  // typen navngir bare feltene den leser — den lover ingenting om dem.
+  // typen navngir bare feltene den leser - den lover ingenting om dem.
   const data = (raa || {}) as {
     intent?: unknown;
     prosessId?: unknown;
@@ -1381,7 +1381,7 @@ function validateIntent(raa: unknown, body: AiKropp): Intentsvar | null {
 
 // --- The single call site for the model -------------------------------------
 //
-// Every model call goes through callModel — one place for the timeout, the
+// Every model call goes through callModel - one place for the timeout, the
 // trace, and any new provider. Do not reintroduce per-provider copies per task;
 // they drift apart in system message and error text.
 
@@ -1473,8 +1473,8 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
   }
 
-  // No `temperature`: the current model generation in BEDROCK_MODELS rejects it —
-  // "`temperature` is deprecated for this model" (400) — confirmed against a real
+  // No `temperature`: the current model generation in BEDROCK_MODELS rejects it -
+  // "`temperature` is deprecated for this model" (400) - confirmed against a real
   // account 2026-08-21. Unlike Ollama/OpenRouter, Bedrock responses here run at
   // whatever the model's own default is; the temperature=0 callers pass for
   // deterministic tasks (oppsummering, tolk-svar, ...) has no effect on this
@@ -1509,7 +1509,7 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
 // --- Trace ------------------------------------------------------------------
 //
 // One JSONL line per model call. Without it you cannot see what the model
-// actually received and answered — only the result after heuristics and
+// actually received and answered - only the result after heuristics and
 // validation have been through it.
 //
 // Tracing must never break a call. If the write fails, the response still goes out.
@@ -1527,7 +1527,7 @@ async function writeTrace(linje: Sporlinje): Promise<void> {
 // AI_PROVIDER (env) picks the provider at container start. This is the runtime
 // override on top of that: /admin can flip aiProvider/bedrockModel while the
 // process is running, and the choice survives a restart by living in state/ next
-// to the other runtime files — never in git, never in the image.
+// to the other runtime files - never in git, never in the image.
 async function loadProviderOverride(): Promise<void> {
   try {
     const raw = await readFile(providerStateFile, "utf8");
@@ -1620,7 +1620,7 @@ async function checkProvider() {
   return { naaBar: false, modell: null, feil: `Ukjent AI_PROVIDER: ${aiProvider}` };
 }
 
-// Returns { tekst, modell }. Throws on failure, timeout or unknown provider —
+// Returns { tekst, modell }. Throws on failure, timeout or unknown provider -
 // callers already have fallback logic for that.
 async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modellsvar> {
   const temperature = valg.temperature ?? 0.2;
@@ -1688,7 +1688,7 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
 // so it uses the configured provider, inherits the timeout, and shows up in the
 // trace like any other model call.
 //
-// The judge never sees the expected answer — only the criterion and the text — so
+// The judge never sees the expected answer - only the criterion and the text - so
 // it cannot pattern-match its way to a passing score.
 function buildJudgePrompt(body: AiKropp): string {
   return [
@@ -1774,7 +1774,7 @@ async function interpretReplyWithAi(body: AiKropp) {
     };
   }
 
-  // The heuristic overrides the model when the model is vague — but only if the
+  // The heuristic overrides the model when the model is vague - but only if the
   // heuristic found something itself.
   const override = (modell: string, begrunnelse: string) => ({
     ...fallback,
@@ -1786,7 +1786,7 @@ async function interpretReplyWithAi(body: AiKropp) {
   /*
    * The heuristic found nothing and the text contains a negation. That is a
    * finding, not an absence of one: "jo altså, det høres vel ikke helt
-   * urimelig ut" is hesitation, and consent must be informed and unambiguous —
+   * urimelig ut" is hesitation, and consent must be informed and unambiguous -
    * a model reads that double negative as a wholehearted yes with confidence 1
    * (see the case documented in evals/README.md).
    *
@@ -1880,7 +1880,7 @@ async function buildAiResponse(type: string, body: AiKropp) {
 
   try {
     // Temperature 0, not the 0.2 default. These tasks reproduce amounts, dates and
-    // an outcome that sandbox-backend already decided — there is nothing to be
+    // an outcome that sandbox-backend already decided - there is nothing to be
     // creative about, and evals/ai-policy.json needs the same input to give the
     // same answer twice.
     const llm = await callModel(prompt, {

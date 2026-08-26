@@ -1,7 +1,7 @@
 {
   // Sidescriptene her, sammen med den delte felles.ts. Begge må ligge i samme
   // program: felles.ts er et klassisk skript, så funksjonene og typene den
-  // erklærer er globale — de importeres ikke. Uten felles.ts i include-lista
+  // erklærer er globale - de importeres ikke. Uten felles.ts i include-lista
   // blir hver bruk av renderTopNav, krevEl og Person en TS2304.
   "extends": "../../../../tsconfig.client-base.json",
   "include": ["./**/*.ts", "../../../shared/client/**/*.ts"]

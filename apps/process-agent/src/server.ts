@@ -17,7 +17,7 @@ const openapiFile = path.resolve(__dirname, "../../../openapi/process-agent.yaml
 /*
  * Agentens egen tilstand.
  *
- * Alt ligger i minnet, per sesjon — agenten er en fasade over tools-api og
+ * Alt ligger i minnet, per sesjon - agenten er en fasade over tools-api og
  * eier ingen data. Feltene som starter med `pending` og `guidedInterview` er
  * mellomlagring mellom to meldinger fra innbygger; de nullstilles når steget
  * de hører til er ferdig.
@@ -86,8 +86,8 @@ type Matrikkeltreff = {
 type Verktoyforslag = { name?: string; rolle?: string; bruk?: string };
 
 /**
- * Hva et steg produserte. Formen avhenger helt av stegtypen — et SJEKK gir
- * godkjent/melding, et DATA_FETCH gir det datakilden ga — så feltene som leses
+ * Hva et steg produserte. Formen avhenger helt av stegtypen - et SJEKK gir
+ * godkjent/melding, et DATA_FETCH gir det datakilden ga - så feltene som leses
  * står navngitt, og resten er åpen.
  */
 type Stegresultat = {
@@ -1004,8 +1004,8 @@ function maybeAnswerProcessMetaQuestion(state: Agentsesjon, text: string): strin
 
   // A "hvorfor"-clause used to live here and returned a generic non-answer for
   // every why-question. It was removed rather than kept as a fallback: it sat
-  // ahead of every other handler, so maybeAnswerCitizenQuestion — which has the
-  // schemes and the process definition to answer from — never saw one.
+  // ahead of every other handler, so maybeAnswerCitizenQuestion - which has the
+  // schemes and the process definition to answer from - never saw one.
 
   return null;
 }
@@ -1015,7 +1015,7 @@ function maybeAnswerProcessMetaQuestion(state: Agentsesjon, text: string): strin
  * could not answer. Grounded in the schemes, the process definition and what
  * this session has already fetched, with the guardrails in ai-gateway on top.
  *
- * Never touches state.awaiting. The flow is paused, not moved — an answer here
+ * Never touches state.awaiting. The flow is paused, not moved - an answer here
  * costs the citizen one turn, and losing their place would cost far more.
  */
 /*
@@ -1409,7 +1409,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
   }
 
   // Last in the chain, so the precise register lookups above still win. The
-  // flow is left exactly where it was — see maybeAnswerCitizenQuestion.
+  // flow is left exactly where it was - see maybeAnswerCitizenQuestion.
   const sidesvar = await maybeAnswerCitizenQuestion(state, text);
   if (sidesvar) {
     const step = state.lastSession?.aktivtSteg;

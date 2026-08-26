@@ -3,11 +3,11 @@
 /*
  * Forsendelsens kanalvalg, tidsutledning og tilstandsmaskin.
  *
- * Everything here is pure functions off disk — no server, no clock. The channel
+ * Everything here is pure functions off disk - no server, no clock. The channel
  * table is exercised both with literal rows and against data/krr.json, so the
  * curated fixture the spec rests on (person-014, reservert) is pinned by name.
  * The derivation runs on an injected clock, and every step it takes is checked
- * against the state machine — a derived progression that skips a state would
+ * against the state machine - a derived progression that skips a state would
  * otherwise be invisible: nothing ever writes an illegal transition, because
  * nothing ever writes at all.
  */
@@ -40,7 +40,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // --- 1. kodeverket ----------------------------------------------------------
@@ -65,7 +65,7 @@ for (const [fra, til] of lovlige) {
   check(`${fra} → ${til} er lovlig`, validateForsendelsesovergang(fra, til).lovlig === true);
 }
 
-// Every pair the table does not name must be refused — enumerated rather than
+// Every pair the table does not name must be refused - enumerated rather than
 // sampled, so a new status cannot open a path nobody decided on.
 const lovligeNoekler = new Set(lovlige.map(([fra, til]) => `${fra}>${til}`));
 for (const fra of FORSENDELSESSTATUSER) {
@@ -131,7 +131,7 @@ check(
 const personer: Person[] = JSON.parse(await readFile(path.join(repoRoot, "data", "personer.json"), "utf8"));
 const krr: Krr[] = JSON.parse(await readFile(path.join(repoRoot, "data", "krr.json"), "utf8"));
 
-// person-014 (Lina Berg) is curated reservert with a valid postal address — the
+// person-014 (Lina Berg) is curated reservert with a valid postal address - the
 // row that makes the print channel testable. pnpm test (valider-data) guards
 // that the row exists; this guards what the channel decision does with it.
 const person014 = personer.find((p) => p.personId === "person-014");
@@ -186,7 +186,7 @@ check(
 check("digital ender i LEST", statusVed("DIGITAL", LEVERT_ETTER_MS).status === "LEST");
 check("print ender i PRINTET", statusVed("PRINT", LEVERT_ETTER_MS).status === "PRINTET");
 check(
-  "IKKE_LEVERT er endelig — også etter leveringsgrensen",
+  "IKKE_LEVERT er endelig - også etter leveringsgrensen",
   statusVed("INGEN", LEVERT_ETTER_MS + 1).status === "IKKE_LEVERT"
 );
 check(

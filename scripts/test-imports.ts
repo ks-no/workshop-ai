@@ -2,19 +2,19 @@
  * The import graph between apps, checked for cycles.
  *
  * A cycle between services is the kind of defect no reviewer catches by reading
- * a diff: every arrow in it is locally right — importing the rule beats keeping a
- * second copy of it — yet the aggregate is a pair of services neither of which
+ * a diff: every arrow in it is locally right - importing the rule beats keeping a
+ * second copy of it - yet the aggregate is a pair of services neither of which
  * can be read, tested or moved without the other. The defect only exists in the
  * sum, so it is checked here instead of remembered.
  *
  * Two rules, and they are different rules:
  *
- *  1. **No cycles between apps.** Not "no cross-app imports" — apps/digdir-mock
+ *  1. **No cycles between apps.** Not "no cross-app imports" - apps/digdir-mock
  *     owns the token protocol and four services get their client from it, which is
  *     one arrow pointing one way and exactly what a service boundary is for. What
  *     is banned is the arrow back.
  *  2. **apps/shared imports nothing from an app.** A shared layer that reaches back
- *     into a service is not below the services, it is beside them — and then it
+ *     into a service is not below the services, it is beside them - and then it
  *     drags whichever service it touched into every test that imports it.
  *
  * Pure text analysis: nothing is imported, nothing is started, no port is bound.
@@ -37,7 +37,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // --- collecting the graph ---------------------------------------------------
@@ -148,7 +148,7 @@ for (const node of [...edges.keys()].sort()) {
 for (const cycle of cycles) {
   const [from, to] = cycle;
   feil.push(
-    `syklisk avhengighet: ${cycle.join(" -> ")} — ` +
+    `syklisk avhengighet: ${cycle.join(" -> ")} - ` +
     `f.eks. ${edgesBetween(from, to).slice(0, 2).join(", ")}`
   );
 }
@@ -184,7 +184,7 @@ if (feil.length > 0) {
 const edgeCount = [...edges.values()].reduce((sum, outgoing) => sum + outgoing.size, 0);
 console.log(
   `test-imports ok. ${bestatt} sjekker over ${files.length} filer, ` +
-  `${edges.size} noder og ${edgeCount} kanter — asyklisk, uten stack og uten modell.`
+  `${edges.size} noder og ${edgeCount} kanter - asyklisk, uten stack og uten modell.`
 );
 for (const node of [...edges.keys()].sort()) {
   console.log(`  ${node} -> ${[...edges.get(node)!.keys()].sort().join(", ")}`);

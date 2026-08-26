@@ -11,7 +11,7 @@
 //  - **13 years** is when an eID exists. MinID can be ordered from the year you
 //    turn 13; BankID is issued from 12-13 with a parent's signature. Below that
 //    there is no credential to log in with, so ID-porten has nothing to issue.
-//  - **18 years** is rettslig handleevne — when you may act on your own behalf.
+//  - **18 years** is rettslig handleevne - when you may act on your own behalf.
 //    Between 13 and 18 a person can log in but cannot be the party to a case, so
 //    the flow needs a guardian as sender while the minor stays the subject.
 //
@@ -113,7 +113,7 @@ export type Representant = {
 
 /**
  * Who may act for this person. Only living residents who can act on their own
- * behalf qualify — a dead mother is still the mother, but she cannot send anything.
+ * behalf qualify - a dead mother is still the mother, but she cannot send anything.
  *
  * foreldreansvar comes from the register and is not derived from the parent list:
  * a father can be a father without holding parental responsibility, and the whole

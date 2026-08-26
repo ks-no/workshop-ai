@@ -6,7 +6,7 @@
  * What this covers that the data gate cannot: the seed contains only the numbers
  * we generate, so the *rejections* have no examples in it. A number with a normal
  * month, a number whose control digits are wrong in the second position only, an
- * individual number whose modulus-11 rest is 10 — those exist here or nowhere.
+ * individual number whose modulus-11 rest is 10 - those exist here or nowhere.
  *
  * The three real numbers used as negative cases are structurally valid
  * fødselsnummer with an ordinary month, which is exactly what must be refused:
@@ -32,7 +32,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // --- form ------------------------------------------------------------------
@@ -174,8 +174,8 @@ check(
   ugyldige.slice(0, 5).map((p: any) => `${p.personId}=${p.syntetiskFodselsnummer}`).join(", ")
 );
 // The date inside the identifier is NOT required to equal `foedselsdato`. Real
-// Folkeregisteret allows the two to differ — a corrected birth date keeps the
-// original number — and Tenor ships two such people (person-055 and person-160,
+// Folkeregisteret allows the two to differ - a corrected birth date keeps the
+// original number - and Tenor ships two such people (person-055 and person-160,
 // both off by a few days). What is required is that we never *generate* a
 // mismatch, so the rule applies to the curated fixtures, which are the only
 // numbers this repo produces.

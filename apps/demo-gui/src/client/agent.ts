@@ -1,5 +1,5 @@
 // Sidescript for agent. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 export {};
@@ -11,7 +11,7 @@ const backendBase = "http://localhost:8080";
 const aiBase = "http://localhost:8082";
 
 // Svaret fra process-agent. Feltene varierer med hvor i løpet sesjonen er, så
-// alt er valgfritt — det er formen tjenesten faktisk lover.
+// alt er valgfritt - det er formen tjenesten faktisk lover.
 type AgentSvar = {
   sessionId?: string;
   message?: string;

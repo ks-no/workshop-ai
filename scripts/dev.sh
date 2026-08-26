@@ -10,7 +10,7 @@
 #   - Windows hosts with the project stored in the WSL2 filesystem
 #
 # Set WATCH_POLL=1 to switch to nodemon polling instead. Use this when inotify
-# events do not propagate into the container — most commonly when running Docker
+# events do not propagate into the container - most commonly when running Docker
 # Desktop on Windows with the project on the Windows host filesystem (C:\...).
 # start.bat sets this automatically.
 
@@ -21,7 +21,7 @@ WATCH_DIR="$(dirname "$ENTRY")"
 
 # nodemon is a devDependency, so it only exists after `pnpm install`. start.bat
 # sets WATCH_POLL=1 unconditionally, so a fresh clone on Windows used to die here
-# with "not found" the moment the container started — and the service just looked
+# with "not found" the moment the container started - and the service just looked
 # down. Fall back to node --watch instead: file changes may not be picked up, but
 # the sandbox runs, which is what the participant came for.
 if [ "${WATCH_POLL:-0}" = "1" ] && [ ! -x node_modules/.bin/nodemon ]; then

@@ -49,20 +49,20 @@ trenger ingen endring. `GET /api/katalog/ressurser` lister alt som finnes, så d
 slipper å gjette URL-er.
 
 Beregningen skjer alltid i backend. `ai-gateway` forklarer utfallet, men
-avgjør det aldri — se regelen `ai-no-decisions` i `policies/ai-policy.yaml`.
+avgjør det aldri - se regelen `ai-no-decisions` i `policies/ai-policy.yaml`.
 
 ## Ressurskatalogen
 
 `DATA_FETCH` og `SJEKK` peker begge på en URL. De URL-ene er ikke frittstående
-kode — de er oppføringer i ressurskatalogen, og **én oppføring blir samtidig tre
+kode - de er oppføringer i ressurskatalogen, og **én oppføring blir samtidig tre
 ting**: et HTTP-endepunkt, et gyldig `DATA_FETCH`-mål og et gyldig `SJEKK`-mål.
 
 Det er dette som gjør at kallet oppfører seg likt uansett hvilken vei det kommer
 inn. Katalogen er også stedet to policyer håndheves, i stedet for én gang per
 kallevei:
 
-- `consent-before-income` — via feltet `kreverSamtykke`
-- `revisjon-av-all-datatilgang` — via feltene `ressurs` og `formaal`
+- `consent-before-income` - via feltet `kreverSamtykke`
+- `revisjon-av-all-datatilgang` - via feltene `ressurs` og `formaal`
 
 En sjekk er ikke en egen mekanisme. Det er bare en ressurs hvis svar inneholder
 `godkjent`.
@@ -88,14 +88,14 @@ viser da tilgjengelige testgater som hint, og normaliserer brukerens svar
 (f.eks. «storg») til kanonisk «Storgata» fra matrikkelen.
 
 Den dynamiske veien er reell, men den er ikke den eneste: `process-agent`
-har i tillegg hardkodede snarveier for `fartsdempende-tiltak` — steg-ID-ene
+har i tillegg hardkodede snarveier for `fartsdempende-tiltak` - steg-ID-ene
 `velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, pluss
 verktøynavnet `matrikkel_finn_veger`. Snarveiene er der fordi de var raskeste vei
 til en fungerende demo, ikke fordi de er riktige.
 
 Ny funksjonalitet kobles inn ved å legge til heuristikk i
-`apps/ai-gateway/src/server.ts` — `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
-i funksjonen `heuristicToolChoice` og ikke på toppnivå — og/eller et nytt verktøy i
+`apps/ai-gateway/src/server.ts` - `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
+i funksjonen `heuristicToolChoice` og ikke på toppnivå - og/eller et nytt verktøy i
 `tools-api`.
 
 ## Slik legger du til en ny case
@@ -115,7 +115,7 @@ Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`: kopier den
 `maler`-arrayet inn i `prosesser`-arrayet, gi den ny `id`, og fjern `redigering`-blokka.
 `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis
 du legger til en steg- eller regeltype uten håndterer. Kjør den nye casen gjennom med
-curl-kokeboken i `examples/curl/` — sekvensen er identisk, bare `prosessId` er ny.
+curl-kokeboken i `examples/curl/` - sekvensen er identisk, bare `prosessId` er ny.
 
 En ny ressurs ser slik ut:
 
@@ -143,13 +143,13 @@ fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
 ## Demo-casene
 
 Fem publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
-ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den —
+ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den -
 `examples/demoprosesser/README.md` har curl-kallene for å liste og kjøre dem.
 
 | Prosess | Steg | Dekker |
 |---|---|---|
 | `redusert-foreldrebetaling-barnehage` | 7 | Flaggskip-caset: datahenting, samtykke, inntekt, deterministisk `SJEKK`, KI-oppsummering, innsending og revisjonsspor |
-| `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-022`, som har et barn på 2. trinn og et grunnlag på 152 000 mot grensen 154 917 — demo-brukeren `person-001` har ikke barn i SFO |
+| `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-022`, som har et barn på 2. trinn og et grunnlag på 152 000 mot grensen 154 917 - demo-brukeren `person-001` har ikke barn i SFO |
 | `stottekontakt-behov` | 7 | Ingen inntektshenting. Samtykket gjelder kontaktinformasjon, og `hent-kontaktinfo` henter den fra kontaktregisteret (KRR). `SJEKK` leser `data/tjenestetilbud.json`; alder og kommune avgjør, ikke inntekt |
 | `fritidskort-stotte` | 7 | Spørsmål, samtykke og inntektshenting. Den `process-agent` bruker i `pnpm test:agent` |
 | `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et godkjent utfall og `Fjøsangerveien` for et avvist |

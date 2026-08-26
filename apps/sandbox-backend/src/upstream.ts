@@ -7,7 +7,7 @@ import { HttpError } from "./errors.ts";
  * The process engine calls the Fiks simulator, the AI gateway and the matrikkel
  * mock over HTTP, and this module is the one place that decides what a failure
  * is. Every fetch out of the engine goes through it, and what a call site may
- * still declare is *which upstream relationship it is in* — never a second
+ * still declare is *which upstream relationship it is in* - never a second
  * reading of the same status.
  */
 
@@ -25,7 +25,7 @@ export type UpstreamCall = {
    * fetching data to make our own decision, and Fiks refusing our machine token
    * is our infrastructure problem rather than the citizen's verdict. Answering
    * 403 for it would collide with the 403 this backend already uses for
-   * «samtykke mangler» — two meanings, one status.
+   * «samtykke mangler» - two meanings, one status.
    */
   relayStatus?: boolean;
   /** Statuses that are an answer rather than a failure. Each of them yields null. */
@@ -56,7 +56,7 @@ export function buildAdvarsel(melding: string, detalj: string): Advarsel {
  * request (`callUpstream`) or degrades into an advarsel.
  *
  * `send` is a callback rather than a URL and a RequestInit because building the
- * request can fail too — every Fiks call fetches a Maskinporten token first, and a
+ * request can fail too - every Fiks call fetches a Maskinporten token first, and a
  * token that is refused must not be reported as the Fiks call itself failing.
  *
  * `data` is `T | null` and not `T`: an empty body is an answer, and so is every
@@ -160,8 +160,8 @@ function mapStatus(call: UpstreamCall, status: number) {
 }
 
 /*
- * Read the body once, then decide. `response.json()` on a body that is not JSON —
- * a gateway answering HTML, a proxy answering nothing — throws a SyntaxError from
+ * Read the body once, then decide. `response.json()` on a body that is not JSON -
+ * a gateway answering HTML, a proxy answering nothing - throws a SyntaxError from
  * inside the failure path, so the status the upstream actually sent never reaches
  * the caller. An empty body counts as JSON null: 204 is an answer.
  */

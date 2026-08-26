@@ -15,7 +15,7 @@ This monorepo is a local sandbox for modern, dialog-based municipal services usi
 ```
 
 `./start.sh` handles platform detection, model selection by available memory, and
-verifies the model actually answers. Prefer it over raw `docker compose` — on macOS
+verifies the model actually answers. Prefer it over raw `docker compose` - on macOS
 in particular, plain `docker compose up` starts Ollama in a container where it cannot
 reach Metal, and `--no-deps` is required. Run `./start.sh --help` for all flags.
 
@@ -31,7 +31,7 @@ stack up; `pnpm test:eval` needs a live model.
 
 ## Components and ports
 
-See the service map in `AGENTS.md` — it is the maintained one, and it covers
+See the service map in `AGENTS.md` - it is the maintained one, and it covers
 `matrikkel-mock`, the two real MCP servers, and which services are core versus
 ignorable. Do not duplicate it here; a second copy is how it went stale before.
 
@@ -66,7 +66,7 @@ ignorable. Do not duplicate it here; a second copy is how it went stale before.
   talking to the sandbox APIs; the repo-internal rules below apply to work done here.
 - Frontend work follows the KS Digital design system. Components are documented at
   <https://designsystemet.no/no>; read `docs/designsystem.md` first for the sandbox
-  mechanics — setup and the hard rules. The one that bites: never
+  mechanics - setup and the hard rules. The one that bites: never
   load `felles.css` and the design system CSS on the same page, because `felles.css` has
   no `@layer` and unlayered rules beat every layer.
 

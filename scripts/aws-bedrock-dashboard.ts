@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Local-only admin dashboard for the shared ai-gateway-bedrock-invoke role:
 // who has a key, when they last used it, how many Bedrock calls they've made
-// recently, and a one-click revoke. Never meant to be deployed anywhere —
+// recently, and a one-click revoke. Never meant to be deployed anywhere -
 // it shells out to the `aws` CLI using whatever credentials the invoking
 // shell has (AWS_PROFILE=philippe, say), the same way the aws-bedrock-*.sh
 // scripts do, and binds to localhost only.
@@ -11,7 +11,7 @@
 //   open http://localhost:8090
 //
 // Usage counts require scripts/aws-bedrock-logging-setup.sh to have been run
-// once — without it the usage column just reads "logging not enabled".
+// once - without it the usage column just reads "logging not enabled".
 
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
@@ -24,7 +24,7 @@ const ROLE_NAME = process.env.ROLE_NAME || "ai-gateway-bedrock-invoke";
 const POLICY_NAME = `assume-${ROLE_NAME}`;
 const LOG_GROUP = process.env.LOG_GROUP || "/ai-gateway/bedrock-invocations";
 const PORT = Number(process.env.PORT) || 8090;
-const HOST = "127.0.0.1"; // deliberately not 0.0.0.0 — this can deactivate real AWS credentials
+const HOST = "127.0.0.1"; // deliberately not 0.0.0.0 - this can deactivate real AWS credentials
 
 async function aws(args: string[]): Promise<any> {
   const { stdout } = await execFileAsync("aws", [...args, "--region", REGION, "--output", "json"]);
@@ -73,7 +73,7 @@ async function setKeyStatus(user: string, status: "Active" | "Inactive"): Promis
   ]);
 }
 
-// Session name is "<username>-<epoch>" (see aws-bedrock-assume.sh) — strip
+// Session name is "<username>-<epoch>" (see aws-bedrock-assume.sh) - strip
 // the trailing numeric epoch to recover the username, robust to hyphens
 // inside the username itself.
 function usernameFromSessionArn(arn: string | undefined): string | null {
@@ -95,7 +95,7 @@ async function usageCounts(minutes: number): Promise<{ counts: Record<string, nu
     ]);
   } catch (err: any) {
     if (String(err.message).includes("ResourceNotFoundException")) {
-      return { error: "logging not enabled — run scripts/aws-bedrock-logging-setup.sh" };
+      return { error: "logging not enabled - run scripts/aws-bedrock-logging-setup.sh" };
     }
     throw err;
   }
@@ -131,7 +131,7 @@ const PAGE = `<!doctype html>
 </style>
 </head>
 <body>
-<h1>ai-gateway Bedrock access — ${ROLE_NAME} (${REGION})</h1>
+<h1>ai-gateway Bedrock access - ${ROLE_NAME} (${REGION})</h1>
 <p id="note">Local-only. Revoking deactivates the IAM access key immediately; a session already in flight still expires on its own within 12h.</p>
 <div id="err"></div>
 <table id="t"><thead>

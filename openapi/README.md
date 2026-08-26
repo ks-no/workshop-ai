@@ -32,9 +32,9 @@ Ved endringer i prosessflyt eller API-responser, oppdater relevante spesifikasjo
 spesifikasjonen, i begge retninger, og feiler på:
 
 - en rute i koden som ikke er dokumentert, og en path i spesifikasjonen koden ikke svarer på
-- feil metode — `POST` i spesifikasjonen der koden svarer på `PUT`
+- feil metode - `POST` i spesifikasjonen der koden svarer på `PUT`
 - **duplikate path-nøkler.** Dette er grunnen
-  til at sjekken leser YAML på tekstnivå framfor å parse den — en parser kollapser
+  til at sjekken leser YAML på tekstnivå framfor å parse den - en parser kollapser
   dubletter før noen får se dem, og repoet har dessuten ingen parser å bruke
 - en operasjon uten `security:`. Åpne ruter skal ha `security: []` eksplisitt, slik at
   fraværet ikke leses som en glipp
@@ -42,7 +42,7 @@ spesifikasjonen, i begge retninger, og feiler på:
   hver `Rute` i `routes.ts` og hver `Ressurs` i `ressurser.ts`: `aapen` → `security: []`,
   `egne-data` → ID-porten eller Maskinporten, `bred` → bare Maskinporten. Scopet må stemme
   med det ruta krever
-- et kodeverk spesifikasjonen gjentar og som har kommet ut av takt med koden —
+- et kodeverk spesifikasjonen gjentar og som har kommet ut av takt med koden -
   `Samtykkestatus` og `Oppgavestatus` måles mot tilstandsmaskinene i `fiks-simulator`
 
 Rutene hentes fra rutetabellene der de finnes, og skannes ut av kilden der de ikke gjør

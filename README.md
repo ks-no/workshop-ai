@@ -6,22 +6,22 @@
 
 En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
 
-Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får — dialog, skjema, oversikt, varsling eller noe annet — er teamets valg.
+Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får - dialog, skjema, oversikt, varsling eller noe annet - er teamets valg.
 
 > [!NOTE]
 > **Deltaker på hackathon? Denne fila er ikke inngangen din.** Tre sider, i rekkefølge:
 >
-> 1. [`docs/oppdraget.md`](docs/oppdraget.md) — hva dere skal lage, og hva som er fritt
-> 2. [`docs/deltakerstart.md`](docs/deltakerstart.md) — én kommando, URL-ene, hvilken
+> 1. [`docs/oppdraget.md`](docs/oppdraget.md) - hva dere skal lage, og hva som er fritt
+> 2. [`docs/deltakerstart.md`](docs/deltakerstart.md) - én kommando, URL-ene, hvilken
 >    demobruker som hører til hvilken case, første eget API-kall, og feilsøking
-> 3. [`docs/bygg-selv.md`](docs/bygg-selv.md) — egen frontend på egen port, egne
+> 3. [`docs/bygg-selv.md`](docs/bygg-selv.md) - egen frontend på egen port, egne
 >    tjenester, og hva som er frosset
 >
 > Kom tilbake hit når du vil ha hele bildet: alle flagg, porter og kjente begrensninger.
 
 ## Hva sandkassen er
 
-Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
+Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig - ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
 Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
@@ -31,7 +31,7 @@ Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser m
 
 ## Designprinsipp for hackathon
 
-Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles API-er og enkle integrasjonsflater, uten å låse noen til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy. Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, er hjelpemidler og eksempler — ikke tvungne måter å bygge løsningene på.
+Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles API-er og enkle integrasjonsflater, uten å låse noen til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy. Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, er hjelpemidler og eksempler - ikke tvungne måter å bygge løsningene på.
 
 ## Status
 
@@ -39,7 +39,7 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
-- deterministisk vilkårsvurdering mot satser (`SJEKK`) — utenfor modellen, med vilje
+- deterministisk vilkårsvurdering mot satser (`SJEKK`) - utenfor modellen, med vilje
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
@@ -66,7 +66,7 @@ På Windows: se [«På Windows»](#på-windows) lenger ned.
 ```
 
 Fire til sju minutter. Alt fungerer bortsett fra at KI-svarene er maltekst i
-stedet for modellgenerert — flyten, samtykkesperren, revisjonsloggen og alle
+stedet for modellgenerert - flyten, samtykkesperren, revisjonsloggen og alle
 API-ene er de samme. Dette er den riktige veien inn første gang, og den eneste
 som ikke krever nedlasting av flere gigabyte.
 
@@ -97,7 +97,7 @@ faktisk svarer.
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
 ekvivalent. `start.bat` venter 20 sekunder uten å sjekke at noe faktisk kom opp, og tar
 `--reload`, `-d` og `--down`, men ingen modellflagg. **Den kjører alltid uten
-språkmodell** — den laster verken ned eller velger modell, så alt annet enn maltekst
+språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
 ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
 `./start.sh`. Foretrekk uansett den veien hvis du har valget.
 
@@ -117,7 +117,7 @@ Du skal normalt ikke trenge noen av disse.
 
 > [!WARNING]
 > **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
-> vanlig måte — inkludert modellnedlasting. Kjørte du `--mock`, skriv
+> vanlig måte - inkludert modellnedlasting. Kjørte du `--mock`, skriv
 > **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.
 
 ### Hva skriptet gjør for deg
@@ -132,15 +132,15 @@ Du skal normalt ikke trenge noen av disse.
 
 **Modell** velges ut fra minnet på maskinen: 32 GB RAM eller mer gir `qwen2.5:14b`, 12 GB eller mer gir `qwen2.5:7b`, under det `qwen2.5:0.5b`.
 
-Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjør — en modell som får plass i RAM men ikke i VRAM blir splittet mot CPU og går tregt. Apple Silicon har unified memory, så der er RAM riktig tall.
+Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjør - en modell som får plass i RAM men ikke i VRAM blir splittet mot CPU og går tregt. Apple Silicon har unified memory, så der er RAM riktig tall.
 
 Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
 
-**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandkassen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandkassen fortsatt - men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
 
 ### Kildedata og kjøringstilstand
 
-`data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner i `state/`, som er gitignorert. En demokjøring skitner derfor ikke til arbeidstreet — kjører du en flyt og deretter `git status`, skal den være ren.
+`data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner i `state/`, som er gitignorert. En demokjøring skitner derfor ikke til arbeidstreet - kjører du en flyt og deretter `git status`, skal den være ren.
 
 `./start.sh --reset` nullstiller `state/`. Se `docs/syntetiske-data.md`, også for hvordan du deler en prosess du har laget i byggeren.
 
@@ -152,9 +152,9 @@ Kontroller at modellen er koblet på:
 curl -s http://localhost:8082/helse
 ```
 
-`"modellNaaBar": true` betyr at provideren svarer og modellen er lastet ned. Er den `false`, følger et `feil`-felt som sier hvorfor. Merk at status alltid er 200 — tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du skal lese.
+`"modellNaaBar": true` betyr at provideren svarer og modellen er lastet ned. Er den `false`, følger et `feil`-felt som sier hvorfor. Merk at status alltid er 200 - tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du skal lese.
 
-Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart — men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
+Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart - men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
 
 Kontroller at alle tjenestene kjører:
 
@@ -164,9 +164,9 @@ docker compose ps
 
 Alle skal stå som `healthy`.
 
-Alt annet — `401` på alt, «fetch failed» på matrikkel-oppslag, maltekst du ikke ba
+Alt annet - `401` på alt, «fetch failed» på matrikkel-oppslag, maltekst du ikke ba
 om, port opptatt, en container som ikke blir `healthy`, treg modellnedlasting og
-hvordan du nullstiller — står i `docs/feilsoking.md`: ett symptom per avsnitt, med
+hvordan du nullstiller - står i `docs/feilsoking.md`: ett symptom per avsnitt, med
 årsak og løsning.
 
 ### Se hva modellen faktisk gjorde
@@ -175,7 +175,7 @@ hvordan du nullstiller — står i `docs/feilsoking.md`: ett symptom per avsnitt
 http://localhost:8082/trace
 ```
 
-Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom — pluss varighet, modell og om det feilet. Samme data som JSON på `GET /trace.json`, med `?sporingsId=`, `?task=` og `?limit=`.
+Ett kall per linje, nyeste øverst, med full prompt og fullt svar før heuristikk og validering har vært innom - pluss varighet, modell og om det feilet. Samme data som JSON på `GET /trace.json`, med `?sporingsId=`, `?task=` og `?limit=`.
 
 Sporet ligger i `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
 
@@ -183,24 +183,24 @@ Logger: `docker compose logs -f ai-gateway`.
 
 ### Manuell oppstart
 
-`./start.sh` gjør dette for deg. Les skriptet hvis du vil se detaljene — det er kommentert.
+`./start.sh` gjør dette for deg. Les skriptet hvis du vil se detaljene - det er kommentert.
 
 macOS, med Ollama nativt på verten:
 
 ```bash
-brew services start ollama    # ikke "ollama serve" — den dør når terminalen lukkes
+brew services start ollama    # ikke "ollama serve" - den dør når terminalen lukkes
 ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
-**Hele lista må med** — særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
+**Hele lista må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
 når de mangler. Hvordan de feiler står i punktlista under
 [tjenesteoversikten](#oversikt-over-tjenester-og-porter).
 
 `--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
-ellers drar opp container-Ollama — men det er også grunnen til at lista må være
+ellers drar opp container-Ollama - men det er også grunnen til at lista må være
 komplett: `--no-deps` slår av `depends_on` for *alle* tjenestene, `digdir-mock`
 inkludert.
 
@@ -211,7 +211,7 @@ cp .env.example .env          # OLLAMA_BASE_URL=http://ollama:11434
 docker compose up -d
 ```
 
-Med NVIDIA-GPU: legg til `-f docker-compose.gpu.yml`. Verifiser at Docker har GPU-tilgang med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` — feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+Med NVIDIA-GPU: legg til `-f docker-compose.gpu.yml`. Verifiser at Docker har GPU-tilgang med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` - feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 Forhåndslast alle anbefalte modeller, for eksempel før en workshop med dårlig nett:
 
@@ -246,7 +246,7 @@ Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
   alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed»,
   mens alt annet ser normalt ut.
 - **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`.
-  `/mcp/*`-stiene står igjen — de er wire-format. Navnehistorikken står i
+  `/mcp/*`-stiene står igjen - de er wire-format. Navnehistorikken står i
   `apps/tools-api/README.md`.
 - **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
   er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
@@ -261,7 +261,7 @@ API-utforskeren rendrer, og `pnpm test:openapi` holder alle tre i takt med koden
 ## Koble MCP-serverne til editoren din
 
 `brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
-oppslagsverktøy mot registerdataene — de samme oppslagene `tools-api` allerede
+oppslagsverktøy mot registerdataene - de samme oppslagene `tools-api` allerede
 eksponerer over REST, så de utvider ikke sandkassen. I Claude Code, fra repo-roten:
 
 ```bash
@@ -274,14 +274,14 @@ Detaljer, klientkonfigurasjon for andre editorer og verifisering med
 
 ## Demo-brukere
 
-Det finnes ikke én demo-bruker som passer alle casene — velg bruker etter case i
+Det finnes ikke én demo-bruker som passer alle casene - velg bruker etter case i
 tabellen i `docs/deltakerstart.md` §3, som er pinnet i `data/deltakercaser.json`.
 Til flaggskipcaset *Redusert foreldrebetaling (barnehage)* passer `person-001`
 `Maja Solberg`; i flere av de andre casene gir hun korrekt avslag, så der velger
 du bruker fra tabellen.
 
 Data finnes i `data/personer.json`. **`docs/testpersoner.md` er den genererte
-oversikten over hele befolkningen** — 394 personer med alder, status, husstand og
+oversikten over hele befolkningen** - 394 personer med alder, status, husstand og
 en kolonne som sier om personen kan logge inn, bare være part, eller ingen av
 delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 
@@ -290,7 +290,7 @@ delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 Flaggskipcaset *Redusert foreldrebetaling (barnehage)* kjører hele kjeden i én økt:
 husstanden hentes og vises, samtykke innhentes før inntektsdata leses, vilkårene
 vurderes deterministisk i backend, KI-laget oppsummerer i klarspråk, innbyggeren
-bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren — og
+bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren - og
 revisjonsloggen viser hver datatilgang underveis.
 
 Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
@@ -309,7 +309,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:8080/api/personer/person-001/husstand
 ```
 
-Ett token er én person: `person-001`s token åpner ikke `person-031`s data — det gir
+Ett token er én person: `person-001`s token åpner ikke `person-031`s data - det gir
 `403`. `pnpm token` treffer pnpms egen innebygde kommando, så kall skriptet direkte.
 
 Åpne ruter trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`, `/api/prosesser`,
@@ -318,9 +318,9 @@ Ett token er én person: `person-001`s token åpner ikke `person-031`s data — 
 
 **Videre:**
 
-- <http://localhost:3001/utforsker> — hver rute med skjema, riktig token valgt
+- <http://localhost:3001/utforsker> - hver rute med skjema, riktig token valgt
   automatisk, og en `curl` som virker når den limes inn. Raskeste vei til et enkeltkall.
-- `examples/curl/README.md` — flytene: hele barnehagesøknaden i rekkefølge, og de tre
+- `examples/curl/README.md` - flytene: hele barnehagesøknaden i rekkefølge, og de tre
   ulike svarene samme URL gir avhengig av token og samtykke. `pnpm test:kokebok` kjører
   hvert kall i fila, så et eksempel som ikke virker er en reell feil.
 
@@ -348,7 +348,7 @@ diff state/foer.json state/etter.json
 **Endrer du en prompt, kjør evalene.** `pnpm test:eval` scorer KI-laget mot
 datasettene i `evals/`, med terskel per datasett og exit≠0 under. Den krever en
 kjørende modell og nekter å score maltekst. Ta en baseline før du endrer, og
-sammenlign etterpå — se `evals/README.md`.
+sammenlign etterpå - se `evals/README.md`.
 
 Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl`,
 `test:matrikkel-mock`, `test:tools-matrikkel`, `test:agent:matrikkel`,
@@ -365,7 +365,7 @@ Den krever **nett**: adresser som bommer i seed-fila slår over på live
 Geonorge-oppslag, og uten nett svarer matrikkel-mock 500.
 
 De to MCP-serverne testes hver for seg, og de krever verken nett eller kjørende
-stack — de spawnes som subprosess:
+stack - de spawnes som subprosess:
 
 ```bash
 pnpm test:brreg-mcp
@@ -376,24 +376,24 @@ pnpm test:folkeregister-mcp
 
 Syntetiske data ligger under `data/`:
 
-- `data/personer.json` — 394 personer
-- `data/husstander.json` — 200 husstander
-- `data/tenor/` — rå uttrekk fra Tenor, kilden importen bygger på
-- `data/forventet-utfall.json` — hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
+- `data/personer.json` - 394 personer
+- `data/husstander.json` - 200 husstander
+- `data/tenor/` - rå uttrekk fra Tenor, kilden importen bygger på
+- `data/forventet-utfall.json` - hva hver husstand er ment å demonstrere, pinnet for `pnpm test`
 - `data/inntekter.json`
 - `data/barnehageplasser.json`
 - `data/sfoplasser.json`
 - `data/satser.json`
-- `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` — grunnlaget for fritidskort
-- `data/tjenestetilbud.json` — kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
-- `data/matrikkel.json` — 388 gater og 18 349 eiendommer i 97 kommuner, lest av `matrikkel-mock`
-- `data/eierforhold.json` — tinglyst eierskap per matrikkelenhet, slått sammen av `matrikkel-mock` ved innlasting
-- `data/matrikkel.seed.json` — liten firegaters fixture for mockens egne tester
+- `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` - grunnlaget for fritidskort
+- `data/tjenestetilbud.json` - kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
+- `data/matrikkel.json` - 388 gater og 18 349 eiendommer i 97 kommuner, lest av `matrikkel-mock`
+- `data/eierforhold.json` - tinglyst eierskap per matrikkelenhet, slått sammen av `matrikkel-mock` ved innlasting
+- `data/matrikkel.seed.json` - liten firegaters fixture for mockens egne tester
 - `data/prosessdefinisjoner.json`
 - `data/informasjonsmodeller.json`
 
 `matrikkel-mock` er eneste leser av matrikkeldataene. `sandbox-backend` kaller den over
-HTTP, så det finnes bare én matrikkel i sandkassen — den som også snakker SOAP.
+HTTP, så det finnes bare én matrikkel i sandkassen - den som også snakker SOAP.
 
 Søknader, samtykker, oppgaver, meldinger, prosessøkter og revisjonslogg har **ingen**
 fil i `data/`. De oppstår først under kjøring og finnes bare i `state/`, som er
@@ -429,7 +429,7 @@ Dette repoet er lagt opp for flere team. Se:
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
 - CI kjører sjekkene som verken trenger modell eller kjørende stack. Lista står i
-  `.github/workflows/ci.yml`, med en kommentar per steg om hva det fanger — den er
+  `.github/workflows/ci.yml`, med en kommentar per steg om hva det fanger - den er
   kilden, og `pnpm test:docs` feiler hvis en doc gjengir den feil. Evalene og
   stack-testene er bevisst utenfor: de krever en modell eller en oppe stack
 - Ingen persistensstrategi utover flate JSON-filer. `process-agent` holder sesjoner i
@@ -438,17 +438,17 @@ Dette repoet er lagt opp for flere team. Se:
 - Ingen ekte integrasjoner mot Altinn eller Fiks. ID-porten og Maskinporten er
   mocket i `digdir-mock`, og **håndhevingen er ekte**: `AUTH_ENFORCE` er på, tokener
   verifiseres mot utstederens nøkler, og pid-bindingen holder. Det som er forenklet er
-  klientassertionen — den valideres på form, ikke signatur. Se
+  klientassertionen - den valideres på form, ikke signatur. Se
   `apps/digdir-mock/README.md`
 - `tools-api` er REST, ikke MCP. Bare `/mcp/*`-stiene bærer prefikset videre, som
   wire-format. Se `docs/architecture.md`
 
 ## Viktige filer
 
-- `docs/deltakerstart.md` — start her hvis du er deltaker
-- `docs/ordliste.md` — forvaltningstermene forklart slik de brukes i sandkassen
-- `apps/shared/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
-- `data/` — de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
-- `openapi/` — én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`
-- `policies/` — datapolicy, KI-policy, tilgangspolicy
+- `docs/deltakerstart.md` - start her hvis du er deltaker
+- `docs/ordliste.md` - forvaltningstermene forklart slik de brukes i sandkassen
+- `apps/shared/tjenester.json` - tjenestene, portene, rollene. Sannhetskilden
+- `data/` - de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
+- `openapi/` - én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`
+- `policies/` - datapolicy, KI-policy, tilgangspolicy
 - `docker-compose.yml`, `package.json`, `tsconfig.json`

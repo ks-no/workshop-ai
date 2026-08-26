@@ -29,7 +29,7 @@ const bonesheienEierPersonId = "person-001";
 /*
  * Registeret matrikkel-mock holder i minnet.
  *
- * Gate og Eiendom er formene som går på tråden — SOAP-svarene og REST-hjelperne
+ * Gate og Eiendom er formene som går på tråden - SOAP-svarene og REST-hjelperne
  * bygges av nøyaktig disse. Indeksene ved siden av listene er der fordi
  * oppslagene skjer per request og datasettet er 18 349 eiendommer.
  *
@@ -156,7 +156,7 @@ function createEmptyRegister(kilde: Kilde): Register {
   };
 }
 
-// Ownership is not in the matrikkel — it is in the grunnbok. data/matrikkel.json
+// Ownership is not in the matrikkel - it is in the grunnbok. data/matrikkel.json
 // carried `eiere` on every property anyway, which is both wrong in kind and the
 // reason the distribution rotted unnoticed: 28 people held 1280 titles across 1225
 // of 8202 properties, one of them 70. The titles live in data/eierforhold.json now
@@ -197,7 +197,7 @@ function leggPaaEierforhold(
   register.eierforhold = { fil: eierforhold.fil, antall: eierforhold.perMatrikkelId.size };
   for (const eiendom of register.eiendommer) {
     const eiere = eierforhold.perMatrikkelId.get(eiendom.matrikkelId) || [];
-    // `eiere` stays a flat array of eier-ids on the wire — that is what
+    // `eiere` stays a flat array of eier-ids on the wire - that is what
     // matrikkel_hent_eiere, the SOAP HentEiere operation and every consumer read.
     // The eierform and andel from the grunnbok sit beside it.
     eiendom.eiere = eiere.map((e) => e.eier);
@@ -321,7 +321,7 @@ function addBonesheienIfMissing(register: Register): void {
 //
 // This was not theoretical. A slow Geonorge turned GET /api/matrikkel/gater?gate=
 // on an unknown street from 404 into 502, which made the contract dump differ
-// between runs — and a hackathon venue with no outbound network would have hit it
+// between runs - and a hackathon venue with no outbound network would have hit it
 // on every miss.
 function utenLive(feil: unknown, hva: string): null {
   console.warn(`Live-oppslag mot Geonorge feilet (${hva}): ${feilmelding(feil)}. Svarer fra seeden alene.`);
@@ -434,7 +434,7 @@ function addEiendom(register: Register, gate: Gate, eiendomInput: Partial<Eiendo
 }
 
 // The extract covers 97 kommuner, so the full list would be 500 lines of a health
-// check — and 500 lines of every contract dump. Summarised here; the per-kommune
+// check - and 500 lines of every contract dump. Summarised here; the per-kommune
 // detail stays in data/matrikkel.json, which is where provenance belongs.
 function helsekilde(register: Register) {
   const metadata = register.kilde?.metadata;
@@ -598,8 +598,8 @@ function findGate(register: Register, gateSoek: string): Gate | null {
 // Substring matching was harmless when the register was one kommune: "Storgata"
 // meant Bergen's Storgata and nothing else. With 388 streets in 97 kommuner it also
 // returns Tromsø's Storgata and every "Storgatan"-shaped neighbour, so an exact
-// match now wins outright. Partial search still works — it is what the step tells
-// the citizen to do — but only when nothing matches exactly.
+// match now wins outright. Partial search still works - it is what the step tells
+// the citizen to do - but only when nothing matches exactly.
 function findGater(register: Register, gateSoek: string): Gate[] {
   const soek = normalize(gateSoek);
   if (!soek) return register.gater;
@@ -665,7 +665,7 @@ type BeriketEiendom = Partial<Eiendom> & Pick<Eiendom,
   | "adressekode" | "postnummer" | "poststed" | "koordinater"
   | "adressetilleggsnavn" | "objtype">;
 
-// Bare postnummer og poststed leses fra gata — resten kommer fra eiendommen selv.
+// Bare postnummer og poststed leses fra gata - resten kommer fra eiendommen selv.
 function enrichEiendom(
   gate: Pick<Gate, "postnummer" | "poststed">,
   eiendom: Partial<Eiendom>
@@ -960,7 +960,7 @@ function wsdlDocument(baseUrl: string): string {
 
 /**
  * Gata slik den går ut på tråden. Verken en Gate fra registeret (som har
- * eiendomIds) eller en LiveGate (som har eiendommene inline) — bare de seks
+ * eiendomIds) eller en LiveGate (som har eiendommene inline) - bare de seks
  * feltene svaret består av.
  */
 type GateRespons = Pick<Gate, "gateId" | "adressenavn" | "kommunenummer" | "kommune" | "postnummer" | "poststed">
@@ -1164,7 +1164,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
       // Live-treff fra Geonorge mangler gateId og adressetilleggsnavn, så lista er
 
-      // Partial — den blandes med fulle eiendommer fra registeret.
+      // Partial - den blandes med fulle eiendommer fra registeret.
 
       let kandidater: Partial<Eiendom>[];
       if (url.searchParams.get("matrikkelId")) {
@@ -1199,7 +1199,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
           return adresse === norm || adresse.includes(norm) || norm.includes(adresse);
         });
       }
-      // Asking who owns ONE property is a grunnbok lookup — public, and what
+      // Asking who owns ONE property is a grunnbok lookup - public, and what
       // matrikkel_hent_eiere exists to answer. Asking for the owner lists of all
       // 227 properties in a street is bulk extraction, and this endpoint handed
       // them out in clear text while sandbox-backend projected the same field away

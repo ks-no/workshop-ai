@@ -4,7 +4,7 @@
  * Both resources had the same hole: `status` was whatever string the caller sent,
  * so a withdrawn samtykke could be revived by answering it again. Written twice
  * the two would drift apart, and a state machine that only mostly holds is worse
- * than none — it teaches that the rule is advisory.
+ * than none - it teaches that the rule is advisory.
  *
  * `Record<T, T[]>` is the point of the type parameter: the compiler demands an
  * entry for every status, so adding one without deciding what it may become is a

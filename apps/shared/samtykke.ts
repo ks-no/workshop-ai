@@ -18,7 +18,7 @@ export type Samtykkestatus =
 /**
  * The only authority on what may follow what. Three of the five are final, and
  * that is the whole point: a samtykke the citizen said no to, withdrew, or let
- * expire is not a row you edit back into force — the municipality has to ask
+ * expire is not a row you edit back into force - the municipality has to ask
  * again, and the new request gets its own id and its own trail.
  *
  * A VENTER_PAA_SVAR request deliberately does not expire: an unanswered request
@@ -42,7 +42,7 @@ export const validateSamtykkeovergang = maskin.validateOvergang;
 type Samtykkelignende = { status?: unknown; utloper?: unknown } | null | undefined;
 
 /**
- * Whether `utloper` has passed. Says nothing about the status — see
+ * Whether `utloper` has passed. Says nothing about the status - see
  * `effektivStatus` for the two combined.
  *
  * `now` is a parameter so a test can pin the clock. It is not pinned in
@@ -66,7 +66,7 @@ export function isUtloept(samtykke: Samtykkelignende, now: number = Date.now()):
  *
  * UTLOEPT is derived, not written: nothing runs on a timer here, so a stored
  * SAMTYKKET whose `utloper` has passed reads as UTLOEPT everywhere it is
- * answered for — the same way the masking in skjerming.ts is applied on the way
+ * answered for - the same way the masking in skjerming.ts is applied on the way
  * out rather than baked into the seed. The stored row and its `historikk` stay a
  * factual record of what the citizen did; expiry is something that happened to
  * the consent, not something anybody did.

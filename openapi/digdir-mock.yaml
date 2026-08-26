@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Digdir Mock — Maskinporten og ID-porten
+  title: Digdir Mock - Maskinporten og ID-porten
   version: 0.1.0
   description: >-
     Etterlikning av de to Digdir-flatene sandkassen trenger for å ha hjemmel:
@@ -194,7 +194,7 @@ paths:
         alternativet var verre: klienten skrapte tidligere velgersiden for det samme
         oppslaget, og en pusset side knakk hele testhalen.
 
-        Ekte ID-porten har ingenting slikt, og kunne ikke hatt det — det finnes
+        Ekte ID-porten har ingenting slikt, og kunne ikke hatt det - det finnes
         ingen rute som lister befolkningen. Adressebeskyttede personer står oppført
         med personId og «Skjermet person», akkurat som i velgeren.
 
@@ -241,18 +241,18 @@ paths:
                 $ref: "#/components/schemas/Noekkelsett"
   /token:
     post:
-      summary: Maskinporten — bytt assertion mot access token
+      summary: Maskinporten - bytt assertion mot access token
       security: []
       description: >
         `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`. Assertionen må ha
         `iss`, `aud` (= issueren), `scope` og `exp`, og `resource` avgjør hvilken
-        tjeneste tokenet gjelder for — standard er `sandbox-backend`. Et token
+        tjeneste tokenet gjelder for - standard er `sandbox-backend`. Et token
         utstedt for én tjeneste avvises av en annen, og det er hele poenget med
         audience-begrensning.
 
         SANDKASSEFORENKLING: assertionen valideres på form, ikke på signatur. Hvert
         felt ekte Maskinporten krever er fortsatt påkrevd, så en klient som virker
-        her er bygget riktig — men ekte Maskinporten krever en privat nøkkel, og en
+        her er bygget riktig - men ekte Maskinporten krever en privat nøkkel, og en
         nettleser skal aldri holde en.
       requestBody:
         required: true
@@ -282,7 +282,7 @@ paths:
           $ref: "#/components/responses/OauthFeil"
   /idporten/authorize:
     get:
-      summary: ID-porten — testbrukervelgeren
+      summary: ID-porten - testbrukervelgeren
       security: []
       description: >
         Uten `pid` rendres velgersiden; velgeren poster tilbake til den samme ruta
@@ -344,7 +344,7 @@ paths:
         "400":
           $ref: "#/components/responses/OauthFeil"
     post:
-      summary: ID-porten — velgeren sender valgt testbruker
+      summary: ID-porten - velgeren sender valgt testbruker
       security: []
       description: >
         Skjemaet på velgersiden poster tilbake hit med `pid`, og de øvrige
@@ -382,12 +382,12 @@ paths:
           $ref: "#/components/responses/OauthFeil"
   /idporten/token:
     post:
-      summary: ID-porten — bytt code mot tokens
+      summary: ID-porten - bytt code mot tokens
       security: []
       description: >
         `grant_type=authorization_code`. `redirect_uri` må stemme med den fra
         /authorize, og ble `code_challenge` sendt der, er `code_verifier` påkrevd
-        her — PKCE, fordi en klient som kjører i en nettleser ikke kan holde på en
+        her - PKCE, fordi en klient som kjører i en nettleser ikke kan holde på en
         hemmelighet, og koden alene derfor ikke skal være nok. Koden kan bare løses
         inn én gang.
       requestBody:
@@ -488,7 +488,7 @@ components:
           description: >
             False for 13–17-åringer: en elektronisk ID finnes, men rettslig
             handleevne gjør ikke. De kan logge inn, men kan ikke være avsender for
-            en sak på egen hånd — en foresatt med foreldreansvar må være det.
+            en sak på egen hånd - en foresatt med foreldreansvar må være det.
     Noekkelsett:
       type: object
       properties:

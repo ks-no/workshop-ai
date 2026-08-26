@@ -7,7 +7,7 @@
 //
 // Deliberately not implemented: alg negotiation (RS256 only), encrypted tokens,
 // and "alg": "none". A token whose header asks for anything but RS256 is rejected
-// rather than trusted — accepting the header's word for the algorithm is the
+// rather than trusted - accepting the header's word for the algorithm is the
 // classic JWT vulnerability, and failing closed here is cheaper than explaining it.
 
 import { createSign, createVerify, createPublicKey } from "node:crypto";
@@ -27,8 +27,8 @@ export type JwtHeader = {
 };
 
 /**
- * Claims are left open. The set differs per issuer and per grant — Maskinporten has
- * `scope` and `consumer`, ID-porten has `pid` and `acr` — and the resource server
+ * Claims are left open. The set differs per issuer and per grant - Maskinporten has
+ * `scope` and `consumer`, ID-porten has `pid` and `acr` - and the resource server
  * is where a claim gets a meaning. See autentisering.ts in sandbox-backend.
  */
 export type JwtClaims = Record<string, any>;
@@ -82,7 +82,7 @@ export function decodeJwt(token: string): DecodedJwt {
 /**
  * Verifies the signature against a JWK. Returns the claims, or throws.
  *
- * Claim checks — iss, aud, exp — are the caller's job on purpose. They differ per
+ * Claim checks - iss, aud, exp - are the caller's job on purpose. They differ per
  * resource server, and burying them here would make them invisible at the place
  * where the access decision is actually made.
  */

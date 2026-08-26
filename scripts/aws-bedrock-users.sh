@@ -1,7 +1,7 @@
 #!/bin/sh
 # Lists / revokes the IAM users created by aws-bedrock-add-user.sh.
 #
-# Membership isn't tracked anywhere separate — a user counts as an
+# Membership isn't tracked anywhere separate - a user counts as an
 # ai-gateway user if it has the inline policy aws-bedrock-add-user.sh
 # always attaches, named "assume-${ROLE_NAME}". Nothing else creates a
 # policy with that exact name, so checking for it is enough.
@@ -51,7 +51,7 @@ cmd_revoke() {
   echo "Deactivated access key for $u."
   echo "New sts:AssumeRole calls fail immediately. A session already handed out"
   echo "before this still works until it expires on its own (max 12h, see"
-  echo "MaxSessionDuration on ai-gateway-bedrock-invoke) — there is no way to"
+  echo "MaxSessionDuration on ai-gateway-bedrock-invoke) - there is no way to"
   echo "invalidate an already-issued STS session token early."
 }
 

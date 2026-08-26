@@ -5,9 +5,9 @@ hvordan et enkelt kall ser ut, bruk <http://localhost:3001/utforsker>: den leser
 spesifikasjonene tjenestene selv serverer, velger riktig token for ruta, og skriver ut en
 `curl` som virker når den limes inn. En rutetabell her ville vært en kopi som driver.
 
-Det utforskeren *ikke* kan uttrykke er en rekkefølge — sju kall der hvert bygger på det
+Det utforskeren *ikke* kan uttrykke er en rekkefølge - sju kall der hvert bygger på det
 forrige. Det er det denne fila er til. Foretrekker du Postman framfor curl, importerer
-den spesifikasjonene i `openapi/` direkte — se `examples/postman/README.md`.
+den spesifikasjonene i `openapi/` direkte - se `examples/postman/README.md`.
 
 Alle kall er hentet fra `scripts/kontrakt-smoke.ts`, som kjører i CI. Virker et kall
 ikke, er det en reell feil.
@@ -23,21 +23,21 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/personer/per
 ```
 
 **Ett token er én person.** Backend binder tokenet til `pid`, så `person-001`s token
-åpner ikke `person-031`s data — det gir `403`, ikke `200`. Skal du bruke en annen
+åpner ikke `person-031`s data - det gir `403`, ikke `200`. Skal du bruke en annen
 testbruker, hent et nytt token.
 
 ```bash
 export TOKEN_022=$(node scripts/token.ts --innbygger person-022)   # SFO
 ```
 
-En maskin er noe annet enn en innbygger, og får sitt eget — med et `scope` i stedet for
+En maskin er noe annet enn en innbygger, og får sitt eget - med et `scope` i stedet for
 en person:
 
 ```bash
 export TOKEN_M=$(node scripts/token.ts --maskinporten ks:innbyggerdialog:les --resource sandbox-backend)
 ```
 
-`pnpm token` treffer pnpms egen innebygde kommando — kall skriptet direkte.
+`pnpm token` treffer pnpms egen innebygde kommando - kall skriptet direkte.
 Åpne ruter (`/helse`, `/docs`, `/api/prosesser`, `/api/katalog/*`, `/api/regler/satser`)
 trenger ingenting.
 
@@ -50,7 +50,7 @@ for p in 8080 8081 8082 8083 8084 8085 8086; do
 done
 ```
 
-Sju svar, alle `200`. **`8086` er `digdir-mock`**, som utsteder tokener — er den nede,
+Sju svar, alle `200`. **`8086` er `digdir-mock`**, som utsteder tokener - er den nede,
 svarer hvert autentisert kall `401` mens `docker compose ps` ser frisk ut.
 
 `8082` svarer alltid `200` selv om modellen er nede. Les `modellNaaBar` i kroppen, ikke
@@ -61,7 +61,7 @@ statuskoden.
 Dette er hele hjemmelsmodellen i tre kall, og den mest lærerike halvsiden i sandkassen.
 
 ```bash
-# uten token: 401 — vi vet ikke hvem du er
+# uten token: 401 - vi vet ikke hvem du er
 curl -s -o /dev/null -w "uten token:          %{http_code}\n" \
   http://localhost:8080/api/personer/person-001/inntekt
 
@@ -77,18 +77,18 @@ curl -s -o /dev/null -w "andres husstand:     %{http_code}\n" \
 ```
 
 ```
-401  vi vet ikke hvem du er          (autentisering — digdir-mock)
-403  vi vet, og du får likevel ikke  (hjemmel eller samtykke — sandbox-backend)
+401  vi vet ikke hvem du er          (autentisering - digdir-mock)
+403  vi vet, og du får likevel ikke  (hjemmel eller samtykke - sandbox-backend)
 ```
 
 De to `403`-ene har ulik `grunn` med vilje: `mangler_samtykke` kan innbyggeren selv rette
 ved å samtykke, `mangler_hjemmel` kan hen ikke. Kjører du flyten under først, svarer det
-andre kallet `200` — da ligger samtykket inne.
+andre kallet `200` - da ligger samtykket inne.
 
 ## 4. Full barnehageflyt, ende-til-ende
 
 Sju steg. Prosessmotoren er lineær: `handling` utfører gjeldende steg, `neste` flytter ett
-fram. Ingen forgrening — `stegIndex` teller bare oppover.
+fram. Ingen forgrening - `stegIndex` teller bare oppover.
 
 | # | Type | Steg |
 |---|---|---|
@@ -96,8 +96,8 @@ fram. Ingen forgrening — `stegIndex` teller bare oppover.
 | 1 | `DATA_FETCH` | Henter husstandsopplysninger |
 | 2 | `CONSENT_REQUEST` | Kan vi hente inntektsopplysninger? |
 | 3 | `DATA_FETCH` | Henter inntektsopplysninger |
-| 4 | `SJEKK` | Vurderer rett — **deterministisk, utenfor modellen** |
-| 5 | `SUMMARY` | Oppsummering — **eneste steg som kaller modellen** |
+| 4 | `SJEKK` | Vurderer rett - **deterministisk, utenfor modellen** |
+| 5 | `SUMMARY` | Oppsummering - **eneste steg som kaller modellen** |
 | 6 | `SUBMIT` | Send søknad |
 
 ```bash
@@ -112,7 +112,7 @@ OEKT=$(curl -s -X POST $API -H "$AUTH" -H "$JSON" \
 echo "Økt: $OEKT"
 
 # TOM som variabel, ikke "\{\}" inline: i doble fnutter beholder bash bakoverskråstrekene
-# og curl sender \{} — ugyldig JSON, og steget svarer 500 uten å si hvorfor.
+# og curl sender \{} - ugyldig JSON, og steget svarer 500 uten å si hvorfor.
 TOM='{}'
 steg() { curl -s -X POST "$API/$OEKT/handling" -H "$AUTH" -H "$JSON" -d "${1:-$TOM}"; }
 neste() { curl -s -o /dev/null -X POST "$API/$OEKT/neste" -H "$AUTH"; }
@@ -122,7 +122,7 @@ steg; neste                                                  # 1 hent husstand
 steg '{"handling":"opprett-samtykke"}'                       # 2 be om samtykke
 steg '{"handling":"samtykkesvar","status":"SAMTYKKET"}'       # 2 svar
 neste
-steg; neste                                                  # 3 hent inntekt — går nå
+steg; neste                                                  # 3 hent inntekt - går nå
 steg; neste                                                  # 4 SJEKK
 curl -s -m 180 -X POST "$API/$OEKT/handling" -H "$AUTH" -H "$JSON" -d '{}'   # 5 SUMMARY, 10-60 s
 neste
@@ -132,7 +132,7 @@ steg                                                         # 6 SUBMIT
 curl -s "$API/$OEKT" -H "$AUTH"
 ```
 
-Sammenlign de to siste stegene — det er arbeidsdelingen sandkassen finnes for å vise:
+Sammenlign de to siste stegene - det er arbeidsdelingen sandkassen finnes for å vise:
 
 ```bash
 curl -s "$API/$OEKT" -H "$AUTH" | node -e '
@@ -147,7 +147,7 @@ curl -s "$API/$OEKT" -H "$AUTH" | node -e '
 satsen. `SUMMARY` er modellen: den *formulerer*, den avgjør ingenting. Bytter du modell,
 skal `SJEKK` være uendret.
 
-**Andre case:** `sfo-moderasjon` følger samme sekvens — bytt `prosessId` og bruk
+**Andre case:** `sfo-moderasjon` følger samme sekvens - bytt `prosessId` og bruk
 `$TOKEN_022`, ikke `$TOKEN`. `person-001` har ikke barn i SFO, så hen får et avslag som
 ser ut som en feil. `fartsdempende-tiltak` er den mest komplette casen og går via
 matrikkelen; kjør den i <http://localhost:3001/chat>, der stegene har egne felter.
@@ -181,17 +181,17 @@ hentes fra **samtykket**, ikke fra kallet.
 
 ## Feilsøking
 
-Symptomene som gjelder hele sandkassen — `401` på alt (utløpt token inkludert),
-«fetch failed» på matrikkel, maltekst du ikke ba om, nullstilling — står i
+Symptomene som gjelder hele sandkassen - `401` på alt (utløpt token inkludert),
+«fetch failed» på matrikkel, maltekst du ikke ba om, nullstilling - står i
 `docs/feilsoking.md`, ett symptom per avsnitt med årsak og løsning. Her er bare det
 som er spesifikt for kokeboka:
 
 | Symptom | Årsak |
 |---|---|
-| `403 mangler_hjemmel` | Tokenet tilhører en annen person enn stien — §3 |
+| `403 mangler_hjemmel` | Tokenet tilhører en annen person enn stien - §3 |
 | `403 mangler_samtykke` | Kjør samtykkestegene i §4 først |
 | `SUMMARY` tar lang tid | 10–60 s er normalt; ved timeout faller den til maltekst med `advarsel` |
-| Rart KI-svar | Les `/trace` — §5 |
+| Rart KI-svar | Les `/trace` - §5 |
 
 **Ingen `jq`.** Kallene pipes gjennom `node -e`, siden Node uansett er et krav for
 `scripts/token.ts`.

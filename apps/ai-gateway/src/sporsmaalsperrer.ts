@@ -1,5 +1,5 @@
 /*
- * Guardrails for POST /ai/sporsmaal — the one endpoint where a citizen writes
+ * Guardrails for POST /ai/sporsmaal - the one endpoint where a citizen writes
  * free text and gets free text back.
  *
  * The process flow never had this exposure: every other reply either restates a
@@ -15,8 +15,8 @@
  * What actually happens to the data, stated by us rather than by the model.
  *
  * "Hva skjer med opplysningene mine" is a privacy claim. Without a source the
- * model answers from its own priors about GDPR — fluent, plausible and not
- * about this system — and no guardrail here can catch that, because such an
+ * model answers from its own priors about GDPR - fluent, plausible and not
+ * about this system - and no guardrail here can catch that, because such an
  * answer contains no numbers and takes no decision. So it gets a source.
  *
  * Facts mirror docs/sikkerhet-og-personvern.md. Change them together.
@@ -25,8 +25,8 @@
 /*
  * Konteksten en sperre måles mot.
  *
- * Feltene er valgfrie fordi de kommer fra kallstedet — chat-siden, agenten eller
- * et testskript — og hvilke som finnes avhenger av hvor i løpet innbygger står.
+ * Feltene er valgfrie fordi de kommer fra kallstedet - chat-siden, agenten eller
+ * et testskript - og hvilke som finnes avhenger av hvor i løpet innbygger står.
  * Det er nettopp derfor manglendeGrunnlagFor() finnes: den sier fra når et
  * spørsmål trenger et felt som ikke er der.
  */
@@ -74,7 +74,7 @@ export const PERSONVERN = {
 
 const SAFE_ANSWER =
   "Det kan jeg ikke svare på her. Om du har rett til en ordning, og hvor mye du " +
-  "eventuelt får, er det saksbehandlingen som avgjør — ikke jeg. Jeg kan forklare " +
+  "eventuelt får, er det saksbehandlingen som avgjør - ikke jeg. Jeg kan forklare " +
   "hvilke opplysninger vi bruker og hvorfor, og hva som skjer i neste steg.";
 
 /*
@@ -103,7 +103,7 @@ function containsPhrase(ord: string[], uttrykk: string): boolean {
 /* ── 1. Beslutningsspråk ──────────────────────────────────────────────────
  *
  * ai-no-decisions in policies/ai-policy.yaml: the model phrases, it does not
- * decide. Restating an outcome sandbox-backend already reached is fine — that
+ * decide. Restating an outcome sandbox-backend already reached is fine - that
  * is why the carve-out below checks the grounding text.
  */
 
@@ -140,7 +140,7 @@ function foldNorwegian(tekst: string): string {
  * Nabofeilen til beslutningsspråk, og like alvorlig: spurt «hva skjer videre
  * nå?» mens flyten står på SUBMIT, svarte modellen «nå har søknaden blitt sendt
  * inn». Den leste stegnavnet «Send søknad» i grunnlaget og antok at det hadde
- * skjedd. Ingen tall, ingen beslutning — usynlig for alle sperrene over.
+ * skjedd. Ingen tall, ingen beslutning - usynlig for alle sperrene over.
  *
  * Derfor sier kontekstens flyt-blokk eksplisitt hva som *ikke* har skjedd, og
  * denne sjekken håndhever det.
@@ -208,7 +208,7 @@ function collectNumbers(verdi: unknown, ut = new Set<number>()): Set<number> {
   }
 
   if (typeof verdi === "string") {
-    // Amounts inside strings count too — SJEKK messages are pre-formatted text.
+    // Amounts inside strings count too - SJEKK messages are pre-formatted text.
     for (const treff of verdi.replace(/[\s ]/g, "").matchAll(/\d+(?:[.,]\d+)?/g)) {
       const tall = Number(treff[0].replace(",", "."));
       if (Number.isFinite(tall)) ut.add(tall);
@@ -243,7 +243,7 @@ const AARSTALL_MAX = 2100;
 /*
  * Returns the numbers in `tekst` that could mislead and are not in the index.
  * Small unmarked numbers (step counts, ages, school years) are skipped on
- * purpose — checking them buys nothing and costs a false positive on every
+ * purpose - checking them buys nothing and costs a false positive on every
  * sentence.
  */
 export function findUngroundedNumbers(tekst: string, indeks: Set<number>): string[] {
@@ -333,7 +333,7 @@ const TEMAKRAV = [
 /*
  * Substring matching here, unlike everywhere else in this file. Norwegian
  * compounds mean "søknadsfristen" contains "frist" but shares no whole word
- * with it, and topic detection only decides whether to answer at all — the
+ * with it, and topic detection only decides whether to answer at all - the
  * expensive direction is missing a topic we have no source for, not refusing
  * one question too many.
  */
@@ -354,7 +354,7 @@ export function manglendeGrunnlagFor(sporsmaal: unknown, kontekst: Sporsmaalskon
  *
  * Every other guardrail in this file catches something structural: a number
  * that is not in the grounding, a decision, an identifier. An invented privacy
- * claim has none of those tells — "opplysningene lagres ikke uten samtykke" is
+ * claim has none of those tells - "opplysningene lagres ikke uten samtykke" is
  * fluent, plausible, contains no number, decides nothing, and is not true of
  * this system. Measured against that, a fixed answer is the honest trade.
  */
@@ -443,7 +443,7 @@ export function buildTryggSvar(kontekst: Sporsmaalskontekst | null | undefined, 
  *
  * Returns { ok: true, tekst } or { ok: false, tekst, advarsel, sperre }.
  * The caller keeps the real model id and appends "(sperret)", so the trace
- * still shows that the model ran and what it actually said — a guardrail that
+ * still shows that the model ran and what it actually said - a guardrail that
  * hides the evidence is worse than none.
  */
 export function validateAnswer(tekst: unknown, kontekst: Sporsmaalskontekst | null | undefined): Sperreutfall {
@@ -529,7 +529,7 @@ export function validateAnswer(tekst: unknown, kontekst: Sporsmaalskontekst | nu
  * endpoint where we do not copy it.
  */
 export function sanitizeSporsmaalKontekst(kontekst: unknown): Sporsmaalskontekst {
-  // `inn` er ukontrollert JSON fra kallstedet — det er hele grunnen til at
+  // `inn` er ukontrollert JSON fra kallstedet - det er hele grunnen til at
   // denne funksjonen finnes. Formen navngir hva vi plukker ut, ikke hva vi fikk.
   const inn = (kontekst || {}) as Record<string, any>;
   const ut: Sporsmaalskontekst = {};
@@ -624,7 +624,7 @@ export function sanitizeSporsmaalKontekst(kontekst: unknown): Sporsmaalskontekst
   }
 
   // Property ownership data fetched by the caller and included for grounding.
-  // Project to address + type only — never expose personIds of other owners.
+  // Project to address + type only - never expose personIds of other owners.
   if (inn.mineEiendommer?.eiendommer && Array.isArray(inn.mineEiendommer.eiendommer)) {
     ut.mineEiendommer = {
       eiendommer: inn.mineEiendommer.eiendommer.map((e: Record<string, unknown>) => ({

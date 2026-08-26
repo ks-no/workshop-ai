@@ -1,6 +1,6 @@
 # Sandbox Backend
 
-**For deg som skal utvide sandkassen — ny flyt, ny datakilde, ny regel.** Kjernen alt
+**For deg som skal utvide sandkassen - ny flyt, ny datakilde, ny regel.** Kjernen alt
 annet lener seg på: prosessmotoren, ressurskatalogen, policyhåndhevingen og
 revisjonsloggen bor her. Bygger du bare en klient mot API-ene, holder det å lese
 `openapi/sandbox-backend.yaml`.
@@ -8,7 +8,7 @@ revisjonsloggen bor her. Bygger du bare en klient mot API-ene, holder det å les
 ## Stack
 
 Node.js med innebygd HTTP-server, skrevet i TypeScript. Node fjerner typene selv
-når filen lastes, så det finnes **ingen byggsteg** — `node src/server.ts` kjører
+når filen lastes, så det finnes **ingen byggsteg** - `node src/server.ts` kjører
 direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22.18.
 
 `pnpm lint` (`tsc --noEmit`) typesjekker uten å produsere output.
@@ -24,14 +24,14 @@ direkte, og `docker compose up` trenger ingen `pnpm install`. Krever Node ≥ 22
 | `vilkaar.ts` | Vilkårsvurdering mot `data/satser.json`. Rent og synkront: `grunnlag` kommer inn som parameter, så et utfall kan pinnes uten kjørende tjenester. `evaluateVilkaar` er eneste vei inn; `regelHandlers` er privat og har én håndterer per regeltype. |
 | `regler.ts` | I/O-halvdelen av vilkårsvurderingen: henter beregningen fra Fiks, og samtykkepredikatene. |
 | `state.ts` | Sammenstilling av datasettene og oppslagshjelperne. Selve I/O-en ligger i `apps/shared/jsonstore.ts`: `readJson` leser `state/` først med `data/` som fallback, og all skriving går gjennom `updateJson`-køen der. |
-| `types.ts` | Prosessmodellen, reglene og satsene som typer. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. Selve innbyggerdataene — `Person`, `Husstand`, `Plass`, `Samtykke` — ligger i `apps/shared/innbyggerdata.ts`, fordi `fiks-simulator` leser de samme filene. |
-| `apps/shared/alder.ts`, `foedselsnummer.ts`, `handleevne.ts`, `skjerming.ts`, `samtykke.ts` | Bladene denne tjenesten deler med andre. De lå her til 25.08.2026, og `fiks-simulator` og `digdir-mock` importerte dem herfra mens denne tjenesten importerte tilbake fra dem — se `apps/shared/README.md`. |
+| `types.ts` | Prosessmodellen, reglene og satsene som typer. Stegtyper og regeltyper er lukkede unioner, så en ny variant uten håndterer blir en kompileringsfeil. Selve innbyggerdataene - `Person`, `Husstand`, `Plass`, `Samtykke` - ligger i `apps/shared/innbyggerdata.ts`, fordi `fiks-simulator` leser de samme filene. |
+| `apps/shared/alder.ts`, `foedselsnummer.ts`, `handleevne.ts`, `skjerming.ts`, `samtykke.ts` | Bladene denne tjenesten deler med andre. De lå her til 25.08.2026, og `fiks-simulator` og `digdir-mock` importerte dem herfra mens denne tjenesten importerte tilbake fra dem - se `apps/shared/README.md`. |
 | `routing.ts`, `errors.ts`, `http.ts`, `config.ts`, `revisjon.ts` | Småting. |
 
 ## Utvidelsespunkter
 
 Skal du legge til noe i workshopen, er det nesten alltid ett av disse fire
-stedene — se `docs/prosessmodell.md` for hele oppskriften:
+stedene - se `docs/prosessmodell.md` for hele oppskriften:
 
 1. ny flyt → `data/prosessdefinisjoner.json`
 2. ny ordning → `data/satser.json`

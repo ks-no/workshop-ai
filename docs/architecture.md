@@ -16,7 +16,7 @@ blokkere hverandre.
 2. Bygg API-et før grensesnittet
 3. Logg all datatilgang, som standard og ikke som tilvalg
 4. Håndhev policyer i kode, og dokumenter dem der de håndheves
-5. La KI formulere — aldri beregne eller avgjøre
+5. La KI formulere - aldri beregne eller avgjøre
 6. Hold lokal kjøring enkel: `docker compose up` skal være nok
 7. Hold strukturen åpen for utvidelse uten å endre kjernen
 8. Velg det som lærer bort mest, foran det som ligner mest på produksjon
@@ -92,7 +92,7 @@ Det betyr at:
 
 Alle ni tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og fem demo-case er på plass. Det som følger er
-avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør — verdt å
+avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.
 
 **`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
@@ -109,13 +109,13 @@ en protokoll tjenesten ikke snakker. Navnehistorikken står i
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
 begge GUI-ene viser en gul stripe ved sidelast hvis modellen er nede. `/chat` viser i
-tillegg `advarsel` per svar — men bare for resultater som kommer via backend (i praksis
+tillegg `advarsel` per svar - men bare for resultater som kommer via backend (i praksis
 `SUMMARY`). `advarsel` fra `/ai/tolk-svar` vises ikke. Verifiser med
-`POST /ai/klarsprak` — svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
+`POST /ai/klarsprak` - svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
 
 **Modellkall har timeout.** `AI_TIMEOUT_MS` (default 180000) avbryter og faller tilbake
 i stedet for å henge. Merk at `modellNaaBar` for `openrouter` og `bedrock` bare sjekker
-at nøkler finnes — den sonderer ikke tjenesten, så en feil nøkkel eller en modell IAM-
+at nøkler finnes - den sonderer ikke tjenesten, så en feil nøkkel eller en modell IAM-
 policyen ikke tillater rapporteres som tilgjengelig og feiler først på neste kall.
 
 **Provider byttes i en kjørende container.** `apps/ai-gateway`'s `GET /admin` bytter
@@ -137,25 +137,25 @@ De forsvinner ved omstart.
 **Autentisering går gjennom `digdir-mock`.** Både sandbox-backend og
 fiks-simulator krever token: ID-porten for en innbygger, Maskinporten for en
 maskin, med audience per tjeneste. `personId` tas ikke lenger fra requesten på
-tro og love — tokenets `pid` må slå opp til den personen forespørselen gjelder.
+tro og love - tokenets `pid` må slå opp til den personen forespørselen gjelder.
 Utstederen er en etterlikning, og klientassertionen verifiseres ikke, så
 identitetslaget er ekte i form og syntetisk i tillit.
 
 **Hele `fiks-simulator` er bak Maskinporten, med ett scope per flate.**
 `ks:fiks:register`, `ks:fiks:folkeregister`, `ks:fiks:svarut`, `ks:fiks:samtykke`,
-`ks:fiks:oppgave` og `ks:fiks:melding` — scopet *er* hjemmelen, så et
+`ks:fiks:oppgave` og `ks:fiks:melding` - scopet *er* hjemmelen, så et
 oppgave-scope åpner ikke samtykkeflaten, og et register-scope åpner ikke
 Folkeregisteret eller SvarUt. Folkeregisterflaten
 snevrer i tillegg inn *innenfor* scopet: rolleId-en i stien avgjør hvilke
-informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag —
+informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag -
 dataminimering som API-adferd. Token-kravet på samtykke- og
 oppgaveflatene er ikke pynt: uten det kunne samtykkesperren `sandbox-backend`
-håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra samtykket — vært
+håndhever så nøye - pid-binding, ressurskatalog, formål hentet fra samtykket - vært
 tilfredsstilt med to uautentiserte kall mot 8081.
 
 Innbyggerens eget ID-porten-token avvises på alle seks flatene med `403
 KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en
 kommune og svares gjennom den. `sandbox-backend` holder det verifiserte
-innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er
+innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut - hjemmelen er
 maskinens, handlingen er innbyggerens. `pnpm test:samtykke` pinner begge
 avvisningene.

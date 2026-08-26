@@ -259,7 +259,7 @@ const FREG_ROLLE = { MOR: "mor", FAR: "far", MEDMOR: "medmor", BARN: "barn" };
 // adresseIdentifikatorFraMatrikkelen is a real Folkeregisteret field, and in the
 // real register it identifies the ADDRESS, not the matrikkelenhet. Tenor fills it
 // with a genuine Kartverket address id, which resolves to nothing in a synthetic
-// register with its own ids — so the value is replaced by the id that actually
+// register with its own ids - so the value is replaced by the id that actually
 // resolves. Tenor's own is dropped rather than kept beside it: a join key that
 // resolves nowhere is worse than an empty one, because it looks like it works.
 //
@@ -410,13 +410,13 @@ function buildScenario(type: string, medlemmer: any) {
 
 // --- eierforhold ------------------------------------------------------------
 
-// Ownership is not in the matrikkel. The matrikkel says what a property is —
-// boundaries, buildings, address — and the grunnbok says who holds title to it,
+// Ownership is not in the matrikkel. The matrikkel says what a property is -
+// boundaries, buildings, address - and the grunnbok says who holds title to it,
 // which is why it lives in data/eierforhold.json and not in data/matrikkel.json.
 //
 // Derived, not authored: a household owns the home it lives in. A minority rent,
 // and a minority own one extra property. Nobody owns more than three. A property
-// absent from data/eierforhold.json has no registered owner in the sandbox — the
+// absent from data/eierforhold.json has no registered owner in the sandbox - the
 // honest state for a synthetic register with far more properties than households.
 const EIERTAK = 3;
 
@@ -474,7 +474,7 @@ function buildEierforhold(husstander: any, personerUt: any, matrikkel: any) {
     const frø = seedOf(voksne[0].syntetiskFodselsnummer);
 
     // Roughly one household in five rents. Without them every household would own,
-    // and "eier du i denne gata" would answer yes for everyone — the same failure
+    // and "eier du i denne gata" would answer yes for everyone - the same failure
     // as before, inverted.
     if (frø % 5 === 0) {
       leietakere += 1;
@@ -482,7 +482,7 @@ function buildEierforhold(husstander: any, personerUt: any, matrikkel: any) {
     }
     leggTil(hjem, voksne.map((v: any) => v.personId), "SELVEIER");
 
-    // And roughly one in seven owns something more — a cabin or a let. The variant
+    // And roughly one in seven owns something more - a cabin or a let. The variant
     // is worth having; forty of them is not.
     if (frø % 7 === 0) {
       const ledige = ledigePerKommune.get(voksne[0].bostedsadresse.kommunenummer) || [];
@@ -535,7 +535,7 @@ function buildInntekt(fnr: string, harBarn: boolean) {
   const seed = seedOf(fnr);
   const loenn = 180000 + (seed % 71) * 10000;
   // infotekst finnes bare på poster som holdes utenfor grunnlaget, så typen må
-  // si det — ellers utledes den fra den første posten i lista.
+  // si det - ellers utledes den fra den første posten i lista.
   const poster: {
     tekniskNavn: string;
     visningstekst: string;
@@ -584,7 +584,7 @@ function buildInntekt(fnr: string, harBarn: boolean) {
 
 // --- the contact register (KRR) ----------------------------------------------
 
-// One row per bosatt person of 15 or older — KRR's real age floor. Curated people
+// One row per bosatt person of 15 or older - KRR's real age floor. Curated people
 // reuse the authored kontakt from data/kuratert.json, and the authored `krr`
 // field (reservert, spraak) wins over the derivation, same pattern as the
 // incomes. Tenor people get contact info generated here and ONLY here:
@@ -592,7 +592,7 @@ function buildInntekt(fnr: string, harBarn: boolean) {
 const KRR_ALDERSGULV = 15;
 
 // 2025-01-01 plus seed % 365 days. Dates, not timestamps, so the file stays
-// byte-identical across runs — no Date.now anywhere in this script.
+// byte-identical across runs - no Date.now anywhere in this script.
 function krrDato(seed: number) {
   const dato = new Date(Date.UTC(2025, 0, 1));
   dato.setUTCDate(dato.getUTCDate() + (seed % 365));
@@ -622,7 +622,7 @@ function buildKrr(person: any) {
   const reservert = forfattet.reservert ?? seed % 10 === 0;
   const spraak = forfattet.spraak ?? (seed % 13 === 0 ? "nn" : seed % 17 === 0 ? "en" : "nb");
 
-  // Curated contact info is authored and reused as it is — a curated person
+  // Curated contact info is authored and reused as it is - a curated person
   // without kontakt has none in KRR either. The seed % 12 no-contact minority
   // only applies where the contact info is generated to begin with.
   let epostadresse = person.kontakt?.epost || null;
@@ -751,7 +751,7 @@ function buildFreg(person: any, fnrForPersonId: any) {
     skjermet: person.adressebeskyttelse !== "UGRADERT",
     adressebeskyttelse: person.adressebeskyttelse,
     // The property this person's address resolves to in data/matrikkel.json. It
-    // sits inside bostedsadresse too, and the gate holds the two equal — this one
+    // sits inside bostedsadresse too, and the gate holds the two equal - this one
     // is the wire field that was already here.
     adresseIdentifikatorFraMatrikkelen: person.bostedsadresse.adresseIdentifikatorFraMatrikkelen,
     ...(person.tenor

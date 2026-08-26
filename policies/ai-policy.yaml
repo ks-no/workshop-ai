@@ -7,7 +7,7 @@ rules:
 
   - id: ai-explain-only
     description: >-
-      KI kan brukes til forklaring, oppsummering, klarspråk og dialogforslag —
+      KI kan brukes til forklaring, oppsummering, klarspråk og dialogforslag -
       altså til å formulere. I tillegg brukes KI til klassifisering: å tolke
       brukerens svar og velge prosess eller verktøy. Klassifisering er tillatt
       fordi utfallet alltid valideres mot en hviteliste i ai-gateway, slik at en
@@ -46,8 +46,8 @@ rules:
          identifikatorer utenfor grunnlaget gir et trygt standardsvar med advarsel.
       4. Prompt injection avvises før modellen kalles.
       5. Personvernspørsmål besvares fra vår egen tekst, ikke modellens. En
-         oppdiktet personvernpåstand har ingen kjennetegn en kodesjekk kan finne
-         — verken tall eller beslutning — så den får et fast svar.
+         oppdiktet personvernpåstand har ingen kjennetegn en kodesjekk kan
+         finne - verken tall eller beslutning - så den får et fast svar.
       6. Slår en sperre inn, beholdes ekte modell-id med suffikset «(sperret)»,
          slik at KI-sporet fortsatt viser hva modellen faktisk sa.
     enforcement: technical
@@ -56,7 +56,7 @@ rules:
     description: >-
       Alle kall til AI-gateway skal logges i revisjonsloggen. Ett unntak:
       /ai/dommer, som bare kalles fra evalene (scripts/eval.ts) og ikke er en
-      del av en innbyggerflyt. Den logges derfor ikke — se kommentaren i
+      del av en innbyggerflyt. Den logges derfor ikke - se kommentaren i
       apps/ai-gateway/src/server.ts. Loggingen er også best-effort: kallet mot
       backend har kort timeout og svelger feil, fordi revisjon aldri skal velte
       operasjonen den revisjonslogger.

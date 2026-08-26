@@ -102,7 +102,7 @@ async function req(
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options
   });
-  // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+  // Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
   const data = (await res.json()) as any;
   if (!res.ok) {
     throw new Error(data.feil || `HTTP ${res.status}`);

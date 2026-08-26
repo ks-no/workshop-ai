@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /*
- * Unit tests for apps/sandbox-backend/src/upstream.ts — the one reading of what a
+ * Unit tests for apps/sandbox-backend/src/upstream.ts - the one reading of what a
  * non-ok answer from an upstream service means.
  *
  * Pure, and that is the point: `send` is a callback, so a Response can be handed
- * in as a literal. No port, no stack, no model, and no crypto — upstream.ts
+ * in as a literal. No port, no stack, no model, and no crypto - upstream.ts
  * imports only errors.ts, unlike regler.ts, which builds an RSA keypair at module
  * load.
  *
@@ -16,8 +16,8 @@
  *     precisely because it never sees a 409, a 403 or an unreachable service.
  *     Every case below is a case the dump cannot reach.
  *  2. The two failure modes of one call being one answer. «Fiks said 403» and
- *     «Fiks is down» were two different things in createSoknad — one of them
- *     silence — and the shape of that fix is only visible here.
+ *     «Fiks is down» were two different things in createSoknad - one of them
+ *     silence - and the shape of that fix is only visible here.
  *  3. Bodies that are not JSON. A gateway answering HTML made `svar.json()` throw
  *     a SyntaxError from inside the failure path, so the status the upstream
  *     actually sent never reached the caller. No seed data produces that.
@@ -38,7 +38,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 // The samtykke calls: the citizen's own request, so the upstream's verdict is
@@ -116,7 +116,7 @@ async function errorFrom(
   /*
    * The beregning is a consumer call: Fiks refusing our machine token is our
    * infrastructure problem, not the citizen's. Answering 403 for it would collide
-   * with the 403 this backend already uses for «samtykke mangler» — the one status
+   * with the 403 this backend already uses for «samtykke mangler» - the one status
    * on these routes that a client is documented to branch on.
    */
   const avvist = await errorFrom(BEREGNING, responds(403, JSON.stringify({ feil: "Mangler scope." })));
@@ -172,7 +172,7 @@ async function errorFrom(
   /*
    * `send` builds the request too, so a Maskinporten token that is refused throws
    * from in there. It is still a 502, but it must not claim we failed to reach
-   * Fiks — naming the wrong service is the defect this module removed from
+   * Fiks - naming the wrong service is the defect this module removed from
    * regler.ts, and it would be silly to reintroduce it one layer up. Only a
    * network-level error code gets the lost-contact sentence; maskinportenHeader
    * throws a plain Error with no `code`.
@@ -248,7 +248,7 @@ async function errorFrom(
   for (const file of files) {
     const source = await readFile(file, "utf8");
     const calls = [...source.matchAll(/fetch\(/g)];
-    check(`${file.split("/").pop()} kaller fetch`, calls.length > 0, "ingen fetch — er kallet flyttet?");
+    check(`${file.split("/").pop()} kaller fetch`, calls.length > 0, "ingen fetch - er kallet flyttet?");
     const readLocally = calls.filter((hit) => !/=>\s*$/.test(source.slice(0, hit.index)));
     check(
       `${file.split("/").pop()} gir hver fetch til upstream.ts`,

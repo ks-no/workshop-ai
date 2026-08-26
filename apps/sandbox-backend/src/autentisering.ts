@@ -1,6 +1,6 @@
 // AUTENTISERING: WHO IS CALLING
 //
-// This module answers one question — who is on the other end of this request —
+// This module answers one question - who is on the other end of this request -
 // and refuses to answer a second one. Whether that caller is *allowed* to do the
 // thing is authorisation, and it lives where the request is handled: in
 // runRessurs for data resources, and in handleRequest for the orchestration
@@ -13,12 +13,12 @@
 //
 //   ID-porten     a citizen. Carries `pid` (fødselsnummer) and `acr` (how strongly
 //                 they were authenticated). Their hjemmel is that the data is
-//                 theirs — so `pid` must resolve to the person being asked about.
+//                 theirs - so `pid` must resolve to the person being asked about.
 //   Maskinporten  a machine. Carries `scope` and `client_id`, and no person at all.
 //                 Its hjemmel is the scope its organisation was granted.
 //
 // A machine is never treated as the citizen. tools-api reading a person's data
-// is logged as a system with `paaVegneAv`, not as the citizen — a service that can
+// is logged as a system with `paaVegneAv`, not as the citizen - a service that can
 // hand itself any citizen's identity is exactly the wrong lesson.
 
 import type { IncomingMessage } from "node:http";
@@ -37,7 +37,7 @@ export type Caller =
   | { type: "system"; clientId: string; scope: string[]; consumer: string | null }
   | { type: "anonym" };
 
-/** Clock skew tolerance. Small on purpose — everything here runs on one machine. */
+/** Clock skew tolerance. Small on purpose - everything here runs on one machine. */
 const slackSeconds = 10;
 
 // --- verification ---------------------------------------------------------
@@ -57,8 +57,8 @@ function fromTokenError(feil: TokenError): HttpError {
   // code is machine-readable.
   //
   // The Norwegian explanation stays in the response body and deliberately does not
-  // go into error_description. Header values are ASCII — RFC 6750 defines
-  // error_description over a restricted character set — and «Tokenet er utløpt»
+  // go into error_description. Header values are ASCII - RFC 6750 defines
+  // error_description over a restricted character set - and «Tokenet er utløpt»
   // puts raw non-ASCII bytes on the wire, which a conforming client is entitled to
   // mangle or reject. Clients read the code in the header; people read the prose in
   // the body.
@@ -75,7 +75,7 @@ function fromTokenError(feil: TokenError): HttpError {
 
 /**
  * Reads the Authorization header and says who is calling. Never throws for a
- * *missing* token — that is `anonym`, and whether anonymous is acceptable is the
+ * *missing* token - that is `anonym`, and whether anonymous is acceptable is the
  * route's decision, not this function's. A token that is present but broken does
  * throw 401: someone tried to authenticate and failed, and silently downgrading
  * that to anonymous would hide the mistake.
@@ -131,8 +131,8 @@ export async function classifyKaller(request: IncomingMessage): Promise<Caller> 
  * logging who was asked *about* and calling it who asked is the one thing an
  * audit log must not do.
  *
- * `personId` is who the request concerns. For a citizen it is redundant — they are
- * the subject — so it is only recorded for a machine, as `paaVegneAv`.
+ * `personId` is who the request concerns. For a citizen it is redundant - they are
+ * the subject - so it is only recorded for a machine, as `paaVegneAv`.
  */
 export function aktorFor(kaller: Caller, personId?: string | null): Record<string, unknown> {
   if (kaller.type === "innbygger") {
@@ -146,7 +146,7 @@ export function aktorFor(kaller: Caller, personId?: string | null): Record<strin
     };
   }
   // Honest about not knowing. This appears only with AUTH_ENFORCE=false, and it is
-  // meant to look wrong in the log — an unauthenticated read has no actor.
+  // meant to look wrong in the log - an unauthenticated read has no actor.
   return { type: "ukjent", id: null };
 }
 
@@ -158,12 +158,12 @@ export function aktorFor(kaller: Caller, personId?: string | null): Record<strin
  * opens it deliberately.
  *
  *   "aapen"      No token. Health, docs, the catalogues, the rates, the street
- *                register — nothing about a person.
+ *                register - nothing about a person.
  *   "egne-data"  Your own data. An ID-porten token whose `pid` resolves to the
  *                subject, or a machine holding the scope.
  *
  *                When a route under this band has NO single subject, an ID-porten
- *                token is still accepted — and the handler is then responsible for
+ *                token is still accepted - and the handler is then responsible for
  *                narrowing the answer to the caller. /api/personer is the one such
  *                route: a citizen may look themselves up there, which is how
  *                demo-gui learns who it is logged in as, but may not list the
@@ -180,7 +180,7 @@ export const SCOPE_LES = "ks:innbyggerdialog:les";
 export const SCOPE_REVISJON = "ks:innbyggerdialog:revisjon";
 
 function manglerToken(hva: string): HttpError {
-  // 401, not 403: we do not know who this is. The distinction is the whole point —
+  // 401, not 403: we do not know who this is. The distinction is the whole point -
   // authentication is "who are you", hjemmel is "may you".
   return new HttpError(
     // A colon, not a full stop: `hva` arrives both as a route ("GET /api/personer")
@@ -196,7 +196,7 @@ function manglerToken(hva: string): HttpError {
 
 function manglerHjemmel(melding: string): HttpError {
   // 403: we know exactly who this is, and they still may not. Deliberately a
-  // different message from the 403 for missing samtykke — see runRessurs.
+  // different message from the 403 for missing samtykke - see runRessurs.
   return new HttpError(melding, 403, { syntetisk: true, grunn: "mangler_hjemmel" });
 }
 
@@ -204,7 +204,7 @@ function manglerHjemmel(melding: string): HttpError {
  * The one authorisation decision, shared by both boundaries: runRessurs for data
  * resources, and handleRequest for the orchestration routes.
  *
- * Throws, or returns having said nothing. Never returns a boolean — a caller that
+ * Throws, or returns having said nothing. Never returns a boolean - a caller that
  * forgets to check a boolean fails open, and this must fail closed.
  */
 export function requireTilgang(valg: {

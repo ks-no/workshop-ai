@@ -18,9 +18,9 @@ When the agent reaches a `QUESTION` step it calls `suggest_step_tools` in `tools
 That tool calls `ai-gateway /ai/velg-verktoy`, which uses heuristics (LLM fallback) on the
 step definition to return which tools are relevant and how to use them:
 
-- `kontekst` — the agent calls the tool proactively and adds its output as a hint in the question prompt
-- `validering` — the agent calls the tool against the user's answer to normalize or reject it
-- `kontekst_og_validering` — both
+- `kontekst` - the agent calls the tool proactively and adds its output as a hint in the question prompt
+- `validering` - the agent calls the tool against the user's answer to normalize or reject it
+- `kontekst_og_validering` - both
 
 The dynamic discovery above is real, but it is **not the only path**. The agent also
 carries hardcoded shortcuts for the `fartsdempende-tiltak` case: step ids `velg-gate`,

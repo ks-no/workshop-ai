@@ -1,5 +1,5 @@
 // Sidescript for stegvis. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 export {};

@@ -7,10 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const serverPath = path.resolve(repoRoot, "apps/folkeregister-mcp/src/server.ts");
 
-// Newline-delimited JSON framing — see scripts/test-brreg-mcp.ts for why the
+// Newline-delimited JSON framing - see scripts/test-brreg-mcp.ts for why the
 // framing must match what a real client speaks.
 
-// Svarformen fra en MCP-server — se scripts/test-brreg-mcp.ts for hvorfor
+// Svarformen fra en MCP-server - se scripts/test-brreg-mcp.ts for hvorfor
 // feltene står som valgfrie.
 type McpSvar = {
   jsonrpc?: string;
