@@ -16,7 +16,7 @@
 #   AWS_PROFILE_KEY_FILE=state/aws-keys/<username>.json \
 #     ./scripts/aws-bedrock-assume.sh <role-arn> [env-file]
 #
-# Re-run this whenever the session expires (default 1h) — .env then has fresh
+# Re-run this whenever the session expires (default 12h) — .env then has fresh
 # short-lived creds instead of a permanent secret sitting in a dotfile.
 set -eu
 
@@ -28,6 +28,10 @@ fi
 ROLE_ARN="$1"
 ENV_FILE="${2:-.env}"
 REGION="${BEDROCK_AWS_REGION:-eu-north-1}"
+# Matches ROLE_MAX_SESSION_SECONDS in aws-bedrock-setup.sh — that script sets
+# the role's ceiling, this requests up to it. AssumeRole errors if this asks
+# for more than the role's own MaxSessionDuration allows, so keep them equal.
+DURATION_SECONDS="${DURATION_SECONDS:-43200}"
 : "${AWS_PROFILE_KEY_FILE:?Set AWS_PROFILE_KEY_FILE to the key file from aws-bedrock-add-user.sh}"
 
 USER_CREDS=$(node -e '
@@ -38,6 +42,17 @@ USER_CREDS=$(node -e '
 USER_AKID=$(echo "$USER_CREDS" | cut -d' ' -f1)
 USER_ASECRET=$(echo "$USER_CREDS" | cut -d' ' -f2)
 
+# The session name is the only thing that ties a Bedrock invocation (or a
+# CloudTrail AssumeRole event) back to a person — the assumed-role session
+# ARN Bedrock logs carries this verbatim. Deriving it from the key file's
+# name (state/aws-keys/<username>.json, written by aws-bedrock-add-user.sh)
+# means aws-bedrock-dashboard.ts can attribute usage per user without
+# cross-referencing CloudTrail. The trailing epoch is what keeps concurrent
+# sessions from the same user distinct; it's stripped back off by matching
+# /-\d+$/, so it must stay numeric and last.
+KEY_BASENAME=$(basename "$AWS_PROFILE_KEY_FILE")
+USER_NAME="${KEY_BASENAME%.json}"
+
 # env -i: a clean environment for this one call, so no ambient AWS_* creds from
 # the calling shell can leak in or get mixed up with the user's key.
 ASSUME_JSON=$(env -i PATH="$PATH" \
@@ -46,8 +61,8 @@ ASSUME_JSON=$(env -i PATH="$PATH" \
   AWS_DEFAULT_REGION="$REGION" \
   aws sts assume-role \
     --role-arn "$ROLE_ARN" \
-    --role-session-name "ai-gateway-$(date +%s)" \
-    --duration-seconds 3600 \
+    --role-session-name "${USER_NAME}-$(date +%s)" \
+    --duration-seconds "$DURATION_SECONDS" \
     --output json)
 
 node -e '

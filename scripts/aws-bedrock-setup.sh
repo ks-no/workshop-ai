@@ -15,6 +15,11 @@ set -eu
 
 REGION="${AWS_REGION:-eu-north-1}"
 ROLE_NAME="${ROLE_NAME:-ai-gateway-bedrock-invoke}"
+# 12h, AWS's own ceiling for MaxSessionDuration — chosen over the 1h default so
+# assume.sh doesn't need re-running mid-day. This is also the revoke-lag
+# ceiling used by aws-bedrock-users.sh: a deactivated key's already-issued
+# session keeps working for up to this long. Keep both in sync if you change it.
+ROLE_MAX_SESSION_SECONDS="${ROLE_MAX_SESSION_SECONDS:-43200}"
 
 # Keep this in sync with BEDROCK_MODELS in apps/ai-gateway/src/server.ts. These are
 # inference-profile ids, not bare model ids: InvokeModel rejects a bare id for these
@@ -102,10 +107,12 @@ EOF
 if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
   echo "Role ${ROLE_NAME} already exists — updating its trust policy and permissions."
   aws iam update-assume-role-policy --role-name "$ROLE_NAME" --policy-document "$TRUST_POLICY"
+  aws iam update-role --role-name "$ROLE_NAME" --max-session-duration "$ROLE_MAX_SESSION_SECONDS" >/dev/null
 else
   aws iam create-role \
     --role-name "$ROLE_NAME" \
     --assume-role-policy-document "$TRUST_POLICY" \
+    --max-session-duration "$ROLE_MAX_SESSION_SECONDS" \
     --description "ai-gateway: bedrock:InvokeModel on the models in BEDROCK_MODELS, nothing else" \
     >/dev/null
   echo "Created role ${ROLE_NAME}."
