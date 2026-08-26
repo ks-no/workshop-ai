@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
-import { createHash, createHmac } from "node:crypto";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeOverview } from "../../shared/openapi.ts";
@@ -1449,95 +1449,22 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
   };
 }
 
-// --- AWS SigV4, hand-rolled ---------------------------------------------------
-//
-// No AWS SDK: the rest of this gateway calls providers with raw fetch, and Bedrock
-// keeps that pattern. SigV4 itself is the well-documented, unchanging piece of
-// AWS's API surface — https://docs.aws.amazon.com/general/latest/gr/sigv4-signing-examples.html —
-// so hand-rolling it is a fixed amount of crypto, not an ongoing maintenance cost the
-// way keeping up with a full SDK would be.
+// --- Bedrock -------------------------------------------------------------
 
-function sha256Hex(data: string | Buffer): string {
-  return createHash("sha256").update(data).digest("hex");
-}
+let bedrockClient: BedrockRuntimeClient | null = null;
 
-function hmac(key: string | Buffer, data: string): Buffer {
-  return createHmac("sha256", key).update(data).digest();
-}
-
-function hmacHex(key: string | Buffer, data: string): string {
-  return createHmac("sha256", key).update(data).digest("hex");
-}
-
-// AWS's canonical-URI encoding is RFC 3986 with every reserved character escaped,
-// which is stricter than encodeURIComponent (it leaves !'()* unescaped). The escaped
-// path must be byte-identical between what gets signed and what actually goes on the
-// wire, so this same function builds both.
-function encodeRfc3986(value: string): string {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
-}
-
-function encodeUriPath(rawPath: string): string {
-  return rawPath.split("/").map(encodeRfc3986).join("/");
-}
-
-// Signs a single request for a JSON AWS API (no query string). Returns the headers
-// to send alongside Content-Type; the caller supplies the raw (unencoded) path.
-function signAwsRequestV4(
-  { method, host, path, region, service, body }:
-    { method: string; host: string; path: string; region: string; service: string; body: string }
-) {
-  // ISO "2026-08-21T12:34:56.789Z" -> AWS's "20260821T123456Z".
-  const amzDate = `${new Date().toISOString().replace(/[:-]|\.\d{3}Z$/g, "")}Z`;
-  const dateStamp = amzDate.slice(0, 8);
-
-  // The actual request path is URI-encoded once (this is what goes on the wire).
-  // The canonical request then encodes THAT again — every AWS service except S3
-  // wants the path double-encoded for the signature, since a colon in a Bedrock
-  // model id becomes %3A on the wire and AWS's own canonicalization re-encodes
-  // that %3A into %253A. Signing with only one encoding pass, as an earlier
-  // version of this function did, produces a byte-perfect-looking canonical
-  // request that AWS still rejects with SignatureDoesNotMatch.
-  const requestPath = encodeUriPath(path);
-  const canonicalUri = encodeUriPath(requestPath);
-
-  const headers: Record<string, string> = {
-    host,
-    "x-amz-date": amzDate,
-    ...(awsSessionToken ? { "x-amz-security-token": awsSessionToken } : {})
-  };
-  const signedHeaderKeys = Object.keys(headers).sort();
-  const canonicalHeaders = signedHeaderKeys.map((key) => `${key}:${headers[key]}\n`).join("");
-  const signedHeaders = signedHeaderKeys.join(";");
-
-  const canonicalRequest = [
-    method,
-    canonicalUri,
-    "",
-    canonicalHeaders,
-    signedHeaders,
-    sha256Hex(body)
-  ].join("\n");
-
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
-
-  const kDate = hmac(`AWS4${awsSecretAccessKey}`, dateStamp);
-  const kRegion = hmac(kDate, region);
-  const kService = hmac(kRegion, service);
-  const kSigning = hmac(kService, "aws4_request");
-  const signature = hmacHex(kSigning, stringToSign);
-
-  return {
-    requestPath,
-    headers: {
-      "X-Amz-Date": amzDate,
-      ...(awsSessionToken ? { "X-Amz-Security-Token": awsSessionToken } : {}),
-      Authorization:
-        `AWS4-HMAC-SHA256 Credential=${awsAccessKeyId}/${credentialScope}, ` +
-        `SignedHeaders=${signedHeaders}, Signature=${signature}`
-    }
-  };
+function getBedrockClient(): BedrockRuntimeClient {
+  if (!bedrockClient) {
+    bedrockClient = new BedrockRuntimeClient({
+      region: awsRegion,
+      credentials: {
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
+        ...(awsSessionToken ? { sessionToken: awsSessionToken } : {})
+      }
+    });
+  }
+  return bedrockClient;
 }
 
 // Bedrock's InvokeModel request/response body shape differs per model family (Titan,
@@ -1549,7 +1476,6 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
   }
 
-  const host = `bedrock-runtime.${awsRegion}.amazonaws.com`;
   // No `temperature`: the current model generation in BEDROCK_MODELS rejects it —
   // "`temperature` is deprecated for this model" (400) — confirmed against a real
   // account 2026-08-21. Unlike Ollama/OpenRouter, Bedrock responses here run at
@@ -1563,28 +1489,22 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     messages: [{ role: "user", content: prompt }]
   });
 
-  const { requestPath, headers: signedHeaders } = signAwsRequestV4({
-    method: "POST",
-    host,
-    path: `/model/${bedrockModel}/invoke`,
-    region: awsRegion,
-    service: "bedrock",
-    body
-  });
-
-  const svar = await fetch(`https://${host}${requestPath}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...signedHeaders },
-    body,
-    signal
-  });
-
-  if (!svar.ok) {
-    const feilTekst = await svar.text().catch(() => "");
-    throw new Error(`Bedrock svarte med status ${svar.status}${feilTekst ? `: ${feilTekst.slice(0, 200)}` : ""}`);
+  let svar;
+  try {
+    svar = await getBedrockClient().send(
+      new InvokeModelCommand({
+        modelId: bedrockModel,
+        contentType: "application/json",
+        accept: "application/json",
+        body
+      }),
+      { abortSignal: signal }
+    );
+  } catch (feil) {
+    throw new Error(`Bedrock svarte med feil: ${feilmelding(feil)}`);
   }
 
-  const data = (await svar.json()) as { content?: { text?: string }[] };
+  const data = JSON.parse(Buffer.from(svar.body).toString("utf8")) as { content?: { text?: string }[] };
   const tekst = Array.isArray(data?.content) ? data.content.map((blokk) => blokk.text || "").join("") : "";
   return { tekst: tekst.trim(), modell: `bedrock:${bedrockModel}` };
 }
