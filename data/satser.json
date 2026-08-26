@@ -1,7 +1,7 @@
 {
   "gjelderFra": "2026-08-01",
   "kilde": "Forskrift om foreldrebetaling i barnehager, samt kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
-  "merknad": "Syntetiske sandbox-satser. Noen grenser er nasjonale, andre kommunale. Verifiser mot gjeldende forskrift for din kommune før tallene brukes til annet enn demo.",
+  "merknad": "Syntetiske sandkasse-satser. Noen grenser er nasjonale, andre kommunale. Verifiser mot gjeldende forskrift for din kommune før tallene brukes til annet enn demo.",
   "maksAndelAvInntekt": 0.06,
   "maanederMedBetaling": 11,
   "inntektsbegrep": "skattepliktigPersonOgKapitalinntekt",
