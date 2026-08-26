@@ -15,6 +15,9 @@ import {
   evaluateOrdning
 } from "./regler.ts";
 import { regelKreverInntekt, selectOrdningForTjeneste } from "./vilkaar.ts";
+import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
+import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
+import { tryUpstream } from "./upstream.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import {
@@ -135,6 +138,12 @@ export type Ressurs = {
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
   /**
+   * Subject noun in the two consent refusals («… krever registrert samtykke» /
+   * «… krever et nytt samtykke»). Omitted means the original fallback wording,
+   * which is byte-frozen for the resources that predate this field.
+   */
+  samtykkeEmne?: string;
+  /**
    * Whose data this lookup actually touched, as personIds. Omitted means the one
    * person the request was about.
    *
@@ -207,6 +216,7 @@ export const ressurser: Ressurs[] = [
     // household means a second person's tax data is read here.
     omfatter: foresatteIHusstand,
     kreverSamtykke: "inntekt",
+    samtykkeEmne: "Inntektsdata",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: ({ tilstand, personId }) =>
       withStatus(404, () => getInntektForPerson(tilstand, personId))
@@ -242,6 +252,53 @@ export const ressurser: Ressurs[] = [
       withStatus(404, () => getPlasserForTjeneste(tilstand, personId, "fritid"))
   },
   {
+    // KRR through the real Fiks path, so «sjekk reservasjon før valg av kanal»
+    // is a valid DATA_FETCH step. This entry is deliberately the whole backend
+    // footprint of the SvarUt chain: the resource answers, participants build
+    // the choosing.
+    metode: "GET",
+    sti: "/api/personer/:personId/kontaktinfo",
+    ressurs: "kontaktinfo",
+    beskrivelse:
+      "Kontaktinformasjon og reservasjonsstatus fra kontaktregisteret (KRR), hentet fra Fiks-simulatoren.",
+    kreverSamtykke: "kontaktinfo",
+    samtykkeEmne: "Kontaktopplysningene",
+    formaal: "Velge varslings- og forsendelseskanal",
+    handter: async ({ tilstand, personId }) => {
+      const person = findPerson(tilstand, personId);
+      if (!person) {
+        throw new HttpError("Fant ikke person.", 404);
+      }
+      // Best effort, like the Fiks task in createSoknad: a reservation check
+      // that gets no answer must not sink the process session. Everything
+      // non-ok — Fiks down, or KRR holding no row for the person (under 15,
+      // not bosatt) — degrades into the one advarsel shape, and detalj says
+      // which it was. The DATA_LES below is still written: the attempt is
+      // what the log audits, not the luck of the lookup.
+      const svar = await tryUpstream<unknown>(
+        { service: "Fiks-simulatoren", action: "Oppslaget i kontaktregisteret" },
+        async () => fetch(`${fiksBaseUrl}/register/api/v1/ks/${fiksRolleId}/krr/person`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(await maskinportenHeader(fiksRegisterToken))
+          },
+          // syntetiskFodselsnummer survives masking — see skjerming.ts — and
+          // Fiks nulls epost/tlf for kode 6/7 on its side of the wire.
+          body: JSON.stringify({ fnr: person.syntetiskFodselsnummer })
+        })
+      );
+      if (!svar.ok) {
+        return {
+          advarsel: "Fikk ikke kontaktinformasjon fra kontaktregisteret. Reservasjonsstatus er ukjent.",
+          detalj: svar.error.message,
+          syntetisk: true
+        };
+      }
+      return svar.data;
+    }
+  },
+  {
     metode: "GET",
     sti: "/api/husstander/:husstandId/inntektsgrunnlag",
     ressurs: "inntekt",
@@ -250,6 +307,7 @@ export const ressurser: Ressurs[] = [
     // Same data as the person route, so the same consent requirement. The applicant
     // is resolved via the husstand, since the person is not in the path.
     kreverSamtykke: "inntekt",
+    samtykkeEmne: "Inntektsdata",
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     finnPersonId: ({ tilstand, parametere }) => {
       const husstand = tilstand.husstander.find((h: any) => h.husstandId === parametere.husstandId);
@@ -556,10 +614,14 @@ export async function runRessurs(
         ...omfatterFelt,
         aktor: aktorFor(kontekst.kaller, kontekst.personId)
       });
+      // The refusal names what was asked for — from the catalog entry, so a new
+      // gated resource does not grow a name cascade here. The fallback is the
+      // original wording, byte-frozen for the resources that carry no emne.
+      const emne = ressurs.samtykkeEmne ?? "Denne vurderingen";
       throw new HttpError(
         utloept
-          ? `Samtykket som dekket dette har utløpt. ${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever et nytt samtykke.`
-          : `${ressurs.ressurs === "inntekt" ? "Inntektsdata" : "Denne vurderingen"} krever registrert samtykke.`,
+          ? `Samtykket som dekket dette har utløpt. ${emne} krever et nytt samtykke.`
+          : `${emne} krever registrert samtykke.`,
         403,
         // Both 403s carry a machine-readable grunn, so a client can tell "you may
         // not" from "you may, but nobody has consented yet" without parsing prose.

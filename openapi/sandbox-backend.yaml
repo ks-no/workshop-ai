@@ -415,6 +415,48 @@ paths:
         "404":
           $ref: "#/components/responses/IkkeFunnet"
 
+  /api/personer/{personId}/kontaktinfo:
+    get:
+      summary: Hent kontakt- og reservasjonsstatus fra kontaktregisteret (KRR)
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Slår opp personens syntetiske fødselsnummer i Fiks Kontaktregisteret
+        (POST /register/api/v1/ks/{rolleId}/krr/person i fiks-simulator) og
+        svarer med KRR-raden uendret: kan personen varsles digitalt, er de
+        reservert, og hvilken målform foretrekker de. Ressursen finnes for at
+        «sjekk reservasjon før valg av forsendelseskanal» skal være et gyldig
+        DATA_FETCH-steg; selve kanalvalget og SvarUt-utsendingen er byggeflate
+        og gjøres ikke her.
+
+        Krever registrert samtykke for datakilden "kontaktinfo", som
+        inntektsruta. Avvik fra ekte forvaltning: der slås KRR opp med hjemmel
+        i eForvaltningsforskriften, uten samtykke — sandkassen samtykkegater
+        ressursen fordi samtykke-før-data er mønsteret katalogen lærer bort.
+
+        Oppslaget er best effort: får ressursen ikke noe svar fra registeret —
+        fiks-simulator nede, eller personen står ikke i kontaktregisteret
+        (under 15 år / ikke bosatt) — svarer den 200 med `advarsel` og `detalj`
+        i stedet for å feile, slik at et DATA_FETCH-steg ikke velter
+        prosessøkten. Oppslag revisjonslogges som DATA_LES med ressurs
+        kontaktinfo, også de som degraderte til advarsel — unntatt under et
+        SJEKK-steg, der SJEKK-utfallet logges i stedet, som for resten av
+        katalogen.
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: KRR-raden, eller advarselen om at oppslaget ikke fikk svar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kontaktinfo"
+        "403":
+          $ref: "#/components/responses/ManglerSamtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+
   /api/personer/{personId}/soknader:
     get:
       summary: List soeknader personen har sendt inn
@@ -1169,6 +1211,41 @@ components:
           type: string
         manedspris:
           type: integer
+        syntetisk:
+          type: boolean
+    Kontaktinfo:
+      type: object
+      description: >
+        KRR-raden fra fiks-simulator, uendret — se openapi/fiks-simulator.yaml
+        for hele formen — eller advarselsformen når oppslaget ikke fikk svar.
+        Adressebeskyttede personer (kode 6/7) får epost og tlf nullet av
+        simulatoren; reservert, spraak og kanVarsles beholdes.
+      properties:
+        fnr:
+          type: string
+        epost:
+          type: object
+          nullable: true
+          description: Null når personen ikke har registrert e-post, og for adressebeskyttede.
+        tlf:
+          type: object
+          nullable: true
+        status:
+          type: string
+        reservert:
+          type: boolean
+        kanVarsles:
+          type: boolean
+        spraak:
+          type: string
+          description: nb, nn eller en. Lånt fra Digdirs KRR — se fiks-simulator.yaml.
+        advarsel:
+          type: string
+          description: >
+            Bare i advarselsformen: oppslaget fikk ikke noe svar, og detalj
+            sier hvorfor. Reservasjonsstatus er da ukjent.
+        detalj:
+          type: string
         syntetisk:
           type: boolean
     Soknad:

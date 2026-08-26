@@ -604,6 +604,66 @@ async function forsendelseFlyt() {
   });
 }
 
+// The kontaktinfo resource in front of KRR: the consent gate closed, then open,
+// then the two shapes the 200 has. The consents are created on fiks-simulator's
+// samtykke surface directly — the same rows the process engine would leave —
+// because no process definition carries the chain, deliberately: building it is
+// the participants' task.
+async function kontaktinfoOppslag() {
+  const samtykke = { scope: "ks:fiks:samtykke" };
+  const grantSamtykke = async (personId: string) => {
+    const opprettet = await callFiks(`kontaktinfo-samtykke-${personId}`, "/fiks/samtykke", {
+      personId,
+      formaal: "Velge varslings- og forsendelseskanal",
+      dataKilder: ["kontaktinfo"]
+    }, samtykke) as { samtykkeId: string };
+    await callFiks(`kontaktinfo-samtykke-svar-${personId}`,
+      `/fiks/samtykke/${opprettet.samtykkeId}/svar`,
+      { status: "SAMTYKKET" }, { metode: "PUT", ...samtykke });
+  };
+
+  // The closed gate is pinned on person-014: person-001 already holds a
+  // "kontaktinfo" consent by now, from stottekontaktflyt's CONSENT_REQUEST.
+  await call("kontaktinfo-uten-samtykke", "/api/personer/person-014/kontaktinfo");
+
+  // person-014 is authored reservert — the row a channel choice must read.
+  await grantSamtykke("person-014");
+  await call("kontaktinfo-reservert", "/api/personer/person-014/kontaktinfo");
+
+  // person-001 now holds two kontaktinfo consents — stottekontaktflyt's and this
+  // one. hasGyldigSamtykke picks the most recently created, so the formaal pinned
+  // in the DATA_LES row below is deterministically this one's.
+  await grantSamtykke("person-001");
+  await call("kontaktinfo-varslbar", "/api/personer/person-001/kontaktinfo");
+
+  // person-002 is 4 years old, so KRR has no row: the lookup degrades to the
+  // advarsel shape instead of failing. The foresatt drives it, which also pins
+  // that a representative passes the pid binding on this resource.
+  await grantSamtykke("person-002");
+  await call("kontaktinfo-under-15", "/api/personer/person-002/kontaktinfo", {
+    somPerson: "person-001"
+  });
+
+  // The audit trail the resource leaves: one DATA_NEKTET for the closed gate,
+  // then one DATA_LES per lookup — advarsel included, the attempt is what the
+  // log audits — with formaal from the consent, not the catalogue label.
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
+  });
+  const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const logg = await svar.json() as { ressurs?: string }[];
+  dump.push({
+    navn: "kontaktinfo-revisjon",
+    metode: "GET",
+    sti: "/api/revisjonslogg (kun ressurs kontaktinfo)",
+    status: svar.status,
+    kropp: normalize(logg.filter((rad) => rad.ressurs === "kontaktinfo"))
+  });
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -669,6 +729,7 @@ async function run() {
     await krrOppslag();
     await folkeregisterOppslag();
     await forsendelseFlyt();
+    await kontaktinfoOppslag();
 
     await mkdir(path.dirname(outFile), { recursive: true });
     await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");
