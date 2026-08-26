@@ -221,6 +221,30 @@ async function call(navn: string, sti: string, valg: Kallvalg = {}) {
   return kropp;
 }
 
+// A call straight at fiks-simulator, as the machine the backend would be. The
+// register surface needs a Maskinporten token with audience fiks-simulator — a
+// backend token is refused there, which is the point of audience restriction.
+async function callFiks(navn: string, sti: string, body: unknown) {
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:fiks:register", resource: "fiks-simulator"
+  });
+  const svar = await fetch(`${fiksUrl}${sti}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body)
+  });
+  const kropp = await svar.json();
+  dump.push({
+    navn,
+    metode: "POST",
+    sti: normalize(sti),
+    status: svar.status,
+    kropp: normalize(kropp)
+  });
+  return kropp;
+}
+
 // Static lookups. Covers every GET endpoint without side effects.
 async function staticLookups() {
   await call("helse", "/helse");
@@ -408,6 +432,27 @@ async function soknadOgRevisjon() {
   await call("revisjonslogg", "/api/revisjonslogg", { somMaskin: "ks:innbyggerdialog:les" });
 }
 
+// The KRR lookup on fiks-simulator's real Fiks path, with every branch the route
+// has: notifiable, reserved (person-014 — the curated print-channel case), a kode
+// 6 person whose contact info must come back nulled, the two 404s, and the 400.
+// The fnr values are the curated fixtures', so the dump stays deterministic.
+async function krrOppslag() {
+  const sti = "/register/api/v1/ks/smoke-rolle/krr/person";
+  // person-006: contact info, authored spraak "en", kanVarsles true.
+  await callFiks("krr-varslbar", sti, { fnr: "14899200099" });
+  // person-014: authored reservert, so kanVarsles false despite contact info.
+  await callFiks("krr-reservert", sti, { fnr: "28829100055" });
+  // person-031 is STRENGT_FORTROLIG: epost and tlf nulled, the rest kept.
+  await callFiks("krr-kode-6", sti, { fnr: "16848300180" });
+  // person-002 is 4 years old: known, but below KRR's age floor.
+  await callFiks("krr-under-15", sti, { fnr: "03842250055" });
+  // person-371 is UTFLYTTET: known, but not bosatt.
+  await callFiks("krr-ikke-bosatt", sti, { fnr: "09810198602" });
+  // Valid modulus 11, +80 month, and belongs to nobody in the population.
+  await callFiks("krr-ukjent", sti, { fnr: "15879000006" });
+  await callFiks("krr-ugyldig", sti, { fnr: "11111111111" });
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -470,6 +515,7 @@ async function run() {
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();
+    await krrOppslag();
 
     await mkdir(path.dirname(outFile), { recursive: true });
     await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");

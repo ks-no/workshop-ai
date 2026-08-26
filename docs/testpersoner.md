@@ -31,6 +31,22 @@ Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato — samme refera
 | UTFLYTTET | 2 | Flyttet ut av Norge. Ingen husstand, ingen kommune å ha dialog med. |
 | MIDLERTIDIG | 1 | Midlertidig identifikator. Samme som over. |
 
+## Kontaktregisteret (KRR)
+
+`data/krr.json` har én rad per bosatt person på 15 år eller mer — KRRs reelle aldersgrense — og `POST /register/api/v1/ks/{rolleId}/krr/person` i fiks-simulator svarer fra den, nøklet på fødselsnummer. Reservasjon og målform er utledet deterministisk; hos de kuraterte vinner forfattede verdier.
+
+| | Antall |
+|---|---:|
+| Rader i kontaktregisteret | 298 |
+| Reservert mot digital kommunikasjon | 37 |
+| Uten e-post og telefon | 31 |
+| Kan varsles digitalt (`kanVarsles`) | 240 |
+| Målform `nb` | 262 |
+| Målform `nn` | 21 |
+| Målform `en` | 15 |
+
+`person-014` (Lina Berg) er reservert med gyldig postadresse, så print-kanalen kan testes i kuratert flyt. `person-019` har målform `nn` og `person-006` har `en`. Adressebeskyttede personer får `epost` og `tlf` nullet i svaret fra API-et; `reservert`, `spraak` og `kanVarsles` beholdes.
+
 ## Alle personene
 
 `Logg inn`: **ja** betyr at en elektronisk ID kan finnes. **part** betyr 13–17 år — kan logge inn, men en foresatt med foreldreansvar må være avsender. **nei** betyr at ingen eID kan finnes.

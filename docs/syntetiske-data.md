@@ -66,12 +66,13 @@ Kildedata i `data/`:
 
 | Fil | Innhold |
 |---|---|
-| `kuratert.json` | **Kilden til de 51 håndskrevne terskelfixturene** (`person-001`–`051`, `household-001`–`018`). Bare forfattede felter: navn, fødselsdato, adresse, sivilstand, `barn`, `ektefelle`, kontaktinfo. Alt annet utledes |
+| `kuratert.json` | **Kilden til de 51 håndskrevne terskelfixturene** (`person-001`–`051`, `household-001`–`018`). Bare forfattede felter: navn, fødselsdato, adresse, sivilstand, `barn`, `ektefelle`, kontaktinfo og et valgfritt `krr`-felt (`reservert`, `spraak`). Alt annet utledes |
 | `tenor/*.json` | Rå uttrekk fra Skatteetatens Tenor testdatasøk, ett per aldersbånd. Provenansen som gjør uttrekket reproduserbart |
 | `personer.json` | **Generert.** Hele registeret, 394 personer: `navn`, `foedselsdato`, `personstatus`, `doedsdato`, `bostedsadresse`, `sivilstand`, `foreldrebarnrelasjon`, `foreldreansvar`, `skjermet` |
 | `husstander.json` | **Generert.** 200 husstander med `type`, `kommunenummer`, medlemmer og roller, og et `scenario`-felt |
 | `folkeregister.seed.json` | **Generert.** Samme befolkning i Folkeregisterets form: `foedselsEllerDNummer`, `personnavn`, `personstatus`, `doedsfall`, `forelderbarnrelasjon`, `familierelasjon`, `foreldreansvar` |
 | `inntekter.json` | **Generert** for de importerte, **forfattet** for de kuraterte. Poster med `kilde` og `medregnes`, og `stadie` (`OPPGJOER`/`UTKAST`) |
+| `krr.json` | **Generert.** Kontaktregisteret: én rad per bosatt person på 15 år eller mer — KRRs reelle aldersgrense — nøklet på fnr. `reservert`, `spraak` og kontaktinfo utledes deterministisk fra fødselsnummeret; kuraterte gjenbruker forfattet kontaktinfo, og forfattet `krr` i `kuratert.json` vinner. `kanVarsles` er utledet. Tenor-personers e-post og telefon finnes **bare her** — `personer.json` røres ikke |
 | `eierforhold.json` | **Generert.** Tinglyst eierskap per matrikkelenhet, med `eierform` og `andel`. Eierskap hører i grunnboken, ikke i matrikkelen — derfor egen fil |
 | `matrikkel.json` | Gater og eiendommer i de kommunene befolkningen bor i, hentet fra Geonorge. Seed for `matrikkel-mock`. Ingen eiere |
 | `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
@@ -93,8 +94,9 @@ ute av takt.
 
 ### Generert, ikke redigert
 
-Fem filer skrives av `scripts/importer-tenor.ts` og skal ikke redigeres for hånd:
-`personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` og
+Seks filer skrives av `scripts/importer-tenor.ts` og skal ikke redigeres for hånd:
+`personer.json`, `husstander.json`, `inntekter.json`, `krr.json`,
+`folkeregister.seed.json` og
 `eierforhold.json`. Redigerer du en kuratert rad direkte, reverterer neste import
 den — så `pnpm test` sammenligner de kuraterte radene mot `kuratert.json` og feiler
 i stedet.
@@ -118,6 +120,7 @@ kuratert.json  ─┐
 tenor/*.json   ─┴─→ importer-tenor.js ─→ personer.json ────┬─→ husstander.json
                                        ├─→ folkeregister.seed.json
                                        ├─→ inntekter.json
+                                       ├─→ krr.json
                                        ├─→ eierforhold.json
                                        └─→ docs/testpersoner.md
 ```
@@ -148,6 +151,12 @@ Datamodellen låner vokabular fra ekte spesifikasjoner, men er bevisst forenklet
   ekte stiene, så kall kan kopieres fra Fiks-dokumentasjonen. De syntetiske
   dataene har ingen formue- eller gjeldsposter, så kategoriene FORMUE, GJELD og
   ANNET forekommer aldri i sandkassen.
+- **Kontaktregisteret** følger [KS Fiks Kontaktregisteret](https://developers.fiks.ks.no/api/register-krr-api-v1.json)
+  (`KrrDefinisjon`), servert av `fiks-simulator` på den ekte stien
+  `POST /register/api/v1/ks/{rolleId}/krr/person`. To flaggede avvik: `spraak`
+  finnes bare i Digdirs underliggende KRR og er tatt med fordi språkvalg er et
+  reelt kommunalt behov, og fnr valideres med modulus 11 — strengere enn spekkens
+  regex.
 - **Eiendom** kommer fra [Geonorges adresse-API](https://ws.geonorge.no/adresser/v1),
   som er offentlige adressedata. Eierskapet er vårt eget og syntetisk.
 - **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i
@@ -235,6 +244,14 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
   224 foreldrene. Beløpene for de importerte utledes deterministisk fra
   fødselsnummeret. Terskelscenarioene ligger hos de 18 kuraterte husstandene, der
   tallene er forfattet og kontrollert mot `forventet-utfall.json`.
+- **Kontaktregisteret.** Tenor har ingen kontaktinfo, så e-post, telefon,
+  reservasjon og målform utledes deterministisk fra fødselsnummeret: omtrent én
+  av ti er reservert, omtrent én av tolv har hverken e-post eller telefon, og
+  målformen fordeles mellom `nb`, `nn` og `en`. De kuraterte gjenbruker den
+  forfattede kontaktinfoen, og et forfattet `krr`-felt i `kuratert.json` vinner
+  over derivasjonen — `person-014` er reservert så print-kanalen kan testes.
+  Tenor-personers genererte kontaktinfo står **bare i `krr.json`**, fordi
+  `personer.json` er frosset wire-format.
 - **Eierskapet.** Ingen offentlig kilde gir tinglyst hjemmel for syntetiske personer.
   Fordelingen er utledet: en husstand eier hjemmet den bor i, omtrent én av fem leier,
   omtrent én av sju eier noe ekstra, og ingen eier mer enn tre. En matrikkelenhet som
@@ -284,7 +301,7 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 har dem i tabell. Bruk dem som kilde, ikke en liste her.
 
 - 394 personer i registeret, 369 av dem bosatte
-- 200 husstander, 281 inntektsrader
+- 200 husstander, 281 inntektsrader, 298 rader i kontaktregisteret
 - 388 gater og 18 349 eiendommer i 97 kommuner, 176 med registrert eier. `matrikkel-mock` injiserer Bønesheien ved innlasting, så `/helse` sier 389 og 18 350
 - 8 ordninger og 237 tjenestetilbud
 - 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser

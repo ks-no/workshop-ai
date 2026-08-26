@@ -3,14 +3,14 @@ info:
   title: Fiks Simulator API
   version: 0.1.0
   description: >-
-    Etterlikning av de KS Fiks-flatene sandkassen trenger: samtykke, register,
-    oppgaver og meldinger. Alle data er syntetiske, og hvert svar bærer
-    `syntetisk: true`.
+    Etterlikning av de KS Fiks-flatene sandkassen trenger: samtykke, register
+    (inkludert beregning og Kontaktregisteret på ekte Fiks-stier), oppgaver og
+    meldinger. Alle data er syntetiske, og hvert svar bærer `syntetisk: true`.
 
-    Registerflaten ligger bak Maskinporten med scope `ks:fiks:register` og
-    audience `fiks-simulator`. Samtykke-, oppgave- og meldingsflatene er
-    fortsatt åpne — en bevisst avgrensning i sandkassen, ikke en glipp, og den
-    står oppført per rute nedenfor.
+    Alle fire flatene ligger bak Maskinporten med audience `fiks-simulator` og
+    ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`, `ks:fiks:oppgave`
+    og `ks:fiks:melding`. Scopet er hjemmelen, så et oppgave-token åpner ikke
+    samtykkeflaten. Hvilket scope hver rute krever står per rute nedenfor.
 servers:
   - url: http://localhost:8081
 paths:
@@ -985,6 +985,107 @@ paths:
                           type: string
                         melding:
                           type: string
+  /register/api/v1/ks/{rolleId}/krr/person:
+    post:
+      summary: Slå opp en person i Fiks Kontaktregisteret (KRR)
+      description: >
+        Simulerer KS Fiks Kontaktregisteret: kan personen varsles digitalt, er
+        de reservert, og hvilken målform foretrekker de. Oppslaget er en POST
+        med fødselsnummeret i kroppen, som i det ekte API-et — et fnr i URL-en
+        ville havnet i alle aksessloggene på veien. Stien og svarmodellen
+        (`KrrDefinisjon`) følger
+        https://developers.fiks.ks.no/api/register-krr-api-v1.json
+
+        Registeret dekker bosatte på 15 år eller mer — KRRs reelle aldersgrense.
+        Feilskillet er del av læringsverdien: 400 `UGYLDIG_IDENTIFIKATOR` for et
+        misdannet fnr, 404 `PERSON_IKKE_FUNNET` for et ukjent, og 404
+        `IKKE_I_KONTAKTREGISTERET` for en kjent person under 15 år eller som
+        ikke er bosatt. Adressebeskyttede personer (kode 6/7) får `epost` og
+        `tlf` nullet i svaret; `reservert`, `spraak` og `kanVarsles` beholdes.
+
+        Avvik fra det ekte API-et: `spraak` finnes ikke i Fiks-KRR-spekken — det
+        er lånt fra Digdirs underliggende KRR fordi språkvalg er et reelt
+        kommunalt behov. Og fnr valideres med modulus 11, strengere enn spekkens
+        `^[0-9]{11}$`.
+      security:
+        - maskinporten: [ks:fiks:register]
+      parameters:
+        - name: rolleId
+          in: path
+          required: true
+          description: Kommunens rolle-id. Simulatoren aksepterer enhver verdi.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fnr]
+              properties:
+                fnr:
+                  type: string
+                  pattern: "^[0-9]{11}$"
+                  description: Syntetisk fødselsnummer. Valideres med modulus 11.
+      responses:
+        "200":
+          description: Personen står i kontaktregisteret
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fnr:
+                    type: string
+                  epost:
+                    type: object
+                    nullable: true
+                    description: Null når personen ikke har registrert e-post, og for adressebeskyttede.
+                    properties:
+                      adresse:
+                        type: string
+                      sistOppdatert:
+                        type: string
+                        format: date
+                      sistVerifisert:
+                        type: string
+                        format: date
+                  tlf:
+                    type: object
+                    nullable: true
+                    description: Null når personen ikke har registrert telefon, og for adressebeskyttede.
+                    properties:
+                      nummer:
+                        type: string
+                      sistOppdatert:
+                        type: string
+                        format: date
+                      sistVerifisert:
+                        type: string
+                        format: date
+                  status:
+                    type: string
+                    enum: [AKTIV]
+                  reservert:
+                    type: boolean
+                    description: Reservasjon mot digital kommunikasjon.
+                  kanVarsles:
+                    type: boolean
+                    description: Utledet — ikke reservert, og har e-post eller telefon.
+                  spraak:
+                    type: string
+                    enum: [nb, nn, en]
+                    description: Målform. Flagget avvik — feltet er lånt fra Digdirs KRR.
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: Misdannet fødselsnummer (`UGYLDIG_IDENTIFIKATOR`)
+        "404":
+          description: >-
+            Ukjent fnr (`PERSON_IKKE_FUNNET`), eller kjent person under 15 år /
+            ikke bosatt (`IKKE_I_KONTAKTREGISTERET`)
 components:
   parameters:
     SamtykkeId:

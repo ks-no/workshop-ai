@@ -31,7 +31,7 @@
 // disappears in JSON.stringify — which would change the key set, not just the
 // values.
 
-import type { Adressegradering, Husstand, Person, Personnavn } from "./innbyggerdata.ts";
+import type { Adressegradering, Husstand, Krr, Person, Personnavn } from "./innbyggerdata.ts";
 
 const SKJERMET_NAVN: Personnavn = { fornavn: "Skjermet", mellomnavn: null, etternavn: "person" };
 
@@ -103,6 +103,21 @@ export function maskPerson(person: Person): Person {
   }
 
   return maskert;
+}
+
+// A KRR row is contact info by definition, so both protection grades null it —
+// same skjulAdresse rule as maskPerson, read from the same table. reservert,
+// spraak and kanVarsles survive: they say whether the municipality may notify
+// digitally, not where the person is, and the KRR spec keeps them for kode 6/7
+// too. The whole objects go to null rather than their inner fields, matching how
+// a person with no registered contact info looks — absent and protected must be
+// indistinguishable on the wire.
+export function maskKrr(rad: Krr, gradering: unknown): Krr {
+  const regel = regelFor(gradering);
+  if (!regel.skjulAdresse) {
+    return rad;
+  }
+  return { ...rad, epost: null, tlf: null };
 }
 
 // The household address is masked only when *every* member is protected.

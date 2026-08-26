@@ -593,6 +593,75 @@ function buildInntekt(fnr: string, harBarn: boolean) {
   };
 }
 
+// --- the contact register (KRR) ----------------------------------------------
+
+// One row per bosatt person of 15 or older — KRR's real age floor. Curated people
+// reuse the authored kontakt from data/kuratert.json, and the authored `krr`
+// field (reservert, spraak) wins over the derivation, same pattern as the
+// incomes. Tenor people get contact info generated here and ONLY here:
+// personer.json never learns it, because that wire format is frozen.
+const KRR_ALDERSGULV = 15;
+
+// 2025-01-01 plus seed % 365 days. Dates, not timestamps, so the file stays
+// byte-identical across runs — no Date.now anywhere in this script.
+function krrDato(seed: number) {
+  const dato = new Date(Date.UTC(2025, 0, 1));
+  dato.setUTCDate(dato.getUTCDate() + (seed % 365));
+  return dato.toISOString().slice(0, 10);
+}
+
+// fornavn.etternavn@example.test, the same shape the curated contact info uses.
+// Norwegian letters are transliterated rather than stripped so Kåre and Kare do
+// not collide any more than they must.
+function epostSlug(navn: any) {
+  const del = (verdi: unknown) =>
+    String(verdi || "")
+      .toLowerCase()
+      .replaceAll("æ", "ae")
+      .replaceAll("ø", "oe")
+      .replaceAll("å", "aa")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+  return [del(navn.fornavn), del(navn.etternavn)].filter(Boolean).join(".");
+}
+
+function buildKrr(person: any) {
+  const seed = seedOf(person.fnr);
+  const dato = krrDato(seed);
+  const forfattet = person.krr || {};
+  const reservert = forfattet.reservert ?? seed % 10 === 0;
+  const spraak = forfattet.spraak ?? (seed % 13 === 0 ? "nn" : seed % 17 === 0 ? "en" : "nb");
+
+  // Curated contact info is authored and reused as it is — a curated person
+  // without kontakt has none in KRR either. The seed % 12 no-contact minority
+  // only applies where the contact info is generated to begin with.
+  let epostadresse = person.kontakt?.epost || null;
+  let telefonnummer = person.kontakt?.telefon || null;
+  if (person.kilde === "tenor" && seed % 12 !== 0) {
+    epostadresse = `${epostSlug(person.navn)}@example.test`;
+    telefonnummer = `+479${String(seed % 10_000_000).padStart(7, "0")}`;
+  }
+
+  const epost = epostadresse
+    ? { adresse: epostadresse, sistOppdatert: dato, sistVerifisert: dato }
+    : null;
+  const tlf = telefonnummer
+    ? { nummer: telefonnummer, sistOppdatert: dato, sistVerifisert: dato }
+    : null;
+
+  return {
+    fnr: person.fnr,
+    epost,
+    tlf,
+    status: "AKTIV",
+    reservert,
+    kanVarsles: !reservert && Boolean(epost || tlf),
+    spraak,
+    syntetisk: true
+  };
+}
+
 // --- mapping ----------------------------------------------------------------
 
 function beskyttelse(dokument: any) {
@@ -791,6 +860,8 @@ async function run() {
     sivilstand: p.sivilstand,
     adressebeskyttelse: p.adressebeskyttelse,
     kontakt: p.kontakt,
+    // Authored KRR overrides (reservert, spraak); the derivation fills the rest.
+    krr: p.krr || null,
     relasjoner: [],
     familierelasjon: [],
     foreldreansvar: null,
@@ -876,6 +947,7 @@ async function run() {
       sivilstand: kodeverk(dokument.sivilstand || "uoppgitt"),
       adressebeskyttelse: beskyttelse(dokument),
       kontakt: {},
+      krr: null,
       relasjoner: [],
       familierelasjon: [],
       foreldreansvar: dokument.foreldreansvar || null,
@@ -1028,10 +1100,17 @@ async function run() {
   };
   husstanderUt.sort((a, b) => a.husstandId.localeCompare(b.husstandId));
 
+  // The contact register: exactly the bosatt population of 15 or older, in
+  // personId order like everything else this script writes.
+  const krrUt = befolkning
+    .filter((m) => m.personstatus === BOSATT && alder(m.foedselsdato) >= KRR_ALDERSGULV)
+    .map((m) => buildKrr(m));
+
   const utenforHusstand = befolkning.filter((m) => m.husstandId === null).length;
   const sammendrag =
     `${files.length} uttrekk lest. ${personerUt.length} personer i ` +
-    `${husstanderUt.length} husstander, ${inntekterUt.length} inntektsrader. ` +
+    `${husstanderUt.length} husstander, ${inntekterUt.length} inntektsrader, ` +
+    `${krrUt.length} rader i kontaktregisteret. ` +
     `${kuratert.personer.length} kuraterte, ${personerUt.length - kuratert.personer.length} fra Tenor, ` +
     `${utenforHusstand} utenfor husstand. ${enker} enke/enkemann utledet.`;
 
@@ -1055,6 +1134,7 @@ async function run() {
       inntekterUt,
       eierforhold,
       plasser,
+      krrUt,
       kuratert,
       REFERANSEDATO
     )
@@ -1064,6 +1144,7 @@ async function run() {
   await skriv(path.join(dataDir, "personer.json"), personerUt);
   await skriv(path.join(dataDir, "husstander.json"), husstanderUt);
   await skriv(path.join(dataDir, "inntekter.json"), inntekterUt);
+  await skriv(path.join(dataDir, "krr.json"), krrUt);
   await skriv(path.join(dataDir, "folkeregister.seed.json"), fregUt);
   console.log(sammendrag);
 }

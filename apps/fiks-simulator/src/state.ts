@@ -15,7 +15,7 @@
  * in the shared layer, and this file only points at it.
  */
 
-import type { Husstand, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+import type { Husstand, Krr, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
 // Same split as sandbox-backend, and the same two paths, because it is the same
 // module: data/ is seed and stays untouched, state/ holds everything written at
 // runtime and is gitignored. server.ts imports `updateJson` from there directly.
@@ -100,6 +100,7 @@ export function createStateReader() {
     personer: (): Promise<Person[]> => read("personer.json"),
     husstander: (): Promise<Husstand[]> => read("husstander.json"),
     inntekter: (): Promise<Inntekt[]> => read("inntekter.json"),
+    krr: (): Promise<Krr[]> => read("krr.json"),
     barnehageplasser: (): Promise<Plass[]> => read("barnehageplasser.json"),
     samtykker: (): Promise<FiksSamtykke[]> => read("samtykker.json", []),
     oppgaver: (): Promise<Oppgave[]> => read("oppgaver.json", []),

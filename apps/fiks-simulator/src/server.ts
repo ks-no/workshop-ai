@@ -6,7 +6,7 @@ import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 // which is why /fiks/register/person/person-031 handed out a kode 6 person's name
 // and street address in full. The repo already carries four masking
 // implementations; this makes it three rather than five.
-import { maskHusstand, maskPerson } from "../../shared/skjerming.ts";
+import { maskHusstand, maskKrr, maskPerson } from "../../shared/skjerming.ts";
 // Consent has rules now: which statuses exist, what may follow what, and when a
 // samtykke has run out. All three live in samtykke.ts so the compiler can hold
 // them together — see the comment there.
@@ -660,9 +660,14 @@ function docsHtml(): string {
         <li><code>PUT /fiks/samtykke/{samtykkeId}/trekk</code></li>
         <li><code>GET /fiks/samtykke/{samtykkeId}/historikk</code></li>
         <li><code>GET /fiks/personer/{personId}/samtykker</code></li>
+        <li><code>GET /fiks/register/person/{personId}</code> · <code>/husstand</code> · <code>/inntekt</code> · <code>/barnehage</code> · <code>/kontaktinfo</code></li>
+        <li><code>POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling</code> · <code>/praktisk-bistand</code> · <code>/langtidsopphold-institusjon</code></li>
+        <li><code>POST /register/api/v1/ks/{rolleId}/krr/person</code></li>
         <li><code>POST /fiks/oppgaver</code></li>
         <li><code>GET /fiks/oppgaver/{oppgaveId}</code></li>
         <li><code>PUT /fiks/oppgaver/{oppgaveId}/status</code></li>
+        <li><code>POST /fiks/meldinger</code></li>
+        <li><code>GET /fiks/meldinger/{meldingId}</code></li>
       </ul>
     </body>
   </html>`;
@@ -780,6 +785,47 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     );
     if (request.method === "POST" && langtidsoppholdTreff) {
       await handleBeregning(request, response, tilstand, LANGTIDSOPPHOLD_INSTITUSJON);
+      return;
+    }
+
+    // Fiks Kontaktregisteret, on the real Fiks path. The lookup is a POST with
+    // the fnr in the body, as the real API does it — an fnr in a URL would land
+    // in every access log on the way.
+    //
+    // The error split is part of what the route teaches: a malformed fnr is a
+    // 400 (the request is broken), an unknown fnr is PERSON_IKKE_FUNNET, and a
+    // known person under 15 or not bosatt is IKKE_I_KONTAKTREGISTERET — the
+    // register knows who they are and still has no row for them.
+    const krrTreff = url.pathname.match(/^\/register\/api\/v1\/ks\/([^/]+)\/krr\/person$/);
+    if (request.method === "POST" && krrTreff) {
+      await requireRegisterHjemmel(request);
+      const body = await readRequestBody(request) as { fnr?: string };
+      const fnr = String(body.fnr || "");
+      // Same split as the beregning: eleven digits is a typo in the request,
+      // wrong control digits is a typo in the number. Modulus 11 is stricter
+      // than the Fiks spec's ^[0-9]{11}$ — a flagged deviation.
+      if (!/^[0-9]{11}$/.test(fnr)) {
+        throw new FiksError(`fnr må være 11 siffer, fikk ${body.fnr}.`, 400, "UGYLDIG_IDENTIFIKATOR");
+      }
+      if (!isGyldigFoedselsnummer(fnr)) {
+        throw new FiksError(`fnr ${fnr} har ugyldige kontrollsiffer.`, 400, "UGYLDIG_IDENTIFIKATOR");
+      }
+      const person = (await tilstand.personer()).find((kandidat) => kandidat.syntetiskFodselsnummer === fnr);
+      if (!person) {
+        throw new FiksError(`Fant ingen person med fnr ${fnr}.`, 404, "PERSON_IKKE_FUNNET");
+      }
+      const rad = (await tilstand.krr()).find((kandidat) => kandidat.fnr === fnr);
+      if (!rad) {
+        throw new FiksError(
+          "Personen er kjent, men står ikke i kontaktregisteret. Registeret dekker " +
+          "bosatte på 15 år eller mer.",
+          404,
+          "IKKE_I_KONTAKTREGISTERET"
+        );
+      }
+      // Kode 6/7 nulls epost and tlf on the way out; reservert, spraak and
+      // kanVarsles survive. The seed is unmasked, like the rest — see skjerming.ts.
+      jsonResponse(response, 200, maskKrr(rad, person.adressebeskyttelse));
       return;
     }
 

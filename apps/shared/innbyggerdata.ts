@@ -55,3 +55,21 @@ export type Samtykke = MedFelter & {
   status: string;
   dataKilder: string[];
 };
+
+// One row in data/krr.json, mirroring Fiks' KrrDefinisjon. Keyed on fnr like
+// inntekter.json, because that is what the real KRR looks people up by. epost
+// and tlf are null — not absent — when the person has no contact info, so the
+// key set stays the same for every row.
+export type KrrEpost = { adresse: string; sistOppdatert: string; sistVerifisert: string };
+
+export type KrrTelefon = { nummer: string; sistOppdatert: string; sistVerifisert: string };
+
+export type Krr = MedFelter & {
+  fnr: string;
+  epost: KrrEpost | null;
+  tlf: KrrTelefon | null;
+  status: string;
+  reservert: boolean;
+  kanVarsles: boolean;
+  spraak: string;
+};

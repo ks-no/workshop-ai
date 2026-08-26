@@ -1,0 +1,5118 @@
+[
+  {
+    "fnr": "12818800078",
+    "epost": {
+      "adresse": "maja.solberg@example.test",
+      "sistOppdatert": "2025-11-03",
+      "sistVerifisert": "2025-11-03"
+    },
+    "tlf": {
+      "nummer": "+4799990001",
+      "sistOppdatert": "2025-11-03",
+      "sistVerifisert": "2025-11-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21868500007",
+    "epost": {
+      "adresse": "jonas.nilsen@example.test",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "tlf": {
+      "nummer": "+4799990003",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02918400071",
+    "epost": {
+      "adresse": "petter.nilsen@example.test",
+      "sistOppdatert": "2025-10-26",
+      "sistVerifisert": "2025-10-26"
+    },
+    "tlf": {
+      "nummer": "+4799990004",
+      "sistOppdatert": "2025-10-26",
+      "sistVerifisert": "2025-10-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14899200099",
+    "epost": {
+      "adresse": "amir.hassan@example.test",
+      "sistOppdatert": "2025-09-04",
+      "sistVerifisert": "2025-09-04"
+    },
+    "tlf": {
+      "nummer": "+4799990006",
+      "sistOppdatert": "2025-09-04",
+      "sistVerifisert": "2025-09-04"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30838700000",
+    "epost": {
+      "adresse": "ingrid.dahl@example.test",
+      "sistOppdatert": "2025-06-14",
+      "sistVerifisert": "2025-06-14"
+    },
+    "tlf": {
+      "nummer": "+4799990008",
+      "sistOppdatert": "2025-06-14",
+      "sistVerifisert": "2025-06-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "19888600100",
+    "epost": {
+      "adresse": "marius.dahl@example.test",
+      "sistOppdatert": "2025-06-15",
+      "sistVerifisert": "2025-06-15"
+    },
+    "tlf": {
+      "nummer": "+4799990009",
+      "sistOppdatert": "2025-06-15",
+      "sistVerifisert": "2025-06-15"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05929000023",
+    "epost": {
+      "adresse": "kari.johansen@example.test",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "tlf": {
+      "nummer": "+4799990012",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28829100055",
+    "epost": {
+      "adresse": "lina.berg@example.test",
+      "sistOppdatert": "2025-09-07",
+      "sistVerifisert": "2025-09-07"
+    },
+    "tlf": {
+      "nummer": "+4799990014",
+      "sistOppdatert": "2025-09-07",
+      "sistVerifisert": "2025-09-07"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17878300009",
+    "epost": {
+      "adresse": "henrik.lie@example.test",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "tlf": {
+      "nummer": "+4799990016",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23818500025",
+    "epost": {
+      "adresse": "tone.lie@example.test",
+      "sistOppdatert": "2025-03-14",
+      "sistVerifisert": "2025-03-14"
+    },
+    "tlf": {
+      "nummer": "+4799990017",
+      "sistOppdatert": "2025-03-14",
+      "sistVerifisert": "2025-03-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12848900069",
+    "epost": {
+      "adresse": "thomas.nguyen@example.test",
+      "sistOppdatert": "2025-07-07",
+      "sistVerifisert": "2025-07-07"
+    },
+    "tlf": {
+      "nummer": "+4799990019",
+      "sistOppdatert": "2025-07-07",
+      "sistVerifisert": "2025-07-07"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30869000082",
+    "epost": {
+      "adresse": "ida.nguyen@example.test",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "tlf": {
+      "nummer": "+4799990020",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08919300184",
+    "epost": {
+      "adresse": "fatima.ali@example.test",
+      "sistOppdatert": "2025-10-25",
+      "sistVerifisert": "2025-10-25"
+    },
+    "tlf": {
+      "nummer": "+4799990022",
+      "sistOppdatert": "2025-10-25",
+      "sistVerifisert": "2025-10-25"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25858600084",
+    "epost": {
+      "adresse": "sofie.eide@example.test",
+      "sistOppdatert": "2025-08-01",
+      "sistVerifisert": "2025-08-01"
+    },
+    "tlf": {
+      "nummer": "+4799990024",
+      "sistOppdatert": "2025-08-01",
+      "sistVerifisert": "2025-08-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03889400020",
+    "epost": {
+      "adresse": "randi.as@example.test",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "tlf": {
+      "nummer": "+4799990026",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27908900184",
+    "epost": {
+      "adresse": "nora.fjeld@example.test",
+      "sistOppdatert": "2025-04-07",
+      "sistVerifisert": "2025-04-07"
+    },
+    "tlf": {
+      "nummer": "+4799990028",
+      "sistOppdatert": "2025-04-07",
+      "sistVerifisert": "2025-04-07"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09818200045",
+    "epost": {
+      "adresse": "olav.rustad@example.test",
+      "sistOppdatert": "2025-03-14",
+      "sistVerifisert": "2025-03-14"
+    },
+    "tlf": {
+      "nummer": "+4799990030",
+      "sistOppdatert": "2025-03-14",
+      "sistVerifisert": "2025-03-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16848300180",
+    "epost": {
+      "adresse": "siri.rustad@example.test",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "tlf": {
+      "nummer": "+4799990031",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11868000041",
+    "epost": {
+      "adresse": "bjorn.haugen@example.test",
+      "sistOppdatert": "2025-05-30",
+      "sistVerifisert": "2025-05-30"
+    },
+    "tlf": {
+      "nummer": "+4799990033",
+      "sistOppdatert": "2025-05-30",
+      "sistVerifisert": "2025-05-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07838400099",
+    "epost": {
+      "adresse": "even.moen@example.test",
+      "sistOppdatert": "2025-10-11",
+      "sistVerifisert": "2025-10-11"
+    },
+    "tlf": {
+      "nummer": "+4799990035",
+      "sistOppdatert": "2025-10-11",
+      "sistVerifisert": "2025-10-11"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13898500084",
+    "epost": {
+      "adresse": "hilde.moen@example.test",
+      "sistOppdatert": "2025-09-28",
+      "sistVerifisert": "2025-09-28"
+    },
+    "tlf": {
+      "nummer": "+4799990036",
+      "sistOppdatert": "2025-09-28",
+      "sistVerifisert": "2025-09-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "19879100073",
+    "epost": {
+      "adresse": "mona.strand@example.test",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "tlf": {
+      "nummer": "+4799990038",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02829000078",
+    "epost": {
+      "adresse": "yara.osman@example.test",
+      "sistOppdatert": "2025-11-13",
+      "sistVerifisert": "2025-11-13"
+    },
+    "tlf": {
+      "nummer": "+4799990040",
+      "sistOppdatert": "2025-11-13",
+      "sistVerifisert": "2025-11-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18857500071",
+    "epost": {
+      "adresse": "erik.sandvik@example.test",
+      "sistOppdatert": "2025-01-25",
+      "sistVerifisert": "2025-01-25"
+    },
+    "tlf": {
+      "nummer": "+4799990042",
+      "sistOppdatert": "2025-01-25",
+      "sistVerifisert": "2025-01-25"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09927700120",
+    "epost": {
+      "adresse": "anne.sandvik@example.test",
+      "sistOppdatert": "2025-11-30",
+      "sistVerifisert": "2025-11-30"
+    },
+    "tlf": {
+      "nummer": "+4799990043",
+      "sistOppdatert": "2025-11-30",
+      "sistVerifisert": "2025-11-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01811448849",
+    "epost": {
+      "adresse": "oppklarende.larve@example.test",
+      "sistOppdatert": "2025-08-10",
+      "sistVerifisert": "2025-08-10"
+    },
+    "tlf": {
+      "nummer": "+4797813371",
+      "sistOppdatert": "2025-08-10",
+      "sistVerifisert": "2025-08-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01816599012",
+    "epost": {
+      "adresse": "horisontal.glede@example.test",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "tlf": {
+      "nummer": "+4796555069",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01827398477",
+    "epost": {
+      "adresse": "effektiv.bagatell@example.test",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "tlf": {
+      "nummer": "+4791987407",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30857599337",
+    "epost": {
+      "adresse": "sitrongul.kaiman@example.test",
+      "sistOppdatert": "2025-07-12",
+      "sistVerifisert": "2025-07-12"
+    },
+    "tlf": {
+      "nummer": "+4794614742",
+      "sistOppdatert": "2025-07-12",
+      "sistVerifisert": "2025-07-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15839297898",
+    "epost": {
+      "adresse": "justerbar.spasertur@example.test",
+      "sistOppdatert": "2025-06-29",
+      "sistVerifisert": "2025-06-29"
+    },
+    "tlf": {
+      "nummer": "+4794068494",
+      "sistOppdatert": "2025-06-29",
+      "sistVerifisert": "2025-06-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20869398749",
+    "epost": {
+      "adresse": "talefoer.kvinne@example.test",
+      "sistOppdatert": "2025-02-09",
+      "sistVerifisert": "2025-02-09"
+    },
+    "tlf": {
+      "nummer": "+4799621574",
+      "sistOppdatert": "2025-02-09",
+      "sistVerifisert": "2025-02-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01844196853",
+    "epost": {
+      "adresse": "nonfigurativ.dagbok@example.test",
+      "sistOppdatert": "2025-10-27",
+      "sistVerifisert": "2025-10-27"
+    },
+    "tlf": {
+      "nummer": "+4798366534",
+      "sistOppdatert": "2025-10-27",
+      "sistVerifisert": "2025-10-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25864597184",
+    "epost": {
+      "adresse": "rolig.historie@example.test",
+      "sistOppdatert": "2025-09-15",
+      "sistVerifisert": "2025-09-15"
+    },
+    "tlf": {
+      "nummer": "+4795529492",
+      "sistOppdatert": "2025-09-15",
+      "sistVerifisert": "2025-09-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01887798490",
+    "epost": {
+      "adresse": "ufoelsom.kunngjoering@example.test",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "tlf": {
+      "nummer": "+4791050034",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01888498547",
+    "epost": {
+      "adresse": "ubestikkelig.struktur@example.test",
+      "sistOppdatert": "2025-02-22",
+      "sistVerifisert": "2025-02-22"
+    },
+    "tlf": {
+      "nummer": "+4793213237",
+      "sistOppdatert": "2025-02-22",
+      "sistVerifisert": "2025-02-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09810998811",
+    "epost": {
+      "adresse": "motloes.frase@example.test",
+      "sistOppdatert": "2025-04-08",
+      "sistVerifisert": "2025-04-08"
+    },
+    "tlf": {
+      "nummer": "+4790242307",
+      "sistOppdatert": "2025-04-08",
+      "sistVerifisert": "2025-04-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22888198818",
+    "epost": {
+      "adresse": "skamfull.munn@example.test",
+      "sistOppdatert": "2025-12-23",
+      "sistVerifisert": "2025-12-23"
+    },
+    "tlf": {
+      "nummer": "+4793404376",
+      "sistOppdatert": "2025-12-23",
+      "sistVerifisert": "2025-12-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01908697975",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12838997021",
+    "epost": {
+      "adresse": "historisk.enkemann@example.test",
+      "sistOppdatert": "2025-07-02",
+      "sistVerifisert": "2025-07-02"
+    },
+    "tlf": {
+      "nummer": "+4790648597",
+      "sistOppdatert": "2025-07-02",
+      "sistVerifisert": "2025-07-02"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01909398815",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27899199362",
+    "epost": {
+      "adresse": "morsk.storskjerm@example.test",
+      "sistOppdatert": "2025-01-11",
+      "sistVerifisert": "2025-01-11"
+    },
+    "tlf": {
+      "nummer": "+4794230650",
+      "sistOppdatert": "2025-01-11",
+      "sistVerifisert": "2025-01-11"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01910897639",
+    "epost": {
+      "adresse": "positiv.kentaur@example.test",
+      "sistOppdatert": "2025-09-28",
+      "sistVerifisert": "2025-09-28"
+    },
+    "tlf": {
+      "nummer": "+4797218510",
+      "sistOppdatert": "2025-09-28",
+      "sistVerifisert": "2025-09-28"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03917597803",
+    "epost": {
+      "adresse": "hevngjerrig.dessert@example.test",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "tlf": {
+      "nummer": "+4795486919",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24907396998",
+    "epost": {
+      "adresse": "stolt.kos@example.test",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "tlf": {
+      "nummer": "+4793671393",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01927097679",
+    "epost": {
+      "adresse": "gjensidig.bukse@example.test",
+      "sistOppdatert": "2025-09-24",
+      "sistVerifisert": "2025-09-24"
+    },
+    "tlf": {
+      "nummer": "+4792201476",
+      "sistOppdatert": "2025-09-24",
+      "sistVerifisert": "2025-09-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "01928498898",
+    "epost": {
+      "adresse": "fysisk.igle@example.test",
+      "sistOppdatert": "2025-07-16",
+      "sistVerifisert": "2025-07-16"
+    },
+    "tlf": {
+      "nummer": "+4795285371",
+      "sistOppdatert": "2025-07-16",
+      "sistVerifisert": "2025-07-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14918298763",
+    "epost": {
+      "adresse": "utholden.katapult@example.test",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "tlf": {
+      "nummer": "+4790989779",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02859299639",
+    "epost": {
+      "adresse": "ivrig.budeie@example.test",
+      "sistOppdatert": "2025-01-13",
+      "sistVerifisert": "2025-01-13"
+    },
+    "tlf": {
+      "nummer": "+4792634427",
+      "sistOppdatert": "2025-01-13",
+      "sistVerifisert": "2025-01-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30899399583",
+    "epost": {
+      "adresse": "taus.galakse@example.test",
+      "sistOppdatert": "2025-05-10",
+      "sistVerifisert": "2025-05-10"
+    },
+    "tlf": {
+      "nummer": "+4792531649",
+      "sistOppdatert": "2025-05-10",
+      "sistVerifisert": "2025-05-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02814697196",
+    "epost": {
+      "adresse": "usjenert.forklaring@example.test",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "tlf": {
+      "nummer": "+4794263794",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28860698155",
+    "epost": {
+      "adresse": "forskjellig.boette@example.test",
+      "sistOppdatert": "2025-05-21",
+      "sistVerifisert": "2025-05-21"
+    },
+    "tlf": {
+      "nummer": "+4796946345",
+      "sistOppdatert": "2025-05-21",
+      "sistVerifisert": "2025-05-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02836994704",
+    "epost": {
+      "adresse": "underfundig.plate@example.test",
+      "sistOppdatert": "2025-07-28",
+      "sistVerifisert": "2025-07-28"
+    },
+    "tlf": {
+      "nummer": "+4793443923",
+      "sistOppdatert": "2025-07-28",
+      "sistVerifisert": "2025-07-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02837699595",
+    "epost": {
+      "adresse": "refleksiv.jobb@example.test",
+      "sistOppdatert": "2025-02-05",
+      "sistVerifisert": "2025-02-05"
+    },
+    "tlf": {
+      "nummer": "+4799541850",
+      "sistOppdatert": "2025-02-05",
+      "sistVerifisert": "2025-02-05"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09837998627",
+    "epost": {
+      "adresse": "soet.sans@example.test",
+      "sistOppdatert": "2025-01-22",
+      "sistVerifisert": "2025-01-22"
+    },
+    "tlf": {
+      "nummer": "+4798270401",
+      "sistOppdatert": "2025-01-22",
+      "sistVerifisert": "2025-01-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13880499607",
+    "epost": {
+      "adresse": "gretten.kaal@example.test",
+      "sistOppdatert": "2025-07-05",
+      "sistVerifisert": "2025-07-05"
+    },
+    "tlf": {
+      "nummer": "+4791988270",
+      "sistOppdatert": "2025-07-05",
+      "sistVerifisert": "2025-07-05"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02862449064",
+    "epost": {
+      "adresse": "nervoes.suppe@example.test",
+      "sistOppdatert": "2025-11-21",
+      "sistVerifisert": "2025-11-21"
+    },
+    "tlf": {
+      "nummer": "+4790523134",
+      "sistOppdatert": "2025-11-21",
+      "sistVerifisert": "2025-11-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02885897358",
+    "epost": {
+      "adresse": "positiv.produksjon@example.test",
+      "sistOppdatert": "2025-01-13",
+      "sistVerifisert": "2025-01-13"
+    },
+    "tlf": {
+      "nummer": "+4790039762",
+      "sistOppdatert": "2025-01-13",
+      "sistVerifisert": "2025-01-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02888799756",
+    "epost": {
+      "adresse": "possessiv.gardin@example.test",
+      "sistOppdatert": "2025-03-27",
+      "sistVerifisert": "2025-03-27"
+    },
+    "tlf": {
+      "nummer": "+4790993010",
+      "sistOppdatert": "2025-03-27",
+      "sistVerifisert": "2025-03-27"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20898798411",
+    "epost": {
+      "adresse": "kvart.maake@example.test",
+      "sistOppdatert": "2025-11-16",
+      "sistVerifisert": "2025-11-16"
+    },
+    "tlf": {
+      "nummer": "+4797595974",
+      "sistOppdatert": "2025-11-16",
+      "sistVerifisert": "2025-11-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "02910298294",
+    "epost": {
+      "adresse": "grei.ordbok@example.test",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "tlf": {
+      "nummer": "+4796186307",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03835199079",
+    "epost": {
+      "adresse": "paapasselig.klaustrofobi@example.test",
+      "sistOppdatert": "2025-08-11",
+      "sistVerifisert": "2025-08-11"
+    },
+    "tlf": {
+      "nummer": "+4795080307",
+      "sistOppdatert": "2025-08-11",
+      "sistVerifisert": "2025-08-11"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03838597369",
+    "epost": {
+      "adresse": "redd.greve@example.test",
+      "sistOppdatert": "2025-10-14",
+      "sistVerifisert": "2025-10-14"
+    },
+    "tlf": {
+      "nummer": "+4791995726",
+      "sistOppdatert": "2025-10-14",
+      "sistVerifisert": "2025-10-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08908397038",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03848998116",
+    "epost": {
+      "adresse": "klassisk.boom@example.test",
+      "sistOppdatert": "2025-06-23",
+      "sistVerifisert": "2025-06-23"
+    },
+    "tlf": {
+      "nummer": "+4790393098",
+      "sistOppdatert": "2025-06-23",
+      "sistVerifisert": "2025-06-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10828997497",
+    "epost": {
+      "adresse": "loesningsorientert.daddel@example.test",
+      "sistOppdatert": "2025-06-06",
+      "sistVerifisert": "2025-06-06"
+    },
+    "tlf": {
+      "nummer": "+4791723961",
+      "sistOppdatert": "2025-06-06",
+      "sistVerifisert": "2025-06-06"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03873349424",
+    "epost": {
+      "adresse": "pratsom.forkledning@example.test",
+      "sistOppdatert": "2025-09-15",
+      "sistVerifisert": "2025-09-15"
+    },
+    "tlf": {
+      "nummer": "+4794977782",
+      "sistOppdatert": "2025-09-15",
+      "sistVerifisert": "2025-09-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03878497146",
+    "epost": {
+      "adresse": "haarsaar.teleskopord@example.test",
+      "sistOppdatert": "2025-08-21",
+      "sistVerifisert": "2025-08-21"
+    },
+    "tlf": {
+      "nummer": "+4796015322",
+      "sistOppdatert": "2025-08-21",
+      "sistVerifisert": "2025-08-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09818196617",
+    "epost": {
+      "adresse": "demokratisk.rose@example.test",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "tlf": {
+      "nummer": "+4792373717",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21870997946",
+    "epost": {
+      "adresse": "urettferdig.frende@example.test",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "tlf": {
+      "nummer": "+4793427335",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03887598346",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18817197090",
+    "epost": {
+      "adresse": "fysisk.april@example.test",
+      "sistOppdatert": "2025-04-03",
+      "sistVerifisert": "2025-04-03"
+    },
+    "tlf": {
+      "nummer": "+4796826232",
+      "sistOppdatert": "2025-04-03",
+      "sistVerifisert": "2025-04-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28820499028",
+    "epost": {
+      "adresse": "legitim.mobiltelefon@example.test",
+      "sistOppdatert": "2025-02-08",
+      "sistVerifisert": "2025-02-08"
+    },
+    "tlf": {
+      "nummer": "+4798175123",
+      "sistOppdatert": "2025-02-08",
+      "sistVerifisert": "2025-02-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03887999294",
+    "epost": {
+      "adresse": "munter.boksamling@example.test",
+      "sistOppdatert": "2025-02-13",
+      "sistVerifisert": "2025-02-13"
+    },
+    "tlf": {
+      "nummer": "+4791288113",
+      "sistOppdatert": "2025-02-13",
+      "sistVerifisert": "2025-02-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16927699560",
+    "epost": {
+      "adresse": "utydelig.nakke@example.test",
+      "sistOppdatert": "2025-12-13",
+      "sistVerifisert": "2025-12-13"
+    },
+    "tlf": {
+      "nummer": "+4792388791",
+      "sistOppdatert": "2025-12-13",
+      "sistVerifisert": "2025-12-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03901748585",
+    "epost": {
+      "adresse": "stille.konsekvens@example.test",
+      "sistOppdatert": "2025-03-05",
+      "sistVerifisert": "2025-03-05"
+    },
+    "tlf": {
+      "nummer": "+4791564873",
+      "sistOppdatert": "2025-03-05",
+      "sistVerifisert": "2025-03-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "03917699835",
+    "epost": {
+      "adresse": "skapende.desimeter@example.test",
+      "sistOppdatert": "2025-08-09",
+      "sistVerifisert": "2025-08-09"
+    },
+    "tlf": {
+      "nummer": "+4796609245",
+      "sistOppdatert": "2025-08-09",
+      "sistVerifisert": "2025-08-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "06820999930",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18857898709",
+    "epost": {
+      "adresse": "slakk.andakt@example.test",
+      "sistOppdatert": "2025-09-26",
+      "sistVerifisert": "2025-09-26"
+    },
+    "tlf": {
+      "nummer": "+4795405063",
+      "sistOppdatert": "2025-09-26",
+      "sistVerifisert": "2025-09-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04816995758",
+    "epost": {
+      "adresse": "svimmel.fisk@example.test",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "tlf": {
+      "nummer": "+4792774567",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16840598962",
+    "epost": {
+      "adresse": "festlig.fjord@example.test",
+      "sistOppdatert": "2025-12-20",
+      "sistVerifisert": "2025-12-20"
+    },
+    "tlf": {
+      "nummer": "+4797085943",
+      "sistOppdatert": "2025-12-20",
+      "sistVerifisert": "2025-12-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17916799098",
+    "epost": {
+      "adresse": "real.oride@example.test",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "tlf": {
+      "nummer": "+4799015179",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15908697488",
+    "epost": {
+      "adresse": "roerete.pakke@example.test",
+      "sistOppdatert": "2025-10-03",
+      "sistVerifisert": "2025-10-03"
+    },
+    "tlf": {
+      "nummer": "+4790926120",
+      "sistOppdatert": "2025-10-03",
+      "sistVerifisert": "2025-10-03"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04825097762",
+    "epost": {
+      "adresse": "opprettholdende.helt@example.test",
+      "sistOppdatert": "2025-04-14",
+      "sistVerifisert": "2025-04-14"
+    },
+    "tlf": {
+      "nummer": "+4790898423",
+      "sistOppdatert": "2025-04-14",
+      "sistVerifisert": "2025-04-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04855899529",
+    "epost": {
+      "adresse": "opplyst.pris@example.test",
+      "sistOppdatert": "2025-10-27",
+      "sistVerifisert": "2025-10-27"
+    },
+    "tlf": {
+      "nummer": "+4799088439",
+      "sistOppdatert": "2025-10-27",
+      "sistVerifisert": "2025-10-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10836098094",
+    "epost": {
+      "adresse": "estetisk.lama@example.test",
+      "sistOppdatert": "2025-08-20",
+      "sistVerifisert": "2025-08-20"
+    },
+    "tlf": {
+      "nummer": "+4797212131",
+      "sistOppdatert": "2025-08-20",
+      "sistVerifisert": "2025-08-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04875899266",
+    "epost": {
+      "adresse": "storartet.netthinne@example.test",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "tlf": {
+      "nummer": "+4791353381",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25886099722",
+    "epost": {
+      "adresse": "autorisert.analyse@example.test",
+      "sistOppdatert": "2025-08-14",
+      "sistVerifisert": "2025-08-14"
+    },
+    "tlf": {
+      "nummer": "+4797733455",
+      "sistOppdatert": "2025-08-14",
+      "sistVerifisert": "2025-08-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04878098914",
+    "epost": {
+      "adresse": "sensitiv.pukkel@example.test",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "tlf": {
+      "nummer": "+4799205697",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "06927698887",
+    "epost": {
+      "adresse": "algerisk.ankel@example.test",
+      "sistOppdatert": "2025-04-24",
+      "sistVerifisert": "2025-04-24"
+    },
+    "tlf": {
+      "nummer": "+4795913993",
+      "sistOppdatert": "2025-04-24",
+      "sistVerifisert": "2025-04-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26851098886",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04888698596",
+    "epost": {
+      "adresse": "idiotsikker.alarm@example.test",
+      "sistOppdatert": "2025-11-15",
+      "sistVerifisert": "2025-11-15"
+    },
+    "tlf": {
+      "nummer": "+4796001718",
+      "sistOppdatert": "2025-11-15",
+      "sistVerifisert": "2025-11-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20838897860",
+    "epost": {
+      "adresse": "lidenskapelig.blad@example.test",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "tlf": {
+      "nummer": "+4793789592",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17879498651",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "29879297360",
+    "epost": {
+      "adresse": "innbringende.nakke@example.test",
+      "sistOppdatert": "2025-07-19",
+      "sistVerifisert": "2025-07-19"
+    },
+    "tlf": {
+      "nummer": "+4799354119",
+      "sistOppdatert": "2025-07-19",
+      "sistVerifisert": "2025-07-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "04908597880",
+    "epost": {
+      "adresse": "unoeyaktig.stasjonsvogn@example.test",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "tlf": {
+      "nummer": "+4793275317",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15859098549",
+    "epost": {
+      "adresse": "utnyttende.sokk@example.test",
+      "sistOppdatert": "2025-12-18",
+      "sistVerifisert": "2025-12-18"
+    },
+    "tlf": {
+      "nummer": "+4797145276",
+      "sistOppdatert": "2025-12-18",
+      "sistVerifisert": "2025-12-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28858698261",
+    "epost": {
+      "adresse": "uttrykksfull.fot@example.test",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "tlf": {
+      "nummer": "+4799975134",
+      "sistOppdatert": "2025-01-10",
+      "sistVerifisert": "2025-01-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12888699706",
+    "epost": {
+      "adresse": "smul.fuktighetskrem@example.test",
+      "sistOppdatert": "2025-06-07",
+      "sistVerifisert": "2025-06-07"
+    },
+    "tlf": {
+      "nummer": "+4792784397",
+      "sistOppdatert": "2025-06-07",
+      "sistVerifisert": "2025-06-07"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15899099645",
+    "epost": {
+      "adresse": "autonom.skatoll@example.test",
+      "sistOppdatert": "2025-12-30",
+      "sistVerifisert": "2025-12-30"
+    },
+    "tlf": {
+      "nummer": "+4791921668",
+      "sistOppdatert": "2025-12-30",
+      "sistVerifisert": "2025-12-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05816497703",
+    "epost": {
+      "adresse": "akustisk.dromedar@example.test",
+      "sistOppdatert": "2025-09-30",
+      "sistVerifisert": "2025-09-30"
+    },
+    "tlf": {
+      "nummer": "+4791357547",
+      "sistOppdatert": "2025-09-30",
+      "sistVerifisert": "2025-09-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05837096288",
+    "epost": {
+      "adresse": "stabil.jubel@example.test",
+      "sistOppdatert": "2025-09-13",
+      "sistVerifisert": "2025-09-13"
+    },
+    "tlf": {
+      "nummer": "+4794871845",
+      "sistOppdatert": "2025-09-13",
+      "sistVerifisert": "2025-09-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09857999239",
+    "epost": {
+      "adresse": "virkelig.kontrast@example.test",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "tlf": {
+      "nummer": "+4795846539",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27897998136",
+    "epost": {
+      "adresse": "goeyal.tunge@example.test",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "tlf": {
+      "nummer": "+4798903430",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10838299119",
+    "epost": {
+      "adresse": "komfortabel.geografi@example.test",
+      "sistOppdatert": "2025-05-02",
+      "sistVerifisert": "2025-05-02"
+    },
+    "tlf": {
+      "nummer": "+4795765566",
+      "sistOppdatert": "2025-05-02",
+      "sistVerifisert": "2025-05-02"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18858498097",
+    "epost": {
+      "adresse": "lidenskapelig.heis@example.test",
+      "sistOppdatert": "2025-07-26",
+      "sistVerifisert": "2025-07-26"
+    },
+    "tlf": {
+      "nummer": "+4791839486",
+      "sistOppdatert": "2025-07-26",
+      "sistVerifisert": "2025-07-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05907699228",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15827798700",
+    "epost": {
+      "adresse": "slapp.filosof@example.test",
+      "sistOppdatert": "2025-06-10",
+      "sistVerifisert": "2025-06-10"
+    },
+    "tlf": {
+      "nummer": "+4791736845",
+      "sistOppdatert": "2025-06-10",
+      "sistVerifisert": "2025-06-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11880197675",
+    "epost": {
+      "adresse": "beroemt.frostnatt@example.test",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "tlf": {
+      "nummer": "+4795027294",
+      "sistOppdatert": "2025-02-14",
+      "sistVerifisert": "2025-02-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05915598457",
+    "epost": {
+      "adresse": "berikende.toppskarv@example.test",
+      "sistOppdatert": "2025-07-23",
+      "sistVerifisert": "2025-07-23"
+    },
+    "tlf": {
+      "nummer": "+4793885483",
+      "sistOppdatert": "2025-07-23",
+      "sistVerifisert": "2025-07-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21915597316",
+    "epost": {
+      "adresse": "akseptabel.filet@example.test",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "tlf": {
+      "nummer": "+4797548282",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "05918598008",
+    "epost": {
+      "adresse": "ny.pizza@example.test",
+      "sistOppdatert": "2025-01-17",
+      "sistVerifisert": "2025-01-17"
+    },
+    "tlf": {
+      "nummer": "+4799100026",
+      "sistOppdatert": "2025-01-17",
+      "sistVerifisert": "2025-01-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27888198127",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13838397217",
+    "epost": {
+      "adresse": "fantastisk.kar@example.test",
+      "sistOppdatert": "2025-11-11",
+      "sistVerifisert": "2025-11-11"
+    },
+    "tlf": {
+      "nummer": "+4791314059",
+      "sistOppdatert": "2025-11-11",
+      "sistVerifisert": "2025-11-11"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26848297193",
+    "epost": {
+      "adresse": "vokal.komfyr@example.test",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "tlf": {
+      "nummer": "+4794777822",
+      "sistOppdatert": "2025-03-29",
+      "sistVerifisert": "2025-03-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "06819497808",
+    "epost": {
+      "adresse": "usymmetrisk.lunsj@example.test",
+      "sistOppdatert": "2025-03-23",
+      "sistVerifisert": "2025-03-23"
+    },
+    "tlf": {
+      "nummer": "+4792909331",
+      "sistOppdatert": "2025-03-23",
+      "sistVerifisert": "2025-03-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18919298142",
+    "epost": {
+      "adresse": "riktig.kokeplate@example.test",
+      "sistOppdatert": "2025-09-23",
+      "sistVerifisert": "2025-09-23"
+    },
+    "tlf": {
+      "nummer": "+4793062555",
+      "sistOppdatert": "2025-09-23",
+      "sistVerifisert": "2025-09-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "06838896888",
+    "epost": {
+      "adresse": "utydelig.brev@example.test",
+      "sistOppdatert": "2025-07-24",
+      "sistVerifisert": "2025-07-24"
+    },
+    "tlf": {
+      "nummer": "+4790509019",
+      "sistOppdatert": "2025-07-24",
+      "sistVerifisert": "2025-07-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12869097142",
+    "epost": {
+      "adresse": "sky.sjoe@example.test",
+      "sistOppdatert": "2025-04-12",
+      "sistVerifisert": "2025-04-12"
+    },
+    "tlf": {
+      "nummer": "+4793389146",
+      "sistOppdatert": "2025-04-12",
+      "sistVerifisert": "2025-04-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07858196528",
+    "epost": {
+      "adresse": "utnyttende.analyse@example.test",
+      "sistOppdatert": "2025-08-31",
+      "sistVerifisert": "2025-08-31"
+    },
+    "tlf": {
+      "nummer": "+4798197792",
+      "sistOppdatert": "2025-08-31",
+      "sistVerifisert": "2025-08-31"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "29868498410",
+    "epost": {
+      "adresse": "god.hamster@example.test",
+      "sistOppdatert": "2025-10-14",
+      "sistVerifisert": "2025-10-14"
+    },
+    "tlf": {
+      "nummer": "+4795730356",
+      "sistOppdatert": "2025-10-14",
+      "sistVerifisert": "2025-10-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "06899198679",
+    "epost": {
+      "adresse": "plutselig.ekornhale@example.test",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "tlf": {
+      "nummer": "+4799609791",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14859197575",
+    "epost": {
+      "adresse": "kjaer.stoevel@example.test",
+      "sistOppdatert": "2025-04-28",
+      "sistVerifisert": "2025-04-28"
+    },
+    "tlf": {
+      "nummer": "+4798760112",
+      "sistOppdatert": "2025-04-28",
+      "sistVerifisert": "2025-04-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07816293132",
+    "epost": {
+      "adresse": "overfoelsom.kraake@example.test",
+      "sistOppdatert": "2025-03-03",
+      "sistVerifisert": "2025-03-03"
+    },
+    "tlf": {
+      "nummer": "+4797472001",
+      "sistOppdatert": "2025-03-03",
+      "sistVerifisert": "2025-03-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07829398448",
+    "epost": {
+      "adresse": "underlig.akkord@example.test",
+      "sistOppdatert": "2025-05-14",
+      "sistVerifisert": "2025-05-14"
+    },
+    "tlf": {
+      "nummer": "+4791528993",
+      "sistOppdatert": "2025-05-14",
+      "sistVerifisert": "2025-05-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30929597512",
+    "epost": {
+      "adresse": "ufoelsom.vaskemaskin@example.test",
+      "sistOppdatert": "2025-11-23",
+      "sistVerifisert": "2025-11-23"
+    },
+    "tlf": {
+      "nummer": "+4798585121",
+      "sistOppdatert": "2025-11-23",
+      "sistVerifisert": "2025-11-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07854898129",
+    "epost": {
+      "adresse": "flink.buss@example.test",
+      "sistOppdatert": "2025-07-24",
+      "sistVerifisert": "2025-07-24"
+    },
+    "tlf": {
+      "nummer": "+4796584144",
+      "sistOppdatert": "2025-07-24",
+      "sistVerifisert": "2025-07-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07857998205",
+    "epost": {
+      "adresse": "sped.frisyre@example.test",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "tlf": {
+      "nummer": "+4796926337",
+      "sistOppdatert": "2025-12-19",
+      "sistVerifisert": "2025-12-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25827698175",
+    "epost": {
+      "adresse": "unyttig.konduktoer@example.test",
+      "sistOppdatert": "2025-10-04",
+      "sistVerifisert": "2025-10-04"
+    },
+    "tlf": {
+      "nummer": "+4793435001",
+      "sistOppdatert": "2025-10-04",
+      "sistVerifisert": "2025-10-04"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07866298755",
+    "epost": {
+      "adresse": "avansert.omsetning@example.test",
+      "sistOppdatert": "2025-01-11",
+      "sistVerifisert": "2025-01-11"
+    },
+    "tlf": {
+      "nummer": "+4799894230",
+      "sistOppdatert": "2025-01-11",
+      "sistVerifisert": "2025-01-11"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07886697834",
+    "epost": {
+      "adresse": "ivrig.naturressurs@example.test",
+      "sistOppdatert": "2025-03-11",
+      "sistVerifisert": "2025-03-11"
+    },
+    "tlf": {
+      "nummer": "+4798673169",
+      "sistOppdatert": "2025-03-11",
+      "sistVerifisert": "2025-03-11"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21926898776",
+    "epost": {
+      "adresse": "klartenkt.mage@example.test",
+      "sistOppdatert": "2025-10-09",
+      "sistVerifisert": "2025-10-09"
+    },
+    "tlf": {
+      "nummer": "+4794725056",
+      "sistOppdatert": "2025-10-09",
+      "sistVerifisert": "2025-10-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07888999773",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "07919399370",
+    "epost": {
+      "adresse": "rimelig.dagsmarsj@example.test",
+      "sistOppdatert": "2025-10-05",
+      "sistVerifisert": "2025-10-05"
+    },
+    "tlf": {
+      "nummer": "+4793963822",
+      "sistOppdatert": "2025-10-05",
+      "sistVerifisert": "2025-10-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22859198019",
+    "epost": {
+      "adresse": "aktverdig.fugleskremsel@example.test",
+      "sistOppdatert": "2025-10-17",
+      "sistVerifisert": "2025-10-17"
+    },
+    "tlf": {
+      "nummer": "+4792253599",
+      "sistOppdatert": "2025-10-17",
+      "sistVerifisert": "2025-10-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08836198108",
+    "epost": {
+      "adresse": "effektiv.hai@example.test",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "tlf": {
+      "nummer": "+4791705495",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16816599079",
+    "epost": {
+      "adresse": "ungt.ekornhale@example.test",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "tlf": {
+      "nummer": "+4799226534",
+      "sistOppdatert": "2025-04-20",
+      "sistVerifisert": "2025-04-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08845498556",
+    "epost": {
+      "adresse": "ulastelig.handlingsevne@example.test",
+      "sistOppdatert": "2025-04-21",
+      "sistVerifisert": "2025-04-21"
+    },
+    "tlf": {
+      "nummer": "+4798623905",
+      "sistOppdatert": "2025-04-21",
+      "sistVerifisert": "2025-04-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08859897062",
+    "epost": {
+      "adresse": "utmerket.haandkrem@example.test",
+      "sistOppdatert": "2025-02-27",
+      "sistVerifisert": "2025-02-27"
+    },
+    "tlf": {
+      "nummer": "+4798130057",
+      "sistOppdatert": "2025-02-27",
+      "sistVerifisert": "2025-02-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08886694726",
+    "epost": {
+      "adresse": "stabil.fluktstol@example.test",
+      "sistOppdatert": "2025-02-26",
+      "sistVerifisert": "2025-02-26"
+    },
+    "tlf": {
+      "nummer": "+4794544681",
+      "sistOppdatert": "2025-02-26",
+      "sistVerifisert": "2025-02-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08896997735",
+    "epost": {
+      "adresse": "erfaren.blund@example.test",
+      "sistOppdatert": "2025-01-02",
+      "sistVerifisert": "2025-01-02"
+    },
+    "tlf": {
+      "nummer": "+4796089596",
+      "sistOppdatert": "2025-01-02",
+      "sistVerifisert": "2025-01-02"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08899497806",
+    "epost": {
+      "adresse": "legitim.klippe@example.test",
+      "sistOppdatert": "2025-09-14",
+      "sistVerifisert": "2025-09-14"
+    },
+    "tlf": {
+      "nummer": "+4795204781",
+      "sistOppdatert": "2025-09-14",
+      "sistVerifisert": "2025-09-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25829198560",
+    "epost": {
+      "adresse": "traadloes.toppskarv@example.test",
+      "sistOppdatert": "2025-11-12",
+      "sistVerifisert": "2025-11-12"
+    },
+    "tlf": {
+      "nummer": "+4796086550",
+      "sistOppdatert": "2025-11-12",
+      "sistVerifisert": "2025-11-12"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08910898567",
+    "epost": {
+      "adresse": "presis.deklarasjon@example.test",
+      "sistOppdatert": "2025-10-19",
+      "sistVerifisert": "2025-10-19"
+    },
+    "tlf": {
+      "nummer": "+4795059226",
+      "sistOppdatert": "2025-10-19",
+      "sistVerifisert": "2025-10-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12828597149",
+    "epost": {
+      "adresse": "rimelig.fakir@example.test",
+      "sistOppdatert": "2025-01-15",
+      "sistVerifisert": "2025-01-15"
+    },
+    "tlf": {
+      "nummer": "+4797914499",
+      "sistOppdatert": "2025-01-15",
+      "sistVerifisert": "2025-01-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17878496612",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "08917799599",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22920999631",
+    "epost": {
+      "adresse": "ryddig.vogge@example.test",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "tlf": {
+      "nummer": "+4795148773",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26858099829",
+    "epost": {
+      "adresse": "motstandsdyktig.harpun@example.test",
+      "sistOppdatert": "2025-05-05",
+      "sistVerifisert": "2025-05-05"
+    },
+    "tlf": {
+      "nummer": "+4792832069",
+      "sistOppdatert": "2025-05-05",
+      "sistVerifisert": "2025-05-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27850599837",
+    "epost": {
+      "adresse": "analyserende.flagg@example.test",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "tlf": {
+      "nummer": "+4790730674",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09820998720",
+    "epost": {
+      "adresse": "empirisk.pytt@example.test",
+      "sistOppdatert": "2025-06-05",
+      "sistVerifisert": "2025-06-05"
+    },
+    "tlf": {
+      "nummer": "+4791975935",
+      "sistOppdatert": "2025-06-05",
+      "sistVerifisert": "2025-06-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15898397316",
+    "epost": {
+      "adresse": "urokkelig.busskur@example.test",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "tlf": {
+      "nummer": "+4791636437",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26918198449",
+    "epost": {
+      "adresse": "aapen.konvolutt@example.test",
+      "sistOppdatert": "2025-08-01",
+      "sistVerifisert": "2025-08-01"
+    },
+    "tlf": {
+      "nummer": "+4795046832",
+      "sistOppdatert": "2025-08-01",
+      "sistVerifisert": "2025-08-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09838897417",
+    "epost": {
+      "adresse": "kjaer.graf@example.test",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "tlf": {
+      "nummer": "+4795777147",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12841198113",
+    "epost": {
+      "adresse": "tilfeldig.malstroem@example.test",
+      "sistOppdatert": "2025-09-10",
+      "sistVerifisert": "2025-09-10"
+    },
+    "tlf": {
+      "nummer": "+4799744132",
+      "sistOppdatert": "2025-09-10",
+      "sistVerifisert": "2025-09-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24888995958",
+    "epost": {
+      "adresse": "musikalsk.kaie@example.test",
+      "sistOppdatert": "2025-01-16",
+      "sistVerifisert": "2025-01-16"
+    },
+    "tlf": {
+      "nummer": "+4794750900",
+      "sistOppdatert": "2025-01-16",
+      "sistVerifisert": "2025-01-16"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09848298961",
+    "epost": {
+      "adresse": "aldrende.hare@example.test",
+      "sistOppdatert": "2025-02-26",
+      "sistVerifisert": "2025-02-26"
+    },
+    "tlf": {
+      "nummer": "+4790341561",
+      "sistOppdatert": "2025-02-26",
+      "sistVerifisert": "2025-02-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11928199438",
+    "epost": {
+      "adresse": "barmhjertig.doktorgrad@example.test",
+      "sistOppdatert": "2025-02-10",
+      "sistVerifisert": "2025-02-10"
+    },
+    "tlf": {
+      "nummer": "+4798697320",
+      "sistOppdatert": "2025-02-10",
+      "sistVerifisert": "2025-02-10"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28870999668",
+    "epost": {
+      "adresse": "presentabel.mandolin@example.test",
+      "sistOppdatert": "2025-09-05",
+      "sistVerifisert": "2025-09-05"
+    },
+    "tlf": {
+      "nummer": "+4792588417",
+      "sistOppdatert": "2025-09-05",
+      "sistVerifisert": "2025-09-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09877998182",
+    "epost": {
+      "adresse": "observant.betydning@example.test",
+      "sistOppdatert": "2025-05-15",
+      "sistVerifisert": "2025-05-15"
+    },
+    "tlf": {
+      "nummer": "+4795030209",
+      "sistOppdatert": "2025-05-15",
+      "sistVerifisert": "2025-05-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09898497140",
+    "epost": {
+      "adresse": "teoretisk.stasjonsvogn@example.test",
+      "sistOppdatert": "2025-05-06",
+      "sistVerifisert": "2025-05-06"
+    },
+    "tlf": {
+      "nummer": "+4796752280",
+      "sistOppdatert": "2025-05-06",
+      "sistVerifisert": "2025-05-06"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09917498943",
+    "epost": {
+      "adresse": "naer.beskjed@example.test",
+      "sistOppdatert": "2025-12-22",
+      "sistVerifisert": "2025-12-22"
+    },
+    "tlf": {
+      "nummer": "+4792892940",
+      "sistOppdatert": "2025-12-22",
+      "sistVerifisert": "2025-12-22"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09926799247",
+    "epost": {
+      "adresse": "deilig.sjoe@example.test",
+      "sistOppdatert": "2025-12-25",
+      "sistVerifisert": "2025-12-25"
+    },
+    "tlf": {
+      "nummer": "+4792209743",
+      "sistOppdatert": "2025-12-25",
+      "sistVerifisert": "2025-12-25"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "09926897680",
+    "epost": {
+      "adresse": "oversiktlig.sofa@example.test",
+      "sistOppdatert": "2025-01-24",
+      "sistVerifisert": "2025-01-24"
+    },
+    "tlf": {
+      "nummer": "+4790914613",
+      "sistOppdatert": "2025-01-24",
+      "sistVerifisert": "2025-01-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10817397625",
+    "epost": {
+      "adresse": "klok.hai@example.test",
+      "sistOppdatert": "2025-03-22",
+      "sistVerifisert": "2025-03-22"
+    },
+    "tlf": {
+      "nummer": "+4797345380",
+      "sistOppdatert": "2025-03-22",
+      "sistVerifisert": "2025-03-22"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10847996817",
+    "epost": {
+      "adresse": "aerlig.falk@example.test",
+      "sistOppdatert": "2025-11-12",
+      "sistVerifisert": "2025-11-12"
+    },
+    "tlf": {
+      "nummer": "+4797322715",
+      "sistOppdatert": "2025-11-12",
+      "sistVerifisert": "2025-11-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16907797329",
+    "epost": {
+      "adresse": "halv.logg@example.test",
+      "sistOppdatert": "2025-12-17",
+      "sistVerifisert": "2025-12-17"
+    },
+    "tlf": {
+      "nummer": "+4794097185",
+      "sistOppdatert": "2025-12-17",
+      "sistVerifisert": "2025-12-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24870598935",
+    "epost": {
+      "adresse": "teoretisk.skive@example.test",
+      "sistOppdatert": "2025-09-13",
+      "sistVerifisert": "2025-09-13"
+    },
+    "tlf": {
+      "nummer": "+4794026545",
+      "sistOppdatert": "2025-09-13",
+      "sistVerifisert": "2025-09-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10848197691",
+    "epost": {
+      "adresse": "rosa.pinnestol@example.test",
+      "sistOppdatert": "2025-01-27",
+      "sistVerifisert": "2025-01-27"
+    },
+    "tlf": {
+      "nummer": "+4795689481",
+      "sistOppdatert": "2025-01-27",
+      "sistVerifisert": "2025-01-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21878497977",
+    "epost": {
+      "adresse": "smart.blankett@example.test",
+      "sistOppdatert": "2025-04-08",
+      "sistVerifisert": "2025-04-08"
+    },
+    "tlf": {
+      "nummer": "+4794003742",
+      "sistOppdatert": "2025-04-08",
+      "sistVerifisert": "2025-04-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10854398909",
+    "epost": {
+      "adresse": "vennlig.fiken@example.test",
+      "sistOppdatert": "2025-06-13",
+      "sistVerifisert": "2025-06-13"
+    },
+    "tlf": {
+      "nummer": "+4792005183",
+      "sistOppdatert": "2025-06-13",
+      "sistVerifisert": "2025-06-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10869099266",
+    "epost": {
+      "adresse": "ubestikkelig.sko@example.test",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "tlf": {
+      "nummer": "+4797864567",
+      "sistOppdatert": "2025-01-23",
+      "sistVerifisert": "2025-01-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10878099147",
+    "epost": {
+      "adresse": "empirisk.analyse@example.test",
+      "sistOppdatert": "2025-10-09",
+      "sistVerifisert": "2025-10-09"
+    },
+    "tlf": {
+      "nummer": "+4793547381",
+      "sistOppdatert": "2025-10-09",
+      "sistVerifisert": "2025-10-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13877998643",
+    "epost": {
+      "adresse": "ulydig.ballong@example.test",
+      "sistOppdatert": "2025-02-27",
+      "sistVerifisert": "2025-02-27"
+    },
+    "tlf": {
+      "nummer": "+4792450772",
+      "sistOppdatert": "2025-02-27",
+      "sistVerifisert": "2025-02-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14890899952",
+    "epost": {
+      "adresse": "inkluderende.sjoe@example.test",
+      "sistOppdatert": "2025-09-20",
+      "sistVerifisert": "2025-09-20"
+    },
+    "tlf": {
+      "nummer": "+4790299467",
+      "sistOppdatert": "2025-09-20",
+      "sistVerifisert": "2025-09-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10878397784",
+    "epost": {
+      "adresse": "farlig.konvolutt@example.test",
+      "sistOppdatert": "2025-01-29",
+      "sistVerifisert": "2025-01-29"
+    },
+    "tlf": {
+      "nummer": "+4792494133",
+      "sistOppdatert": "2025-01-29",
+      "sistVerifisert": "2025-01-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20908199228",
+    "epost": {
+      "adresse": "beroemt.trompet@example.test",
+      "sistOppdatert": "2025-11-23",
+      "sistVerifisert": "2025-11-23"
+    },
+    "tlf": {
+      "nummer": "+4797346831",
+      "sistOppdatert": "2025-11-23",
+      "sistVerifisert": "2025-11-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "29830999475",
+    "epost": {
+      "adresse": "jovial.jordskorpe@example.test",
+      "sistOppdatert": "2025-06-13",
+      "sistVerifisert": "2025-06-13"
+    },
+    "tlf": {
+      "nummer": "+4794539588",
+      "sistOppdatert": "2025-06-13",
+      "sistVerifisert": "2025-06-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10881849769",
+    "epost": {
+      "adresse": "streng.draape@example.test",
+      "sistOppdatert": "2025-08-22",
+      "sistVerifisert": "2025-08-22"
+    },
+    "tlf": {
+      "nummer": "+4798498758",
+      "sistOppdatert": "2025-08-22",
+      "sistVerifisert": "2025-08-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "10882749938",
+    "epost": {
+      "adresse": "inkonsekvent.kork@example.test",
+      "sistOppdatert": "2025-08-06",
+      "sistVerifisert": "2025-08-06"
+    },
+    "tlf": {
+      "nummer": "+4796481192",
+      "sistOppdatert": "2025-08-06",
+      "sistVerifisert": "2025-08-06"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26873049692",
+    "epost": {
+      "adresse": "erfaren.kveldsmat@example.test",
+      "sistOppdatert": "2025-06-08",
+      "sistVerifisert": "2025-06-08"
+    },
+    "tlf": {
+      "nummer": "+4793893863",
+      "sistOppdatert": "2025-06-08",
+      "sistVerifisert": "2025-06-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11846497627",
+    "epost": {
+      "adresse": "aerlig.regel@example.test",
+      "sistOppdatert": "2025-12-05",
+      "sistVerifisert": "2025-12-05"
+    },
+    "tlf": {
+      "nummer": "+4790312418",
+      "sistOppdatert": "2025-12-05",
+      "sistVerifisert": "2025-12-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11847797446",
+    "epost": {
+      "adresse": "utstrakt.ferskvann@example.test",
+      "sistOppdatert": "2025-05-15",
+      "sistVerifisert": "2025-05-15"
+    },
+    "tlf": {
+      "nummer": "+4793788439",
+      "sistOppdatert": "2025-05-15",
+      "sistVerifisert": "2025-05-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13828097789",
+    "epost": {
+      "adresse": "perfekt.kjedekollisjon@example.test",
+      "sistOppdatert": "2025-10-03",
+      "sistVerifisert": "2025-10-03"
+    },
+    "tlf": {
+      "nummer": "+4790695955",
+      "sistOppdatert": "2025-10-03",
+      "sistVerifisert": "2025-10-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11874398766",
+    "epost": {
+      "adresse": "lidenskapelig.oter@example.test",
+      "sistOppdatert": "2025-06-29",
+      "sistVerifisert": "2025-06-29"
+    },
+    "tlf": {
+      "nummer": "+4792159339",
+      "sistOppdatert": "2025-06-29",
+      "sistVerifisert": "2025-06-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11889098149",
+    "epost": {
+      "adresse": "opprett.boeylehest@example.test",
+      "sistOppdatert": "2025-05-30",
+      "sistVerifisert": "2025-05-30"
+    },
+    "tlf": {
+      "nummer": "+4799182889",
+      "sistOppdatert": "2025-05-30",
+      "sistVerifisert": "2025-05-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "11915397575",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12822048208",
+    "epost": {
+      "adresse": "historisk.elefant@example.test",
+      "sistOppdatert": "2025-08-20",
+      "sistVerifisert": "2025-08-20"
+    },
+    "tlf": {
+      "nummer": "+4798391096",
+      "sistOppdatert": "2025-08-20",
+      "sistVerifisert": "2025-08-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12837799072",
+    "epost": {
+      "adresse": "eksemplarisk.tre@example.test",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "tlf": {
+      "nummer": "+4794934452",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12842349387",
+    "epost": {
+      "adresse": "komplett.kiwi@example.test",
+      "sistOppdatert": "2025-08-21",
+      "sistVerifisert": "2025-08-21"
+    },
+    "tlf": {
+      "nummer": "+4793288202",
+      "sistOppdatert": "2025-08-21",
+      "sistVerifisert": "2025-08-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15872449032",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14839099232",
+    "epost": {
+      "adresse": "tykkhudet.ramme@example.test",
+      "sistOppdatert": "2025-12-29",
+      "sistVerifisert": "2025-12-29"
+    },
+    "tlf": {
+      "nummer": "+4799389597",
+      "sistOppdatert": "2025-12-29",
+      "sistVerifisert": "2025-12-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24928897350",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12926497462",
+    "epost": {
+      "adresse": "fiolett.dagbok@example.test",
+      "sistOppdatert": "2025-10-15",
+      "sistVerifisert": "2025-10-15"
+    },
+    "tlf": {
+      "nummer": "+4790068567",
+      "sistOppdatert": "2025-10-15",
+      "sistVerifisert": "2025-10-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12928096570",
+    "epost": {
+      "adresse": "lyseblaa.system@example.test",
+      "sistOppdatert": "2025-04-09",
+      "sistVerifisert": "2025-04-09"
+    },
+    "tlf": {
+      "nummer": "+4799120518",
+      "sistOppdatert": "2025-04-09",
+      "sistVerifisert": "2025-04-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "12928399328",
+    "epost": {
+      "adresse": "tom.bukse@example.test",
+      "sistOppdatert": "2025-12-09",
+      "sistVerifisert": "2025-12-09"
+    },
+    "tlf": {
+      "nummer": "+4798052827",
+      "sistOppdatert": "2025-12-09",
+      "sistVerifisert": "2025-12-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30918499675",
+    "epost": {
+      "adresse": "fantasiloes.aarsak@example.test",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "tlf": {
+      "nummer": "+4796173488",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13836496145",
+    "epost": {
+      "adresse": "distingvert.opplag@example.test",
+      "sistOppdatert": "2025-09-07",
+      "sistVerifisert": "2025-09-07"
+    },
+    "tlf": {
+      "nummer": "+4799489339",
+      "sistOppdatert": "2025-09-07",
+      "sistVerifisert": "2025-09-07"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13837799869",
+    "epost": {
+      "adresse": "innsiktsfull.betaling@example.test",
+      "sistOppdatert": "2025-04-12",
+      "sistVerifisert": "2025-04-12"
+    },
+    "tlf": {
+      "nummer": "+4791177831",
+      "sistOppdatert": "2025-04-12",
+      "sistVerifisert": "2025-04-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23921099983",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26838099172",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13855096123",
+    "epost": {
+      "adresse": "alminnelig.kreps@example.test",
+      "sistOppdatert": "2025-06-20",
+      "sistVerifisert": "2025-06-20"
+    },
+    "tlf": {
+      "nummer": "+4792210440",
+      "sistOppdatert": "2025-06-20",
+      "sistVerifisert": "2025-06-20"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14914696209",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13855997147",
+    "epost": {
+      "adresse": "intuitiv.oevelse@example.test",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "tlf": {
+      "nummer": "+4796009818",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13870399949",
+    "epost": {
+      "adresse": "aktverdig.alkove@example.test",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "tlf": {
+      "nummer": "+4793463931",
+      "sistOppdatert": "2025-10-29",
+      "sistVerifisert": "2025-10-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13897598307",
+    "epost": {
+      "adresse": "groenn.pike@example.test",
+      "sistOppdatert": "2025-01-30",
+      "sistVerifisert": "2025-01-30"
+    },
+    "tlf": {
+      "nummer": "+4792392329",
+      "sistOppdatert": "2025-01-30",
+      "sistVerifisert": "2025-01-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21847297694",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22850999663",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16879199453",
+    "epost": {
+      "adresse": "kompetent.kommune@example.test",
+      "sistOppdatert": "2025-05-01",
+      "sistVerifisert": "2025-05-01"
+    },
+    "tlf": {
+      "nummer": "+4798911855",
+      "sistOppdatert": "2025-05-01",
+      "sistVerifisert": "2025-05-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "31839598982",
+    "epost": {
+      "adresse": "tykkhudet.mormor@example.test",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "tlf": {
+      "nummer": "+4796133408",
+      "sistOppdatert": "2025-08-17",
+      "sistVerifisert": "2025-08-17"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13918296128",
+    "epost": {
+      "adresse": "oede.ambulanse@example.test",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "tlf": {
+      "nummer": "+4799513215",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18871097484",
+    "epost": {
+      "adresse": "jordnaer.joker@example.test",
+      "sistOppdatert": "2025-07-22",
+      "sistVerifisert": "2025-07-22"
+    },
+    "tlf": {
+      "nummer": "+4798360012",
+      "sistOppdatert": "2025-07-22",
+      "sistVerifisert": "2025-07-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24818597289",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "13925796632",
+    "epost": {
+      "adresse": "sannferdig.malerbukse@example.test",
+      "sistOppdatert": "2025-03-03",
+      "sistVerifisert": "2025-03-03"
+    },
+    "tlf": {
+      "nummer": "+4794822296",
+      "sistOppdatert": "2025-03-03",
+      "sistVerifisert": "2025-03-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28869199402",
+    "epost": {
+      "adresse": "ivrig.assistent@example.test",
+      "sistOppdatert": "2025-08-15",
+      "sistVerifisert": "2025-08-15"
+    },
+    "tlf": {
+      "nummer": "+4793447561",
+      "sistOppdatert": "2025-08-15",
+      "sistVerifisert": "2025-08-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14837798923",
+    "epost": {
+      "adresse": "hes.aprikos@example.test",
+      "sistOppdatert": "2025-12-15",
+      "sistVerifisert": "2025-12-15"
+    },
+    "tlf": {
+      "nummer": "+4790599018",
+      "sistOppdatert": "2025-12-15",
+      "sistVerifisert": "2025-12-15"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14844397586",
+    "epost": {
+      "adresse": "pratsom.stroempebukse@example.test",
+      "sistOppdatert": "2025-04-22",
+      "sistVerifisert": "2025-04-22"
+    },
+    "tlf": {
+      "nummer": "+4790905346",
+      "sistOppdatert": "2025-04-22",
+      "sistVerifisert": "2025-04-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25924394830",
+    "epost": {
+      "adresse": "konfuskompetent.stroempebukse@example.test",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "tlf": {
+      "nummer": "+4794167982",
+      "sistOppdatert": "2025-05-03",
+      "sistVerifisert": "2025-05-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14856997880",
+    "epost": {
+      "adresse": "levende.revebjelle@example.test",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "tlf": {
+      "nummer": "+4797260282",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14859199667",
+    "epost": {
+      "adresse": "urimelig.snoeball@example.test",
+      "sistOppdatert": "2025-01-24",
+      "sistVerifisert": "2025-01-24"
+    },
+    "tlf": {
+      "nummer": "+4791096228",
+      "sistOppdatert": "2025-01-24",
+      "sistVerifisert": "2025-01-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14878799543",
+    "epost": {
+      "adresse": "opplagt.stasjon@example.test",
+      "sistOppdatert": "2025-04-16",
+      "sistVerifisert": "2025-04-16"
+    },
+    "tlf": {
+      "nummer": "+4798204900",
+      "sistOppdatert": "2025-04-16",
+      "sistVerifisert": "2025-04-16"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14887397873",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14915698914",
+    "epost": {
+      "adresse": "viktig.foxtrot@example.test",
+      "sistOppdatert": "2025-11-09",
+      "sistVerifisert": "2025-11-09"
+    },
+    "tlf": {
+      "nummer": "+4792965302",
+      "sistOppdatert": "2025-11-09",
+      "sistVerifisert": "2025-11-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14917197335",
+    "epost": {
+      "adresse": "varm.skrivemaskin@example.test",
+      "sistOppdatert": "2025-04-21",
+      "sistVerifisert": "2025-04-21"
+    },
+    "tlf": {
+      "nummer": "+4791914885",
+      "sistOppdatert": "2025-04-21",
+      "sistVerifisert": "2025-04-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14918497154",
+    "epost": {
+      "adresse": "typisk.graf@example.test",
+      "sistOppdatert": "2025-11-17",
+      "sistVerifisert": "2025-11-17"
+    },
+    "tlf": {
+      "nummer": "+4792281160",
+      "sistOppdatert": "2025-11-17",
+      "sistVerifisert": "2025-11-17"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "14920298304",
+    "epost": {
+      "adresse": "fornem.kjeltring@example.test",
+      "sistOppdatert": "2025-05-08",
+      "sistVerifisert": "2025-05-08"
+    },
+    "tlf": {
+      "nummer": "+4799201117",
+      "sistOppdatert": "2025-05-08",
+      "sistVerifisert": "2025-05-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15844697063",
+    "epost": {
+      "adresse": "stolt.bad@example.test",
+      "sistOppdatert": "2025-11-28",
+      "sistVerifisert": "2025-11-28"
+    },
+    "tlf": {
+      "nummer": "+4793056956",
+      "sistOppdatert": "2025-11-28",
+      "sistVerifisert": "2025-11-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15857996388",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15866497572",
+    "epost": {
+      "adresse": "minst.busse@example.test",
+      "sistOppdatert": "2025-09-14",
+      "sistVerifisert": "2025-09-14"
+    },
+    "tlf": {
+      "nummer": "+4793697301",
+      "sistOppdatert": "2025-09-14",
+      "sistVerifisert": "2025-09-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15879899602",
+    "epost": {
+      "adresse": "taktfull.sekretaer@example.test",
+      "sistOppdatert": "2025-08-10",
+      "sistVerifisert": "2025-08-10"
+    },
+    "tlf": {
+      "nummer": "+4790712171",
+      "sistOppdatert": "2025-08-10",
+      "sistVerifisert": "2025-08-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15907698324",
+    "epost": {
+      "adresse": "rik.panter@example.test",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "tlf": {
+      "nummer": "+4791960909",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20847698684",
+    "epost": {
+      "adresse": "kry.hoeyttaler@example.test",
+      "sistOppdatert": "2025-01-01",
+      "sistVerifisert": "2025-01-01"
+    },
+    "tlf": {
+      "nummer": "+4790726255",
+      "sistOppdatert": "2025-01-01",
+      "sistVerifisert": "2025-01-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30890899796",
+    "epost": {
+      "adresse": "husloes.avstand@example.test",
+      "sistOppdatert": "2025-09-12",
+      "sistVerifisert": "2025-09-12"
+    },
+    "tlf": {
+      "nummer": "+4796085379",
+      "sistOppdatert": "2025-09-12",
+      "sistVerifisert": "2025-09-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "15924798774",
+    "epost": {
+      "adresse": "akselererende.kollega@example.test",
+      "sistOppdatert": "2025-12-30",
+      "sistVerifisert": "2025-12-30"
+    },
+    "tlf": {
+      "nummer": "+4793814078",
+      "sistOppdatert": "2025-12-30",
+      "sistVerifisert": "2025-12-30"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16825297743",
+    "epost": {
+      "adresse": "sein.granskning@example.test",
+      "sistOppdatert": "2025-05-29",
+      "sistVerifisert": "2025-05-29"
+    },
+    "tlf": {
+      "nummer": "+4792686813",
+      "sistOppdatert": "2025-05-29",
+      "sistVerifisert": "2025-05-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "19885597672",
+    "epost": {
+      "adresse": "tankefull.lue@example.test",
+      "sistOppdatert": "2025-06-18",
+      "sistVerifisert": "2025-06-18"
+    },
+    "tlf": {
+      "nummer": "+4796765688",
+      "sistOppdatert": "2025-06-18",
+      "sistVerifisert": "2025-06-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16892049401",
+    "epost": {
+      "adresse": "iherdig.pakt@example.test",
+      "sistOppdatert": "2025-11-26",
+      "sistVerifisert": "2025-11-26"
+    },
+    "tlf": {
+      "nummer": "+4794620299",
+      "sistOppdatert": "2025-11-26",
+      "sistVerifisert": "2025-11-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16892949631",
+    "epost": {
+      "adresse": "lekker.klasse@example.test",
+      "sistOppdatert": "2025-09-02",
+      "sistVerifisert": "2025-09-02"
+    },
+    "tlf": {
+      "nummer": "+4796110469",
+      "sistOppdatert": "2025-09-02",
+      "sistVerifisert": "2025-09-02"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16922749950",
+    "epost": {
+      "adresse": "rimelig.fjellkjede@example.test",
+      "sistOppdatert": "2025-04-28",
+      "sistVerifisert": "2025-04-28"
+    },
+    "tlf": {
+      "nummer": "+4794840097",
+      "sistOppdatert": "2025-04-28",
+      "sistVerifisert": "2025-04-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16897798437",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16900199760",
+    "epost": {
+      "adresse": "mett.ekspedisjon@example.test",
+      "sistOppdatert": "2025-01-20",
+      "sistVerifisert": "2025-01-20"
+    },
+    "tlf": {
+      "nummer": "+4797225929",
+      "sistOppdatert": "2025-01-20",
+      "sistVerifisert": "2025-01-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16914896219",
+    "epost": {
+      "adresse": "omsorgsfull.blogg@example.test",
+      "sistOppdatert": "2025-11-06",
+      "sistVerifisert": "2025-11-06"
+    },
+    "tlf": {
+      "nummer": "+4797649289",
+      "sistOppdatert": "2025-11-06",
+      "sistVerifisert": "2025-11-06"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "16915194986",
+    "epost": {
+      "adresse": "fruktbar.puddel@example.test",
+      "sistOppdatert": "2025-01-19",
+      "sistVerifisert": "2025-01-19"
+    },
+    "tlf": {
+      "nummer": "+4793658708",
+      "sistOppdatert": "2025-01-19",
+      "sistVerifisert": "2025-01-19"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17840397742",
+    "epost": {
+      "adresse": "deilig.modell@example.test",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "tlf": {
+      "nummer": "+4794722533",
+      "sistOppdatert": "2025-06-03",
+      "sistVerifisert": "2025-06-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17860099195",
+    "epost": {
+      "adresse": "grunn.natt@example.test",
+      "sistOppdatert": "2025-06-12",
+      "sistVerifisert": "2025-06-12"
+    },
+    "tlf": {
+      "nummer": "+4796111242",
+      "sistOppdatert": "2025-06-12",
+      "sistVerifisert": "2025-06-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "17878497597",
+    "epost": {
+      "adresse": "gul.malerbukse@example.test",
+      "sistOppdatert": "2025-04-03",
+      "sistVerifisert": "2025-04-03"
+    },
+    "tlf": {
+      "nummer": "+4799672437",
+      "sistOppdatert": "2025-04-03",
+      "sistVerifisert": "2025-04-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18869398256",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23819498555",
+    "epost": {
+      "adresse": "kompetent.korg@example.test",
+      "sistOppdatert": "2025-06-28",
+      "sistVerifisert": "2025-06-28"
+    },
+    "tlf": {
+      "nummer": "+4797854598",
+      "sistOppdatert": "2025-06-28",
+      "sistVerifisert": "2025-06-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "18919999477",
+    "epost": {
+      "adresse": "aktiv.ask@example.test",
+      "sistOppdatert": "2025-08-26",
+      "sistVerifisert": "2025-08-26"
+    },
+    "tlf": {
+      "nummer": "+4790977492",
+      "sistOppdatert": "2025-08-26",
+      "sistVerifisert": "2025-08-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "19826297193",
+    "epost": {
+      "adresse": "optimistisk.doer@example.test",
+      "sistOppdatert": "2025-08-03",
+      "sistVerifisert": "2025-08-03"
+    },
+    "tlf": {
+      "nummer": "+4799900924",
+      "sistOppdatert": "2025-08-03",
+      "sistVerifisert": "2025-08-03"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "19844399300",
+    "epost": {
+      "adresse": "livsglad.skrivemaskin@example.test",
+      "sistOppdatert": "2025-01-04",
+      "sistVerifisert": "2025-01-04"
+    },
+    "tlf": {
+      "nummer": "+4795058823",
+      "sistOppdatert": "2025-01-04",
+      "sistVerifisert": "2025-01-04"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25844599881",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20865699582",
+    "epost": {
+      "adresse": "ufruktbar.badestrand@example.test",
+      "sistOppdatert": "2025-08-28",
+      "sistVerifisert": "2025-08-28"
+    },
+    "tlf": {
+      "nummer": "+4796750689",
+      "sistOppdatert": "2025-08-28",
+      "sistVerifisert": "2025-08-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20894799898",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "20899299400",
+    "epost": {
+      "adresse": "konvensjonell.reise@example.test",
+      "sistOppdatert": "2025-11-24",
+      "sistVerifisert": "2025-11-24"
+    },
+    "tlf": {
+      "nummer": "+4797556297",
+      "sistOppdatert": "2025-11-24",
+      "sistVerifisert": "2025-11-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30899599353",
+    "epost": {
+      "adresse": "lyselilla.komfyr@example.test",
+      "sistOppdatert": "2025-03-22",
+      "sistVerifisert": "2025-03-22"
+    },
+    "tlf": {
+      "nummer": "+4791193970",
+      "sistOppdatert": "2025-03-22",
+      "sistVerifisert": "2025-03-22"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21834198816",
+    "epost": {
+      "adresse": "autentisk.nepe@example.test",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "tlf": {
+      "nummer": "+4798242090",
+      "sistOppdatert": "2025-03-17",
+      "sistVerifisert": "2025-03-17"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21867399191",
+    "epost": {
+      "adresse": "festlig.radiostasjon@example.test",
+      "sistOppdatert": "2025-09-09",
+      "sistVerifisert": "2025-09-09"
+    },
+    "tlf": {
+      "nummer": "+4790505001",
+      "sistOppdatert": "2025-09-09",
+      "sistVerifisert": "2025-09-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "21871346809",
+    "epost": {
+      "adresse": "underfundig.budeie@example.test",
+      "sistOppdatert": "2025-03-11",
+      "sistVerifisert": "2025-03-11"
+    },
+    "tlf": {
+      "nummer": "+4792378674",
+      "sistOppdatert": "2025-03-11",
+      "sistVerifisert": "2025-03-11"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22826195936",
+    "epost": {
+      "adresse": "foretaksom.metode@example.test",
+      "sistOppdatert": "2025-04-22",
+      "sistVerifisert": "2025-04-22"
+    },
+    "tlf": {
+      "nummer": "+4791352006",
+      "sistOppdatert": "2025-04-22",
+      "sistVerifisert": "2025-04-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22857095328",
+    "epost": {
+      "adresse": "fysisk.fane@example.test",
+      "sistOppdatert": "2025-01-25",
+      "sistVerifisert": "2025-01-25"
+    },
+    "tlf": {
+      "nummer": "+4797409694",
+      "sistOppdatert": "2025-01-25",
+      "sistVerifisert": "2025-01-25"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22861448375",
+    "epost": {
+      "adresse": "storartet.jak@example.test",
+      "sistOppdatert": "2025-05-18",
+      "sistVerifisert": "2025-05-18"
+    },
+    "tlf": {
+      "nummer": "+4793084317",
+      "sistOppdatert": "2025-05-18",
+      "sistVerifisert": "2025-05-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "22885997906",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23816396115",
+    "epost": {
+      "adresse": "kvadratisk.magesekk@example.test",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "tlf": {
+      "nummer": "+4792472370",
+      "sistOppdatert": "2025-12-27",
+      "sistVerifisert": "2025-12-27"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23845995389",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23878493842",
+    "epost": {
+      "adresse": "empirisk.reke@example.test",
+      "sistOppdatert": "2025-05-21",
+      "sistVerifisert": "2025-05-21"
+    },
+    "tlf": {
+      "nummer": "+4791472145",
+      "sistOppdatert": "2025-05-21",
+      "sistVerifisert": "2025-05-21"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nn",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26870698339",
+    "epost": {
+      "adresse": "skravlete.miljoegift@example.test",
+      "sistOppdatert": "2025-06-09",
+      "sistVerifisert": "2025-06-09"
+    },
+    "tlf": {
+      "nummer": "+4791287084",
+      "sistOppdatert": "2025-06-09",
+      "sistVerifisert": "2025-06-09"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26898596736",
+    "epost": {
+      "adresse": "etterpaaklok.konduktoer@example.test",
+      "sistOppdatert": "2025-07-20",
+      "sistVerifisert": "2025-07-20"
+    },
+    "tlf": {
+      "nummer": "+4795026670",
+      "sistOppdatert": "2025-07-20",
+      "sistVerifisert": "2025-07-20"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23898997324",
+    "epost": {
+      "adresse": "elegant.baug@example.test",
+      "sistOppdatert": "2025-01-28",
+      "sistVerifisert": "2025-01-28"
+    },
+    "tlf": {
+      "nummer": "+4797605747",
+      "sistOppdatert": "2025-01-28",
+      "sistVerifisert": "2025-01-28"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "23926997971",
+    "epost": {
+      "adresse": "bevisst.jakke@example.test",
+      "sistOppdatert": "2025-04-16",
+      "sistVerifisert": "2025-04-16"
+    },
+    "tlf": {
+      "nummer": "+4796049705",
+      "sistOppdatert": "2025-04-16",
+      "sistVerifisert": "2025-04-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24824998880",
+    "epost": {
+      "adresse": "lys.fallskjermhopper@example.test",
+      "sistOppdatert": "2025-06-26",
+      "sistVerifisert": "2025-06-26"
+    },
+    "tlf": {
+      "nummer": "+4795907471",
+      "sistOppdatert": "2025-06-26",
+      "sistVerifisert": "2025-06-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24842749219",
+    "epost": {
+      "adresse": "unoeyaktig.mynt@example.test",
+      "sistOppdatert": "2025-12-10",
+      "sistVerifisert": "2025-12-10"
+    },
+    "tlf": {
+      "nummer": "+4799361263",
+      "sistOppdatert": "2025-12-10",
+      "sistVerifisert": "2025-12-10"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24856695626",
+    "epost": {
+      "adresse": "komplisert.kveldsmat@example.test",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "tlf": {
+      "nummer": "+4793369972",
+      "sistOppdatert": "2025-06-27",
+      "sistVerifisert": "2025-06-27"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24862749118",
+    "epost": {
+      "adresse": "handlende.overskrift@example.test",
+      "sistOppdatert": "2025-01-01",
+      "sistVerifisert": "2025-01-01"
+    },
+    "tlf": {
+      "nummer": "+4791463595",
+      "sistOppdatert": "2025-01-01",
+      "sistVerifisert": "2025-01-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "24893249393",
+    "epost": {
+      "adresse": "fruktbar.fil@example.test",
+      "sistOppdatert": "2025-04-24",
+      "sistVerifisert": "2025-04-24"
+    },
+    "tlf": {
+      "nummer": "+4796741743",
+      "sistOppdatert": "2025-04-24",
+      "sistVerifisert": "2025-04-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25929298287",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25914797104",
+    "epost": {
+      "adresse": "utydelig.mandarin@example.test",
+      "sistOppdatert": "2025-10-05",
+      "sistVerifisert": "2025-10-05"
+    },
+    "tlf": {
+      "nummer": "+4796553022",
+      "sistOppdatert": "2025-10-05",
+      "sistVerifisert": "2025-10-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25926898550",
+    "epost": {
+      "adresse": "skeptisk.hare@example.test",
+      "sistOppdatert": "2025-02-23",
+      "sistVerifisert": "2025-02-23"
+    },
+    "tlf": {
+      "nummer": "+4796678798",
+      "sistOppdatert": "2025-02-23",
+      "sistVerifisert": "2025-02-23"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "25927699845",
+    "epost": {
+      "adresse": "kjaer.oppdatering@example.test",
+      "sistOppdatert": "2025-06-08",
+      "sistVerifisert": "2025-06-08"
+    },
+    "tlf": {
+      "nummer": "+4790085433",
+      "sistOppdatert": "2025-06-08",
+      "sistVerifisert": "2025-06-08"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27827999747",
+    "epost": {
+      "adresse": "rakrygget.rekkefoelge@example.test",
+      "sistOppdatert": "2025-06-05",
+      "sistVerifisert": "2025-06-05"
+    },
+    "tlf": {
+      "nummer": "+4792052670",
+      "sistOppdatert": "2025-06-05",
+      "sistVerifisert": "2025-06-05"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26819999774",
+    "epost": {
+      "adresse": "dobbel.plomme@example.test",
+      "sistOppdatert": "2025-07-20",
+      "sistVerifisert": "2025-07-20"
+    },
+    "tlf": {
+      "nummer": "+4793295780",
+      "sistOppdatert": "2025-07-20",
+      "sistVerifisert": "2025-07-20"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26854998152",
+    "epost": {
+      "adresse": "autonom.handelsreisende@example.test",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "tlf": {
+      "nummer": "+4794779984",
+      "sistOppdatert": "2025-12-16",
+      "sistVerifisert": "2025-12-16"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26865399463",
+    "epost": {
+      "adresse": "subtil.hengekoeye@example.test",
+      "sistOppdatert": "2025-10-26",
+      "sistVerifisert": "2025-10-26"
+    },
+    "tlf": {
+      "nummer": "+4798863408",
+      "sistOppdatert": "2025-10-26",
+      "sistVerifisert": "2025-10-26"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26872349102",
+    "epost": {
+      "adresse": "trekantet.innhegning@example.test",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "tlf": {
+      "nummer": "+4790477909",
+      "sistOppdatert": "2025-06-24",
+      "sistVerifisert": "2025-06-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26897398000",
+    "epost": {
+      "adresse": "oppjaget.gullmynt@example.test",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "tlf": {
+      "nummer": "+4796354907",
+      "sistOppdatert": "2025-12-14",
+      "sistVerifisert": "2025-12-14"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "26919998171",
+    "epost": {
+      "adresse": "korrekt.assistent@example.test",
+      "sistOppdatert": "2025-12-24",
+      "sistVerifisert": "2025-12-24"
+    },
+    "tlf": {
+      "nummer": "+4795048747",
+      "sistOppdatert": "2025-12-24",
+      "sistVerifisert": "2025-12-24"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27884398660",
+    "epost": {
+      "adresse": "autonom.hingst@example.test",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "tlf": {
+      "nummer": "+4794323506",
+      "sistOppdatert": "2025-03-18",
+      "sistVerifisert": "2025-03-18"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27886696316",
+    "epost": {
+      "adresse": "overfloedig.frukthage@example.test",
+      "sistOppdatert": "2025-08-29",
+      "sistVerifisert": "2025-08-29"
+    },
+    "tlf": {
+      "nummer": "+4795303315",
+      "sistOppdatert": "2025-08-29",
+      "sistVerifisert": "2025-08-29"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "27906598839",
+    "epost": {
+      "adresse": "parodisk.svigersoenn@example.test",
+      "sistOppdatert": "2025-12-13",
+      "sistVerifisert": "2025-12-13"
+    },
+    "tlf": {
+      "nummer": "+4792782181",
+      "sistOppdatert": "2025-12-13",
+      "sistVerifisert": "2025-12-13"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28856197850",
+    "epost": {
+      "adresse": "ren.kime@example.test",
+      "sistOppdatert": "2025-09-12",
+      "sistVerifisert": "2025-09-12"
+    },
+    "tlf": {
+      "nummer": "+4791476614",
+      "sistOppdatert": "2025-09-12",
+      "sistVerifisert": "2025-09-12"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "en",
+    "syntetisk": true
+  },
+  {
+    "fnr": "28905598416",
+    "epost": {
+      "adresse": "hes.lyd@example.test",
+      "sistOppdatert": "2025-11-01",
+      "sistVerifisert": "2025-11-01"
+    },
+    "tlf": {
+      "nummer": "+4797150624",
+      "sistOppdatert": "2025-11-01",
+      "sistVerifisert": "2025-11-01"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "29840497893",
+    "epost": {
+      "adresse": "kald.universitet@example.test",
+      "sistOppdatert": "2025-12-31",
+      "sistVerifisert": "2025-12-31"
+    },
+    "tlf": {
+      "nummer": "+4791971464",
+      "sistOppdatert": "2025-12-31",
+      "sistVerifisert": "2025-12-31"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "29868098870",
+    "epost": {
+      "adresse": "humoristisk.granitt@example.test",
+      "sistOppdatert": "2025-02-04",
+      "sistVerifisert": "2025-02-04"
+    },
+    "tlf": {
+      "nummer": "+4794488774",
+      "sistOppdatert": "2025-02-04",
+      "sistVerifisert": "2025-02-04"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30816699602",
+    "epost": {
+      "adresse": "rakrygget.komposisjon@example.test",
+      "sistOppdatert": "2025-01-20",
+      "sistVerifisert": "2025-01-20"
+    },
+    "tlf": {
+      "nummer": "+4796744619",
+      "sistOppdatert": "2025-01-20",
+      "sistVerifisert": "2025-01-20"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30848597283",
+    "epost": {
+      "adresse": "sympatisk.foell@example.test",
+      "sistOppdatert": "2025-07-22",
+      "sistVerifisert": "2025-07-22"
+    },
+    "tlf": {
+      "nummer": "+4792223412",
+      "sistOppdatert": "2025-07-22",
+      "sistVerifisert": "2025-07-22"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30891247350",
+    "epost": {
+      "adresse": "oransje.antikvitet@example.test",
+      "sistOppdatert": "2025-09-05",
+      "sistVerifisert": "2025-09-05"
+    },
+    "tlf": {
+      "nummer": "+4793644357",
+      "sistOppdatert": "2025-09-05",
+      "sistVerifisert": "2025-09-05"
+    },
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": true,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "30927596349",
+    "epost": {
+      "adresse": "uttrykksfull.seilbaat@example.test",
+      "sistOppdatert": "2025-05-31",
+      "sistVerifisert": "2025-05-31"
+    },
+    "tlf": {
+      "nummer": "+4797697580",
+      "sistOppdatert": "2025-05-31",
+      "sistVerifisert": "2025-05-31"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "31830298986",
+    "epost": {
+      "adresse": "veldig.natthegre@example.test",
+      "sistOppdatert": "2025-05-11",
+      "sistVerifisert": "2025-05-11"
+    },
+    "tlf": {
+      "nummer": "+4791944920",
+      "sistOppdatert": "2025-05-11",
+      "sistVerifisert": "2025-05-11"
+    },
+    "status": "AKTIV",
+    "reservert": true,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  },
+  {
+    "fnr": "31928996622",
+    "epost": null,
+    "tlf": null,
+    "status": "AKTIV",
+    "reservert": false,
+    "kanVarsles": false,
+    "spraak": "nb",
+    "syntetisk": true
+  }
+]

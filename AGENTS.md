@@ -20,9 +20,10 @@
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` — but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
-- **Five files under `data/` are generated and must not be hand-edited:**
-  `personer.json`, `husstander.json`, `inntekter.json`, `folkeregister.seed.json` and
-  `eierforhold.json`. `scripts/importer-tenor.ts` builds all five, plus
+- **Six files under `data/` are generated and must not be hand-edited:**
+  `personer.json`, `husstander.json`, `inntekter.json`, `krr.json`,
+  `folkeregister.seed.json` and
+  `eierforhold.json`. `scripts/importer-tenor.ts` builds all six, plus
   `docs/testpersoner.md`, from two sources: `data/kuratert.json` (the 51 hand-authored
   threshold fixtures) and `data/tenor/*.json` (the raw extracts). Edit a curated row in
   `personer.json` directly and the next import reverts it — so `pnpm test` compares the

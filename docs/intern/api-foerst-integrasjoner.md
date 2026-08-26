@@ -78,11 +78,12 @@ Alle disse er implementert:
 - `POST /fiks/oppgaver`, `GET /fiks/oppgaver/{id}`, `PUT /fiks/oppgaver/{id}/status`
 - `POST /fiks/meldinger`, `GET /fiks/meldinger/{id}`
 - `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling` · `/praktisk-bistand` · `/langtidsopphold-institusjon`
+- `POST /register/api/v1/ks/{rolleId}/krr/person` — Fiks Kontaktregisteret (KRR)
 
 De siste ligger på den **ekte** Fiks-stien, så kall kan kopieres rett fra
-KS-dokumentasjonen. Beregningsflaten er den eneste som speiler et reelt KS-API.
+KS-dokumentasjonen. Beregningsflaten og KRR speiler reelle KS-API-er.
 
-`openapi/fiks-simulator.yaml` dokumenterer alle 23 rutene, med `security:` per rute.
+`openapi/fiks-simulator.yaml` dokumenterer alle 24 rutene, med `security:` per rute.
 `pnpm test:openapi` holder spesifikasjonen og koden i takt, i begge retninger.
 
 ### KI-støtte-API — `ai-gateway` (8082)

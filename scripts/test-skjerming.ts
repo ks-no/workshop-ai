@@ -13,8 +13,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { maskBefolkning } from "../apps/shared/skjerming.ts";
-import type { Husstand, Person } from "../apps/shared/innbyggerdata.ts";
+import { maskBefolkning, maskKrr } from "../apps/shared/skjerming.ts";
+import type { Husstand, Krr, Person } from "../apps/shared/innbyggerdata.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -166,6 +166,40 @@ check(
   JSON.stringify(endredeHusstander.sort()) === JSON.stringify(["household-083", "household-093", "household-157"]),
   endredeHusstander.join(", ")
 );
+
+// --- KRR: contact info is masked, the notification facts survive -----------
+// maskKrr reads the same rule table as maskPerson: both protection grades hide
+// contact info. What survives is whether the person can be notified digitally,
+// not where the notification would go.
+
+const krrRader = await readJson<Krr[]>("data/krr.json");
+const krrFor = (personId: string): Krr => {
+  const fnr = kilde(personId).syntetiskFodselsnummer;
+  return finn(krrRader, (r) => r.fnr === fnr, `KRR-rad for ${personId}`);
+};
+
+const krr031 = maskKrr(krrFor("person-031"), kilde("person-031").adressebeskyttelse);
+check("person-031 mister eposten i KRR", krr031.epost === null);
+check("person-031 mister telefonen i KRR", krr031.tlf === null);
+check("person-031 beholder reservert i KRR", krr031.reservert === krrFor("person-031").reservert);
+check("person-031 beholder spraak i KRR", krr031.spraak === krrFor("person-031").spraak);
+check("person-031 beholder kanVarsles i KRR", krr031.kanVarsles === krrFor("person-031").kanVarsles);
+check("person-031 beholder fnr i KRR", krr031.fnr === "16848300180");
+check("person-031 beholder nøkkelsettet på KRR-raden", likeNokler(krr031, krrFor("person-031")));
+
+const krr194 = maskKrr(krrFor("person-194"), kilde("person-194").adressebeskyttelse);
+check("person-194 (FORTROLIG) mister eposten i KRR", krr194.epost === null);
+check("person-194 (FORTROLIG) mister telefonen i KRR", krr194.tlf === null);
+
+const krr001 = maskKrr(krrFor("person-001"), kilde("person-001").adressebeskyttelse);
+check(
+  "person-001 (UGRADERT) er uendret i KRR",
+  JSON.stringify(krr001) === JSON.stringify(krrFor("person-001"))
+);
+
+// Failing open is the one mistake this must never make: an unknown grade masks.
+const ukjentGrad = maskKrr(krrFor("person-001"), "NY_GRAD");
+check("ukjent gradering maskerer KRR-kontakten", ukjentGrad.epost === null && ukjentGrad.tlf === null);
 
 // --- report ---------------------------------------------------------------
 

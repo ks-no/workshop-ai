@@ -12,7 +12,7 @@ Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-23 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
+24 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
 Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`,
 `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så et oppgave-token
 åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises på alle fire med
@@ -66,7 +66,28 @@ Oppgaver og meldinger:
 - `PUT /fiks/oppgaver/{oppgaveId}/status`
 - `POST /fiks/meldinger`, `GET /fiks/meldinger/{meldingId}`
 
-Beregning — de eneste rutene som speiler et ekte KS-API, også bak `ks:fiks:register`:
+Kontaktregisteret (KRR) — på den **ekte** Fiks-stien, bak `ks:fiks:register`:
+
+- `POST /register/api/v1/ks/{rolleId}/krr/person` — kropp `{ "fnr": "..." }`
+
+Svarer med spekkens `KrrDefinisjon`-felter (`epost`, `tlf`, `status`, `reservert`,
+`kanVarsles`) pluss to flaggede avvik: `spraak` er lånt fra Digdirs underliggende
+KRR, og fnr valideres med modulus 11 — strengere enn spekkens regex. Datasettet er
+`data/krr.json`: én rad per bosatt person på 15 år eller mer, KRRs reelle
+aldersgrense. Feilskillet er del av læringsverdien: 400 `UGYLDIG_IDENTIFIKATOR`
+for et misdannet fnr, 404 `PERSON_IKKE_FUNNET` for et ukjent, og 404
+`IKKE_I_KONTAKTREGISTERET` for en kjent person under 15 år eller som ikke er
+bosatt. Adressebeskyttede får `epost` og `tlf` nullet i svaret; `reservert`,
+`spraak` og `kanVarsles` beholdes.
+
+```bash
+TOKEN=$(scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulator)
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"fnr": "28829100055"}' \
+  http://localhost:8081/register/api/v1/ks/min-rolle/krr/person
+```
+
+Beregning — også på ekte Fiks-sti, bak `ks:fiks:register`:
 
 - `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling`
 - `POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/praktisk-bistand`

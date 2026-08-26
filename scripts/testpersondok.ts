@@ -22,6 +22,7 @@ export function buildTestpersondok(
   inntekter: any,
   eierforhold: any,
   plasser: any,
+  krr: any,
   kuratert: any,
   referansedato: any
 ) {
@@ -107,6 +108,32 @@ export function buildTestpersondok(
   for (const [status, n] of Object.entries(perStatus).sort((a, b) => b[1] - a[1])) {
     linjer.push(`| ${status} | ${n} | ${statusforklaring[status] || ""} |`);
   }
+  linjer.push("");
+  linjer.push("## Kontaktregisteret (KRR)");
+  linjer.push("");
+  linjer.push(
+    "`data/krr.json` har én rad per bosatt person på 15 år eller mer — KRRs reelle " +
+    "aldersgrense — og `POST /register/api/v1/ks/{rolleId}/krr/person` i " +
+    "fiks-simulator svarer fra den, nøklet på fødselsnummer. Reservasjon og målform " +
+    "er utledet deterministisk; hos de kuraterte vinner forfattede verdier."
+  );
+  linjer.push("");
+  linjer.push("| | Antall |");
+  linjer.push("|---|---:|");
+  linjer.push(`| Rader i kontaktregisteret | ${krr.length} |`);
+  linjer.push(`| Reservert mot digital kommunikasjon | ${krr.filter((r: any) => r.reservert).length} |`);
+  linjer.push(`| Uten e-post og telefon | ${krr.filter((r: any) => !r.epost && !r.tlf).length} |`);
+  linjer.push(`| Kan varsles digitalt (\`kanVarsles\`) | ${krr.filter((r: any) => r.kanVarsles).length} |`);
+  for (const maal of ["nb", "nn", "en"]) {
+    linjer.push(`| Målform \`${maal}\` | ${krr.filter((r: any) => r.spraak === maal).length} |`);
+  }
+  linjer.push("");
+  linjer.push(
+    "`person-014` (Lina Berg) er reservert med gyldig postadresse, så print-kanalen " +
+    "kan testes i kuratert flyt. `person-019` har målform `nn` og `person-006` har " +
+    "`en`. Adressebeskyttede personer får `epost` og `tlf` nullet i svaret fra " +
+    "API-et; `reservert`, `spraak` og `kanVarsles` beholdes."
+  );
   linjer.push("");
   linjer.push("## Alle personene");
   linjer.push("");
