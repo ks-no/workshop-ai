@@ -7,3 +7,9 @@
 
 # Batch files are the mirror image: cmd.exe needs CRLF.
 *.bat text eol=crlf
+
+# CLAUDE.md is a one-line `@AGENTS.md` import that Claude Code expands at session
+# start. Git for Windows sets core.autocrlf=true, which would check the file out
+# as CRLF and leave a trailing \r on the import path. Pin it to LF so the pointer
+# resolves the same on Windows, macOS and Linux.
+CLAUDE.md text eol=lf
