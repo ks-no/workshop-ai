@@ -1,6 +1,6 @@
 {
   "beskrivelse": "Case-til-person-tabellen i docs/deltakerstart.md, pinnet. Deltakerne velger bruker etter denne tabellen og forventer et bestemt utfall; sto den bare i prosa gikk den ut av takt neste gang en inntekt flyttet seg. Den anbefalte SFO-brukeren ga avslag i tre flater samtidig uten at noe fanget det.",
-  "merknad": "Leses ikke av noen tjeneste. Kun grunnlag for scripts/valider-data.ts, som ogsaa sjekker at docs/deltakerstart.md navngir samme person.",
+  "merknad": "Leses ikke av noen tjeneste. Kun grunnlag for scripts/valider-data.ts, som også sjekker at docs/deltakerstart.md navngir samme person.",
   "syntetisk": true,
   "caser": [
     {
@@ -17,7 +17,7 @@
       "personId": "person-022",
       "ordning": "redusert-sfo-2-3-trinn",
       "forventetUtfall": "innvilget",
-      "begrunnelse": "Grunnlaget er 152 000 mot grensen 154 917, og barnet gaar paa 2. trinn. Var person-008 foer, som gir avslag paa 653 000."
+      "begrunnelse": "Grunnlaget er 152 000 mot grensen 154 917, og barnet går på 2. trinn. Var person-008 før, som gir avslag på 653 000."
     },
     {
       "prosessId": "stottekontakt-behov",

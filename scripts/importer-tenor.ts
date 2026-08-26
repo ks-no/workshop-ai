@@ -6,7 +6,7 @@
 //
 //   data/kuratert.json   the hand-authored threshold fixtures (person-001..051,
 //                        household-001..018) - only forfattede felter
-//   data/tenor/*.json    raw extracts from Skatteetaten's Tenor testdatasoek
+//   data/tenor/*.json    raw extracts from Skatteetaten's Tenor testdatasøk
 //
 // Everything else is derived here, in one code path shared by both sources:
 // rolle, skjermet, husstandstype, the household's address and kommune, the member
@@ -506,10 +506,10 @@ function buildEierforhold(husstander: any, personerUt: any, matrikkel: any) {
   const rader = [...perMatrikkelId.values()].sort((a, b) => a.matrikkelId.localeCompare(b.matrikkelId));
   return {
     beskrivelse:
-      "Tinglyst eierforhold. Eierskap horer i grunnboken, ikke i matrikkelen - derfor " +
-      "egen fil. En matrikkelenhet som ikke star her har ingen registrert eier i " +
-      "sandkassen. Forenkling: raden er nøklet paa adressen (matrikkelId), mens " +
-      "hjemmel i virkeligheten ligger paa matrikkelenheten (gnr/bnr), og flere " +
+      "Tinglyst eierforhold. Eierskap hører i grunnboken, ikke i matrikkelen - derfor " +
+      "egen fil. En matrikkelenhet som ikke står her har ingen registrert eier i " +
+      "sandkassen. Forenkling: raden er nøklet på adressen (matrikkelId), mens " +
+      "hjemmel i virkeligheten ligger på matrikkelenheten (gnr/bnr), og flere " +
       "adresser deler samme gnr/bnr. Utledet av scripts/importer-tenor.ts.",
     syntetisk: true,
     antall: rader.length,

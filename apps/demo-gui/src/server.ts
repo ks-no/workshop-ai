@@ -24,8 +24,8 @@ const ASSETS: Record<string, string> = {
 };
 
 // Delt klientkode, servert til begge frontendene. .ts, og nettleseren merker
-// ingenting: den gaar etter Content-Type, og shared/assets.ts stripper
-// typene paa vei ut.
+// ingenting: den går etter Content-Type, og shared/assets.ts stripper
+// typene på vei ut.
 const DELTE_KLIENTFILER: Record<string, string> = {
   "felles.ts": KLIENTSKRIPT
 };
@@ -46,7 +46,7 @@ const sider: Record<string, string> = {
   "/": "dashboard.html",
   "/dashboard": "dashboard.html",
   "/stegvis": "stegvis.html",
-  // Ruta het /stegvis lenge foer filen gjorde. Aliaset staar fordi noen kan ha
+  // Ruta het /stegvis lenge før filen gjorde. Aliaset står fordi noen kan ha
   // bokmerket det.
   "/index.html": "stegvis.html",
   "/chat": "chat.html",
@@ -70,8 +70,8 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 
   for (const [prefiks, katalog, tillatte] of [
-    // /delt/ foer /assets/: felles.ts er .ts og strippes, resten er statiske
-    // filer som sendes uendret. Rekkefoelgen betyr ingenting her siden
+    // /delt/ før /assets/: felles.ts er .ts og strippes, resten er statiske
+    // filer som sendes uendret. Rekkefølgen betyr ingenting her siden
     // prefiksene ikke overlapper, men holder de to slagene fra hverandre.
     ["/delt/", deltKlientDir, DELTE_KLIENTFILER],
     ["/assets/", sharedDir, ASSETS],

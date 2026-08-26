@@ -67,7 +67,7 @@ export function isMalProsess(prosess: any) {
   return prosess?.redigering?.mal === true || prosess?.redigering?.status === "template";
 }
 
-// inkluderMaler: samme navn som query-parameteren paa GET /api/prosesser. Den er
+// inkluderMaler: samme navn som query-parameteren på GET /api/prosesser. Den er
 // wire og frosset — se AGENTS.md.
 export function getProsesserForVisning(tilstand: State, inkluderMaler = false) {
   if (inkluderMaler) {

@@ -1154,7 +1154,7 @@ function buildProcessChoicePrompt(body: AiKropp): string {
     "- intent=match kun hvis en prosess er tydelig mest sannsynlig.",
     "- intent=ambiguous hvis 2-3 kandidater er plausible.",
     "- intent=unknown hvis du ikke kan avgjore trygg match.",
-    "- prosessId ma vaere null ved ambiguous/unknown.",
+    "- prosessId må være null ved ambiguous/unknown.",
     "- kandidater ma bruke id-er fra listen under.",
     `Prosesser:\n${kandidaterTekst}`,
     `Historikk (eldst -> nyest): ${JSON.stringify(historikk)}`,

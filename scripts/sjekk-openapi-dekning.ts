@@ -408,9 +408,9 @@ const notater: string[] = [];
 // 8. Registeret og denne lista skal beskrive de samme tjenestene.
 //
 // apps/shared/tjenester.json er det dashboardet og API-utforskeren leser. Lista
-// her kan ikke slaas sammen med den: oppfoeringene under baerer `kilde`, `ikkeRuter`
+// her kan ikke slås sammen med den: oppføringene under bærer `kilde`, `ikkeRuter`
 // og `utenfor` — unntak som bare denne porten har bruk for. Men navnene skal stemme,
-// ellers faar en ny tjeneste spesifikasjon uten aa dukke opp for deltakerne, eller
+// ellers får en ny tjeneste spesifikasjon uten å dukke opp for deltakerne, eller
 // omvendt.
 const registeret: { navn: string; spesifikasjon: boolean }[] = JSON.parse(
   await readFile(path.join(repoRoot, "apps/shared/tjenester.json"), "utf8")

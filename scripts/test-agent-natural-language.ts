@@ -118,7 +118,7 @@ async function run() {
     // Ask for help on the traffic problem step → guided interview should start
     const askHelp = await req(`/agent/sessions/${session.sessionId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ message: "hvilke trafikkproblem kan vaere aktuelle?" })
+      body: JSON.stringify({ message: "hvilke trafikkproblem kan være aktuelle?" })
     });
     assert(askHelp.replies.some((line: any) => /bra sp(ø|o)rsm(å|a)l|jeg stiller deg/i.test(line)), "Expected guided interview to start");
     assert(askHelp.replies.some((line: any) => line.toLowerCase().includes("trafikkproblemet") || line.toLowerCase().includes("problemet")), "Expected first guided question about the problem");

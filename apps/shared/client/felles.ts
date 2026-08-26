@@ -106,7 +106,7 @@ type TokenKrav = {
 
 /* eslint-disable no-unused-vars */
 
-// --- Smaa hjelpere sidescriptene trenger ------------------------------------
+// --- Små hjelpere sidescriptene trenger ------------------------------------
 
 /**
  * getElementById for et element siden ikke kan virke uten.

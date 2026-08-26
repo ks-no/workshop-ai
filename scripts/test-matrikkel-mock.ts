@@ -18,7 +18,7 @@ async function waitForServer(url: string, forsok = 30): Promise<void> {
     }
     await wait(250);
   }
-  throw new Error(`Server svarte ikke paa ${url}`);
+  throw new Error(`Server svarte ikke på ${url}`);
 }
 
 function assert(ok: unknown, melding: string): void {

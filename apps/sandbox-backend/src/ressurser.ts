@@ -322,8 +322,8 @@ export const ressurser: Ressurs[] = [
         melding: hasEiendom
           ? `Eierforhold i ${gateData.adressenavn} bekreftet.`
           : steg?.feilmelding || `Du har ingen registrert eiendom i ${gateData.adressenavn}. Søknad om fartsdempende tiltak kan bare sendes av eiere i gaten.`,
-        // harEiendom staar eksplisitt: noekkelen er wire. Som shorthand ville den fulgt
-        // navnet paa den lokale variabelen.
+        // harEiendom står eksplisitt: nøkkelen er wire. Som shorthand ville den fulgt
+        // navnet på den lokale variabelen.
         grunnlag: { personId, gate: gateData.adressenavn, harEiendom: hasEiendom, antallEiendommer: egne.length }
       };
     }
