@@ -215,6 +215,10 @@ per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på matrikke
 maltekst du ikke ba om, port opptatt, en container som ikke blir `healthy`, treg
 modellnedlasting og mer.
 
+Skal du demonstrere for andre, eller bytte KI-provider:
+`docs/sikkerhet-og-personvern.md` sier hva som sendes ut av maskinen per provider,
+og hvor bytteren sitter.
+
 ## 6. Nullstille
 
 ```bash

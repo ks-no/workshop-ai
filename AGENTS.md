@@ -131,7 +131,7 @@
   way — the engine is linear, so a question mistaken for an answer is unrecoverable.
 - The audit entry for a consented read records the purpose from the **consent**, not the
   catalogue label. Purpose limitation is the reason consent was asked for.
-- Consent gating and audit are enforced centrally in `utforRessurs()`
+- Consent gating and audit are enforced centrally in `runRessurs()`
   (`apps/sandbox-backend/src/ressurser.ts`), not per route. One catalog entry is
   simultaneously an HTTP endpoint, a valid `DATA_FETCH` target and a valid `SJEKK`
   target. Do not route around this.
