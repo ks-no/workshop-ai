@@ -334,9 +334,9 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
       :root {
         --blue: #1a4a7a;
         --blue-dark: #12395e;
-        --kant: #cdd7e0;
-        --grunn: #f1f4f7;
-        --tekst: #1d2b36;
+        --border: #cdd7e0;
+        --background: #f1f4f7;
+        --text: #1d2b36;
         --dempet: #5b6b7a;
       }
       * { box-sizing: border-box; }
@@ -347,8 +347,8 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         align-items: center;
         justify-content: center;
         padding: 2rem 1rem;
-        background: var(--grunn);
-        color: var(--tekst);
+        background: var(--background);
+        color: var(--text);
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
         line-height: 1.5;
       }
@@ -356,7 +356,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         width: 100%;
         max-width: 30rem;
         background: #fff;
-        border: 1px solid var(--kant);
+        border: 1px solid var(--border);
         border-radius: 10px;
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(29, 43, 54, .08), 0 8px 24px rgba(29, 43, 54, .06);
@@ -388,7 +388,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         font: inherit;
         font-size: .95rem;
         padding: .55rem .7rem;
-        border: 1px solid var(--kant);
+        border: 1px solid var(--border);
         border-radius: 6px;
         background: #fff;
         color: inherit;
@@ -421,7 +421,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
       .detaljer {
         margin: 1.4rem 0 0;
         padding-top: 1.1rem;
-        border-top: 1px solid var(--kant);
+        border-top: 1px solid var(--border);
         font-size: .8rem;
         color: var(--dempet);
         display: grid;

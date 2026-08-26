@@ -820,7 +820,7 @@ function buildToolChoicePrompt(body: AiKropp): string {
 
   return [
     "Du velger hvilke verktøy agenten bør bruke for et prosessteg i en kommunal dialogløsning.",
-    "Svar KUN med valid JSON-array, ingen annen tekst.",
+    "Svar kun med gyldig JSON-array, ingen annen tekst.",
     'Hvert element: {"name":"<verktøynavn>","bruk":"kontekst|validering|kontekst_og_validering","begrunnelse":"..."}',
     '"kontekst" = kall proaktivt før spørsmålet stilles for å gi nyttige hint til brukeren.',
     '"validering" = kall etter at brukeren har svart, for å normalisere eller validere svaret.',
@@ -881,7 +881,7 @@ function buildPrompt(type: string, body: AiKropp, fallbackTekst: string): string
   const sprak = body?.sprak || "nb";
   // The wire carries a language code; the model reads prose, so the prompt
   // names the language instead of interpolating the code.
-  const sprakNavn = SPRAK_NAVN[sprak] || sprak;
+  const sprakNavn = Object.hasOwn(SPRAK_NAVN, sprak) ? SPRAK_NAVN[sprak] : sprak;
 
   // The summary restates amounts and an outcome already decided deterministically
   // in sandbox-backend. The model phrases; it does not compute or conclude.
@@ -1151,7 +1151,7 @@ function buildProcessChoicePrompt(body: AiKropp): string {
 
   return [
     "Du mapper brukerens melding til riktig kommunal prosess.",
-    "Svar KUN med valid JSON, ingen forklaring utenfor JSON.",
+    "Svar kun med gyldig JSON, ingen forklaring utenfor JSON.",
     'Gyldig schema: {"intent":"match|ambiguous|unknown","prosessId":"string|null","confidence":0.0,"begrunnelse":"kort tekst","kandidater":[{"id":"string","score":0.0}]}',
     "Regler:",
     "- intent=match kun hvis en prosess er tydelig mest sannsynlig.",
@@ -1322,7 +1322,7 @@ function buildIntentPrompt(body: AiKropp): string {
   const ukjentIntent = body?.ukjentIntent || "ukjent";
   return [
     "Du klassifiserer en kort brukermelding i en kommunal chatflyt.",
-    "Svar KUN med valid JSON og ingen annen tekst.",
+    "Svar kun med gyldig JSON og ingen annen tekst.",
     `Gyldige intent-verdier: ${jaIntent}, ${neiIntent}, ${ukjentIntent}`,
     `Hvis meldingen uttrykker samtykke, bekreftelse eller godkjenning, bruk ${jaIntent}.`,
     `Hvis meldingen uttrykker avslag, usikkerhet eller at brukeren ikke vil gå videre, bruk ${neiIntent}.`,
