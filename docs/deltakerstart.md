@@ -37,7 +37,7 @@ det den siden du går tilbake til.
 | URL | Hva det er |
 |---|---|
 | <http://localhost:3001> | **Oversikt** — arkitektur, helsestatus, modellstatus, casetabell |
-| <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis |
+| <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis. Sender du inn, vises søknadsdokumentet og statusen på SvarUt-kvitteringen mens den beveger seg |
 | <http://localhost:3001/agent> | Agent i naturlig språk. Den velger prosess selv |
 | <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
 | <http://localhost:3001/utforsker> | **API-utforskeren** — alle endepunktene, med skjema per rute og en `curl` som virker når den limes inn. Tokenet velges ut fra hjemmelen ruta krever |

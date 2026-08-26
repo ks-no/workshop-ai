@@ -16,6 +16,44 @@
       #oektStatus { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; margin: 0 0 10px 0; }
       #oektStatus span { color: var(--farge-tekst-dempet); }
       @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+      /* Søknadsdokumentet er ikke noe assistenten sier — det er dokumentet
+         kommunen mottok, så boblen ser ut som et ark og ikke som en replikk.
+         Global pre er en mørk kodeblokk; her skal det leses som brevtekst. */
+      .dokument { justify-content: flex-start; }
+      .dokument .bubble {
+        background: var(--farge-flate);
+        border: 1px solid var(--farge-kant);
+        color: var(--farge-tekst);
+        max-width: 96%;
+      }
+      .dokumenttittel {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--farge-tekst-dempet);
+        margin-bottom: 8px;
+      }
+      .dokument pre {
+        margin: 0;
+        padding: 0;
+        background: none;
+        color: inherit;
+        border-radius: 0;
+        font-family: var(--skrift-kode);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* Statuslinja for kvitteringen. Én boble som skrives om mens
+         forsendelsen beveger seg, så den er sentrert som en systemlinje. */
+      .forsendelse { justify-content: center; }
+      .forsendelse .bubble {
+        background: var(--farge-info-bakgrunn);
+        color: var(--farge-info-tekst);
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>

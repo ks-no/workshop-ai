@@ -36,7 +36,18 @@ type Stegresultat = {
   husstandId?: string;
   medlemmer?: unknown[];
   oppgave?: { oppgaveId?: string };
+  // Kontaktinfo fra KRR (hent-kontaktinfo i stottekontakt-behov).
+  reservert?: boolean;
+  kanVarsles?: boolean;
+  // SUBMIT svarer med soknadsraden, dokumentet og utfallet av kvitteringen.
+  soknadId?: string;
+  soknadsdokument?: string;
+  forsendelseId?: string;
+  forsendelse?: { advarsel?: string; detalj?: string };
 };
+
+/** GET /api/soknader/{soknadId}/forsendelse. Bare statusen leses her. */
+type Forsendelsesstatussvar = { status?: string };
 
 type Handlingsresultat = { oekt: Prosessoekt; resultat?: Stegresultat | unknown[] };
 
@@ -127,6 +138,19 @@ function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresul
     }
     if (result.husstandId && Array.isArray(result.medlemmer)) {
       return `Jeg har hentet husstandsopplysninger for ${result.husstandId}. Husstanden har ${result.medlemmer.length} registrerte medlemmer.`;
+    }
+    /*
+     * Kontaktinfo fra KRR. Teksten sier hva kontaktregisteret svarte, ikke
+     * hvilken kanal kvitteringen faktisk går på: kanalvalget tas av SvarUt
+     * (chooseKanal i fiks-simulator), og en kopi av regelen her ville vært en
+     * andre implementasjon som kan gli fra den ekte. Predikatet er derfor
+     * SvarUt sitt eget første trinn — kan varsles og ikke reservert — og
+     * statuslinja etter innsending navngir kanalen som ble valgt.
+     */
+    if (typeof result.reservert === "boolean") {
+      return result.kanVarsles && !result.reservert
+        ? "Jeg har hentet kontaktopplysningene dine. Kontaktregisteret sier at du kan varsles digitalt, så post fra kommunen kan gå til din digitale postkasse."
+        : "Jeg har hentet kontaktopplysningene dine. Kontaktregisteret sier at du ikke skal varsles digitalt, så kommunen kan ikke sende deg post i en digital postkasse.";
     }
   }
 
@@ -567,6 +591,171 @@ async function goNext(): Promise<void> {
   await renderStep();
 }
 
+/* ── Innsendingen ──────────────────────────────────────────────────────
+ *
+ * Fram til nå endte en fullført prosess i én linje: «Søknaden er sendt inn».
+ * Alt den faktisk produserte — dokumentet kommunen mottok, og kvitteringen på
+ * vei ut til innbyggeren — lå usynlig i JSON. Her vises begge, og bare på
+ * chat-siden: stegvis-siden er et rå-JSON-verktøy og skal forbli det.
+ */
+
+// Kodeverket ligger i apps/fiks-simulator/src/forsendelse.ts. Gjengitt som tekst
+// her fordi det er denne siden som skal si det på norsk. Ingenting pinner denne
+// tabellen mot kodeverket, så en ny status faller ut som «har status X» —
+// synlig nok å oppdage, tomt nok å ikke lyve.
+const FORSENDELSESTEKST: Record<string, string> = {
+  MOTTATT: "Kvitteringen er mottatt hos SvarUt.",
+  SENDT_DIGITALT: "Kvitteringen er sendt til din digitale postkasse.",
+  SENDT_PRINT: "Kvitteringen er sendt til print og legges i posten.",
+  LEST: "Kvitteringen er lest i den digitale postkassen.",
+  PRINTET: "Kvitteringen er printet og sendt i posten.",
+  IKKE_LEVERT: "Kvitteringen kunne ikke leveres — verken digitalt eller på papir."
+};
+
+// Sluttilstandene. Der slutter pollingen, fordi statusen ikke kan endre seg mer.
+const FORSENDELSE_SLUTTSTATUSER = ["LEST", "PRINTET", "IKKE_LEVERT"];
+
+// Simulatoren utleder SENDT etter 10 s og LEVERT etter 60 s, så tre sekunder
+// mellom hvert oppslag viser hele progresjonen uten å hamre på ruta.
+const FORSENDELSE_POLL_MS = 3000;
+
+// Uten en frist blir en forsendelse som aldri når en sluttilstand en linje som
+// spinner til fanen lukkes. 60 s er nok for simulatoren; fristen er romslig.
+const FORSENDELSE_FRIST_MS = 180_000;
+
+// Tre forsøk, altså rundt seks sekunder: nok til å ri av et enkelt glipp, kort
+// nok at en linje ikke står og spinner på et svar som ikke kommer.
+const FORSENDELSE_MAKS_FEIL = 3;
+
+/*
+ * Pollingen lever på tvers av turer i chatten, så den må kunne stoppes utenfra
+ * — «Start chat» og «Nullstill» tømmer chatEl, og en runde som fortsatt skrev
+ * til den gamle boblen ville skrevet til et element ingen ser.
+ *
+ * Et løpenummer, ikke et flagg: en ny runde kan starte med én gang, uten å
+ * vente på at den forrige våkner av sin egen vent().
+ */
+let forsendelsesloep = 0;
+
+function stopForsendelsespolling(): void {
+  forsendelsesloep += 1;
+}
+
+/*
+ * Søknadsdokumentet, som egen boble med sin egen form. Bygget her i stedet for
+ * med addMsg fordi boblen har to deler — en overskrift og selve dokumentet —
+ * og fordi teksten er formatert på serversiden og skal leses slik den er.
+ */
+function addDokumentboble(dokument: string): void {
+  const rad = document.createElement("div");
+  rad.className = "msg dokument";
+  const boble = document.createElement("div");
+  boble.className = "bubble";
+  const overskrift = document.createElement("div");
+  overskrift.className = "dokumenttittel";
+  overskrift.textContent = "Søknaden som ble sendt inn";
+  const tekst = document.createElement("pre");
+  tekst.textContent = dokument;
+  boble.appendChild(overskrift);
+  boble.appendChild(tekst);
+  rad.appendChild(boble);
+  chatEl.appendChild(rad);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+/*
+ * Statuslinja skrives om i stedet for å få en ny boble per runde: seks linjer
+ * sier ingenting mer enn den siste, og MOTTATT → SENDT → LEST er en bevegelse
+ * man skal se, ikke lese seg gjennom. Spinneren står så lenge det kan komme
+ * mer, og forsvinner når statusen er endelig — ellers spinner den for alltid.
+ *
+ * En runde som fant samme status som forrige gang skriver ingenting, og det er
+ * ikke bare sparte DOM-operasjoner: #chat er aria-live="polite", så en
+ * uendret tekst skrevet på nytt hvert tredje sekund leses opp på nytt hvert
+ * tredje sekund — tjue ganger mens forsendelsen står i MOTTATT. Av samme grunn
+ * ruller siden bare når linja faktisk sa noe nytt: dokumentboblen over er høy,
+ * og en leser som bla oppover i den skal ikke rykkes ned igjen mens hen leser.
+ */
+function setForsendelsestekst(boble: HTMLElement, tekst: string, ferdig: boolean): void {
+  if (boble.dataset.tekst === tekst && boble.dataset.ferdig === String(ferdig)) {
+    return;
+  }
+  boble.dataset.tekst = tekst;
+  boble.dataset.ferdig = String(ferdig);
+  boble.textContent = "";
+  if (!ferdig) {
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    boble.appendChild(spinner);
+  }
+  boble.appendChild(document.createTextNode(tekst));
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+async function followForsendelse(soknadId: string): Promise<void> {
+  stopForsendelsespolling();
+  const loep = forsendelsesloep;
+  const rad = addMsg("forsendelse", "");
+  const boble = rad?.querySelector<HTMLElement>(".bubble");
+  if (!boble) return;
+  setForsendelsestekst(boble, "Følger kvitteringen hos SvarUt …", false);
+
+  const frist = Date.now() + FORSENDELSE_FRIST_MS;
+  let feil = 0;
+  while (loep === forsendelsesloep) {
+    try {
+      const svar = await req<Forsendelsesstatussvar>(
+        `/api/soknader/${encodeURIComponent(soknadId)}/forsendelse`
+      );
+      if (loep !== forsendelsesloep) return;
+      feil = 0;
+      const kode = svar.status || "";
+      const ferdig = FORSENDELSE_SLUTTSTATUSER.includes(kode);
+      setForsendelsestekst(boble, FORSENDELSESTEKST[kode] || `Kvitteringen har status ${kode}.`, ferdig);
+      if (ferdig) return;
+    } catch (error) {
+      if (loep !== forsendelsesloep) return;
+      feil += 1;
+      if (feil >= FORSENDELSE_MAKS_FEIL) {
+        setForsendelsestekst(boble, `Fikk ikke status på kvitteringen: ${feilmelding(error)}`, true);
+        return;
+      }
+    }
+    if (Date.now() >= frist) {
+      setForsendelsestekst(boble, "Kvitteringen har ikke nådd en sluttilstand ennå. Start chatten på nytt for å følge en ny.", true);
+      return;
+    }
+    await vent(FORSENDELSE_POLL_MS);
+  }
+}
+
+/*
+ * Kanalen navngis ikke her. Den avgjøres av SvarUt ut fra kontaktregisteret, og
+ * statuslinja leser den avgjørelsen — SENDT_DIGITALT/LEST mot SENDT_PRINT/
+ * PRINTET er kanalvalget, sett fra utsiden.
+ *
+ * Kvitteringen er best effort, så en søknad kan være lagret uten at noe ble
+ * sendt. Da finnes det ingen status å polle, og det skal stå her i stedet for
+ * at linja spinner på en forsendelse som aldri ble opprettet.
+ */
+function showInnsending(resultat: Stegresultat): void {
+  if (resultat.soknadsdokument) {
+    addDokumentboble(resultat.soknadsdokument);
+  }
+  const advarsel = resultat.forsendelse?.advarsel;
+  if (advarsel) {
+    const detalj = resultat.forsendelse?.detalj;
+    addMsg("system", `⚠️ ${advarsel}${detalj ? ` (${detalj})` : ""}`);
+    return;
+  }
+  if (!resultat.soknadId || !resultat.forsendelseId) {
+    addMsg("system", "Det ble ikke sendt noen SvarUt-kvittering for denne søknaden.");
+    return;
+  }
+  // Ikke await-et: pollingen skal gå videre mens chatten er brukbar.
+  followForsendelse(resultat.soknadId);
+}
+
 async function runHandling(payload: Record<string, unknown>, successText: string): Promise<void> {
   const steg = oekt?.aktivtSteg;
   addTyping();
@@ -600,6 +789,10 @@ async function runHandling(payload: Record<string, unknown>, successText: string
     samtale.push({ rolle: "assistent", tekst: summary });
   }
   warnAboutFallback(resultat);
+
+  if (steg?.type === "SUBMIT" && resultat) {
+    showInnsending(resultat);
+  }
 
   // Et utfall reiser spørsmål. Å tilby dem er billigere enn å håpe at
   // innbygger vet at de kan spørre. Settes her, men tegnes av
@@ -844,6 +1037,7 @@ async function startChat(): Promise<void> {
     const personId = personEl.value;
     const prosessId = prosessEl.value;
     aktivProsess = prosesser.find((p) => p.id === prosessId) || null;
+    stopForsendelsespolling();
     sisteSamtykke = null;
     ventendeOppfolging = [];
     samtale.length = 0;
@@ -877,6 +1071,7 @@ async function loadOptions(): Promise<Person[]> {
 krevEl("start").onclick = () => startChat();
 krevEl("send").onclick = () => sendMessage();
 krevEl("reset").onclick = () => {
+  stopForsendelsespolling();
   oekt = null;
   aktivProsess = null;
   sisteSamtykke = null;
