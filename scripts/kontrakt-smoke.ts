@@ -542,6 +542,68 @@ async function folkeregisterOppslag() {
   });
 }
 
+// SvarUt: one send per channel, then an immediate status-sok — deterministically
+// MOTTATT for every row, since the derivation's first threshold is 10 seconds
+// out. The recipients are the curated KRR fixtures, same as krrOppslag above.
+async function forsendelseFlyt() {
+  const sti = "/svarut/api/v2/kontoer/smoke-konto/forsendelser";
+  const svarut = { scope: "ks:fiks:svarut" };
+  const dokumenter = [{ filnavn: "vedtak.pdf", mimeType: "application/pdf" }];
+  const postadresse = { adresselinje1: "Storgata 5", postnummer: "5003", poststed: "Bergen" };
+  const tittel = "Vedtak om redusert foreldrebetaling";
+
+  // person-006 can be notified in KRR: DIGITAL.
+  const digital = await callFiks("forsendelse-digital", sti, {
+    tittel, mottaker: { navn: "Amir Hassan", digitalId: "14899200099" }, dokumenter
+  }, svarut) as { id?: string };
+  // person-014 is authored reservert: PRINT — the curated main case.
+  const print = await callFiks("forsendelse-print", sti, {
+    tittel, mottaker: { navn: "Lina Berg", digitalId: "28829100055", ...postadresse }, dokumenter
+  }, svarut) as { id?: string };
+  // kunDigitalLevering without a digital channel: INGEN, ends as IKKE_LEVERT.
+  const ingen = await callFiks("forsendelse-ingen-kanal", sti, {
+    tittel, mottaker: { navn: "Lina Berg", digitalId: "28829100055" }, dokumenter,
+    kunDigitalLevering: true
+  }, svarut) as { id?: string };
+  // No digital channel and no postal address is a 400, not a stored row.
+  await callFiks("forsendelse-uten-kanal", sti, {
+    tittel, mottaker: { navn: "Lina Berg" }, dokumenter
+  }, svarut);
+  await callFiks("forsendelse-uten-tittel", sti, {
+    mottaker: { navn: "Lina Berg", ...postadresse }, dokumenter
+  }, svarut);
+  await callFiks("forsendelse-tom-dokumentliste", sti, {
+    tittel, mottaker: { navn: "Lina Berg", ...postadresse }, dokumenter: []
+  }, svarut);
+
+  // Unknown ids are omitted from the answer rather than answered for.
+  await callFiks("forsendelse-status-sok", `${sti}/status-sok`, {
+    forsendelseIds: [digital.id, print.id, ingen.id, "forsendelse-0000000000000-ukjent"]
+  }, svarut);
+  await callFiks("forsendelse-status-sok-uten-ids", `${sti}/status-sok`, {}, svarut);
+  // A register token must not open the SvarUt surface.
+  await callFiks("forsendelse-feil-scope", `${sti}/status-sok`, { forsendelseIds: [] },
+    { scope: "ks:fiks:register" });
+
+  // The audit entries: id, kanal and mottakerVarslet in grunnlag — and no
+  // contact info. Filtered like freg-revisjon above.
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
+  });
+  const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const logg = await svar.json() as { handling?: string }[];
+  dump.push({
+    navn: "forsendelse-revisjon",
+    metode: "GET",
+    sti: "/api/revisjonslogg (kun FORSENDELSE_SENDT)",
+    status: svar.status,
+    kropp: normalize(logg.filter((rad) => rad.handling === "FORSENDELSE_SENDT"))
+  });
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -606,6 +668,7 @@ async function run() {
     await soknadOgRevisjon();
     await krrOppslag();
     await folkeregisterOppslag();
+    await forsendelseFlyt();
 
     await mkdir(path.dirname(outFile), { recursive: true });
     await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");

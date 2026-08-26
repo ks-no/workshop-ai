@@ -17,6 +17,7 @@
 
 import type { Husstand, Krr, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
 import type { FolkeregisterPerson } from "../../shared/registerdata.ts";
+import type { Forsendelse } from "./forsendelse.ts";
 // Same split as sandbox-backend, and the same two paths, because it is the same
 // module: data/ is seed and stays untouched, state/ holds everything written at
 // runtime and is gitignored. server.ts imports `updateJson` from there directly.
@@ -109,6 +110,7 @@ export function createStateReader() {
     barnehageplasser: (): Promise<Plass[]> => read("barnehageplasser.json"),
     samtykker: (): Promise<FiksSamtykke[]> => read("samtykker.json", []),
     oppgaver: (): Promise<Oppgave[]> => read("oppgaver.json", []),
+    forsendelser: (): Promise<Forsendelse[]> => read("forsendelser.json", []),
     meldinger: (): Promise<Melding[]> => read("meldinger.json", [])
   };
 }

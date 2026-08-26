@@ -7,18 +7,19 @@ Ansvar:
 - simulere samtykke
 - simulere registeroppslag
 - simulere folkeregisteroppslag i rollekontekst
+- simulere SvarUt-forsendelser med utledet status
 - simulere oppgave- og meldingsflyt
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-25 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fem flatene er bak
+27 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle seks flatene er bak
 Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
-`ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så
-et oppgave-token åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises
-på alle fem med `403 KREVER_MASKINPORTEN` — et samtykke spørres om av en kommune og
-svares gjennom den.
+`ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet
+*er* hjemmelen, så et oppgave-token åpner ikke samtykkeflaten. Innbyggerens eget
+ID-porten-token avvises på alle seks med `403 KREVER_MASKINPORTEN` — et samtykke
+spørres om av en kommune og svares gjennom den.
 
 `POST`/`PUT`-rutene kalles normalt bare av prosessmotoren i sandbox-backend, og aktøren i
 revisjonsloggen settes fra tokenet den holder: `SAMTYKKE_OPPRETTET` er tjenesten som *ber*
@@ -128,6 +129,21 @@ Modellert etter
 beregningstypene `BARNEHAGE_SFO`, `PRAKTISK_BISTAND` og `LANGTIDSOPPHOLD_INSTITUSJON`.
 Typene deler svarform; forskjellene er persontypene per type og at langtidsopphold
 i tillegg viser kategorien `FRADRAG`, bygget av postene med `medregnes: false`.
+
+SvarUt — på de ekte forsendelse-stiene bak et `/svarut`-prefiks, scope `ks:fiks:svarut`:
+
+- `POST /svarut/api/v2/kontoer/{kontoId}/forsendelser` — send, svarer `{ "id": "..." }`
+- `POST /svarut/api/v2/kontoer/{kontoId}/forsendelser/status-sok`
+
+Modellert etter
+[forsendelse-send-api-v2](https://developers.fiks.ks.no/api/forsendelse-send-api-v2.json)
+og statussøket i forsendelse-status-api-v2, med JSON i stedet for multipart — kroppen
+er metadata-delen uendret, ingen dokumentbytes lagres. Kanalen avgjøres ved
+opprettelse (KRR-oppslag på `mottaker.digitalId`; reservert i KRR betyr print), og
+statusen *utledes* av tiden siden opprettelsen — MOTTATT, så SENDT_DIGITALT/SENDT_PRINT
+etter 10 sekunder, så LEST/PRINTET etter 60 — ingen timere, ingen ekstra skrivevei.
+Tilstandsmaskinen og utledningen ligger i `src/forsendelse.ts`; `pnpm test:forsendelse`
+dekker kanalvalget og hvert utledningssteg, uten stack og uten modell.
 
 Pluss `/helse`, `/docs`, `/openapi.yaml` og `/openapi-ruter.json`.
 

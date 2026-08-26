@@ -5,14 +5,15 @@ info:
   description: >-
     Etterlikning av de KS Fiks-flatene sandkassen trenger: samtykke, register
     (inkludert beregning og Kontaktregisteret på ekte Fiks-stier),
-    Folkeregisteret med rollebasert dataminimering, oppgaver og meldinger.
-    Alle data er syntetiske, og hvert svar bærer `syntetisk: true`.
+    Folkeregisteret med rollebasert dataminimering, SvarUt-forsendelser med
+    utledet status, oppgaver og meldinger. Alle data er syntetiske, og hvert
+    svar bærer `syntetisk: true`.
 
-    Alle fem flatene ligger bak Maskinporten med audience `fiks-simulator` og
+    Alle seks flatene ligger bak Maskinporten med audience `fiks-simulator` og
     ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
-    `ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet er
-    hjemmelen, så et oppgave-token åpner ikke samtykkeflaten. Hvilket scope
-    hver rute krever står per rute nedenfor.
+    `ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave` og
+    `ks:fiks:melding`. Scopet er hjemmelen, så et oppgave-token åpner ikke
+    samtykkeflaten. Hvilket scope hver rute krever står per rute nedenfor.
 servers:
   - url: http://localhost:8081
 paths:
@@ -1257,6 +1258,179 @@ paths:
           description: Ukjent fnr (`PERSON_IKKE_FUNNET`)
         "401":
           $ref: "#/components/responses/ManglerToken"
+  /svarut/api/v2/kontoer/{kontoId}/forsendelser:
+    post:
+      summary: Send en forsendelse gjennom SvarUt (forenklet)
+      description: >-
+        Simulerer KS SvarUt: vedtaket ut til innbyggeren, digitalt eller på
+        papir. Stien og feltnavnene følger forsendelse-send-API-et v2
+        (https://developers.fiks.ks.no/api/forsendelse-send-api-v2.json), og
+        kroppen er metadata-delen av den ekte multiparten uendret.
+
+        Kanalen avgjøres ved opprettelse og lagres på forsendelsen, i denne
+        rekkefølgen: (1) `mottaker.digitalId` med rad i kontaktregisteret som
+        kan varsles og ikke er reservert gir DIGITAL; (2) ellers gir
+        `kunDigitalLevering: true` INGEN — forsendelsen ender som IKKE_LEVERT,
+        som i ekte SvarUt; (3) ellers gir gyldig postadresse (adresselinje1,
+        firesifret postnummer og poststed) PRINT — reservert i KRR betyr print;
+        (4) ellers 400 `MANGLER_MOTTAKERADRESSE`. Statusen etterpå utledes av
+        klokka, uten timere — se status-sok.
+
+        Avvik fra det ekte API-et: `/svarut`-prefikset, siden alt bor på én
+        port; JSON i stedet for multipart — kroppen er metadata-delen uendret,
+        og ingen dokumentbytes lagres; id-en er simulatorens
+        `forsendelse-...`-format, ikke UUID; IntegrasjonId/-Passord-headerne
+        er sløyfet; ingen signering, dokumentlenker eller hendelses-API.
+      security:
+        - maskinporten: [ks:fiks:svarut]
+      parameters:
+        - $ref: "#/components/parameters/KontoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tittel, mottaker, dokumenter]
+              properties:
+                tittel:
+                  type: string
+                mottaker:
+                  type: object
+                  required: [navn]
+                  properties:
+                    navn:
+                      type: string
+                    digitalId:
+                      type: string
+                      description: >-
+                        Fødselsnummer, slås opp i kontaktregisteret for
+                        kanalvalget. Ukjent eller utelatt betyr ingen digital
+                        kanal.
+                    adresselinje1:
+                      type: string
+                    adresselinje2:
+                      type: string
+                    adresselinje3:
+                      type: string
+                    postnummer:
+                      type: string
+                      pattern: "^[0-9]{4}$"
+                    poststed:
+                      type: string
+                dokumenter:
+                  type: array
+                  minItems: 1
+                  description: >-
+                    Bare metadata — unike par av filnavn og mimeType.
+                    Simulatoren lagrer aldri dokumentbytes.
+                  items:
+                    type: object
+                    required: [filnavn, mimeType]
+                    properties:
+                      filnavn:
+                        type: string
+                      mimeType:
+                        type: string
+                konteringskode:
+                  type: string
+                avgivendeSystem:
+                  type: string
+                kunDigitalLevering:
+                  type: boolean
+                  description: >-
+                    Uten digital kanal blir forsendelsen IKKE_LEVERT i stedet
+                    for å gå til print.
+                eksternReferanse:
+                  type: string
+                utskriftskonfigurasjon:
+                  type: object
+                  properties:
+                    utskriftMedFarger:
+                      type: boolean
+                    tosidig:
+                      type: boolean
+      responses:
+        "200":
+          description: Forsendelsen er mottatt. 200 med bare id-en, som spekken.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: >-
+            Manglende tittel (`TITTEL_MANGLER`), manglende mottakernavn
+            (`MOTTAKERNAVN_MANGLER`), tom eller ugyldig dokumentliste
+            (`UGYLDIG_DOKUMENTLISTE`), eller en mottaker uten kanal
+            (`MANGLER_MOTTAKERADRESSE`)
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+  /svarut/api/v2/kontoer/{kontoId}/forsendelser/status-sok:
+    post:
+      summary: Slå opp status for forsendelser
+      description: >-
+        Statusen utledes av tiden siden forsendelsen ble opprettet — ingenting
+        her går på timer, og statusen skrives aldri: MOTTATT de første 10
+        sekundene, så SENDT_DIGITALT eller SENDT_PRINT etter kanalen (INGEN
+        gir IKKE_LEVERT og stopper der), og fra 60 sekunder LEST for digital
+        og PRINTET for print. `sisteStatusEndring` er tidspunktet forsendelsen
+        gikk inn i statusen, ikke tidspunktet noen spurte.
+
+        Kodeverket er et ærlig subset av det ekte API-ets tretten statuser.
+        Utelatt: AKSEPTERT, AVVIST, FEILET, KLAR_FOR_MOTTAK, LEVERT,
+        MANUELT_HANDTERT og VARSLET. Ukjente forsendelseIds utelates fra
+        svaret i stedet for å besvares.
+      security:
+        - maskinporten: [ks:fiks:svarut]
+      parameters:
+        - $ref: "#/components/parameters/KontoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [forsendelseIds]
+              properties:
+                forsendelseIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Én status per kjent forsendelse-id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statuser:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          $ref: "#/components/schemas/Forsendelsesstatus"
+                        sisteStatusEndring:
+                          type: string
+                          format: date-time
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: forsendelseIds mangler eller er ikke en liste (`FORSENDELSEIDS_MANGLER`)
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
 components:
   parameters:
     SamtykkeId:
@@ -1277,6 +1451,13 @@ components:
       name: oppgaveId
       in: path
       required: true
+      schema:
+        type: string
+    KontoId:
+      name: kontoId
+      in: path
+      required: true
+      description: Avsenderkontoen. Simulatoren aksepterer enhver verdi.
       schema:
         type: string
 
@@ -1423,6 +1604,13 @@ components:
       type: string
       description: Kodeverket ligger i apps/fiks-simulator/src/oppgave.ts.
       enum: [OPPRETTET, UNDER_BEHANDLING, FERDIG, AVVIST]
+
+    Forsendelsesstatus:
+      type: string
+      description: >-
+        Kodeverket ligger i apps/fiks-simulator/src/forsendelse.ts. Utledes av
+        tid, skrives aldri. Ærlig subset av det ekte API-ets tretten statuser.
+      enum: [MOTTATT, SENDT_DIGITALT, SENDT_PRINT, IKKE_LEVERT, LEST, PRINTET]
 
     Oppgave:
       type: object
@@ -1654,14 +1842,15 @@ components:
         Krever aud `fiks-simulator` — et token utstedt for en annen tjeneste avvises
         med 401, som er hele poenget med audience-begrensning.
 
-        Fem flater, fem scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
+        Seks flater, seks scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
         for registeroppslag, `ks:fiks:folkeregister` for Folkeregisteret (egen
         stifamilie, eget hjemmelsgrunnlag — et register-token åpner det ikke),
+        `ks:fiks:svarut` for å sende forsendelser og slå opp status,
         `ks:fiks:samtykke` for å be om, svare på og trekke et samtykke,
         `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for meldinger.
         Et oppgave-scope åpner ikke samtykkeflaten.
 
-        Innbyggerens eget ID-porten-token avvises på alle fem med 403
+        Innbyggerens eget ID-porten-token avvises på alle seks med 403
         `KREVER_MASKINPORTEN`: samtykke *spørres om* av en kommune og svares
         gjennom den. `sandbox-backend` holder det verifiserte innbyggertokenet,
         avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er maskinens,

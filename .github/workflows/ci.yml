@@ -79,6 +79,13 @@ jobs:
       - name: Samtykkets tilstandsmaskin
         run: pnpm test:samtykke
 
+      # The forsendelse channel decision and the derived status progression, as
+      # pure functions with an injected clock. Every step the derivation takes is
+      # checked against the state machine — the progression is never written, so
+      # this is the only place an illegal step could be caught.
+      - name: Forsendelsens kanalvalg og utledning
+        run: pnpm test:forsendelse
+
       # What a non-ok answer from an upstream service means, as pure functions:
       # `send` is a callback, so a Response is handed in as a literal. Every case
       # is one the kontrakt dump cannot reach — that dump records the flows where

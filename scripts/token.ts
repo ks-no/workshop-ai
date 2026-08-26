@@ -44,6 +44,7 @@ Scopes som håndheves:
   ks:innbyggerdialog:revisjon   skrive til revisjonsloggen
   ks:fiks:register              Fiks' registerflate (--resource fiks-simulator)
   ks:fiks:folkeregister         Fiks Folkeregister (--resource fiks-simulator)
+  ks:fiks:svarut                SvarUt-forsendelser (--resource fiks-simulator)
 
 Utstederen må kjøre: ${digdirBaseUrl}
 `);

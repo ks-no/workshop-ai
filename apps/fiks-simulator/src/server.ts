@@ -13,6 +13,12 @@ import { maskFregPerson, maskHusstand, maskKrr, maskPerson } from "../../shared/
 import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
 import {
+  chooseKanal,
+  deriveForsendelsesstatus,
+  validateForsendelse
+} from "./forsendelse.ts";
+import type { Forsendelse, ForsendelseKropp } from "./forsendelse.ts";
+import {
   buildFregPersonSvar,
   findFolkeregisterrolle,
   FOLKEREGISTERROLLER,
@@ -66,6 +72,9 @@ const SCOPE_MELDING = "ks:fiks:melding";
 // Folkeregisteret is its own path family with its own legal basis, so it is not
 // folded into ks:fiks:register: a register token must not open FREG.
 const SCOPE_FOLKEREGISTER = "ks:fiks:folkeregister";
+// SvarUt is its own surface too: sending a vedtak to a citizen is not a register
+// lookup, and a register token must not open the door letters leave through.
+const SCOPE_SVARUT = "ks:fiks:svarut";
 
 const verifyToken = createVerifier({
   digdirBaseUrl,
@@ -553,6 +562,9 @@ const requireMeldingHjemmel = (request: IncomingMessage) =>
 const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
   requireMaskinportenHjemmel(request, SCOPE_FOLKEREGISTER, "Folkeregisterflaten");
 
+const requireSvarutHjemmel = (request: IncomingMessage) =>
+  requireMaskinportenHjemmel(request, SCOPE_SVARUT, "SvarUt-flaten");
+
 // The masking A2 applies in sandbox-backend's readState(), applied here too. Without
 // it a machine with register hjemmel still received an address-protected person in
 // full, which would undo A2 for anyone who found the route.
@@ -695,6 +707,7 @@ function docsHtml(): string {
         <li><code>POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling</code> · <code>/praktisk-bistand</code> · <code>/langtidsopphold-institusjon</code></li>
         <li><code>POST /register/api/v1/ks/{rolleId}/krr/person</code></li>
         <li><code>GET /folkeregister/api/v1/{rolleId}/v1/personer/{fnr}</code></li>
+        <li><code>POST /svarut/api/v2/kontoer/{kontoId}/forsendelser</code> · <code>/forsendelser/status-sok</code></li>
         <li><code>POST /fiks/oppgaver</code></li>
         <li><code>GET /fiks/oppgaver/{oppgaveId}</code></li>
         <li><code>PUT /fiks/oppgaver/{oppgaveId}/status</code></li>
@@ -925,6 +938,96 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       });
 
       jsonResponse(response, 200, buildFregPersonSvar(maskFregPerson(fregPerson), deler));
+      return;
+    }
+
+    // SvarUt simplified, on the real forsendelse paths behind a /svarut prefix
+    // since everything lives on one port. The body is the metadata part of the
+    // real API's multipart, unchanged — JSON instead of multipart is a flagged
+    // deviation, and no document bytes are ever stored. The channel is decided
+    // here, at creation, and stored on the row; everything after that is derived
+    // from the clock in deriveForsendelsesstatus — see forsendelse.ts.
+    const forsendelseTreff = url.pathname.match(/^\/svarut\/api\/v2\/kontoer\/([^/]+)\/forsendelser$/);
+    if (request.method === "POST" && forsendelseTreff) {
+      const klient = await requireSvarutHjemmel(request);
+      const body = await readRequestBody(request) as ForsendelseKropp;
+      const feil = validateForsendelse(body);
+      if (feil) {
+        throw new FiksError(feil.melding, 400, feil.kode);
+      }
+      // Validert over: validateForsendelse slapp bare gjennom en kropp med
+      // tittel og mottaker.navn.
+      const mottaker = body.mottaker!;
+      // Reservert i KRR betyr print: the DIGITAL rule fires only for a recipient
+      // who can be notified and is not reserved. The lookup happens here, where
+      // the data is; the decision itself lives in chooseKanal.
+      const krrRad = mottaker.digitalId
+        ? (await tilstand.krr()).find((kandidat) => kandidat.fnr === mottaker.digitalId)
+        : undefined;
+      const utfall = chooseKanal(mottaker, Boolean(body.kunDigitalLevering), krrRad);
+      if (!utfall.lovlig) {
+        throw new FiksError(utfall.melding, utfall.status, utfall.kode);
+      }
+      const forsendelse: Forsendelse = {
+        id: newId("forsendelse"),
+        kontoId: forsendelseTreff[1],
+        tittel: body.tittel!,
+        mottaker,
+        dokumenter: (body.dokumenter || []).map((dokument) => ({
+          filnavn: dokument.filnavn,
+          mimeType: dokument.mimeType
+        })),
+        konteringskode: body.konteringskode,
+        avgivendeSystem: body.avgivendeSystem,
+        kunDigitalLevering: body.kunDigitalLevering,
+        eksternReferanse: body.eksternReferanse,
+        utskriftskonfigurasjon: body.utskriftskonfigurasjon,
+        kanal: utfall.kanal,
+        opprettet: new Date().toISOString(),
+        syntetisk: true
+      };
+      await updateJson("forsendelser.json", [], (forsendelser) => forsendelser.push(forsendelse));
+      // The audit entry records the forsendelse and the channel decision — not
+      // the recipient's contact info: which letters left and how is the question
+      // the log answers, and the address does not belong in it.
+      await addRevisjon({
+        handling: "FORSENDELSE_SENDT",
+        ressurs: "forsendelse",
+        aktor: klient
+          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
+          : { type: "system", id: "fiks-simulator" },
+        grunnlag: { id: forsendelse.id, kanal: forsendelse.kanal, mottakerVarslet: forsendelse.kanal === "DIGITAL" }
+      });
+      // 200 med bare id-en, som spekken — ikke 201 med hele raden.
+      jsonResponse(response, 200, { id: forsendelse.id, syntetisk: true });
+      return;
+    }
+
+    const statusSoekTreff = url.pathname.match(
+      /^\/svarut\/api\/v2\/kontoer\/([^/]+)\/forsendelser\/status-sok$/
+    );
+    if (request.method === "POST" && statusSoekTreff) {
+      await requireSvarutHjemmel(request);
+      const body = await readRequestBody(request) as { forsendelseIds?: unknown };
+      if (!Array.isArray(body.forsendelseIds)) {
+        throw new FiksError(
+          "forsendelseIds må være en liste med forsendelse-id-er.",
+          400,
+          "FORSENDELSEIDS_MANGLER"
+        );
+      }
+      const forsendelser = await tilstand.forsendelser();
+      // One clock for the whole answer, so two rows created together cannot
+      // straddle a threshold within a single response. Unknown ids are omitted
+      // rather than answered for.
+      const naa = Date.now();
+      const statuser = body.forsendelseIds.flatMap((id) => {
+        const forsendelse = forsendelser.find((kandidat) => kandidat.id === id);
+        if (!forsendelse) return [];
+        const { status, sisteStatusEndring } = deriveForsendelsesstatus(forsendelse, naa);
+        return [{ id: forsendelse.id, status, sisteStatusEndring }];
+      });
+      jsonResponse(response, 200, { statuser, syntetisk: true });
       return;
     }
 

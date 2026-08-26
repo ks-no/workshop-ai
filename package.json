@@ -30,6 +30,7 @@
     "test:foedselsnummer": "node scripts/test-foedselsnummer.ts",
     "test:handleevne": "node scripts/test-handleevne.ts",
     "test:samtykke": "node scripts/test-samtykke.ts",
+    "test:forsendelse": "node scripts/test-forsendelse.ts",
     "test:upstream": "node scripts/test-upstream.ts",
     "test:revisjon": "node scripts/test-revisjonsspor.ts",
     "test:concurrency": "node scripts/test-concurrency.ts",

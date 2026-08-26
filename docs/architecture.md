@@ -144,9 +144,10 @@ Utstederen er en etterlikning, og klientassertionen verifiseres ikke, så
 identitetslaget er ekte i form og syntetisk i tillit.
 
 **Hele `fiks-simulator` er bak Maskinporten, med ett scope per flate.**
-`ks:fiks:register`, `ks:fiks:folkeregister`, `ks:fiks:samtykke`, `ks:fiks:oppgave`
-og `ks:fiks:melding` — scopet *er* hjemmelen, så et oppgave-scope åpner ikke
-samtykkeflaten, og et register-scope åpner ikke Folkeregisteret. Folkeregisterflaten
+`ks:fiks:register`, `ks:fiks:folkeregister`, `ks:fiks:svarut`, `ks:fiks:samtykke`,
+`ks:fiks:oppgave` og `ks:fiks:melding` — scopet *er* hjemmelen, så et
+oppgave-scope åpner ikke samtykkeflaten, og et register-scope åpner ikke
+Folkeregisteret eller SvarUt. Folkeregisterflaten
 snevrer i tillegg inn *innenfor* scopet: rolleId-en i stien avgjør hvilke
 informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag —
 dataminimering som API-adferd. Samtykke- og
@@ -155,7 +156,7 @@ oppgaveflatene sto åpne fram til 23.08.2026, og det var en bakdør: samtykkespe
 samtykket — kunne tilfredsstilles med to uautentiserte kall mot 8081. Sperren var
 ekte; bakdøren lå ved siden av.
 
-Innbyggerens eget ID-porten-token avvises på alle fem flatene med `403
+Innbyggerens eget ID-porten-token avvises på alle seks flatene med `403
 KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en
 kommune og svares gjennom den. `sandbox-backend` holder det verifiserte
 innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er

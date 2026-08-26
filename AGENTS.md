@@ -234,6 +234,7 @@ pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functi
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
+pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -286,7 +287,8 @@ pnpm test:agent:matrikkel
   `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:upstream`, `test:concurrency`, `test:replay`, `test:imports`,
+  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
+  `test:replay`, `test:imports`,
   `test:openapi`, `test:docs` and
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
