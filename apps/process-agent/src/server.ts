@@ -1382,7 +1382,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     if (aiChoice.status === "ambiguous" && aiChoice.candidates) {
       state.pendingProcessCandidates = aiChoice.candidates;
       return [
-        "Jeg tror dette kan vaere en av disse prosessene. Hvilken mener du?",
+        "Jeg tror dette kan være en av disse prosessene. Hvilken mener du?",
         formatProcessOptions(aiChoice.candidates, "Svar med nummer, navn, eller id:")
       ];
     }

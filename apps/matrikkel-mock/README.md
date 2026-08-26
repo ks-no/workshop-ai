@@ -30,7 +30,7 @@ node apps/matrikkel-mock/src/server.ts
 
 I `docker compose` leser `matrikkel-mock` standardfilen `data/matrikkel.json`. `data/matrikkel.seed.json` er beholdt som liten fixture for mockens egne tester.
 
-Ved store datamengder kan du bruke `limit` og `offset` paa `GET /mock/matrikkel/gater` og `GET /mock/matrikkel/eiendommer`.
+Ved store datamengder kan du bruke `limit` og `offset` på `GET /mock/matrikkel/gater` og `GET /mock/matrikkel/eiendommer`.
 
 Sjekk aktiv datakilde i en kjørende mock:
 

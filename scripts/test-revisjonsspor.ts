@@ -84,7 +84,7 @@ async function waitForHealth(basisUrl: string, tidsfrist = 15000) {
     }
     await new Promise((klar) => setTimeout(klar, 150));
   }
-  throw new Error(`${basisUrl} svarte ikke paa /helse innen ${tidsfrist} ms.`);
+  throw new Error(`${basisUrl} svarte ikke på /helse innen ${tidsfrist} ms.`);
 }
 
 // --- calls ------------------------------------------------------------------

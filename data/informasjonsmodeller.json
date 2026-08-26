@@ -65,7 +65,7 @@
             {
               "navn": "foreldrebarnrelasjon",
               "type": "liste",
-              "beskrivelse": "relatertPersonId, og relasjon med kodeverdiene under. Kantene gaar alltid begge veier.",
+              "beskrivelse": "relatertPersonId, og relasjon med kodeverdiene under. Kantene går alltid begge veier.",
               "kodeverdier": [
                 "BARN",
                 "FAR",
@@ -80,7 +80,7 @@
             {
               "navn": "personstatus",
               "type": "string",
-              "beskrivelse": "Folkeregisterpersonstatus. Bare BOSATT er medlem av en husstand og kan vaere part i en prosess.",
+              "beskrivelse": "Folkeregisterpersonstatus. Bare BOSATT er medlem av en husstand og kan være part i en prosess.",
               "kodeverdier": [
                 "BOSATT",
                 "DOED",
@@ -103,7 +103,7 @@
             {
               "navn": "type",
               "type": "kodeverdi",
-              "beskrivelse": "Utledet av medlemmenes alder og sivilstand, aldri forfattet - saa typen kan ikke motsi scenario-teksten.",
+              "beskrivelse": "Utledet av medlemmenes alder og sivilstand, aldri forfattet - så typen kan ikke motsi scenario-teksten.",
               "kodeverdier": [
                 "EKTEPAR",
                 "ENSLIG",

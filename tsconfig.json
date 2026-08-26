@@ -8,22 +8,22 @@
     "strict": true,
     "skipLibCheck": true,
 
-    // Ingen byggsteg: Node fjerner typene selv naar filen lastes.
+    // Ingen byggsteg: Node fjerner typene selv når filen lastes.
     // Derfor produserer tsc aldri output her - den bare sjekker.
     "noEmit": true,
     "allowImportingTsExtensions": true,
 
     // Hindrer syntaks Node ikke kan fjerne (enum, namespace,
-    // parameter properties). Uten denne oppdages feilen foerst ved
-    // kjoering, som ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
+    // parameter properties). Uten denne oppdages feilen først ved
+    // kjøring, som ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
     "erasableSyntaxOnly": true,
     // Ingen allowJs: det finnes ingen .js igjen. Importerer noen en ny .js-fil
-    // fra en .ts-fil, stopper tsc paa den (TS7016). En .js-fil ingen importerer
-    // er fortsatt usynlig for tsc — det er kjoerbar kode, ikke en type-sperre,
-    // som avgjoer om den betyr noe.
+    // fra en .ts-fil, stopper tsc på den (TS7016). En .js-fil ingen importerer
+    // er fortsatt usynlig for tsc — det er kjørbar kode, ikke en type-sperre,
+    // som avgjør om den betyr noe.
     "verbatimModuleSyntax": true
   },
-  // scripts/ maa staa her, ellers er et skript usjekket: token.ts og
+  // scripts/ må stå her, ellers er et skript usjekket: token.ts og
   // sjekk-openapi-dekning.ts falt utenfor til 21.08.2026.
   "include": ["apps/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "**/client/**"]

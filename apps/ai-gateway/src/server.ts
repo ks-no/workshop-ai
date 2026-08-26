@@ -1154,7 +1154,7 @@ function buildProcessChoicePrompt(body: AiKropp): string {
     "- intent=match kun hvis en prosess er tydelig mest sannsynlig.",
     "- intent=ambiguous hvis 2-3 kandidater er plausible.",
     "- intent=unknown hvis du ikke kan avgjore trygg match.",
-    "- prosessId ma vaere null ved ambiguous/unknown.",
+    "- prosessId må være null ved ambiguous/unknown.",
     "- kandidater ma bruke id-er fra listen under.",
     `Prosesser:\n${kandidaterTekst}`,
     `Historikk (eldst -> nyest): ${JSON.stringify(historikk)}`,
@@ -1589,14 +1589,14 @@ async function checkProvider() {
       const data = (await svar.json()) as { models?: { name?: string; model?: string }[] };
       const finnes = (data?.models || []).some((m) => m.name === ollamaModel || m.model === ollamaModel);
       if (!finnes) {
-        return { naaBar: false, modell, feil: `Ollama kjoerer, men modellen ${ollamaModel} er ikke lastet ned` };
+        return { naaBar: false, modell, feil: `Ollama kjører, men modellen ${ollamaModel} er ikke lastet ned` };
       }
       return { naaBar: true, modell };
     } catch (feil) {
       const melding = feil instanceof Error && feil.name === "TimeoutError"
         ? "Ollama svarte ikke innen 3000 ms"
         : feilmelding(feil);
-      return { naaBar: false, modell, feil: `Naar ikke Ollama paa ${ollamaBaseUrl}: ${melding}` };
+      return { naaBar: false, modell, feil: `Når ikke Ollama på ${ollamaBaseUrl}: ${melding}` };
     }
   }
 

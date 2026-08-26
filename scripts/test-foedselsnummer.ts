@@ -76,7 +76,7 @@ let kastetForMange = false;
 try {
   lagSyntetiskFoedselsnummer("1990-06-15", 10000);
 } catch (error) {
-  kastetForMange = feilmelding(error).includes("Fant ikke syntetisk foedselsnummer");
+  kastetForMange = feilmelding(error).includes("Fant ikke syntetisk fødselsnummer");
 }
 check("for hoey forsoeksteller kaster", kastetForMange);
 
@@ -92,7 +92,7 @@ check("ugyldig datoformat kaster", kastetDato);
 const gyldig = lagSyntetiskFoedselsnummer("1987-03-30");
 const bytt = (fnr: any, i: any, siffer: any) => fnr.slice(0, i) + siffer + fnr.slice(i + 1);
 check(
-  "endret foerste kontrollsiffer avvises",
+  "endret første kontrollsiffer avvises",
   !isGyldigFoedselsnummer(bytt(gyldig, 9, String((Number(gyldig[9]) + 1) % 10)))
 );
 check(

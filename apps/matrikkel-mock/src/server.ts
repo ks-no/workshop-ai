@@ -1054,7 +1054,7 @@ function handleSoapRequest(operasjon: string | null, xml: string, register: Regi
     const bnr = findTag(xml, "bruksnummer") || findTag(xml, "bnr");
     const treff = findEiendom(register, matrikkelId, gnr, bnr);
     if (!treff) {
-      return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespoerselen.");
+      return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespørselen.");
     }
 
     return soapEnvelope(`    <mat:HentMatrikkelenhetResponse>\n${buildEiendomReturn({
@@ -1072,7 +1072,7 @@ function handleSoapRequest(operasjon: string | null, xml: string, register: Regi
     const bnr = findTag(xml, "bruksnummer") || findTag(xml, "bnr");
     const treff = findEiendom(register, matrikkelId, gnr, bnr);
     if (!treff) {
-      return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespoerselen.");
+      return soapFault("Client.NotFound", "Fant ikke matrikkelenhet for forespørselen.");
     }
 
     const eiere = treff.eiere || [];
@@ -1324,6 +1324,6 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 });
 
 server.listen(port, () => {
-  console.log(`Matrikkel-mock kjorer pa http://localhost:${port}`);
+  console.log(`Matrikkel-mock kjører på http://localhost:${port}`);
 });
 

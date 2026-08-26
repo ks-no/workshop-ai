@@ -746,7 +746,7 @@ async function sendMessage(
   samtale.push({ rolle: "innbygger", tekst: text });
 
   if (!oekt || !oekt.aktivtSteg) {
-    addMsg("error", "Start en prosess forst.");
+    addMsg("error", "Start en prosess først.");
     return;
   }
 

@@ -103,7 +103,7 @@ paths:
           schema:
             type: boolean
             default: false
-          description: Returnerer ogsa prosessmaler nar satt til true.
+          description: Returnerer også prosessmaler når satt til true.
       responses:
         "200":
           description: Prosessliste
@@ -302,7 +302,7 @@ paths:
 
   /api/personer/{personId}/husstand:
     get:
-      summary: Hent husstanden personen tilhoerer
+      summary: Hent husstanden personen tilhører
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -329,7 +329,7 @@ paths:
       description: >
         Krever registrert samtykke for datakilden "inntekt", jf. regelen
         consent-before-income i policies/access-policy.yaml. Alle treff
-        revisjonslogges, ogsaa naar tilgangen nektes.
+        revisjonslogges, også når tilgangen nektes.
       parameters:
         - $ref: "#/components/parameters/PersonId"
       responses:
@@ -459,7 +459,7 @@ paths:
 
   /api/personer/{personId}/soknader:
     get:
-      summary: List soeknader personen har sendt inn
+      summary: List søknader personen har sendt inn
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -467,7 +467,7 @@ paths:
         - $ref: "#/components/parameters/PersonId"
       responses:
         "200":
-          description: Soeknadene
+          description: Søknadene
           content:
             application/json:
               schema:
@@ -479,7 +479,7 @@ paths:
 
   /api/soknader:
     post:
-      summary: Opprett en soeknad
+      summary: Opprett en søknad
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -514,7 +514,7 @@ paths:
 
   /api/soknader/{soknadId}:
     get:
-      summary: Hent én soeknad
+      summary: Hent én søknad
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -526,9 +526,9 @@ paths:
             type: string
       responses:
         "200":
-          description: Soeknad returnert
+          description: Søknad returnert
         "404":
-          description: Fant ikke soeknad
+          description: Fant ikke søknad
 
   /api/katalog/datasett:
     get:
@@ -540,7 +540,7 @@ paths:
 
   /api/katalog/informasjonsmodeller:
     get:
-      summary: List informasjonsmodellene datasettene laaner vokabular fra
+      summary: List informasjonsmodellene datasettene låner vokabular fra
       security: []
       responses:
         "200":
@@ -548,12 +548,12 @@ paths:
 
   /api/katalog/ressurser:
     get:
-      summary: List ressursene DATA_FETCH- og SJEKK-steg kan peke paa
+      summary: List ressursene DATA_FETCH- og SJEKK-steg kan peke på
       security: []
       description: >
-        Ressurskatalogen i apps/sandbox-backend/src/ressurser.ts. Hver oppfoering
-        er samtidig et HTTP-endepunkt, et gyldig DATA_FETCH-maal og et gyldig
-        SJEKK-maal. Bruk denne i stedet for aa gjette URL-er naar du skriver et
+        Ressurskatalogen i apps/sandbox-backend/src/ressurser.ts. Hver oppføring
+        er samtidig et HTTP-endepunkt, et gyldig DATA_FETCH-mål og et gyldig
+        SJEKK-mål. Bruk denne i stedet for å gjette URL-er når du skriver et
         nytt steg.
       responses:
         "200":
@@ -574,17 +574,17 @@ paths:
                       example: /api/personer/:personId/inntekt
                     ressurs:
                       type: string
-                      description: Navnet ressursen faar i revisjonsloggen.
+                      description: Navnet ressursen får i revisjonsloggen.
                     beskrivelse:
                       type: string
                     kreverSamtykke:
                       type: string
                       nullable: true
-                      description: Datakilde det maa foreligge samtykke for, eller null.
+                      description: Datakilde det må foreligge samtykke for, eller null.
 
   /api/matrikkel/gater:
     get:
-      summary: List gater, eller hent noekkeltall for én gate
+      summary: List gater, eller hent nøkkeltall for én gate
       security: []
       description: >
         Uten ?gate returneres en liste. Med ?gate returneres en projeksjon uten
@@ -618,13 +618,13 @@ paths:
 
   /api/matrikkel/mine-eiendommer:
     get:
-      summary: Hent eiendommer soekeren er registrert som eier av
+      summary: Hent eiendommer søkeren er registrert som eier av
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
-        Egne data, ikke det aapne gateregisteret: matrikkelen filtrerer paa eier
-        serverside, saa eierlistene til andre i gaten naar aldri hit. Til forskjell
+        Egne data, ikke det åpne gateregisteret: matrikkelen filtrerer på eier
+        serverside, så eierlistene til andre i gaten når aldri hit. Til forskjell
         fra sjekk/eierforhold er den ikke bundet til en gate.
       parameters:
         - name: personId
@@ -648,11 +648,11 @@ paths:
 
   /api/matrikkel/sjekk/eierforhold:
     get:
-      summary: Vurder om soekeren eier eiendom i en gitt gate
+      summary: Vurder om søkeren eier eiendom i en gitt gate
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
-      description: Brukes av SJEKK-steg. Foelger samme kontrakt som andre sjekker.
+      description: Brukes av SJEKK-steg. Følger samme kontrakt som andre sjekker.
       parameters:
         - name: personId
           in: query
@@ -666,7 +666,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Vurdering utfoert
+          description: Vurdering utført
           content:
             application/json:
               schema:
@@ -708,7 +708,7 @@ paths:
             example: redusert-foreldrebetaling-barnehage
       responses:
         "200":
-          description: Vurdering utfoert
+          description: Vurdering utført
           content:
             application/json:
               schema:
@@ -717,7 +717,7 @@ paths:
           description: Ukjent ordning eller manglende parameter
         "403":
           description: >
-            Samtykke mangler. Vurderingen roeper husholdningens
+            Samtykke mangler. Vurderingen røper husholdningens
             inntektsgrunnlag og er derfor underlagt samme samtykkekrav som
             /api/personer/{personId}/inntekt.
         "502":
@@ -762,7 +762,7 @@ paths:
             enum: [barnehage, sfo, fritid]
       responses:
         "200":
-          description: Vurdering utfoert
+          description: Vurdering utført
           content:
             application/json:
               schema:
@@ -1334,7 +1334,7 @@ components:
     SjekkResultat:
       type: object
       description: >
-        Kontrakten et SJEKK-steg maa oppfylle. Er godkjent false, settes
+        Kontrakten et SJEKK-steg må oppfylle. Er godkjent false, settes
         prosessoekten til AVVIST og melding blir avvistMelding.
         Se docs/prosessmodell.md.
       required: [godkjent, melding]
@@ -1417,8 +1417,8 @@ components:
     MinEiendom:
       type: object
       description: >
-        Projeksjon, ikke matrikkelenheten: eierlista er utelatt med vilje, saa
-        medeiere ikke foelger med ut av matrikkelen.
+        Projeksjon, ikke matrikkelenheten: eierlista er utelatt med vilje, så
+        medeiere ikke følger med ut av matrikkelen.
       required: [matrikkelId, adresse]
       properties:
         matrikkelId:

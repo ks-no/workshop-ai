@@ -113,7 +113,7 @@ async function waitForHealth(basisUrl: string, tidsfrist = 15000) {
     }
     await new Promise((klar) => setTimeout(klar, 150));
   }
-  throw new Error(`${basisUrl} svarte ikke paa /helse innen ${tidsfrist} ms.`);
+  throw new Error(`${basisUrl} svarte ikke på /helse innen ${tidsfrist} ms.`);
 }
 
 // --- calls ----------------------------------------------------------------
@@ -124,8 +124,8 @@ const dump: Record<string, unknown>[] = [];
 // returns 369 people and /api/matrikkel/gater 221 streets; dumping them whole made
 // the file mostly data, so every added test person produced a huge diff and buried
 // the contract change the diff exists to reveal.
-// `antall` og `first` er dumpens egne noekler, ikke en tjenestes. Endres de,
-// endres hver linje i dumpen — og da er en foer/etter-sammenlikning verdiloes
+// `antall` og `first` er dumpens egne nøkler, ikke en tjenestes. Endres de,
+// endres hver linje i dumpen — og da er en før/etter-sammenlikning verdiløs
 // til en ny baseline er tatt.
 function shapeOnly(kropp: any, antallViste: number) {
   if (!Array.isArray(kropp)) return kropp;

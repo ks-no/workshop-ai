@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Enkel mock for Matrikkel Geointegrasjon BasisService.
-    SOAP kontrakt eksponeres paa /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl.
+    SOAP kontrakt eksponeres på /geointegrasjon/matrikkel/wsapi/v1/BasisService?wsdl.
 servers:
   - url: http://localhost:8085
 # Ingen av rutene her krever token, og det er et valg, ikke en glipp.
@@ -54,7 +54,7 @@ paths:
                     description: >
                       Provenans. `metadata.kommuner` i fila oppsummeres her til
                       `antallKommuner` og en liste kommunenummer - den fulle lista
-                      er 97 oppforinger og hoerer ikke i en helsesjekk.
+                      er 97 oppføringer og hører ikke i en helsesjekk.
                     additionalProperties: true
   /openapi.yaml:
     get:
@@ -152,7 +152,7 @@ paths:
                 type: string
   /mock/matrikkel/gater:
     get:
-      summary: List eller soek i gater
+      summary: List eller søk i gater
       parameters:
         - in: query
           name: gate
@@ -165,7 +165,7 @@ paths:
           schema:
             type: integer
             minimum: 1
-          description: Returner paginert respons naar limit/offset brukes
+          description: Returner paginert respons når limit/offset brukes
         - in: query
           name: offset
           required: false
