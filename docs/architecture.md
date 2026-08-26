@@ -4,7 +4,7 @@
 
 Tjenestene, portene og rollene deres står **ett sted**:
 `apps/shared/tjenester.json`. Dashboardet på <http://localhost:3001> og
-API-utforskeren leser den fila, og `pnpm test:openapi` holder den i takt med koden.
+API-utforskeren leser den filen, og `pnpm test:openapi` holder den i takt med koden.
 Denne siden gjentar den ikke.
 
 Delingen gir en samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å

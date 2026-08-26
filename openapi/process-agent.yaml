@@ -83,7 +83,7 @@ paths:
                         security:
                           type: array
                           items: { type: string }
-                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                          description: Ordningene ruten godtar. Tom liste betyr åpen.
                         scopes:
                           type: array
                           items: { type: string }

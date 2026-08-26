@@ -1,7 +1,7 @@
 # KS Digital designsystem i denne sandkassen
 
 > [!NOTE]
-> **For deg som bygger frontend.** Trenger du ikke det, kan du hoppe over hele fila.
+> **For deg som bygger frontend.** Trenger du ikke det, kan du hoppe over hele filen.
 
 **Vi forventer at du bygger frontenden din i ditt eget prosjekt, utenfor dette repoet.**
 Sandkassen er API-ene du kaller - den er ikke ment som app-rammeverket ditt. Alle
@@ -12,7 +12,7 @@ Ingen hindrer deg i å utvide `demo-gui` i stedet, og noen ganger er det raskest
 demo. Da gjelder ekstra regler - de står under.
 
 Komponentene, API-et deres og tilgjengelighetskravene er dokumentert hos Digdir. Denne
-fila dekker bare oppsettet og det som er særegent her.
+filen dekker bare oppsettet og det som er særegent her.
 
 KS Digital sitt designsystem bygger på [Designsystemet fra Digdir](https://designsystemet.no/no).
 Prefikset forteller hvem som eier hva: `ds-` er Digdir sine komponenter (nesten alt), `ksd-`
@@ -105,7 +105,7 @@ Da trenger du verken `!important` eller spesifisitetstriks.
 | --- | --- |
 | Komponenter, API og tilgjengelighet - **primærkilden** | <https://designsystemet.no/no> |
 | Kjørende markup for hver komponent, lest ut av DOM-en | <http://localhost:3001/ds-eksempel> |
-| Storybook og Figma - begge virker uten å kjøre noe | lenkene øverst i denne fila |
+| Storybook og Figma - begge virker uten å kjøre noe | lenkene øverst i denne filen |
 | Kildekode | <https://github.com/ks-no/designsystem> |
 | Spørsmål | `fiks@ksdigital.no`, eller Slack `#designsystem` |
 

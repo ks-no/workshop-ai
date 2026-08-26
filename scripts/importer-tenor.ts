@@ -535,7 +535,7 @@ function buildInntekt(fnr: string, harBarn: boolean) {
   const seed = seedOf(fnr);
   const loenn = 180000 + (seed % 71) * 10000;
   // infotekst finnes bare på poster som holdes utenfor grunnlaget, så typen må
-  // si det - ellers utledes den fra den første posten i lista.
+  // si det - ellers utledes den fra den første posten i listen.
   const poster: {
     tekniskNavn: string;
     visningstekst: string;

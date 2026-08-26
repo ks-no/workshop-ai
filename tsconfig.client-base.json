@@ -3,7 +3,7 @@
   // client/-katalog har sin egen tsconfig.json som utvider denne.
   //
   // Grunnen er hvordan editorer finner en config: tsserver (IntelliJ, WebStorm,
-  // VS Code, nvim) går oppover fra fila og leter etter en fil som heter nøyaktig
+  // VS Code, nvim) går oppover fra filen og leter etter en fil som heter nøyaktig
   // «tsconfig.json». En config med et annet navn blir ikke funnet, og da faller
   // editoren tilbake på standardvalg - uten DOM-lib og uten moduleDetection
   // legacy. Resultatet var «Cannot find name renderTopNav» på hver eneste linje

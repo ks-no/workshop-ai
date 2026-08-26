@@ -57,7 +57,7 @@ det den siden du går tilbake til.
 | <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis. Sender du inn, vises søknadsdokumentet og statusen på SvarUt-kvitteringen mens den beveger seg |
 | <http://localhost:3001/agent> | Agent i naturlig språk. Den velger prosess selv |
 | <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
-| <http://localhost:3001/utforsker> | **API-utforskeren** - alle endepunktene, med skjema per rute og en `curl` som virker når den limes inn. Tokenet velges ut fra hjemmelen ruta krever |
+| <http://localhost:3001/utforsker> | **API-utforskeren** - alle endepunktene, med skjema per rute og en `curl` som virker når den limes inn. Tokenet velges ut fra hjemmelen ruten krever |
 | <http://localhost:3000> | Prosessbygger - lag eller endre en flyt |
 | <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend - se `docs/designsystem.md` |
 
@@ -181,7 +181,7 @@ De er de eneste som håndhever hjemmel. `ai-gateway` (`:8082`), `tools-api`
 annet.
 
 Raskeste vei uten å tenke på noe av dette: **<http://localhost:3001/utforsker>** velger
-riktig token for ruta og skriver ut en `curl` som virker når du limer den inn.
+riktig token for ruten og skriver ut en `curl` som virker når du limer den inn.
 
 > [!NOTE]
 > `pnpm token` treffer pnpms egen innebygde kommando. Kall skriptet direkte, som over.

@@ -26,7 +26,7 @@ ved neste oppstart - så sjekk aktiv provider på `/admin`, ikke i `.env`, før 
 
 **Promptene lagres på disk.** `ai-gateway` skriver full prompt og fullt svar til
 `state/ai-trace.jsonl` - med vilje, for at du skal kunne se hva modellen faktisk fikk.
-Fila er gitignorert og nullstilles av `./start.sh --reset`.
+Filen er gitignorert og nullstilles av `./start.sh --reset`.
 
 ## Det som håndheves i kode, ikke i prompt
 

@@ -59,7 +59,7 @@ export function buildTestpersondok(
   linjer.push("");
   linjer.push(
     "Hele befolkningen i sandkassen, generert fra `data/personer.json`. " +
-    "`pnpm test` feiler hvis denne fila er ute av takt med dataene, så tallene her " +
+    "`pnpm test` feiler hvis denne filen er ute av takt med dataene, så tallene her " +
     "er alltid de som faktisk gjelder."
   );
   linjer.push("");
@@ -197,7 +197,7 @@ export function buildTestpersondok(
     "- **Adressebeskyttede personer står med fullt navn og adresse i `data/personer.json`.** " +
     "Det er med vilje: maskeringen skjer ved innlasting, i " +
     "`apps/shared/skjerming.ts`, og hadde seeden vært maskert ville det " +
-    "ikke vært noe å beskytte. Leser du fila direkte ser du klartekst; går du gjennom " +
+    "ikke vært noe å beskytte. Leser du filen direkte ser du klartekst; går du gjennom " +
     "API-et ser du maskeringen. `pnpm test:skjerming` holder den på plass."
   );
   linjer.push(

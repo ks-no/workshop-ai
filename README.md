@@ -9,7 +9,7 @@ En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbygger
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får - dialog, skjema, oversikt, varsling eller noe annet - er teamets valg.
 
 > [!NOTE]
-> **Deltaker på hackathon? Denne fila er ikke inngangen din.** Tre sider, i rekkefølge:
+> **Deltaker på hackathon? Denne filen er ikke inngangen din.** Tre sider, i rekkefølge:
 >
 > 1. [`docs/oppdraget.md`](docs/oppdraget.md) - hva dere skal lage, og hva som er fritt
 > 2. [`docs/deltakerstart.md`](docs/deltakerstart.md) - én kommando, URL-ene, hvilken
@@ -195,12 +195,12 @@ docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
-**Hele lista må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
+**Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
 når de mangler. Hvordan de feiler står i punktlista under
 [tjenesteoversikten](#oversikt-over-tjenester-og-porter).
 
 `--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
-ellers drar opp container-Ollama - men det er også grunnen til at lista må være
+ellers drar opp container-Ollama - men det er også grunnen til at listen må være
 komplett: `--no-deps` slår av `depends_on` for *alle* tjenestene, `digdir-mock`
 inkludert.
 
@@ -322,7 +322,7 @@ Ett token er én person: `person-001`s token åpner ikke `person-031`s data - de
   automatisk, og en `curl` som virker når den limes inn. Raskeste vei til et enkeltkall.
 - `examples/curl/README.md` - flytene: hele barnehagesøknaden i rekkefølge, og de tre
   ulike svarene samme URL gir avhengig av token og samtykke. `pnpm test:kokebok` kjører
-  hvert kall i fila, så et eksempel som ikke virker er en reell feil.
+  hvert kall i filen, så et eksempel som ikke virker er en reell feil.
 
 
 ## Sjekker du kan kjøre
@@ -361,7 +361,7 @@ seed-datasettet:
 npx pnpm test:bergen-matrikkel
 ```
 
-Den krever **nett**: adresser som bommer i seed-fila slår over på live
+Den krever **nett**: adresser som bommer i seed-filen slår over på live
 Geonorge-oppslag, og uten nett svarer matrikkel-mock 500.
 
 De to MCP-serverne testes hver for seg, og de krever verken nett eller kjørende
@@ -428,7 +428,7 @@ Dette repoet er lagt opp for flere team. Se:
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
-- CI kjører sjekkene som verken trenger modell eller kjørende stack. Lista står i
+- CI kjører sjekkene som verken trenger modell eller kjørende stack. Listen står i
   `.github/workflows/ci.yml`, med en kommentar per steg om hva det fanger - den er
   kilden, og `pnpm test:docs` feiler hvis en doc gjengir den feil. Evalene og
   stack-testene er bevisst utenfor: de krever en modell eller en oppe stack

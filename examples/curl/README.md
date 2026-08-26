@@ -2,11 +2,11 @@
 
 **Flytene, ikke rutelista.** Trenger du å vite hvilke ruter som finnes, hva de tar imot og
 hvordan et enkelt kall ser ut, bruk <http://localhost:3001/utforsker>: den leser
-spesifikasjonene tjenestene selv serverer, velger riktig token for ruta, og skriver ut en
+spesifikasjonene tjenestene selv serverer, velger riktig token for ruten, og skriver ut en
 `curl` som virker når den limes inn. En rutetabell her ville vært en kopi som driver.
 
 Det utforskeren *ikke* kan uttrykke er en rekkefølge - sju kall der hvert bygger på det
-forrige. Det er det denne fila er til. Foretrekker du Postman framfor curl, importerer
+forrige. Det er det denne filen er til. Foretrekker du Postman framfor curl, importerer
 den spesifikasjonene i `openapi/` direkte - se `examples/postman/README.md`.
 
 Alle kall er hentet fra `scripts/kontrakt-smoke.ts`, som kjører i CI. Virker et kall

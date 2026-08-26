@@ -1,7 +1,7 @@
 # Contributing
 
 > **For deg som endrer selve sandkassen.** Er du deltaker på hackathon, er
-> `docs/deltakerstart.md` inngangen - du trenger ikke lese denne fila, og ingenting her
+> `docs/deltakerstart.md` inngangen - du trenger ikke lese denne filen, og ingenting her
 > fordeler oppgaver til hackathon-team.
 
 Takk for at du bidrar til `innbyggerdialog-sandbox`.

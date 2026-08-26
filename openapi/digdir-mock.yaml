@@ -14,7 +14,7 @@ info:
     To forenklinger som er verdt å vite om, fordi de skiller sandkassen fra ekte
     Digdir: `redirect_uri` valideres ikke mot noen forhåndsregistrert liste, og
     Maskinporten-assertionen valideres på form og ikke på signatur. Begge står
-    beskrevet på ruta si.
+    beskrevet på ruten si.
 servers:
   - url: http://localhost:8086
 paths:
@@ -88,7 +88,7 @@ paths:
                         security:
                           type: array
                           items: { type: string }
-                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                          description: Ordningene ruten godtar. Tom liste betyr åpen.
                         scopes:
                           type: array
                           items: { type: string }
@@ -198,7 +198,7 @@ paths:
         ingen rute som lister befolkningen. Adressebeskyttede personer står oppført
         med personId og «Skjermet person», akkurat som i velgeren.
 
-        Lista er filtrert: bare personer som kan ha en elektronisk ID er med. MinID
+        Listen er filtrert: bare personer som kan ha en elektronisk ID er med. MinID
         kan bestilles fra det året man fyller 13, og en person som er død, utflyttet
         eller har D-nummer har ingenting å logge inn med. Før filteret sto alle 394
         testpersonene her, 65 av dem under 13 år og elleve under tre.
@@ -285,7 +285,7 @@ paths:
       summary: ID-porten - testbrukervelgeren
       security: []
       description: >
-        Uten `pid` rendres velgersiden; velgeren poster tilbake til den samme ruta
+        Uten `pid` rendres velgersiden; velgeren poster tilbake til den samme ruten
         med den valgte brukeren, og svaret er en 302 til `redirect_uri` med `code`
         og `state`.
 
@@ -437,7 +437,7 @@ components:
       name: redirect_uri
       in: query
       required: true
-      description: Valideres ikke mot noen liste. Se beskrivelsen av ruta.
+      description: Valideres ikke mot noen liste. Se beskrivelsen av ruten.
       schema:
         type: string
         example: http://localhost:3001/callback

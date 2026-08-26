@@ -36,14 +36,14 @@ Hvordan du får tak i tokenet, står under.
 ### Vil du slippe å skrive innlogging selv
 
 `apps/shared/client/felles.ts` løser ID-porten-runden, lagrer tokenet per audience
-og sjekker at det er gyldig. Fila serveres på `/delt/felles.ts` av både `demo-gui` og
+og sjekker at det er gyldig. Filen serveres på `/delt/felles.ts` av både `demo-gui` og
 prosessbyggeren, og et `<script>`-tag henter den på tvers av porter:
 
 ```html
 <script src="http://localhost:3001/delt/felles.ts"></script>
 ```
 
-`.ts` i en `<script src>` ser rart ut, men virker: serveren type-stripper fila på vei
+`.ts` i en `<script src>` ser rart ut, men virker: serveren type-stripper filen på vei
 ut og setter `Content-Type: text/javascript`, og nettleseren går etter typen - ikke
 etter filendelsen. Du trenger verken byggsteg eller TypeScript i ditt eget prosjekt for
 å bruke den.
@@ -126,7 +126,7 @@ I tillegg serverer hver API-tjeneste sin egen spesifikasjon på `/openapi.yaml`,
 samme lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`.
 
 Skal du bare prøve et enkeltkall, er **<http://localhost:3001/utforsker>** raskere enn
-alt dette: den velger riktig token for ruta og skriver ut en `curl` som virker.
+alt dette: den velger riktig token for ruten og skriver ut en `curl` som virker.
 
 ---
 
@@ -173,7 +173,7 @@ respektere. Trenger du noe annet, bygg det.
 
 Skyggingen over er også verktøyet ditt. `readJson` leter i `state/` før `data/` for
 **hvilken som helst fil**, ikke bare de tre den advarer om. Trenger du flere
-barnehageplasser enn de som finnes, kopierer du hele fila og legger til dine egne:
+barnehageplasser enn de som finnes, kopierer du hele filen og legger til dine egne:
 
 ```bash
 cp data/barnehageplasser.json state/barnehageplasser.json
@@ -210,9 +210,9 @@ Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
 4. En blokk i `docker-compose.yml` - kopier en eksisterende, inkludert `healthcheck`
 5. En linje i `apps/shared/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
-7. En oppføring i `tjenester`-lista i `scripts/sjekk-openapi-dekning.ts`. Den lista
+7. En oppføring i `tjenester`-listen i `scripts/sjekk-openapi-dekning.ts`. Den listen
    sjekkes mot `tjenester.json`, så uten den feiler `pnpm test:openapi` med «Star i
-   registeret, men ikke i lista her» - en melding som ikke sier hvilken fil du skal
+   registeret, men ikke i listen her» - en melding som ikke sier hvilken fil du skal
    åpne. Det er her folk står fast
 
 Repoet har ingen runtime-avhengigheter og ikke noe byggesteg. Node type-stripper

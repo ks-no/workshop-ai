@@ -1,11 +1,11 @@
 # Feilsøking
 
 Finn symptomet som passer, og følg løsningen. Hvert avsnitt står for seg - du trenger
-ikke lese fila fra toppen.
+ikke lese filen fra toppen.
 
 Første stopp er alltid <http://localhost:3001>: den viser om alle tjenestene kjører og
 om modellen er koblet på. De tre raskeste sjekkene står i `docs/deltakerstart.md` §5;
-denne fila tar resten.
+denne filen tar resten.
 
 ## Alt svarer 401
 
@@ -19,7 +19,7 @@ denne fila tar resten.
   at gårsdagens token er dødt.
 - `digdir-mock` (`:8086`) er nede. Den utsteder alle tokens, og tokenfeilen svelges i
   klienten - den synes bare i en containerlogg. Typisk ved manuell oppstart der den
-  ikke ble med i lista.
+  ikke ble med i listen.
 
 **Løsning:** Hent et ferskt token, og sjekk at utstederen lever:
 
@@ -52,7 +52,7 @@ ikke.
 docker compose restart tools-api process-agent sandbox-backend fiks-simulator
 ```
 
-Nullstilling den trygge veien: se «Nullstille» nederst i denne fila.
+Nullstilling den trygge veien: se «Nullstille» nederst i denne filen.
 
 ## «fetch failed» på matrikkel-oppslag
 
@@ -69,7 +69,7 @@ docker compose up -d matrikkel-mock
 curl -s http://localhost:8085/helse
 ```
 
-Er den oppe, men adressen finnes ikke: utenfor seed-fila prøver `matrikkel-mock` et
+Er den oppe, men adressen finnes ikke: utenfor seed-filen prøver `matrikkel-mock` et
 live Geonorge-oppslag, og uten nett degraderer det til `404` («Fant ikke …») i stedet
 for en serverfeil. Hold deg til adresser i seedet (f.eks. `Storgata`), eller kom deg
 på nett. Se «Manuell oppstart» i `README.md` for hele tjenestelista.
@@ -95,7 +95,7 @@ curl -s http://localhost:8082/helse
 
 Er `modellNaaBar` `false`, sier et `feil`-felt hvorfor. Velg riktig provider i
 <http://localhost:8082/admin> - byttet gjelder umiddelbart, uten omstart. Vil du
-fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` fila - se
+fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` filen - se
 «Nullstille» nederst.
 
 ## Modellkall henger eller tar lang tid

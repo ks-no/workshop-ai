@@ -29,8 +29,8 @@ fødselsnummer og samtykkets kodeverk.
 
 ## `tjenester.json` er sannhetskilden for tjenestelista
 
-Den fila er grunnen til at det ikke finnes en tjenestetabell i `README.md` - en
-håndholdt kopi driver. Legger du til en tjeneste, er dette fila du endrer -
+Den filen er grunnen til at det ikke finnes en tjenestetabell i `README.md` - en
+håndholdt kopi driver. Legger du til en tjeneste, er dette filen du endrer -
 dashboardet, API-utforskeren og to porter følger etter av seg selv.
 
 ## Pilene peker én vei, og `pnpm test:imports` feller det
@@ -87,7 +87,7 @@ oppgaven har én leser og samtykket har to - `sandbox-backend` svarer også for 
   at tsc ser det slik.
 - **Hver `client/`-katalog må ha en fil som heter nøyaktig `tsconfig.json`.** Editorer
   finner en fils prosjekt ved å gå oppover og lete etter det navnet - en config med et
-  annet navn blir aldri funnet, og da lyser hele fila rødt med «Cannot find name
+  annet navn blir aldri funnet, og da lyser hele filen rødt med «Cannot find name
   renderTopNav». Configen må også inkludere `felles.ts`, ellers er ikke de globale
   funksjonene i samme program.
 
