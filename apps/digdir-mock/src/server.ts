@@ -332,8 +332,8 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
     <title>Logg inn \u2014 ID-porten (sandkasse)</title>
     <style>
       :root {
-        --blaa: #1a4a7a;
-        --blaa-moerk: #12395e;
+        --blue: #1a4a7a;
+        --blue-dark: #12395e;
         --kant: #cdd7e0;
         --grunn: #f1f4f7;
         --tekst: #1d2b36;
@@ -362,7 +362,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         box-shadow: 0 1px 3px rgba(29, 43, 54, .08), 0 8px 24px rgba(29, 43, 54, .06);
       }
       .topp {
-        background: var(--blaa);
+        background: var(--blue);
         color: #fff;
         padding: 1.1rem 1.5rem;
         display: flex;
@@ -396,7 +396,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
       input[type="search"]:focus, select:focus {
         outline: 3px solid rgba(26, 74, 122, .35);
         outline-offset: 1px;
-        border-color: var(--blaa);
+        border-color: var(--blue);
       }
       input[type="search"] { margin-bottom: .6rem; }
       /* No explicit height: let size="8" decide, so the last row is whole rather
@@ -412,11 +412,11 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         padding: .7rem 1rem;
         border: 0;
         border-radius: 6px;
-        background: var(--blaa);
+        background: var(--blue);
         color: #fff;
         cursor: pointer;
       }
-      button:hover { background: var(--blaa-moerk); }
+      button:hover { background: var(--blue-dark); }
       button:focus-visible { outline: 3px solid rgba(26, 74, 122, .45); outline-offset: 2px; }
       .detaljer {
         margin: 1.4rem 0 0;
