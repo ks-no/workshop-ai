@@ -2,16 +2,8 @@
  * State I/O for every service that writes under `state/`: read with a seed
  * fallback, and write through one queue.
  *
- * «Read state/ first, then data/» plus a write queue existed in three copies —
- * `sandbox-backend/src/state.ts`, `sandbox-backend/src/revisjon.ts` and
- * `fiks-simulator/src/state.ts`. The backend's own comment admitted it. Worse,
- * two files were written with no queue at all: `createSoknad` did push +
- * whole-array write, so two concurrent SUBMIT lost one søknad silently, and the
- * prosessbygger's save had the same shape.
- *
- * The state-before-seed lookup is untouched, and deliberately so: it is what
- * lets a team override a seed file by dropping a copy in `state/` without
- * editing the repo.
+ * The state-before-seed lookup is deliberate: it is what lets a team override a
+ * seed file by dropping a copy in `state/` without editing the repo.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -50,7 +42,7 @@ export async function readJson(fileName: string, fallback?: unknown): Promise<an
 /*
  * Private on purpose. Every write goes through updateJson, which reads fresh
  * inside the queue first — so «wrote a copy the request read earlier» is not a
- * mistake a caller can make any more. That was the bug, in four places.
+ * mistake a caller can make.
  */
 async function writeJson(fileName: string, data: unknown) {
   await mkdir(stateDir, { recursive: true });

@@ -3,12 +3,9 @@ import { callUpstream } from "./upstream.ts";
 
 // MATRIKKEL CLIENT
 //
-// The backend used to read data/matrikkel.seed.json straight off disk, in
-// parallel with matrikkel-mock reading the same file. Two read paths meant two
-// copies of the same post-processing, and they had to be kept in step by hand —
-// the universal owner and the injected Bønesheien street existed twice, in
-// state.ts and in the mock. Going over HTTP leaves one matrikkel in the sandbox,
-// the one that also speaks SOAP, and the seed becomes the mock's business alone.
+// One matrikkel in the sandbox: matrikkel-mock is the seed's only reader, and
+// this backend reaches it over HTTP. A second read path here would mean a second
+// copy of the same post-processing, kept in step by hand.
 
 export type Gate = {
   gateId: string;
@@ -41,8 +38,7 @@ export type Eiendom = {
 // that must not be mistaken for "the street does not exist". `emptyOn` is the only
 // thing this call needs on top of upstream.ts, and no `relayStatus`: a matrikkel
 // that judges our request is a matrikkel that is broken from here, not a verdict
-// to hand the citizen. The reading of every other status is now shared with the
-// Fiks and KI calls, and used not to be.
+// to hand the citizen.
 async function hent(sti: string): Promise<any> {
   return callUpstream<any>(
     {
@@ -72,8 +68,7 @@ export async function findGate(gateNavn: string | null): Promise<Gate | null> {
 }
 
 // The mock filters on owner server-side, so the owner lists of everyone else in
-// the street never reach the backend at all. The projection that used to happen
-// here is now a property of the request.
+// the street never reach the backend at all.
 export async function eiendommerForPersonIGate(
   gateNavn: string,
   personId: string

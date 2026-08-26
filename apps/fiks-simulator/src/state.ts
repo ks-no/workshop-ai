@@ -1,18 +1,11 @@
 /**
  * Lesing og skriving av tilstand for Fiks-simulatoren.
  *
- * The handler in server.ts used to read seven JSON files off disk on *every*
- * request, including personer.json with 369 people, whether or not the route
- * touched them. Reading per request is deliberate — it means a hand edit to a
- * seed file takes effect without a restart, which matters during a hackathon —
- * so the fix is `createStateReader` below: read lazily, once per request, and
- * only what the route asks for.
- *
- * The other half of the fix, `updateJson`, has moved to
- * apps/shared/jsonstore.ts. Two more copies of it had grown in
- * sandbox-backend, and the two files neither copy covered — soknader.json and
- * prosessdefinisjoner.json — were written with no queue at all. One queue now,
- * in the shared layer, and this file only points at it.
+ * Reading per request is deliberate — a hand edit to a seed file takes effect
+ * without a restart, which matters during a hackathon — and `createStateReader`
+ * keeps it cheap: read lazily, once per request, and only what the route asks
+ * for. Writes go through `updateJson` in apps/shared/jsonstore.ts; this file
+ * only points at it.
  */
 
 import type { Husstand, Krr, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";

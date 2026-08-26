@@ -5,23 +5,10 @@ import { HttpError } from "./errors.ts";
  * WHAT AN UPSTREAM SERVICE'S NON-OK ANSWER MEANS
  *
  * The process engine calls the Fiks simulator, the AI gateway and the matrikkel
- * mock over HTTP, and it used to decide per call site what a failure was. Four
- * readings existed, and the difference between them was nobody's decision:
- *
- *   - `fiksSvar` in prosess.ts read the status and raised it. It was written
- *     because the call before it stored the error body as the step's result and
- *     carried on with HTTP 200 — the samtykke state machine's 409 became the
- *     citizen's step result.
- *   - the beregning in regler.ts threw a plain Error, so any Fiks failure came
- *     back as «Intern feil i sandbox-backend» and named the wrong service.
- *   - the Fiks task in createSoknad looked only at `ok`, so «Fiks said 403» was
- *     silence and «Fiks is down» was an advarsel — two failure modes, one of
- *     them invisible.
- *   - `hent` in matrikkel.ts had it right, and had it alone.
- *
- * This module is the one place that answers the question. Every fetch out of the
- * engine goes through it, and what a call site may still declare is *which
- * upstream relationship it is in* — never a second reading of the same status.
+ * mock over HTTP, and this module is the one place that decides what a failure
+ * is. Every fetch out of the engine goes through it, and what a call site may
+ * still declare is *which upstream relationship it is in* — never a second
+ * reading of the same status.
  */
 
 export type UpstreamCall = {
@@ -33,12 +20,12 @@ export type UpstreamCall = {
    * Whether the upstream's own verdict on this request is our caller's answer.
    *
    * On the samtykke calls it is: the citizen asked to create or answer a samtykke,
-   * and the state machine's 409 or 403 is the response to *their* request — this is
-   * what `fiksSvar` existed to pass through. On the beregning and the matrikkel
-   * lookups it is not: there we are the consumer, fetching data to make our own
-   * decision, and Fiks refusing our machine token is our infrastructure problem
-   * rather than the citizen's verdict. Answering 403 for it would collide with the
-   * 403 this backend already uses for «samtykke mangler» — two meanings, one status.
+   * and the state machine's 409 or 403 is the response to *their* request. On the
+   * beregning and the matrikkel lookups it is not: there we are the consumer,
+   * fetching data to make our own decision, and Fiks refusing our machine token
+   * is our infrastructure problem rather than the citizen's verdict. Answering
+   * 403 for it would collide with the 403 this backend already uses for
+   * «samtykke mangler» — two meanings, one status.
    */
   relayStatus?: boolean;
   /** Statuses that are an answer rather than a failure. Each of them yields null. */
@@ -52,14 +39,10 @@ export type UpstreamResult<T> =
   | { ok: false; error: HttpError };
 
 /**
- * The one shape a best-effort call degrades into.
- *
- * Three callers build it — the Fiks task and the SvarUt kvittering in prosess.ts,
- * the kontaktinfo lookup in ressurser.ts — and they built it by hand, which is
- * the same drift this module was written to end one level up: what a failure
- * *means* is decided here, so what a caller that survives it *answers* belongs
- * here too. Only `advarsel` is the caller's, because only the caller knows what
- * happened anyway; `detalj` is the reason and `syntetisk` is never anything else.
+ * The one shape a best-effort call degrades into. What a failure *means* is
+ * decided here, so what a caller that survives it *answers* belongs here too.
+ * Only `advarsel` is the caller's, because only the caller knows what was
+ * attempted; `detalj` is the reason and `syntetisk` is never anything else.
  */
 export type Advarsel = { advarsel: string; detalj: string; syntetisk: true };
 
@@ -143,9 +126,9 @@ export async function callUpstream<T>(
  * Nothing came back. Two different things reach here, and only one of them is the
  * service being unreachable: `send` also builds the request, and a Maskinporten
  * token that is refused throws from in there. Claiming lost contact with Fiks for
- * a 403 from the token endpoint would name the wrong service — the very defect
- * this module was written to remove — so only a network-level error code gets that
- * sentence. Anything else reports the attempt and hands the reason on.
+ * a 403 from the token endpoint would name the wrong service, so only a
+ * network-level error code gets that sentence. Anything else reports the attempt
+ * and hands the reason on.
  */
 function sendFailed(call: UpstreamCall, error: unknown) {
   const nettverksfeil = feilkode(error) !== undefined;

@@ -4,7 +4,7 @@
 // and refuses to answer a second one. Whether that caller is *allowed* to do the
 // thing is authorisation, and it lives where the request is handled: in
 // runRessurs for data resources, and in handleRequest for the orchestration
-// routes. Keeping the two apart is the whole pedagogical point of Del B:
+// routes. Keeping the two apart is the whole pedagogical point:
 //
 //   401  we do not know who you are          (autentisering)
 //   403  we know, and you still may not      (hjemmel)
@@ -127,11 +127,9 @@ export async function classifyKaller(request: IncomingMessage): Promise<Caller> 
 }
 
 /**
- * The revisjonslogg's `aktor`, derived from the token rather than guessed.
- *
- * Before Del B this was hardcoded as `{ type: "testbruker", id: personId }` in six
- * places, which logged who was asked *about* and called it who asked. That is the
- * one thing an audit log must not do.
+ * The revisjonslogg's `aktor`, derived from the token rather than guessed:
+ * logging who was asked *about* and calling it who asked is the one thing an
+ * audit log must not do.
  *
  * `personId` is who the request concerns. For a citizen it is redundant — they are
  * the subject — so it is only recorded for a machine, as `paaVegneAv`.

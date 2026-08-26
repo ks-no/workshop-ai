@@ -1381,23 +1381,17 @@ function validateIntent(raa: unknown, body: AiKropp): Intentsvar | null {
 
 // --- The single call site for the model -------------------------------------
 //
-// Every model call goes through callModel. There used to be six near-identical
-// fetch functions — one per (provider x task) — and they had already drifted
-// apart in system message and error text. One call site is also one place to put
-// the timeout, the trace, and any new provider.
-//
-// The system message is used only by OpenRouter. Ollama's /api/generate takes a
-// single prompt with no role structure.
+// Every model call goes through callModel — one place for the timeout, the
+// trace, and any new provider. Do not reintroduce per-provider copies per task;
+// they drift apart in system message and error text.
 
 const SYSTEM_FREETEXT = "Du skriver korte, tydelige svar pa norsk i en kommunal demosandbox.";
 const SYSTEM_JSON = "Du returnerer kun valid JSON uten kodeblokker eller forklarende tekst.";
 
-// systemMessage is fourth here to match callOpenRouter and callBedrock. It used to be
-// absent entirely, so callModel passed the system message to the two cloud providers
-// and silently dropped it on Ollama — the workshop default. That made
-// SYSTEM_JSON ("return only valid JSON, no code fences") a no-op for judgeWithAi,
-// getIntentFromModel and getProcessChoiceFromModel, which are exactly the three
-// callers that parse the reply as JSON.
+// systemMessage is fourth here to match callOpenRouter and callBedrock, and it
+// must reach Ollama too: dropping it would make SYSTEM_JSON ("return only valid
+// JSON, no code fences") a no-op for exactly the callers that parse the reply
+// as JSON.
 async function callOllama(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
   const svar = await fetch(`${ollamaBaseUrl}/api/generate`, {
     method: "POST",
@@ -1792,12 +1786,9 @@ async function interpretReplyWithAi(body: AiKropp) {
   /*
    * The heuristic found nothing and the text contains a negation. That is a
    * finding, not an absence of one: "jo altså, det høres vel ikke helt
-   * urimelig ut" is hesitation, and consent must be informed and unambiguous.
-   *
-   * Before this, the correct ukjent was simply discarded — the override block
-   * below only ran when the heuristic was *not* ukjent — so the question went
-   * to the model, which read the double negative as a wholehearted yes with
-   * confidence 1. See the failing case documented in evals/README.md.
+   * urimelig ut" is hesitation, and consent must be informed and unambiguous —
+   * a model reads that double negative as a wholehearted yes with confidence 1
+   * (see the case documented in evals/README.md).
    *
    * A model answering "nei" is still allowed through: reading hesitation as a
    * refusal is safe, reading it as consent is not.

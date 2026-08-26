@@ -1,15 +1,7 @@
-// Masking for address-protected people, applied once in the data layer.
-//
-// Six people in the seed carry a confidentiality code. Three other services hide
-// them in their own way — folkeregister-mcp and tools-api refuse the lookup,
-// fiks-simulator omits the name from a calculation — but each reads its own copy of
-// the data, so none of them covered sandbox-backend. A team building its own
-// frontend against the backend got the full name and address back in the same
-// response that said STRENGT_FORTROLIG. That taught the wrong lesson: that the code
-// is decoration.
-//
-// So masking happens here, on the way out of readState(), and every reader
-// downstream — routes, ressurser, regler, prosess — sees the same person.
+// Masking for address-protected people, applied once in the data layer — on the
+// way out of readState() — so every reader downstream (routes, ressurser,
+// regler, prosess) sees the same person. Services that read their own copy of
+// the data mask on their own way out; none of them can cover this one.
 //
 // What survives masking, and why. Remove any of these in good faith and the rules
 // engine breaks quietly:
@@ -159,13 +151,11 @@ export function maskFregPerson(person: FolkeregisterPerson): FolkeregisterPerson
   return maskert;
 }
 
-// The household address is masked only when *every* member is protected.
-//
-// household-083, -093 and -157 consist solely of protected people, so there the
-// household address simply is the protected person's address and it leaked in
-// full. household-013 is different: one parent has kode 6, but three unprotected
-// people live at the same address and GET /api/personer/person-030 returns it
-// regardless. Masking there hides nothing and degrades a curated SFO case.
+// The household address is masked only when *every* member is protected: there it
+// simply is the protected person's address. In a mixed household (household-013:
+// one parent with kode 6, three unprotected people at the same address) the
+// address comes back through the other members regardless, so masking it would
+// hide nothing and degrade a curated SFO case.
 //
 // This is a real limit of field-level masking, not a gap to plug later: you cannot
 // hide an address someone shares with a person who is not protected.
