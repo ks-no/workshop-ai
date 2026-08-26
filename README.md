@@ -1,6 +1,6 @@
 # Innbyggerdialog Sandbox
 
-En samarbeidsvennlig sandbox for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
+En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får — dialog, skjema, oversikt, varsling eller noe annet — er teamets valg.
 
@@ -17,7 +17,7 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 
 ## Hva sandkassen er
 
-Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
+Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
 Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
@@ -48,7 +48,7 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 
 | | Trengs til |
 |---|---|
-| **Docker**, installert og startet | å kjøre sandboxen. Det eneste kravet for `./start.sh --mock` |
+| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
 | **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
 | **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
 | **pnpm** | bare testskriptene. `pnpm install` først |
@@ -132,7 +132,7 @@ Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjø
 
 Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
 
-**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandboxen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandkassen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
 
 ### Kildedata og kjøringstilstand
 
@@ -247,7 +247,7 @@ Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 - **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
   er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
   fire verktøyene deres finnes også i `tools-api` over REST, mot de samme
-  seed-filene, så de utvider ikke sandboxen. Se avsnittet under.
+  seed-filene, så de utvider ikke sandkassen. Se avsnittet under.
 
 Hver API-tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, samme spesifikasjon
 lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`. Den midterste er det
@@ -258,7 +258,7 @@ API-utforskeren rendrer, og `pnpm test:openapi` holder alle tre i takt med koden
 
 `brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
 oppslagsverktøy mot registerdataene — de samme oppslagene `tools-api` allerede
-eksponerer over REST, så de utvider ikke sandboxen. I Claude Code, fra repo-roten:
+eksponerer over REST, så de utvider ikke sandkassen. I Claude Code, fra repo-roten:
 
 ```bash
 claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"

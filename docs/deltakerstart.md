@@ -17,7 +17,7 @@ cd workshop-ai
 
 Resten av denne siden antar at du står i den mappen.
 
-## 1. Start sandboxen
+## 1. Start sandkassen
 
 Du trenger **Docker** installert og startet. Du trenger også **Node 22.18 eller
 nyere** så snart du skal kalle et API selv — se avsnitt 4. Så:
@@ -62,7 +62,7 @@ det den siden du går tilbake til.
 | <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend — se `docs/designsystem.md` |
 
 De øvrige tjenestene (`:8080`–`:8086`) er API-er du kan bygge mot. Du trenger ikke åpne
-noen av dem for å se sandboxen virke — og skal du bygge mot dem, er API-utforskeren
+noen av dem for å se sandkassen virke — og skal du bygge mot dem, er API-utforskeren
 raskere enn å lese spesifikasjonene selv.
 
 ## 3. Hvilken bruker til hvilken case

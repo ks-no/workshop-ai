@@ -248,7 +248,7 @@ async function main() {
   const health = (await fetch(`${aiBaseUrl}/helse`).then((r) => r.json()).catch(() => null)) as
     { modellNaaBar?: boolean; feil?: string } | null;
   if (!health) {
-    console.error(`Får ikke kontakt med ai-gateway på ${aiBaseUrl}. Start sandboxen først.`);
+    console.error(`Får ikke kontakt med ai-gateway på ${aiBaseUrl}. Start sandkassen først.`);
     process.exit(1);
   }
   if (!health?.modellNaaBar) {

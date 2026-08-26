@@ -26,7 +26,7 @@ blokkere hverandre.
 Hackathonet skal balansere to hensyn:
 
 - teamene skal ha frihet til å velge egne løsningsgrep
-- sandboxen skal gi nok støtte til at teamene rekker å produsere en fungerende prototype
+- sandkassen skal gi nok støtte til at teamene rekker å produsere en fungerende prototype
 
 Derfor skiller vi mellom:
 
@@ -92,7 +92,7 @@ Det betyr at:
 
 Alle ni tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og fem demo-case er på plass. Det som følger er
-avvik mellom hvordan sandboxen presenterer seg og hva den faktisk gjør — verdt å
+avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør — verdt å
 kjenne til før du bygger på den.
 
 **`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25

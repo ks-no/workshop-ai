@@ -41,7 +41,7 @@ export TOKEN_M=$(node scripts/token.ts --maskinporten ks:innbyggerdialog:les --r
 Åpne ruter (`/helse`, `/docs`, `/api/prosesser`, `/api/katalog/*`, `/api/regler/satser`)
 trenger ingenting.
 
-## 2. Er sandboxen i live?
+## 2. Er sandkassen i live?
 
 ```bash
 for p in 8080 8081 8082 8083 8084 8085 8086; do

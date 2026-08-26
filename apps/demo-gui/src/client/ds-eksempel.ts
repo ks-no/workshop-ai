@@ -94,5 +94,5 @@ function showHelse(farge: string, tekst: string): void {
 
 fetch("http://localhost:8080/helse")
   .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-  .then((svar) => showHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandboxen.`))
+  .then((svar) => showHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandkassen.`))
   .catch((error: unknown) => showHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error instanceof Error ? error.message : String(error)}). Malen virker likevel — den trenger ingen backend.`));

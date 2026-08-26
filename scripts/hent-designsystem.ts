@@ -46,6 +46,6 @@ try {
   console.log("Ferdig. Se docs/designsystem.md for hvordan filene brukes.");
 } catch (error) {
   console.error(`\nKlarte ikke hente designsystemet: ${feilmelding(error)}`);
-  console.error("Filene i apps/shared/ er sjekket inn, så sandboxen virker uten dette steget.");
+  console.error("Filene i apps/shared/ er sjekket inn, så sandkassen virker uten dette steget.");
   process.exit(1);
 }

@@ -63,7 +63,7 @@ export type Sperreutfall = {
 export const PERSONVERN = {
   kilde: "docs/sikkerhet-og-personvern.md",
   punkter: [
-    "Alle opplysninger i denne sandboxen er syntetiske. Ingen av dem gjelder en virkelig person.",
+    "Alle opplysninger i denne sandkassen er syntetiske. Ingen av dem gjelder en virkelig person.",
     "Ingenting du gjør her fører til et virkelig vedtak. Dette er en demo, ikke en kommunal tjeneste i drift.",
     "Inntektsopplysninger hentes bare hvis du samtykker, og sperren håndheves i tjenesten, ikke i grensesnittet.",
     "Du kan trekke et samtykke du har gitt.",
