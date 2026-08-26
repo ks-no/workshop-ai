@@ -383,6 +383,11 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
 // only SJEKK that does not require income consent. The dump records that: the
 // check answers before any samtykke for inntekt exists.
 //
+// It is also the only case that consents to something other than inntekt: the
+// hent-kontaktinfo step between the samtykke and the SJEKK spends that consent on
+// KRR. stottekontaktUtenSamtykke below pins the other half — what that step
+// answers when nobody consented.
+//
 // `tilSubmit` only makes sense for the innvilget case: the avvist case would
 // still reach SUBMIT (SJEKK rejecting does not stop stegIndex from advancing),
 // but sending in a rejected søknad is not a flow worth pinning here.
@@ -411,6 +416,8 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 
@@ -419,11 +426,37 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
   // The only flow in this script reaching SUMMARY and SUBMIT — everything else
   // deliberately stops earlier. Pins the new soknadsdokument field alongside the
   // deterministic mock oppsummeringstekst it embeds.
-  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt-fullfort`, `/api/prosessoekter/${id}`);
+}
+
+// The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
+// without answering it. The samtykke gate lives in the resource catalogue, not in
+// the step, so the 403 has to reach the caller through POST /handling unchanged —
+// that relay is what this pins, and the direct-route 403 in kontaktinfoOppslag
+// cannot say anything about it.
+//
+// person-022 is used nowhere else in this script, so no other flow can leave a
+// kontaktinfo samtykke behind and quietly turn this 403 into a 200.
+async function stottekontaktUtenSamtykke(merkelapp: string) {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
+    method: "POST",
+    body: { personId: "person-022", prosessId: "stottekontakt-behov" }
+  });
+  const id = oekt.oektsId;
+
+  // Straight to hent-kontaktinfo: /neste only moves stegIndex, so the samtykke
+  // step is passed over rather than run.
+  for (const nummer of [1, 2, 3]) {
+    await call(`${merkelapp}-neste-${nummer}`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  }
+  await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  // A refused step leaves the økt open — withSession saves nothing when the
+  // handler throws — so the citizen can go back and consent.
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
 // Fartsdemping is the only case that exercises SJEKK, matrikkel and
@@ -625,9 +658,9 @@ async function forsendelseFlyt() {
 
 // The kontaktinfo resource in front of KRR: the consent gate closed, then open,
 // then the two shapes the 200 has. The consents are created on fiks-simulator's
-// samtykke surface directly — the same rows the process engine would leave —
-// because no process definition carries the chain, deliberately: building it is
-// the participants' task.
+// samtykke surface directly — the same rows stottekontakt-behov's CONSENT_REQUEST
+// leaves — because the people below are not the ones that case is authored for,
+// and a whole prosessøkt per lookup would tell the dump nothing extra.
 async function kontaktinfoOppslag() {
   const samtykke = { scope: "ks:fiks:samtykke" };
   const grantSamtykke = async (personId: string) => {
@@ -663,9 +696,12 @@ async function kontaktinfoOppslag() {
     somPerson: "person-001"
   });
 
-  // The audit trail the resource leaves: one DATA_NEKTET for the closed gate,
-  // then one DATA_LES per lookup — advarsel included, the attempt is what the
-  // log audits — with formaal from the consent, not the catalogue label.
+  // The audit trail the resource leaves, from every caller: first the rows the
+  // stottekontakt flows left — two DATA_LES from hent-kontaktinfo and one
+  // DATA_NEKTET from the økt that skipped its samtykke — then this function's own
+  // DATA_NEKTET for the closed gate and one DATA_LES per lookup, advarsel included,
+  // since the attempt is what the log audits. formaal comes from the consent, not
+  // the catalogue label, which is why the two groups read differently.
   const token = await getMaskinportenToken({
     digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
     scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
@@ -747,6 +783,7 @@ async function run() {
     await fritidskortflyt("person-008", "fritidskort-avslag");
     await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
+    await stottekontaktUtenSamtykke("stottekontakt-uten-samtykke");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();

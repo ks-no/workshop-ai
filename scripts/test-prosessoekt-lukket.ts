@@ -187,6 +187,10 @@ try {
     body: { stegId: "situasjon", svar: { beskrivelse: "Trenger følge i helgene", onskerKontakt: "ja", kontaktkanal: "Telefon" } }
   });
   check("§2 svar på åpen økt gir 200", svarB.status === 200, String(svarB.status));
+  // Three: past the CONSENT_REQUEST, past hent-kontaktinfo — which would 403
+  // without a samtykke, and needs fiks — and onto the SJEKK. /neste only moves
+  // stegIndex, so skipping a step is not the same as running it.
+  await call(`/api/prosessoekter/${idB}/neste`, tokenB, { method: "POST" });
   await call(`/api/prosessoekter/${idB}/neste`, tokenB, { method: "POST" });
   await call(`/api/prosessoekter/${idB}/neste`, tokenB, { method: "POST" });
 

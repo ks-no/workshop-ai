@@ -70,8 +70,10 @@ innvilget utfall her er et innvilget utfall i sandkassen.
 > `person-028` for fritidskort.
 
 For **støttekontakt** avgjør alder og hvor søkeren bor, ikke inntekt — steget ber
-derfor ikke om inntektssamtykke. `person-001` får innvilget, `person-003` får «ingen
-ledige plasser», og `person-062` bor i en kommune uten registrert tilbud.
+derfor ikke om inntektssamtykke, men om samtykke til kontaktopplysningene, som
+neste steg henter fra kontaktregisteret. `person-001` får innvilget, `person-003`
+får «ingen ledige plasser», og `person-062` bor i en kommune uten registrert
+tilbud.
 
 For **fritidskort** avgjør husholdningens inntekt: `person-028` ligger på 158 000 og
 får innvilget, mens `person-008` ligger på 653 000 og får avslag. Grensen er 360 000.

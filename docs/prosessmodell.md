@@ -151,7 +151,8 @@ Repoet inneholder også:
   trinn og et grunnlag på 653 000 — den ga avslag. Tabellen er pinnet i
   `data/deltakercaser.json` nå.
 - `stottekontakt-behov` — ingen inntektshenting. Steget spør om samtykke til
-  kontaktinformasjon, og `SJEKK` leser `data/tjenestetilbud.json`; det er alder og
+  kontaktinformasjon, og `hent-kontaktinfo` henter den fra kontaktregisteret (KRR)
+  med det samtykket. `SJEKK` leser `data/tjenestetilbud.json`; det er alder og
   kommune som avgjør, ikke inntekt.
 - `fritidskort-stotte` — spørsmål, samtykke og inntektshenting.
 - `fartsdempende-tiltak` — den eneste casen som kombinerer `SJEKK`,
