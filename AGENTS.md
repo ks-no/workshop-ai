@@ -363,8 +363,8 @@ pnpm test:agent:matrikkel
   `hybrid` if you need streets outside the seed. Not `live` — it rethrows on network
   failure, so every street lookup becomes a 500 when you are offline.
   `MATRIKKEL_MODE` is read only by `tools-api`; `matrikkel-mock` always falls back to
-  live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
-  is down.
+  live when a lookup misses the seed, and degrades to 404 («Fant ikke …») — not a 5xx —
+  when the network is down.
 
 ## Matrikkel integration pattern
 - `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.

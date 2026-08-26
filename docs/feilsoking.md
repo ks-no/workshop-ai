@@ -35,20 +35,24 @@ virker, ikke en feil. Og bare `sandbox-backend` (`:8080`) og `fiks-simulator`
 (`:8081`) håndhever hjemmel — en `401` fra `:8082`–`:8085` er noe annet.
 Se `docs/deltakerstart.md` §4 og `examples/curl/README.md` §3.
 
-## 401 etter omstart eller nullstilling
+## 401 etter at `state/` ble tømt
 
-**Symptom:** Alt virket; etter `docker compose up -d` eller en nullstilling svarer
-autentiserte kall `401` selv med ferskt token.
+**Symptom:** Alt virket; etter at `state/` ble tømt eller `state/digdir-nokkel.json`
+slettet for hånd, svarer autentiserte kall `401` selv med ferskt token.
 
-**Årsak:** `digdir-mock` fikk nye signeringsnøkler — de ligger i
-`state/digdir-nokkel.json`, så en tømt `state/` gir nye — og andre tjenester cacher
-fortsatt et maskintoken signert med de gamle.
+**Årsak:** `digdir-mock` lager ny signeringsnøkkel når `state/digdir-nokkel.json`
+mangler, og de andre tjenestene cacher fortsatt et maskintoken signert med den gamle.
+En ren omstart utløser ikke dette — nøkkelen overlever restart nettopp for at tokens
+skal forbli gyldige. `./start.sh --reset` starter alt på nytt og treffer det heller
+ikke.
 
 **Løsning:** Restart tjenestene som cacher:
 
 ```bash
 docker compose restart tools-api process-agent sandbox-backend fiks-simulator
 ```
+
+Nullstilling den trygge veien: se «Nullstille» nederst i denne fila.
 
 ## «fetch failed» på matrikkel-oppslag
 
@@ -65,9 +69,9 @@ docker compose up -d matrikkel-mock
 curl -s http://localhost:8085/helse
 ```
 
-Er den oppe, men oppslaget svarer `500`: uten nett svarer `matrikkel-mock` `500` —
-ikke `404` — på adresser utenfor seed-fila, fordi den da prøver et live
-Geonorge-oppslag. Hold deg til adresser i seedet (f.eks. `Storgata`), eller kom deg
+Er den oppe, men adressen finnes ikke: utenfor seed-fila prøver `matrikkel-mock` et
+live Geonorge-oppslag, og uten nett degraderer det til `404` («Fant ikke …») i stedet
+for en serverfeil. Hold deg til adresser i seedet (f.eks. `Storgata`), eller kom deg
 på nett. Se «Manuell oppstart» i `README.md` for hele tjenestelista.
 
 ## Maltekst du ikke ba om
@@ -140,7 +144,8 @@ gammel kjøring av sandkassen selv, eller en annen utviklingsserver på `3000`/`
 ```
 
 Hjelper ikke det, finn prosessen som holder porten — `lsof -i :3000` på macOS og
-Linux, `netstat -ano | findstr :3000` på Windows — og stopp den.
+Linux, `netstat -ano | findstr :3000` på Windows — og stopp den. Portene per
+tjeneste står i tjenestetabellen i `README.md`.
 
 ## Container som ikke blir healthy
 
@@ -160,7 +165,8 @@ docker compose logs -f <tjeneste>
 
 Rett feilen og lagre; watcheren plukker den opp. `pnpm lint` finner samme feil uten
 å gå veien om containeren. Henger en frisk tjeneste likevel:
-`docker compose restart <tjeneste>`.
+`docker compose restart <tjeneste>`. Hvordan tjenestene overvåkes står i
+«Hva skriptet gjør for deg» i `README.md`.
 
 ## Windows-oppstart
 
