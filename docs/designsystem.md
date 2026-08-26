@@ -1,5 +1,6 @@
-# KS Digital designsystem i denne sandboxen
+# KS Digital designsystem i denne sandkassen
 
+> [!NOTE]
 > **For deg som bygger frontend.** Trenger du ikke det, kan du hoppe over hele fila.
 
 **Vi forventer at du bygger frontenden din i ditt eget prosjekt, utenfor dette repoet.**
