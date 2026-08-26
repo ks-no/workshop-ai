@@ -26,16 +26,7 @@ Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser m
 
 ## Designprinsipp for hackathon
 
-Sandboxen skal gi teamene **høy autonomi**, men også **nok støtte til at de faktisk rekker å levere noe i løpet av hackathonet**.
-
-Det betyr i praksis:
-
-- vi tilbyr felles kapabiliteter som API-er
-- vi tilbyr referanseimplementasjoner som støtte
-- vi unngår å låse teamene til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy
-- vi prioriterer enkle integrasjonsflater og god dokumentasjon over tunge interne rammeverk
-
-Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal derfor forstås som **hjelpemidler og eksempler**, ikke som tvungne måter å bygge løsningene på.
+Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles API-er og enkle integrasjonsflater, uten å låse noen til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy. Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, er hjelpemidler og eksempler — ikke tvungne måter å bygge løsningene på.
 
 ## Status
 
@@ -198,13 +189,9 @@ docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
-**Hele lista må med, og de to siste tilleggene er de som svikter stille:**
-
-- `digdir-mock` utsteder alle tokener. Uten den svarer hvert autentisert kall `401`
-  mens `docker compose ps` ser frisk ut — tokenfeilen svelges i klienten og står bare
-  i en containerlogg.
-- `matrikkel-mock`: uten den feiler alle `matrikkel_*`-verktøy og hele
-  `fartsdempende-tiltak`-casen med «fetch failed», mens alt annet ser normalt ut.
+**Hele lista må med** — særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
+når de mangler. Hvordan de feiler står i punktlista under
+[tjenesteoversikten](#oversikt-over-tjenester-og-porter).
 
 `--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
 ellers drar opp container-Ollama — men det er også grunnen til at lista må være
@@ -240,11 +227,9 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 
 `./start.sh` starter alle sammen, så du trenger ikke velge.
 
-**Tabellen står ikke her.** Tjenestene, portene og rollene deres ligger i
-`apps/shared/tjenester.json`, og <http://localhost:3001> viser dem med levende
-helsestatus og en lenke rett inn i API-utforskeren for hver. Fire håndholdte kopier av
-den tabellen hadde drevet fra hverandre — tre av dem manglet `digdir-mock`, tjenesten
-hver 401 peker på — så kopien her er fjernet framfor å bli en femte.
+Tjenestene, portene og rollene deres ligger i `apps/shared/tjenester.json`, og
+<http://localhost:3001> viser dem med levende helsestatus og en lenke rett inn i
+API-utforskeren for hver.
 
 Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 
@@ -254,9 +239,9 @@ Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 - **`matrikkel-mock` (`8085`) er kjerne, selv om den ser valgfri ut.** Uten den feiler
   alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed»,
   mens alt annet ser normalt ut.
-- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`. Den het
-  `mcp-services` fram til 23.08.2026; navnet er droppet framfor at avviket skulle
-  gjentas i hver doc. `/mcp/*`-stiene står igjen — de er wire-format.
+- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`.
+  `/mcp/*`-stiene står igjen — de er wire-format. Navnehistorikken står i
+  `apps/tools-api/README.md`.
 - **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
   er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
   fire verktøyene deres finnes også i `tools-api` over REST, mot de samme
@@ -296,30 +281,16 @@ delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 
 ## Demo-flyt
 
-Første fungerende demo skal støtte denne flyten:
+Flaggskipcaset `Redusert foreldrebetaling i barnehage` kjører hele kjeden i én økt:
+husstanden hentes og vises, samtykke innhentes før inntektsdata leses, vilkårene
+vurderes deterministisk i backend, KI-laget oppsummerer i klarspråk, søknaden sendes
+inn og oppretter en oppgave i Fiks-simulatoren — og revisjonsloggen viser hver
+datatilgang underveis.
 
-1. Velg testbruker `Maja Solberg`
-2. Start prosess `Redusert foreldrebetaling`
-3. Hent husstandsdata
-4. Vis husstand til bruker
-5. Be om samtykke for inntektsdata
-6. Bruker gir samtykke
-7. Hent inntektsdata
-8. AI-gateway lager oppsummering i klarspråk
-9. Bruker bekrefter
-10. Søknad sendes inn
-11. Oppgave opprettes i Fiks-simulator
-12. Revisjonslogg viser hendelsene
-
-Andre tilgjengelige demo-case:
-
-- `Redusert betaling i SFO`
-- `Behovsavklaring for støttekontakt`
-- `Søknad om fritidskort-støtte`
-- `Søknad om fartsdempende tiltak`
-
-Demo-GUI-en er nå prosessdrevet og leser steg direkte fra valgt prosessdefinisjon.
-Demo-GUI-en bruker også prosessøkt-API i backend for å starte flyter, lagre svar og utføre steg.
+Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
+kjøres via prosessøkt-API-et i backend. Alle fem casene, og hvilken testbruker som
+hører til hver, står i tabellen i `docs/deltakerstart.md` §3, pinnet i
+`data/deltakercaser.json`.
 
 ## Eksempel på API-kall
 
@@ -447,13 +418,6 @@ Dette repoet er lagt opp for flere team. Se:
 - `docs/architecture.md`
 - `docs/api-oversikt.md`
 - `docs/designsystem.md`
-
-Anbefalt arbeidsform:
-
-- små PR-er med tydelig scope
-- dokumentasjon oppdateres sammen med kode
-- API-kontrakter avklares før implementasjon
-- bruk sandboxens referanseimplementasjoner hvis de sparer tid, men stå fritt til å lage egne løsninger oppå de samme API-ene
 
 ## Kjente begrensninger
 

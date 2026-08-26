@@ -101,11 +101,11 @@ verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, s
 MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
 korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 
-Tjenesten het `mcp-services` fram til 23.08.2026. Navnet er droppet framfor at
-avviket skulle gjentas i hver doc — `apps/brreg-mcp` og `apps/folkeregister-mcp` er
-nå de eneste tingene i repoet som heter MCP, og de *er* MCP. Stiene `/mcp`,
-`/mcp/tools` og `/mcp/tools/invoke` står igjen, fordi en sti er wire-format: det er
-det ene stedet prefikset fortsatt hevder en protokoll tjenesten ikke snakker.
+`apps/brreg-mcp` og `apps/folkeregister-mcp` er de eneste tingene i repoet som
+heter MCP, og de *er* MCP. Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står
+igjen, fordi en sti er wire-format: det er det ene stedet prefikset fortsatt hevder
+en protokoll tjenesten ikke snakker. Navnehistorikken står i
+`apps/tools-api/README.md`.
 
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
