@@ -5,11 +5,13 @@
  * sandbox has no runtime dependencies, and the CI gate needs to see duplicate path
  * keys, which a parser collapses before anyone can look at them.
  *
- * Two consumers, which is why this lives here rather than inside the check script:
+ * Three consumers, which is why this lives here rather than inside a script:
  *
  *   1. scripts/sjekk-openapi-dekning.ts, which holds the spec and the code in step
  *   2. each service's GET /openapi-ruter.json, which is what the API explorer in
  *      demo-gui renders
+ *   3. scripts/check-dokumentasjon.ts, which counts paths and operations to check
+ *      claims in prose against the specs
  *
  * IT FAILS LOUDLY, AND THE BOUNDARY IS THE POINT. It throws on a construct it does
  * not understand *within what it claims to read* — a fifth parameter shape, a $ref
