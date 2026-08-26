@@ -179,8 +179,10 @@ The one place this does not apply is `ai-gateway`'s trace surface (`/trace`,
 English throughout: `timestamp`, `task`, `model`, `response`, `durationMs`, `failed`,
 `error`. `sporingsId` is the exception there — it correlates with the domain field.
 
-**Comments are English**, and only where they earn their place. Explain *why*, not *what* —
-if a comment restates the code, delete it instead of translating it.
+**Comments follow the identifier rule**: English for the technical, Norwegian where the
+comment reasons in the domain — and one language per block; a block never switches
+language midway. Write them only where they earn their place, and explain *why*, not
+*what* — if a comment restates the code, delete it instead of translating it.
 
 ## Project conventions you must follow
 - Keep Norwegian domain names/identifiers intact (`samtykke`, `inntekt`, `prosessokt`, etc.).

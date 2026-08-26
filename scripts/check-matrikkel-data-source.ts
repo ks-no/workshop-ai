@@ -40,10 +40,9 @@ async function main() {
       throw new Error(`HTTP ${res.status}`);
     }
 
-  // Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-// noe om formen deres, og en type som lovet formen ville gjort påstanden
-// sirkulær. Parametrene og hjelperne er typet som ellers.
-  const body = (await res.json()) as any;
+    // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+    // Parametrene og hjelperne er typet som ellers.
+    const body = (await res.json()) as any;
     const kilde = body.kilde || null;
 
     console.log("matrikkel-mock datakilde (live)");

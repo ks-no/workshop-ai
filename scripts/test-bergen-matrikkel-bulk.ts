@@ -53,8 +53,7 @@ async function run() {
     for (const gate of gateSample) {
       const res = await fetch(`${baseUrl}/mock/matrikkel/gater?gate=${encodeURIComponent(gate.adressenavn)}`);
       assert(res.ok, `Gateoppslag feilet for ${gate.adressenavn}`);
-      // Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-      // noe om formen deres, og en type som lovet formen ville gjort påstanden sirkulær.
+      // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
       const json = (await res.json()) as any;
       const treff = Array.isArray(json) ? json : (Array.isArray(json?.items) ? json.items : [json]);
       assert(treff.some((g: any) => g?.adressenavn === gate.adressenavn), `Gateoppslag returnerte feil gate for ${gate.adressenavn}`);

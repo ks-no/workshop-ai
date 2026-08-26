@@ -13,15 +13,12 @@ const port = 3000;
 // Whitelisted, because the filename comes from the URL.
 const ASSETS: Record<string, string> = {
   "felles.css": "text/css; charset=utf-8",
-  // Vendored design system, see docs/designsystem.md. Flat filenames on purpose:
-  // the lookup below joins the URL name onto a directory, so no name may contain a slash.
+  // Vendored design system — see apps/demo-gui/src/server.ts for the flat-filename rule.
   "ds-base.css": "text/css; charset=utf-8",
   "ds-ksdigital.css": "text/css; charset=utf-8"
 };
 
-// Delt klientkode, servert til begge frontendene. .ts, og nettleseren merker
-// ingenting: den går etter Content-Type, og shared/assets.ts stripper
-// typene på vei ut.
+// Delt klientkode — se apps/demo-gui/src/server.ts for begrunnelsen.
 const DELTE_KLIENTFILER: Record<string, string> = {
   "felles.ts": KLIENTSKRIPT
 };
@@ -40,9 +37,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 
   for (const [prefiks, katalog, tillatte] of [
-    // /delt/ før /assets/: felles.ts er .ts og strippes, resten er statiske
-    // filer som sendes uendret. Rekkefølgen betyr ingenting her siden
-    // prefiksene ikke overlapper, men holder de to slagene fra hverandre.
+    // /delt/ før /assets/ — se apps/demo-gui/src/server.ts for begrunnelsen.
     ["/delt/", deltKlientDir, DELTE_KLIENTFILER],
     ["/assets/", sharedDir, ASSETS],
     ["/client/", klientDir, KLIENTFILER]

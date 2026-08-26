@@ -233,9 +233,7 @@ const systemruter: Rute[] = [
     metode: "GET",
     tilgang: "aapen",
     sti: "/openapi-ruter.json",
-    // Den samme spesifikasjonen, lest. En nettleser kan ikke lese YAML uten en
-    // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
-    // med det API-utforskeren trenger for å rendre et skjema per rute.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     handter: async ({ response }) => {
       jsonResponse(response, 200, await routeOverview(openapiFile));
     }

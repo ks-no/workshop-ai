@@ -33,8 +33,7 @@ const bareKommune = bareIndex === -1 ? null : process.argv[bareIndex + 1];
 const API = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const SIDESTOERRELSE = 1000;
 
-// Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-// noe om formen deres, og en type som lovet formen ville gjort påstanden sirkulær.
+// Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
 // Seedfilene leses for å toppes opp; formen påstås av valider-data, ikke her.
 const read = async (fil: string): Promise<any> => JSON.parse(await readFile(fil, "utf8"));
 

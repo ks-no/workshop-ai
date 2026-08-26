@@ -155,8 +155,7 @@ type Agentsesjon = {
 
 const sessions = new Map<string, Agentsesjon>();
 
-// Samme CORS på JSON og tekst: /docs og /openapi.yaml hører med — ellers dør et
-// nettleserkall i preflight, og det er bare synlig i konsollet.
+// See apps/shared/http.ts for the CORS rationale.
 const { jsonResponse: json, textResponse: sendTekst } = svarhjelpere({
   cors: cors("GET,POST,OPTIONS")
 });
@@ -829,12 +828,8 @@ async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string
   }
 }
 
-// ---------------------------------------------------------------------------
 // Dynamisk verktøyoppdagelse via suggest_step_tools
-// ---------------------------------------------------------------------------
 
-// Decide which step-level tools to run and how: "kontekst", "validering", or both.
-// Returns { kontekst: [{name, args}], validering: [{name, args}] }
 async function discoverStepTools(step: Agentsteg | null | undefined) {
   if (!step || step.type !== "QUESTION") return { kontekst: [], validering: [] };
   try {
@@ -850,7 +845,6 @@ async function discoverStepTools(step: Agentsteg | null | undefined) {
   }
 }
 
-// Run a single context tool and format its result as a human-readable hint line.
 async function runKontekstTool(toolName: string, stepAnswer: unknown) {
   if (toolName === "matrikkel_finn_veger") {
     try {
@@ -866,9 +860,8 @@ async function runKontekstTool(toolName: string, stepAnswer: unknown) {
   return null;
 }
 
-// Run a single validation tool against the user's raw answer.
-// Returns { answer, inferred, note } on success, or null when the answer is invalid.
-// On invalid input returns { retry, hint } so the agent can ask the user to try again.
+// Returns { answer, inferred, note? } on success, { retry, hint } on invalid
+// input, or null when the tool has nothing to say about the text.
 async function runValideringTool(toolName: string, userText: string) {
   if (toolName === "matrikkel_finn_veger") {
     try {
@@ -904,7 +897,6 @@ async function runValideringTool(toolName: string, userText: string) {
     } catch {
       // Gate not found – build a retry hint
     }
-    // Build suggestions for retry
     try {
       const gater = await invokeTool<Matrikkelgate[]>("matrikkel_finn_veger", { all: true, limit: 12, offset: 0 });
       const forslag = Array.isArray(gater) ? gater.slice(0, 6).map((g) => g.adressenavn).join(", ") : null;
@@ -1315,7 +1307,6 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       const prompt = step.tekst || step.tittel || "Kan du svare på et spørsmål?";
       messages.push(prompt);
 
-      // Dynamically discover which tools can provide useful context for this step.
       const { kontekst, validering } = await discoverStepTools(step);
       state.awaitingValideringTools = validering.map((v) => v.name).filter((n): n is string => Boolean(n));
       for (const v of kontekst) {
@@ -1716,18 +1707,15 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
   }
 
   if (state.awaiting === "guided_interview") {
-    // Store answer to the current question
     // Nøkkelen settes alltid sammen med awaiting = "guided_interview".
     state.guidedInterviewAnswers[state.guidedInterviewCurrentKey ?? ""] = text;
 
     if (state.guidedInterviewQueue && state.guidedInterviewQueue.length > 0) {
-      // More questions to ask
       const next = state.guidedInterviewQueue.shift()!;
       state.guidedInterviewCurrentKey = next.key;
       return [next.question];
     }
 
-    // All questions answered – compose the full answer and save it
     const composed = composeGuidedAnswer(state.guidedInterviewStepId, state.guidedInterviewAnswers);
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
@@ -1735,7 +1723,6 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       svar: composed
     });
 
-    // Clean up interview state
     state.awaiting = "question";
     state.guidedInterviewQueue = [];
     state.guidedInterviewAnswers = {};

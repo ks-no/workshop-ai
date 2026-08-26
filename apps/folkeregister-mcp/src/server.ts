@@ -231,15 +231,9 @@ function createSuccessResponse(id: JsonRpcId, result: unknown): JsonRpcSvar {
   return { jsonrpc: "2.0", id, result };
 }
 
-// MCP's stdio transport is newline-delimited JSON: one message per line, no
-// headers. An earlier version framed messages with LSP's `Content-Length`
-// header, which made every real MCP client hang — the client writes `{...}\n`,
-// and this server waited forever for a header that never arrived. The bundled
-// test script repeated the same framing, so it passed while nothing else could
-// connect.
+// Newline-delimited JSON framing, mirrored from apps/brreg-mcp/src/server.ts —
+// see the comments there (encodeMessage and createMessageReader included).
 function encodeMessage(message: JsonRpcSvar): Buffer {
-  // JSON.stringify escapes newlines inside strings, so the payload can never
-  // contain a raw \n and break the framing.
   return Buffer.from(JSON.stringify(message) + "\n", "utf8");
 }
 
@@ -250,9 +244,6 @@ function createMessageReader(onMessage: (melding: JsonRpcMelding) => void): (chu
     while (true) {
       const newlineIndex = buffer.indexOf(0x0a);
       if (newlineIndex === -1) return;
-      // Split on the byte, then decode — a multi-byte character straddling two
-      // chunks would be corrupted if we decoded first.
-      // trim() also drops the \r a CRLF client leaves behind.
       const line = buffer.subarray(0, newlineIndex).toString("utf8").trim();
       buffer = buffer.subarray(newlineIndex + 1);
       if (!line) continue;

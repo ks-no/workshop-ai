@@ -155,11 +155,7 @@ type Revisjonshendelse = {
 
 
 
-// sandbox-backend owns the audit log. We send events there instead of writing
-// the file ourselves, so there is only ever one writer.
-//
-// Auditing must never break the operation being audited: if the backend is
-// unavailable we log locally and carry on.
+// See addRevisjon in apps/ai-gateway/src/server.ts for the audit-logging rationale.
 async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
@@ -176,7 +172,6 @@ async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
   }
 }
 
-// --------------------------------------------------------------------------
 // Skatte- og inntektsopplysninger: beregning
 //
 // Modelled on the KS Fiks register API:
@@ -189,7 +184,6 @@ async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
 //
 // The simulator computes the grunnlag. The income thresholds belong to the
 // municipality and live in data/satser.json, which sandbox-backend reads.
-// --------------------------------------------------------------------------
 
 /** What separates the beregningstyper the register surface serves. */
 type Typeoppsett = {

@@ -93,8 +93,7 @@ async function runJudge(check: any, { text }: Evalsvar) {
     signal: AbortSignal.timeout(180000)
   });
   if (!response.ok) {
-    // Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-    // noe om formen deres, og en type som lovet formen ville gjort påstanden sirkulær.
+    // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
     const body = (await response.json().catch(() => ({}))) as any;
     return { ok: false, detail: `dommeren svarte ${response.status}: ${body.feil || ""}` };
   }
