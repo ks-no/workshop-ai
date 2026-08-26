@@ -281,11 +281,11 @@ delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 
 ## Demo-flyt
 
-Flaggskipcaset `Redusert foreldrebetaling i barnehage` kjører hele kjeden i én økt:
+Flaggskipcaset *Redusert foreldrebetaling (barnehage)* kjører hele kjeden i én økt:
 husstanden hentes og vises, samtykke innhentes før inntektsdata leses, vilkårene
-vurderes deterministisk i backend, KI-laget oppsummerer i klarspråk, søknaden sendes
-inn og oppretter en oppgave i Fiks-simulatoren — og revisjonsloggen viser hver
-datatilgang underveis.
+vurderes deterministisk i backend, KI-laget oppsummerer i klarspråk, innbyggeren
+bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren — og
+revisjonsloggen viser hver datatilgang underveis.
 
 Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
 kjøres via prosessøkt-API-et i backend. Alle fem casene, og hvilken testbruker som

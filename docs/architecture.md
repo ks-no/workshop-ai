@@ -5,8 +5,7 @@
 Tjenestene, portene og rollene deres står **ett sted**:
 `apps/shared/tjenester.json`. Dashboardet på <http://localhost:3001> og
 API-utforskeren leser den fila, og `pnpm test:openapi` holder den i takt med koden.
-Denne siden gjentar den ikke — fire håndholdte kopier av den tabellen hadde drevet
-fra hverandre, og tre av dem manglet `digdir-mock`, tjenesten hver 401 peker på.
+Denne siden gjentar den ikke.
 
 Delingen gir en samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å
 blokkere hverandre.
@@ -149,11 +148,10 @@ oppgave-scope åpner ikke samtykkeflaten, og et register-scope åpner ikke
 Folkeregisteret eller SvarUt. Folkeregisterflaten
 snevrer i tillegg inn *innenfor* scopet: rolleId-en i stien avgjør hvilke
 informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag —
-dataminimering som API-adferd. Samtykke- og
-oppgaveflatene sto åpne fram til 23.08.2026, og det var en bakdør: samtykkesperren
-`sandbox-backend` håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra
-samtykket — kunne tilfredsstilles med to uautentiserte kall mot 8081. Sperren var
-ekte; bakdøren lå ved siden av.
+dataminimering som API-adferd. Token-kravet på samtykke- og
+oppgaveflatene er ikke pynt: uten det kunne samtykkesperren `sandbox-backend`
+håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra samtykket — vært
+tilfredsstilt med to uautentiserte kall mot 8081.
 
 Innbyggerens eget ID-porten-token avvises på alle seks flatene med `403
 KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en
