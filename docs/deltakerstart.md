@@ -7,7 +7,8 @@ tar to minutter.
 
 ## 0. Hent repoet
 
-Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din:
+Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din
+(krever `git`):
 
 ```bash
 git clone https://github.com/<ditt-github-brukernavn>/workshop-ai.git
@@ -30,7 +31,8 @@ stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjons
 og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
 krever nedlasting av flere gigabyte.
 
-Suksess ser slik ut: skriptet skriver `✅ Ready` — åpne da <http://localhost:3001>,
+Suksess ser slik ut: skriptet skriver `✅ Ready` (med `--mock` følger en advarsel om
+at KI-svarene er maltekst — det er som forventet) — åpne da <http://localhost:3001>,
 der alle tjenestene i tabellen skal vise grønt («oppe»).
 
 Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12–25

@@ -268,7 +268,7 @@ claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.ts"
 Detaljer, klientkonfigurasjon for andre editorer og verifisering med
 `@modelcontextprotocol/inspector`: `apps/brreg-mcp/README.md`.
 
-## Demo-bruker
+## Demo-brukere
 
 Det finnes ikke én demo-bruker som passer alle casene — velg bruker etter case i
 tabellen i `docs/deltakerstart.md` §3, som er pinnet i `data/deltakercaser.json`.
