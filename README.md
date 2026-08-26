@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/ks-digital-logo.png" alt="KS Digital" width="360">
+</p>
+
 # Innbyggerdialog Sandbox
 
 En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
