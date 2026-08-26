@@ -58,18 +58,9 @@ ignorable. Do not duplicate it here; a second copy is how it went stale before.
 - Preserve the process-driven model; avoid hardcoding flow logic in UI when a process definition should drive behavior.
 - Prefer existing endpoint and payload patterns from current service code.
 - When editing API behavior, update matching specs in `openapi/`.
-- **Naming: English for code, Norwegian for domain.** Technical identifiers are English
-  (`callModel`, `jsonResponse`, `writeTrace`, `buildPrompt`, `HttpError`), domain terms
-  stay Norwegian (`samtykke`, `inntekt`, `beregning`, `prosessoekt`, `revisjonslogg`,
-  `ordning`, `satser`). Mixed compounds are correct: `getInntektForPerson`.
-- **Never rename wire-format fields.** JSON response keys and endpoint paths are the
-  contract teams build against: `melding`, `feil`, `tekst`, `modell`, `advarsel`,
-  `godkjent`, `svar`, `stegId`, `oektsId`, `sporingsId`, and the rest. A local variable
-  may be `message`; the response key stays `melding`. See AGENTS.md for the full rule.
-- Comments in English, and only where they explain *why*. Delete a comment that merely
-  restates the code rather than translating it.
-- Keep Norwegian domain terms and identifiers intact where they already exist.
-- Use UTF-8 Unicode encoding for all created/edited code, data, and documentation files.
+- **Language: see `## Language` in `AGENTS.md`.** It is the maintained one, and it
+  covers identifiers, the frozen wire format, prose, file-by-file language and comment
+  language. Do not restate it here; a second copy is how it went stale before.
 - Do not introduce new frameworks or heavy dependencies unless explicitly requested.
 - Participant frontends are expected to live in their own project outside this repo,
   talking to the sandbox APIs; the repo-internal rules below apply to work done here.

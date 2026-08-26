@@ -154,17 +154,71 @@
   including that the call sites still hand their fetches over.
 - Audit events are first-class output (`state/revisjonslogg.json`); keep behavior observable.
 
-## Naming: English for code, Norwegian for domain
+## Language
 
-This is the rule for every identifier you write in this repo.
+One rule, here, for every word written in this repo. `CONTRIBUTING.md`,
+`.github/copilot-instructions.md`, `docs/designsystem.md` and
+`.claude/skills/ksd-designsystem/SKILL.md` name the ban and point here.
 
-**English** for anything technical — the plumbing a developer from any country would
+**No prose file owns a list of field names.** `openapi/*.yaml` does. Prose may show a
+handful as examples, never as the list: a pointer saying "never rename a wire field"
+cannot drift, while one saying "`melding`, `feil`, `grunnlag`" can, and did. The rule
+used to live in six files carrying four different versions of the same list.
+
+Be precise about what that buys you. `pnpm test:openapi` compares routes, methods,
+`security` and the kodeverk enums against the code, in both directions. It does **not**
+compare response field names, so the specs are the best list there is rather than a
+checked one. Trust them over any prose copy, and read the code when it matters.
+
+### 1. Prose or identifier. Decide this first, every time.
+
+**Prose** is what a human reads as language: markdown, code comments, and string
+literals that are printed, rendered or logged.
+
+**Identifier** is everything else: variable, function and type names, file and directory
+names, JSON keys, URL paths, query parameters, header names, enum and status values,
+kodeverk, process and step ids, CSS class names, env vars, npm script names, and the
+value a shell function `echo`s for a caller to consume.
+
+Language work rewrites prose. It never renames an identifier - not to fix a spelling,
+not to fix an outright typo. `nodvenligord` in `apps/ai-gateway/src/server.ts` is
+misspelled in every language and stays exactly as it is. When you cannot tell which side
+a string is on, treat it as an identifier.
+
+### 2. A string compared against user input is a pattern, not prose. Never touch it.
+
+This is the same decision as point 1, and the one that costs most to get wrong.
+
+The test is mechanical. If the string sits on the right-hand side of `includes`,
+`startsWith`, `endsWith`, `match` or `test`, or inside a `Set` or array that is
+searched, or inside a regex - and the left-hand side comes from a request body, a query
+parameter or an input field - then it is a **pattern**. It matches what people actually
+type, and people type `kjor pa`, `avsla`, `ma jeg` and `nar` without the letters.
+
+Correcting the spelling of a pattern deletes half its coverage in silence. Nothing
+throws, no test goes red, no log line appears. The guard simply stops firing.
+
+There is deliberately no list of the sites here. The test above finds them, and a list
+would be incomplete the week after it was written. `pnpm test:sperrer` pins the ones in
+`apps/ai-gateway/src/sporsmaalsperrer.ts`; everywhere else this rule is the only guard,
+which is why it reads as a ban rather than a caution.
+
+Some of those files carry the same phrase twice, once with the letters and once without
+- `"kjør på"` beside `"kjor pa"`. That is not a style to preserve. It exists because
+`foldNorwegian` in `sporsmaalsperrer.ts` is not exported, so the other normalisers do not
+fold, and the duplicates paper over it. Export it and fold in one place, and the
+duplicates can go. Until then, leave them alone: deleting one half without the other is
+the silent failure this point is about.
+
+### 3. Identifiers: English for the plumbing, Norwegian for the domain.
+
+**English** for anything technical - the plumbing a developer from any country would
 recognise: `callModel`, `jsonResponse`, `readRequestBody`, `writeTrace`, `buildPrompt`,
 `compilePathPattern`, `HttpError`, `readState`, `errorBody`, `newId`. Verbs are English
 too: `find…`, `read…`, `write…`, `build…`, `validate…`, `check…`.
 
-**Norwegian** for the domain — the words a Norwegian caseworker would use, and which have
-no honest English equivalent in this context: `samtykke`, `inntekt`, `beregning`,
+**Norwegian** for the domain - the words a Norwegian caseworker would use, and which
+have no honest English equivalent in this context: `samtykke`, `inntekt`, `beregning`,
 `prosessoekt`, `revisjonslogg`, `husstand`, `ordning`, `satser`, `foreldrebetaling`,
 `matrikkel`, `soknad`, `steg`, `vilkaar`.
 
@@ -172,25 +226,126 @@ Mixed compounds are expected and correct: `getInntektForPerson`, `validateProses
 `buildBeregning`, `hasValidSamtykke`. English verb, Norwegian domain noun.
 
 **The wire format is frozen and stays Norwegian.** Field names in JSON responses and
-endpoint paths are the contract every team builds against. Never rename these, even
-though they look like ordinary words: `melding`, `feil`, `detalj`, `tekst`, `modell`,
-`advarsel`, `syntetisk`, `godkjent`, `grunnlag`, `svar`, `steg`, `stegId`, `stegIndex`,
-`oektsId`, `sporingsId`, `resultater`, `kontekst`, `intent`, `begrunnelse`, `verktoy`.
-A local variable may be `message`; the response key stays `melding`.
+endpoint paths are the contract every team builds against, and the trap is that they
+look like ordinary words: `melding`, `feil`, `grunnlag`, `svar`, `steg` and `verktoy`
+read as prose and are not. Never rename one. A local variable may be `message`; the
+response key stays `melding`.
+
+Those six are examples. `openapi/*.yaml` is the list, and the only one worth trusting.
 
 The one place this does not apply is `ai-gateway`'s trace surface (`/trace`,
 `state/ai-trace.jsonl`), which is developer tooling rather than service contract and is
-English throughout: `timestamp`, `task`, `model`, `response`, `durationMs`, `failed`,
-`error`. `sporingsId` is the exception there — it correlates with the domain field.
+English throughout, apart from `sporingsId`, which correlates with the domain field.
+`apps/ai-gateway/README.md` names those fields; do not copy them here.
 
-**Comments follow the identifier rule**: English for the technical, Norwegian where the
-comment reasons in the domain — and one language per block; a block never switches
-language midway. Write them only where they earn their place, and explain *why*, not
-*what* — if a comment restates the code, delete it instead of translating it.
+### 4. Identifiers transliterate. Prose does not.
+
+An identifier built from a Norwegian word drops the letters: `noekkel`, `foer`,
+`rekkefoelge`, `prosessoekt`, `vilkaar`, `soknad`, `verktoy`, `foedselsnummer`,
+`sporsmaalsperrer.ts`, `test-prosessoekt-lukket.ts`.
+
+This describes what the repo already is. It is not a target to move toward, and the
+transliteration is **not consistent and is not being made consistent**: `ø` becomes `oe`
+in `noekkel` and `prosessoekt` but plain `o` in `soknad` and `verktoy`, and `å` becomes
+`aa` in `vilkaar` and `sporsmaal`. All of them stay. `verktoy` is a frozen wire field
+and `prosessoekt` names a state file, so renaming for tidiness is exactly the change
+point 1 exists to prevent.
+
+Prose never transliterates, and never escapes. Write `søknad`, `verktøy`, `vilkår`,
+`spørsmål`, `økt` and `kjører` with the letters, including when the prose is describing
+an identifier that lacks them, and write `ø` rather than `ø`. Everything here is
+UTF-8 - code, JSON, YAML, Markdown and scripts alike - and every HTML response goes out
+as `charset=utf-8`, so nothing needs an escape. The one exception is `start.bat`, for a
+reason that has nothing to do with style; see point 9.
+
+### 5. Norwegian prose takes `-en`, not `-a`.
+
+`filen`, `listen`, `ruten`, `mappen`, `linjen`, `siden`, `kilden`, `økten`. Never
+`fila`, `lista`, `ruta`, `mappa`, `linja`. Bokmål permits both; this repo picks one so
+the docs read in a single register. It is a house style, not a claim about correct
+Norwegian.
+
+### 6. No em dash.
+
+**Write a plain hyphen (`-`), never an em dash (`—`).** The em dash reads as generic AI
+output, so it is banned everywhere: prose, code comments, string literals, YAML, shell
+scripts and commit messages. Where a dash construction is wanted, write a spaced
+hyphen (` - `); often a comma, colon or full stop reads better. An en dash (`–`)
+survives only inside a numeric range with no spaces around it (`2–5 år`, `2.–3. trinn`),
+never as a sentence dash.
+
+The one inside backticks above has to exist in order to name the character. Do not
+"fix" it, and do not add another anywhere.
+
+### 7. Quotation marks.
+
+Norwegian prose uses guillemets with no space inside: «samtykke mangler», «hva skjer
+videre». Curly `“ ” ’` are banned in prose. English prose - this file and
+`.github/copilot-instructions.md` - uses the straight `"`. Apostrophes are straight `'`.
+
+A guillemet inside a TypeScript string is just a character and needs no escaping. A
+curly quote inside a regex is a pattern, not prose - see point 2.
+
+### 8. Plain Norwegian. Say it the way a colleague would.
+
+Norwegian has a formal administrative register that sounds precise and is merely heavy.
+It is the register an assistant drifts into when it is trying to sound careful, and it
+is the likeliest way for otherwise correct prose here to become hard to read.
+
+| Heavy | Write instead |
+|---|---|
+| «regner opp», «oppregningen» | «har listene», «lister hvilke felter det gjelder» |
+| «usann», «usanne» | «feil» |
+| «sveip», «sveipet», om et søk og erstatt | «søk» |
+| «anvendes», «benyttes» | «brukes» |
+| «samt» | «og» |
+| «vedkommende» | «personen», «den personen» |
+| «forestå», «hensyntatt», «vedrørende», «anføre», «således», «derved», «eksempelvis» | say it the ordinary way |
+
+Every one of those is correct Norwegian, and that is the point: correct is not the bar.
+Being understood on the first read is. The pattern behind them is reaching for a raised
+or literary word where an everyday one exists, so the test is whether you would say it
+out loud to a colleague. Add a row whenever a new one is caught.
+
+This point covers **commit messages and pull request descriptions**, not only the files
+in the repo. Point 6 already reaches that far, and so does this one.
+
+The exception is vocabulary that belongs to the domain rather than to the register.
+`data/brreg.seed.json` and `data/tenor/*.json` carry `erverv` and `innehaver` because
+BRREG and Tenor do; those are external schemas and are not prose. A legal or
+caseworking term that is genuinely the right word stays, and `samtykke`, `vedtak`,
+`hjemmel` and `foreldreansvar` are not heavy just because they are formal.
+
+### 9. Which language a file is written in.
+
+**Norwegian**, because participants read these: `README.md`, `CONTRIBUTING.md`,
+everything under `docs/`, every `apps/*/README.md`, `openapi/README.md`,
+`evals/README.md`, `examples/*/README.md`, the step *names* in
+`.github/workflows/ci.yml`, and everything `start.sh` and the `scripts/*` checks print
+to the console.
+
+**English**, because these are instructions to a machine that reads them in English:
+this file, `CLAUDE.md`, `.github/copilot-instructions.md`, and the comments inside
+`ci.yml`.
+
+**Code comments follow the identifier rule instead**: English for the technical,
+Norwegian where the comment reasons in the domain, and one language per block - a block
+never switches midway. Write them only where they earn their place, and explain *why*,
+not *what*; if a comment restates the code, delete it rather than translate it. A
+Norwegian word inside an English comment is fine when it is a **quotation** - an
+identifier, a JSON key, a kodeverk value, a line of user-facing text. Translating a
+quotation breaks the link to the thing it points at.
+
+**`start.bat` is the carve-out.** `.gitattributes` pins `*.bat` to CRLF, and `cmd.exe`
+reads a batch file in the console code page rather than UTF-8, so Norwegian letters in
+an `echo` line come out as mojibake on a Norwegian Windows box - and a UTF-8 BOM makes
+`@echo off` itself fail. The file is plain ASCII today and has no `chcp`. Its prose is
+therefore **Norwegian written without æ/ø/å**: prefer wording that avoids them
+(`Starter tjenester`, `Klar`) and transliterate only where the word is unavoidable. This
+is the one place prose transliterates, and the file carries a `rem` saying why so nobody
+"fixes" it later.
 
 ## Project conventions you must follow
-- Keep Norwegian domain names/identifiers intact (`samtykke`, `inntekt`, `prosessokt`, etc.).
-- Use UTF-8 Unicode encoding for code, JSON, YAML, Markdown, and script files in the repo.
 - Prefer existing endpoint patterns from current services and examples in `README.md` / `docs/api-oversikt.md`.
 - When API behavior changes, update matching OpenAPI docs in `openapi/*.yaml`.
 - Keep changes scoped to one app unless cross-service change is required.

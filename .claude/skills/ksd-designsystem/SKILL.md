@@ -54,8 +54,9 @@ nedover i treet; `data-variant` gjør ikke.
 
 ## Husk
 
-- Navnekonvensjonen i `AGENTS.md` gjelder fortsatt: engelsk for teknikk, norsk for
-  fagspråk, og **wire-formatet er frosset** (`melding`, `steg`, `grunnlag`, `samtykke` …).
+- Språkregelen i `AGENTS.md` (`## Language`) gjelder fortsatt: engelsk for teknikk,
+  norsk for fagspråk, **wire-formatet er frosset**, og prosa skrives på norsk med
+  ordentlige tegn. Hvilke felter som er frosne står der, ikke her.
 - Sperrer, samtykke og skjerming håndheves i backend. Frontenden viser tilstanden, den
   lager den ikke.
 - Bygg DOM med `createElement` + `textContent`, aldri `innerHTML`.

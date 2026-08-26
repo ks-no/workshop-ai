@@ -141,8 +141,8 @@ Gjelder uansett hvor frontenden din bor:
 - **Ikke finn opp klassenavn.** Sannheten er
   `grep -o '\.ds-[a-z-]*' apps/shared/ds-base.css | sort -u`.
 - **Ingen egne farge-, avstands- eller radiusverdier.** Bruk `--ds-*`-tokens.
-- **Wire-formatet er frosset** — `melding`, `steg`, `stegId`, `grunnlag`, `samtykke`,
-  `svar`, `sporingsId` beholder navnene sine i JSON, uansett hvor pen frontenden blir.
+- **Wire-formatet er frosset.** JSON-nøklene beholder navnene sine uansett hvor pen
+  frontenden blir. Feltnavnene står i `openapi/*.yaml`.
 - **Sperrer, samtykke og skjerming håndheves i backend.** Frontenden viser tilstanden, den
   lager den ikke. Ikke omgå samtykkeporten i UI-et.
 - **Universell utforming er ikke gratis.** Designsystemet gir tilgjengelige *komponenter*;
@@ -158,7 +158,8 @@ Gjelder bare hvis du likevel bygger inne i dette repoet:
   andre team leser; de skal fortsatt virke.
 - **Aldri rediger `apps/shared/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
   uendret fra temapakken, og `pnpm ds:hent` overskriver endringene dine.
-- **Navnekonvensjonen fra `AGENTS.md` gjelder:** engelsk for teknikk, norsk for fagspråk.
+- **Språkregelen i `AGENTS.md` (`## Language`) gjelder her også.** Den er ikke gjengitt
+  her; klassenavn er teknikk og dermed engelske, og resten står der.
 - **Bygg DOM med `createElement` og `textContent`, ikke `innerHTML`.** Det er konvensjonen
   i resten av sandkassen, og innholdet kommer fra API-svar.
 
