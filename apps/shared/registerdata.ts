@@ -52,9 +52,19 @@ export type Organisasjon = {
 
 // --- Folkeregisteret -------------------------------------------------------
 
-export type Personnavn = { fornavn?: string; mellomnavn?: string; etternavn?: string };
+/** The seed writes mellomnavn: null explicitly, not as an omitted field. */
+export type Personnavn = { fornavn?: string; mellomnavn?: string | null; etternavn?: string };
 
-export type Bostedsadresse = { kommune?: string; poststed?: string; postnummer?: string };
+export type Bostedsadresse = {
+  adressenavn?: string | null;
+  husnummer?: number | null;
+  husbokstav?: string | null;
+  kommune?: string;
+  kommunenummer?: string;
+  poststed?: string | null;
+  postnummer?: string | null;
+  adresseIdentifikatorFraMatrikkelen?: string | null;
+};
 
 export type Forelderbarnrelasjon = {
   relatertPersonsIdent?: string | null;
@@ -67,10 +77,21 @@ export type FolkeregisterPerson = {
   personnavn?: Personnavn;
   foedselsdato?: string;
   kjoenn?: string;
+  personstatus?: string;
+  doedsfall?: { doedsdato?: string } | null;
   sivilstand?: unknown;
   bostedsadresse?: Bostedsadresse;
+  kontaktadresse?: unknown;
+  familierelasjon?: Forelderbarnrelasjon[] | null;
+  foreldreansvar?: string | null;
+  adressebeskyttelse?: string;
   skjermet?: boolean;
-  forelderbarnrelasjon?: Forelderbarnrelasjon[];
+  forelderbarnrelasjon?: Forelderbarnrelasjon[] | null;
+  /** The sandbox's own contact field in the seed, not Folkeregisteret's. */
+  kontakt?: { epost?: string | null; telefon?: string | null };
+  /** Tenor extract extras. They say where the person lives, so masking nulls them. */
+  grunnkrets?: string | null;
+  skolekrets?: string | null;
   /** Sandkassens egne felt i seeden, ikke Folkeregisterets. */
   _sandbox?: { personId?: string; husstandId?: string; rolle?: string };
   /** Bygget ved oppstart av leseren, strippet før svar. */

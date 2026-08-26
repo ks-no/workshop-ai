@@ -32,6 +32,7 @@
 // values.
 
 import type { Adressegradering, Husstand, Krr, Person, Personnavn } from "./innbyggerdata.ts";
+import type { FolkeregisterPerson } from "./registerdata.ts";
 
 const SKJERMET_NAVN: Personnavn = { fornavn: "Skjermet", mellomnavn: null, etternavn: "person" };
 
@@ -118,6 +119,44 @@ export function maskKrr(rad: Krr, gradering: unknown): Krr {
     return rad;
   }
   return { ...rad, epost: null, tlf: null };
+}
+
+// The folkeregister seed row, masked by the same rule table as maskPerson.
+// FORTROLIG nulls the fields that say where the person lives — the street
+// address, the matrikkel identifier, the Tenor extract's grunnkrets and
+// skolekrets — and the contact fields; STRENGT_FORTROLIG hides the name too.
+// kommune and kommunenummer survive, the same deliberate simplification as
+// maskPerson, and `adressebeskyttelse` always survives: the code is the
+// explanation for why the other fields are empty.
+const FREG_SKJERMEDE_ADRESSEFELT = [
+  ...SKJERMEDE_ADRESSEFELT,
+  "adresseIdentifikatorFraMatrikkelen"
+];
+
+export function maskFregPerson(person: FolkeregisterPerson): FolkeregisterPerson {
+  const regel = regelFor(person.adressebeskyttelse);
+  if (!regel.skjulAdresse) {
+    return person;
+  }
+
+  // grunnkrets/skolekrets are top-level, so the person object itself goes
+  // through blankOut — only keys already present are nulled, as everywhere.
+  const maskert = blankOut(person, ["grunnkrets", "skolekrets"]) as FolkeregisterPerson;
+
+  if (regel.skjulNavn && person.personnavn) {
+    maskert.personnavn = { ...SKJERMET_NAVN };
+  }
+  if (person.bostedsadresse) {
+    maskert.bostedsadresse = blankOut(person.bostedsadresse, FREG_SKJERMEDE_ADRESSEFELT);
+  }
+  if ("kontaktadresse" in maskert) {
+    maskert.kontaktadresse = null;
+  }
+  if (person.kontakt) {
+    maskert.kontakt = blankOut(person.kontakt, SKJERMEDE_KONTAKTFELT);
+  }
+
+  return maskert;
 }
 
 // The household address is masked only when *every* member is protected.

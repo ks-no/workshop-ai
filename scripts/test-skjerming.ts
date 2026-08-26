@@ -13,8 +13,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { maskBefolkning, maskKrr } from "../apps/shared/skjerming.ts";
+import { maskBefolkning, maskFregPerson, maskKrr } from "../apps/shared/skjerming.ts";
 import type { Husstand, Krr, Person } from "../apps/shared/innbyggerdata.ts";
+import type { FolkeregisterPerson } from "../apps/shared/registerdata.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -200,6 +201,68 @@ check(
 // Failing open is the one mistake this must never make: an unknown grade masks.
 const ukjentGrad = maskKrr(krrFor("person-001"), "NY_GRAD");
 check("ukjent gradering maskerer KRR-kontakten", ukjentGrad.epost === null && ukjentGrad.tlf === null);
+
+// --- Folkeregisteret: same rule table, applied to the freg seed row ---------
+// maskFregPerson serves the folkeregister surface on fiks-simulator. FORTROLIG
+// nulls everything that says where the person lives (address fields, the
+// matrikkel identifier, the Tenor extract's grunnkrets/skolekrets) plus
+// contact; STRENGT_FORTROLIG hides the name too. adressebeskyttelse always
+// survives — the code explains why the other fields are empty.
+
+const fregSeed = await readJson<{ personer: FolkeregisterPerson[] }>("data/folkeregister.seed.json");
+const fregFor = (personId: string): FolkeregisterPerson => {
+  const fnr = kilde(personId).syntetiskFodselsnummer;
+  return finn(fregSeed.personer, (rad) => rad.foedselsEllerDNummer === fnr, `freg-rad for ${personId}`);
+};
+
+const freg031 = maskFregPerson(fregFor("person-031"));
+check("person-031 mister personnavnet i FREG", freg031.personnavn!.fornavn === "Skjermet", String(freg031.personnavn!.fornavn));
+check("person-031 mister gatenavnet i FREG", freg031.bostedsadresse!.adressenavn === null);
+check("person-031 mister husnummeret i FREG", freg031.bostedsadresse!.husnummer === null);
+check("person-031 mister postnummeret i FREG", freg031.bostedsadresse!.postnummer === null);
+check(
+  "person-031 mister matrikkelidentifikatoren i FREG",
+  freg031.bostedsadresse!.adresseIdentifikatorFraMatrikkelen === null
+);
+check("person-031 mister e-posten i FREG", freg031.kontakt!.epost === null);
+check("person-031 har null kontaktadresse i FREG", freg031.kontaktadresse === null);
+check("person-031 beholder kommunen i FREG", freg031.bostedsadresse!.kommune === "Oslo");
+check("person-031 beholder kommunenummeret i FREG", freg031.bostedsadresse!.kommunenummer === "0301");
+check("person-031 beholder foedselsdato i FREG", freg031.foedselsdato === fregFor("person-031").foedselsdato);
+check("person-031 beholder graderingen i FREG", freg031.adressebeskyttelse === "STRENGT_FORTROLIG");
+check(
+  "person-031 beholder relasjonene i FREG",
+  JSON.stringify(freg031.forelderbarnrelasjon) === JSON.stringify(fregFor("person-031").forelderbarnrelasjon)
+);
+check("person-031 beholder nøkkelsettet på FREG-raden", likeNokler(freg031, fregFor("person-031")));
+check("person-031 beholder nøkkelsettet på personnavn i FREG", likeNokler(freg031.personnavn!, fregFor("person-031").personnavn!));
+check(
+  "person-031 beholder nøkkelsettet på bostedsadresse i FREG",
+  likeNokler(freg031.bostedsadresse!, fregFor("person-031").bostedsadresse!)
+);
+
+// person-194 is FORTROLIG and Tenor-imported, so the row carries grunnkrets and
+// skolekrets — place-identifying, and therefore masked with the address.
+const freg194 = maskFregPerson(fregFor("person-194"));
+check("person-194 BEHOLDER personnavnet i FREG", freg194.personnavn!.fornavn === "Utmerket", String(freg194.personnavn!.fornavn));
+check("person-194 mister gatenavnet i FREG", freg194.bostedsadresse!.adressenavn === null);
+check("person-194 mister grunnkretsen i FREG", freg194.grunnkrets === null);
+check("person-194 mister skolekretsen i FREG", freg194.skolekrets === null);
+check("person-194 beholder kommunen i FREG", freg194.bostedsadresse!.kommune === "Inderøy");
+check("person-194 beholder graderingen i FREG", freg194.adressebeskyttelse === "FORTROLIG");
+
+check(
+  "person-001 (UGRADERT) er uendret i FREG",
+  JSON.stringify(maskFregPerson(fregFor("person-001"))) === JSON.stringify(fregFor("person-001"))
+);
+
+// Failing open is the one mistake this must never make: an unknown grade
+// masks as strictly as we know how.
+const fregUkjentGrad = maskFregPerson({ ...fregFor("person-001"), adressebeskyttelse: "NY_GRAD" });
+check(
+  "ukjent gradering maskerer FREG-personen",
+  fregUkjentGrad.personnavn!.fornavn === "Skjermet" && fregUkjentGrad.bostedsadresse!.adressenavn === null
+);
 
 // --- report ---------------------------------------------------------------
 

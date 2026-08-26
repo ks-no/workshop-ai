@@ -35,7 +35,7 @@ function hjelp(feil?: string): never {
 
 Valg:
   --resource <api>   Hvilket API tokenet gjelder for. Standard: sandbox-backend.
-                     Bruk fiks-simulator for scopet ks:fiks:register.
+                     Bruk fiks-simulator for ks:fiks:-scopene.
   --client <id>      client_id i tokenet. Standard: sandkasse-kokebok.
   --vis              Skriv ut claims i stedet for tokenet, til stderr.
 
@@ -43,6 +43,7 @@ Scopes som håndheves:
   ks:innbyggerdialog:les        lese persondata på vegne av en innbygger
   ks:innbyggerdialog:revisjon   skrive til revisjonsloggen
   ks:fiks:register              Fiks' registerflate (--resource fiks-simulator)
+  ks:fiks:folkeregister         Fiks Folkeregister (--resource fiks-simulator)
 
 Utstederen må kjøre: ${digdirBaseUrl}
 `);

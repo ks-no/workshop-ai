@@ -4,13 +4,15 @@ info:
   version: 0.1.0
   description: >-
     Etterlikning av de KS Fiks-flatene sandkassen trenger: samtykke, register
-    (inkludert beregning og Kontaktregisteret på ekte Fiks-stier), oppgaver og
-    meldinger. Alle data er syntetiske, og hvert svar bærer `syntetisk: true`.
+    (inkludert beregning og Kontaktregisteret på ekte Fiks-stier),
+    Folkeregisteret med rollebasert dataminimering, oppgaver og meldinger.
+    Alle data er syntetiske, og hvert svar bærer `syntetisk: true`.
 
-    Alle fire flatene ligger bak Maskinporten med audience `fiks-simulator` og
-    ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`, `ks:fiks:oppgave`
-    og `ks:fiks:melding`. Scopet er hjemmelen, så et oppgave-token åpner ikke
-    samtykkeflaten. Hvilket scope hver rute krever står per rute nedenfor.
+    Alle fem flatene ligger bak Maskinporten med audience `fiks-simulator` og
+    ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
+    `ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet er
+    hjemmelen, så et oppgave-token åpner ikke samtykkeflaten. Hvilket scope
+    hver rute krever står per rute nedenfor.
 servers:
   - url: http://localhost:8081
 paths:
@@ -1086,6 +1088,175 @@ paths:
           description: >-
             Ukjent fnr (`PERSON_IKKE_FUNNET`), eller kjent person under 15 år /
             ikke bosatt (`IKKE_I_KONTAKTREGISTERET`)
+  /folkeregister/api/v1/{rolleId}/v1/personer/{fnr}:
+    get:
+      summary: Folkeregisteroppslag i en rollekontekst
+      description: |-
+        Simulerer Fiks Folkeregister på den eksakte proxystien — den doble
+        versjonen er ikke en skrivefeil: `/api/v1/` er Fiks-proxyens, `/v1/` er
+        FREGs egen. Alle kall skjer i en rollekontekst som avgrenser lovhjemmel
+        og hvilke informasjonsdeler man får ut. Det er flatens poeng:
+        dataminimering som API-adferd, ikke som prosatekst.
+
+        Tre faste roller (lukket kart, se apps/fiks-simulator/src/folkeregister.ts):
+
+        | rolleId | Rolle | Informasjonsdeler |
+        |---|---|---|
+        | `3fa85f64-5717-4562-b3fc-2c963f66afa6` | oppvekst | personnavn, foedselsdato, kjoenn, personstatus, doedsfall, bostedsadresse, adressebeskyttelse, forelderbarnrelasjon, familierelasjon, foreldreansvar |
+        | `5e7a0500-91d6-4519-a898-3dbb4bfc8a61` | helse-omsorg | personnavn, foedselsdato, personstatus, doedsfall, bostedsadresse, kontaktadresse, sivilstand, adressebeskyttelse, familierelasjon |
+        | `09b21eb2-c0cb-4a87-9cb0-f5405040faa3` | folkehelse | foedselsdato, kjoenn, personstatus — verken navn eller adresse |
+
+        `?part=` snevrer inn innenfor rollen og kan gjentas. Avslagene bærer
+        læringen: en del utenfor rollen er 403 `UTENFOR_ROLLE`, ikke et tomt
+        felt — å be om mer enn hjemmelen gir er et avslag. Ukjent del er 400
+        `UKJENT_INFORMASJONSDEL`, ukjent rolleId 403 `UKJENT_ROLLE` med de
+        gyldige rollene i meldingen. Adressebeskyttede maskeres på vei ut
+        (apps/shared/skjerming.ts, `maskFregPerson`): FORTROLIG nuller
+        adressefelter og kontakt, STRENGT_FORTROLIG i tillegg personnavn;
+        `adressebeskyttelse` overlever alltid. Oppslaget revisjonslogges med
+        rolle og deler i grunnlaget.
+
+        Avvik fra det ekte API-et: FREG returnerer informasjonselementer som
+        lister med ajourholdsmetadata — simulatoren serverer seedens flate
+        form. Rollene er tre faste eksempler, mot ekte FREG der rollene
+        konfigureres per virksomhet. Kun enkeltoppslag — ingen
+        `sok`/`uttrekk`/`bulk`. Og fnr valideres med modulus 11, strengere enn
+        spekkens regex. Sandkasse-interne felter (`_sandbox*`) og
+        Tenor-ekstrafelter er strippet fra svaret.
+      security:
+        - maskinporten: [ks:fiks:folkeregister]
+      parameters:
+        - name: rolleId
+          in: path
+          required: true
+          description: Rollekonteksten oppslaget skjer i. Én av de tre faste rollene.
+          schema:
+            type: string
+            format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        - name: fnr
+          in: path
+          required: true
+          description: Syntetisk fødselsnummer. Valideres med modulus 11.
+          schema:
+            type: string
+            pattern: "^[0-9]{11}$"
+          example: "12818800078"
+        - name: part
+          in: query
+          required: false
+          description: >-
+            Informasjonsdel som skal med i svaret. Kan gjentas
+            (`?part=a&part=b`). Uten `part` svares alle delene rollen gir. En
+            del utenfor rollen er 403.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Informasjonsdel"
+      responses:
+        "200":
+          description: >-
+            De forespurte informasjonsdelene, i fast rekkefølge. Hver forespurt
+            del er med, som null når registeret ikke har noe — en utelatt
+            nøkkel ville gjort «ikke spurt om» og «tomt» like på tråden.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  foedselsEllerDNummer:
+                    type: string
+                  personnavn:
+                    type: object
+                    nullable: true
+                    properties:
+                      fornavn:
+                        type: string
+                      mellomnavn:
+                        type: string
+                        nullable: true
+                      etternavn:
+                        type: string
+                  foedselsdato:
+                    type: string
+                    format: date
+                  kjoenn:
+                    type: string
+                    enum: [KVINNE, MANN]
+                  personstatus:
+                    type: string
+                    enum: [BOSATT, UTFLYTTET, DOED, INAKTIV, MIDLERTIDIG, OPPHOERT, FORSVUNNET]
+                  doedsfall:
+                    type: object
+                    nullable: true
+                    properties:
+                      doedsdato:
+                        type: string
+                        format: date
+                  sivilstand:
+                    type: string
+                    nullable: true
+                  bostedsadresse:
+                    type: object
+                    nullable: true
+                    description: >-
+                      Seedens flate form, ikke FREGs vegadresse-struktur.
+                      Adressefeltene nulles for adressebeskyttede; kommune og
+                      kommunenummer overlever, som i resten av sandkassen.
+                  kontaktadresse:
+                    type: object
+                    nullable: true
+                  forelderbarnrelasjon:
+                    type: array
+                    nullable: true
+                    description: >-
+                      Skatteetatens feltnavn, uten binde-e — en annen frossen
+                      kontraktsnøkkel enn personer-datasettets
+                      foreldrebarnrelasjon, med vilje ikke forent.
+                    items:
+                      type: object
+                      properties:
+                        relatertPersonsIdent:
+                          type: string
+                          nullable: true
+                        relatertPersonsRolle:
+                          type: string
+                  familierelasjon:
+                    type: array
+                    nullable: true
+                    items:
+                      type: object
+                      properties:
+                        relatertPersonsIdent:
+                          type: string
+                          nullable: true
+                        relatertPersonsRolle:
+                          type: string
+                        minRolleForPerson:
+                          type: string
+                  foreldreansvar:
+                    type: string
+                    nullable: true
+                  adressebeskyttelse:
+                    type: string
+                    enum: [UGRADERT, FORTROLIG, STRENGT_FORTROLIG]
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: >-
+            Misdannet fødselsnummer (`UGYLDIG_IDENTIFIKATOR`), eller en
+            informasjonsdel som ikke finnes (`UKJENT_INFORMASJONSDEL`)
+        "403":
+          description: >-
+            Ukjent rolleId (`UKJENT_ROLLE`, med de gyldige rollene i
+            meldingen), en informasjonsdel utenfor rollens hjemmel
+            (`UTENFOR_ROLLE`), eller manglende hjemmel som på de andre flatene
+        "404":
+          description: Ukjent fnr (`PERSON_IKKE_FUNNET`)
+        "401":
+          $ref: "#/components/responses/ManglerToken"
 components:
   parameters:
     SamtykkeId:
@@ -1284,6 +1455,16 @@ components:
         syntetisk:
           type: boolean
 
+    Informasjonsdel:
+      type: string
+      description: >-
+        Delene Folkeregisteret kan svare med. Kodeverket ligger i
+        apps/fiks-simulator/src/folkeregister.ts; hvilken delmengde et oppslag
+        får avgjøres av rollen. Merk forelderbarnrelasjon uten binde-e —
+        Skatteetatens nøkkel, en annen enn personer-datasettets
+        foreldrebarnrelasjon.
+      enum: [personnavn, foedselsdato, kjoenn, personstatus, doedsfall, sivilstand, bostedsadresse, kontaktadresse, forelderbarnrelasjon, familierelasjon, foreldreansvar, adressebeskyttelse]
+
     Melding:
       type: object
       properties:
@@ -1473,12 +1654,14 @@ components:
         Krever aud `fiks-simulator` — et token utstedt for en annen tjeneste avvises
         med 401, som er hele poenget med audience-begrensning.
 
-        Fire flater, fire scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
-        for registeroppslag, `ks:fiks:samtykke` for å be om, svare på og trekke et
-        samtykke, `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for
-        meldinger. Et oppgave-scope åpner ikke samtykkeflaten.
+        Fem flater, fem scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
+        for registeroppslag, `ks:fiks:folkeregister` for Folkeregisteret (egen
+        stifamilie, eget hjemmelsgrunnlag — et register-token åpner det ikke),
+        `ks:fiks:samtykke` for å be om, svare på og trekke et samtykke,
+        `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for meldinger.
+        Et oppgave-scope åpner ikke samtykkeflaten.
 
-        Innbyggerens eget ID-porten-token avvises på alle fire med 403
+        Innbyggerens eget ID-porten-token avvises på alle fem med 403
         `KREVER_MASKINPORTEN`: samtykke *spørres om* av en kommune og svares
         gjennom den. `sandbox-backend` holder det verifiserte innbyggertokenet,
         avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er maskinens,

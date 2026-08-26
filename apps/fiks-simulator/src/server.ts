@@ -6,12 +6,19 @@ import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 // which is why /fiks/register/person/person-031 handed out a kode 6 person's name
 // and street address in full. The repo already carries four masking
 // implementations; this makes it three rather than five.
-import { maskHusstand, maskKrr, maskPerson } from "../../shared/skjerming.ts";
+import { maskFregPerson, maskHusstand, maskKrr, maskPerson } from "../../shared/skjerming.ts";
 // Consent has rules now: which statuses exist, what may follow what, and when a
 // samtykke has run out. All three live in samtykke.ts so the compiler can hold
 // them together — see the comment there.
 import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
+import {
+  buildFregPersonSvar,
+  findFolkeregisterrolle,
+  FOLKEREGISTERROLLER,
+  INFORMASJONSDELER,
+  isInformasjonsdel
+} from "./folkeregister.ts";
 import type { Overgangsutfall } from "../../shared/statemachine.ts";
 // Modulus 11, imported rather than re-regexed. The spec's ^[0-9]{11}$ accepted
 // numbers no register would ever have issued, and the sandbox's own population is
@@ -56,6 +63,9 @@ const SCOPE_REGISTER = "ks:fiks:register";
 const SCOPE_SAMTYKKE = "ks:fiks:samtykke";
 const SCOPE_OPPGAVE = "ks:fiks:oppgave";
 const SCOPE_MELDING = "ks:fiks:melding";
+// Folkeregisteret is its own path family with its own legal basis, so it is not
+// folded into ks:fiks:register: a register token must not open FREG.
+const SCOPE_FOLKEREGISTER = "ks:fiks:folkeregister";
 
 const verifyToken = createVerifier({
   digdirBaseUrl,
@@ -513,6 +523,24 @@ function requireRegisterHjemmel(request: IncomingMessage) {
   return requireMaskinportenHjemmel(request, SCOPE_REGISTER, "Registerflaten");
 }
 
+/**
+ * The fnr gauntlet both fnr-keyed lookups (KRR and Folkeregisteret) run: eleven
+ * digits is a typo in the request, wrong control digits is a typo in the
+ * number — the caller can act on the difference. Modulus 11 is stricter than
+ * the Fiks specs' ^[0-9]{11}$, a flagged deviation on both routes.
+ *
+ * `oppgitt` is the value as the caller sent it, so the message can echo a
+ * non-string body field verbatim.
+ */
+function requireGyldigFnr(fnr: string, oppgitt: unknown): void {
+  if (!/^[0-9]{11}$/.test(fnr)) {
+    throw new FiksError(`fnr må være 11 siffer, fikk ${oppgitt}.`, 400, "UGYLDIG_IDENTIFIKATOR");
+  }
+  if (!isGyldigFoedselsnummer(fnr)) {
+    throw new FiksError(`fnr ${fnr} har ugyldige kontrollsiffer.`, 400, "UGYLDIG_IDENTIFIKATOR");
+  }
+}
+
 const requireSamtykkeHjemmel = (request: IncomingMessage) =>
   requireMaskinportenHjemmel(request, SCOPE_SAMTYKKE, "Samtykkeflaten");
 
@@ -521,6 +549,9 @@ const requireOppgaveHjemmel = (request: IncomingMessage) =>
 
 const requireMeldingHjemmel = (request: IncomingMessage) =>
   requireMaskinportenHjemmel(request, SCOPE_MELDING, "Meldingsflaten");
+
+const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
+  requireMaskinportenHjemmel(request, SCOPE_FOLKEREGISTER, "Folkeregisterflaten");
 
 // The masking A2 applies in sandbox-backend's readState(), applied here too. Without
 // it a machine with register hjemmel still received an address-protected person in
@@ -663,6 +694,7 @@ function docsHtml(): string {
         <li><code>GET /fiks/register/person/{personId}</code> · <code>/husstand</code> · <code>/inntekt</code> · <code>/barnehage</code> · <code>/kontaktinfo</code></li>
         <li><code>POST /register/api/v1/ks/{rolleId}/skatteoginntektsopplysninger/beregning/redusert-foreldrebetaling</code> · <code>/praktisk-bistand</code> · <code>/langtidsopphold-institusjon</code></li>
         <li><code>POST /register/api/v1/ks/{rolleId}/krr/person</code></li>
+        <li><code>GET /folkeregister/api/v1/{rolleId}/v1/personer/{fnr}</code></li>
         <li><code>POST /fiks/oppgaver</code></li>
         <li><code>GET /fiks/oppgaver/{oppgaveId}</code></li>
         <li><code>PUT /fiks/oppgaver/{oppgaveId}/status</code></li>
@@ -801,15 +833,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       await requireRegisterHjemmel(request);
       const body = await readRequestBody(request) as { fnr?: string };
       const fnr = String(body.fnr || "");
-      // Same split as the beregning: eleven digits is a typo in the request,
-      // wrong control digits is a typo in the number. Modulus 11 is stricter
-      // than the Fiks spec's ^[0-9]{11}$ — a flagged deviation.
-      if (!/^[0-9]{11}$/.test(fnr)) {
-        throw new FiksError(`fnr må være 11 siffer, fikk ${body.fnr}.`, 400, "UGYLDIG_IDENTIFIKATOR");
-      }
-      if (!isGyldigFoedselsnummer(fnr)) {
-        throw new FiksError(`fnr ${fnr} har ugyldige kontrollsiffer.`, 400, "UGYLDIG_IDENTIFIKATOR");
-      }
+      requireGyldigFnr(fnr, body.fnr);
       const person = (await tilstand.personer()).find((kandidat) => kandidat.syntetiskFodselsnummer === fnr);
       if (!person) {
         throw new FiksError(`Fant ingen person med fnr ${fnr}.`, 404, "PERSON_IKKE_FUNNET");
@@ -826,6 +850,81 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       // Kode 6/7 nulls epost and tlf on the way out; reservert, spraak and
       // kanVarsles survive. The seed is unmasked, like the rest — see skjerming.ts.
       jsonResponse(response, 200, maskKrr(rad, person.adressebeskyttelse));
+      return;
+    }
+
+    // Fiks Folkeregister on the real Fiks proxy path. The double version is not
+    // a typo: /api/v1/ is the Fiks proxy's, the second /v1/ is FREG's own.
+    //
+    // Every lookup happens in a rollekontekst, and the role decides which
+    // informasjonsdeler come back — see folkeregister.ts. The refusals carry
+    // the teaching: a part outside the role is 403 UTENFOR_ROLLE, not an empty
+    // field, because asking for more than the hjemmel gives is a denial.
+    const folkeregisterTreff = url.pathname.match(
+      /^\/folkeregister\/api\/v1\/([^/]+)\/v1\/personer\/([^/]+)$/
+    );
+    if (request.method === "GET" && folkeregisterTreff) {
+      const klient = await requireFolkeregisterHjemmel(request);
+
+      const rolle = findFolkeregisterrolle(folkeregisterTreff[1]);
+      if (!rolle) {
+        const gyldige = FOLKEREGISTERROLLER.map((kandidat) => `${kandidat.rolleId} (${kandidat.navn})`);
+        throw new FiksError(
+          `Ukjent rolleId ${folkeregisterTreff[1]}. Gyldige roller: ${gyldige.join(", ")}.`,
+          403,
+          "UKJENT_ROLLE"
+        );
+      }
+
+      const fnr = folkeregisterTreff[2];
+      requireGyldigFnr(fnr, fnr);
+
+      // ?part= narrows the answer within the role, repeatable. The parts are
+      // judged before the person is looked up: whether a request is within its
+      // hjemmel must not depend on — or reveal — whether the person exists.
+      const parts = url.searchParams.getAll("part");
+      for (const del of parts) {
+        if (!isInformasjonsdel(del)) {
+          throw new FiksError(
+            `Ukjent informasjonsdel ${del}. Gyldige deler: ${INFORMASJONSDELER.join(", ")}.`,
+            400,
+            "UKJENT_INFORMASJONSDEL"
+          );
+        }
+        if (!rolle.deler.includes(del)) {
+          throw new FiksError(
+            `Informasjonsdelen ${del} ligger utenfor hjemmelen til rollen ${rolle.navn}. ` +
+            `Rollen gir: ${rolle.deler.join(", ")}.`,
+            403,
+            "UTENFOR_ROLLE"
+          );
+        }
+      }
+
+      const fregPerson = (await tilstand.folkeregister())
+        .find((kandidat) => kandidat.foedselsEllerDNummer === fnr);
+      if (!fregPerson) {
+        throw new FiksError(`Fant ingen person med fnr ${fnr}.`, 404, "PERSON_IKKE_FUNNET");
+      }
+
+      // Canonical order regardless of the order ?part= arrived in, so the
+      // response and the audit entry are byte-comparable across lookups.
+      const valgte = new Set<string>(parts.length > 0 ? parts : rolle.deler);
+      const deler = INFORMASJONSDELER.filter((del) => valgte.has(del));
+
+      // The audit entry records the hjemmel that was used — role and parts —
+      // not the person: which municipality read what is the question the log
+      // answers, and the fnr does not belong in it.
+      await addRevisjon({
+        handling: "FOLKEREGISTEROPPSLAG_UTFOERT",
+        ressurs: "folkeregister",
+        aktor: klient
+          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
+          : { type: "system", id: "fiks-simulator" },
+        grunnlag: { rolle: rolle.navn, deler }
+      });
+
+      jsonResponse(response, 200, buildFregPersonSvar(maskFregPerson(fregPerson), deler));
       return;
     }
 

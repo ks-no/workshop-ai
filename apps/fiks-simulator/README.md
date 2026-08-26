@@ -6,17 +6,19 @@ Ansvar:
 
 - simulere samtykke
 - simulere registeroppslag
+- simulere folkeregisteroppslag i rollekontekst
 - simulere oppgave- og meldingsflyt
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-24 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fire flatene er bak
-Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:samtykke`,
-`ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så et oppgave-token
-åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises på alle fire med
-`403 KREVER_MASKINPORTEN` — et samtykke spørres om av en kommune og svares gjennom den.
+25 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle fem flatene er bak
+Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
+`ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet *er* hjemmelen, så
+et oppgave-token åpner ikke samtykkeflaten. Innbyggerens eget ID-porten-token avvises
+på alle fem med `403 KREVER_MASKINPORTEN` — et samtykke spørres om av en kommune og
+svares gjennom den.
 
 `POST`/`PUT`-rutene kalles normalt bare av prosessmotoren i sandbox-backend, og aktøren i
 revisjonsloggen settes fra tokenet den holder: `SAMTYKKE_OPPRETTET` er tjenesten som *ber*
@@ -85,6 +87,34 @@ TOKEN=$(scripts/token.ts --maskinporten ks:fiks:register --resource fiks-simulat
 curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"fnr": "28829100055"}' \
   http://localhost:8081/register/api/v1/ks/min-rolle/krr/person
+```
+
+Folkeregisteret — på den **ekte** Fiks-proxystien, bak eget scope
+`ks:fiks:folkeregister` (egen stifamilie, eget hjemmelsgrunnlag — et
+register-token åpner det ikke):
+
+- `GET /folkeregister/api/v1/{rolleId}/v1/personer/{fnr}` — valgfri gjentakbar
+  `?part=<informasjonsdel>`
+
+Den doble versjonen er ikke en skrivefeil: `/api/v1/` er Fiks-proxyens, `/v1/` er
+FREGs egen. Alle kall skjer i en rollekontekst som avgrenser lovhjemmel og hvilke
+informasjonsdeler man får ut — dataminimering som API-adferd. Tre faste roller
+(`apps/fiks-simulator/src/folkeregister.ts`): `oppvekst` (navn, relasjoner,
+foreldreansvar, adresse), `helse-omsorg` (sivilstand og kontaktadresse i stedet for
+relasjonsdetaljene) og `folkehelse` (kun fødselsdato, kjønn og personstatus — verken
+navn eller adresse). Avslagene bærer læringen: en del utenfor rollen er 403
+`UTENFOR_ROLLE`, ikke et tomt felt; ukjent del er 400 `UKJENT_INFORMASJONSDEL`;
+ukjent rolleId er 403 `UKJENT_ROLLE` med de gyldige rollene i meldingen.
+Adressebeskyttede maskeres på vei ut med `maskFregPerson` i
+`apps/shared/skjerming.ts`, og hvert oppslag revisjonslogges med rolle og deler i
+grunnlaget — ikke fødselsnummeret. Avvikene fra det ekte API-et (flat form uten
+ajourholdsmetadata, tre faste eksempelroller, kun enkeltoppslag) er flagget i
+spesifikasjonen.
+
+```bash
+TOKEN=$(scripts/token.ts --maskinporten ks:fiks:folkeregister --resource fiks-simulator)
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8081/folkeregister/api/v1/09b21eb2-c0cb-4a87-9cb0-f5405040faa3/v1/personer/12818800078"
 ```
 
 Beregning — også på ekte Fiks-sti, bak `ks:fiks:register`:

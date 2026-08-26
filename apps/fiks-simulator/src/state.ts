@@ -16,6 +16,7 @@
  */
 
 import type { Husstand, Krr, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+import type { FolkeregisterPerson } from "../../shared/registerdata.ts";
 // Same split as sandbox-backend, and the same two paths, because it is the same
 // module: data/ is seed and stays untouched, state/ holds everything written at
 // runtime and is gitignored. server.ts imports `updateJson` from there directly.
@@ -101,6 +102,10 @@ export function createStateReader() {
     husstander: (): Promise<Husstand[]> => read("husstander.json"),
     inntekter: (): Promise<Inntekt[]> => read("inntekter.json"),
     krr: (): Promise<Krr[]> => read("krr.json"),
+    // The seed wraps its rows in metadata (kilde, versjon, antall); the routes
+    // only ever need the list.
+    folkeregister: (): Promise<FolkeregisterPerson[]> =>
+      read("folkeregister.seed.json").then((seed) => seed.personer || []),
     barnehageplasser: (): Promise<Plass[]> => read("barnehageplasser.json"),
     samtykker: (): Promise<FiksSamtykke[]> => read("samtykker.json", []),
     oppgaver: (): Promise<Oppgave[]> => read("oppgaver.json", []),

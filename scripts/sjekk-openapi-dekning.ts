@@ -351,6 +351,11 @@ const tjenester: Tjeneste[] = [
       {
         skjema: "Oppgavestatus",
         verdier: async () => (await import("../apps/fiks-simulator/src/oppgave.ts")).OPPGAVESTATUSER
+      },
+      {
+        skjema: "Informasjonsdel",
+        verdier: async () =>
+          (await import("../apps/fiks-simulator/src/folkeregister.ts")).INFORMASJONSDELER
       }
     ]
   },

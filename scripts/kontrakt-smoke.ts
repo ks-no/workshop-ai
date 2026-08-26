@@ -24,6 +24,7 @@
 
 import { spawn } from "node:child_process";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
+import { FOLKEREGISTERROLLER } from "../apps/fiks-simulator/src/folkeregister.ts";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -222,22 +223,32 @@ async function call(navn: string, sti: string, valg: Kallvalg = {}) {
 }
 
 // A call straight at fiks-simulator, as the machine the backend would be. The
-// register surface needs a Maskinporten token with audience fiks-simulator — a
+// register surfaces need a Maskinporten token with audience fiks-simulator — a
 // backend token is refused there, which is the point of audience restriction.
-async function callFiks(navn: string, sti: string, body: unknown) {
+// Scope per call, because the surfaces have one each: the folkeregister lookups
+// need ks:fiks:folkeregister, and a register token must not open them.
+async function callFiks(
+  navn: string,
+  sti: string,
+  body?: unknown,
+  valg: { metode?: string; scope?: string } = {}
+) {
   const token = await getMaskinportenToken({
     digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
-    scope: "ks:fiks:register", resource: "fiks-simulator"
+    scope: valg.scope || "ks:fiks:register", resource: "fiks-simulator"
   });
   const svar = await fetch(`${fiksUrl}${sti}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body)
+    method: valg.metode || "POST",
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      Authorization: `Bearer ${token}`
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
   });
   const kropp = await svar.json();
   dump.push({
     navn,
-    metode: "POST",
+    metode: valg.metode || "POST",
     sti: normalize(sti),
     status: svar.status,
     kropp: normalize(kropp)
@@ -453,6 +464,84 @@ async function krrOppslag() {
   await callFiks("krr-ugyldig", sti, { fnr: "11111111111" });
 }
 
+// The folkeregister lookup on the real Fiks proxy path, one call per role plus
+// every refusal the route has. The rolleIds come from the closed map itself, so
+// the smoke test cannot drift from the code. person-001 is the curated fixture;
+// the three role lookups on the same person are what makes the minimisation
+// visible in the dump: same fnr, three different key sets.
+async function folkeregisterOppslag() {
+  const rolleId = (navn: string) =>
+    FOLKEREGISTERROLLER.find((rolle) => rolle.navn === navn)!.rolleId;
+  const fregSti = (rolle: string, fnr: string, soek = "") =>
+    `/folkeregister/api/v1/${rolle}/v1/personer/${fnr}${soek}`;
+  const lookup = (navn: string, rolle: string, fnr: string, soek = "") =>
+    callFiks(navn, fregSti(rolle, fnr, soek), undefined, {
+      metode: "GET",
+      scope: "ks:fiks:folkeregister"
+    });
+
+  await lookup("freg-oppvekst", rolleId("oppvekst"), "12818800078");
+  await lookup("freg-helse-omsorg", rolleId("helse-omsorg"), "12818800078");
+  // No name, no address — the narrowest role, on the same person.
+  await lookup("freg-folkehelse", rolleId("folkehelse"), "12818800078");
+  // ?part= narrows within the role; the order in the answer is canonical, not
+  // the query string's.
+  await lookup("freg-part-innsnevret", rolleId("oppvekst"), "12818800078", "?part=kjoenn&part=foedselsdato");
+  // A part outside the role is a refusal, not an empty field.
+  await lookup("freg-part-utenfor-rolle", rolleId("folkehelse"), "12818800078", "?part=personnavn");
+  await lookup("freg-part-ukjent", rolleId("oppvekst"), "12818800078", "?part=skonummer");
+  // Unknown rolleId answers with the valid roles in the message.
+  await lookup("freg-ukjent-rolle", "finnes-ikke", "12818800078");
+  // person-031 is STRENGT_FORTROLIG: masked name and address, with
+  // adressebeskyttelse surviving to explain why.
+  await lookup("freg-kode-6", rolleId("oppvekst"), "16848300180");
+  // Valid modulus 11, +80 month, and belongs to nobody in the population.
+  await lookup("freg-ukjent-fnr", rolleId("oppvekst"), "15879000006");
+  await lookup("freg-ugyldig-fnr", rolleId("oppvekst"), "11111111111");
+  // The folkeregister is its own hjemmel: a register token must not open it.
+  await callFiks(
+    "freg-feil-scope",
+    fregSti(rolleId("oppvekst"), "12818800078"),
+    undefined,
+    { metode: "GET", scope: "ks:fiks:register" }
+  );
+  // Nor must the citizen's own ID-porten token, even with the right audience:
+  // the hjemmel belongs to the municipality, not to whoever is logged in.
+  const idToken = await getInnbyggerToken({
+    digdirBaseUrl: digdirUrl, personId: "person-001", clientId: "kontrakt-smoke",
+    resource: "fiks-simulator"
+  });
+  const idSvar = await fetch(`${fiksUrl}${fregSti(rolleId("oppvekst"), "12818800078")}`, {
+    headers: { Authorization: `Bearer ${idToken}` }
+  });
+  dump.push({
+    navn: "freg-idporten",
+    metode: "GET",
+    sti: normalize(fregSti(rolleId("oppvekst"), "12818800078")),
+    status: idSvar.status,
+    kropp: normalize(await idSvar.json())
+  });
+
+  // The audit entries the lookups above produced: rolle and deler in grunnlag,
+  // and no fnr. Filtered here because the backend has no handling-filter, and
+  // the full log is already dumped once in soknadOgRevisjon.
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
+  });
+  const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const logg = await svar.json() as { handling?: string }[];
+  dump.push({
+    navn: "freg-revisjon",
+    metode: "GET",
+    sti: "/api/revisjonslogg (kun FOLKEREGISTEROPPSLAG_UTFOERT)",
+    status: svar.status,
+    kropp: normalize(logg.filter((rad) => rad.handling === "FOLKEREGISTEROPPSLAG_UTFOERT"))
+  });
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -516,6 +605,7 @@ async function run() {
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();
     await krrOppslag();
+    await folkeregisterOppslag();
 
     await mkdir(path.dirname(outFile), { recursive: true });
     await writeFile(outFile, JSON.stringify(dump, null, 2) + "\n");
