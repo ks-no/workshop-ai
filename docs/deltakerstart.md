@@ -5,7 +5,19 @@ Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan v
 **Lurer du på hva dere egentlig skal lage?** `docs/oppdraget.md` er én side om det, og
 tar to minutter.
 
-## 1. Start sandboxen
+## 0. Hent repoet
+
+Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din
+(krever `git`):
+
+```bash
+git clone https://github.com/<ditt-github-brukernavn>/workshop-ai.git
+cd workshop-ai
+```
+
+Resten av denne siden antar at du står i den mappen.
+
+## 1. Start sandkassen
 
 Du trenger **Docker** installert og startet. Du trenger også **Node 22.18 eller
 nyere** så snart du skal kalle et API selv — se avsnitt 4. Så:
@@ -19,10 +31,15 @@ stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjons
 og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
 krever nedlasting av flere gigabyte.
 
+Suksess ser slik ut: skriptet skriver `✅ Ready` (med `--mock` følger en advarsel om
+at KI-svarene er maltekst — det er som forventet) — åpne da <http://localhost:3001>,
+der alle tjenestene i tabellen skal vise grønt («oppe»).
+
 Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12–25
 minutter til det, mer på delt konferansenett.
 
-På Windows: kjør fra Git Bash eller WSL.
+På Windows: kjør fra Git Bash eller WSL. `start.bat` finnes som nødløsning, men den
+kjører alltid uten språkmodell — se «På Windows» i `README.md`.
 
 Stopp alt med `./start.sh -d`.
 
@@ -45,7 +62,7 @@ det den siden du går tilbake til.
 | <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend — se `docs/designsystem.md` |
 
 De øvrige tjenestene (`:8080`–`:8086`) er API-er du kan bygge mot. Du trenger ikke åpne
-noen av dem for å se sandboxen virke — og skal du bygge mot dem, er API-utforskeren
+noen av dem for å se sandkassen virke — og skal du bygge mot dem, er API-utforskeren
 raskere enn å lese spesifikasjonene selv.
 
 ## 3. Hvilken bruker til hvilken case
@@ -64,6 +81,7 @@ passer alle:**
 Tabellen er pinnet i `data/deltakercaser.json` og sjekket av `pnpm test`, så et
 innvilget utfall her er et innvilget utfall i sandkassen.
 
+> [!WARNING]
 > **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO, og heller
 > ikke barn i fritidskortets aldersgruppe. Prøver du de casene med henne, får du et
 > avslag som ser ut som en feil, men er riktig. Bruk `person-022` for SFO og
@@ -122,6 +140,7 @@ To kanttilfeller når dere vil ha noe vanskeligere: `person-026` Randi Ås har e
 grunnlag på null fordi hun bare mottar ytelser som ikke medregnes, og `person-062`
 bor i en kommune uten registrert tilbud.
 
+> [!TIP]
 > Vil du ha flere husstander med barnehage- eller SFO-plass enn de som finnes,
 > trenger du ikke redigere `data/`. Se «Egne testdata» i `docs/bygg-selv.md`.
 
@@ -164,6 +183,7 @@ annet.
 Raskeste vei uten å tenke på noe av dette: **<http://localhost:3001/utforsker>** velger
 riktig token for ruta og skriver ut en `curl` som virker når du limer den inn.
 
+> [!NOTE]
 > `pnpm token` treffer pnpms egen innebygde kommando. Kall skriptet direkte, som over.
 
 ## 5. Tre sjekker når noe ser rart ut
@@ -178,11 +198,6 @@ Les `modellNaaBar`. Er den `false`, forklarer et `feil`-felt hvorfor. Merk at st
 alltid er 200 — tjenesten lever selv om modellen ikke gjør det. Kjørte du med
 `--mock`, skal den være `false`, og det er som forventet.
 
-> **Har du klikket i <http://localhost:8082/admin> én gang, vinner det valget over
-> `--mock` og over `.env`.** Det lagres i `state/ai-provider-override.json` og overlever
-> omstart. Får du maltekst du ikke ba om — eller en modell du trodde du hadde skrudd av
-> — er det den fila. `./start.sh --mock --reset` nullstiller den.
-
 **Hva fikk modellen egentlig?**
 
 <http://localhost:8082/trace>
@@ -196,8 +211,16 @@ validering har vært innom. Dette er raskeste vei til å forstå et rart KI-svar
 docker compose ps
 ```
 
-Ser du «fetch failed» på matrikkel-oppslag eller i `fartsdempende-tiltak`-casen, er
-det nesten alltid `matrikkel-mock` som ikke er oppe.
+Alle skal stå som `healthy`.
+
+Fant du ikke feilen med disse tre? **`docs/feilsoking.md` har resten**, ett symptom
+per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på matrikkel-oppslag,
+maltekst du ikke ba om, port opptatt, en container som ikke blir `healthy`, treg
+modellnedlasting og mer.
+
+Skal du demonstrere for andre, eller bytte KI-provider:
+`docs/sikkerhet-og-personvern.md` sier hva som sendes ut av maskinen per provider,
+og hvor bytteren sitter.
 
 ## 6. Nullstille
 
@@ -223,3 +246,6 @@ inne i prosessmotoren.
 
 **Vil du forstå hvordan sandkassen henger sammen?** `docs/architecture.md` — men den er
 skrevet for den som vedlikeholder sandkassen, ikke for den som bygger på den.
+
+**Støter du på et forvaltningsord du ikke kjenner?** `docs/ordliste.md` forklarer termene —
+hjemmel, matrikkel, KRR, SvarUt og resten — slik de brukes i sandkassen.

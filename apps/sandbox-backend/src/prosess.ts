@@ -60,9 +60,8 @@ export function buildProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefin
   };
 }
 
-// DATA_FETCH and SJEKK both consult the shared resource catalog, exactly the way
-// the HTTP router does. The engine used to keep its own copy of these lookups,
-// and the copies had drifted apart.
+// DATA_FETCH and SJEKK consult the shared resource catalog through the same path
+// as the HTTP router, so consent gating and audit cannot diverge between them.
 async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Caller) {
   const resolvedUrl = replaceParametere(steg.api.url, oekt);
   return runRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvedUrl}`), {
@@ -119,10 +118,8 @@ export async function createSoknad(
   /*
    * The Fiks task is best effort: the søknad is already recorded, and the citizen
    * is not made to send it again because a downstream queue is unhappy. But best
-   * effort means *one* way of degrading. This used to read only `svar.ok`, so a
-   * 403 left `oppgave: null` — indistinguishable from a søknad that never asked
-   * for a task — while an unreachable Fiks produced an advarsel. Same failure,
-   * two answers, and the silent one is the answer a scope mistake produces.
+   * effort still means *one* way of degrading — tryUpstream's, not a local
+   * ok-check.
    */
   const oppgave = await tryUpstream<unknown>(
     { service: "Fiks-simulatoren", action: "Å opprette oppgave" },
@@ -288,10 +285,8 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
   /*
    * The gateway answers 200 with an `advarsel` when the model is unavailable and
    * it falls back to template text, so a failure here means the gateway itself
-   * broke. That used to be `svar.json()` with no ok-check: the gateway's error
-   * body was stored as the step's result, and the citizen's summary of their own
-   * application was a feilmelding. Failing the step leaves the økt on SUMMARY —
-   * withSession saves nothing when the handler throws — so a retry is a retry.
+   * broke. Failing the step leaves the økt on SUMMARY — withSession saves
+   * nothing when the handler throws — so a retry is a retry.
    */
   SUMMARY: async ({ oekt, prosess, steg }) => {
     const data = await callUpstream<any>(

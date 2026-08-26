@@ -111,9 +111,11 @@ De fleste caser krever ingen kode i det hele tatt.
 | innføre en ny stegtype | `apps/sandbox-backend/src/prosess.ts` → `stegHandlers` | ~20 linjer |
 | gi agenten et nytt verktøy for `QUESTION`-steg | `tools-api` + `TOOL_HEURISTICS` i `apps/ai-gateway/src/server.ts` | ~20 linjer |
 
-Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`, og kopier
-den. `pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis
-du legger til en steg- eller regeltype uten håndterer.
+Start med malen `mal-enkel-soknad` i `data/prosessdefinisjoner.json`: kopier den fra
+`maler`-arrayet inn i `prosesser`-arrayet, gi den ny `id`, og fjern `redigering`-blokka.
+`pnpm test` validerer at dataene henger sammen, og `pnpm lint` klager hvis
+du legger til en steg- eller regeltype uten håndterer. Kjør den nye casen gjennom med
+curl-kokeboken i `examples/curl/` — sekvensen er identisk, bare `prosessId` er ny.
 
 En ny ressurs ser slik ut:
 
@@ -128,40 +130,34 @@ En ny ressurs ser slik ut:
 }
 ```
 
-## Første demo-prosess
+## Substitusjon i tekst og URL-er
 
-Prosessen `redusert-foreldrebetaling-barnehage` er definert i `data/prosessdefinisjoner.json`.
+Svaret fra et `QUESTION`-steg kan brukes videre med `{svar.<stegId>}`, og `{personId}`
+fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
 
-Formålet er å demonstrere:
+```json
+{ "id": "hent-gate", "type": "DATA_FETCH",
+  "api": { "method": "GET", "url": "/api/matrikkel/gater?gate={svar.velg-gate}" } }
+```
 
-- datahenting
-- samtykkeflyt
-- policyhåndheving
-- AI-støttet oppsummering
-- innsending og revisjonsspor
+## Demo-casene
 
-## Flere demo-case
+Fem publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
+ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den —
+`examples/demoprosesser/README.md` har curl-kallene for å liste og kjøre dem.
 
-Repoet inneholder også:
-
-- `sfo-moderasjon` — samme mønster som barnehage, men mot SFO-satsene.
-  Merk at demo-brukeren `person-001` ikke har barn i SFO. Bruk `person-022`,
-  som har et barn på 2. trinn og et grunnlag på 152 000 mot grensen 154 917, for
-  å se et innvilget utfall. `person-008` sto her før, men har barn på 2. og 4.
-  trinn og et grunnlag på 653 000 — den ga avslag. Tabellen er pinnet i
-  `data/deltakercaser.json` nå.
-- `stottekontakt-behov` — ingen inntektshenting. Steget spør om samtykke til
-  kontaktinformasjon, og `hent-kontaktinfo` henter den fra kontaktregisteret (KRR)
-  med det samtykket. `SJEKK` leser `data/tjenestetilbud.json`; det er alder og
-  kommune som avgjør, ikke inntekt.
-- `fritidskort-stotte` — spørsmål, samtykke og inntektshenting.
-- `fartsdempende-tiltak` — den eneste casen som kombinerer `SJEKK`,
-  matrikkeloppslag og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et
-  godkjent utfall og `Fjøsangerveien` for et avvist.
+| Prosess | Steg | Dekker |
+|---|---|---|
+| `redusert-foreldrebetaling-barnehage` | 7 | Flaggskip-caset: datahenting, samtykke, inntekt, deterministisk `SJEKK`, KI-oppsummering, innsending og revisjonsspor |
+| `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-022`, som har et barn på 2. trinn og et grunnlag på 152 000 mot grensen 154 917 — demo-brukeren `person-001` har ikke barn i SFO |
+| `stottekontakt-behov` | 7 | Ingen inntektshenting. Samtykket gjelder kontaktinformasjon, og `hent-kontaktinfo` henter den fra kontaktregisteret (KRR). `SJEKK` leser `data/tjenestetilbud.json`; alder og kommune avgjør, ikke inntekt |
+| `fritidskort-stotte` | 7 | Spørsmål, samtykke og inntektshenting. Den `process-agent` bruker i `pnpm test:agent` |
+| `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et godkjent utfall og `Fjøsangerveien` for et avvist |
+| `mal-enkel-soknad` | 6 | Kopi-malen fra oppskriften over. `redigering.mal: true` |
 
 ## Redigering i prosessbygger
 
-Prosessbyggeren støtter nå:
+Prosessbyggeren kan:
 
 - hente prosesser fra backend
 - velge eksisterende prosess
@@ -170,7 +166,7 @@ Prosessbyggeren støtter nå:
 - redigere steg som JSON
 - lagre prosess til backend
 
-Demo-GUI-en støtter nå:
+Demo-GUI-en kan:
 
 - å velge mellom flere prosesser
 - å drive flyten direkte fra stegdefinisjonen

@@ -7,15 +7,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const serverPath = path.resolve(repoRoot, "apps/folkeregister-mcp/src/server.ts");
 
-// Newline-delimited JSON, exactly as MCP's stdio transport specifies — and as a
-// real client (Claude Code, @modelcontextprotocol/sdk) speaks it. Keep this in
-// step with the server: if both sides drift to some other framing again, this
-// test goes green while no real client can connect.
-/*
- * Svarformen fra en MCP-server. Testen er nettopp til for å sjekke at svaret har
- * den formen, så feltene står som valgfrie — en type som lover dem ville skjult
- * det testen finnes for å oppdage.
- */
+// Newline-delimited JSON framing — see scripts/test-brreg-mcp.ts for why the
+// framing must match what a real client speaks.
+
+// Svarformen fra en MCP-server — se scripts/test-brreg-mcp.ts for hvorfor
+// feltene står som valgfrie.
 type McpSvar = {
   jsonrpc?: string;
   id?: number;

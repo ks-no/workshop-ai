@@ -1,15 +1,12 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
-// A2's masking, reused rather than reimplemented. fiks-simulator reads
-// data/personer.json itself, so it is a second data layer that A2 never covered —
-// which is why /fiks/register/person/person-031 handed out a kode 6 person's name
-// and street address in full. The repo already carries four masking
-// implementations; this makes it three rather than five.
+// Masking reused rather than reimplemented: fiks-simulator reads
+// data/personer.json itself, so it is a second data layer that must mask on its
+// own way out — sandbox-backend's masking cannot cover it.
 import { maskFregPerson, maskHusstand, maskKrr, maskPerson } from "../../shared/skjerming.ts";
-// Consent has rules now: which statuses exist, what may follow what, and when a
-// samtykke has run out. All three live in samtykke.ts so the compiler can hold
-// them together — see the comment there.
+// Which statuses exist, what may follow what, and when a samtykke has run out —
+// all three live in samtykke.ts so the compiler can hold them together.
 import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
 import {
@@ -26,9 +23,8 @@ import {
   isInformasjonsdel
 } from "./folkeregister.ts";
 import type { Overgangsutfall } from "../../shared/statemachine.ts";
-// Modulus 11, imported rather than re-regexed. The spec's ^[0-9]{11}$ accepted
-// numbers no register would ever have issued, and the sandbox's own population is
-// Tenor's +80 form — so "eleven digits" was never the actual rule.
+// Modulus 11, imported rather than re-regexed: "eleven digits" was never the
+// actual rule, and the sandbox's own population is Tenor's +80 form.
 import { isGyldigFoedselsnummer } from "../../shared/foedselsnummer.ts";
 import { updateJson } from "../../shared/jsonstore.ts";
 import { createStateReader, newId } from "./state.ts";
@@ -59,10 +55,9 @@ const authEnforce = process.env.AUTH_ENFORCE !== "false";
 const SCOPE_REGISTER = "ks:fiks:register";
 
 // Creating a samtykke, answering it or withdrawing it is writing to a hjemmel
-// surface, and so is putting work in a caseworker's queue. Both were open, which
-// meant the samtykke gate sandbox-backend enforces so carefully — pid binding,
-// resource catalogue, purpose taken from the consent — could be satisfied by two
-// unauthenticated calls to this port. The gate was real; the back door was next to it.
+// surface, and so is putting work in a caseworker's queue. Left open, these
+// surfaces would be a back door around the samtykke gate sandbox-backend
+// enforces — pid binding, resource catalogue, purpose taken from the consent.
 //
 // Separate scopes rather than one: a service that may ask for consent is not
 // automatically a service that may create tasks. Three surfaces, three scopes.
@@ -155,11 +150,7 @@ type Revisjonshendelse = {
 
 
 
-// sandbox-backend owns the audit log. We send events there instead of writing
-// the file ourselves, so there is only ever one writer.
-//
-// Auditing must never break the operation being audited: if the backend is
-// unavailable we log locally and carry on.
+// See addRevisjon in apps/ai-gateway/src/server.ts for the audit-logging rationale.
 async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
   try {
     const svar = await fetch(`${backendBaseUrl}/api/revisjonslogg`, {
@@ -176,7 +167,6 @@ async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
   }
 }
 
-// --------------------------------------------------------------------------
 // Skatte- og inntektsopplysninger: beregning
 //
 // Modelled on the KS Fiks register API:
@@ -189,7 +179,6 @@ async function addRevisjon(hendelse: Revisjonshendelse): Promise<void> {
 //
 // The simulator computes the grunnlag. The income thresholds belong to the
 // municipality and live in data/satser.json, which sandbox-backend reads.
-// --------------------------------------------------------------------------
 
 /** What separates the beregningstyper the register surface serves. */
 type Typeoppsett = {
@@ -565,9 +554,10 @@ const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
 const requireSvarutHjemmel = (request: IncomingMessage) =>
   requireMaskinportenHjemmel(request, SCOPE_SVARUT, "SvarUt-flaten");
 
-// The masking A2 applies in sandbox-backend's readState(), applied here too. Without
-// it a machine with register hjemmel still received an address-protected person in
-// full, which would undo A2 for anyone who found the route.
+// The masking in skjerming.ts that sandbox-backend's readState() applies, applied
+// here too. Without it a machine with register hjemmel would receive an
+// address-protected person in full, and this route would be the way around the
+// masking.
 function maskRegisterPerson(person: Person | undefined) {
   return person ? maskPerson(person) : person;
 }
@@ -575,11 +565,9 @@ function maskRegisterPerson(person: Person | undefined) {
 /**
  * Who acted on a samtykke.
  *
- * The three events are not the same kind of act, and logging one actor for all
- * three was the lie: the *service* asks for consent, the *citizen* answers it and
- * the *citizen* withdraws it. Before this they all said
- * `{ type: "testbruker", id: personId }` — which named the person the consent was
- * about, not who did the thing.
+ * The three events are not the same kind of act: the *service* asks for consent,
+ * the *citizen* answers it and the *citizen* withdraws it. One actor for all
+ * three would name the person the consent was about, not who did the thing.
  *
  * SANDBOX SIMPLIFICATION, and it belongs in the same drawer as the unverified
  * client assertion in digdir-mock: for the citizen's own acts, the actor is taken
@@ -681,8 +669,9 @@ async function setSamtykkestatus(
  *
  * UTLOEPT is derived rather than stored — nothing here runs on a timer — so the
  * expiry has to be applied on the way out, or the API would keep reporting
- * SAMTYKKET for a consent that no longer authorises anything. Same shape as A2's
- * masking, which is likewise applied when the data leaves rather than in the seed.
+ * SAMTYKKET for a consent that no longer authorises anything. Same shape as the
+ * masking in skjerming.ts, likewise applied when the data leaves rather than in
+ * the seed.
  */
 function withEffektivStatus(samtykke: FiksSamtykke) {
   return samtykke ? { ...samtykke, status: effektivStatus(samtykke) } : samtykke;
@@ -801,8 +790,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       return;
     }
 
-    // Lazy, so a route that only touches samtykker never opens personer.json —
-    // this used to read all seven files, 369 people included, on every request.
+    // Lazy, so a route that only touches samtykker never opens personer.json.
     // Writes do not go through here: they go through updateJson, which reads
     // inside its own queue. See state.ts.
     const tilstand = createStateReader();
@@ -1050,9 +1038,8 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         historikk: [{ tidspunkt: new Date().toISOString(), status: "VENTER_PAA_SVAR" }],
         syntetisk: true
       };
-      // Two of these arriving at once used to produce one samtykke: both read the
-      // same array, both pushed, both wrote, and the loser vanished without an
-      // error. The queue makes the read part of the write.
+      // The queue makes the read part of the write, so two of these arriving at
+      // once cannot lose one to a stale array. See jsonstore.ts.
       await updateJson("samtykker.json", [], (samtykker) => samtykker.push(newSamtykke));
       await addRevisjon({
         sporingsId: newSamtykke.sporingsId,
@@ -1115,8 +1102,8 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       await requireSamtykkeHjemmel(request);
       const body = await readRequestBody(request) as SamtykkeKropp;
       // A withdrawal is a transition like any other: from SAMTYKKET and nowhere
-      // else. Before this it overwrote whatever the status was, so a consent could
-      // be withdrawn twice, or withdrawn while the citizen had never answered it.
+      // else — a consent cannot be withdrawn twice, or withdrawn while the citizen
+      // has never answered it.
       const samtykke = await setSamtykkestatus(trekkTreff[1], "TRUKKET", body);
       await addRevisjon({
         sporingsId: body.sporingsId || samtykke.sporingsId,

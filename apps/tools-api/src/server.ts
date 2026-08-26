@@ -478,8 +478,7 @@ const toolDefs: Verktoy[] = [
   }
 ];
 
-// Samme CORS på JSON og tekst: /docs og /openapi.yaml hører med, ellers dør et
-// nettleserkall i preflight, og det er bare synlig i konsollet.
+// See apps/shared/http.ts for the CORS rationale.
 const { jsonResponse: json, textResponse: sendTekst } = svarhjelpere({
   cors: cors("GET,POST,OPTIONS")
 });

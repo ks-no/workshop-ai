@@ -1,13 +1,9 @@
 # AI Gateway
 
-Ansvar:
-
-- levere dialogforslag
-- generere oppsummering
-- forklare databruk
-- gi klarspråk og enkel risikosjekk
-- velge prosess og verktøy, og tolke fritekstsvar
-- svare på frie spørsmål fra innbygger, med sperrer som kjører i kode
+**For deg som skal bruke eller endre KI-laget.** Ett API foran modellene: oppsummering,
+tolkning, klarspråk og frie spørsmål fra innbygger — med sperrer som kjører i kode,
+provider-bytte uten restart, og fullt spor av hvert modellkall. Lurer du bare på om
+modellen er koblet på, hopp til «Er modellen koblet på?».
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK — providerne
 kalles med rå `fetch`.
@@ -108,7 +104,7 @@ Provider-modus:
 
 Merk at kodens default er `mock`, men både `.env.example` og `docker-compose.yml`
 setter `ollama`. Siden `./start.sh` kopierer `.env.example` til `.env`, er den
-effektive standarden i en kjørende sandbox `ollama`.
+effektive standarden i en kjørende sandkasse `ollama`.
 
 Valgfrie miljovariabler:
 
@@ -227,7 +223,7 @@ curl -s "http://localhost:8082/trace.json?task=oppsummering&limit=1"
 ## Timeout
 
 Alle kall mot modellen avbrytes etter `AI_TIMEOUT_MS` (standard 180000). Uten det henger
-et kall ubestemt når Ollama er treg eller halvveis oppe, og det ser ut som at sandboxen
+et kall ubestemt når Ollama er treg eller halvveis oppe, og det ser ut som at sandkassen
 har hengt seg. Ved timeout får du vanlig fallback med
 `advarsel: "Provider ollama feilet: Modellen svarte ikke innen 180000 ms"`.
 

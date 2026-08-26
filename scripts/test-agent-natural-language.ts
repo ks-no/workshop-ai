@@ -146,12 +146,9 @@ async function run() {
     assert(a4.replies.some((line: any) => line.toLowerCase().includes("satte sammen")), "Expected composed description to be shown");
     assert(a4.replies.some((line: any) => line.toLowerCase().includes("oppsummering:")), "Expected generated summary");
     assert(a4.replies.some((line: any) => line.toLowerCase().includes("er du enig i oppsummeringen")), "Expected summary confirmation prompt");
-    // This used to assert the summary contained "mer enn 20 boliger", and it passed
-    // for the wrong reason: data/matrikkel.json claimed Storgata had 26 properties
-    // where the array held 10 — the Geonorge count was left standing when the
-    // curated properties replaced the real ones. The model read 26, saw it was over
-    // 20, and echoed the phrase. With the counter corrected it reports 10, which is
-    // the truth.
+    // Deliberately no assertion on a specific property count: the summary reports
+    // whatever data/matrikkel.json holds, and a count phrased off one seed state
+    // ("mer enn 20 boliger") pins the data, not the behaviour.
     //
     // KNOWN GAP, deliberately not asserted here: the summary reports the register's
     // count and drops the citizen's own answer to boliger-bekreft entirely. That

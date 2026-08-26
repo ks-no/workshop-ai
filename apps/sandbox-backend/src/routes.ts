@@ -149,16 +149,15 @@ function getSporingsId(url: URL) {
 // --- the økt contract, in one place ----------------------------------------
 
 /**
- * Every route on one prosessoekt goes through here. The five handlers used to
- * carry their own copies of lookup, 404, 409, oppdatert-stamp and save, and the
- * copies had drifted: the closed-økt guard existed only in /neste, so a replayed
- * POST /handling on a FULLFORT økt ran the SUBMIT handler again and produced a
- * duplicate søknad and a new Fiks task per call. One owner, one drift surface.
+ * Every route on one prosessoekt goes through here: lookup, 404, 409,
+ * oppdatert-stamp and save have one owner, so one drift surface.
  *
  * `krevAapen` is the guard: an AVVIST or FULLFORT økt takes no further svar,
- * handling or navigation. Reads pass `krevAapen: false` — demo-gui renders
+ * handling or navigation — a replayed POST /handling on a FULLFORT økt would
+ * otherwise run the SUBMIT handler again and produce a duplicate søknad and a
+ * new Fiks task per call. Reads pass `krevAapen: false` — demo-gui renders
  * finished and rejected økter, and a rejection you cannot look at afterwards
- * would be worse than the replay bug this closes.
+ * would be worse than the replay this closes.
  *
  * `lagre: false` is for those same reads: a GET must not touch `oppdatert` or
  * the write queue.
@@ -233,9 +232,7 @@ const systemruter: Rute[] = [
     metode: "GET",
     tilgang: "aapen",
     sti: "/openapi-ruter.json",
-    // Den samme spesifikasjonen, lest. En nettleser kan ikke lese YAML uten en
-    // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
-    // med det API-utforskeren trenger for å rendre et skjema per rute.
+    // Den samme spesifikasjonen, lest. Se kommentaren i tools-api.
     handter: async ({ response }) => {
       jsonResponse(response, 200, await routeOverview(openapiFile));
     }

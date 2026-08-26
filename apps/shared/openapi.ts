@@ -1,15 +1,17 @@
 /**
- * Leser et OpenAPI-dokument på tekstnivå.
+ * Reads an OpenAPI document at text level.
  *
  * There is no YAML parser here and there is not going to be one. Two reasons: the
  * sandbox has no runtime dependencies, and the CI gate needs to see duplicate path
  * keys, which a parser collapses before anyone can look at them.
  *
- * Two consumers, which is why this lives here rather than inside the check script:
+ * Three consumers, which is why this lives here rather than inside a script:
  *
  *   1. scripts/sjekk-openapi-dekning.ts, which holds the spec and the code in step
- *   2. hver tjenestes GET /openapi-ruter.json, som er det API-utforskeren i
- *      demo-gui rendrer
+ *   2. each service's GET /openapi-ruter.json, which is what the API explorer in
+ *      demo-gui renders
+ *   3. scripts/check-dokumentasjon.ts, which counts paths and operations to check
+ *      claims in prose against the specs
  *
  * IT FAILS LOUDLY, AND THE BOUNDARY IS THE POINT. It throws on a construct it does
  * not understand *within what it claims to read* — a fifth parameter shape, a $ref
@@ -18,9 +20,9 @@
  * boundary the next change turns this into a general YAML parser, which has been
  * considered and rejected twice.
  *
- * En parameter som forsvinner i stillhet er verre enn en feil. Utforskeren ville
- * rendret et skjema uten feltet, kallet ville svart 400, og ingenting ville sagt
- * hvorfor.
+ * A parameter that disappears in silence is worse than an error. The explorer
+ * would have rendered a form without the field, the call would have answered 400,
+ * and nothing would have said why.
  */
 
 import { readFile } from "node:fs/promises";

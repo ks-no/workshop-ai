@@ -1,33 +1,22 @@
 # Demo GUI
 
-Ansvar:
-
-- velge testbruker
-- kjøre ulike demo-flyter steg for steg
-- vise hentede data og samtykke
-- sende inn søknad og vise revisjonslogg
-- lese steg direkte fra prosessdefinisjoner
+**For deg som skal demonstrere en case, eller lurer på hvordan sidene på `:3001` henger
+sammen.** Referansefrontenden: velg testbruker, kjør en flyt steg for steg, og se data,
+samtykke og revisjonslogg underveis. Bygger du egen klient, er API-ene inngangen din —
+ikke denne koden.
 
 Nåværende MVP:
 
 - statisk HTML og JavaScript, null avhengigheter
 - prosessdrevet flyt fra `data/prosessdefinisjoner.json`
 - prosessøkt-API via `sandbox-backend`
-- støtte for alle sju stegtypene: `INFO`, `QUESTION`, `DATA_FETCH`, `CONSENT_REQUEST`,
-  `SJEKK`, `SUMMARY` og `SUBMIT`
+- støtte for alle sju stegtypene — lista bor i `docs/prosessmodell.md`
 
-Tilgjengelige sider:
+Sidene og hva de er til står i `docs/deltakerstart.md` §2 — den lista bor der, ikke her.
+Én side skiller seg ut teknisk: `/ds-eksempel` laster med vilje **ikke** `felles.css` —
+se `docs/designsystem.md`.
 
-- `http://localhost:3001/` oversikt: arkitektur, helsestatus per tjeneste,
-  modellstatus og hvilken testbruker som hører til hvilken case
-- `http://localhost:3001/chat` chatdrevet prosessgrensesnitt
-- `http://localhost:3001/agent` mot `process-agent` i naturlig språk
-- `http://localhost:3001/stegvis` klassisk stegvis demo
-- `http://localhost:3001/utforsker` API-utforskeren
-- `http://localhost:3001/ds-eksempel` mal for KS Digital sitt designsystem. Denne siden
-  laster med vilje **ikke** `felles.css` — se `docs/designsystem.md`
-
-De øvrige deler `apps/shared/felles.css` på `/assets/*` og `client/felles.ts` på
+De øvrige sidene deler `apps/shared/felles.css` på `/assets/*` og `client/felles.ts` på
 `/delt/felles.ts`. Hver side har i tillegg sitt eget script under `src/client/`,
 servert på `/client/<side>.ts` og type-strippet ved servering.
 Prosessbyggeren på `:3000` serverer de samme filene fra sin egen `/assets/*`.

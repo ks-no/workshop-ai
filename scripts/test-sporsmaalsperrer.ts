@@ -295,8 +295,8 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
 // checked as source text — crude, but it fails on the regression, which is more
 // than existed before.
 //
-// Parametrene bærer typeannoteringer nå, så navnet må hentes ut foran kolonet.
-// Sjekken gjelder rekkefølgen på navnene, ikke typene.
+// The parameters carry type annotations, so the name is read from before the
+// colon. The check is about the order of the names, not the types.
 {
   const source = await readFile("apps/ai-gateway/src/server.ts", "utf8");
   for (const name of ["callOllama", "callOpenRouter", "callBedrock"]) {

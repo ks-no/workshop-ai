@@ -29,7 +29,7 @@
             {
               "navn": "personId",
               "type": "string",
-              "beskrivelse": "Intern nøkkel i sandboxen."
+              "beskrivelse": "Intern nøkkel i sandkassen."
             },
             {
               "navn": "syntetiskFodselsnummer",
@@ -127,7 +127,7 @@
             {
               "navn": "scenario",
               "type": "string",
-              "beskrivelse": "Hva husstanden er ment å demonstrere. Kun for sandboxen."
+              "beskrivelse": "Hva husstanden er ment å demonstrere. Kun for sandkassen."
             }
           ]
         },

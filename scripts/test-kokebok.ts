@@ -4,14 +4,8 @@
  * Runs the curl cookbook.
  *
  * examples/curl/README.md opens by promising that a call which does not work is a
- * real bug and not a stale example. On 22.08.2026 that was false: 34 of its calls
- * answered 401, because the file had been derived from kontrakt-smoke.js with the
- * Authorization headers stripped out, and AUTH_ENFORCE defaults to on. The consent
- * lesson documented 403 where an anonymous call gets 401. Two of its shell helpers
- * sent \{} instead of {} — bash keeps the backslashes inside double quotes — so
- * five steps answered 500 without saying why.
- *
- * Nothing could catch any of it, because nothing ran the file. This does.
+ * real bug and not a stale example. That promise only holds while something runs
+ * the file. This does.
  *
  * Every ```bash block is extracted in order and run in ONE shell, so `export TOKEN=`
  * in §1 is still set in §6, exactly as a reader would experience it. A block fails

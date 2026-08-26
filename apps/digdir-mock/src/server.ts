@@ -332,11 +332,11 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
     <title>Logg inn \u2014 ID-porten (sandkasse)</title>
     <style>
       :root {
-        --blaa: #1a4a7a;
-        --blaa-moerk: #12395e;
-        --kant: #cdd7e0;
-        --grunn: #f1f4f7;
-        --tekst: #1d2b36;
+        --blue: #1a4a7a;
+        --blue-dark: #12395e;
+        --border: #cdd7e0;
+        --background: #f1f4f7;
+        --text: #1d2b36;
         --dempet: #5b6b7a;
       }
       * { box-sizing: border-box; }
@@ -347,8 +347,8 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         align-items: center;
         justify-content: center;
         padding: 2rem 1rem;
-        background: var(--grunn);
-        color: var(--tekst);
+        background: var(--background);
+        color: var(--text);
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
         line-height: 1.5;
       }
@@ -356,13 +356,13 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         width: 100%;
         max-width: 30rem;
         background: #fff;
-        border: 1px solid var(--kant);
+        border: 1px solid var(--border);
         border-radius: 10px;
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(29, 43, 54, .08), 0 8px 24px rgba(29, 43, 54, .06);
       }
       .topp {
-        background: var(--blaa);
+        background: var(--blue);
         color: #fff;
         padding: 1.1rem 1.5rem;
         display: flex;
@@ -388,7 +388,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         font: inherit;
         font-size: .95rem;
         padding: .55rem .7rem;
-        border: 1px solid var(--kant);
+        border: 1px solid var(--border);
         border-radius: 6px;
         background: #fff;
         color: inherit;
@@ -396,7 +396,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
       input[type="search"]:focus, select:focus {
         outline: 3px solid rgba(26, 74, 122, .35);
         outline-offset: 1px;
-        border-color: var(--blaa);
+        border-color: var(--blue);
       }
       input[type="search"] { margin-bottom: .6rem; }
       /* No explicit height: let size="8" decide, so the last row is whole rather
@@ -412,16 +412,16 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         padding: .7rem 1rem;
         border: 0;
         border-radius: 6px;
-        background: var(--blaa);
+        background: var(--blue);
         color: #fff;
         cursor: pointer;
       }
-      button:hover { background: var(--blaa-moerk); }
+      button:hover { background: var(--blue-dark); }
       button:focus-visible { outline: 3px solid rgba(26, 74, 122, .45); outline-offset: 2px; }
       .detaljer {
         margin: 1.4rem 0 0;
         padding-top: 1.1rem;
-        border-top: 1px solid var(--kant);
+        border-top: 1px solid var(--border);
         font-size: .8rem;
         color: var(--dempet);
         display: grid;
@@ -605,10 +605,9 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // The testbrukere, machine-readable.
     //
-    // This exists because the alternative was worse: client.ts used to scrape the
-    // picker page for personId -> pid, and restyling that page broke every test
-    // script at once. The information is the same either way — the picker already
-    // publishes it — but a listing is a contract and HTML is not.
+    // The information is the same as the picker page already publishes, but a
+    // listing is a contract and HTML is not — a script that scrapes the picker
+    // breaks with every restyling.
     //
     // Real ID-porten has nothing like this, and could not: there is no endpoint
     // that lists the population. It is here because a test script needs to say

@@ -5,11 +5,9 @@ tilstands-I/O og de domenenøytrale bladene mer enn én tjeneste trenger. Ingen 
 ingen port, ingen `package.json` — filene serveres på `/assets/*` av både `demo-gui` og
 `process-builder`, resten importeres direkte.
 
-Katalogen het `shared-ui` til 25.08.2026. Navnet var sant da den bare inneholdt
-frontend, men laget hadde siden fått `http.ts`, `errors.ts`, `openapi.ts`,
-`registerdata.ts` og `jsonstore.ts` — og med denne endringen også maskering,
-fødselsnummer og samtykkets kodeverk. Et navn som sier «ui» om et lag hvor de fleste
-filene ikke er ui, sender neste leser til feil sted.
+Navnet er `shared`, ikke `shared-ui`, fordi laget holder langt mer enn frontend:
+`http.ts`, `errors.ts`, `openapi.ts`, `registerdata.ts`, `jsonstore.ts`, maskering,
+fødselsnummer og samtykkets kodeverk.
 
 | Fil | Hva | Lest av |
 |---|---|---|
@@ -31,10 +29,9 @@ filene ikke er ui, sender neste leser til feil sted.
 
 ## `tjenester.json` er sannhetskilden for tjenestelista
 
-Den fila er grunnen til at det ikke finnes en tjenestetabell i `README.md` lenger. Fire
-håndholdte kopier hadde drevet fra hverandre, og tre av dem manglet `digdir-mock`.
-Legger du til en tjeneste, er dette fila du endrer — dashboardet, API-utforskeren og to
-porter følger etter av seg selv.
+Den fila er grunnen til at det ikke finnes en tjenestetabell i `README.md` — en
+håndholdt kopi driver. Legger du til en tjeneste, er dette fila du endrer —
+dashboardet, API-utforskeren og to porter følger etter av seg selv.
 
 ## Pilene peker én vei, og `pnpm test:imports` feller det
 

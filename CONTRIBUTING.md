@@ -6,28 +6,14 @@
 
 Takk for at du bidrar til `innbyggerdialog-sandbox`.
 
-## Mål for samarbeid
+## Grener og PR-er
 
-Vi bygger en pedagogisk og teknisk fungerende sandbox for hackathon og videre arkitekturdiskusjon. Repoet skal være lett å forstå for nye team som ikke kjenner domenet fra før.
-
-## Arbeidsprinsipper
-
-- bruk kun syntetiske data
-- hold endringer små og fokuserte
-- oppdater dokumentasjon sammen med kode
-- tenk API-først når du lager nye kapabiliteter
-- sørg for at policyer er synlige både i kode og dokumentasjon
-- bevar høy autonomi for team som bygger egne løsninger oppå sandboxen
-- skill tydelig mellom felles kapabiliteter og valgfrie referanseimplementasjoner
-
-## Branching og PR-er
-
-- bruk korte feature branches
-- hold PR-er enkle å reviewe
+- bruk korte grener
+- hold PR-er enkle å gå gjennom
 - beskriv hvilke API-er, datasett eller policyer som påvirkes
 - legg ved skjermbilder eller curl-eksempler når det er nyttig
 
-## Definisjon av ferdig
+## Når er en endring ferdig
 
 En endring er ikke ferdig før:
 

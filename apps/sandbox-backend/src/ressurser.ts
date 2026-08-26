@@ -166,12 +166,9 @@ export type Ressurs = {
  * A domain lookup throws a plain Error, which carries no status, so each route says
  * which one it means: «fant ikke person» is a 404, «ukjent ordning» a 400.
  *
- * What this must not do is flatten an error that already knows its status. Seven
- * handlers used to `catch (error: any)` and rebuild every failure as the route's
- * own — so the beregning's 502 from upstream.ts came back as 400 on the sjekk
- * routes and 404 on the inntekt routes, blaming the citizen's request for a
- * service that was down. That is the same conflation of «feil» and «svar» the
- * process engine was just cleaned of; it made no more sense one layer out.
+ * What this must not do is flatten an error that already knows its status:
+ * rebuilding upstream.ts's 502 as the route's 400 or 404 would blame the
+ * citizen's request for a service that was down.
  */
 async function withStatus<T>(status: number, read: () => T | Promise<T>): Promise<T> {
   try {
@@ -231,8 +228,6 @@ export const ressurser: Ressurs[] = [
       withStatus(404, () => getPlasserForTjeneste(tilstand, personId, "barnehage"))
   },
   {
-    // SFO data used to be reachable only indirectly, through the rules check.
-    // The asymmetry with barnehage was accidental.
     metode: "GET",
     sti: "/api/personer/:personId/sfo",
     ressurs: "sfoplass",
@@ -255,13 +250,10 @@ export const ressurser: Ressurs[] = [
     // KRR through the real Fiks path, so «sjekk reservasjon før valg av kanal»
     // is a valid DATA_FETCH step.
     //
-    // This entry used to be the whole backend footprint of the SvarUt chain. It
-    // is not any more: a SUBMIT now sends the kvittering itself (svarut.ts), and
-    // it does so without reading this resource — SvarUt decides the channel from
-    // KRR on its own side, the way the real one does. What is still the
-    // participants' build surface is everything past the receipt: the vedtaksbrev,
-    // the varsling, and any channel logic of their own. This resource is what they
-    // read to build it.
+    // The SUBMIT kvittering does not read this resource — SvarUt decides the
+    // channel from KRR on its own side, the way the real one does (svarut.ts).
+    // This resource is the participants' build surface for everything past the
+    // receipt: the vedtaksbrev, the varsling, and channel logic of their own.
     metode: "GET",
     sti: "/api/personer/:personId/kontaktinfo",
     ressurs: "kontaktinfo",
@@ -549,8 +541,8 @@ export async function runRessurs(
   //   403  we know, and you have no hjemmel  (wrong pid, or missing scope)
   //   403  you have hjemmel but no samtykke  (below, and a different grunn)
   //
-  // syntetiskFodselsnummer survives A2's masking precisely so this lookup works for
-  // an address-protected person too. See skjerming.ts.
+  // syntetiskFodselsnummer survives the masking in skjerming.ts precisely so this
+  // lookup works for an address-protected person too.
   try {
     requireTilgang({
       kaller: kontekst.kaller,
@@ -638,10 +630,9 @@ export async function runRessurs(
   const data = await ressurs.handter(kontekst);
 
   // The SJEKK step logs SJEKK_OK/SJEKK_AVVIST itself, so a lookup running under it
-  // stays out of the log. That used to be a per-resource flag, but the resource is
-  // the wrong place to know it: the same resource called directly over HTTP has no
-  // SJEKK caller, and a successful read that leaves no DATA_LES breaks
-  // revisjon-av-all-datatilgang. The call context decides, not the catalog entry.
+  // stays out of the log. The call context decides that, not a catalog flag: the
+  // same resource called directly over HTTP has no SJEKK caller, and a successful
+  // read that leaves no DATA_LES breaks revisjon-av-all-datatilgang.
   if (kontekst.steg?.type !== "SJEKK") {
     // Purpose limitation is the point of asking for consent, so the audit entry
     // records the purpose the person actually consented to. The catalogue label

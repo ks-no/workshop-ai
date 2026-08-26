@@ -5,12 +5,11 @@
 // Builds the sandbox's four population files from two sources, and nothing else:
 //
 //   data/kuratert.json   the hand-authored threshold fixtures (person-001..051,
-//                        household-001..018) - only forfattede felter
+//                        household-001..018) - only hand-authored fields
 //   data/tenor/*.json    raw extracts from Skatteetaten's Tenor testdatasøk
 //
-// Everything else is derived here, in one code path shared by both sources:
-// rolle, skjermet, husstandstype, the household's address and kommune, the member
-// list, and the income rows for the imported population. That is the point of the
+// Everything else - rolle, skjermet, husstandstype, addresses, income rows - is
+// derived here, in one code path shared by both sources. That is the point of the
 // split - a field that is derived cannot disagree with itself.
 //
 // Four properties this script must keep, in order of importance:
@@ -25,17 +24,16 @@
 //     Only the ids are read back; every other field is rebuilt from source.
 //  3. No Math.random and no Date.now. Everything derives from the fnr, so two runs
 //     of the same input produce byte-identical output.
-//  4. The script rebuilds. It used to be additive - it skipped every fnr that
-//     already had a personId - which meant a second run was a no-op and the data
-//     could never be cleaned, only grown.
+//  4. The script rebuilds rather than appends, so the data can be cleaned,
+//     not only grown.
 //
 // The family graph is built from Tenor's own morFnr, farFnr, barnFnr and
-// partnerFnr rather than from the tenorRelasjoner blob. Those four fields carry
+// partnerFnr rather than from the tenorRelasjoner blob: those four fields carry
 // the role, so a relation can be typed (MOR, FAR, MEDMOR, BARN) instead of a flat
-// "FORELDER", and they are near-symmetric at the source - 4 of 238 parent edges
-// lack the reverse - so both directions can be emitted from one authority. Edges
-// pointing out of the extract are dropped: Tenor's world has a million people and
-// ours has 394, so 546 of 1217 references land on someone we do not hold.
+// "FORELDER", and they are near-symmetric at the source, so both directions can
+// be emitted from one authority. Edges pointing out of the extract are dropped:
+// Tenor's world is far larger than ours, so many references land on people we do
+// not hold.
 //
 // Usage: node scripts/importer-tenor.ts [--tørrkjør] [--glem-id-er]
 //        --glem-id-er assigns ids from scratch instead of reading the ledger.
@@ -258,23 +256,20 @@ const FREG_ROLLE = { MOR: "mor", FAR: "far", MEDMOR: "medmor", BARN: "barn" };
 
 // --- binding a person to a property -----------------------------------------
 
-// adresseIdentifikatorFraMatrikkelen is a real Folkeregisteret field — it sits on
-// Bostedsadresse next to naerAdresseIdentifikatorFraMatrikkelen, grunnkrets and
-// skolekrets — and in the real register it identifies the ADDRESS, not the
-// matrikkelenhet. Tenor fills it with a genuine Kartverket address id, which hit
-// zero of the 8202 properties here because this repo holds a synthetic register
-// with its own ids. So the value is replaced by the id that actually resolves.
-// Tenor's own is dropped rather than kept beside it: a join key that resolves
-// nowhere is worse than an empty one, because it looks like it works.
+// adresseIdentifikatorFraMatrikkelen is a real Folkeregisteret field, and in the
+// real register it identifies the ADDRESS, not the matrikkelenhet. Tenor fills it
+// with a genuine Kartverket address id, which resolves to nothing in a synthetic
+// register with its own ids — so the value is replaced by the id that actually
+// resolves. Tenor's own is dropped rather than kept beside it: a join key that
+// resolves nowhere is worse than an empty one, because it looks like it works.
 //
-// One simplification to know about: our matrikkelId comes from Geonorge's address
-// API, so it is an address row — right in kind. But this model has no separate
-// matrikkelenhet at all; gnr/bnr sit on the address row, and 8202 Bergen addresses
-// share 5868 gnr/bnr. Title in the real world belongs to the matrikkelenhet, so
-// data/eierforhold.json keying on the address is a simplification, not the model.
+// One simplification to know about: this model has no separate matrikkelenhet at
+// all; gnr/bnr sit on the address row, and many addresses share a gnr/bnr. Title
+// in the real world belongs to the matrikkelenhet, so data/eierforhold.json keying
+// on the address is a simplification, not the model.
 //
 // data/matrikkel.json is read here and nowhere else in the import. matrikkel-mock
-// is still the only service that reads it.
+// stays the only service that reads it.
 async function readAdresseindeks() {
   const matrikkel = await read(path.join(dataDir, "matrikkel.json"));
   const indeks = new Map();
@@ -416,19 +411,13 @@ function buildScenario(type: string, medlemmer: any) {
 // --- eierforhold ------------------------------------------------------------
 
 // Ownership is not in the matrikkel. The matrikkel says what a property is —
-// boundaries, buildings, address — and the grunnbok says who holds title to it.
-// This repo kept `eiere` inside data/matrikkel.json anyway, and the distribution
-// there was unusable: 28 people, all in the curated band, held 1280 titles across
-// 1225 of 8202 properties. person-026 owned 70. person-012 and person-017 owned 65
-// each across 48 different streets. 341 of 369 people owned nothing at all, so a
-// randomly chosen test person could never pass an ownership check, while the 28
-// passed almost everywhere.
+// boundaries, buildings, address — and the grunnbok says who holds title to it,
+// which is why it lives in data/eierforhold.json and not in data/matrikkel.json.
 //
-// Now it is derived: a household owns the home it lives in. A minority rent, and a
-// minority own one extra property. Nobody owns more than three. A property absent
-// from data/eierforhold.json has no registered owner in the sandbox — which is the
-// honest state for a synthetic register that holds 18349 properties and 200
-// households.
+// Derived, not authored: a household owns the home it lives in. A minority rent,
+// and a minority own one extra property. Nobody owns more than three. A property
+// absent from data/eierforhold.json has no registered owner in the sandbox — the
+// honest state for a synthetic register with far more properties than households.
 const EIERTAK = 3;
 
 function buildEierforhold(husstander: any, personerUt: any, matrikkel: any) {

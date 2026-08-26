@@ -1,18 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Holder spesifikasjonene og koden i takt.
+ * Keeps the specs and the code in step, by comparing them. It fails on:
  *
- * The specs used to be aspirational. sandbox-backend.yaml had two path keys listed
- * twice — YAML keeps the last and drops the first without a word, so the file
- * looked like it had 28 paths where it had 30 entries. fiks-simulator.yaml
- * documented 4 of 19 routes, and its README promised POST where the code answers
- * PUT. Nothing could catch any of it, because nothing compared the two.
- *
- * This does, and it fails on:
- *
- *   1. a duplicate path key (has to be caught on text level — a parser collapses
- *      them before anyone gets to see them)
+ *   1. a duplicate path key — YAML keeps the last and drops the first without a
+ *      word, so this has to be caught on text level, before a parser collapses them
  *   2. a route in the code that the spec does not document
  *   3. a path in the spec that the code does not serve
  *   4. a method the code does not have on a path it does document
@@ -33,9 +25,9 @@
  * `/fiks/samtykke/{samtykkeId}` both normalise to `/fiks/samtykke/{}`.
  *
  * Usage:
- *   pnpm test:openapi            # alle tjenester
- *   pnpm test:openapi fiks       # bare de som matcher
- *   pnpm test:openapi --vis      # skriv ut rutene koden faktisk har
+ *   pnpm test:openapi            # all services
+ *   pnpm test:openapi fiks       # only services matching the argument
+ *   pnpm test:openapi --vis      # print the routes the code actually serves
  */
 
 import { readFile } from "node:fs/promises";

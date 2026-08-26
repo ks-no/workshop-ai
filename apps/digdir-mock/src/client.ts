@@ -195,11 +195,8 @@ export async function getInnbyggerToken({
 }
 
 // A test script knows people by personId; ID-porten knows them by fødselsnummer.
-//
-// This used to scrape the picker page for the mapping. It worked until the page was
-// restyled, and then every test script failed at once with "Fant ikke person-001
-// blant testbrukerne" — a message that points at the data rather than at the
-// markup. GET /idporten/testbrukere is a contract; HTML is not.
+// The mapping comes from GET /idporten/testbrukere, which is a contract; scraping
+// the picker page for it is not — HTML breaks with every restyling.
 const pidCache = new Map<string, string>();
 
 async function lookupPid(digdirBaseUrl: string, personId?: string): Promise<string> {

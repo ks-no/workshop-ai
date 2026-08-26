@@ -1,16 +1,11 @@
 /*
  * The import graph between apps, checked for cycles.
  *
- * sandbox-backend and fiks-simulator used to import each other: regler.ts took the
- * samtykke kodeverk from fiks, while fiks took masking, fødselsnummer validation
- * and its Person type from the backend. digdir-mock and sandbox-backend had the
- * same knot, one leaf wide. Every single arrow was locally right — importing the
- * rule beats keeping a second copy of it — and the aggregate was a pair of services
- * neither of which could be read, tested or moved without the other.
- *
- * That is the kind of defect no reviewer catches by reading a diff: each new import
- * looks like the correct choice, because it is, and the cycle only exists in the
- * sum. So it is checked here instead of remembered.
+ * A cycle between services is the kind of defect no reviewer catches by reading
+ * a diff: every arrow in it is locally right — importing the rule beats keeping a
+ * second copy of it — yet the aggregate is a pair of services neither of which
+ * can be read, tested or moved without the other. The defect only exists in the
+ * sum, so it is checked here instead of remembered.
  *
  * Two rules, and they are different rules:
  *
@@ -21,10 +16,6 @@
  *  2. **apps/shared imports nothing from an app.** A shared layer that reaches back
  *     into a service is not below the services, it is beside them — and then it
  *     drags whichever service it touched into every test that imports it.
- *
- * Rule 1 subsumes the alder.ts and handleevne.ts guards that scripts/test-vilkaar.ts
- * used to carry: those two now live in apps/shared, so regler.ts and state.ts are
- * banned for them by construction rather than by a list someone has to maintain.
  *
  * Pure text analysis: nothing is imported, nothing is started, no port is bound.
  * That matters because importing sandbox-backend to inspect it would pay for

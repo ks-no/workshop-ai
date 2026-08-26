@@ -9,7 +9,7 @@ pnpm test:eval evals/ai-policy.json   # kjør ett
 pnpm test:eval --json                 # maskinlesbart
 ```
 
-Krever at sandboxen kjører og at modellen faktisk er koblet på. Er den ikke det, avbryter
+Krever at sandkassen kjører og at modellen faktisk er koblet på. Er den ikke det, avbryter
 skriptet med én gang i stedet for å score maltekst — en fallback ville gitt full pott på
 sjekker modellen aldri kjørte.
 

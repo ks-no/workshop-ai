@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Monorepo for hackathon-sandbox for moderne innbyggerdialog i kommunal sektor.",
+  "description": "Monorepo for hackathon-sandkasse for moderne innbyggerdialog i kommunal sektor.",
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "start:backend": "node apps/sandbox-backend/src/server.ts",
@@ -20,7 +20,7 @@
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.ts",
     "data:tenor": "node scripts/importer-tenor.ts",
     "token": "node scripts/token.ts",
-    "dev": "echo \"Bruk docker compose up --build for å starte sandboxen\"",
+    "dev": "echo \"Bruk docker compose up --build for å starte sandkassen\"",
     "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
     "test": "node scripts/valider-data.ts",
     "test:kontrakt": "node scripts/kontrakt-smoke.ts",

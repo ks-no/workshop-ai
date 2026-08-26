@@ -5,30 +5,28 @@
 Tjenestene, portene og rollene deres står **ett sted**:
 `apps/shared/tjenester.json`. Dashboardet på <http://localhost:3001> og
 API-utforskeren leser den fila, og `pnpm test:openapi` holder den i takt med koden.
-Denne siden gjentar den ikke — fire håndholdte kopier av den tabellen hadde drevet
-fra hverandre, og tre av dem manglet `digdir-mock`, tjenesten hver 401 peker på.
+Denne siden gjentar den ikke.
 
 Delingen gir en samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å
-blokkere hverandre unødvendig.
+blokkere hverandre.
 
 ## Arkitekturprinsipper
 
-1. Syntetisk først
-2. API først
-3. Sporbarhet som standard
-4. Policy synlig i kode og dokumentasjon
-5. KI som støtte, ikke beslutningstaker
-6. Enkel lokal kjøring
-7. Utvidbar struktur
-8. Pedagogisk over realisme
-9. Høy teamautonomi med pragmatisk støtte
+1. Bruk bare syntetiske data
+2. Bygg API-et før grensesnittet
+3. Logg all datatilgang, som standard og ikke som tilvalg
+4. Håndhev policyer i kode, og dokumenter dem der de håndheves
+5. La KI formulere — aldri beregne eller avgjøre
+6. Hold lokal kjøring enkel: `docker compose up` skal være nok
+7. Hold strukturen åpen for utvidelse uten å endre kjernen
+8. Velg det som lærer bort mest, foran det som ligner mest på produksjon
 
 ## Autonomi og støtte
 
 Hackathonet skal balansere to hensyn:
 
 - teamene skal ha frihet til å velge egne løsningsgrep
-- sandboxen skal gi nok støtte til at teamene rekker å produsere en fungerende prototype
+- sandkassen skal gi nok støtte til at teamene rekker å produsere en fungerende prototype
 
 Derfor skiller vi mellom:
 
@@ -94,7 +92,7 @@ Det betyr at:
 
 Alle ni tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og fem demo-case er på plass. Det som følger er
-avvik mellom hvordan sandboxen presenterer seg og hva den faktisk gjør — verdt å
+avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør — verdt å
 kjenne til før du bygger på den.
 
 **`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
@@ -102,11 +100,11 @@ verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, s
 MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
 korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 
-Tjenesten het `mcp-services` fram til 23.08.2026. Navnet er droppet framfor at
-avviket skulle gjentas i hver doc — `apps/brreg-mcp` og `apps/folkeregister-mcp` er
-nå de eneste tingene i repoet som heter MCP, og de *er* MCP. Stiene `/mcp`,
-`/mcp/tools` og `/mcp/tools/invoke` står igjen, fordi en sti er wire-format: det er
-det ene stedet prefikset fortsatt hevder en protokoll tjenesten ikke snakker.
+`apps/brreg-mcp` og `apps/folkeregister-mcp` er de eneste tingene i repoet som
+heter MCP, og de *er* MCP. Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står
+igjen, fordi en sti er wire-format: det er det ene stedet prefikset fortsatt hevder
+en protokoll tjenesten ikke snakker. Navnehistorikken står i
+`apps/tools-api/README.md`.
 
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
@@ -150,11 +148,10 @@ oppgave-scope åpner ikke samtykkeflaten, og et register-scope åpner ikke
 Folkeregisteret eller SvarUt. Folkeregisterflaten
 snevrer i tillegg inn *innenfor* scopet: rolleId-en i stien avgjør hvilke
 informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag —
-dataminimering som API-adferd. Samtykke- og
-oppgaveflatene sto åpne fram til 23.08.2026, og det var en bakdør: samtykkesperren
-`sandbox-backend` håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra
-samtykket — kunne tilfredsstilles med to uautentiserte kall mot 8081. Sperren var
-ekte; bakdøren lå ved siden av.
+dataminimering som API-adferd. Token-kravet på samtykke- og
+oppgaveflatene er ikke pynt: uten det kunne samtykkesperren `sandbox-backend`
+håndhever så nøye — pid-binding, ressurskatalog, formål hentet fra samtykket — vært
+tilfredsstilt med to uautentiserte kall mot 8081.
 
 Innbyggerens eget ID-porten-token avvises på alle seks flatene med `403
 KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en

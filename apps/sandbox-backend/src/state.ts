@@ -6,9 +6,6 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
-// The real type, not a local `any`. Three modules used to shadow it — this one,
-// routes.ts and ressurser.ts — so the one file that assembles the state was the
-// one place with no idea what it was assembling.
 import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "./types.ts";
 
 // Which seed files are currently shadowed by a copy in state/.
@@ -99,12 +96,7 @@ export function findProsessIKatalog(
 /**
  * Change the prosesskatalog, against the katalog that is on disk right now.
  *
- * The prosessbygger used to save by mutating the request's own copy of
- * `tilstand.prosesser` and writing the whole catalogue back — the same lost
- * update `lagreProsessoekt` fixed for the økter, and unqueued on top of it. Two
- * saves at once dropped one prosess with no error anywhere.
- *
- * `change` therefore decides against fresh data: the duplicate-id 409 and the
+ * `change` decides against fresh data: the duplicate-id 409 and the
  * missing-prosess 404 are thrown from inside the queue, so no reply can promise
  * something the file does not hold. The file's own shape is not the katalog's —
  * a legacy version is a bare array — so the serialised form goes back via
@@ -130,13 +122,6 @@ export function newId(prefix: string) {
 
 /*
  * The seed datasets this service reads, as one list.
- *
- * GET /api/katalog/datasett used to be a hardcoded literal in routes.ts with four
- * entries, so the catalogue advertised personer, husstander, inntekter and
- * barnehageplasser and hid satser, sfoplasser, fritidsaktiviteter,
- * fritidsdeltakelse and tjenestetilbud — the data behind three of the five
- * published cases. A team discovering the sandbox through its own API could not
- * see what SFO, fritidskort or støttekontakt run on.
  *
  * The list lives here rather than in routes.ts because this is the module that
  * loads them, and `pnpm test` fails if the two ever name different files.
@@ -239,11 +224,6 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
 /**
  * Write one prosessoekt back, into data read fresh inside the queue.
  *
- * The bug: every handler used to mutate its own request-scoped copy of the whole
- * array and write all of it. Two requests on *different* økter therefore raced,
- * and the second writer silently dropped the first one's change — no error, no
- * 409, the participant's step simply gone. Two teams demoing at once hit it.
- *
  * Only the one økt is merged, rather than running the whole handler inside the
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
@@ -271,8 +251,7 @@ export function getHusstandForPerson(tilstand: State, personId: string) {
   return husstand;
 }
 
-// A new tjeneste is one line here. Barnehage and SFO used to do the exact same
-// lookup in two separate functions, differing only in which dataset they filtered.
+// A new tjeneste is one line here.
 export const tjenesteDatasett = {
   barnehage: "barnehageplasser",
   sfo: "sfoplasser",

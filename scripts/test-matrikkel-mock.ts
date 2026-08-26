@@ -36,8 +36,7 @@ async function kjor() {
 
     const alleGaterSvar = await fetch(`${baseUrl}/mock/matrikkel/gater`);
     assert(alleGaterSvar.ok, "Kunne ikke hente gateoversikt");
-    // Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-    // noe om formen deres, og en type som lovet formen ville gjort påstanden sirkulær.
+    // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
     const alleGater = (await alleGaterSvar.json()) as any;
     assert(Array.isArray(alleGater) && alleGater.length >= 5, `Forventet seed-basert gateoversikt, fikk ${alleGater.length} gater`);
     assert(alleGater.some((g: any) => g.adressenavn === "Bønesheien"), "Forventet Bønesheien i seed-basert gateoversikt");

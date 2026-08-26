@@ -1,50 +1,39 @@
 # Sikkerhet og personvern
 
-## Formål
+Sandkassen er en syntetisk verden: personene finnes ikke, fødselsnumrene bærer
+Skatteetatens +80-markør, og ingenting du gjør fører til et virkelig vedtak. Det gjør
+eksperimentering trygg — men ikke likegyldig med hvor dataene tar veien. Les dette før
+du demonstrerer for andre.
 
-Denne sandkassen er laget for trygg eksperimentering i et hackathon- og samarbeidsoppsett.
+## Hva sendes hvor
 
-## Grunnregler
+Provideren avgjør om promptene forlater maskinen:
 
-- ingen reelle persondata
-- ingen produksjonsintegrasjoner
-- tydelig merking av syntetiske data
-- revisjonslogg for relevante hendelser
-- KI brukes kun som støtte
+- `mock` — ingen modell kalles; svarene er maltekst bygget lokalt.
+- `ollama` — til Ollama-en `OLLAMA_BASE_URL` peker på. Lokal i standardoppsettet, og
+  da forlater ingenting maskinen.
+- `openrouter` — til openrouter.ai: hele prompten går ut av maskinen, til en tredjepart.
+- `bedrock` — til AWS Bedrock: hele prompten går ut av maskinen, til AWS.
 
-## Risikoer vi eksplisitt prøver å redusere
+Og prompten er ikke bare spørsmålet: den inneholder hele konteksten som rå JSON — navn,
+adresser og syntetiske fødselsnumre fra prosessøkten. Ufarlig her, fordi alt er
+syntetisk, men ikke et mønster å kopiere til en løsning med reelle data. Unntaket er
+`/ai/sporsmaal`, som minimerer konteksten i kode før modellen ser den.
 
-- at eksterne team forveksler sandboxen med produksjonsnære tjenester
-- at reelle data havner i repo eller logger
-- at AI-komponenter brukes til beslutninger
-- at samtykke og datatilgang blir utydelig i demo
+**Bytteren sitter på <http://localhost:8082/admin>** og virker uten restart. Valget
+persisteres i `state/ai-provider-override.json` og overstyrer `AI_PROVIDER` fra `.env`
+ved neste oppstart — så sjekk aktiv provider på `/admin`, ikke i `.env`, før en demo.
 
-## Praktiske tiltak
+**Promptene lagres på disk.** `ai-gateway` skriver full prompt og fullt svar til
+`state/ai-trace.jsonl` — med vilje, for at du skal kunne se hva modellen faktisk fikk.
+Fila er gitignorert og nullstilles av `./start.sh --reset`.
 
-- policyfiler ligger i `policies/`
-- OpenAPI-filer synliggjør API-kontrakter
-- datasett ligger separat i `data/`
-- dokumentasjonen skal oppdateres når data eller API-er endres
+## Det som håndheves i kode, ikke i prompt
 
-## Hva som havner hvor — les dette før du bytter provider
-
-**Promptene lagres på disk.** `ai-gateway` skriver én linje per modellkall til
-`state/ai-trace.jsonl` med *full* prompt og *fullt* svar. Det er der med vilje —
-uten det kan du ikke se hva modellen faktisk fikk. Fila er gitignorert og
-nullstilles av `./start.sh --reset`.
-
-**Prompten inneholder hele konteksten som rå JSON.** Navn, adresser og
-syntetiske fødselsnumre fra prosessøkten sendes til modellen. Det er ufarlig her,
-fordi alt er syntetisk — men mønsteret er ikke ett du skal kopiere til en løsning
-med reelle data. En produksjonsvariant må minimere hva som forlater tjenesten.
-
-**`AI_PROVIDER=openrouter` eller `bedrock` sender promptene ut av maskinen.** Da
-forlater innholdet — inkludert det over — din maskin og går til en tredjepart
-(OpenRouter) eller til AWS. Med `AI_PROVIDER=ollama` blir alt lokalt. Velg bevisst,
-og vær klar over forskjellen når du demonstrerer for andre. Provideren kan byttes i
-farten fra `http://localhost:8082/admin` — sjekk hvilken som er aktiv der før en
-demo med sensitivt rammede data, ikke bare i `.env`.
-
-**Revisjonsloggen og KI-sporet er to separate lag.** `state/revisjonslogg.json`
-vet *at* et KI-kall skjedde; `state/ai-trace.jsonl` vet *hva* som ble sagt.
-De korrelerer på `sporingsId`, men revisjonsloggen peker ikke på sporet.
+- Samtykke sjekkes før beskyttede oppslag, sentralt i `runRessurs()`
+  (`apps/sandbox-backend/src/ressurser.ts`), og skjerming i `apps/shared/skjerming.ts`.
+- All datatilgang skrives til `state/revisjonslogg.json` med tidspunkt og formål.
+  Revisjonsloggen vet *at* et KI-kall skjedde; KI-sporet vet *hva* som ble sagt.
+  De korrelerer på `sporingsId`.
+- KI-laget formulerer; det beregner og beslutter ikke. Vedtak ligger deterministisk i
+  `apps/sandbox-backend/src/vilkaar.ts`.

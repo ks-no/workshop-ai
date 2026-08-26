@@ -10,10 +10,8 @@
  * What this covers that nothing else can:
  *
  *  1. Ordning shapes with only ONE bound. Every ordning in data/satser.json sets
- *     both bounds or neither, so the seed cannot reach these paths — and that is
- *     exactly why the gate's old hand-written mirror could disagree with the rule
- *     for years without anyone noticing. It counted 11 plasser where the rule
- *     counted 4. Fixtures, not seed data, are the only way to hold that line.
+ *     both bounds or neither, so the seed cannot reach these paths — fixtures,
+ *     not seed data, are the only way to hold that line.
  *  2. TJENESTEBEHOV's rejection branches. The seed reaches two of them; the other
  *     two are dead as far as any other test knows.
  *  3. `forbehold` — the UTKAST caveat. The contract dump never sees it: every
@@ -274,19 +272,14 @@ check("ukjent regeltype kaster med de gyldige listet opp", kastet);
 //
 // vilkaar.ts is pure and synchronous so an outcome can be pinned with a literal
 // tilstand object and no running services. That only holds while the arrow points
-// one way: regler.ts does the I/O and imports the rules, never the reverse.
+// one way: regler.ts does the I/O and imports the rules, never the reverse. An
+// import added by accident would cost this file its whole premise — importing
+// regler.ts pulls in state.ts and a 2048-bit RSA keygen, and the pure test would
+// quietly start paying for it.
 //
-// The rule used to live only as a comment saying "must never import" — addressed at
-// whoever read it next, enforced by nobody. An import added by accident would have
-// cost this file its whole premise: importing regler.ts pulls in state.ts and a
-// 2048-bit RSA keygen, and the pure test would quietly start paying for it.
-//
-// alder.ts and handleevne.ts used to be checked here too. They now live in
-// apps/shared, and pnpm test:imports holds that directory free of every arrow back
-// into a service — which bans regler.ts, state.ts and vilkaar.ts for them by
-// construction. Two guards over one property is one guard too many: the weaker one
-// goes. What stays here is the case the graph check cannot see, because vilkaar.ts
-// and regler.ts are siblings inside the same app.
+// This is the case pnpm test:imports cannot see: vilkaar.ts and regler.ts are
+// siblings inside the same app, and the graph check only watches arrows between
+// apps and out of apps/shared.
 {
   const forbidden = [
     // state.ts is allowed and intended: vilkaar.ts needs finnPerson and

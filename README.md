@@ -1,9 +1,10 @@
 # Innbyggerdialog Sandbox
 
-En samarbeidsvennlig sandbox for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
+En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbyggerdialog i kommunal sektor.
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får — dialog, skjema, oversikt, varsling eller noe annet — er teamets valg.
 
+> [!NOTE]
 > **Deltaker på hackathon? Denne fila er ikke inngangen din.** Tre sider, i rekkefølge:
 >
 > 1. [`docs/oppdraget.md`](docs/oppdraget.md) — hva dere skal lage, og hva som er fritt
@@ -16,7 +17,7 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 
 ## Hva sandkassen er
 
-Sandboxen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
+Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig — ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
 Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
@@ -26,16 +27,7 @@ Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser m
 
 ## Designprinsipp for hackathon
 
-Sandboxen skal gi teamene **høy autonomi**, men også **nok støtte til at de faktisk rekker å levere noe i løpet av hackathonet**.
-
-Det betyr i praksis:
-
-- vi tilbyr felles kapabiliteter som API-er
-- vi tilbyr referanseimplementasjoner som støtte
-- vi unngår å låse teamene til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy
-- vi prioriterer enkle integrasjonsflater og god dokumentasjon over tunge interne rammeverk
-
-Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, skal derfor forstås som **hjelpemidler og eksempler**, ikke som tvungne måter å bygge løsningene på.
+Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles API-er og enkle integrasjonsflater, uten å låse noen til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy. Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, er hjelpemidler og eksempler — ikke tvungne måter å bygge løsningene på.
 
 ## Status
 
@@ -50,21 +42,18 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 - OpenAPI for alle sju API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
-Åpne arkitekturvalg og historikk: `docs/intern/veien-videre.md`. Det er et internt
-dokument, ikke gjeldende status — les koden for status.
-
 ## Hvordan starte den
 
 **Forutsetninger:**
 
 | | Trengs til |
 |---|---|
-| **Docker**, installert og startet | å kjøre sandboxen. Det eneste kravet for `./start.sh --mock` |
+| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
 | **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
 | **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
 | **pnpm** | bare testskriptene. `pnpm install` først |
 
-På Windows: kjør fra Git Bash eller WSL.
+På Windows: se [«På Windows»](#på-windows) lenger ned.
 
 **Vil du bare se noe kjøre? Start her:**
 
@@ -95,7 +84,9 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-På Windows: kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
+### På Windows
+
+Kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
 automatisk modellvalg basert på minnet i maskinen, og verifisering av at modellen
 faktisk svarer.
 
@@ -120,6 +111,7 @@ Du skal normalt ikke trenge noen av disse.
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 
+> [!WARNING]
 > **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
 > vanlig måte — inkludert modellnedlasting. Kjørte du `--mock`, skriv
 > **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.
@@ -140,7 +132,7 @@ Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjø
 
 Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
 
-**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandboxen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandkassen fortsatt — men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
 
 ### Kildedata og kjøringstilstand
 
@@ -159,6 +151,19 @@ curl -s http://localhost:8082/helse
 `"modellNaaBar": true` betyr at provideren svarer og modellen er lastet ned. Er den `false`, følger et `feil`-felt som sier hvorfor. Merk at status alltid er 200 — tjenesten lever selv om modellen ikke gjør det, så det er `modellNaaBar` du skal lese.
 
 Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart — men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
+
+Kontroller at alle tjenestene kjører:
+
+```bash
+docker compose ps
+```
+
+Alle skal stå som `healthy`.
+
+Alt annet — `401` på alt, «fetch failed» på matrikkel-oppslag, maltekst du ikke ba
+om, port opptatt, en container som ikke blir `healthy`, treg modellnedlasting og
+hvordan du nullstiller — står i `docs/feilsoking.md`: ett symptom per avsnitt, med
+årsak og løsning.
 
 ### Se hva modellen faktisk gjorde
 
@@ -186,13 +191,9 @@ docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
 ```
 
-**Hele lista må med, og de to siste tilleggene er de som svikter stille:**
-
-- `digdir-mock` utsteder alle tokener. Uten den svarer hvert autentisert kall `401`
-  mens `docker compose ps` ser frisk ut — tokenfeilen svelges i klienten og står bare
-  i en containerlogg.
-- `matrikkel-mock`: uten den feiler alle `matrikkel_*`-verktøy og hele
-  `fartsdempende-tiltak`-casen med «fetch failed», mens alt annet ser normalt ut.
+**Hele lista må med** — særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
+når de mangler. Hvordan de feiler står i punktlista under
+[tjenesteoversikten](#oversikt-over-tjenester-og-porter).
 
 `--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
 ellers drar opp container-Ollama — men det er også grunnen til at lista må være
@@ -228,11 +229,9 @@ Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker
 
 `./start.sh` starter alle sammen, så du trenger ikke velge.
 
-**Tabellen står ikke her.** Tjenestene, portene og rollene deres ligger i
-`apps/shared/tjenester.json`, og <http://localhost:3001> viser dem med levende
-helsestatus og en lenke rett inn i API-utforskeren for hver. Fire håndholdte kopier av
-den tabellen hadde drevet fra hverandre — tre av dem manglet `digdir-mock`, tjenesten
-hver 401 peker på — så kopien her er fjernet framfor å bli en femte.
+Tjenestene, portene og rollene deres ligger i `apps/shared/tjenester.json`, og
+<http://localhost:3001> viser dem med levende helsestatus og en lenke rett inn i
+API-utforskeren for hver.
 
 Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 
@@ -242,13 +241,13 @@ Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 - **`matrikkel-mock` (`8085`) er kjerne, selv om den ser valgfri ut.** Uten den feiler
   alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed»,
   mens alt annet ser normalt ut.
-- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`. Den het
-  `mcp-services` fram til 23.08.2026; navnet er droppet framfor at avviket skulle
-  gjentas i hver doc. `/mcp/*`-stiene står igjen — de er wire-format.
+- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`.
+  `/mcp/*`-stiene står igjen — de er wire-format. Navnehistorikken står i
+  `apps/tools-api/README.md`.
 - **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
   er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
   fire verktøyene deres finnes også i `tools-api` over REST, mot de samme
-  seed-filene, så de utvider ikke sandboxen. Se avsnittet under.
+  seed-filene, så de utvider ikke sandkassen. Se avsnittet under.
 
 Hver API-tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, samme spesifikasjon
 lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`. Den midterste er det
@@ -259,7 +258,7 @@ API-utforskeren rendrer, og `pnpm test:openapi` holder alle tre i takt med koden
 
 `brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
 oppslagsverktøy mot registerdataene — de samme oppslagene `tools-api` allerede
-eksponerer over REST, så de utvider ikke sandboxen. I Claude Code, fra repo-roten:
+eksponerer over REST, så de utvider ikke sandkassen. I Claude Code, fra repo-roten:
 
 ```bash
 claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"
@@ -269,11 +268,13 @@ claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.ts"
 Detaljer, klientkonfigurasjon for andre editorer og verifisering med
 `@modelcontextprotocol/inspector`: `apps/brreg-mcp/README.md`.
 
-## Demo-bruker
+## Demo-brukere
 
-Anbefalt demo-bruker for første flyt:
-
-- `person-001` — `Maja Solberg`
+Det finnes ikke én demo-bruker som passer alle casene — velg bruker etter case i
+tabellen i `docs/deltakerstart.md` §3, som er pinnet i `data/deltakercaser.json`.
+Til flaggskipcaset *Redusert foreldrebetaling (barnehage)* passer `person-001`
+`Maja Solberg`; i flere av de andre casene gir hun korrekt avslag, så der velger
+du bruker fra tabellen.
 
 Data finnes i `data/personer.json`. **`docs/testpersoner.md` er den genererte
 oversikten over hele befolkningen** — 394 personer med alder, status, husstand og
@@ -282,30 +283,16 @@ delene. `docs/syntetiske-data.md` forklarer datagrunnlaget.
 
 ## Demo-flyt
 
-Første fungerende demo skal støtte denne flyten:
+Flaggskipcaset *Redusert foreldrebetaling (barnehage)* kjører hele kjeden i én økt:
+husstanden hentes og vises, samtykke innhentes før inntektsdata leses, vilkårene
+vurderes deterministisk i backend, KI-laget oppsummerer i klarspråk, innbyggeren
+bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren — og
+revisjonsloggen viser hver datatilgang underveis.
 
-1. Velg testbruker `Maja Solberg`
-2. Start prosess `Redusert foreldrebetaling`
-3. Hent husstandsdata
-4. Vis husstand til bruker
-5. Be om samtykke for inntektsdata
-6. Bruker gir samtykke
-7. Hent inntektsdata
-8. AI-gateway lager oppsummering i klarspråk
-9. Bruker bekrefter
-10. Søknad sendes inn
-11. Oppgave opprettes i Fiks-simulator
-12. Revisjonslogg viser hendelsene
-
-Andre tilgjengelige demo-case:
-
-- `Redusert betaling i SFO`
-- `Behovsavklaring for støttekontakt`
-- `Søknad om fritidskort-støtte`
-- `Søknad om fartsdempende tiltak`
-
-Demo-GUI-en er nå prosessdrevet og leser steg direkte fra valgt prosessdefinisjon.
-Demo-GUI-en bruker også prosessøkt-API i backend for å starte flyter, lagre svar og utføre steg.
+Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
+kjøres via prosessøkt-API-et i backend. Alle fem casene, og hvilken testbruker som
+hører til hver, står i tabellen i `docs/deltakerstart.md` §3, pinnet i
+`data/deltakercaser.json`.
 
 ## Eksempel på API-kall
 
@@ -434,13 +421,6 @@ Dette repoet er lagt opp for flere team. Se:
 - `docs/api-oversikt.md`
 - `docs/designsystem.md`
 
-Anbefalt arbeidsform:
-
-- små PR-er med tydelig scope
-- dokumentasjon oppdateres sammen med kode
-- API-kontrakter avklares før implementasjon
-- bruk sandboxens referanseimplementasjoner hvis de sparer tid, men stå fritt til å lage egne løsninger oppå de samme API-ene
-
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
@@ -462,6 +442,7 @@ Anbefalt arbeidsform:
 ## Viktige filer
 
 - `docs/deltakerstart.md` — start her hvis du er deltaker
+- `docs/ordliste.md` — forvaltningstermene forklart slik de brukes i sandkassen
 - `apps/shared/tjenester.json` — tjenestene, portene, rollene. Sannhetskilden
 - `data/` — de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
 - `openapi/` — én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`

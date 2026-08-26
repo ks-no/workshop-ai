@@ -2,20 +2,15 @@
 
 // MATRIKKELUTTREKK
 //
-// data/matrikkel.json held 220 streets in Bergen and nothing else, while the
-// population lives in 97 kommuner. Three of 171 street names matched, so
-// adresseIdentifikatorFraMatrikkelen - the field that is supposed to join a
-// person to a property - hit exactly zero of the 8202 properties.
-//
-// This script tops the file up: for every (kommunenummer, adressenavn) the
-// population actually lives on, it fetches that street from Geonorge's public
-// address API and appends it. The Bergen extract is left alone, byte for byte -
-// it is dated 2026-08-06 and several pinned tests rest on it (person-001 owns
+// Keeps data/matrikkel.json covering every street the population lives on: for
+// every (kommunenummer, adressenavn) in the population, it fetches that street
+// from Geonorge's public address API and appends it. The Bergen extract is left
+// alone, byte for byte - several pinned tests rest on it (person-001 owns
 // matr-storg-003; Storgata grants and Fjøsangerveien refuses in the
 // fartsdempende case). Re-fetching it would move data no test asked to move.
 //
 // Network is needed to run this, not to run the sandbox. The result is checked in
-// with its provenance, the way the Bergen extract already was.
+// with its provenance.
 //
 // Usage: node scripts/hent-matrikkel.ts [--tørrkjør] [--bare <kommunenummer>]
 
@@ -33,8 +28,7 @@ const bareKommune = bareIndex === -1 ? null : process.argv[bareIndex + 1];
 const API = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const SIDESTOERRELSE = 1000;
 
-// Svarene fra endepunktene er `any` her med vilje: skriptet finnes for å påstå
-// noe om formen deres, og en type som lovet formen ville gjort påstanden sirkulær.
+// Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
 // Seedfilene leses for å toppes opp; formen påstås av valider-data, ikke her.
 const read = async (fil: string): Promise<any> => JSON.parse(await readFile(fil, "utf8"));
 

@@ -1,5 +1,9 @@
 # AGENTS Guide
 
+> **The maintainer document, for agents changing the sandbox itself.** If you are a
+> hackathon participant, `docs/oppdraget.md` is your starting point — you do not
+> need to read this file, and nothing here is part of the participant materials.
+
 ## What this repo is
 - `workshop-ai` is a municipal-dialog sandbox: process-driven user flows over synthetic data, with explicit consent, policy checks, and audit trail.
 - Services are intentionally split by responsibility (UI, orchestration, mocks, AI, tools, agent) and communicate over HTTP, not shared internal libraries.
@@ -127,7 +131,7 @@
   way — the engine is linear, so a question mistaken for an answer is unrecoverable.
 - The audit entry for a consented read records the purpose from the **consent**, not the
   catalogue label. Purpose limitation is the reason consent was asked for.
-- Consent gating and audit are enforced centrally in `utforRessurs()`
+- Consent gating and audit are enforced centrally in `runRessurs()`
   (`apps/sandbox-backend/src/ressurser.ts`), not per route. One catalog entry is
   simultaneously an HTTP endpoint, a valid `DATA_FETCH` target and a valid `SJEKK`
   target. Do not route around this.
@@ -179,8 +183,10 @@ The one place this does not apply is `ai-gateway`'s trace surface (`/trace`,
 English throughout: `timestamp`, `task`, `model`, `response`, `durationMs`, `failed`,
 `error`. `sporingsId` is the exception there — it correlates with the domain field.
 
-**Comments are English**, and only where they earn their place. Explain *why*, not *what* —
-if a comment restates the code, delete it instead of translating it.
+**Comments follow the identifier rule**: English for the technical, Norwegian where the
+comment reasons in the domain — and one language per block; a block never switches
+language midway. Write them only where they earn their place, and explain *why*, not
+*what* — if a comment restates the code, delete it instead of translating it.
 
 ## Project conventions you must follow
 - Keep Norwegian domain names/identifiers intact (`samtykke`, `inntekt`, `prosessokt`, etc.).
@@ -357,8 +363,8 @@ pnpm test:agent:matrikkel
   `hybrid` if you need streets outside the seed. Not `live` — it rethrows on network
   failure, so every street lookup becomes a 500 when you are offline.
   `MATRIKKEL_MODE` is read only by `tools-api`; `matrikkel-mock` always falls back to
-  live when a lookup misses the seed, and returns HTTP 500 — not 404 — when the network
-  is down.
+  live when a lookup misses the seed, and degrades to 404 («Fant ikke …») — not a 5xx —
+  when the network is down.
 
 ## Matrikkel integration pattern
 - `apps/matrikkel-mock` owns synthetic matrikkel data seeded from `data/matrikkel.json`, and it exposes that over SOAP (Geointegrasjon path) and REST helper endpoints. When a lookup is missing from seed data, the mock may fall back to live Geonorge address lookups.
