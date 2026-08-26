@@ -13,10 +13,9 @@
 //   node scripts/kontrakt-smoke.ts --ut state/kontrakt-etter.json
 //   diff state/kontrakt-foer.json state/kontrakt-etter.json
 //
-// matrikkel-mock is started too: the backend no longer reads the matrikkel seed
-// off disk, so the street lookup and the ownership SJEKK go over HTTP. digdir-mock
-// is started for the same reason: identity now comes from a token, and the dump has
-// to be taken as a real caller rather than as nobody.
+// matrikkel-mock is started too: the street lookup and the ownership SJEKK go over
+// HTTP, not off a seed the backend reads itself. digdir-mock likewise: identity
+// comes from a token, and the dump has to be taken as a real caller, not as nobody.
 //
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.

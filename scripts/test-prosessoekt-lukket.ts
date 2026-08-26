@@ -3,12 +3,10 @@
 /*
  * The closed-økt guard in withSession (routes.ts).
  *
- * The five økt routes used to carry each their own copy of lookup, 404, 409 and
- * save, and the closed-økt guard existed only in /neste. A replayed
- * POST /handling on a FULLFORT økt therefore ran the SUBMIT handler again and
- * produced a duplicate søknad — and a new Fiks task — per call. With hackathon
- * teams building agents against these APIs, that replay is a double-click, not a
- * theoretical race.
+ * Without the guard, a replayed POST /handling on a FULLFORT økt runs the SUBMIT
+ * handler again and produces a duplicate søknad — and a new Fiks task — per call.
+ * With hackathon teams building agents against these APIs, that replay is a
+ * double-click, not a theoretical race.
  *
  * This pins the guard: a FULLFORT or AVVIST økt takes no further svar, handling
  * or navigation, while GET keeps working — a rejection you cannot read

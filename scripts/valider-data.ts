@@ -3,12 +3,9 @@ import { alderVed } from "../apps/shared/alder.ts";
 import { SEED_DATASETS } from "../apps/sandbox-backend/src/state.ts";
 import type { Ordning, Satser, State } from "../apps/sandbox-backend/src/types.ts";
 import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
-// The vedtak itself, imported rather than mirrored. This file used to carry its own
-// copy of every rule below, which meant data/forventet-utfall.json — the pinned
-// outcomes the workshop text rests on — was validated against the copy instead of
-// against the rule that ships. The two agreed, but nothing made them agree, and the
-// copy had already drifted for ordning shapes that do not exist yet (a trinnTil with
-// no trinnFra counted 11 plasser here and 4 in the rule).
+// The vedtak itself, imported rather than mirrored: a hand-kept copy can drift,
+// and then data/forventet-utfall.json — the pinned outcomes the workshop text
+// rests on — is validated against the copy instead of the rule that ships.
 import {
   plasserSomKvalifiserer,
   regelKreverInntekt,
@@ -117,11 +114,8 @@ for (const rad of inntekter) {
 }
 
 // --- Every identifier must be a well-formed synthetic one -------------------
-// The 51 curated fixtures used to carry numbers of the form 12018890001: the
-// personId encoded in the tail, an ordinary month, and control digits that failed
-// modulus 11. They were neither valid identifiers nor recognisable as synthetic,
-// and no check anywhere could see it — the only fnr validation in the repo was
-// `^[0-9]{11}$`.
+// Modulus 11 AND the +80 synthetic marker: a number that fails either is not a
+// valid identifier, or not recognisable as synthetic.
 const ugyldigeFnr = personer.filter((p) => !isSyntetiskFoedselsnummer(p.syntetiskFodselsnummer));
 if (ugyldigeFnr.length > 0) {
   const foerste = ugyldigeFnr
@@ -205,11 +199,8 @@ for (const rad of inntekter) {
 }
 
 // --- Relations point both ways, and carry a role ----------------------------
-// 113 of 138 parent edges used to exist in one direction only: the child named
-// the parent, the parent named nobody. "Which children does this person have"
-// answered nothing for 102 Tenor families. And the value was a flat FORELDER,
-// while openapi/sandbox-backend.yaml has said enum [BARN, FAR, MOR, MEDMOR] all
-// along — the spec was right and the data was wrong.
+// A one-directional edge leaves "which children does this person have" with no
+// answer, and the role set is the enum openapi/sandbox-backend.yaml documents.
 const RELASJONER = new Set(["MOR", "FAR", "MEDMOR", "BARN"]);
 const OMVENDT: Record<string, string | undefined> = { MOR: "BARN", FAR: "BARN", MEDMOR: "BARN" };
 const relasjonskanter = new Set();
@@ -378,10 +369,8 @@ for (const husstand of husstander) {
 
 // --- The two person models must agree --------------------------------------
 // data/personer.json is the sandbox's own model and data/folkeregister.seed.json
-// is the FREG-shaped mirror. Both are written by the same import, both hold every
-// person — and nothing held them together: the seed was not in the files list
-// above, so no test read it at all. They drifted in key order for eight people
-// before anyone looked.
+// is the FREG-shaped mirror. Both are written by the same import and both hold
+// every person; nothing but this check holds them together.
 const freg = await read("data/folkeregister.seed.json");
 if (freg.antall !== freg.personer.length) {
   throw new Error(
@@ -736,9 +725,8 @@ const barnehageplasser = await read<Plass[]>("data/barnehageplasser.json");
 const sfoplasser = await read<Plass[]>("data/sfoplasser.json");
 const fritidsdeltakelse = await read("data/fritidsdeltakelse.json");
 // The State the rules in vilkaar.ts read. The keys must match tjenesteDatasett in
-// apps/sandbox-backend/src/state.ts — a new tjeneste is one line there and one line
-// here. Get one wrong and getPlasserForTjeneste throws `Ukjent tjeneste`, where the
-// old lookup silently yielded "no plass".
+// apps/sandbox-backend/src/state.ts — a new tjeneste is one line there and one
+// line here; a wrong key makes getPlasserForTjeneste throw `Ukjent tjeneste`.
 //
 // This is assembled by hand rather than by calling readState(), on purpose, and it
 // must stay that way. readState() reads state/ before data/ (state.ts:15-27), so one
@@ -756,10 +744,9 @@ const tilstand = {
   barnehageplasser,
   sfoplasser,
   fritidsdeltakelse,
-  // TJENESTEBEHOV reads this through ordning.tilbudsdatasett. It was missing, so
-  // evaluateVilkaar answered avslag for every støttekontakt case driven from here —
-  // silently, because the block further down asks the question by hand and never
-  // called the rule.
+  // TJENESTEBEHOV reads this through ordning.tilbudsdatasett. Leave it out and
+  // evaluateVilkaar answers avslag for every støttekontakt case driven from here —
+  // silently, because the block further down asks the question by hand.
   tjenestetilbud
 } as unknown as State;
 
@@ -774,10 +761,8 @@ for (const ordning of satser.ordninger) {
   // applicant's own age, checked against data/tjenestetilbud.json further down.
   if (ordning.regel === "TJENESTEBEHOV") continue;
   // Asked through the rule, so it is the rule's own definition of "in the target
-  // group" that is checked. Slightly stricter than the old dataset-wide sweep: a
-  // plass only counts if it belongs to a barn of the household it sits in. That is
-  // a no-op on today's seed — every plass row does — and it is the question worth
-  // asking, since a plass no household can reach cannot be granted either.
+  // group" that is checked: a plass only counts if it belongs to a barn of the
+  // household it sits in — a plass no household can reach cannot be granted either.
   const treff = husstander.some((husstand) => {
     const soeker = soekerFor(husstand);
     return soeker !== null && plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length > 0;
@@ -805,9 +790,7 @@ if (husstander.every(husstandsgrunnlag)) {
 // The checks above ask two separate questions: does every threshold have
 // households on both sides, and does every ordning have some child in its target
 // group. Neither notices when those two sets never overlap — a household can be
-// under the SFO threshold while its only child is in barnehage. Five scenario
-// texts described themselves wrongly for exactly that reason, and four of six
-// ordninger could only ever produce one outcome.
+// under the SFO threshold while its only child is in barnehage.
 // The vedtak, from vilkaar.ts. Returns null when the ordning cannot be assessed at
 // all for this husstand — and that distinction is load-bearing: the pinned-outcome
 // check below uses `vurder(...) !== null` to enumerate which ordninger a husstand
@@ -1103,12 +1086,9 @@ for (const prosess of allProsesser) {
 const modeller = await read("data/informasjonsmodeller.json");
 
 // --- Informasjonsmodellens kodeverdier mot dataene --------------------------
-// Four of these had drifted into prose that was simply false: sivilstand said
-// «GIFT eller UGIFT i denne forenklingen» while the data also had SEPARERT,
-// household.type listed three of seven, scheme.regel two of three and
-// scheme.tjeneste two of four. Prose cannot be checked, so they are kodeverdier
-// now, and the rule is that the documented set equals the set the data actually
-// contains. A model that only claims what is there cannot go stale.
+// Prose cannot be checked, so the models carry kodeverdier, and the rule is that
+// the documented set equals the set the data actually contains. A model that only
+// claims what is there cannot go stale.
 const KODEVERDIER_FRA_DATA = [
   ["person", "sivilstand", () => personer.map((p) => p.sivilstand)],
   ["person", "personstatus", () => personer.map((p) => p.personstatus)],

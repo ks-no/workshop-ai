@@ -6,12 +6,8 @@
  * Every service list, tool count and population figure in this repo exists in a
  * machine-readable source — apps/shared/tjenester.json, data/satser.json,
  * the toolDefs table in tools-api, ci.yml itself. The markdown carries
- * hand-typed copies of all of them, and on 22.08.2026 a sweep found that every
- * single measured mismatch sat in a copy and never in the source: three service
- * tables said eight where there are nine, the curl cookbook said 20 tools where
- * the code has 25, README said 369 personer on one line and 394 on another.
- *
- * Nothing could catch any of it, because nothing compared the two. This does.
+ * hand-typed copies of all of them, and a measured mismatch sits in a copy,
+ * never in the source — so the copies are compared against the sources here.
  *
  * It fails on:
  *
