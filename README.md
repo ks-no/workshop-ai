@@ -4,6 +4,7 @@ En samarbeidsvennlig sandbox for hackathon og utforskning av moderne innbyggerdi
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får — dialog, skjema, oversikt, varsling eller noe annet — er teamets valg.
 
+> [!NOTE]
 > **Deltaker på hackathon? Denne fila er ikke inngangen din.** Tre sider, i rekkefølge:
 >
 > 1. [`docs/oppdraget.md`](docs/oppdraget.md) — hva dere skal lage, og hva som er fritt
@@ -110,6 +111,7 @@ Du skal normalt ikke trenge noen av disse.
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 
+> [!WARNING]
 > **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
 > vanlig måte — inkludert modellnedlasting. Kjørte du `--mock`, skriv
 > **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.

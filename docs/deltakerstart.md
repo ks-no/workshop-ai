@@ -81,6 +81,7 @@ passer alle:**
 Tabellen er pinnet i `data/deltakercaser.json` og sjekket av `pnpm test`, så et
 innvilget utfall her er et innvilget utfall i sandkassen.
 
+> [!WARNING]
 > **Den vanligste snublesteinen:** `person-001` har *ikke* barn i SFO, og heller
 > ikke barn i fritidskortets aldersgruppe. Prøver du de casene med henne, får du et
 > avslag som ser ut som en feil, men er riktig. Bruk `person-022` for SFO og
@@ -139,6 +140,7 @@ To kanttilfeller når dere vil ha noe vanskeligere: `person-026` Randi Ås har e
 grunnlag på null fordi hun bare mottar ytelser som ikke medregnes, og `person-062`
 bor i en kommune uten registrert tilbud.
 
+> [!TIP]
 > Vil du ha flere husstander med barnehage- eller SFO-plass enn de som finnes,
 > trenger du ikke redigere `data/`. Se «Egne testdata» i `docs/bygg-selv.md`.
 
@@ -181,6 +183,7 @@ annet.
 Raskeste vei uten å tenke på noe av dette: **<http://localhost:3001/utforsker>** velger
 riktig token for ruta og skriver ut en `curl` som virker når du limer den inn.
 
+> [!NOTE]
 > `pnpm token` treffer pnpms egen innebygde kommando. Kall skriptet direkte, som over.
 
 ## 5. Tre sjekker når noe ser rart ut

@@ -75,7 +75,8 @@ I ditt eget prosjekt installerer du det fra npm — `pnpm add @ks-digital/design
 og importer `base.css` + `ksdigital.css`. Da er resten klasser og `data-`-attributter på
 vanlig HTML. Har du React, finnes `@ks-digital/designsystem-react` med samme attributter.
 
-> **Én hard regel:** last aldri `/assets/felles.css` og designsystemets CSS på samme
+> [!WARNING]
+> Last aldri `/assets/felles.css` og designsystemets CSS på samme
 > side. `felles.css` har ingen `@layer`, og ulagde regler slår hver layer i kaskaden, så
 > designsystemet blir stille overstyrt — Inter forsvinner og alle knapper blir like blå.
 > Det ser ut som stilarket ikke lastet. Det gjorde det. Skal du overstyre med vilje,
@@ -156,7 +157,8 @@ Prosessmotoren har sju stegtyper — `INFO`, `QUESTION`, `DATA_FETCH`,
 oppover, uten forgrening. Det er et enkelt utgangspunkt, ikke en grense du må
 respektere. Trenger du noe annet, bygg det.
 
-> **Én felle å kjenne:** `state/` skygger `data/`. Lagrer du én gang i
+> [!WARNING]
+> `state/` skygger `data/`. Lagrer du én gang i
 > prosessbyggeren, oppstår `state/prosessdefinisjoner.json`, og alle senere
 > håndredigeringer i `data/` blir ignorert uten et eneste varsel. `./start.sh --reset`
 > tømmer `state/`.
