@@ -1,5 +1,9 @@
 # AGENTS Guide
 
+> **The maintainer document, for agents changing the sandbox itself.** If you are a
+> hackathon participant, `docs/oppdraget.md` is your starting point — you do not
+> need to read this file, and nothing here assigns tasks to hackathon teams.
+
 ## What this repo is
 - `workshop-ai` is a municipal-dialog sandbox: process-driven user flows over synthetic data, with explicit consent, policy checks, and audit trail.
 - Services are intentionally split by responsibility (UI, orchestration, mocks, AI, tools, agent) and communicate over HTTP, not shared internal libraries.

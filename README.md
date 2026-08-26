@@ -268,9 +268,12 @@ Detaljer, klientkonfigurasjon for andre editorer og verifisering med
 
 ## Demo-bruker
 
-Anbefalt demo-bruker for første flyt:
-
-- `person-001` — `Maja Solberg`
+Det finnes ikke én demo-bruker som passer alle casene — velg bruker etter case i
+tabellen i `docs/deltakerstart.md` §3, som er pinnet i `data/deltakercaser.json`.
+Til flaggskipcaset *Redusert foreldrebetaling (barnehage)* passer `person-001`
+`Maja Solberg`. Til SFO- og fritidskort-casene gir hun derimot korrekt avslag —
+hun har verken barn i SFO eller barn i fritidskortets aldersgruppe — så der
+bruker du `person-022` og `person-028` fra tabellen.
 
 Data finnes i `data/personer.json`. **`docs/testpersoner.md` er den genererte
 oversikten over hele befolkningen** — 394 personer med alder, status, husstand og
