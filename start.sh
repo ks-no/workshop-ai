@@ -41,41 +41,41 @@ fail() { printf '\n❌ %s\n\n' "$*" >&2; exit 1; }
 
 usage() {
   cat <<'EOF'
-Usage: ./start.sh [OPTIONS]
+Bruk: ./start.sh [VALG]
 
-Starts the sandbox. Platform, GPU and model are detected automatically -
-you should not need any options.
+Starter sandkassen. Plattform, GPU og modell oppdages automatisk - du skal ikke
+trenge noen valg.
 
-Options:
-  -m, --model MODEL  Use a specific Ollama model instead of the auto-selected one
-  -y, --yes          Do not ask before installing Ollama or downloading a model
-      --mock         Run without a language model (AI replies become templates)
-      --reset        Wipe runtime state in state/ and start from the seed data
-      --reload       Restart Node services to pick up code changes, then exit
-  -d, --down         Stop and remove all containers
-  -h, --help         Show this help
+Valg:
+  -m, --model MODELL Bruk en bestemt Ollama-modell i stedet for den automatiske
+  -y, --yes          Ikke spør før Ollama installeres eller en modell lastes ned
+      --mock         Kjør uten språkmodell (KI-svarene blir maler)
+      --reset        Tøm kjøretilstanden i state/ og start fra seed-dataene
+      --reload       Start Node-tjenestene på nytt for å ta inn kodeendringer, og avslutt
+  -d, --down         Stopp og fjern alle containere
+  -h, --help         Vis denne hjelpen
 
-Recommended models:
-  qwen2.5:0.5b       Fastest, lowest quality (about 400 MB)
-  qwen2.5:7b         Best default balance (about 4.7 GB)
-  qwen2.5:14b        Better quality if you have enough RAM/VRAM (about 9 GB)
-  llama3.1:8b        Strong alternative to qwen2.5:7b (about 4.9 GB)
-  mistral-nemo       Good multilingual option (about 7 GB)
+Anbefalte modeller:
+  qwen2.5:0.5b       Raskest, lavest kvalitet (rundt 400 MB)
+  qwen2.5:7b         Best balanse som standard (rundt 4,7 GB)
+  qwen2.5:14b        Bedre kvalitet hvis du har nok RAM/VRAM (rundt 9 GB)
+  llama3.1:8b        Sterkt alternativ til qwen2.5:7b (rundt 4,9 GB)
+  mistral-nemo       Godt flerspråklig alternativ (rundt 7 GB)
 
-Tip:
-  The script auto-selects a model based on RAM/VRAM.
-  Use --model only if you want to override that choice.
+Tips:
+  Skriptet velger modell selv ut fra RAM/VRAM.
+  Bruk --model bare hvis du vil overstyre det valget.
 
-Examples:
-  ./start.sh                  # just start it
-  ./start.sh -y               # unattended, including downloads
-  ./start.sh -m qwen2.5:7b    # smaller model
-  ./start.sh -m qwen2.5:14b   # better quality, heavier
-  ./start.sh -m llama3.1:8b   # alternative model family
-  ./start.sh --mock           # no model - useful on a bad connection
-  ./start.sh --reset          # forget every earlier demo run
-  ./start.sh --reload         # restart services after a code change
-  ./start.sh -d               # stop everything
+Eksempler:
+  ./start.sh                  # bare start
+  ./start.sh -y               # uten spørsmål, nedlastinger inkludert
+  ./start.sh -m qwen2.5:7b    # mindre modell
+  ./start.sh -m qwen2.5:14b   # bedre kvalitet, tyngre
+  ./start.sh -m llama3.1:8b   # annen modellfamilie
+  ./start.sh --mock           # ingen modell - nyttig på dårlig linje
+  ./start.sh --reset          # glem alle tidligere demokjøringer
+  ./start.sh --reload         # start tjenestene på nytt etter en kodeendring
+  ./start.sh -d               # stopp alt
 EOF
 }
 
@@ -83,7 +83,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" ]] || fail "--model needs a value"; shift 2 ;;
+    -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" ]] || fail "--model trenger en verdi"; shift 2 ;;
     -y|--yes)   ASSUME_YES=true; shift ;;
     --mock)     MOCK=true; shift ;;
     --reset)    RESET=true; shift ;;
@@ -92,7 +92,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)  usage; exit 0 ;;
     -g|--gpu|-p|--pull)
       # Kept so older commands do not break. Both are automatic now.
-      warn "$1 is no longer needed - GPU and model download are detected automatically"
+      warn "$1 trengs ikke lenger - GPU og modellnedlasting oppdages automatisk"
       shift ;;
     *) printf 'Unknown option: %s\n\n' "$1" >&2; usage; exit 1 ;;
   esac
@@ -161,7 +161,7 @@ auto_model() {
   if vram="$(vram_gb)"; then
     vram_tier="$(tier_for "$vram" 6 12)"
     (( vram_tier < tier )) && tier="$vram_tier"
-    AUTO_REASON="${ram} GB RAM and ${vram} GB VRAM"
+    AUTO_REASON="${ram} GB RAM og ${vram} GB VRAM"
   fi
 
   MODEL="${MODEL_TIERS[$tier]}"
@@ -169,12 +169,12 @@ auto_model() {
 
 model_size() {
   case "$1" in
-    qwen2.5:0.5b) echo "about 400 MB" ;;
-    qwen2.5:7b)   echo "about 4.7 GB" ;;
-    qwen2.5:14b)  echo "about 9 GB" ;;
-    llama3.1:8b)  echo "about 4.9 GB" ;;
-    mistral-nemo) echo "about 7 GB" ;;
-    *)            echo "download size unknown" ;;
+    qwen2.5:0.5b) echo "rundt 400 MB" ;;
+    qwen2.5:7b)   echo "rundt 4,7 GB" ;;
+    qwen2.5:14b)  echo "rundt 9 GB" ;;
+    llama3.1:8b)  echo "rundt 4,9 GB" ;;
+    mistral-nemo) echo "rundt 7 GB" ;;
+    *)            echo "ukjent nedlastingsstørrelse" ;;
   esac
 }
 
@@ -191,10 +191,10 @@ resolve_model() {
   MODEL="${OLLAMA_MODEL:-$(env_value OLLAMA_MODEL)}"
   if [[ -z "$MODEL" ]]; then
     auto_model
-    info "selected $MODEL based on $AUTO_REASON"
+    info "valgte $MODEL ut fra $AUTO_REASON"
     if [[ "$MODEL" == "qwen2.5:0.5b" ]]; then
-      warn "this machine has little memory, so the smallest model was chosen."
-      warn "it answers, but the quality is poor. --mock is often just as useful."
+      warn "denne maskinen har lite minne, så den minste modellen ble valgt."
+      warn "den svarer, men kvaliteten er dårlig. --mock er ofte like nyttig."
     fi
   fi
 }
@@ -220,11 +220,11 @@ preflight() {
     # On Linux a missing docker group looks the same as a stopped daemon
     # unless we look at the actual error.
     if docker info 2>&1 | grep -qi "permission denied"; then
-      fail "Cannot reach the Docker daemon: permission denied.
-   Add yourself to the docker group, then log out and back in:
+      fail "Får ikke kontakt med Docker-daemonen: tilgang nektet.
+   Legg deg selv til i docker-gruppen, og logg ut og inn igjen:
      sudo usermod -aG docker \$USER"
     fi
-    fail "Docker is installed but not running. Start Docker and try again."
+    fail "Docker er installert, men kjører ikke. Start Docker og prøv igjen."
   fi
 
   local conflicts=()
@@ -235,8 +235,8 @@ preflight() {
     fi
   done
   if (( ${#conflicts[@]} > 0 )); then
-    fail "Ports already used by something else: ${conflicts[*]}
-   Stop whatever is listening there, then run ./start.sh again."
+    fail "Portene er allerede i bruk av noe annet: ${conflicts[*]}
+   Stopp det som lytter der, og kjør ./start.sh igjen."
   fi
 }
 
@@ -244,10 +244,10 @@ preflight() {
 
 ensure_env() {
   if [[ -f .env ]]; then
-    info ".env exists - leaving it untouched"
+    info ".env finnes - lar den stå urørt"
     return
   fi
-  [[ -f .env.example ]] || fail ".env.example is missing from the repo."
+  [[ -f .env.example ]] || fail ".env.example mangler i repoet."
 
   local base_url="http://ollama:11434"
   [[ "$PROFILE" == "macos-native" ]] && base_url="http://host.docker.internal:11434"
@@ -256,12 +256,12 @@ ensure_env() {
   sed -i.bak -E "s|^OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=${base_url}|" .env
   sed -i.bak -E "s|^OLLAMA_MODEL=.*|OLLAMA_MODEL=${MODEL}|" .env
   rm -f .env.bak
-  info "created .env pointing at ${base_url}"
+  info "opprettet .env som peker på ${base_url}"
 }
 
 confirm() {
   $ASSUME_YES && return 0
-  printf '\n   %s\n   Press Enter to continue, or Ctrl-C to stop. ' "$1"
+  printf '\n   %s\n   Trykk Enter for å fortsette, eller Ctrl-C for å stoppe. ' "$1"
   read -r _ || true
 }
 
@@ -282,14 +282,14 @@ wait_for() { # wait_for FUNCTION TIMEOUT_SECONDS MESSAGE
 
 ensure_ollama_native() {
   if ! command -v ollama >/dev/null 2>&1 && [[ ! -d /Applications/Ollama.app ]]; then
-    command -v brew >/dev/null 2>&1 || fail "Ollama is not installed. Get it from https://ollama.com/download and run ./start.sh again."
-    confirm "Ollama is not installed. This will run: brew install ollama"
+    command -v brew >/dev/null 2>&1 || fail "Ollama er ikke installert. Hent den fra https://ollama.com/download og kjør ./start.sh igjen."
+    confirm "Ollama er ikke installert. Dette kjører: brew install ollama"
     brew install ollama
   fi
 
-  ollama_up && { info "Ollama is running"; return; }
+  ollama_up && { info "Ollama kjører"; return; }
 
-  info "Ollama is not responding - starting it"
+  info "Ollama svarer ikke - starter den"
   if command -v brew >/dev/null 2>&1 && brew list ollama >/dev/null 2>&1; then
     # brew services survives closing the terminal; "ollama serve" does not.
     brew services start ollama >/dev/null
@@ -298,12 +298,12 @@ ensure_ollama_native() {
   else
     nohup ollama serve >/dev/null 2>&1 &
   fi
-  wait_for ollama_up 30 "Ollama did not come up within 30s. Try: brew services start ollama"
+  wait_for ollama_up 30 "Ollama kom ikke opp innen 30 sekunder. Prøv: brew services start ollama"
 }
 
 ensure_ollama_container() {
   docker compose "${COMPOSE_FILES[@]}" up -d ollama
-  wait_for ollama_up 60 "The ollama container did not become reachable on port ${OLLAMA_PORT}."
+  wait_for ollama_up 60 "Ollama-containeren ble ikke tilgjengelig på port ${OLLAMA_PORT}."
 }
 
 model_present() {
@@ -325,12 +325,12 @@ pull_model() {
 # whole download.
 ensure_model() {
   if model_present; then
-    info "model $MODEL is available"
+    info "modellen $MODEL er tilgjengelig"
     return
   fi
-  confirm "Model $MODEL is not downloaded yet ($(model_size "$MODEL")). This will fetch it."
+  confirm "Modellen $MODEL er ikke lastet ned ennå ($(model_size "$MODEL")). Dette henter den."
   pull_model
-  model_present || fail "Model $MODEL still not available after download."
+  model_present || fail "Modellen $MODEL er fortsatt ikke tilgjengelig etter nedlastingen."
 }
 
 # --- 6. Services ------------------------------------------------------------
@@ -388,11 +388,11 @@ verify_llm() {
     -d '{"kontekst":{"tjeneste":"oppstartssjekk"},"sprak":"nb"}' 2>/dev/null || true)"
 
   if [[ -z "$response" ]]; then
-    warn "ai-gateway did not answer the verification call"
+    warn "ai-gateway svarte ikke på verifiseringskallet"
     return 1
   fi
   if grep -q '"advarsel"' <<<"$response"; then
-    warn "ai-gateway fell back to template text:"
+    warn "ai-gateway falt tilbake til malsvar:"
     printf '      %s\n' "$(grep -o '"advarsel": *"[^"]*"' <<<"$response")"
     return 1
   fi
@@ -403,9 +403,9 @@ verify_llm() {
   # choice stored in state/ai-provider-override.json that outlives a restart)
   # would be reported as a confirmed working model.
   if [[ "$VERIFIED_MODEL" == "mock-ai-gateway" ]]; then
-    warn "ai-gateway answered with template text, not a model."
-    warn "the active provider is mock - check http://localhost:8082/admin,"
-    warn "which overrides AI_PROVIDER and survives a restart."
+    warn "ai-gateway svarte med malsvar, ikke fra en modell."
+    warn "den aktive leverandøren er mock - se http://localhost:8082/admin,"
+    warn "som overstyrer AI_PROVIDER og overlever en omstart."
     return 1
   fi
 }
@@ -415,14 +415,14 @@ verify_llm() {
 detect_platform
 
 if $DOWN; then
-  step "🛑 Stopping workshop-ai"
+  step "🛑 Stopper workshop-ai"
   docker compose "${COMPOSE_FILES[@]}" down -t 0
-  printf '\n✅ Stopped.\n\n'
+  printf '\n✅ Stoppet.\n\n'
   exit 0
 fi
 
 if $RELOAD; then
-  step "🔄 Reloading Node services"
+  step "🔄 Laster Node-tjenestene på nytt"
   # --mock has to be exported here too, not only on the start path below, which
   # this branch exits before reaching. "up -d" recreates the container from the
   # current environment, so without this line a --mock --reload silently swaps
@@ -440,24 +440,24 @@ if $RELOAD; then
     docker compose "${COMPOSE_FILES[@]}" up -d "${NODE_SERVICES[@]}"
   fi
   wait_for_services
-  info "all ${#NODE_SERVICES[@]} services have reloaded"
-  printf '\n✅ Ready - code changes are live.\n\n'
+  info "alle ${#NODE_SERVICES[@]} tjenestene er lastet på nytt"
+  printf '\n✅ Klar - kodeendringene er i drift.\n\n'
   exit 0
 fi
 
-step "🚀 Starting workshop-ai"
-info "Platform: $PROFILE"
+step "🚀 Starter workshop-ai"
+info "Plattform: $PROFILE"
 
 if $MOCK; then
   export AI_PROVIDER=mock
-  info "Model:    none (--mock)"
+  info "Modell:    ingen (--mock)"
 else
   resolve_model
   export OLLAMA_MODEL="$MODEL"
-  info "Model:    $MODEL"
+  info "Modell:    $MODEL"
 fi
 
-step "🔎 Checking prerequisites"
+step "🔎 Sjekker forutsetninger"
 preflight
 ensure_env
 
@@ -465,11 +465,11 @@ if $RESET; then
   # Services seed themselves from data/ whenever a state file is missing,
   # so removing the directory is all it takes.
   rm -rf state
-  info "runtime state cleared - starting from the seed data"
+  info "kjøretilstanden er tømt - starter fra seed-dataene"
 fi
 
 if ! $MOCK; then
-  step "🦙 Preparing the language model"
+  step "🦙 Klargjør språkmodellen"
   case "$PROFILE" in
     macos-native) ensure_ollama_native ;;
     *)            ensure_ollama_container ;;
@@ -477,65 +477,65 @@ if ! $MOCK; then
   ensure_model
 fi
 
-step "📦 Starting services"
+step "📦 Starter tjenestene"
 start_services
 wait_for_services
-info "all ${#NODE_SERVICES[@]} services are responding"
+info "alle ${#NODE_SERVICES[@]} tjenestene svarer"
 
 LLM_OK=false
 VERIFIED_MODEL=""
 if ! $MOCK; then
-  step "🔌 Verifying that the model is connected"
+  step "🔌 Verifiserer at modellen er koblet til"
   if verify_llm; then
     LLM_OK=true
-    info "confirmed: ai-gateway is using $VERIFIED_MODEL"
+    info "bekreftet: ai-gateway bruker $VERIFIED_MODEL"
   fi
 fi
 
-printf '\n✅ Ready\n'
-printf '\n   Read first:\n'
-printf '   📖 What to build:   docs/oppdraget.md\n'
-printf '   🚀 Getting started: docs/deltakerstart.md\n'
-printf '   🔨 Build your own:  docs/bygg-selv.md\n'
-printf '\n   Overview and APIs:\n'
-printf '   🧭 Dashboard:       http://localhost:3001\n'
-printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'
-printf '   📚 API docs:        http://localhost:8080/docs\n'
-printf '\n   Reference clients - examples, not the answer:\n'
-printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
-printf '   🌐 Chat:            http://localhost:3001/chat\n'
-printf '   🧠 Agent:           http://localhost:3001/agent\n'
-printf '   🔧 Process Builder: http://localhost:3000\n'
-printf '\n   When the AI looks wrong:\n'
-printf '   🔍 AI trace:        http://localhost:8082/trace\n'
-printf '   🔀 AI provider:     http://localhost:8082/admin\n'
+printf '\n✅ Klar\n'
+printf '\n   Les først:\n'
+printf '   📖 Hva du skal bygge: docs/oppdraget.md\n'
+printf '   🚀 Kom i gang:        docs/deltakerstart.md\n'
+printf '   🔨 Bygg ditt eget:    docs/bygg-selv.md\n'
+printf '\n   Oversikt og API-er:\n'
+printf '   🧭 Dashbord:          http://localhost:3001\n'
+printf '   🧪 API-utforsker:     http://localhost:3001/utforsker\n'
+printf '   📚 API-dokumentasjon: http://localhost:8080/docs\n'
+printf '\n   Referanseklienter - eksempler, ikke fasiten:\n'
+printf '   📝 Stegvis grensesnitt: http://localhost:3001/stegvis\n'
+printf '   🌐 Chat:                http://localhost:3001/chat\n'
+printf '   🧠 Agent:               http://localhost:3001/agent\n'
+printf '   🔧 Prosessbygger:       http://localhost:3000\n'
+printf '\n   Når KI-en ser feil ut:\n'
+printf '   🔍 KI-spor:           http://localhost:8082/trace\n'
+printf '   🔀 KI-leverandør:     http://localhost:8082/admin\n'
 
 if $MOCK; then
-  printf '\n   ⚠️  Running with --mock: AI replies are canned template text, not a model.\n'
+  printf '\n   ⚠️  Kjører med --mock: KI-svarene er ferdigskrevet maltekst, ikke en modell.\n'
 elif ! $LLM_OK; then
   # The active provider is whatever /admin last set - not necessarily ollama -
   # so the warning below names the provider actually configured, not a fixed guess.
   case "$(active_provider)" in
     bedrock)
-      printf '\n   ⚠️  Provider is set to AWS Bedrock, but it did not answer. Replies will\n'
-      printf '       look normal but come from templates. Check credentials and model access\n'
-      printf '       at http://localhost:8082/admin - and whether the account has submitted\n'
-      printf '       the Anthropic use-case form (Bedrock console -> Model access).\n'
+      printf '\n   ⚠️  Leverandøren er satt til AWS Bedrock, men den svarte ikke. Svarene ser\n'
+      printf '       normale ut, men kommer fra maler. Sjekk legitimasjon og modelltilgang\n'
+      printf '       på http://localhost:8082/admin - og om kontoen har sendt inn\n'
+      printf '       Anthropics bruksskjema (Bedrock-konsollet -> Model access).\n'
       ;;
     openrouter)
-      printf '\n   ⚠️  Provider is set to OpenRouter, but it did not answer. Replies will\n'
-      printf '       look normal but come from templates. Check OPENROUTER_API_KEY, or\n'
-      printf '       switch provider at http://localhost:8082/admin.\n'
+      printf '\n   ⚠️  Leverandøren er satt til OpenRouter, men den svarte ikke. Svarene ser\n'
+      printf '       normale ut, men kommer fra maler. Sjekk OPENROUTER_API_KEY, eller\n'
+      printf '       bytt leverandør på http://localhost:8082/admin.\n'
       ;;
     ollama|"")
-      printf '\n   ⚠️  Ollama is NOT connected. Replies will look normal but come from\n'
-      printf '       templates. Check that Ollama is running, then start again.\n'
+      printf '\n   ⚠️  Ollama er IKKE koblet til. Svarene ser normale ut, men kommer fra\n'
+      printf '       maler. Sjekk at Ollama kjører, og start på nytt.\n'
       ;;
     *)
-      printf '\n   ⚠️  The active provider did not answer. Replies will look normal but\n'
-      printf '       come from templates. Check http://localhost:8082/admin.\n'
+      printf '\n   ⚠️  Den aktive leverandøren svarte ikke. Svarene ser normale ut, men\n'
+      printf '       kommer fra maler. Se http://localhost:8082/admin.\n'
       ;;
   esac
 fi
 
-printf '\n   Stop with: ./start.sh -d\n\n'
+printf '\n   Stopp med: ./start.sh -d\n\n'
