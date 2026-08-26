@@ -61,7 +61,7 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 | **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
 | **pnpm** | bare testskriptene. `pnpm install` først |
 
-På Windows: kjør fra Git Bash eller WSL.
+På Windows: se [«På Windows»](#på-windows) lenger ned.
 
 **Vil du bare se noe kjøre? Start her:**
 
@@ -92,7 +92,9 @@ Skriptet spør før det laster ned. På macOS spør det i tillegg før det insta
 
 Stopp med `./start.sh -d`.
 
-På Windows: kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
+### På Windows
+
+Kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
 automatisk modellvalg basert på minnet i maskinen, og verifisering av at modellen
 faktisk svarer.
 

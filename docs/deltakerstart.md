@@ -5,6 +5,17 @@ Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan v
 **Lurer du på hva dere egentlig skal lage?** `docs/oppdraget.md` er én side om det, og
 tar to minutter.
 
+## 0. Hent repoet
+
+Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din:
+
+```bash
+git clone https://github.com/<ditt-github-brukernavn>/workshop-ai.git
+cd workshop-ai
+```
+
+Resten av denne siden antar at du står i den mappen.
+
 ## 1. Start sandboxen
 
 Du trenger **Docker** installert og startet. Du trenger også **Node 22.18 eller
@@ -19,10 +30,14 @@ stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjons
 og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
 krever nedlasting av flere gigabyte.
 
+Suksess ser slik ut: skriptet skriver `✅ Ready` — åpne da <http://localhost:3001>,
+der alle tjenestene i tabellen skal vise grønt («oppe»).
+
 Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12–25
 minutter til det, mer på delt konferansenett.
 
-På Windows: kjør fra Git Bash eller WSL.
+På Windows: kjør fra Git Bash eller WSL. `start.bat` finnes som nødløsning, men den
+kjører alltid uten språkmodell — se «På Windows» i `README.md`.
 
 Stopp alt med `./start.sh -d`.
 
