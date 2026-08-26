@@ -145,7 +145,7 @@ paths:
       security: []
       description: >
         ID-porten er en OpenID Provider: den autentiserer en person og utsteder et
-        id_token om vedkommende.
+        id_token om den personen.
       responses:
         "200":
           description: Metadatadokumentet
