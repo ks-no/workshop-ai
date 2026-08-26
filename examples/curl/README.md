@@ -181,18 +181,17 @@ hentes fra **samtykket**, ikke fra kallet.
 
 ## Feilsøking
 
+Symptomene som gjelder hele sandkassen — `401` på alt (utløpt token inkludert),
+«fetch failed» på matrikkel, maltekst du ikke ba om, nullstilling — står i
+`docs/feilsoking.md`, ett symptom per avsnitt med årsak og løsning. Her er bare det
+som er spesifikt for kokeboka:
+
 | Symptom | Årsak |
 |---|---|
-| `401` på alt | Mangler `Authorization`, eller `digdir-mock` (`8086`) er nede |
-| `401` etter `docker compose up -d` | `digdir-mock` fikk nye nøkler; andre tjenester cacher det gamle tokenet. `docker compose restart tools-api process-agent sandbox-backend fiks-simulator` |
-| `403 mangler_hjemmel` | Tokenet tilhører en annen person enn stien |
+| `403 mangler_hjemmel` | Tokenet tilhører en annen person enn stien — §3 |
 | `403 mangler_samtykke` | Kjør samtykkestegene i §4 først |
-| `fetch failed` på matrikkel | `matrikkel-mock` (`8085`) er ikke oppe |
-| Modellkall henger | Avbrytes etter `AI_TIMEOUT_MS` (180 s) og faller til maltekst med `advarsel`. 10–60 s på `SUMMARY` er normalt |
+| `SUMMARY` tar lang tid | 10–60 s er normalt; ved timeout faller den til maltekst med `advarsel` |
 | Rart KI-svar | Les `/trace` — §5 |
 
 **Ingen `jq`.** Kallene pipes gjennom `node -e`, siden Node uansett er et krav for
 `scripts/token.ts`.
-
-`./start.sh --reset` tømmer `state/`. Merk at den også starter alt på nytt, med
-modellnedlasting — vil du beholde mock-modus, skriv `./start.sh --mock --reset`.

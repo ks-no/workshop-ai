@@ -195,11 +195,6 @@ Les `modellNaaBar`. Er den `false`, forklarer et `feil`-felt hvorfor. Merk at st
 alltid er 200 — tjenesten lever selv om modellen ikke gjør det. Kjørte du med
 `--mock`, skal den være `false`, og det er som forventet.
 
-> **Har du klikket i <http://localhost:8082/admin> én gang, vinner det valget over
-> `--mock` og over `.env`.** Det lagres i `state/ai-provider-override.json` og overlever
-> omstart. Får du maltekst du ikke ba om — eller en modell du trodde du hadde skrudd av
-> — er det den fila. `./start.sh --mock --reset` nullstiller den.
-
 **Hva fikk modellen egentlig?**
 
 <http://localhost:8082/trace>
@@ -213,8 +208,12 @@ validering har vært innom. Dette er raskeste vei til å forstå et rart KI-svar
 docker compose ps
 ```
 
-Ser du «fetch failed» på matrikkel-oppslag eller i `fartsdempende-tiltak`-casen, er
-det nesten alltid `matrikkel-mock` som ikke er oppe.
+Alle skal stå som `healthy`.
+
+Fant du ikke feilen med disse tre? **`docs/feilsoking.md` har resten**, ett symptom
+per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på matrikkel-oppslag,
+maltekst du ikke ba om, port opptatt, en container som ikke blir `healthy`, treg
+modellnedlasting og mer.
 
 ## 6. Nullstille
 

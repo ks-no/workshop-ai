@@ -159,6 +159,19 @@ curl -s http://localhost:8082/helse
 
 Er modellen nede, faller `ai-gateway` tilbake til maltekst og setter et `advarsel`-felt. `/chat` og `/agent` viser en gul stripe når det skjer, og `./start.sh` advarer ved oppstart — men svarene i seg selv ser normale ut, så det er verdt å vite hvor du sjekker.
 
+Kontroller at alle tjenestene kjører:
+
+```bash
+docker compose ps
+```
+
+Alle skal stå som `healthy`.
+
+Alt annet — `401` på alt, «fetch failed» på matrikkel-oppslag, maltekst du ikke ba
+om, port opptatt, en container som ikke blir `healthy`, treg modellnedlasting og
+hvordan du nullstiller — står i `docs/feilsoking.md`: ett symptom per avsnitt, med
+årsak og løsning.
+
 ### Se hva modellen faktisk gjorde
 
 ```
