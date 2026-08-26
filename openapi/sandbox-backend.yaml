@@ -1267,6 +1267,15 @@ components:
           type: string
         syntetisk:
           type: boolean
+        soknadsdokument:
+          type: string
+          description: >
+            Deterministisk tekstdokument bygget av svarene, de innhentede
+            opplysningene og sjekk-resultatet: prosessnavn/versjon, søkerens navn
+            og id, spørsmålssvarene, toppnivå-primitiver fra hvert
+            DATA_FETCH-resultat, sjekk-stegets utfall og oppsummeringsteksten hvis
+            den finnes. Bare til stede når søknaden kom fra et SUBMIT-steg i en
+            prosessøkt — POST /api/soknader direkte har det aldri.
     SoknadMedOppgave:
       allOf:
         - $ref: "#/components/schemas/Soknad"

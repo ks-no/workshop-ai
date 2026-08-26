@@ -20,7 +20,9 @@
 //
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.
-// ai-gateway is not needed: the flows deliberately stop before the SUMMARY step.
+// ai-gateway is started too, so stottekontaktflyt's innvilget case can reach
+// SUMMARY and SUBMIT. It runs with no AI_PROVIDER set, so /ai/oppsummering
+// answers with the deterministic mock template — no network call, no flakiness.
 
 import { spawn } from "node:child_process";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
@@ -37,10 +39,12 @@ const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;
 const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
 const digdirPort = Number(process.env.SMOKE_DIGDIR_PORT) || 18088;
+const aiPort = Number(process.env.SMOKE_AI_PORT) || 18089;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 const matrikkelUrl = `http://127.0.0.1:${matrikkelPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
+const aiUrl = `http://127.0.0.1:${aiPort}`;
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
@@ -95,7 +99,7 @@ async function requireFreePort(portnummer: number) {
     const proeve = createServer();
     proeve.once("error", (feil) => avvis(
       feilkode(feil) === "EADDRINUSE"
-        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT til ledige porter.`)
+        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_AI_PORT til ledige porter.`)
         : feil
     ));
     proeve.listen(portnummer, "127.0.0.1", () => proeve.close(klar));
@@ -378,7 +382,11 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
 // Støttekontakt is the only ordning assessed on need rather than money, and the
 // only SJEKK that does not require income consent. The dump records that: the
 // check answers before any samtykke for inntekt exists.
-async function stottekontaktflyt(personId: string, merkelapp: string) {
+//
+// `tilSubmit` only makes sense for the innvilget case: the avvist case would
+// still reach SUBMIT (SJEKK rejecting does not stop stegIndex from advancing),
+// but sending in a rejected søknad is not a flow worth pinning here.
+async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit = false) {
   const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "stottekontakt-behov" }
@@ -405,6 +413,17 @@ async function stottekontaktflyt(personId: string, merkelapp: string) {
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+
+  if (!tilSubmit) return;
+
+  // The only flow in this script reaching SUMMARY and SUBMIT — everything else
+  // deliberately stops earlier. Pins the new soknadsdokument field alongside the
+  // deterministic mock oppsummeringstekst it embeds.
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt-fullfort`, `/api/prosessoekter/${id}`);
 }
 
 // Fartsdemping is the only case that exercises SJEKK, matrikkel and
@@ -671,13 +690,14 @@ async function run() {
   await requireFreePort(fiksPort);
   await requireFreePort(matrikkelPort);
   await requireFreePort(digdirPort);
+  await requireFreePort(aiPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
   const miljo = {
     STATE_DIR: stateDir,
     FIKS_BASE_URL: fiksUrl,
     BACKEND_BASE_URL: backendUrl,
-    AI_BASE_URL: "http://127.0.0.1:8082",
+    AI_BASE_URL: aiUrl,
     MATRIKKEL_BASE_URL: matrikkelUrl,
     // Dial address and logical issuer are the same here: everything runs on
     // 127.0.0.1, so there is no docker-network split to bridge.
@@ -691,7 +711,10 @@ async function run() {
     start("digdir", "apps/digdir-mock/src/server.ts", { ...miljo, PORT: String(digdirPort) }),
     start("backend", "apps/sandbox-backend/src/server.ts", { ...miljo, PORT: String(backendPort) }),
     start("fiks", "apps/fiks-simulator/src/server.ts", { ...miljo, PORT: String(fiksPort) }),
-    start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) })
+    start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) }),
+    // No AI_PROVIDER: defaults to "mock", so /ai/oppsummering answers the
+    // deterministic template with no outbound call.
+    start("ai", "apps/ai-gateway/src/server.ts", { ...miljo, PORT: String(aiPort) })
   ];
 
   try {
@@ -699,7 +722,8 @@ async function run() {
       waitForHealth(digdirUrl),
       waitForHealth(backendUrl),
       waitForHealth(fiksUrl),
-      waitForHealth(matrikkelUrl)
+      waitForHealth(matrikkelUrl),
+      waitForHealth(aiUrl)
     ]);
 
     await staticLookups();
@@ -721,7 +745,7 @@ async function run() {
     });
     await fritidskortflyt("person-028", "fritidskort-innvilget");
     await fritidskortflyt("person-008", "fritidskort-avslag");
-    await stottekontaktflyt("person-001", "stottekontakt-innvilget");
+    await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");

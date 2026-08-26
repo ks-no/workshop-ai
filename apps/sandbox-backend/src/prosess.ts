@@ -5,7 +5,8 @@ import { HttpError } from "./errors.ts";
 import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { updateJson } from "../../shared/jsonstore.ts";
-import { newId } from "./state.ts";
+import type { Person } from "../../shared/innbyggerdata.ts";
+import { findPerson, newId } from "./state.ts";
 import { callUpstream, tryUpstream } from "./upstream.ts";
 import type {
   ProsessDefinisjon,
@@ -70,6 +71,105 @@ async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kall
   });
 }
 
+// A DATA_FETCH result's own id-fields and fødselsnummer never belong in a document
+// the citizen reads back — those are for the audit log and the wire, not for the
+// application content. "Id-suffikser" catches personId/husstandId/matrikkelId/...
+// without a per-resource allowlist that would need updating for every new ressurs.
+const FODSELSNUMMER_MOENSTER = /fodselsnummer|fnr/i;
+
+function erDokumenterbartFelt([noekkel, verdi]: [string, unknown]): boolean {
+  if (typeof verdi !== "string" && typeof verdi !== "number" && typeof verdi !== "boolean") {
+    return false;
+  }
+  return noekkel !== "syntetisk" && !FODSELSNUMMER_MOENSTER.test(noekkel) && !/Id$/.test(noekkel);
+}
+
+// oekt.svar holds either the field-keyed object demo-gui's stegvis-side posts, or
+// the bare value /chat posts for a one-field spørsmål (see replaceParametere
+// above) — both are handled here so the document reads the same regardless of
+// which client answered.
+function svarLinjerForSteg(steg: ProsessSteg, verdi: unknown): string[] {
+  if (steg.type !== "QUESTION" || verdi === undefined || verdi === null) {
+    return [];
+  }
+  const felter = steg.felter || [];
+  if (typeof verdi === "object") {
+    return felter
+      .filter((felt) => (verdi as Record<string, unknown>)[felt.id] !== undefined)
+      .map((felt) => `${felt.label}: ${(verdi as Record<string, unknown>)[felt.id]}`);
+  }
+  const label = felter.length === 1 ? felter[0].label : steg.tittel || steg.id;
+  return [`${label}: ${verdi}`];
+}
+
+function dataFetchLinjeForSteg(steg: ProsessSteg, resultat: unknown): string | null {
+  if (steg.type !== "DATA_FETCH" || !resultat || typeof resultat !== "object" || Array.isArray(resultat)) {
+    return null;
+  }
+  const felter = Object.entries(resultat as Record<string, unknown>).filter(erDokumenterbartFelt);
+  if (!felter.length) return null;
+  return `${steg.tittel || steg.id}: ${felter.map(([noekkel, verdi]) => `${noekkel}=${verdi}`).join(", ")}`;
+}
+
+/*
+ * Builds the søknadsdokument as plain text — no PDF, no KI-kall. Walked off
+ * prosess.steg in definition order rather than Object.keys(oekt.svar /
+ * oekt.resultater), so the section order cannot drift with insertion order, and
+ * off oekt.svar/resultater rather than re-deriving anything, so the document
+ * matches exactly what the citizen answered and what was looked up for them.
+ *
+ * Deliberately no ids or timestamps in the text: those live on the søknadsrad,
+ * so the same svar produce byte-identical text every time (see
+ * kontrakt-smoke.ts's before/after diff).
+ */
+export function buildSoknadsdokument(
+  prosess: ProsessDefinisjon,
+  oekt: Prosessoekt,
+  person: Person | null
+): string {
+  const navn = person
+    ? [person.navn.fornavn, person.navn.mellomnavn, person.navn.etternavn].filter(Boolean).join(" ")
+    : oekt.personId;
+
+  const linjer: string[] = [
+    `Søknad: ${prosess.navn}${prosess.versjon ? ` (versjon ${prosess.versjon})` : ""}`,
+    `Søker: ${navn} (${oekt.personId})`,
+    ""
+  ];
+
+  const svarLinjer = prosess.steg.flatMap((steg) => svarLinjerForSteg(steg, oekt.svar[steg.id]));
+  if (svarLinjer.length) {
+    linjer.push("Svar:", ...svarLinjer.map((linje) => `- ${linje}`), "");
+  }
+
+  const dataLinjer = prosess.steg
+    .map((steg) => dataFetchLinjeForSteg(steg, oekt.resultater[steg.id]))
+    .filter((linje): linje is string => linje !== null);
+  if (dataLinjer.length) {
+    linjer.push("Innhentede opplysninger:", ...dataLinjer.map((linje) => `- ${linje}`), "");
+  }
+
+  for (const steg of prosess.steg) {
+    if (steg.type !== "SJEKK") continue;
+    const resultat = oekt.resultater[steg.id] as SjekkResultat | undefined;
+    if (!resultat) continue;
+    linjer.push(`Sjekk: ${resultat.godkjent ? "Godkjent" : "Avvist"} — ${resultat.melding}`, "");
+  }
+
+  for (const steg of prosess.steg) {
+    if (steg.type !== "SUMMARY") continue;
+    const resultat = oekt.resultater[steg.id] as { tekst?: string } | undefined;
+    if (resultat?.tekst) {
+      linjer.push("Oppsummering:", resultat.tekst, "");
+    }
+  }
+
+  while (linjer.length && linjer[linjer.length - 1] === "") {
+    linjer.pop();
+  }
+  return linjer.join("\n");
+}
+
 /*
  * The søknad is appended inside the write queue, not pushed onto the request's
  * own copy of the array and written whole. That was a lost update with no queue
@@ -79,7 +179,16 @@ async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kall
  * It takes no State any more, and that is the point: there is no request-scoped
  * copy left for it to write.
  */
-export async function createSoknad(body: any, kaller: Caller) {
+export async function createSoknad(
+  body: any,
+  kaller: Caller,
+  /**
+   * Set only by the SUBMIT step handler below. Without it — the direct
+   * POST /api/soknader route never passes it — the row and the response are
+   * byte-identical to before this field existed.
+   */
+  dokumentInfo?: { dokument: string }
+) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -87,7 +196,8 @@ export async function createSoknad(body: any, kaller: Caller) {
     status: "SENDT_INN",
     opprettet: new Date().toISOString(),
     sporingsId: body.sporingsId || newId("flyt"),
-    syntetisk: true
+    syntetisk: true,
+    ...(dokumentInfo ? { soknadsdokument: dokumentInfo.dokument } : {})
   };
 
   await updateJson("soknader.json", [], (soknader: unknown[]) => {
@@ -274,13 +384,14 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
     return data;
   },
 
-  SUBMIT: async ({ oekt, prosess, steg, kaller }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
+    const dokument = buildSoknadsdokument(prosess, oekt, findPerson(tilstand, oekt.personId));
     const data = await createSoknad({
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
-    }, kaller);
+    }, kaller, { dokument });
     oekt.resultater[steg.id] = data;
     oekt.status = "FULLFORT";
     return data;
