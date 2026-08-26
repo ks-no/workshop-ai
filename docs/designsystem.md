@@ -17,6 +17,12 @@ KS Digital sitt designsystem bygger på [Designsystemet fra Digdir](https://desi
 Prefikset forteller hvem som eier hva: `ds-` er Digdir sine komponenter (nesten alt), `ksd-`
 er KS Digital sine egne tillegg.
 
+To ressurser virker uten at du kjører noe som helst — begge viser komponentene med
+KS Digital-temaet ferdig på:
+[Storybook](https://design.ksdigital.no) i nettleseren, og
+[Figma-biblioteket](https://www.figma.com/design/SjSyWDPc4uAHufxmzdH8Fz/Designsystemet-%7C-KS-Digital-Core-UI-Kit)
+for design og skisser.
+
 ---
 
 ## Oppsett i ditt eget prosjekt
@@ -98,8 +104,7 @@ Da trenger du verken `!important` eller spesifisitetstriks.
 | --- | --- |
 | Komponenter, API og tilgjengelighet — **primærkilden** | <https://designsystemet.no/no> |
 | Kjørende markup for hver komponent, lest ut av DOM-en | <http://localhost:3001/ds-eksempel> |
-| Storybook med KS Digital-temaet, lys/mørk og temavelger | <https://design.ksdigital.no> |
-| Figma-bibliotek | [Designsystemet \| KS Digital Core UI Kit](https://www.figma.com/design/SjSyWDPc4uAHufxmzdH8Fz/Designsystemet-%7C-KS-Digital-Core-UI-Kit) |
+| Storybook og Figma — begge virker uten å kjøre noe | lenkene øverst i denne fila |
 | Kildekode | <https://github.com/ks-no/designsystem> |
 | Spørsmål | `fiks@ksdigital.no`, eller Slack `#designsystem` |
 

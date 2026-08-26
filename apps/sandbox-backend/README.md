@@ -1,13 +1,9 @@
 # Sandbox Backend
 
-Ansvar:
-
-- eksponere API-er for GUI og prosessbygger
-- håndtere prosessdefinisjoner
-- lese syntetiske data med norske feltnavn
-- håndheve policyer
-- skrive revisjonslogg
-- kalle Fiks-simulator og AI-gateway
+**For deg som skal utvide sandkassen — ny flyt, ny datakilde, ny regel.** Kjernen alt
+annet lener seg på: prosessmotoren, ressurskatalogen, policyhåndhevingen og
+revisjonsloggen bor her. Bygger du bare en klient mot API-ene, holder det å lese
+`openapi/sandbox-backend.yaml`.
 
 ## Stack
 

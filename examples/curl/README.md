@@ -6,7 +6,8 @@ spesifikasjonene tjenestene selv serverer, velger riktig token for ruta, og skri
 `curl` som virker når den limes inn. En rutetabell her ville vært en kopi som driver.
 
 Det utforskeren *ikke* kan uttrykke er en rekkefølge — sju kall der hvert bygger på det
-forrige. Det er det denne fila er til.
+forrige. Det er det denne fila er til. Foretrekker du Postman framfor curl, importerer
+den spesifikasjonene i `openapi/` direkte — se `examples/postman/README.md`.
 
 Alle kall er hentet fra `scripts/kontrakt-smoke.ts`, som kjører i CI. Virker et kall
 ikke, er det en reell feil.

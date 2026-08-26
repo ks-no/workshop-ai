@@ -1,13 +1,9 @@
 # AI Gateway
 
-Ansvar:
-
-- levere dialogforslag
-- generere oppsummering
-- forklare databruk
-- gi klarspråk og enkel risikosjekk
-- velge prosess og verktøy, og tolke fritekstsvar
-- svare på frie spørsmål fra innbygger, med sperrer som kjører i kode
+**For deg som skal bruke eller endre KI-laget.** Ett API foran modellene: oppsummering,
+tolkning, klarspråk og frie spørsmål fra innbygger — med sperrer som kjører i kode,
+provider-bytte uten restart, og fullt spor av hvert modellkall. Lurer du bare på om
+modellen er koblet på, hopp til «Er modellen koblet på?».
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK — providerne
 kalles med rå `fetch`.

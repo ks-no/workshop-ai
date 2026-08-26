@@ -1,11 +1,8 @@
 # Prosessbygger
 
-Ansvar:
-
-- liste prosesser
-- vise dialogflyter
-- gjøre det lett å forstå prosessdefinisjoner i sandboxen
-- være en enkel inngang for eksterne team
+**For deg som vil se eller endre en prosessdefinisjon uten å redigere JSON i repoet.**
+Lister prosessene fra backend, viser stegene i hver flyt, og lar deg opprette og lagre
+nye. Bygger du en egen frontend i stedet, trenger du ikke lese videre.
 
 Stack: statisk HTML og JavaScript, servert av en innebygd Node HTTP-server på `3000`.
 Null avhengigheter.

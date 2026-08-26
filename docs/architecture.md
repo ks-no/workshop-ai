@@ -9,19 +9,18 @@ Denne siden gjentar den ikke — fire håndholdte kopier av den tabellen hadde d
 fra hverandre, og tre av dem manglet `digdir-mock`, tjenesten hver 401 peker på.
 
 Delingen gir en samarbeidsvennlig struktur der flere team kan jobbe parallelt uten å
-blokkere hverandre unødvendig.
+blokkere hverandre.
 
 ## Arkitekturprinsipper
 
-1. Syntetisk først
-2. API først
-3. Sporbarhet som standard
-4. Policy synlig i kode og dokumentasjon
-5. KI som støtte, ikke beslutningstaker
-6. Enkel lokal kjøring
-7. Utvidbar struktur
-8. Pedagogisk over realisme
-9. Høy teamautonomi med pragmatisk støtte
+1. Bruk bare syntetiske data
+2. Bygg API-et før grensesnittet
+3. Logg all datatilgang, som standard og ikke som tilvalg
+4. Håndhev policyer i kode, og dokumenter dem der de håndheves
+5. La KI formulere — aldri beregne eller avgjøre
+6. Hold lokal kjøring enkel: `docker compose up` skal være nok
+7. Hold strukturen åpen for utvidelse uten å endre kjernen
+8. Velg det som lærer bort mest, foran det som ligner mest på produksjon
 
 ## Autonomi og støtte
 

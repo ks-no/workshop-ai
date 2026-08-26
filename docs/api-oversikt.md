@@ -16,6 +16,7 @@ holder spesifikasjonene i takt med koden; ingenting holdt denne fila i takt med 
 | Se rutene i én tjeneste | `http://localhost:<port>/docs` |
 | Lese kontrakten | `http://localhost:<port>/openapi.yaml`, eller `openapi/*.yaml` i repoet |
 | Lese den maskinelt | `http://localhost:<port>/openapi-ruter.json` |
+| Utforske i Postman | importer spesifikasjonene direkte — `examples/postman/README.md` |
 
 Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell.
 

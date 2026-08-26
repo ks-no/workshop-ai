@@ -1,14 +1,8 @@
 # Fiks Simulator
 
-Mock av KS Fiks-plattformen. Kjører på `8081`.
-
-Ansvar:
-
-- simulere samtykke
-- simulere registeroppslag
-- simulere folkeregisteroppslag i rollekontekst
-- simulere SvarUt-forsendelser med utledet status
-- simulere oppgave- og meldingsflyt
+**For deg som skal kalle en Fiks-flate — samtykke, register, folkeregister, SvarUt,
+oppgaver eller meldinger.** Mock av KS Fiks-plattformen på `8081`, med de ekte stiene,
+de ekte scopene og de ekte avslagene, men syntetiske data.
 
 Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
