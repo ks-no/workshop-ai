@@ -554,9 +554,10 @@ const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
 const requireSvarutHjemmel = (request: IncomingMessage) =>
   requireMaskinportenHjemmel(request, SCOPE_SVARUT, "SvarUt-flaten");
 
-// The masking A2 applies in sandbox-backend's readState(), applied here too. Without
-// it a machine with register hjemmel still received an address-protected person in
-// full, which would undo A2 for anyone who found the route.
+// The masking in skjerming.ts that sandbox-backend's readState() applies, applied
+// here too. Without it a machine with register hjemmel would receive an
+// address-protected person in full, and this route would be the way around the
+// masking.
 function maskRegisterPerson(person: Person | undefined) {
   return person ? maskPerson(person) : person;
 }

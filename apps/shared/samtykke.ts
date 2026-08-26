@@ -1,5 +1,5 @@
 /**
- * Samtykkets kodeverk, tilstandsmaskin og utløp.
+ * The samtykke kodeverk, its state machine and expiry.
  *
  * Samtykke as rettslig grunnlag is what the sandbox exists to teach, so it cannot
  * at the same time be the loosest thing in the stack. This module is the one
@@ -67,9 +67,9 @@ export function isUtloept(samtykke: Samtykkelignende, now: number = Date.now()):
  * UTLOEPT is derived, not written: nothing runs on a timer here, so a stored
  * SAMTYKKET whose `utloper` has passed reads as UTLOEPT everywhere it is
  * answered for — the same way the masking in skjerming.ts is applied on the way
- * out rather than baked into the seed. The stored row and its `historikk` stay a factual record
- * of what the citizen did; expiry is something that happened to the consent, not
- * something anybody did.
+ * out rather than baked into the seed. The stored row and its `historikk` stay a
+ * factual record of what the citizen did; expiry is something that happened to
+ * the consent, not something anybody did.
  *
  * Every reader must go through this. Comparing `samtykke.status === "SAMTYKKET"`
  * directly is the bug this function exists to prevent.

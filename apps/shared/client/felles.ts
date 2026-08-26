@@ -212,11 +212,7 @@ function addGrunnlagsfot(grunnlag: Grunnlag | null | undefined): void {
 
 /* ── Toppmenyen ────────────────────────────────────────────────────────────
  *
- * The five pages used to each carry their own hand-copied <div class="top-links">.
- * They drifted: three listed three links, one listed four, the dashboard had none,
- * and not one of them linked to the API explorer — 887 lines of it, reachable only
- * by typing the URL. One list here, and a new page cannot be forgotten by four
- * others.
+ * One list here, so a new page cannot be forgotten by the four others.
  *
  * /ds-eksempel is deliberately absent: it loads neither felles.css nor felles.ts,
  * so a .top-links block there would be unstyled. It is reached from the README and
@@ -317,11 +313,10 @@ function warnAboutFallback(result: { advarsel?: unknown } | null | undefined): v
  * The token lives in sessionStorage, not localStorage: it should not outlive the
  * tab. It is a bearer token, and a workshop machine is shared.
  *
- * WHY THE PERSON PICKER MOVED. demo-gui used to let you choose a test person from a
- * dropdown and then act as them. Under ID-porten you do not choose who you are in
- * the application — you prove it at the identity provider. So the dropdown is now
- * filled with the single person you logged in as, and switching person means
- * logging in again. digdir-mock's /idporten/authorize is the picker now.
+ * There is no person picker here: under ID-porten you do not choose who you are
+ * in the application — you prove it at the identity provider. The dropdown holds
+ * only the person you logged in as, and switching person means logging in again.
+ * digdir-mock's /idporten/authorize is the picker.
  */
 
 const IDPORTEN_BASE = "http://localhost:8086";

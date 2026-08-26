@@ -2,10 +2,8 @@
 //
 // Sibling of registerdata.ts, and there for the same reason: personer.json,
 // husstander.json, the two plass-datasets and samtykker.json are read off the same
-// disk by more than one service, so their shapes belong to neither of them. They
-// used to live in sandbox-backend/src/types.ts, which meant fiks-simulator imported
-// its Person from the backend while the backend imported its samtykke kodeverk from
-// fiks — a two-way service dependency built entirely out of leaves.
+// disk by more than one service, so their shapes belong to neither of them —
+// housed in one service, the other has to import from a peer.
 //
 // What stays in sandbox-backend/src/types.ts is the process engine: steg, oekt,
 // katalog, State, and the rules and rates only vilkaar.ts and regler.ts read. Those

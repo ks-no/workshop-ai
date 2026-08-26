@@ -1,6 +1,5 @@
-// Minimal path-pattern matcher, so we need neither a framework nor the duplicated
-// regexes the router used to carry. "/api/personer/:personId/husstand" is compiled
-// once at module load.
+// Minimal path-pattern matcher, so no framework is needed.
+// "/api/personer/:personId/husstand" is compiled once at module load.
 //
 // Parameter values are decoded with decodeURIComponent, so "Fj%C3%B8sangerveien"
 // reaches the handler as "Fjøsangerveien".

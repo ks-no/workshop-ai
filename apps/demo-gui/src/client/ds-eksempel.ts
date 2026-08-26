@@ -31,8 +31,8 @@ function attributes(element: Element): string {
     .join("");
 }
 
-// Inline serialisation keeps children — collapsing them to textContent used to
-// drop the markup that mattered, so a <td> holding a .ds-tag printed as bare text.
+// Inline serialisation keeps children — collapsing them to textContent would drop
+// the markup that matters, so a <td> holding a .ds-tag would print as bare text.
 function serializeInline(element: Element): string {
   const tag = element.tagName.toLowerCase();
   if (EMPTY.has(tag)) return `<${tag}${attributes(element)} />`;

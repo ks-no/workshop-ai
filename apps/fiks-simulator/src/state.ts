@@ -1,5 +1,5 @@
 /**
- * Lesing og skriving av tilstand for Fiks-simulatoren.
+ * Reading and writing state for fiks-simulator.
  *
  * Reading per request is deliberate — a hand edit to a seed file takes effect
  * without a restart, which matters during a hackathon — and `createStateReader`

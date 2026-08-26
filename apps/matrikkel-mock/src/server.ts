@@ -21,9 +21,9 @@ const geonorgeAdresseBaseUrl = process.env.GEONORGE_ADRESSE_API_BASE_URL || "htt
 const matrikkelHttpTimeoutMs = Number(process.env.MATRIKKEL_HTTP_TIMEOUT_MS || 6000);
 const maxPageSize = Number(process.env.MATRIKKEL_PAGE_MAX || 5000);
 // Bønesheien is injected below for the fartsdempende case, and this is its owner.
-// It is deliberately NOT applied to every property: doing that used to make
-// person-001 a co-owner of all 8202 of them, so every ownership check said yes
-// and the documented "Fjøsangerveien gives a rejection" could never happen.
+// It is deliberately NOT applied to every property: person-001 as co-owner of all
+// 8202 of them would make every ownership check say yes, and the documented
+// "Fjøsangerveien gives a rejection" could never happen.
 const bonesheienEierPersonId = "person-001";
 
 /*
@@ -433,10 +433,9 @@ function addEiendom(register: Register, gate: Gate, eiendomInput: Partial<Eiendo
   if (!gate.poststed && eiendom.poststed) gate.poststed = eiendom.poststed;
 }
 
-// The extract used to be one kommune, so its provenance fitted in /helse. It is 97
-// now, and the full list would be 500 lines of a health check - and 500 lines of
-// every contract dump. Summarised here; the per-kommune detail stays in
-// data/matrikkel.json, which is where provenance belongs.
+// The extract covers 97 kommuner, so the full list would be 500 lines of a health
+// check — and 500 lines of every contract dump. Summarised here; the per-kommune
+// detail stays in data/matrikkel.json, which is where provenance belongs.
 function helsekilde(register: Register) {
   const metadata = register.kilde?.metadata;
   if (!metadata?.kommuner) return register.kilde;

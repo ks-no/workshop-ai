@@ -6,9 +6,7 @@ import { newId } from "./state.ts";
 // events to /api/revisjonslogg rather than touching the file.
 //
 // The read-modify-write runs inside the shared write queue, so concurrent
-// requests cannot interleave and drop each other's events. This module used to
-// carry its own copy of that queue; the copy is what fiks-simulator's updateJson
-// was in turn copied from.
+// requests cannot interleave and drop each other's events.
 
 export async function addRevisjon(hendelse: Record<string, unknown>) {
   try {

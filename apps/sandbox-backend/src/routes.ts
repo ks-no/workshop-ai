@@ -149,16 +149,15 @@ function getSporingsId(url: URL) {
 // --- the økt contract, in one place ----------------------------------------
 
 /**
- * Every route on one prosessoekt goes through here. The five handlers used to
- * carry their own copies of lookup, 404, 409, oppdatert-stamp and save, and the
- * copies had drifted: the closed-økt guard existed only in /neste, so a replayed
- * POST /handling on a FULLFORT økt ran the SUBMIT handler again and produced a
- * duplicate søknad and a new Fiks task per call. One owner, one drift surface.
+ * Every route on one prosessoekt goes through here: lookup, 404, 409,
+ * oppdatert-stamp and save have one owner, so one drift surface.
  *
  * `krevAapen` is the guard: an AVVIST or FULLFORT økt takes no further svar,
- * handling or navigation. Reads pass `krevAapen: false` — demo-gui renders
+ * handling or navigation — a replayed POST /handling on a FULLFORT økt would
+ * otherwise run the SUBMIT handler again and produce a duplicate søknad and a
+ * new Fiks task per call. Reads pass `krevAapen: false` — demo-gui renders
  * finished and rejected økter, and a rejection you cannot look at afterwards
- * would be worse than the replay bug this closes.
+ * would be worse than the replay this closes.
  *
  * `lagre: false` is for those same reads: a GET must not touch `oppdatert` or
  * the write queue.

@@ -605,10 +605,9 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // The testbrukere, machine-readable.
     //
-    // This exists because the alternative was worse: client.ts used to scrape the
-    // picker page for personId -> pid, and restyling that page broke every test
-    // script at once. The information is the same either way — the picker already
-    // publishes it — but a listing is a contract and HTML is not.
+    // The information is the same as the picker page already publishes, but a
+    // listing is a contract and HTML is not — a script that scrapes the picker
+    // breaks with every restyling.
     //
     // Real ID-porten has nothing like this, and could not: there is no endpoint
     // that lists the population. It is here because a test script needs to say

@@ -188,9 +188,9 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
 };
 
 // Picks the ordning within a tjeneste that the household can actually be assessed
-// for. sfo-moderasjon used to hardcode redusert-sfo-2-3-trinn, so a household whose
-// only child is in first or fourth grade was told "no SFO place in 2nd-3rd grade" —
-// true, but it reads as a bug, and it hides that the child qualifies elsewhere.
+// for. Hardcoding one ordning would tell a household whose only child is in first
+// or fourth grade "no SFO place in 2nd-3rd grade" — true, but it reads as a bug,
+// and it hides that the child qualifies elsewhere.
 export function selectOrdningForTjeneste(
   tilstand: State,
   personId: string,

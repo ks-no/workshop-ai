@@ -175,10 +175,10 @@ export type State = {
  * tjenesteDatasett maps barnehage/sfo/fritid to one of these, and an ordning's
  * `tilbudsdatasett` names one directly.
  *
- * State deliberately has no `[key: string]: any` index signature — it used to, and
- * that one line meant `tilstand.prosessokter` (a typo for prosessoekter) compiled
- * as `any` and failed at runtime instead. The dynamic lookups go through
- * datasettFor() in state.ts, which narrows against this union once.
+ * State deliberately has no `[key: string]: any` index signature — that one line
+ * would make `tilstand.prosessokter` (a typo for prosessoekter) compile as `any`
+ * and fail at runtime instead. The dynamic lookups go through datasettFor() in
+ * state.ts, which narrows against this union once.
  */
 export type Datasettnoekkel =
   | "barnehageplasser"
