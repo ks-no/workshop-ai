@@ -15,7 +15,7 @@ curl -s "http://localhost:8080/api/prosesser?inkluderMaler=true" # + mal-enkel-s
 |---|---|---|
 | `redusert-foreldrebetaling-barnehage` | 7 | Flaggskip-caset. Samtykke → inntekt → deterministisk `SJEKK` → KI-oppsummering |
 | `sfo-moderasjon` | 7 | Samme sekvens, annen ordning. Bruk `person-022` — `person-008` gir avslag |
-| `stottekontakt-behov` | 6 | Korteste flyt, behovsavklaring |
+| `stottekontakt-behov` | 7 | Behovsavklaring. Eneste case der `CONSENT_REQUEST` gjelder noe annet enn inntekt — samtykket brukes av `hent-kontaktinfo` |
 | `fritidskort-stotte` | 7 | Den `process-agent` bruker i `pnpm test:agent` |
 | `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon |
 | `mal-enkel-soknad` | 6 | Kopi-mal. `redigering.mal: true` |

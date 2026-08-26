@@ -52,6 +52,22 @@ export type UpstreamResult<T> =
   | { ok: false; error: HttpError };
 
 /**
+ * The one shape a best-effort call degrades into.
+ *
+ * Three callers build it — the Fiks task and the SvarUt kvittering in prosess.ts,
+ * the kontaktinfo lookup in ressurser.ts — and they built it by hand, which is
+ * the same drift this module was written to end one level up: what a failure
+ * *means* is decided here, so what a caller that survives it *answers* belongs
+ * here too. Only `advarsel` is the caller's, because only the caller knows what
+ * happened anyway; `detalj` is the reason and `syntetisk` is never anything else.
+ */
+export type Advarsel = { advarsel: string; detalj: string; syntetisk: true };
+
+export function buildAdvarsel(melding: string, detalj: string): Advarsel {
+  return { advarsel: melding, detalj, syntetisk: true };
+}
+
+/**
  * Call an upstream service and get its answer, or an HttpError describing why
  * there is none. Nothing is thrown: the caller decides whether a failure ends the
  * request (`callUpstream`) or degrades into an advarsel.

@@ -20,13 +20,15 @@
 //
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.
-// ai-gateway is not needed: the flows deliberately stop before the SUMMARY step.
+// ai-gateway is started too, so stottekontaktflyt's innvilget case can reach
+// SUMMARY and SUBMIT. It runs with no AI_PROVIDER set, so /ai/oppsummering
+// answers with the deterministic mock template — no network call, no flakiness.
 
 import { spawn } from "node:child_process";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { FOLKEREGISTERROLLER } from "../apps/fiks-simulator/src/folkeregister.ts";
 import { createServer } from "node:http";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,10 +39,12 @@ const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;
 const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
 const digdirPort = Number(process.env.SMOKE_DIGDIR_PORT) || 18088;
+const aiPort = Number(process.env.SMOKE_AI_PORT) || 18089;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 const matrikkelUrl = `http://127.0.0.1:${matrikkelPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
+const aiUrl = `http://127.0.0.1:${aiPort}`;
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
@@ -95,7 +99,7 @@ async function requireFreePort(portnummer: number) {
     const proeve = createServer();
     proeve.once("error", (feil) => avvis(
       feilkode(feil) === "EADDRINUSE"
-        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT til ledige porter.`)
+        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_AI_PORT til ledige porter.`)
         : feil
     ));
     proeve.listen(portnummer, "127.0.0.1", () => proeve.close(klar));
@@ -378,7 +382,16 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
 // Støttekontakt is the only ordning assessed on need rather than money, and the
 // only SJEKK that does not require income consent. The dump records that: the
 // check answers before any samtykke for inntekt exists.
-async function stottekontaktflyt(personId: string, merkelapp: string) {
+//
+// It is also the only case that consents to something other than inntekt: the
+// hent-kontaktinfo step between the samtykke and the SJEKK spends that consent on
+// KRR. stottekontaktUtenSamtykke below pins the other half — what that step
+// answers when nobody consented.
+//
+// `tilSubmit` only makes sense for the innvilget case: the avvist case would
+// still reach SUBMIT (SJEKK rejecting does not stop stegIndex from advancing),
+// but sending in a rejected søknad is not a flow worth pinning here.
+async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit = false) {
   const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "stottekontakt-behov" }
@@ -403,7 +416,59 @@ async function stottekontaktflyt(personId: string, merkelapp: string) {
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+
+  if (!tilSubmit) return;
+
+  // The only flow in this script reaching SUMMARY and SUBMIT — everything else
+  // deliberately stops earlier. Pins the soknadsdokument field alongside the
+  // deterministic mock oppsummeringstekst it embeds, and the SvarUt kvittering
+  // the same step sends.
+  await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  const innsending = await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST", body: {}
+  }) as { resultat: { soknadId: string } };
+  await call(`${merkelapp}-oekt-fullfort`, `/api/prosessoekter/${id}`);
+
+  // The kvittering's own route, read right after the send: the derivation's first
+  // threshold is ten seconds out, so MOTTATT is the deterministic answer here the
+  // same way it is for forsendelseFlyt's status-sok below.
+  //
+  // somPerson is explicit because the søknadId is nested inside `resultat` on the
+  // POST /handling response, which learnOwner does not walk — the route is the
+  // citizen's own, and reading it as nobody would only pin a 401.
+  const soknadId = innsending.resultat.soknadId;
+  await call(`${merkelapp}-forsendelse`, `/api/soknader/${soknadId}/forsendelse`, { somPerson: personId });
+}
+
+// The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
+// without answering it. The samtykke gate lives in the resource catalogue, not in
+// the step, so the 403 has to reach the caller through POST /handling unchanged —
+// that relay is what this pins, and the direct-route 403 in kontaktinfoOppslag
+// cannot say anything about it.
+//
+// person-022 is used nowhere else in this script, so no other flow can leave a
+// kontaktinfo samtykke behind and quietly turn this 403 into a 200.
+async function stottekontaktUtenSamtykke(merkelapp: string) {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
+    method: "POST",
+    body: { personId: "person-022", prosessId: "stottekontakt-behov" }
+  });
+  const id = oekt.oektsId;
+
+  // Straight to hent-kontaktinfo: /neste only moves stegIndex, so the samtykke
+  // step is passed over rather than run.
+  for (const nummer of [1, 2, 3]) {
+    await call(`${merkelapp}-neste-${nummer}`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  }
+  await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  // A refused step leaves the økt open — withSession saves nothing when the
+  // handler throws — so the citizen can go back and consent.
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
@@ -604,11 +669,62 @@ async function forsendelseFlyt() {
   });
 }
 
+/*
+ * The revisjonslogg, asserted rather than dumped.
+ *
+ * Everything else in this script is a diff baseline — a dump cannot fail, it can
+ * only differ — and that is enough for wire format. It is not enough for a leak:
+ * an address appearing in the log would show up as a diff a reader has to notice,
+ * and the ticket's «uten at adresse eller kontaktinfo havner i … revisjonsloggen»
+ * has to be able to fail a build on its own. So this one reads the whole log after
+ * the flow and throws.
+ *
+ * The strings come off the seed rather than being written out here: the point is
+ * that the protected person's real address is absent, not which street the
+ * curated row happens to carry. kommune and kommunenummer are not in the list —
+ * masking keeps those on purpose, see apps/shared/skjerming.ts.
+ *
+ * For person-218 the poststed and the kommune are the same word, so a future
+ * audit row that recorded the kommune *by name* would trip this. That is the
+ * right way round: the check fails closed and asks for a human to look, and the
+ * answer is to look, never to shorten the list.
+ */
+async function krevIngenAdresselekkasje(personId: string) {
+  const personer = JSON.parse(
+    await readFile(path.join(repoRoot, "data/personer.json"), "utf8")
+  ) as { personId: string; bostedsadresse?: Record<string, unknown>; kontakt?: Record<string, unknown> }[];
+  const person = personer.find((kandidat) => kandidat.personId === personId);
+  if (!person) {
+    throw new Error(`Fant ikke ${personId} i seeden. Er data/personer.json endret?`);
+  }
+  const adresse = person.bostedsadresse || {};
+  const hemmeligheter = [
+    adresse.adressenavn, adresse.postnummer, adresse.poststed,
+    adresse.adresseIdentifikatorFraMatrikkelen,
+    person.kontakt?.epost, person.kontakt?.telefon
+  ].filter((verdi): verdi is string => typeof verdi === "string" && verdi.length > 0);
+
+  const token = await getMaskinportenToken({
+    digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
+    scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
+  });
+  const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const logg = JSON.stringify(await svar.json());
+  const lekket = hemmeligheter.filter((hemmelig) => logg.includes(hemmelig));
+  if (lekket.length) {
+    throw new Error(
+      `Revisjonsloggen inneholder skjermet informasjon om ${personId}: ${lekket.join(", ")}.`
+    );
+  }
+}
+
 // The kontaktinfo resource in front of KRR: the consent gate closed, then open,
 // then the two shapes the 200 has. The consents are created on fiks-simulator's
-// samtykke surface directly — the same rows the process engine would leave —
-// because no process definition carries the chain, deliberately: building it is
-// the participants' task.
+// samtykke surface directly — the same rows stottekontakt-behov's CONSENT_REQUEST
+// leaves — because the people below are not the ones that case is authored for,
+// and a whole prosessøkt per lookup would tell the dump nothing extra.
 async function kontaktinfoOppslag() {
   const samtykke = { scope: "ks:fiks:samtykke" };
   const grantSamtykke = async (personId: string) => {
@@ -644,9 +760,12 @@ async function kontaktinfoOppslag() {
     somPerson: "person-001"
   });
 
-  // The audit trail the resource leaves: one DATA_NEKTET for the closed gate,
-  // then one DATA_LES per lookup — advarsel included, the attempt is what the
-  // log audits — with formaal from the consent, not the catalogue label.
+  // The audit trail the resource leaves, from every caller: first the rows the
+  // stottekontakt flows left — two DATA_LES from hent-kontaktinfo and one
+  // DATA_NEKTET from the økt that skipped its samtykke — then this function's own
+  // DATA_NEKTET for the closed gate and one DATA_LES per lookup, advarsel included,
+  // since the attempt is what the log audits. formaal comes from the consent, not
+  // the catalogue label, which is why the two groups read differently.
   const token = await getMaskinportenToken({
     digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
     scope: "ks:innbyggerdialog:les", resource: "sandbox-backend"
@@ -671,13 +790,14 @@ async function run() {
   await requireFreePort(fiksPort);
   await requireFreePort(matrikkelPort);
   await requireFreePort(digdirPort);
+  await requireFreePort(aiPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
   const miljo = {
     STATE_DIR: stateDir,
     FIKS_BASE_URL: fiksUrl,
     BACKEND_BASE_URL: backendUrl,
-    AI_BASE_URL: "http://127.0.0.1:8082",
+    AI_BASE_URL: aiUrl,
     MATRIKKEL_BASE_URL: matrikkelUrl,
     // Dial address and logical issuer are the same here: everything runs on
     // 127.0.0.1, so there is no docker-network split to bridge.
@@ -691,7 +811,10 @@ async function run() {
     start("digdir", "apps/digdir-mock/src/server.ts", { ...miljo, PORT: String(digdirPort) }),
     start("backend", "apps/sandbox-backend/src/server.ts", { ...miljo, PORT: String(backendPort) }),
     start("fiks", "apps/fiks-simulator/src/server.ts", { ...miljo, PORT: String(fiksPort) }),
-    start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) })
+    start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) }),
+    // No AI_PROVIDER: defaults to "mock", so /ai/oppsummering answers the
+    // deterministic template with no outbound call.
+    start("ai", "apps/ai-gateway/src/server.ts", { ...miljo, PORT: String(aiPort) })
   ];
 
   try {
@@ -699,7 +822,8 @@ async function run() {
       waitForHealth(digdirUrl),
       waitForHealth(backendUrl),
       waitForHealth(fiksUrl),
-      waitForHealth(matrikkelUrl)
+      waitForHealth(matrikkelUrl),
+      waitForHealth(aiUrl)
     ]);
 
     await staticLookups();
@@ -721,8 +845,21 @@ async function run() {
     });
     await fritidskortflyt("person-028", "fritidskort-innvilget");
     await fritidskortflyt("person-008", "fritidskort-avslag");
-    await stottekontaktflyt("person-001", "stottekontakt-innvilget");
+    await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
+    // person-218 has kode 7 and is reservert in KRR: no digital channel, and
+    // masking left no postal address for the print channel either. SvarUt refuses
+    // the forsendelse, the kvittering degrades into an advarsel, and the søknad is
+    // stored regardless — with no forsendelseId, so its status route answers 404.
+    //
+    // This is the leak-shaped case, and the dump is where it is pinned end to end:
+    // the address must be absent from the søknadsdokument, from the SUBMIT
+    // response, and from every revisjonsrad the flow leaves. Hattfjelldal has a
+    // støttekontakt-tilbud for the age group, so the SJEKK still approves and the
+    // flow reaches SUBMIT for an ordinary reason.
+    await stottekontaktflyt("person-218", "stottekontakt-skjermet", true);
+    await krevIngenAdresselekkasje("person-218");
+    await stottekontaktUtenSamtykke("stottekontakt-uten-samtykke");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();

@@ -58,6 +58,20 @@ export const fiksDialogToken = {
   ...fiksTokenBase,
   scope: "ks:fiks:samtykke ks:fiks:oppgave"
 };
+
+/**
+ * Sending the kvittering for a submitted søknad. Used by svarut.ts.
+ *
+ * Its own config rather than a third scope on fiksDialogToken: putting a letter
+ * in the citizen's postbox is not the authority to ask them for consent, and one
+ * token carrying both would make the two indistinguishable in fiks' audit log.
+ */
+export const fiksSvarutToken = { ...fiksTokenBase, scope: "ks:fiks:svarut" };
+
+// The municipality's SvarUt account. Synthetic and fixed, like fiksRolleId above:
+// in real SvarUt this is the kommune's registered konto, handed out on onboarding.
+export const svarutKontoId = "6b1f0d2c-8a34-4d7e-9f51-0c8b2a6d4e13";
+
 export const maskinportenIssuer = digdirIssuer;
 export const idportenIssuer = `${digdirIssuer}/idporten`;
 

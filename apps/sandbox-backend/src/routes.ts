@@ -27,6 +27,7 @@ import { buildProsessoektRespons, createSoknad, runStegHandling } from "./proses
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
+import { readForsendelsesstatus } from "./svarut.ts";
 import type { ProsessDefinisjon, Prosessoekt, State } from "./types.ts";
 import {
   SEED_DATASETS,
@@ -535,6 +536,39 @@ const ruter: Rute[] = [
     handter: ({ response, parametere, tilstand }) => {
       const soknad = tilstand.soknader.find((kandidat: any) => kandidat.soknadId === parametere.soknadId);
       jsonResponse(response, soknad ? 200 : 404, soknad || { feil: "Fant ikke søknad." });
+    }
+  },
+  {
+    /*
+     * A thin proxy in front of SvarUt' status-sok, and the reason it exists is
+     * the token: the browser holds an ID-porten token for the citizen, and the
+     * SvarUt surface takes Maskinporten only. This route is where the
+     * municipality's hjemmel meets the citizen's — authorised as the søknad's
+     * owner, then asked for on the machine's token.
+     *
+     * It answers about one forsendelse, the one this søknad's kvittering was
+     * sent as. A søknad the citizen does not own is not reachable here, and
+     * neither is a forsendelseId they simply guessed.
+     */
+    metode: "GET",
+    sti: "/api/soknader/:soknadId/forsendelse",
+    finnPersonId: eierAvSoknad,
+    handter: async ({ response, parametere, tilstand }) => {
+      const soknad = tilstand.soknader.find((kandidat: any) => kandidat.soknadId === parametere.soknadId);
+      if (!soknad) {
+        throw new HttpError("Fant ikke søknad.", 404);
+      }
+      // No forsendelseId is the ordinary case for a søknad from POST
+      // /api/soknader, and for one whose kvittering degraded into an advarsel.
+      // Neither is an error the citizen made, so the answer says which it is.
+      if (!soknad.forsendelseId) {
+        throw new HttpError("Søknaden har ingen SvarUt-forsendelse.", 404);
+      }
+      const status = await readForsendelsesstatus(soknad.forsendelseId);
+      if (!status) {
+        throw new HttpError("SvarUt kjenner ikke forsendelsen.", 404);
+      }
+      jsonResponse(response, 200, { ...status, syntetisk: true });
     }
   },
   {

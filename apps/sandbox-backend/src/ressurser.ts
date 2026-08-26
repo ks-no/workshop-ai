@@ -17,7 +17,7 @@ import {
 import { regelKreverInntekt, selectOrdningForTjeneste } from "./vilkaar.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
-import { tryUpstream } from "./upstream.ts";
+import { buildAdvarsel, tryUpstream } from "./upstream.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import {
@@ -253,9 +253,15 @@ export const ressurser: Ressurs[] = [
   },
   {
     // KRR through the real Fiks path, so «sjekk reservasjon før valg av kanal»
-    // is a valid DATA_FETCH step. This entry is deliberately the whole backend
-    // footprint of the SvarUt chain: the resource answers, participants build
-    // the choosing.
+    // is a valid DATA_FETCH step.
+    //
+    // This entry used to be the whole backend footprint of the SvarUt chain. It
+    // is not any more: a SUBMIT now sends the kvittering itself (svarut.ts), and
+    // it does so without reading this resource — SvarUt decides the channel from
+    // KRR on its own side, the way the real one does. What is still the
+    // participants' build surface is everything past the receipt: the vedtaksbrev,
+    // the varsling, and any channel logic of their own. This resource is what they
+    // read to build it.
     metode: "GET",
     sti: "/api/personer/:personId/kontaktinfo",
     ressurs: "kontaktinfo",
@@ -289,11 +295,10 @@ export const ressurser: Ressurs[] = [
         })
       );
       if (!svar.ok) {
-        return {
-          advarsel: "Fikk ikke kontaktinformasjon fra kontaktregisteret. Reservasjonsstatus er ukjent.",
-          detalj: svar.error.message,
-          syntetisk: true
-        };
+        return buildAdvarsel(
+          "Fikk ikke kontaktinformasjon fra kontaktregisteret. Reservasjonsstatus er ukjent.",
+          svar.error.message
+        );
       }
       return svar.data;
     }

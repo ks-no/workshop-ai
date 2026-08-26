@@ -5,8 +5,11 @@ import { HttpError } from "./errors.ts";
 import { runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { updateJson } from "../../shared/jsonstore.ts";
-import { newId } from "./state.ts";
-import { callUpstream, tryUpstream } from "./upstream.ts";
+import type { Person } from "../../shared/innbyggerdata.ts";
+import { buildSoknadsdokument } from "./kvittering.ts";
+import { sendKvittering } from "./svarut.ts";
+import { findPerson, newId } from "./state.ts";
+import { buildAdvarsel, callUpstream, tryUpstream } from "./upstream.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
@@ -79,7 +82,19 @@ async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kall
  * It takes no State any more, and that is the point: there is no request-scoped
  * copy left for it to write.
  */
-export async function createSoknad(body: any, kaller: Caller) {
+export async function createSoknad(
+  body: any,
+  kaller: Caller,
+  /**
+   * Set only by the SUBMIT step handler below. Without it — the direct
+   * POST /api/soknader route never passes it — the row and the response are
+   * byte-identical to before these fields existed.
+   *
+   * `person` is the masked row readState() handed out, so the recipient this
+   * service passes to SvarUt is already the protected one where that applies.
+   */
+  dokumentInfo?: { dokument: string; person: Person | null }
+) {
   const nySoknad = {
     soknadId: newId("soknad"),
     personId: body.personId,
@@ -87,7 +102,8 @@ export async function createSoknad(body: any, kaller: Caller) {
     status: "SENDT_INN",
     opprettet: new Date().toISOString(),
     sporingsId: body.sporingsId || newId("flyt"),
-    syntetisk: true
+    syntetisk: true,
+    ...(dokumentInfo ? { soknadsdokument: dokumentInfo.dokument } : {})
   };
 
   await updateJson("soknader.json", [], (soknader: unknown[]) => {
@@ -125,13 +141,39 @@ export async function createSoknad(body: any, kaller: Caller) {
     })
   );
 
+  /*
+   * The kvittering is the second best-effort step, and it is deliberately after
+   * the task: the caseworker's queue is what the municipality owes itself, the
+   * receipt is what it owes the citizen, and neither may cost the other. The
+   * channel is not decided here — SvarUt reads KRR on `mottaker.digitalId` and
+   * chooses, exactly as the real one does. Everything past the receipt (the
+   * vedtaksbrev, the varsling, the further case handling) is still the
+   * participants' build surface.
+   *
+   * `forsendelseId` is written back onto the row in a second pass through the
+   * queue rather than held back until the send returns, so a søknad is stored
+   * before anything downstream is attempted — and the row keeps no copy of the
+   * advarsel: the response says what happened, the row says what exists.
+   */
+  const kvittering = dokumentInfo
+    ? await sendKvittering(dokumentInfo.person, nySoknad.soknadId, body.prosessNavn)
+    : null;
+  const forsendelseId = kvittering?.ok ? kvittering.svar.id : undefined;
+  if (forsendelseId) {
+    await updateJson("soknader.json", [], (soknader: any[]) => {
+      const rad = soknader.find((kandidat) => kandidat.soknadId === nySoknad.soknadId);
+      if (rad) rad.forsendelseId = forsendelseId;
+    });
+  }
+
   return {
     ...nySoknad,
-    oppgave: oppgave.ok ? oppgave.data : {
-      advarsel: "Oppgaven i Fiks-simulatoren ble ikke opprettet. Søknaden er lagret.",
-      detalj: oppgave.error.message,
-      syntetisk: true
-    }
+    ...(forsendelseId ? { forsendelseId } : {}),
+    oppgave: oppgave.ok ? oppgave.data : buildAdvarsel(
+      "Oppgaven i Fiks-simulatoren ble ikke opprettet. Søknaden er lagret.",
+      oppgave.error.message
+    ),
+    ...(kvittering ? { forsendelse: kvittering.ok ? kvittering.svar : kvittering.advarsel } : {})
   };
 }
 
@@ -274,13 +316,15 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
     return data;
   },
 
-  SUBMIT: async ({ oekt, prosess, steg, kaller }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
+    const person = findPerson(tilstand, oekt.personId);
+    const dokument = buildSoknadsdokument(prosess, oekt, person);
     const data = await createSoknad({
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
-    }, kaller);
+    }, kaller, { dokument, person });
     oekt.resultater[steg.id] = data;
     oekt.status = "FULLFORT";
     return data;

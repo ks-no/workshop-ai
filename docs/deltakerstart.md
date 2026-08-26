@@ -37,7 +37,7 @@ det den siden du går tilbake til.
 | URL | Hva det er |
 |---|---|
 | <http://localhost:3001> | **Oversikt** — arkitektur, helsestatus, modellstatus, casetabell |
-| <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis |
+| <http://localhost:3001/chat> | Chat. Du velger prosess, og kan stille spørsmål underveis. Sender du inn, vises søknadsdokumentet og statusen på SvarUt-kvitteringen mens den beveger seg |
 | <http://localhost:3001/agent> | Agent i naturlig språk. Den velger prosess selv |
 | <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
 | <http://localhost:3001/utforsker> | **API-utforskeren** — alle endepunktene, med skjema per rute og en `curl` som virker når den limes inn. Tokenet velges ut fra hjemmelen ruta krever |
@@ -70,8 +70,10 @@ innvilget utfall her er et innvilget utfall i sandkassen.
 > `person-028` for fritidskort.
 
 For **støttekontakt** avgjør alder og hvor søkeren bor, ikke inntekt — steget ber
-derfor ikke om inntektssamtykke. `person-001` får innvilget, `person-003` får «ingen
-ledige plasser», og `person-062` bor i en kommune uten registrert tilbud.
+derfor ikke om inntektssamtykke, men om samtykke til kontaktopplysningene, som
+neste steg henter fra kontaktregisteret. `person-001` får innvilget, `person-003`
+får «ingen ledige plasser», og `person-062` bor i en kommune uten registrert
+tilbud.
 
 For **fritidskort** avgjør husholdningens inntekt: `person-028` ligger på 158 000 og
 får innvilget, mens `person-008` ligger på 653 000 og får avslag. Grensen er 360 000.

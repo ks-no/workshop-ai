@@ -427,8 +427,13 @@ paths:
         svarer med KRR-raden uendret: kan personen varsles digitalt, er de
         reservert, og hvilken målform foretrekker de. Ressursen finnes for at
         «sjekk reservasjon før valg av forsendelseskanal» skal være et gyldig
-        DATA_FETCH-steg; selve kanalvalget og SvarUt-utsendingen er byggeflate
-        og gjøres ikke her.
+        DATA_FETCH-steg.
+
+        Selve kanalvalget gjøres ikke her, og gjøres heller ikke av backend: et
+        SUBMIT-steg sender kvitteringen på SvarUt, og SvarUt slår opp KRR på
+        `mottaker.digitalId` og velger kanal selv. Det som fortsatt er byggeflate,
+        er alt etter kvitteringen — vedtaksbrev, varsling og egen kanallogikk. Da
+        er dette ruta å lese den av.
 
         Krever registrert samtykke for datakilden "kontaktinfo", som
         inntektsruta. Avvik fra ekte forvaltning: der slås KRR opp med hjemmel
@@ -529,6 +534,48 @@ paths:
           description: Søknad returnert
         "404":
           description: Fant ikke søknad
+
+  /api/soknader/{soknadId}/forsendelse:
+    get:
+      summary: Hent statusen paa SvarUt-kvitteringen for én soeknad
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Tynn proxy foran statussøket i SvarUt
+        (POST /svarut/api/v2/kontoer/{kontoId}/forsendelser/status-sok i
+        fiks-simulator), autorisert som søknadens eier. Ruta finnes fordi
+        SvarUt-flaten bare tar Maskinporten: nettleseren holder innbyggerens
+        ID-porten-token, og kommunens hjemmel møter innbyggerens her.
+
+        Statusen er utledet av tiden siden forsendelsen ble opprettet — MOTTATT,
+        så SENDT_DIGITALT/SENDT_PRINT etter 10 sekunder, så LEST/PRINTET etter 60.
+        En klient kan derfor polle ruta og se progresjonen; sluttilstandene er
+        LEST, PRINTET og IKKE_LEVERT.
+
+        404 dekker tre ting som alle er «ingen status å vise», ikke feil
+        innbyggeren har gjort: søknaden finnes ikke, søknaden har ingen
+        forsendelse (den kom fra POST /api/soknader, eller kvitteringen
+        degraderte til en advarsel), eller SvarUt kjenner ikke forsendelsen.
+        Meldingen sier hvilken. Er fiks-simulator utilgjengelig, er svaret 502 —
+        dette er en lesing, ikke en best-effort-skriving.
+      parameters:
+        - name: soknadId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Statusen paa forsendelsen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Forsendelsesstatussvar"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
 
   /api/katalog/datasett:
     get:
@@ -1267,6 +1314,22 @@ components:
           type: string
         syntetisk:
           type: boolean
+        soknadsdokument:
+          type: string
+          description: >
+            Deterministisk tekstdokument bygget av svarene, de innhentede
+            opplysningene og sjekk-resultatet: prosessnavn/versjon, søkerens navn
+            og id, spørsmålssvarene, toppnivå-primitiver fra hvert
+            DATA_FETCH-resultat, sjekk-stegets utfall og oppsummeringsteksten hvis
+            den finnes. Bare til stede når søknaden kom fra et SUBMIT-steg i en
+            prosessøkt — POST /api/soknader direkte har det aldri.
+        forsendelseId:
+          type: string
+          description: >
+            SvarUt-forsendelsen kvitteringen ble sendt som. Bare til stede når
+            utsendingen gikk gjennom — feilet den, står advarselen i `forsendelse`
+            på SUBMIT-svaret og raden har ingen id. Nøkkelen
+            GET /api/soknader/{soknadId}/forsendelse slår opp på.
     SoknadMedOppgave:
       allOf:
         - $ref: "#/components/schemas/Soknad"
@@ -1286,6 +1349,62 @@ components:
                   type: string
                 syntetisk:
                   type: boolean
+            forsendelse:
+              description: >
+                SvarUt-kvitteringen, eller advarselen om at den ikke ble sendt.
+                Bare til stede når søknaden kom fra et SUBMIT-steg — POST
+                /api/soknader direkte sender ingen kvittering.
+
+                Best effort på samme måte som oppgaven: en kvittering som ikke
+                kan sendes velter aldri innsendingen, og søknaden er lagret
+                uansett. En mottaker uten digital kanal og uten gyldig
+                postadresse — en skjermet person uten KRR-rad er nettopp det —
+                havner her som en advarsel, ikke som en feil innbyggeren betaler
+                for. Verken adressen eller kontaktinformasjonen står i svaret.
+
+                Kanalen velges av SvarUt, ikke av backend: fødselsnummeret sendes
+                som `mottaker.digitalId`, og SvarUt slår det opp i KRR selv.
+                Statusen leses etterpå med
+                GET /api/soknader/{soknadId}/forsendelse.
+              type: object
+              properties:
+                id:
+                  type: string
+                advarsel:
+                  type: string
+                detalj:
+                  type: string
+                syntetisk:
+                  type: boolean
+    Forsendelsesstatus:
+      type: string
+      description: >-
+        Kodeverket ligger i apps/fiks-simulator/src/forsendelse.ts og gjengis her
+        fordi denne ruta svarer med det. Utledes av tid, skrives aldri. LEST,
+        PRINTET og IKKE_LEVERT er sluttilstander — der kan en poller slutte.
+      enum: [MOTTATT, SENDT_DIGITALT, SENDT_PRINT, IKKE_LEVERT, LEST, PRINTET]
+
+    Forsendelsesstatussvar:
+      type: object
+      description: >
+        Statusen på én forsendelse, slik SvarUt svarte om den. Ingenting om
+        mottakeren står her — hvilket brev som gikk ut og hvor langt det har
+        kommet er spørsmålet ruta svarer på, og adressen hører ikke med.
+      properties:
+        id:
+          type: string
+          description: Forsendelses-id-en, den samme som `forsendelseId` på søknaden.
+        status:
+          $ref: "#/components/schemas/Forsendelsesstatus"
+        sisteStatusEndring:
+          type: string
+          format: date-time
+          description: >
+            Da forsendelsen gikk *inn* i statusen over, ikke da noen spurte.
+            Utledet sammen med statusen.
+        syntetisk:
+          type: boolean
+
     Inntektsgrunnlag:
       type: object
       description: >
