@@ -552,8 +552,6 @@ function adminHtml(): string {
             "</option>"
           );
         }).join("");
-        // SDK-en før legitimasjonen: «nøkkel mangler» ville sendt leseren til .env
-        // i stedet for til pnpm.
         document.getElementById("bedrockCreds").textContent = !data.bedrock.sdkAvailable
           ? data.bedrock.sdkError
           : data.bedrock.credsConfigured
@@ -1457,12 +1455,12 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
 // under AI_PROVIDER=mock. An optional provider must not be a boot requirement.
 //
 // Only success is cached, so a `pnpm install` takes effect without a restart.
-let bedrockModul: typeof import("@aws-sdk/client-bedrock-runtime") | null = null;
+let bedrockModule: typeof import("@aws-sdk/client-bedrock-runtime") | null = null;
 
-async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedrock-runtime")> {
-  if (!bedrockModul) {
+async function loadBedrockModule(): Promise<typeof import("@aws-sdk/client-bedrock-runtime")> {
+  if (!bedrockModule) {
     try {
-      bedrockModul = await import("@aws-sdk/client-bedrock-runtime");
+      bedrockModule = await import("@aws-sdk/client-bedrock-runtime");
     } catch (feil) {
       // Only a resolution miss becomes the pnpm hint. A package that is present but
       // throws while evaluating is rethrown untouched - «kjør pnpm install» would
@@ -1479,14 +1477,17 @@ async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedroc
       );
     }
   }
-  return bedrockModul;
+  return bedrockModule;
 }
 
-// The reason, not just a flag: /admin renders it rather than guessing a cause, so
-// «ikke installert» and «installert, men knekker» stay apart.
-async function bedrockSdkStatus(): Promise<{ tilgjengelig: boolean; feil: string | null }> {
+type BedrockSdkStatus = { tilgjengelig: true; feil: null } | { tilgjengelig: false; feil: string };
+
+// The reason, not just a flag: /helse and /admin render it rather than guessing a
+// cause, so «ikke installert» and «installert, men knekker» stay apart. Discriminated,
+// so an unavailable SDK always arrives with its reason.
+async function bedrockSdkStatus(): Promise<BedrockSdkStatus> {
   try {
-    await loadBedrockModul();
+    await loadBedrockModule();
     return { tilgjengelig: true, feil: null };
   } catch (feil) {
     return { tilgjengelig: false, feil: feilmelding(feil) };
@@ -1497,7 +1498,7 @@ let bedrockClient: BedrockRuntimeClient | null = null;
 
 async function getBedrockClient(): Promise<BedrockRuntimeClient> {
   if (!bedrockClient) {
-    const { BedrockRuntimeClient } = await loadBedrockModul();
+    const { BedrockRuntimeClient } = await loadBedrockModule();
     bedrockClient = new BedrockRuntimeClient({
       region: awsRegion,
       credentials: {
@@ -1515,9 +1516,8 @@ async function getBedrockClient(): Promise<BedrockRuntimeClient> {
 // models only, so this speaks the one shape: the same Messages format the direct
 // Anthropic API uses, with "bedrock-2023-05-31" as the anthropic_version.
 async function callBedrock(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
-  // SDK before credentials, same order as checkProvider(), so /helse and a real
-  // call never report different reasons for the same state.
-  const { InvokeModelCommand } = await loadBedrockModul();
+  // Same order as checkProvider(), so /helse and a real call report the same reason.
+  const { InvokeModelCommand } = await loadBedrockModule();
 
   if (!awsAccessKeyId || !awsSecretAccessKey) {
     throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
@@ -1536,11 +1536,11 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     messages: [{ role: "user", content: prompt }]
   });
 
-  const klient = await getBedrockClient();
+  const client = await getBedrockClient();
 
   let svar;
   try {
-    svar = await klient.send(
+    svar = await client.send(
       new InvokeModelCommand({
         modelId: bedrockModel,
         contentType: "application/json",
@@ -1667,10 +1667,9 @@ async function checkProvider() {
     const modell = `bedrock:${bedrockModel}`;
     // Before the credentials: reporting those instead sends people editing .env
     // when the fix is `pnpm install`.
-    try {
-      await loadBedrockModul();
-    } catch (feil) {
-      return { naaBar: false, modell, feil: feilmelding(feil) };
+    const sdk = await bedrockSdkStatus();
+    if (!sdk.tilgjengelig) {
+      return { naaBar: false, modell, feil: sdk.feil };
     }
     if (!awsAccessKeyId || !awsSecretAccessKey) {
       return { naaBar: false, modell, feil: "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler" };

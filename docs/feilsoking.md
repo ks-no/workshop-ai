@@ -179,9 +179,9 @@ lenkene NTFS-junctions, som Docker Desktop ikke oversetter inn i Linux-VM-en. Pa
 er da borte inne i containeren selv om `pnpm install` gikk fint på verten.
 
 **Løsning:** `.npmrc` setter `node-linker=hoisted` nettopp for dette. Kjørte du
-`pnpm install` før den filen kom, kjør den på nytt. `ai-gateway` trenger den ikke
-lenger for å starte - ser du pakkenavnet derfra, er provideren satt til `bedrock`, og
-`/helse` sier det samme.
+`pnpm install` før den filen kom, kjør `pnpm install` på nytt. `ai-gateway` trenger
+ikke SDK-en for å starte - ser du pakkenavnet derfra, er provideren satt til
+`bedrock`, og `/helse` sier det samme.
 
 ## Windows-oppstart
 

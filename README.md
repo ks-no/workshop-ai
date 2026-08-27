@@ -55,7 +55,7 @@ Ni kjørende tjenester, én valgfri avhengighet i kjøretid, fem komplette demo-
 | **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
 | **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
 | **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
-| **pnpm** | å kjøre `pnpm <skript>` i det hele tatt. `pnpm install` i tillegg bare til `pnpm lint`, live reload på Windows, og Bedrock-provideren - verken sandkassen eller de andre testskriptene trenger den |
+| **pnpm** | å kjøre `pnpm <skript>` i det hele tatt. `pnpm install` i tillegg bare til `pnpm lint`, live reload på Windows, og Bedrock-provideren - verken sandkassen eller de andre testskriptene trenger et `pnpm install` |
 
 På Windows: se [«På Windows»](#på-windows) lenger ned.
 
