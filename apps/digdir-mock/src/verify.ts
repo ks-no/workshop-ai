@@ -6,11 +6,11 @@
 //
 // One verifier, not one per resource server. sandbox-backend and fiks-simulator
 // both guard their own surfaces, and the repo already carries the scar of four
-// separate masking implementations — repeating that with token verification, where
+// separate masking implementations - repeating that with token verification, where
 // the failure mode is "accepts a token it should have refused", would be worse.
 //
 // What lives here is the *mechanics*: signature, algorithm, expiry, issuer,
-// audience. What does NOT live here is policy — which scope opens which route, and
+// audience. What does NOT live here is policy - which scope opens which route, and
 // whether a pid matches a subject. That differs per service and belongs where the
 // request is handled. See requireTilgang in sandbox-backend/src/autentisering.ts.
 
@@ -37,7 +37,7 @@ export type VerifiedToken = {
 /**
  * Thrown for a token that is present but not acceptable. `status` lets the caller
  * map it without knowing this module: 401 for a bad token, 503 when the issuer
- * itself cannot be reached — that is not the caller's fault and must not read as
+ * itself cannot be reached - that is not the caller's fault and must not read as
  * "your token is invalid".
  */
 export class TokenError extends Error {
@@ -50,7 +50,7 @@ export class TokenError extends Error {
   }
 }
 
-/** Clock skew tolerance. Small on purpose — everything here runs on one machine. */
+/** Clock skew tolerance. Small on purpose - everything here runs on one machine. */
 const slackSeconds = 10;
 
 export function createVerifier(valg: VerifierOptions) {

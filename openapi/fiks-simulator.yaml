@@ -162,7 +162,7 @@ paths:
         Statusen som returneres er den *effektive*: et samtykke med `utloper` i
         fortida svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
         Utløp utledes på vei ut, på samme måte som skjermingen av
-        adressebeskyttede — se apps/shared/samtykke.ts.
+        adressebeskyttede - se apps/shared/samtykke.ts.
       security:
         - maskinporten: [ks:fiks:samtykke]
       parameters:
@@ -185,7 +185,7 @@ paths:
       summary: Samtykkets hendelsesforløp
       description: >-
         Hver overgang som faktisk ble gjennomført, i rekkefølge. Avviste forsøk
-        står ikke her — de havner i revisjonsloggen som `SAMTYKKE_AVVIST`.
+        står ikke her - de havner i revisjonsloggen som `SAMTYKKE_AVVIST`.
         Utløp står heller ikke her: ingenting *gjorde* det.
       security:
         - maskinporten: [ks:fiks:samtykke]
@@ -215,7 +215,7 @@ paths:
 
         Fra `VENTER_PAA_SVAR` går det til `SAMTYKKET` eller `IKKE_SAMTYKKET`. Et
         samtykke som er nektet, trukket eller utløpt er endelig, og et nytt svar
-        gir 409 — kommunen må spørre på nytt.
+        gir 409 - kommunen må spørre på nytt.
       security:
         - maskinporten: [ks:fiks:samtykke]
       parameters:
@@ -313,7 +313,7 @@ paths:
       description: >-
         Adressebeskyttede personer maskeres på vei ut, uavhengig av hvem som
         spør: en person med kode 6 svarer «Skjermet person» uten adresse, men
-        beholder fødselsnummer, fødselsdato og kommunenummer — beregningen
+        beholder fødselsnummer, fødselsdato og kommunenummer - beregningen
         trenger dem. Se apps/shared/skjerming.ts.
       security:
         - maskinporten: [ks:fiks:register]
@@ -339,7 +339,7 @@ paths:
         Slår opp på **personId**, ikke på husstandId: kalleren kjenner personen,
         og husstanden finnes derfra.
 
-        Husstandens adresse maskeres bare når alle medlemmene er skjermet — en
+        Husstandens adresse maskeres bare når alle medlemmene er skjermet - en
         adresse man deler med en umaskert medboer kan ikke skjules.
       security:
         - maskinporten: [ks:fiks:register]
@@ -362,7 +362,7 @@ paths:
     get:
       summary: Rå inntektsposter for én person
       description: >-
-        Denne ruta delte ut full inntekt uten token før B4 — veien rundt
+        Denne ruta delte ut full inntekt uten token før B4 - veien rundt
         samtykke-før-inntekt, som er sandkassens viktigste policyregel. Hjemmel
         håndheves her; samtykket håndheves i sandbox-backend, som er den som
         kjenner innbyggeren.
@@ -994,19 +994,19 @@ paths:
       description: >
         Simulerer KS Fiks Kontaktregisteret: kan personen varsles digitalt, er
         de reservert, og hvilken målform foretrekker de. Oppslaget er en POST
-        med fødselsnummeret i kroppen, som i det ekte API-et — et fnr i URL-en
+        med fødselsnummeret i kroppen, som i det ekte API-et - et fnr i URL-en
         ville havnet i alle aksessloggene på veien. Stien og svarmodellen
         (`KrrDefinisjon`) følger
         https://developers.fiks.ks.no/api/register-krr-api-v1.json
 
-        Registeret dekker bosatte på 15 år eller mer — KRRs reelle aldersgrense.
+        Registeret dekker bosatte på 15 år eller mer - KRRs reelle aldersgrense.
         Feilskillet er del av læringsverdien: 400 `UGYLDIG_IDENTIFIKATOR` for et
         misdannet fnr, 404 `PERSON_IKKE_FUNNET` for et ukjent, og 404
         `IKKE_I_KONTAKTREGISTERET` for en kjent person under 15 år eller som
         ikke er bosatt. Adressebeskyttede personer (kode 6/7) får `epost` og
         `tlf` nullet i svaret; `reservert`, `spraak` og `kanVarsles` beholdes.
 
-        Avvik fra det ekte API-et: `spraak` finnes ikke i Fiks-KRR-spekken — det
+        Avvik fra det ekte API-et: `spraak` finnes ikke i Fiks-KRR-spekken - det
         er lånt fra Digdirs underliggende KRR fordi språkvalg er et reelt
         kommunalt behov. Og fnr valideres med modulus 11, strengere enn spekkens
         `^[0-9]{11}$`.
@@ -1076,11 +1076,11 @@ paths:
                     description: Reservasjon mot digital kommunikasjon.
                   kanVarsles:
                     type: boolean
-                    description: Utledet — ikke reservert, og har e-post eller telefon.
+                    description: Utledet - ikke reservert, og har e-post eller telefon.
                   spraak:
                     type: string
                     enum: [nb, nn, en]
-                    description: Målform. Flagget avvik — feltet er lånt fra Digdirs KRR.
+                    description: Målform. Flagget avvik - feltet er lånt fra Digdirs KRR.
                   syntetisk:
                     type: boolean
         "400":
@@ -1093,7 +1093,7 @@ paths:
     get:
       summary: Folkeregisteroppslag i en rollekontekst
       description: |-
-        Simulerer Fiks Folkeregister på den eksakte proxystien — den doble
+        Simulerer Fiks Folkeregister på den eksakte proxystien - den doble
         versjonen er ikke en skrivefeil: `/api/v1/` er Fiks-proxyens, `/v1/` er
         FREGs egen. Alle kall skjer i en rollekontekst som avgrenser lovhjemmel
         og hvilke informasjonsdeler man får ut. Det er flatens poeng:
@@ -1105,11 +1105,11 @@ paths:
         |---|---|---|
         | `3fa85f64-5717-4562-b3fc-2c963f66afa6` | oppvekst | personnavn, foedselsdato, kjoenn, personstatus, doedsfall, bostedsadresse, adressebeskyttelse, forelderbarnrelasjon, familierelasjon, foreldreansvar |
         | `5e7a0500-91d6-4519-a898-3dbb4bfc8a61` | helse-omsorg | personnavn, foedselsdato, personstatus, doedsfall, bostedsadresse, kontaktadresse, sivilstand, adressebeskyttelse, familierelasjon |
-        | `09b21eb2-c0cb-4a87-9cb0-f5405040faa3` | folkehelse | foedselsdato, kjoenn, personstatus — verken navn eller adresse |
+        | `09b21eb2-c0cb-4a87-9cb0-f5405040faa3` | folkehelse | foedselsdato, kjoenn, personstatus - verken navn eller adresse |
 
         `?part=` snevrer inn innenfor rollen og kan gjentas. Avslagene bærer
         læringen: en del utenfor rollen er 403 `UTENFOR_ROLLE`, ikke et tomt
-        felt — å be om mer enn hjemmelen gir er et avslag. Ukjent del er 400
+        felt - å be om mer enn hjemmelen gir er et avslag. Ukjent del er 400
         `UKJENT_INFORMASJONSDEL`, ukjent rolleId 403 `UKJENT_ROLLE` med de
         gyldige rollene i meldingen. Adressebeskyttede maskeres på vei ut
         (apps/shared/skjerming.ts, `maskFregPerson`): FORTROLIG nuller
@@ -1118,9 +1118,9 @@ paths:
         rolle og deler i grunnlaget.
 
         Avvik fra det ekte API-et: FREG returnerer informasjonselementer som
-        lister med ajourholdsmetadata — simulatoren serverer seedens flate
+        lister med ajourholdsmetadata - simulatoren serverer seedens flate
         form. Rollene er tre faste eksempler, mot ekte FREG der rollene
-        konfigureres per virksomhet. Kun enkeltoppslag — ingen
+        konfigureres per virksomhet. Kun enkeltoppslag - ingen
         `sok`/`uttrekk`/`bulk`. Og fnr valideres med modulus 11, strengere enn
         spekkens regex. Sandkasse-interne felter (`_sandbox*`) og
         Tenor-ekstrafelter er strippet fra svaret.
@@ -1160,7 +1160,7 @@ paths:
         "200":
           description: >-
             De forespurte informasjonsdelene, i fast rekkefølge. Hver forespurt
-            del er med, som null når registeret ikke har noe — en utelatt
+            del er med, som null når registeret ikke har noe - en utelatt
             nøkkel ville gjort «ikke spurt om» og «tomt» like på tråden.
           content:
             application/json:
@@ -1213,7 +1213,7 @@ paths:
                     type: array
                     nullable: true
                     description: >-
-                      Skatteetatens feltnavn, uten binde-e — en annen frossen
+                      Skatteetatens feltnavn, uten binde-e - en annen frossen
                       kontraktsnøkkel enn personer-datasettets
                       foreldrebarnrelasjon, med vilje ikke forent.
                     items:
@@ -1270,14 +1270,14 @@ paths:
         Kanalen avgjøres ved opprettelse og lagres på forsendelsen, i denne
         rekkefølgen: (1) `mottaker.digitalId` med rad i kontaktregisteret som
         kan varsles og ikke er reservert gir DIGITAL; (2) ellers gir
-        `kunDigitalLevering: true` INGEN — forsendelsen ender som IKKE_LEVERT,
+        `kunDigitalLevering: true` INGEN - forsendelsen ender som IKKE_LEVERT,
         som i ekte SvarUt; (3) ellers gir gyldig postadresse (adresselinje1,
-        firesifret postnummer og poststed) PRINT — reservert i KRR betyr print;
+        firesifret postnummer og poststed) PRINT - reservert i KRR betyr print;
         (4) ellers 400 `MANGLER_MOTTAKERADRESSE`. Statusen etterpå utledes av
-        klokka, uten timere — se status-sok.
+        klokka, uten timere - se status-sok.
 
         Avvik fra det ekte API-et: `/svarut`-prefikset, siden alt bor på én
-        port; JSON i stedet for multipart — kroppen er metadata-delen uendret,
+        port; JSON i stedet for multipart - kroppen er metadata-delen uendret,
         og ingen dokumentbytes lagres; id-en er simulatorens
         `forsendelse-...`-format, ikke UUID; IntegrasjonId/-Passord-headerne
         er sløyfet; ingen signering, dokumentlenker eller hendelses-API.
@@ -1322,7 +1322,7 @@ paths:
                   type: array
                   minItems: 1
                   description: >-
-                    Bare metadata — unike par av filnavn og mimeType.
+                    Bare metadata - unike par av filnavn og mimeType.
                     Simulatoren lagrer aldri dokumentbytes.
                   items:
                     type: object
@@ -1376,7 +1376,7 @@ paths:
     post:
       summary: Slå opp status for forsendelser
       description: >-
-        Statusen utledes av tiden siden forsendelsen ble opprettet — ingenting
+        Statusen utledes av tiden siden forsendelsen ble opprettet - ingenting
         her går på timer, og statusen skrives aldri: MOTTATT de første 10
         sekundene, så SENDT_DIGITALT eller SENDT_PRINT etter kanalen (INGEN
         gir IKKE_LEVERT og stopper der), og fra 60 sekunder LEST for digital
@@ -1471,7 +1471,7 @@ components:
     UkjentStatus:
       description: >-
         Statusen finnes ikke i kodeverket. En feilformet forespørsel, ikke en
-        konflikt — derfor 400 og ikke 409.
+        konflikt - derfor 400 og ikke 409.
       content:
         application/json:
           schema:
@@ -1537,7 +1537,7 @@ components:
       type: object
       description: >-
         Hvem som handlet. Oppgis av kalleren for innbyggerens egne handlinger,
-        fordi bare kalleren kjenner den verifiserte identiteten — sandbox-backend
+        fordi bare kalleren kjenner den verifiserte identiteten - sandbox-backend
         henter den fra tokenet sitt. Uten oppgitt aktør sier loggen det som er
         sant: fiks-simulator førte det, på vegne av noen.
       properties:
@@ -1648,7 +1648,7 @@ components:
       description: >-
         Delene Folkeregisteret kan svare med. Kodeverket ligger i
         apps/fiks-simulator/src/folkeregister.ts; hvilken delmengde et oppslag
-        får avgjøres av rollen. Merk forelderbarnrelasjon uten binde-e —
+        får avgjøres av rollen. Merk forelderbarnrelasjon uten binde-e -
         Skatteetatens nøkkel, en annen enn personer-datasettets
         foreldrebarnrelasjon.
       enum: [personnavn, foedselsdato, kjoenn, personstatus, doedsfall, sivilstand, bostedsadresse, kontaktadresse, forelderbarnrelasjon, familierelasjon, foreldreansvar, adressebeskyttelse]
@@ -1672,7 +1672,7 @@ components:
       type: object
       description: >-
         Tenor-importerte personer har `kontakt: {}`. Nøkkelsettet er frosset
-        wire-format — kode som skriver felt inn her endrer kontrakten.
+        wire-format - kode som skriver felt inn her endrer kontrakten.
       properties:
         epost:
           type: string
@@ -1712,7 +1712,7 @@ components:
           type: string
         syntetiskFodselsnummer:
           type: string
-          description: Overlever maskeringen — oppslaget mot inntekt trenger det.
+          description: Overlever maskeringen - oppslaget mot inntekt trenger det.
         navn:
           type: object
           properties:
@@ -1839,12 +1839,12 @@ components:
       description: >-
         Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
         grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
-        Krever aud `fiks-simulator` — et token utstedt for en annen tjeneste avvises
+        Krever aud `fiks-simulator` - et token utstedt for en annen tjeneste avvises
         med 401, som er hele poenget med audience-begrensning.
 
         Seks flater, seks scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
         for registeroppslag, `ks:fiks:folkeregister` for Folkeregisteret (egen
-        stifamilie, eget hjemmelsgrunnlag — et register-token åpner det ikke),
+        stifamilie, eget hjemmelsgrunnlag - et register-token åpner det ikke),
         `ks:fiks:svarut` for å sende forsendelser og slå opp status,
         `ks:fiks:samtykke` for å be om, svare på og trekke et samtykke,
         `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for meldinger.
@@ -1853,7 +1853,7 @@ components:
         Innbyggerens eget ID-porten-token avvises på alle seks med 403
         `KREVER_MASKINPORTEN`: samtykke *spørres om* av en kommune og svares
         gjennom den. `sandbox-backend` holder det verifiserte innbyggertokenet,
-        avgjør, og navngir innbyggeren i `aktor` på vei ut — hjemmelen er maskinens,
+        avgjør, og navngir innbyggeren i `aktor` på vei ut - hjemmelen er maskinens,
         handlingen er innbyggerens.
 
         Hent ett med `scripts/token.ts --maskinporten <scope> --resource fiks-simulator`.
@@ -1864,6 +1864,6 @@ components:
       description: >-
         Innbygger. RS256-signert JWT fra digdir-mock via authorization_code med
         PKCE. Bærer `pid` (fødselsnummer) og `acr`. Tokenets `pid` må slå opp til
-        den personen forespørselen gjelder — ellers 403, ikke 401: forskjellen på
+        den personen forespørselen gjelder - ellers 403, ikke 401: forskjellen på
         «vi vet ikke hvem du er» og «vi vet, og du har ikke lov».
         Hent ett med `scripts/token.ts --innbygger <personId>`.

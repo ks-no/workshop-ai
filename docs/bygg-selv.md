@@ -11,8 +11,8 @@ sandkassen ennå, start med `docs/deltakerstart.md`.
 
 ## Egen frontend, egen port
 
-Du trenger ikke røre `demo-gui`. Kjør din egen app på din egen port — React, Vue, Svelte,
-Vite, hva du vil — og snakk rett med API-ene.
+Du trenger ikke røre `demo-gui`. Kjør din egen app på din egen port - React, Vue, Svelte,
+Vite, hva du vil - og snakk rett med API-ene.
 
 **Det virker uten proxy.** Alle tjenestene svarer med `Access-Control-Allow-Origin: *`
 og har `Authorization` i `Access-Control-Allow-Headers`, så en app på `:5173` kan kalle
@@ -44,7 +44,7 @@ prosessbyggeren, og et `<script>`-tag henter den på tvers av porter:
 ```
 
 `.ts` i en `<script src>` ser rart ut, men virker: serveren type-stripper fila på vei
-ut og setter `Content-Type: text/javascript`, og nettleseren går etter typen — ikke
+ut og setter `Content-Type: text/javascript`, og nettleseren går etter typen - ikke
 etter filendelsen. Du trenger verken byggsteg eller TypeScript i ditt eget prosjekt for
 å bruke den.
 
@@ -71,14 +71,14 @@ hver komponent, lest ut av DOM-en. Kopier derfra. Komponentene er dokumentert p�
 Figma-bibliotek for KS Digital-temaet. Oppsettet i sandkassen står i
 `docs/designsystem.md`.
 
-I ditt eget prosjekt installerer du det fra npm — `pnpm add @ks-digital/designsystem-themes`
+I ditt eget prosjekt installerer du det fra npm - `pnpm add @ks-digital/designsystem-themes`
 og importer `base.css` + `ksdigital.css`. Da er resten klasser og `data-`-attributter på
 vanlig HTML. Har du React, finnes `@ks-digital/designsystem-react` med samme attributter.
 
 > [!WARNING]
 > Last aldri `/assets/felles.css` og designsystemets CSS på samme
 > side. `felles.css` har ingen `@layer`, og ulagde regler slår hver layer i kaskaden, så
-> designsystemet blir stille overstyrt — Inter forsvinner og alle knapper blir like blå.
+> designsystemet blir stille overstyrt - Inter forsvinner og alle knapper blir like blå.
 > Det ser ut som stilarket ikke lastet. Det gjorde det. Skal du overstyre med vilje,
 > deklarér `@layer side;` og legg reglene der.
 
@@ -106,7 +106,7 @@ node scripts/token.ts --maskinporten ks:fiks:samtykke --resource fiks-simulator
 **Og hjemmel håndheves bare av `sandbox-backend` (`:8080`) og `fiks-simulator`
 (`:8081`).** Det er de eneste som leser `AUTH_ENFORCE`. `ai-gateway` (`:8082`),
 `tools-api` (`:8083`), `process-agent` (`:8084`) og `matrikkel-mock` (`:8085`) tar imot
-kall uten `Authorization` i det hele tatt — spesifikasjonene deres sier `security: []`.
+kall uten `Authorization` i det hele tatt - spesifikasjonene deres sier `security: []`.
 Bygger du mot dem, trenger du ikke token. Hjemmelslaget er noe sandkassen *viser fram*
 på persondata, ikke noe som gjelder overalt.
 
@@ -156,8 +156,8 @@ ett av disse fire stedene. Hele oppskriften står i `docs/prosessmodell.md`.
 | Ny datakilde eller sjekk | `ressurser.ts` i `apps/sandbox-backend/src/` |
 | Ny regeltype | `regelHandlers` i `vilkaar.ts` (`evaluateVilkaar` er inngangen) |
 
-Prosessmotoren har sju stegtyper — `INFO`, `QUESTION`, `DATA_FETCH`,
-`CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT` — og er lineær: `stegIndex` teller
+Prosessmotoren har sju stegtyper - `INFO`, `QUESTION`, `DATA_FETCH`,
+`CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT` - og er lineær: `stegIndex` teller
 oppover, uten forgrening. Det er et enkelt utgangspunkt, ikke en grense du må
 respektere. Trenger du noe annet, bygg det.
 
@@ -181,7 +181,7 @@ cp data/barnehageplasser.json state/barnehageplasser.json
 ```
 
 Fra da av er det din versjon tjenestene leser. Du har ikke rørt repoet, så ingen
-merge-konflikt med de andre teamene, og `pnpm test` er upåvirket — den validerer
+merge-konflikt med de andre teamene, og `pnpm test` er upåvirket - den validerer
 `data/`, ikke `state/`.
 
 Det er verdt å vite hvorfor dette trengs: begge inntektsreglene krever en registrert
@@ -203,20 +203,20 @@ To ting å huske:
 
 Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
 
-1. `apps/<navn>/` med en `package.json` på sju linjer — kopier en eksisterende
-2. `apps/<navn>/src/server.ts` — `createServer` fra `node:http`, ingen rammeverk.
+1. `apps/<navn>/` med en `package.json` på sju linjer - kopier en eksisterende
+2. `apps/<navn>/src/server.ts` - `createServer` fra `node:http`, ingen rammeverk.
    `apps/process-builder/src/server.ts` er den minste å kopiere fra
 3. Svar på `GET /helse`
-4. En blokk i `docker-compose.yml` — kopier en eksisterende, inkludert `healthcheck`
+4. En blokk i `docker-compose.yml` - kopier en eksisterende, inkludert `healthcheck`
 5. En linje i `apps/shared/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
 7. En oppføring i `tjenester`-lista i `scripts/sjekk-openapi-dekning.ts`. Den lista
    sjekkes mot `tjenester.json`, så uten den feiler `pnpm test:openapi` med «Star i
-   registeret, men ikke i lista her» — en melding som ikke sier hvilken fil du skal
+   registeret, men ikke i lista her» - en melding som ikke sier hvilken fil du skal
    åpne. Det er her folk står fast
 
 Repoet har ingen runtime-avhengigheter og ikke noe byggesteg. Node type-stripper
-`.ts`-filer selv, så `node src/server.ts` kjører direkte — også nettleserkoden, som
+`.ts`-filer selv, så `node src/server.ts` kjører direkte - også nettleserkoden, som
 strippes av serveren når den hentes. Alt i repoet er TypeScript; `pnpm lint` sjekker
 både Node-siden og nettleserkoden.
 

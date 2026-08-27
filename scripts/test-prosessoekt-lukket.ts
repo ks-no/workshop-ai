@@ -4,19 +4,19 @@
  * The closed-økt guard in withSession (routes.ts).
  *
  * Without the guard, a replayed POST /handling on a FULLFORT økt runs the SUBMIT
- * handler again and produces a duplicate søknad — and a new Fiks task — per call.
+ * handler again and produces a duplicate søknad - and a new Fiks task - per call.
  * With hackathon teams building agents against these APIs, that replay is a
  * double-click, not a theoretical race.
  *
  * This pins the guard: a FULLFORT or AVVIST økt takes no further svar, handling
- * or navigation, while GET keeps working — a rejection you cannot read
+ * or navigation, while GET keeps working - a rejection you cannot read
  * afterwards would be worse than the bug. Mutation-tested by hand on
  * introduction: with the guard removed from withSession, §1, §2 and §3 below go red.
  *
  * Backend and digdir-mock on their own ports against a fresh STATE_DIR, so this
  * runs alongside a docker stack without touching it. fiks-simulator is left
  * unreachable on purpose: createSoknad degrades to an advarsel instead of an
- * oppgave, and the count of søknader — the thing the replay used to duplicate —
+ * oppgave, and the count of søknader - the thing the replay used to duplicate -
  * is what the test asserts on.
  *
  * Usage:
@@ -45,7 +45,7 @@ let passed = 0;
 const failures: string[] = [];
 function check(name: string, condition: unknown, detail = "") {
   if (condition) { passed += 1; return; }
-  failures.push(`${name}${detail ? ` — ${detail}` : ""}`);
+  failures.push(`${name}${detail ? ` - ${detail}` : ""}`);
 }
 
 function start(name: string, relativePath: string, env: any) {
@@ -112,7 +112,7 @@ const env = {
   DIGDIR_BASE_URL: digdirUrl,
   DIGDIR_ISSUER: digdirUrl,
   // fiks unreachable on purpose (see the header comment); ai and matrikkel are
-  // never called — the flows below skip SUMMARY, and no SJEKK here needs them.
+  // never called - the flows below skip SUMMARY, and no SJEKK here needs them.
   FIKS_BASE_URL: "http://127.0.0.1:1",
   AI_BASE_URL: "http://127.0.0.1:1",
   MATRIKKEL_BASE_URL: "http://127.0.0.1:1"
@@ -170,7 +170,7 @@ try {
 
   // §2: replay on an AVVIST økt. person-003 gets avslag on støttekontakt
   // (kapasiteten er full), and that SJEKK is the one check that needs no
-  // samtykke — so the flow reaches AVVIST without fiks.
+  // samtykke - so the flow reaches AVVIST without fiks.
   const tokenB = await getInnbyggerToken({ digdirBaseUrl: digdirUrl, personId: "person-003", clientId: "lukket-test" });
   const opprettetB = await call("/api/prosessoekter", tokenB, {
     method: "POST",
@@ -185,8 +185,8 @@ try {
     body: { stegId: "situasjon", svar: { beskrivelse: "Trenger følge i helgene", onskerKontakt: "ja", kontaktkanal: "Telefon" } }
   });
   check("§2 svar på åpen økt gir 200", svarB.status === 200, String(svarB.status));
-  // Three: past the CONSENT_REQUEST, past hent-kontaktinfo — which would 403
-  // without a samtykke, and needs fiks — and onto the SJEKK. /neste only moves
+  // Three: past the CONSENT_REQUEST, past hent-kontaktinfo - which would 403
+  // without a samtykke, and needs fiks - and onto the SJEKK. /neste only moves
   // stegIndex, so skipping a step is not the same as running it.
   await call(`/api/prosessoekter/${idB}/neste`, tokenB, { method: "POST" });
   await call(`/api/prosessoekter/${idB}/neste`, tokenB, { method: "POST" });
@@ -210,7 +210,7 @@ try {
   check("§2 GET viser AVVIST", lesB.body?.status === "AVVIST", String(lesB.body?.status));
 
   // §3: one 404 message, not five. Every økt route answers an unknown id with
-  // the same status and the same feil — the drift the wrapper exists to end.
+  // the same status and the same feil - the drift the wrapper exists to end.
   const ukjent = "oekt-0000000000000-finnes";
   const ruter: [string, Kallvalg][] = [
     [`/api/prosessoekter/${ukjent}`, {}],

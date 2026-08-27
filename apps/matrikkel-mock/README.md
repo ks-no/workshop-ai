@@ -1,12 +1,12 @@
 # matrikkel-mock
 
-Mock av Kartverket Matrikkel Geointegrasjon BasisService — SOAP, med REST-hjelpere ved
+Mock av Kartverket Matrikkel Geointegrasjon BasisService - SOAP, med REST-hjelpere ved
 siden av. Kjører fra det delte `node:24-alpine`-imaget som alle de andre tjenestene;
 Dockerfilen her er bare for å kjøre den frittstående, se nederst.
 
 ## Datasett
 
-`matrikkel-mock` starter fra `data/matrikkel.json` — 388 gater og 18 349 eiendommer i 97 kommuner — og bygger et syntetisk matrikkelregister ved oppstart. Eierforholdene ligger i `data/eierforhold.json` og slås sammen ved innlasting: eierskap hører i grunnboken, ikke i matrikkelen. `eiere` er bare med i svaret fra `/mock/matrikkel/eiendommer` når `personId` er oppgitt — å spørre hvem som eier én eiendom er et grunnbokoppslag, å hente eierlistene for en hel gate er bulkuttrekk. Den er eneste leser av matrikkeldataene i sandkassen: `sandbox-backend` kaller den over HTTP via `MATRIKKEL_BASE_URL`. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
+`matrikkel-mock` starter fra `data/matrikkel.json` - 388 gater og 18 349 eiendommer i 97 kommuner - og bygger et syntetisk matrikkelregister ved oppstart. Eierforholdene ligger i `data/eierforhold.json` og slås sammen ved innlasting: eierskap hører i grunnboken, ikke i matrikkelen. `eiere` er bare med i svaret fra `/mock/matrikkel/eiendommer` når `personId` er oppgitt - å spørre hvem som eier én eiendom er et grunnbokoppslag, å hente eierlistene for en hel gate er bulkuttrekk. Den er eneste leser av matrikkeldataene i sandkassen: `sandbox-backend` kaller den over HTTP via `MATRIKKEL_BASE_URL`. Mangler et søk i seed-datasettet, prøver mocken å slå opp adressen direkte mot Geonorge.
 
 Bakgrunn:
 

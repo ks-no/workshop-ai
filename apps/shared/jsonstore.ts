@@ -41,7 +41,7 @@ export async function readJson(fileName: string, fallback?: unknown): Promise<an
 
 /*
  * Private on purpose. Every write goes through updateJson, which reads fresh
- * inside the queue first — so «wrote a copy the request read earlier» is not a
+ * inside the queue first - so «wrote a copy the request read earlier» is not a
  * mistake a caller can make.
  */
 async function writeJson(fileName: string, data: unknown) {
@@ -57,8 +57,8 @@ let writeQueue: Promise<unknown> = Promise.resolve();
 /**
  * Read, change and write one file, with no other write in between.
  *
- * `change` receives the freshly read data — never a copy the request read
- * earlier — mutates it, and returns whatever the caller needs back. Throwing
+ * `change` receives the freshly read data - never a copy the request read
+ * earlier - mutates it, and returns whatever the caller needs back. Throwing
  * from `change` aborts the change: nothing is written, and the error reaches the
  * caller, so a 404 or 409 decided inside the queue is decided against the state
  * that is actually on disk.
@@ -69,7 +69,7 @@ let writeQueue: Promise<unknown> = Promise.resolve();
  * else ignores the second parameter and mutates in place.
  *
  * Errors are *not* swallowed here. `addRevisjon` swallows its own, because
- * logging must never break the operation it logs — but where the operation *is*
+ * logging must never break the operation it logs - but where the operation *is*
  * the write, a lost søknad has to be loud.
  */
 export function updateJson<T>(
@@ -85,7 +85,7 @@ export function updateJson<T>(
     return result;
   });
   // The chain must survive a rejected link, or one 409 would wedge every later
-  // write. The caller still sees the rejection — this only keeps the queue alive.
+  // write. The caller still sees the rejection - this only keeps the queue alive.
   writeQueue = next.catch(() => {});
   return next;
 }

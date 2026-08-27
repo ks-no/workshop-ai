@@ -1,7 +1,7 @@
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 // The samtykke kodeverk belongs to the service that owns the resource, and expiry
-// is part of it. This backend reads state/samtykker.json directly — a sandbox
-// simplification it already lived with — so importing the rule is strictly better
+// is part of it. This backend reads state/samtykker.json directly - a sandbox
+// simplification it already lived with - so importing the rule is strictly better
 // than keeping a second copy of it here that can drift.
 import { effektivStatus } from "../../shared/samtykke.ts";
 import { HttpError } from "./errors.ts";
@@ -26,7 +26,7 @@ async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaa
       const person = findPerson(tilstand, medlem.personId);
       // `pnpm test` holds referential integrity across data/, so this cannot
       // happen from the seed. It can happen from a shadowed state/husstander.json
-      // or a hand edit — and the old `any` turned that into «Cannot read
+      // or a hand edit - and the old `any` turned that into «Cannot read
       // properties of null» from inside a Fiks call, which names nothing.
       if (!person) {
         throw new HttpError(
@@ -42,7 +42,7 @@ async function getInntektsgrunnlag(tilstand: State, personId: string, inntektsaa
 
   // A plain Error here became «Intern feil i sandbox-backend» with the status
   // buried in `detalj`, which named this service for a failure in another one.
-  // upstream.ts owns that reading now — see the header comment there.
+  // upstream.ts owns that reading now - see the header comment there.
   return callUpstream<any>(
     { service: "Fiks-simulatoren", action: "Beregningen av inntektsgrunnlaget" },
     async () => fetch(
@@ -75,7 +75,7 @@ export async function getInntektForPerson(tilstand: State, personId: string) {
 }
 
 // Assesses one ordning in data/satser.json against the income basis from Fiks.
-// The calculation is deterministic and happens here, not in the AI layer — see
+// The calculation is deterministic and happens here, not in the AI layer - see
 // ai-no-decisions in policies/ai-policy.yaml.
 export async function evaluateOrdning(tilstand: State, personId: string, ordningId: string | null): Promise<SjekkResultat> {
   const satser: Satser = tilstand.satser;
@@ -86,7 +86,7 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
 
   // Only fetch income for rules that actually use it. Asking for an income basis to
   // assess støttekontakt would pull data the decision never touches, and drag the
-  // consent for it along — the opposite of what consent-before-income is for.
+  // consent for it along - the opposite of what consent-before-income is for.
   const brukerInntekt = regelKreverInntekt[ordning.regel];
   const beregning = brukerInntekt
     ? await getInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
@@ -119,7 +119,7 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
 // Every samtykke this person has given for this source, whatever state it is in.
 /*
  * De tre samtykkepredikatene leser bare tilstand.samtykker. Parameteren sier det,
- * framfor å kreve hele State — da kan de kalles med et par rader fra en test uten
+ * framfor å kreve hele State - da kan de kalles med et par rader fra en test uten
  * at testen må bygge en hel tilstand den ikke bruker.
  */
 type Samtykketilstand = Pick<State, "samtykker">;
@@ -137,7 +137,7 @@ function samtykkerFor(tilstand: Samtykketilstand, personId: string, datakilde: s
  *
  * `foretrukketId` is the consent the current process session just created. It
  * matters because a person can hold several valid consents for the same source,
- * and the audit log records *which* one justified the read — that is the whole
+ * and the audit log records *which* one justified the read - that is the whole
  * point of writing `grunnlag`. Picking the first match meant a flow could log a
  * consent from a previous run as the basis for this read, and then the trail
  * could not be followed back to the moment the citizen agreed.
@@ -147,7 +147,7 @@ function samtykkerFor(tilstand: Samtykketilstand, personId: string, datakilde: s
  *
  * Expiry counts from Del D on: `utloper` was written 30 days ahead and read by
  * nobody, so a consent given a year ago still opened the income route. The status
- * comes from `effektivStatus`, which is the only place that rule lives — see
+ * comes from `effektivStatus`, which is the only place that rule lives - see
  * fiks-simulator/src/samtykke.ts.
  */
 export function hasGyldigSamtykke(
@@ -176,7 +176,7 @@ export function hasGyldigSamtykke(
  * Whether the citizen ever did consent to this source, and it has since run out.
  *
  * Only used to pick which of the two refusals to answer with. "Krever registrert
- * samtykke" is a confusing thing to read when you remember agreeing — the useful
+ * samtykke" is a confusing thing to read when you remember agreeing - the useful
  * answer says the consent expired and has to be given again.
  */
 export function hasUtloeptSamtykke(tilstand: Samtykketilstand, personId: string, datakilde: string) {

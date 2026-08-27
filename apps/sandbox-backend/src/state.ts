@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 // The state/-then-data/ read, the two paths and the single write queue live in
 // the shared store: revisjon.ts and fiks-simulator had grown their own copies of
-// all of it. Every reader and writer imports from there directly — a re-export
+// all of it. Every reader and writer imports from there directly - a re-export
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
@@ -10,7 +10,7 @@ import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "
 
 // Which seed files are currently shadowed by a copy in state/.
 //
-// The shadowing itself is by design — it is what keeps a demo run from dirtying
+// The shadowing itself is by design - it is what keeps a demo run from dirtying
 // the work tree. The trap is that it is silent: the moment anyone saves in the
 // process builder, state/prosessdefinisjoner.json appears, and every later hand
 // edit to data/prosessdefinisjoner.json is ignored with no signal at all. People
@@ -65,7 +65,7 @@ export function isMalProsess(prosess: any) {
 }
 
 // inkluderMaler: samme navn som query-parameteren på GET /api/prosesser. Den er
-// wire og frosset — se AGENTS.md.
+// wire og frosset - se AGENTS.md.
 export function getProsesserForVisning(tilstand: State, inkluderMaler = false) {
   if (inkluderMaler) {
     return [...tilstand.prosesser, ...tilstand.prosessMaler];
@@ -78,8 +78,8 @@ export function getProsesserForVisning(tilstand: State, inkluderMaler = false) {
  * which index. Null when neither does.
  *
  * Maler are searched first, which is the precedence the PUT route has always had
- * for an id that somehow appears in both. Both katalog writers need this walk —
- * one to refuse a duplicate, one to merge onto what is there — and it is the
+ * for an id that somehow appears in both. Both katalog writers need this walk -
+ * one to refuse a duplicate, one to merge onto what is there - and it is the
  * katalog's own business, not the route's.
  */
 export function findProsessIKatalog(
@@ -98,8 +98,8 @@ export function findProsessIKatalog(
  *
  * `change` decides against fresh data: the duplicate-id 409 and the
  * missing-prosess 404 are thrown from inside the queue, so no reply can promise
- * something the file does not hold. The file's own shape is not the katalog's —
- * a legacy version is a bare array — so the serialised form goes back via
+ * something the file does not hold. The file's own shape is not the katalog's -
+ * a legacy version is a bare array - so the serialised form goes back via
  * `replace`.
  */
 export function updateProsesskatalog<T>(change: (katalog: Prosesskatalog) => T): Promise<T> {
@@ -184,7 +184,7 @@ export async function readState(): Promise<State> {
 
   // Address protection is applied here, after the state/ fallback, so a shadowed
   // state/personer.json is masked too. This is the single place the population is
-  // assembled, and every reader downstream goes through it — findPerson,
+  // assembled, and every reader downstream goes through it - findPerson,
   // getHusstandForPerson, ressurser.ts, regler.ts, prosess.ts. readJson itself is
   // generic and also serves revisjon.ts, so it is the wrong altitude for this.
   const maskert = maskBefolkning(personer, husstander);
@@ -271,7 +271,7 @@ export function getBarnaIHusstand(tilstand: State, personId: string): string[] {
 
 /*
  * A dataset named at runtime rather than in code. State has no index signature on
- * purpose, so this is the one place that takes a string key — and it checks the key
+ * purpose, so this is the one place that takes a string key - and it checks the key
  * instead of trusting it. Everything else indexes State by a literal, and a typo in
  * a literal is now a compile error.
  */

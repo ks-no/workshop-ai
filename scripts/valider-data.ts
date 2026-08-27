@@ -4,18 +4,18 @@ import { SEED_DATASETS } from "../apps/sandbox-backend/src/state.ts";
 import type { Ordning, Satser, State } from "../apps/sandbox-backend/src/types.ts";
 import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
 // The vedtak itself, imported rather than mirrored: a hand-kept copy can drift,
-// and then data/forventet-utfall.json — the pinned outcomes the workshop text
-// rests on — is validated against the copy instead of the rule that ships.
+// and then data/forventet-utfall.json - the pinned outcomes the workshop text
+// rests on - is validated against the copy instead of the rule that ships.
 import {
   plasserSomKvalifiserer,
   regelKreverInntekt,
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
-// The generated participant table, imported rather than re-rendered — the same
+// The generated participant table, imported rather than re-rendered - the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
-// Modulus 11 and Skatteetaten's +80 marker, imported rather than mirrored — the
+// Modulus 11 and Skatteetaten's +80 marker, imported rather than mirrored - the
 // same reason vilkaar.ts is imported below rather than copied.
 import {
   isSyntetiskFoedselsnummer,
@@ -48,7 +48,7 @@ const files = [
 
 // Generisk over datasettet: hvert kallsted navngir hva det leser, så sjekkene
 // under jobber mot Person, Husstand og Satser og ikke mot any. Datasett uten en
-// egen type i sandbox-backend leses som `any` — de er rene fikstur-filer, og en
+// egen type i sandbox-backend leses som `any` - de er rene fikstur-filer, og en
 // håndlaget type her ville blitt en syvende kopi av formen.
 async function read<T = any>(fil: string): Promise<T> {
   return JSON.parse(await readFile(fil, "utf8")) as T;
@@ -73,7 +73,7 @@ const husstandIder = new Set(husstander.map((h) => h.husstandId));
 
 for (const person of personer) {
   // A household is people living at an address, so someone who is dead, inactive
-  // or emigrated has none — and null is the honest value, not a placeholder
+  // or emigrated has none - and null is the honest value, not a placeholder
   // household of one. GET /api/personer/:id/husstand answers 404 for them.
   const boFast = person.personstatus === "BOSATT";
   if (boFast && !husstandIder.has(person.husstandId)) {
@@ -132,7 +132,7 @@ if (new Set(personer.map((p) => p.syntetiskFodselsnummer)).size !== personer.len
   throw new Error("To personer deler fødselsnummer.");
 }
 
-// The date inside the identifier need not equal foedselsdato — real
+// The date inside the identifier need not equal foedselsdato - real
 // Folkeregisteret allows a corrected birth date to keep the original number, and
 // Tenor ships two such people. But nothing this repo *generates* may disagree with
 // itself, so the rule binds the curated fixtures.
@@ -140,7 +140,7 @@ if (new Set(personer.map((p) => p.syntetiskFodselsnummer)).size !== personer.len
 // The population had no life status at all: no personstatus, no doedsdato, no
 // field of any kind. The importer dropped everyone who was not bosatt, so a
 // child's dead mother simply vanished and the family was left incomplete. Now
-// they are in the register — which means the two fields have to stay in step.
+// they are in the register - which means the two fields have to stay in step.
 const PERSONSTATUS = new Set([
   "BOSATT",
   "UTFLYTTET",
@@ -315,7 +315,7 @@ for (const kilde of kuratert.personer) {
     if (JSON.stringify(forfattet) !== JSON.stringify(utledet)) {
       throw new Error(
         `${kilde.personId}: ${felt} i data/personer.json stemmer ikke med ` +
-        `data/kuratert.json. Kilden er kuratert.json — rediger den og kjør ` +
+        `data/kuratert.json. Kilden er kuratert.json - rediger den og kjør ` +
         `node scripts/importer-tenor.ts.`
       );
     }
@@ -331,7 +331,7 @@ for (const kilde of kuratert.personer) {
       `${kilde.foedselsdato}. Genererte numre skal alltid stemme med datoen.`
     );
   }
-  // Relations are authored in ONE direction — the parent's `barn` list — precisely
+  // Relations are authored in ONE direction - the parent's `barn` list - precisely
   // so the two directions cannot disagree. This checks the derivation kept it.
   const bygdeBarn = (bygget.foreldrebarnrelasjon || [])
     .filter((rel: any) => rel.relasjon === "BARN")
@@ -428,7 +428,7 @@ for (const person of personer) {
     );
   }
   // The shallow view has to be the same relation set on both sides, and the fnr
-  // has to be resolved — it was null on all 61 curated rows before.
+  // has to be resolved - it was null on all 61 curated rows before.
   const egne = (person.foreldrebarnrelasjon || [])
     .map((r: any) => `${r.relatertPersonId}|${r.relasjon}`)
     .sort();
@@ -490,7 +490,7 @@ for (const kant of familiekanter) {
 }
 
 // Married means married to someone. Where the spouse is outside the extract the
-// register still says GIFT — that is Tenor's fact, not a defect — so the rule is
+// register still says GIFT - that is Tenor's fact, not a defect - so the rule is
 // that a spouse *inside* the extract must be alive, and a dead one makes the
 // survivor enke/enkemann.
 const statusPerPersonId = new Map(personer.map((p) => [p.personId, p.personstatus]));
@@ -520,7 +520,7 @@ if (!freg.personer.some((p: any) => p.sivilstand === "ENKE_ELLER_ENKEMANN")) {
 }
 
 // Every imported fødselsnummer must appear verbatim in data/tenor/. The import
-// must pass them through, never mint one — the only numbers it generates belong to
+// must pass them through, never mint one - the only numbers it generates belong to
 // the curated fixtures.
 const tenorFiler = (await readdir("data/tenor")).filter((f) => f.endsWith(".json"));
 const tenorFnr = new Set();
@@ -586,8 +586,8 @@ for (const person of personer) {
       `flytt husstanden til en reell adresse i samme kommune i data/kuratert.json.`
     );
   }
-  // Someone who is not bosatt may well have no address at all — the D-number
-  // holders have none, which is exactly right — but if they have one it must join.
+  // Someone who is not bosatt may well have no address at all - the D-number
+  // holders have none, which is exactly right - but if they have one it must join.
 }
 
 // --- Eierforhold ------------------------------------------------------------
@@ -595,7 +595,7 @@ for (const person of personer) {
 // in the curated band. person-026 held 70; person-012 and person-017 held 65 each
 // across 48 streets. 341 of 369 owned nothing, so a randomly chosen test person
 // could never pass an ownership check while the 28 passed almost everywhere. The
-// distribution is derived now — a household owns the home it lives in — and this
+// distribution is derived now - a household owns the home it lives in - and this
 // is what stops it drifting back.
 const eierforhold = await read("data/eierforhold.json");
 if (eierforhold.antall !== eierforhold.eierforhold.length) {
@@ -719,24 +719,24 @@ for (const ordning of satser.ordninger) {
 // --- Target group coverage -------------------------------------------------
 // The ordninger scope themselves by age (barnehage) or school year (SFO). Without
 // this test an ordning can become impossible to grant because no husstand has a
-// child in the target group — and then the rule looks like it works while it only
+// child in the target group - and then the rule looks like it works while it only
 // ever says no.
 const barnehageplasser = await read<Plass[]>("data/barnehageplasser.json");
 const sfoplasser = await read<Plass[]>("data/sfoplasser.json");
 const fritidsdeltakelse = await read("data/fritidsdeltakelse.json");
 // The State the rules in vilkaar.ts read. The keys must match tjenesteDatasett in
-// apps/sandbox-backend/src/state.ts — a new tjeneste is one line there and one
+// apps/sandbox-backend/src/state.ts - a new tjeneste is one line there and one
 // line here; a wrong key makes getPlasserForTjeneste throw `Ukjent tjeneste`.
 //
 // This is assembled by hand rather than by calling readState(), on purpose, and it
 // must stay that way. readState() reads state/ before data/ (state.ts:15-27), so one
 // demo run leaving a state/satser.json behind would make this gate validate bytes
-// that are not the seed — the exact trap findShadowedSeeds warns about. It also runs
+// that are not the seed - the exact trap findShadowedSeeds warns about. It also runs
 // maskBefolkning, which would make the "seed is not masked" check further down
 // assert against its own output. Both failures are silent.
 const tjenestetilbud = await read("data/tjenestetilbud.json");
 // En delmengde av State: bare datasettene reglene under faktisk leser. Castet
-// sier at det er med vilje — evaluateVilkaar rører ikke resten.
+// sier at det er med vilje - evaluateVilkaar rører ikke resten.
 const tilstand = {
   personer,
   husstander,
@@ -745,7 +745,7 @@ const tilstand = {
   sfoplasser,
   fritidsdeltakelse,
   // TJENESTEBEHOV reads this through ordning.tilbudsdatasett. Leave it out and
-  // evaluateVilkaar answers avslag for every støttekontakt case driven from here —
+  // evaluateVilkaar answers avslag for every støttekontakt case driven from here -
   // silently, because the block further down asks the question by hand.
   tjenestetilbud
 } as unknown as State;
@@ -762,7 +762,7 @@ for (const ordning of satser.ordninger) {
   if (ordning.regel === "TJENESTEBEHOV") continue;
   // Asked through the rule, so it is the rule's own definition of "in the target
   // group" that is checked: a plass only counts if it belongs to a barn of the
-  // household it sits in — a plass no household can reach cannot be granted either.
+  // household it sits in - a plass no household can reach cannot be granted either.
   const treff = husstander.some((husstand) => {
     const soeker = soekerFor(husstand);
     return soeker !== null && plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length > 0;
@@ -789,10 +789,10 @@ if (husstander.every(husstandsgrunnlag)) {
 // --- Cross coverage: the intersection, not the two sides separately ---------
 // The checks above ask two separate questions: does every threshold have
 // households on both sides, and does every ordning have some child in its target
-// group. Neither notices when those two sets never overlap — a household can be
+// group. Neither notices when those two sets never overlap - a household can be
 // under the SFO threshold while its only child is in barnehage.
 // The vedtak, from vilkaar.ts. Returns null when the ordning cannot be assessed at
-// all for this husstand — and that distinction is load-bearing: the pinned-outcome
+// all for this husstand - and that distinction is load-bearing: the pinned-outcome
 // check below uses `vurder(...) !== null` to enumerate which ordninger a husstand
 // even touches. evaluateVilkaar never returns null (it answers "no qualifying plass"
 // as a real godkjent: false), so the three not-assessable cases have to be caught
@@ -810,7 +810,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
   if (regelKreverInntekt[ordning.regel] && g === null) return null;
   // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
   // not marked medregnes), so the income rules are driven with the same number the
-  // running service would have fetched — no stack needed.
+  // running service would have fetched - no stack needed.
   return evaluateVilkaar(ordning.regel, {
     tilstand,
     personId: soeker,
@@ -818,7 +818,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
     satser,
     grunnlag: g,
     // felles and forbehold only land in SjekkResultat.grunnlag and in the prose. This
-    // gate asserts on godkjent, never on melding — rewording a message must not fail
+    // gate asserts on godkjent, never on melding - rewording a message must not fail
     // a data check.
     felles: {},
     forbehold: ""
@@ -919,7 +919,7 @@ for (const husstand of husstander) {
         );
       }
       // The direction word sits just before "grensen for <ordning>". Only assert
-      // when one is actually there — many texts name an ordning without claiming a side.
+      // when one is actually there - many texts name an ordning without claiming a side.
       const foran = rest.slice(Math.max(0, i - 40), i);
       const claimBelow = /\bunder grensen for $/.test(foran);
       const claimAbove = /\bover grensen for $/.test(foran);
@@ -953,13 +953,13 @@ for (const plass of sfoplasser) {
 // --- Needs-based ordninger, assessed per person -----------------------------
 // The applicant's age and municipality decide, so the dataset has to contain
 // someone the tilbud fits and someone it does not. Three distinct rejection
-// reasons exist, and all three must be reachable — otherwise the branches that
+// reasons exist, and all three must be reachable - otherwise the branches that
 // produce them are dead code nobody notices.
 //
 // This block stays hand-rolled, and it is not a leftover mirror. It has to tell
 // `ingenTilbud` apart from `utenforMaalgruppe`, and evaluateVilkaar cannot: both
 // TJENESTEBEHOV branches return godkjent: false with an identical key set in
-// grunnlag, so the only discriminator is `melding` — which this gate must not
+// grunnlag, so the only discriminator is `melding` - which this gate must not
 // assert on. Adding an `avslagsgrunn` key to grunnlag would fix it, but that
 // changes the contract dump for the støttekontakt flows, so it is its own
 // decision. Until then: the four-way classification here, the rule's own branches
@@ -996,7 +996,7 @@ for (const ordning of satser.ordninger) {
 // --- Adressebeskyttelse is a kodeverk, not a boolean ------------------------
 // `skjermet: true` said nothing about which level applied. FREG grades it, and
 // the two levels behave differently, so the code is the field and the boolean is
-// derived from it — never the other way round.
+// derived from it - never the other way round.
 const GRADERINGER = new Set(["UGRADERT", "FORTROLIG", "STRENGT_FORTROLIG"]);
 for (const person of personer) {
   const grad = person.adressebeskyttelse;
@@ -1025,7 +1025,7 @@ if (!personer.some((p) => p.adressebeskyttelse === "FORTROLIG")) {
 // This looks backwards until you see the failure mode: someone finds a protected
 // person's name in data/personer.json, reads it as the leak, and empties the field.
 // That breaks two things at once. The grading has nothing left to protect, so the
-// lesson the sandbox teaches disappears — and the masking has no input, so its
+// lesson the sandbox teaches disappears - and the masking has no input, so its
 // tests pass against empty strings and stop meaning anything.
 //
 // kontakt is exempt: Tenor-imported people carry `kontakt: {}` and never had an
@@ -1040,7 +1040,7 @@ for (const person of personer.filter((p) => p.adressebeskyttelse !== "UGRADERT")
     if (!verdi) {
       throw new Error(
         `${person.personId} (${person.adressebeskyttelse}) mangler ${felt} i seeden. ` +
-        `Skjerming skjer ved innlasting i skjerming.ts — seeden skal ikke maskeres.`
+        `Skjerming skjer ved innlasting i skjerming.ts - seeden skal ikke maskeres.`
       );
     }
   }
@@ -1140,7 +1140,7 @@ const samtykkemodeller = modeller.modeller
 if (samtykkemodeller.length === 0) {
   throw new Error(
     "Fant ingen informasjonsmodell med id \"consent\". Kodeverket for samtykkestatus " +
-    "skal dokumenteres der — se apps/shared/samtykke.ts."
+    "skal dokumenteres der - se apps/shared/samtykke.ts."
   );
 }
 
@@ -1161,7 +1161,7 @@ for (const modell of samtykkemodeller) {
 
 // --- data/krr.json: the contact register covers exactly who it should --------
 // Generated by importer-tenor.ts: one row per bosatt person of 15 or older,
-// keyed on fnr. Coverage is checked as set equality in both directions — a
+// keyed on fnr. Coverage is checked as set equality in both directions - a
 // missing row would make "can we notify digitally?" unanswerable for a valid
 // test person, and an extra row would claim the register knows someone it
 // must not.
@@ -1194,7 +1194,7 @@ for (const rad of krr) {
       `KRR-rad for ${rad.fnr} har spraak "${rad.spraak}". Gyldige: ${[...KRR_SPRAAK].join(", ")}.`
     );
   }
-  // kanVarsles is derived, never authored — a row cannot contradict its own rule.
+  // kanVarsles is derived, never authored - a row cannot contradict its own rule.
   const forventetKanVarsles = !rad.reservert && Boolean(rad.epost || rad.tlf);
   if (rad.kanVarsles !== forventetKanVarsles) {
     throw new Error(
@@ -1212,7 +1212,7 @@ for (const fnr of skalHaKrr) {
   }
 }
 
-// Authored krr in kuratert.json wins over the derivation — the same contract as
+// Authored krr in kuratert.json wins over the derivation - the same contract as
 // the incomes. And the print channel must be testable in a curated flow: at
 // least one curated person is reserved and has a valid postal address to fall
 // back on.
@@ -1230,7 +1230,7 @@ for (const kilde of kuratert.personer) {
     if (felt in kilde.krr && rad[felt] !== kilde.krr[felt]) {
       throw new Error(
         `${kilde.personId}: krr.${felt} i data/krr.json er ${JSON.stringify(rad[felt])}, ` +
-        `men data/kuratert.json sier ${JSON.stringify(kilde.krr[felt])}. Forfattet vinner — ` +
+        `men data/kuratert.json sier ${JSON.stringify(kilde.krr[felt])}. Forfattet vinner - ` +
         `kjør node scripts/importer-tenor.ts.`
       );
     }
@@ -1243,14 +1243,14 @@ for (const kilde of kuratert.personer) {
 if (kuratertReservertMedAdresse === 0) {
   throw new Error(
     "Ingen kuratert person er KRR-reservert med gyldig postadresse. Da kan " +
-    "print-kanalen ikke demonstreres i kuratert flyt — se person-014 i data/kuratert.json."
+    "print-kanalen ikke demonstreres i kuratert flyt - se person-014 i data/kuratert.json."
   );
 }
 
 // --- docs/testpersoner.md må stemme med dataene ------------------------------
 // The one thing participants actually needed was a map of who they can use. A
 // hand-written table over 394 people goes stale the first time an income moves, so
-// it is generated — and this is what makes the generation worth anything: the file
+// it is generated - and this is what makes the generation worth anything: the file
 // is rebuilt here and compared byte for byte. A generated table that nobody checks
 // is just a table with a longer half-life.
 const plasser = {
@@ -1283,7 +1283,7 @@ if (faktiskDok !== forventetDok) {
 
 // --- Case-tabellen deltakerne faktisk bruker ---------------------------------
 // The recommended SFO user gave a rejection in three participant-facing surfaces at
-// once — deltakerstart.md, prosessmodell.md and the dashboard — and nothing caught
+// once - deltakerstart.md, prosessmodell.md and the dashboard - and nothing caught
 // it, because the claim only ever lived in prose. It is pinned now, and the check
 // runs the same rule the flow will run.
 const deltakercaser = await read("data/deltakercaser.json");
@@ -1304,7 +1304,7 @@ function foldNorsk(tekst: string) {
 // deltakerstart.md and the dashboard both carry the table itself, one row per case,
 // so the check is row-level: the row for a case has to name that case's pinned
 // person. Checking a file as a whole would pass a row recommending the wrong person
-// as long as the right one appeared somewhere else on the page — and the page is
+// as long as the right one appeared somewhere else on the page - and the page is
 // what the participant reads. prosessmodell.md keys its bullets on prosessId rather
 // than on the case names, so it has no rows to match; it is covered by the
 // prose sweep below instead.
@@ -1348,7 +1348,7 @@ for (const sak of deltakercaser.caser) {
   }
   // The surfaces must name the same person, row by row. A pinned table nobody
   // compares to the pages participants actually read is just a second place to be
-  // wrong — which is how the SFO case managed to be wrong in three of them at once.
+  // wrong - which is how the SFO case managed to be wrong in three of them at once.
   for (const flate of caseFlater) {
     if (!flate.rader) continue;
     const rader = flate.rader.filter((rad: any) => rad.includes(foldNorsk(sak.navn)));
@@ -1373,7 +1373,7 @@ for (const sak of deltakercaser.caser) {
   const forventetJa = sak.forventetUtfall === "innvilget";
   let faktisk;
   if (ordning.regel === "TJENESTEBEHOV") {
-    // Assessed per person, so vurder() deliberately returns null for it — the
+    // Assessed per person, so vurder() deliberately returns null for it - the
     // household loop above skips TJENESTEBEHOV for the same reason.
     faktisk = evaluateVilkaar(ordning.regel, {
       tilstand,
@@ -1421,7 +1421,7 @@ for (const flate of caseFlater) {
 // Next to the recommended støttekontakt user the surfaces name two counterexamples,
 // and neither was asserted anywhere: person-003 meets a full tilbud, person-062
 // lives in a kommune with none at all. Both rest on nobody having edited
-// data/tjenestetilbud.json, and being wrong there is worse than being silent — a
+// data/tjenestetilbud.json, and being wrong there is worse than being silent - a
 // participant reads them as the explanation for the avslag they just got.
 const stottekontaktOrdning = satser.ordninger.find((o) => o.id === "stottekontakt");
 if (!stottekontaktOrdning) {
@@ -1479,7 +1479,7 @@ for (const barn of majasBarn) {
   if (sfoplasser.some((p) => p.personId === barn.personId)) {
     throw new Error(
       `${barn.personId} har fått en SFO-plass. Dashboardet og docs/deltakerstart.md ` +
-      `sier person-001 ikke har barn i SFO — det er den vanligste snublesteinen.`
+      `sier person-001 ikke har barn i SFO - det er den vanligste snublesteinen.`
     );
   }
 }
@@ -1488,7 +1488,7 @@ for (const barn of majasBarn) {
 //
 // GET /api/katalog/datasett is one of two machine-readable ways a team discovers
 // the data foundation, and it was a literal in routes.ts with four of eleven
-// entries — it hid satser, sfoplasser, fritidsaktiviteter, fritidsdeltakelse and
+// entries - it hid satser, sfoplasser, fritidsaktiviteter, fritidsdeltakelse and
 // tjenestetilbud, the data three of the five published cases run on. It is now
 // built from SEED_DATASETS. This keeps that list honest in both directions:
 // every file it names must exist, and every seed file readState loads without a
@@ -1520,7 +1520,7 @@ for (const barn of majasBarn) {
       `SEED_DATASETS og readState() navngir ulike filer. ` +
       (unpublished.length ? `Lastet, men ikke i katalogen: ${unpublished.join(", ")}. ` : "") +
       (notLoaded.length ? `I katalogen, men ikke lastet: ${notLoaded.join(", ")}. ` : "") +
-      `Katalogen er det et team oppdager datagrunnlaget gjennom — den skal si det ` +
+      `Katalogen er det et team oppdager datagrunnlaget gjennom - den skal si det ` +
       `samme som lasteren.`
     );
   }

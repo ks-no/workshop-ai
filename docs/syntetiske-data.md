@@ -11,7 +11,7 @@ Data er delt i to mapper, og skillet er absolutt:
 | Mappe | Innhold | I git |
 |---|---|---|
 | `data/` | Kildedata. Leses av tjenestene, skrives aldri til. | Ja |
-| `state/` | Alt tjenestene skriver under kjøring. | Nei — gitignorert |
+| `state/` | Alt tjenestene skriver under kjøring. | Nei - gitignorert |
 
 Tjenestene leser fra `state/` hvis fila finnes der, og faller ellers tilbake på kilden i `data/`. Første gang noe skrives, opprettes kopien i `state/` automatisk. Det finnes ingen initialiseringskommando.
 
@@ -24,7 +24,7 @@ Dette koster folk mye tid, så les det før du begynner å redigere.
 I det øyeblikket du lagrer noe i prosessbyggeren, skrives
 `state/prosessdefinisjoner.json`. Fra da av leses **den**, og alt du redigerer for
 hånd i `data/prosessdefinisjoner.json` blir ignorert. Ingen feilmelding, ingen
-forskjell i UI-et — endringen din slår bare ikke gjennom.
+forskjell i UI-et - endringen din slår bare ikke gjennom.
 
 `sandbox-backend` sier fra i loggen ved oppstart når det skjer:
 
@@ -41,7 +41,7 @@ laget i byggeren), eller slett bare den ene fila:
 rm state/prosessdefinisjoner.json
 ```
 
-Vil du beholde arbeidet fra byggeren, kopier det til `data/` først — se
+Vil du beholde arbeidet fra byggeren, kopier det til `data/` først - se
 «Å dele en prosess du har laget» under.
 
 Nullstill all kjøringstilstand med:
@@ -72,8 +72,8 @@ Kildedata i `data/`:
 | `husstander.json` | **Generert.** 200 husstander med `type`, `kommunenummer`, medlemmer og roller, og et `scenario`-felt |
 | `folkeregister.seed.json` | **Generert.** Samme befolkning i Folkeregisterets form: `foedselsEllerDNummer`, `personnavn`, `personstatus`, `doedsfall`, `forelderbarnrelasjon`, `familierelasjon`, `foreldreansvar` |
 | `inntekter.json` | **Generert** for de importerte, **forfattet** for de kuraterte. Poster med `kilde` og `medregnes`, og `stadie` (`OPPGJOER`/`UTKAST`) |
-| `krr.json` | **Generert.** Kontaktregisteret: én rad per bosatt person på 15 år eller mer — KRRs reelle aldersgrense — nøklet på fnr. `reservert`, `spraak` og kontaktinfo utledes deterministisk fra fødselsnummeret; kuraterte gjenbruker forfattet kontaktinfo, og forfattet `krr` i `kuratert.json` vinner. `kanVarsles` er utledet. Tenor-personers e-post og telefon finnes **bare her** — `personer.json` røres ikke |
-| `eierforhold.json` | **Generert.** Tinglyst eierskap per matrikkelenhet, med `eierform` og `andel`. Eierskap hører i grunnboken, ikke i matrikkelen — derfor egen fil |
+| `krr.json` | **Generert.** Kontaktregisteret: én rad per bosatt person på 15 år eller mer - KRRs reelle aldersgrense - nøklet på fnr. `reservert`, `spraak` og kontaktinfo utledes deterministisk fra fødselsnummeret; kuraterte gjenbruker forfattet kontaktinfo, og forfattet `krr` i `kuratert.json` vinner. `kanVarsles` er utledet. Tenor-personers e-post og telefon finnes **bare her** - `personer.json` røres ikke |
+| `eierforhold.json` | **Generert.** Tinglyst eierskap per matrikkelenhet, med `eierform` og `andel`. Eierskap hører i grunnboken, ikke i matrikkelen - derfor egen fil |
 | `matrikkel.json` | Gater og eiendommer i de kommunene befolkningen bor i, hentet fra Geonorge. Seed for `matrikkel-mock`. Ingen eiere |
 | `matrikkel.seed.json` | Liten firegaters fixture for mockens egne tester |
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
@@ -87,7 +87,7 @@ Kildedata i `data/`:
 | `deltakercaser.json` | Case-til-person-tabellen i `docs/deltakerstart.md`, pinnet |
 | `brreg.seed.json` | 200 syntetiske foretak fra Tenor. Ingen kobling til befolkningen |
 
-**`docs/testpersoner.md` er den genererte oversikten over hele befolkningen** — én rad
+**`docs/testpersoner.md` er den genererte oversikten over hele befolkningen** - én rad
 per person med alder, status, husstand, hvem som kan logge inn, hvem som eier noe og
 hvem som har inntektsdata. Den skrives av importen og `pnpm test` feiler hvis den er
 ute av takt.
@@ -98,7 +98,7 @@ Seks filer skrives av `scripts/importer-tenor.ts` og skal ikke redigeres for hå
 `personer.json`, `husstander.json`, `inntekter.json`, `krr.json`,
 `folkeregister.seed.json` og
 `eierforhold.json`. Redigerer du en kuratert rad direkte, reverterer neste import
-den — så `pnpm test` sammenligner de kuraterte radene mot `kuratert.json` og feiler
+den - så `pnpm test` sammenligner de kuraterte radene mot `kuratert.json` og feiler
 i stedet.
 
 ```bash
@@ -111,7 +111,7 @@ node scripts/hent-matrikkel.ts                # topper opp matrikkelen fra Geono
 Importen bygger på nytt hver gang, men **id-ene er stabile**: `personId` og
 `husstandId` leses tilbake fra `personer.json`, så et nytt Tenor-uttrekk kan slippes
 i mappa uten at noen blir omnummerert. `--glem-id-er` tildeler dem fra bunnen, og gir
-samme resultat på uendret input — det er sånn determinismen er verifisert.
+samme resultat på uendret input - det er sånn determinismen er verifisert.
 
 ## Kart over koblingene
 
@@ -127,8 +127,8 @@ tenor/*.json   ─┴─→ importer-tenor.js ─→ personer.json ────�
 
 | Nøkkel | Hvor den finnes |
 |---|---|
-| `personId` | `personer.json`, `husstander.medlemmer[]`, `folkeregister._sandbox.personId`, plassfilene, `eierforhold.eiere[].eier`. **Ikke i `inntekter`** — se raden under |
-| `syntetiskFodselsnummer` | `personer.json`. Heter `foedselsEllerDNummer` i FREG-modellen og `identifikator` i inntekt og Fiks-beregningen. Det er dette ID-porten legger i `pid`. **Inntekt nøkles på dette, ikke på `personId`:** bare de 25 kuraterte radene bærer også et `personId`-felt, så en join på `personId` finner 25 av 281 rader. API-et gjør koblingen for deg — dette gjelder bare om du leser `data/inntekter.json` direkte |
+| `personId` | `personer.json`, `husstander.medlemmer[]`, `folkeregister._sandbox.personId`, plassfilene, `eierforhold.eiere[].eier`. **Ikke i `inntekter`** - se raden under |
+| `syntetiskFodselsnummer` | `personer.json`. Heter `foedselsEllerDNummer` i FREG-modellen og `identifikator` i inntekt og Fiks-beregningen. Det er dette ID-porten legger i `pid`. **Inntekt nøkles på dette, ikke på `personId`:** bare de 25 kuraterte radene bærer også et `personId`-felt, så en join på `personId` finner 25 av 281 rader. API-et gjør koblingen for deg - dette gjelder bare om du leser `data/inntekter.json` direkte |
 | `husstandId` | `personer.json`, `husstander.json`, `forventet-utfall.json`. `null` for alle som ikke er `BOSATT` |
 | `adresseIdentifikatorFraMatrikkelen` | `personer.bostedsadresse` og `folkeregister.seed.json`. Peker på `matrikkel.json` sin `matrikkelId`. Alle bosatte har en |
 | `matrikkelId` | `matrikkel.json`, `eierforhold.json` |
@@ -155,13 +155,13 @@ Datamodellen låner vokabular fra ekte spesifikasjoner, men er bevisst forenklet
   (`KrrDefinisjon`), servert av `fiks-simulator` på den ekte stien
   `POST /register/api/v1/ks/{rolleId}/krr/person`. To flaggede avvik: `spraak`
   finnes bare i Digdirs underliggende KRR og er tatt med fordi språkvalg er et
-  reelt kommunalt behov, og fnr valideres med modulus 11 — strengere enn spekkens
+  reelt kommunalt behov, og fnr valideres med modulus 11 - strengere enn spekkens
   regex.
 - **Eiendom** kommer fra [Geonorges adresse-API](https://ws.geonorge.no/adresser/v1),
   som er offentlige adressedata. Eierskapet er vårt eget og syntetisk.
 - **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i
   `satser.json` må verifiseres mot gjeldende forskrift før de brukes til annet enn
-  demo — noen er nasjonale, andre kommunale.
+  demo - noen er nasjonale, andre kommunale.
 
 ## Fødselsnumrene er syntetiske, og merket som det
 
@@ -173,12 +173,12 @@ vi bruker Skatts, fordi befolkningen kommer fra Tenor.
 
 `apps/shared/foedselsnummer.ts` bærer regelen, og
 `pnpm test:foedselsnummer` dekker den. Skal du lese en dato ut av et nummer, må du
-trekke fra 80 først — men `foedselsdato` er eget felt, så du trenger det sjelden.
+trekke fra 80 først - men `foedselsdato` er eget felt, så du trenger det sjelden.
 **Tre personer har et nummer som beskriver en annen dato enn `foedselsdato`.** Det er
 lovlig i Folkeregisteret: en rettet fødselsdato beholder det opprinnelige nummeret.
 
 Sytten personer har **D-nummer** i stedet: dagen har 40 lagt til. De har ingen norsk
-bostedsadresse, ingen husstand og kan ikke logge inn — som i virkeligheten.
+bostedsadresse, ingen husstand og kan ikke logge inn - som i virkeligheten.
 
 ## Hvem kan logge inn
 
@@ -188,7 +188,7 @@ To terskler, begge reelle:
   fyller 13; BankID utstedes fra 12–13 med foreldresignatur. Under det finnes det
   ingenting å logge inn med, så `digdir-mock` lister ikke personen som testbruker.
 - **18 år** er rettslig handleevne. Mellom 13 og 18 kan man logge inn, men ikke være
-  avsender for en sak — der må en foresatt med foreldreansvar, eller en verge, være
+  avsender for en sak - der må en foresatt med foreldreansvar, eller en verge, være
   det. Barnet er fortsatt part.
 
 Reglene ligger i `apps/shared/handleevne.ts`, delt mellom
@@ -200,7 +200,7 @@ som navngir de foresatte som kan gjøre det i stedet.
 
 Registeret har 394 personer; 369 av dem er `BOSATT`. De 25 andre er der med vilje:
 
-- **6 døde.** En død forelder er fortsatt forelder — relasjonen står, og barnet har
+- **6 døde.** En død forelder er fortsatt forelder - relasjonen står, og barnet har
   en mor. Men de har ingen husstand, ingen inntektsrad og kan ikke være avsender.
   Én av dem er gift, og ektefellen er derfor `ENKE_ELLER_ENKEMANN`.
 - **2 utflyttede** og **17 med D-nummer eller midlertidig identifikator.**
@@ -249,7 +249,7 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
   av ti er reservert, omtrent én av tolv har hverken e-post eller telefon, og
   målformen fordeles mellom `nb`, `nn` og `en`. De kuraterte gjenbruker den
   forfattede kontaktinfoen, og et forfattet `krr`-felt i `kuratert.json` vinner
-  over derivasjonen — `person-014` er reservert så print-kanalen kan testes.
+  over derivasjonen - `person-014` er reservert så print-kanalen kan testes.
   Tenor-personers genererte kontaktinfo står **bare i `krr.json`**, fordi
   `personer.json` er frosset wire-format.
 - **Eierskapet.** Ingen offentlig kilde gir tinglyst hjemmel for syntetiske personer.
@@ -259,7 +259,7 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 - **Tolv kuraterte adresser.** `Eksempelveien 12`, `Fjellgata 7` i Stavanger og ti
   andre var oppdiktede. De er byttet til reelle adresser i **samme kommune**, så
   hverken kommunenummer eller noe utfall flyttet seg. `person-001` bor nå i
-  Storgata 3 i Bergen — samme eiendom personen eier, som binder
+  Storgata 3 i Bergen - samme eiendom personen eier, som binder
   fartsdempende-casen sammen.
 - **Sivilstanden til én person.** Tenor lot en gjenlevende ektefelle stå som `gift`
   fordi uttrekket ble hentet per person og aldri avstemt. Registeret ville sagt
@@ -268,14 +268,14 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 
 ## Kjente grenser
 
-- **Matrikkelen dekker de gatene befolkningen bor i**, pluss alle Bergens gater — 388
+- **Matrikkelen dekker de gatene befolkningen bor i**, pluss alle Bergens gater - 388
   gater i 97 kommuner. Ikke hele Norge. Slår du opp en gate som ingen testperson bor
   i, faller `matrikkel-mock` tilbake til live Geonorge-oppslag hvis nettet er der.
 - **Eierforholdet er nøklet på adressen, ikke på matrikkelenheten.** Tinglyst hjemmel
   ligger i virkeligheten på matrikkelenheten (gnr/bnr), og flere adresser deler samme
   gnr/bnr. Modellen har ingen egen matrikkelenhet, så dette er en forenkling.
 - **`kommune` er et visningsnavn.** Tenor oppgir bare `kommunenummer`. Der
-  `brreg.seed.json` kjenner navnet brukes det; ellers står poststedsnavnet — et ekte
+  `brreg.seed.json` kjenner navnet brukes det; ellers står poststedsnavnet - et ekte
   sted i riktig område, men ikke nødvendigvis kommunenavnet. `kommunenummer` er
   alltid riktig.
 - **Én Tenor-person har et kommunenummer fra før grensendringen i 2024** (5402, som nå
@@ -290,7 +290,7 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 
 - hver post skal være merket som syntetisk der det er relevant
 - datasett skal være konsistente på tvers av relasjoner
-- eksempelpersoner skal være enkle å bruke i demo — se `docs/testpersoner.md`
+- eksempelpersoner skal være enkle å bruke i demo - se `docs/testpersoner.md`
 - nye datasett skal dokumenteres før de tas i bruk
 - tjenester skriver aldri i `data/`
 - filer i `data/` og `state/` skal lagres som UTF-8 (Unicode)

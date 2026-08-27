@@ -11,7 +11,7 @@ import { createTilstandsmaskin } from "../../shared/statemachine.ts";
 
 export type Oppgavestatus = "OPPRETTET" | "UNDER_BEHANDLING" | "FERDIG" | "AVVIST";
 
-// A case is rejected after someone has looked at it, not before — so AVVIST is
+// A case is rejected after someone has looked at it, not before - so AVVIST is
 // reachable from UNDER_BEHANDLING only.
 export const OPPGAVEOVERGANGER: Record<Oppgavestatus, Oppgavestatus[]> = {
   OPPRETTET: ["UNDER_BEHANDLING"],

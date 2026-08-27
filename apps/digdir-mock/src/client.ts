@@ -2,7 +2,7 @@
 //
 // One implementation, imported by every client that needs one: sandbox-backend,
 // tools-api, fiks-simulator, ai-gateway, the test scripts and scripts/token.sh.
-// It lives next to the issuer because this is where the protocol is defined —
+// It lives next to the issuer because this is where the protocol is defined -
 // putting a copy in each service is how five slightly different token clients
 // happen.
 //
@@ -126,7 +126,7 @@ export type InnbyggerOptions = {
 
 /**
  * ID-porten, driven programmatically through the real authorization code flow with
- * PKCE — /authorize to get a code, then /token to redeem it.
+ * PKCE - /authorize to get a code, then /token to redeem it.
  *
  * There is deliberately no shortcut that mints a citizen token directly. A machine
  * that can hand itself any citizen's identity teaches the opposite of what this
@@ -149,7 +149,7 @@ export async function getInnbyggerToken({
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const redirectUri = "http://localhost/testskript-callback";
 
-  // redirect: "manual" — the code is in the Location header, and there is nothing
+  // redirect: "manual" - the code is in the Location header, and there is nothing
   // at the other end of redirectUri to follow to.
   const authorization = await fetch(`${digdirBaseUrl}/idporten/authorize`, {
     method: "POST",
@@ -196,7 +196,7 @@ export async function getInnbyggerToken({
 
 // A test script knows people by personId; ID-porten knows them by fødselsnummer.
 // The mapping comes from GET /idporten/testbrukere, which is a contract; scraping
-// the picker page for it is not — HTML breaks with every restyling.
+// the picker page for it is not - HTML breaks with every restyling.
 const pidCache = new Map<string, string>();
 
 async function lookupPid(digdirBaseUrl: string, personId?: string): Promise<string> {
@@ -225,7 +225,7 @@ async function lookupPid(digdirBaseUrl: string, personId?: string): Promise<stri
 const warned = new Set<string>();
 
 /**
- * The Authorization header for a machine client — or an empty object if the issuer
+ * The Authorization header for a machine client - or an empty object if the issuer
  * cannot be reached.
  *
  * Degrading rather than throwing is deliberate, and the policy lives here so all
@@ -233,7 +233,7 @@ const warned = new Set<string>();
  *
  *  - The resource server is where the decision belongs. Without a token the backend
  *    answers 401 saying exactly that, which is a far better error than "fetch
- *    failed" from a token endpoint three services away — the failure mode Del A
+ *    failed" from a token endpoint three services away - the failure mode Del A
  *    already paid for once, when a matrikkel problem surfaced as a 500 in an
  *    unrelated LLM step.
  *  - It mirrors leggTilRevisjon: infrastructure being down must not turn into a
@@ -250,7 +250,7 @@ export async function maskinportenHeader(valg: MaskinportenOptions): Promise<Rec
       warned.add(noekkel);
       console.warn(
         `Kunne ikke hente Maskinporten-token for ${valg.clientId} ` +
-        `(${(feil as Error).message}). Kaller videre uten token — ` +
+        `(${(feil as Error).message}). Kaller videre uten token - ` +
         `ressursserveren svarer 401 hvis den håndhever.`
       );
     }

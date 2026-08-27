@@ -1,14 +1,14 @@
 /*
  * Unit tests for apps/shared/handleevne.ts.
  *
- * Pure functions, no stack, no port, no model — the same reason test-vilkaar.js
+ * Pure functions, no stack, no port, no model - the same reason test-vilkaar.js
  * exists: an outcome can be pinned with a literal tilstand object.
  *
  * What this covers that nothing else can:
  *
  *  1. The order of the refusals. A dead two-year-old is refused for being dead,
  *     not for being two, and the message has to say so. Only fixtures reach the
- *     combinations — the seed has no dead minor with a living parent.
+ *     combinations - the seed has no dead minor with a living parent.
  *  2. foreldreansvar narrowing the representative set. `felles` means both
  *     parents; named to one it belongs to that one, and a father without parental
  *     responsibility is not a representative however present he is. The seed has
@@ -38,7 +38,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 const person = (over: Record<string, unknown>) => ({
@@ -125,7 +125,7 @@ const bareFar = finnRepresentanter(medFar, "barn", REF);
 check("foreldreansvar far gir bare far", bareFar.length === 1 && bareFar[0].personId === "far",
   JSON.stringify(bareFar));
 
-// A dead parent is still the parent — the relation stands — but cannot be sender.
+// A dead parent is still the parent - the relation stands - but cannot be sender.
 const doedMor = { ...mor, personstatus: "DOED" };
 const medDoedMor = { personer: [doedMor, far, barn("felles")] };
 const etterDoedsfall = finnRepresentanter(medDoedMor, "barn", REF);

@@ -1,12 +1,12 @@
 #!/bin/sh
 # Adds one IAM user who can use the shared Bedrock role from aws-bedrock-setup.sh.
-# Repeatable — run it again with a new username for each additional person.
+# Repeatable - run it again with a new username for each additional person.
 #
 # Usage:
 #   ./scripts/aws-bedrock-add-user.sh <username> [source-ip-cidr]
 #
 # The user this creates has exactly one permission: sts:AssumeRole on the shared
-# role. It cannot call Bedrock directly — the access key is only good for trading
+# role. It cannot call Bedrock directly - the access key is only good for trading
 # itself for short-lived session credentials (see the assume-role command this
 # script prints at the end). If [source-ip-cidr] is given, even that AssumeRole
 # call is rejected from any other IP.
@@ -54,12 +54,12 @@ else
 }
 EOF
 )
-  echo "No source-ip-cidr given — this user can call AssumeRole from anywhere." >&2
+  echo "No source-ip-cidr given - this user can call AssumeRole from anywhere." >&2
   echo "Re-run with a CIDR later and this script will overwrite the policy to add the restriction." >&2
 fi
 
 if aws iam get-user --user-name "$USER_NAME" >/dev/null 2>&1; then
-  echo "User ${USER_NAME} already exists — updating its assume-role policy only."
+  echo "User ${USER_NAME} already exists - updating its assume-role policy only."
 else
   aws iam create-user --user-name "$USER_NAME" >/dev/null
   echo "Created user ${USER_NAME}."
@@ -76,14 +76,14 @@ chmod 700 "$KEY_DIR"
 KEY_FILE="${KEY_DIR}/${USER_NAME}.json"
 
 if [ -f "$KEY_FILE" ]; then
-  echo "Key file ${KEY_FILE} already exists — not creating a second access key."
+  echo "Key file ${KEY_FILE} already exists - not creating a second access key."
   echo "Delete it and re-run if you actually want to rotate this user's key."
 else
   # Redirected straight to a file: the secret access key never appears in this
   # terminal's scrollback or in any tool output, only in the file itself.
   aws iam create-access-key --user-name "$USER_NAME" --output json > "$KEY_FILE"
   chmod 600 "$KEY_FILE"
-  echo "Access key created, saved to ${KEY_FILE} (chmod 600, under state/ — gitignored)."
+  echo "Access key created, saved to ${KEY_FILE} (chmod 600, under state/ - gitignored)."
 fi
 
 echo

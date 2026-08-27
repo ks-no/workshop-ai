@@ -33,7 +33,7 @@ export type Eiendom = {
   gateId?: string;
 };
 
-// 404 is a real answer here — "no such street" — so it maps to null rather than
+// 404 is a real answer here - "no such street" - so it maps to null rather than
 // an error. Everything else means the matrikkel is unreachable or broken, and
 // that must not be mistaken for "the street does not exist". `emptyOn` is the only
 // thing this call needs on top of upstream.ts, and no `relayStatus`: a matrikkel
@@ -57,7 +57,7 @@ export async function getGater(): Promise<Gate[]> {
 
 // treff[0] and not a kommune match: the caller has a street name and nothing else,
 // because that is all the participant typed. "Storgata" exists twice in the register
-// — Bergen 4601 with 10 eiendommer and Tromsø 5501 with 171 — and the documented
+// - Bergen 4601 with 10 eiendommer and Tromsø 5501 with 171 - and the documented
 // "Storgata gives an approval" for person-001 holds because Bergen happens to be
 // seeded first. Filtering on the applicant's own kommunenummer would be the honest
 // fix; until then the seed order is load-bearing.

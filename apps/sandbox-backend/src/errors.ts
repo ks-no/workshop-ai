@@ -4,7 +4,7 @@ import { feilmelding } from "../../shared/errors.ts";
 // knowing about request or response. The router and the process engine map it the
 // same way, so a missing samtykke yields 403 whichever path the call came in.
 //
-// `extra` exists because some responses carry fields beyond `feil` — notably
+// `extra` exists because some responses carry fields beyond `feil` - notably
 // `syntetisk: true` on the 403 for inntekt, which clients already read.
 //
 // `headers` is separate from `extra` on purpose: errorBody() spreads `extra` into

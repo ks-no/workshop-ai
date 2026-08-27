@@ -10,7 +10,7 @@ pnpm test:eval --json                 # maskinlesbart
 ```
 
 Krever at sandkassen kjører og at modellen faktisk er koblet på. Er den ikke det, avbryter
-skriptet med én gang i stedet for å score maltekst — en fallback ville gitt full pott på
+skriptet med én gang i stedet for å score maltekst - en fallback ville gitt full pott på
 sjekker modellen aldri kjørte.
 
 Rapport: `state/eval-report.html`. Exit-kode ≠ 0 når et datasett faller under terskelen,
@@ -51,12 +51,12 @@ forkastet, spørsmålet gikk til modellen, og modellen tok feil.
 
 Fiksen: er heuristikken `ukjent` **og** teksten inneholder en nekting (`ikke`, `ikkje`,
 `aldri`), slipper ikke et modellsvar med ja-intent gjennom. Et modellsvar med nei-intent
-gjør det fortsatt — å lese nøling som en avvisning er trygt, å lese den som samtykke er
+gjør det fortsatt - å lese nøling som en avvisning er trygt, å lese den som samtykke er
 det ikke. Terskelen er hevet til 1, og datasettet har fått en case til:
 «ja, jeg har ikke noe imot det» skal også bli `ukjent`.
 
 Både `/ai/tolk-svar` og `/ai/oppsummering` kjører på temperatur 0, så begge datasett er
-reproduserbare. Oppsummeringen har ingenting å være kreativ om — den gjengir beløp,
+reproduserbare. Oppsummeringen har ingenting å være kreativ om - den gjengir beløp,
 datoer og et utfall `sandbox-backend` allerede har avgjort. Default for øvrige modellkall
 er `0.2`.
 
@@ -66,7 +66,7 @@ Skriptet nekter å score et svar som kom fra maltekst, siden det ville gitt full
 et oppsett der modellen aldri kjørte. Men `advarsel` alene er feil signal: både en sperre
 som slår inn og en heuristikk som overstyrer et vagt modellsvar setter det, og i begge
 tilfeller *kjørte* modellen og erstatningen er nettopp det som testes. Derfor skiller
-skriptet på `modell` — en ekte provider-fallback merkes med suffikset `-fallback` — og på
+skriptet på `modell` - en ekte provider-fallback merkes med suffikset `-fallback` - og på
 `sperre`, som bare settes av sperrene i `/ai/sporsmaal`.
 
 ## Skriv ditt eget datasett
@@ -115,7 +115,7 @@ når terskelen.
 | `judge` | Modellen scorer teksten mot et kriterium, 0.0–1.0. Standard terskel 0.7. |
 
 **Bruk deterministiske sjekker der du kan.** De er raske, gratis og gir samme svar hver
-gang. `/ai/tolk-svar` og `/ai/velg-prosess` returnerer allerede validert JSON — der finnes
+gang. `/ai/tolk-svar` og `/ai/velg-prosess` returnerer allerede validert JSON - der finnes
 det en fasit, og da er `field` riktig verktøy. Spar `judge` til fritekst der ingen
 deterministisk regel kan uttrykke poenget.
 
@@ -131,7 +131,7 @@ den bruker samme provider, arver timeouten og dukker opp i sporet:
 curl -s "http://localhost:8082/trace.json?task=dommer&limit=1"
 ```
 
-Dommeren ser bare kriteriet og teksten — aldri forventet svar. Den kan derfor ikke
+Dommeren ser bare kriteriet og teksten - aldri forventet svar. Den kan derfor ikke
 mønstergjenkjenne seg til en bestått score. Den er instruert til å gi lav score ved tvil.
 
 Vær klar over at en dommer er en modell som vurderer en modell. Den er nyttig for grove
@@ -148,4 +148,4 @@ pnpm test:eval --json > /tmp/foer.json
 pnpm test:eval --json > /tmp/etter.json
 ```
 
-Evalen er bevisst holdt utenfor CI — den krever en kjørende modell.
+Evalen er bevisst holdt utenfor CI - den krever en kjørende modell.

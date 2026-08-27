@@ -104,7 +104,7 @@ async function invoke(port: number, name: string, args: Record<string, unknown> 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, arguments: args })
   });
-  // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+  // Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
   const data = (await svar.json()) as any;
   if (!svar.ok || !data.ok) {
     throw new Error(data.detalj || data.feil || `Tool ${name} feilet`);

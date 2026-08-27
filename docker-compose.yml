@@ -1,5 +1,5 @@
 # Every Node service answers /helse with a "tjeneste" field. Without a
-# healthcheck, depends_on only waits for the container to start — not for the
+# healthcheck, depends_on only waits for the container to start - not for the
 # server inside it to accept connections, which is where startup races come from.
 # Node is present in all these images, so fetch is the cheapest probe available.
 x-helsesjekk: &helsesjekk
@@ -72,7 +72,7 @@ services:
       # Klientkoden er .ts og strippes ved servering med
       # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en
       # advarsel per kall. Bare disse to serverer klientfiler, så bare de demper
-      # den — en global demping ville skjult ekte advarsler andre steder.
+      # den - en global demping ville skjult ekte advarsler andre steder.
       - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
       - "3000:3000"
@@ -91,7 +91,7 @@ services:
       # Klientkoden er .ts og strippes ved servering med
       # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en
       # advarsel per kall. Bare disse to serverer klientfiler, så bare de demper
-      # den — en global demping ville skjult ekte advarsler andre steder.
+      # den - en global demping ville skjult ekte advarsler andre steder.
       - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
       - "3001:3001"
@@ -104,7 +104,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8086/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     image: node:24-alpine
     working_dir: /workspace
-    # Node strips the types on load, so .ts runs with no build step — the same
+    # Node strips the types on load, so .ts runs with no build step - the same
     # way sandbox-backend does. See tsconfig.json.
     command: ["/bin/sh", "scripts/dev.sh", "apps/digdir-mock/src/server.ts"]
     environment:
@@ -117,7 +117,7 @@ services:
       - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
       # Standarden i koden er 120 sekunder, som holder for en tjeneste: klient.ts
       # fornyer selv, og ingen merker det. En deltaker som logger inn i
-      # API-utforskeren gjør ikke det — der betyr to minutter at alt plutselig
+      # API-utforskeren gjør ikke det - der betyr to minutter at alt plutselig
       # svarer 401 uten at noe sier hvorfor. En time dekker en økt.
       - DIGDIR_TOKEN_TTL=${DIGDIR_TOKEN_TTL:-3600}
     ports:
@@ -230,7 +230,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
       # Both timeouts are read by the gateway but were not passed through here,
-      # so setting AI_TIMEOUT_MS in .env — which .env.example documents — did
+      # so setting AI_TIMEOUT_MS in .env - which .env.example documents - did
       # nothing at all. A documented knob that is not wired up is worse than no
       # knob: it sends people looking for the problem somewhere else.
       - AI_TIMEOUT_MS=${AI_TIMEOUT_MS:-180000}
@@ -238,7 +238,7 @@ services:
       # Named BEDROCK_AWS_* rather than the plain AWS_* names on purpose: a
       # developer's shell commonly already exports AWS_ACCESS_KEY_ID/etc for their
       # own unrelated credentials, and both Compose's ${VAR:-default} and Node's
-      # --env-file prefer an already-set shell variable over .env — silently
+      # --env-file prefer an already-set shell variable over .env - silently
       # pairing their personal key with this service's short-lived session token.
       - BEDROCK_AWS_REGION=${BEDROCK_AWS_REGION:-eu-north-1}
       - BEDROCK_AWS_ACCESS_KEY_ID=${BEDROCK_AWS_ACCESS_KEY_ID:-}
@@ -262,7 +262,7 @@ services:
     # through to all three on the first request.
     #
     # brreg-mcp and folkeregister-mcp are deliberately NOT listed. tools-api
-    # never calls them — it reads data/brreg.seed.json and
+    # never calls them - it reads data/brreg.seed.json and
     # data/folkeregister.seed.json straight off disk (see src/server.ts) and
     # exposes its own REST equivalents. They are standalone stdio MCP servers for
     # external clients, with no HTTP surface, so service_healthy could never be
@@ -282,7 +282,7 @@ services:
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
       - DIGDIR_BASE_URL=http://digdir-mock:8086
       - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
-      # mock, and the same value in the code default and .env.example — one value in
+      # mock, and the same value in the code default and .env.example - one value in
       # all three places. The seed holds all 220 Bergen streets, so a live lookup has
       # nothing left to add and the conference network cannot break a street lookup.
       # hybrid tries Geonorge first and falls back to the seed; use it for streets

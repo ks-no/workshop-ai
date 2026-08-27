@@ -13,12 +13,12 @@ const port = 3000;
 // Whitelisted, because the filename comes from the URL.
 const ASSETS: Record<string, string> = {
   "felles.css": "text/css; charset=utf-8",
-  // Vendored design system — see apps/demo-gui/src/server.ts for the flat-filename rule.
+  // Vendored design system - see apps/demo-gui/src/server.ts for the flat-filename rule.
   "ds-base.css": "text/css; charset=utf-8",
   "ds-ksdigital.css": "text/css; charset=utf-8"
 };
 
-// Delt klientkode — se apps/demo-gui/src/server.ts for begrunnelsen.
+// Delt klientkode - se apps/demo-gui/src/server.ts for begrunnelsen.
 const DELTE_KLIENTFILER: Record<string, string> = {
   "felles.ts": KLIENTSKRIPT
 };
@@ -37,7 +37,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 
   for (const [prefiks, katalog, tillatte] of [
-    // /delt/ før /assets/ — se apps/demo-gui/src/server.ts for begrunnelsen.
+    // /delt/ før /assets/ - se apps/demo-gui/src/server.ts for begrunnelsen.
     ["/delt/", deltKlientDir, DELTE_KLIENTFILER],
     ["/assets/", sharedDir, ASSETS],
     ["/client/", klientDir, KLIENTFILER]

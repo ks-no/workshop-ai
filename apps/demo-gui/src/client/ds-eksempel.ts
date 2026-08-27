@@ -1,5 +1,5 @@
 // Sidescript for ds-eksempel. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere.
 //
 // I motsetning til de andre sidene laster denne IKKE felles.ts eller felles.css.
@@ -17,7 +17,7 @@ function krevEl<T extends HTMLElement = HTMLElement>(id: string): T {
 // Serialise the live DOM back to indented HTML, so every code block below a demo
 // is the markup that is actually rendering. Hand-written samples drift; this
 // cannot. Attribute values come from the DOM, so they are already what the parser
-// accepted — but they still get escaped, because a value could contain a quote.
+// accepted - but they still get escaped, because a value could contain a quote.
 const EMPTY = new Set(["img", "input", "br", "hr", "source", "circle"]);
 const ONE_LINE = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "summary", "label", "legend", "caption", "th", "td", "option", "li", "a", "button", "span", "code", "strong"]);
 
@@ -31,7 +31,7 @@ function attributes(element: Element): string {
     .join("");
 }
 
-// Inline serialisation keeps children — collapsing them to textContent would drop
+// Inline serialisation keeps children - collapsing them to textContent would drop
 // the markup that matters, so a <td> holding a .ds-tag would print as bare text.
 function serializeInline(element: Element): string {
   const tag = element.tagName.toLowerCase();
@@ -76,7 +76,7 @@ const mode = krevEl<HTMLSelectElement>("mode");
 mode.onchange = () => document.documentElement.setAttribute("data-color-scheme", mode.value);
 
 // data-size is inherited too. Setting it once on the gallery rescales every
-// component inside it — that is the whole sizing mechanism, not a per-component prop.
+// component inside it - that is the whole sizing mechanism, not a per-component prop.
 const size = krevEl<HTMLSelectElement>("size");
 const gallery = krevEl("gallery");
 size.onchange = () => gallery.setAttribute("data-size", size.value);
@@ -95,4 +95,4 @@ function showHelse(farge: string, tekst: string): void {
 fetch("http://localhost:8080/helse")
   .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
   .then((svar) => showHelse("success", `sandbox-backend svarer: ${svar.status ?? "ok"}. Du er inne i sandkassen.`))
-  .catch((error: unknown) => showHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error instanceof Error ? error.message : String(error)}). Malen virker likevel — den trenger ingen backend.`));
+  .catch((error: unknown) => showHelse("warning", `Fikk ikke svar fra sandbox-backend på 8080 (${error instanceof Error ? error.message : String(error)}). Malen virker likevel - den trenger ingen backend.`));

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * Samtykkets tilstandsmaskin, utløp og skrivekø — Del D.
+ * Samtykkets tilstandsmaskin, utløp og skrivekø - Del D.
  *
  * Two halves. The first is pure functions off disk: the transition table, expiry,
  * and what hasGyldigSamtykke does with an expired consent. The second starts a
@@ -51,7 +51,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 const iTida = (dager: any) => new Date(Date.now() + dager * 24 * 60 * 60 * 1000).toISOString();
@@ -82,7 +82,7 @@ for (const [fra, til] of lovlige) {
 const lovligeNoekler = new Set(lovlige.map(([fra, til]) => `${fra}->${til}`));
 /**
  * Feltene et avvist utfall bærer. På et lovlig utfall finnes de ikke, og da gir
- * denne undefined — som er nøyaktig det detaljstrengene under skrev fra før.
+ * denne undefined - som er nøyaktig det detaljstrengene under skrev fra før.
  *
  * Finnes fordi detaljargumentet til check() står utenfor `&&`-kjeden som
  * innsnevrer unionen, så det kan ikke lese feltene direkte.
@@ -141,7 +141,7 @@ check(
   effektivStatus({ status: "SAMTYKKET", utloper: iTida(30) }) === "SAMTYKKET"
 );
 // Expiry applies to a consent that was given. A request nobody answered stays
-// answerable — see SAMTYKKEOVERGANGER.
+// answerable - see SAMTYKKEOVERGANGER.
 check(
   "utløpt VENTER_PAA_SVAR er fortsatt VENTER_PAA_SVAR",
   effektivStatus({ status: "VENTER_PAA_SVAR", utloper: iTida(-1) }) === "VENTER_PAA_SVAR"
@@ -233,7 +233,7 @@ async function waitForHealth(url: string, navn: string, tidsfrist = 15000) {
   const innen = Date.now() + tidsfrist;
   while (Date.now() < innen) {
     try {
-      // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+      // Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
       if ((await fetch(`${url}/helse`)).ok) return;
     } catch {
       // not up yet
@@ -245,7 +245,7 @@ async function waitForHealth(url: string, navn: string, tidsfrist = 15000) {
 
 /*
  * Every call carries the samtykke scope unless it says otherwise. `valg.token`
- * sends a different one and `valg.utenToken` sends none — that is how 6h below
+ * sends a different one and `valg.utenToken` sends none - that is how 6h below
  * checks that the door is actually locked.
  */
 /** Hva et kall kan overstyre. `utenToken` framkaller 401 med vilje. */
@@ -304,7 +304,7 @@ await requireFreePort(port);
 await requireFreePort(digdirPort);
 
 // sandbox-backend owns the audit log, and what gets written to it is half the
-// point of a samtykke event — so it is collected here rather than thrown away.
+// point of a samtykke event - so it is collected here rather than thrown away.
 // Port 0 picks a free one, which keeps this out of the port-allocation table.
 // Formen sandbox-backend faktisk får tilsendt. Testen sjekker at grunnlaget er
 // med, så feltene står navngitt her.
@@ -330,7 +330,7 @@ const revisjonstjener = createServer((request, response) => {
   });
 });
 await new Promise<void>((klar) => { revisjonstjener.listen(0, "127.0.0.1", () => klar()); });
-// Port 0 gir en TCP-adresse, aldri en socket-sti — derfor er .port alltid der.
+// Port 0 gir en TCP-adresse, aldri en socket-sti - derfor er .port alltid der.
 const adresse = revisjonstjener.address() as { port: number };
 const revisjonsUrl = `http://127.0.0.1:${adresse.port}`;
 
@@ -524,15 +524,15 @@ try {
    * 6j. hjemmelen på samtykkeflaten.
    *
    * These are the checks the whole surface exists for. The samtykke gate in
-   * sandbox-backend — pid binding, resource catalogue, purpose taken from the
-   * consent — could be satisfied by two unauthenticated calls to this port, because
+   * sandbox-backend - pid binding, resource catalogue, purpose taken from the
+   * consent - could be satisfied by two unauthenticated calls to this port, because
    * the register surface was behind Maskinporten and the samtykke surface was not.
    * The gate was real; the back door was next to it.
    *
    * A citizen's own token is refused too, and that is the substantive half: consent
    * is asked for by a municipality and answered through it. sandbox-backend holds
    * the verified citizen token, decides, and names the citizen in `aktor` on the way
-   * out — the hjemmel is the machine's, the act is the citizen's.
+   * out - the hjemmel is the machine's, the act is the citizen's.
    */
   const utenToken = await call("/fiks/samtykke", {
     method: "POST",

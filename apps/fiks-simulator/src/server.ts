@@ -3,9 +3,9 @@ import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
 // Masking reused rather than reimplemented: fiks-simulator reads
 // data/personer.json itself, so it is a second data layer that must mask on its
-// own way out — sandbox-backend's masking cannot cover it.
+// own way out - sandbox-backend's masking cannot cover it.
 import { maskFregPerson, maskHusstand, maskKrr, maskPerson } from "../../shared/skjerming.ts";
-// Which statuses exist, what may follow what, and when a samtykke has run out —
+// Which statuses exist, what may follow what, and when a samtykke has run out -
 // all three live in samtykke.ts so the compiler can hold them together.
 import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
@@ -57,7 +57,7 @@ const SCOPE_REGISTER = "ks:fiks:register";
 // Creating a samtykke, answering it or withdrawing it is writing to a hjemmel
 // surface, and so is putting work in a caseworker's queue. Left open, these
 // surfaces would be a back door around the samtykke gate sandbox-backend
-// enforces — pid binding, resource catalogue, purpose taken from the consent.
+// enforces - pid binding, resource catalogue, purpose taken from the consent.
 //
 // Separate scopes rather than one: a service that may ask for consent is not
 // automatically a service that may create tasks. Three surfaces, three scopes.
@@ -92,7 +92,7 @@ const { jsonResponse, textResponse } = svarhjelpere({
   cors: cors("GET,POST,PUT,OPTIONS"),
   // /docs og /openapi.yaml har bare Allow-Origin, ikke Allow-Methods og
   // Allow-Headers. Det er slik denne tjenesten alltid har svart, og det er
-  // bevart her framfor rettet i en migrering — men det er neppe med vilje:
+  // bevart her framfor rettet i en migrering - men det er neppe med vilje:
   // process-agent har en kommentar som sier at CORS hører på alle tre.
   tekstCors: { "Access-Control-Allow-Origin": "*" }
 });
@@ -101,7 +101,7 @@ const { jsonResponse, textResponse } = svarhjelpere({
  * Kroppene denne tjenesten tar imot, og de interne formene beregningen bygger.
  *
  * Kroppene er JSON fra tråden og har ikke vært gjennom noen validering når de
- * navngis her — typen sier hva ruta regner med, ikke hva den har fått. Derfor
+ * navngis her - typen sier hva ruta regner med, ikke hva den har fått. Derfor
  * står feilmeldingene i computeBeregning fortsatt: de sjekker det
  * typen ikke kan.
  */
@@ -329,7 +329,7 @@ function computeBeregning(body: BeregningKropp, personer: Person[], inntekter: I
   const deltakere: Deltaker[] = [];
   const personerResponse: Record<string, unknown>[] = [];
 
-  // Sjekket over — feilmeldinger-grenen returnerte allerede hvis lista manglet.
+  // Sjekket over - feilmeldinger-grenen returnerte allerede hvis lista manglet.
   for (const requested of body.personer ?? []) {
     // Without this check a malformed identifier returned PERSON_IKKE_FUNNET, which
     // wrongly implies it was well-formed. The two cases are kept apart because the
@@ -489,7 +489,7 @@ async function requireMaskinportenHjemmel(
   // A citizen's ID-porten token cannot open these. They are machine-to-machine
   // surfaces: the hjemmel belongs to the municipality, not to whoever happens to be
   // logged in. sandbox-backend holds the verified citizen token, decides, and then
-  // acts here as a machine with `aktor` naming the citizen — which is exactly the
+  // acts here as a machine with `aktor` naming the citizen - which is exactly the
   // hjemmel/aktør distinction the sandbox exists to show.
   if (verified.utsteder !== "maskinporten") {
     throw new FiksError(
@@ -524,7 +524,7 @@ function requireRegisterHjemmel(request: IncomingMessage) {
 /**
  * The fnr gauntlet both fnr-keyed lookups (KRR and Folkeregisteret) run: eleven
  * digits is a typo in the request, wrong control digits is a typo in the
- * number — the caller can act on the difference. Modulus 11 is stricter than
+ * number - the caller can act on the difference. Modulus 11 is stricter than
  * the Fiks specs' ^[0-9]{11}$, a flagged deviation on both routes.
  *
  * `oppgitt` is the value as the caller sent it, so the message can echo a
@@ -576,7 +576,7 @@ function maskRegisterPerson(person: Person | undefined) {
  *
  * Forwarding the citizen's own token here instead would be the real answer, and it
  * does not work: that token is minted for audience "sandbox-backend" and this
- * service refuses it — correctly. Bridging that needs token exchange (RFC 8693),
+ * service refuses it - correctly. Bridging that needs token exchange (RFC 8693),
  * which is more machinery than the workshop needs. Absent a supplied actor we say
  * what is true: fiks-simulator recorded this, on behalf of someone.
  */
@@ -590,8 +590,8 @@ function samtykkeAktor(oppgitt: Aktor | undefined, personId?: string): Aktor {
 /**
  * Turns a refused transition into the answer the caller gets.
  *
- * The state machine decides both the code and the status — 400 for a status that
- * does not exist, 409 for one that cannot be reached from here — so the rule and
+ * The state machine decides both the code and the status - 400 for a status that
+ * does not exist, 409 for one that cannot be reached from here - so the rule and
  * its HTTP answer stay in one place. See statemachine.ts.
  */
 function requireOvergang<T extends string>(utfall: Overgangsutfall<T>): T {
@@ -613,7 +613,7 @@ function requireOvergang<T extends string>(utfall: Overgangsutfall<T>): T {
  *
  * Lookup, rule check and write all happen inside the queue, against the row as it
  * is on disk right now. Reading it out first and validating against that copy
- * would reintroduce exactly the race the queue exists to close — two answers
+ * would reintroduce exactly the race the queue exists to close - two answers
  * arriving together would both see VENTER_PAA_SVAR and both be allowed.
  */
 async function setSamtykkestatus(
@@ -622,7 +622,7 @@ async function setSamtykkestatus(
   body: SamtykkeKropp
 ): Promise<FiksSamtykke> {
   // Holder-objekt, ikke en `let`: tilordningen skjer inne i updateJson-callbacken,
-  // og TS ser ikke at den kjører — en `let` ville blitt smalnet til null her.
+  // og TS ser ikke at den kjører - en `let` ville blitt smalnet til null her.
   const avvist: { verdi: { personId: string; sporingsId: string; grunnlag: Record<string, unknown> } | null } =
     { verdi: null };
   try {
@@ -648,7 +648,7 @@ async function setSamtykkestatus(
     });
   } catch (feil) {
     // An attempt to revive a withdrawn or expired samtykke is exactly what an
-    // audit log is for — the same reason B3 records TILGANG_NEKTET rather than
+    // audit log is for - the same reason B3 records TILGANG_NEKTET rather than
     // only successful reads. A 404 or a malformed status logs nothing: there is no
     // samtykke to attach the attempt to.
     if (avvist.verdi) {
@@ -667,7 +667,7 @@ async function setSamtykkestatus(
 /**
  * A samtykke as it is answered for, with expiry applied.
  *
- * UTLOEPT is derived rather than stored — nothing here runs on a timer — so the
+ * UTLOEPT is derived rather than stored - nothing here runs on a timer - so the
  * expiry has to be applied on the way out, or the API would keep reporting
  * SAMTYKKET for a consent that no longer authorises anything. Same shape as the
  * masking in skjerming.ts, likewise applied when the data leaves rather than in
@@ -822,12 +822,12 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     // Fiks Kontaktregisteret, on the real Fiks path. The lookup is a POST with
-    // the fnr in the body, as the real API does it — an fnr in a URL would land
+    // the fnr in the body, as the real API does it - an fnr in a URL would land
     // in every access log on the way.
     //
     // The error split is part of what the route teaches: a malformed fnr is a
     // 400 (the request is broken), an unknown fnr is PERSON_IKKE_FUNNET, and a
-    // known person under 15 or not bosatt is IKKE_I_KONTAKTREGISTERET — the
+    // known person under 15 or not bosatt is IKKE_I_KONTAKTREGISTERET - the
     // register knows who they are and still has no row for them.
     const krrTreff = url.pathname.match(/^\/register\/api\/v1\/ks\/([^/]+)\/krr\/person$/);
     if (request.method === "POST" && krrTreff) {
@@ -849,7 +849,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         );
       }
       // Kode 6/7 nulls epost and tlf on the way out; reservert, spraak and
-      // kanVarsles survive. The seed is unmasked, like the rest — see skjerming.ts.
+      // kanVarsles survive. The seed is unmasked, like the rest - see skjerming.ts.
       jsonResponse(response, 200, maskKrr(rad, person.adressebeskyttelse));
       return;
     }
@@ -858,7 +858,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     // a typo: /api/v1/ is the Fiks proxy's, the second /v1/ is FREG's own.
     //
     // Every lookup happens in a rollekontekst, and the role decides which
-    // informasjonsdeler come back — see folkeregister.ts. The refusals carry
+    // informasjonsdeler come back - see folkeregister.ts. The refusals carry
     // the teaching: a part outside the role is 403 UTENFOR_ROLLE, not an empty
     // field, because asking for more than the hjemmel gives is a denial.
     const folkeregisterTreff = url.pathname.match(
@@ -882,7 +882,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
       // ?part= narrows the answer within the role, repeatable. The parts are
       // judged before the person is looked up: whether a request is within its
-      // hjemmel must not depend on — or reveal — whether the person exists.
+      // hjemmel must not depend on - or reveal - whether the person exists.
       const parts = url.searchParams.getAll("part");
       for (const del of parts) {
         if (!isInformasjonsdel(del)) {
@@ -913,7 +913,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       const valgte = new Set<string>(parts.length > 0 ? parts : rolle.deler);
       const deler = INFORMASJONSDELER.filter((del) => valgte.has(del));
 
-      // The audit entry records the hjemmel that was used — role and parts —
+      // The audit entry records the hjemmel that was used - role and parts -
       // not the person: which municipality read what is the question the log
       // answers, and the fnr does not belong in it.
       await addRevisjon({
@@ -931,10 +931,10 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // SvarUt simplified, on the real forsendelse paths behind a /svarut prefix
     // since everything lives on one port. The body is the metadata part of the
-    // real API's multipart, unchanged — JSON instead of multipart is a flagged
+    // real API's multipart, unchanged - JSON instead of multipart is a flagged
     // deviation, and no document bytes are ever stored. The channel is decided
     // here, at creation, and stored on the row; everything after that is derived
-    // from the clock in deriveForsendelsesstatus — see forsendelse.ts.
+    // from the clock in deriveForsendelsesstatus - see forsendelse.ts.
     const forsendelseTreff = url.pathname.match(/^\/svarut\/api\/v2\/kontoer\/([^/]+)\/forsendelser$/);
     if (request.method === "POST" && forsendelseTreff) {
       const klient = await requireSvarutHjemmel(request);
@@ -975,7 +975,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         syntetisk: true
       };
       await updateJson("forsendelser.json", [], (forsendelser) => forsendelser.push(forsendelse));
-      // The audit entry records the forsendelse and the channel decision — not
+      // The audit entry records the forsendelse and the channel decision - not
       // the recipient's contact info: which letters left and how is the question
       // the log answers, and the address does not belong in it.
       await addRevisjon({
@@ -986,7 +986,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
           : { type: "system", id: "fiks-simulator" },
         grunnlag: { id: forsendelse.id, kanal: forsendelse.kanal, mottakerVarslet: forsendelse.kanal === "DIGITAL" }
       });
-      // 200 med bare id-en, som spekken — ikke 201 med hele raden.
+      // 200 med bare id-en, som spekken - ikke 201 med hele raden.
       jsonResponse(response, 200, { id: forsendelse.id, syntetisk: true });
       return;
     }
@@ -1026,8 +1026,8 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         samtykkeId: newId("samtykke"),
         // Ikke validert: ruta har aldri krevd personId, og en kropp uten den
         // lagrer i dag et samtykke som ikke hører til noen. Typen sier `string`
-        // fordi et samtykke uten person er meningsløst. Avviket er bevart her —
-        // en migrering skal ikke endre atferd — men det er et ekte hull.
+        // fordi et samtykke uten person er meningsløst. Avviket er bevart her -
+        // en migrering skal ikke endre atferd - men det er et ekte hull.
         personId: body.personId as string,
         formaal: body.formaal,
         dataKilder: body.dataKilder || [],
@@ -1046,7 +1046,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         handling: "SAMTYKKE_OPPRETTET",
         ressurs: "samtykke",
         // The service asked. A consent request is something a municipality sends,
-        // not something the citizen does — they have not answered yet.
+        // not something the citizen does - they have not answered yet.
         aktor: { type: "system", id: "fiks-simulator", paaVegneAv: newSamtykke.personId }
       });
       jsonResponse(response, 201, newSamtykke);
@@ -1102,7 +1102,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       await requireSamtykkeHjemmel(request);
       const body = await readRequestBody(request) as SamtykkeKropp;
       // A withdrawal is a transition like any other: from SAMTYKKET and nowhere
-      // else — a consent cannot be withdrawn twice, or withdrawn while the citizen
+      // else - a consent cannot be withdrawn twice, or withdrawn while the citizen
       // has never answered it.
       const samtykke = await setSamtykkestatus(trekkTreff[1], "TRUKKET", body);
       await addRevisjon({
@@ -1139,7 +1139,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       const personer = await tilstand.personer();
       const person = personer.find((kandidat) => kandidat.personId === husstandTreff[1]);
       const husstand = (await tilstand.husstander()).find((kandidat) => kandidat.husstandId === person?.husstandId);
-      // The household address is masked only when every member is protected — you
+      // The household address is masked only when every member is protected - you
       // cannot hide an address someone shares with an unprotected person. Same rule
       // as sandbox-backend, because it is the same function.
       const gradering = new Map(personer.map((p) => [p.personId, p.adressebeskyttelse]));
@@ -1153,7 +1153,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     const inntektTreff = url.pathname.match(/^\/fiks\/register\/inntekt\/([^/]+)$/);
     if (request.method === "GET" && inntektTreff) {
-      // This route handed out full income with no token and no samtykke — the way
+      // This route handed out full income with no token and no samtykke - the way
       // around consent-before-income, the sandbox's flagship policy rule.
       await requireRegisterHjemmel(request);
       const inntekt = (await tilstand.inntekter()).find((kandidat) => kandidat.personId === inntektTreff[1]);
@@ -1219,7 +1219,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     // Casework has a direction: an oppgave is picked up, then finished or rejected,
     // and none of those are undoable. No case in the sandbox drives an oppgave past
-    // OPPRETTET yet — this is the surface a saksbehandlerflate would use.
+    // OPPRETTET yet - this is the surface a saksbehandlerflate would use.
     const oppgaveStatusTreff = url.pathname.match(/^\/fiks\/oppgaver\/([^/]+)\/status$/);
     if (request.method === "PUT" && oppgaveStatusTreff) {
       await requireOppgaveHjemmel(request);

@@ -1,5 +1,5 @@
 // Sidescript for utforsker. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 export {};
@@ -15,11 +15,11 @@ renderTopNav("/utforsker");
 // digdir-mock. Nå står den ett sted, og pnpm test:openapi krever at den er
 // enig med tjenestelista i scripts/sjekk-openapi-dekning.ts.
 // Formene tjenestene faktisk sender på GET /openapi-ruter.json. Fasiten er
-// Route, Parameter og RouteOverview i apps/shared/openapi.ts — dette er den
+// Route, Parameter og RouteOverview i apps/shared/openapi.ts - dette er den
 // samme kontrakten sett fra nettleseren, som ikke kan importere den.
 type RuteParameter = {
   navn: string;
-  /** `in:` fra OpenAPI — path, query, header eller cookie. */
+  /** `in:` fra OpenAPI - path, query, header eller cookie. */
   plassering: string;
   paakrevd: boolean;
   eksempel?: string;
@@ -50,8 +50,8 @@ type UtforskerTjeneste = { navn: string; base: string };
 type Testbruker = { pid: string; personId?: string; visningsnavn?: string };
 
 /**
- * Legitimasjonen for ett kall. Enten `mangler` — og da er det ingenting å sende
- * — eller resten av feltene.
+ * Legitimasjonen for ett kall. Enten `mangler` - og da er det ingenting å sende
+ * - eller resten av feltene.
  */
 type Legitimasjon = {
   header?: Record<string, string>;
@@ -128,7 +128,7 @@ function base64urlText(tekst: string): string {
  * formen man lærer her er riktig.
  *
  * MEN: ekte Maskinporten krever en assertion signert med en privat nøkkel som
- * er registrert på klienten — en nøkkel en nettleser aldri skal holde. Derfor
+ * er registrert på klienten - en nøkkel en nettleser aldri skal holde. Derfor
  * står merkelappen i UI-et ved siden av tokenet, ikke bare her.
  */
 async function getMaskinportenToken(audience: string, scope: string): Promise<string> {
@@ -170,7 +170,7 @@ async function getMaskinportenToken(audience: string, scope: string): Promise<st
 
 /**
  * Hvilken ordning som brukes for en rute. Godtar ruta flere, kan deltakeren
- * velge — det er der forskjellen på «egne data» og «maskin med scope» blir
+ * velge - det er der forskjellen på «egne data» og «maskin med scope» blir
  * synlig, og der en 403 er verdt å framkalle med vilje.
  */
 function chosenOrdningFor(rute: Rute): string | null {
@@ -178,7 +178,7 @@ function chosenOrdningFor(rute: Rute): string | null {
   if (ordninger.length <= 1) return ordninger[0] || null;
   // Valget må ligge her og ikke i DOM-en: tegnDetaljer bygger panelet på nytt
   // for hvert bytte, og en velger som leses av seg selv nullstilles i samme
-  // slengen — knappen så ut som den ikke virket.
+  // slengen - knappen så ut som den ikke virket.
   if (valgtOrdning && ordninger.includes(valgtOrdning)) return valgtOrdning;
   // tjeneste er alltid satt her: rutene tegnes først etter loadTjeneste().
   return tokenValid(tjeneste!.navn) ? "idporten" : ordninger[0];
@@ -199,7 +199,7 @@ async function getCredentials(rute: Rute): Promise<Legitimasjon> {
   }
 
   const ordning = chosenOrdningFor(rute);
-  if (!ordning) return { header: {}, hva: "ingen legitimasjon — ruta er åpen", curlHent: null };
+  if (!ordning) return { header: {}, hva: "ingen legitimasjon - ruta er åpen", curlHent: null };
 
   const audience = tjeneste!.navn;
 
@@ -320,7 +320,7 @@ function renderIdentitet(): void {
   const eget = document.createElement("details");
   const sammendrag = document.createElement("summary");
   sammendrag.textContent = manueltToken
-    ? "Bruker et token du limte inn — klikk for å fjerne det"
+    ? "Bruker et token du limte inn - klikk for å fjerne det"
     : "Har du allerede et token fra scripts/token.ts? Lim det inn her";
   eget.appendChild(sammendrag);
 
@@ -452,14 +452,14 @@ async function renderDetaljer(rute: Rute): Promise<void> {
   if (ordninger.length > 1 && !manueltToken) {
     const label = document.createElement("label");
     label.htmlFor = "ordningvelger";
-    label.textContent = "Ruta godtar to ordninger — send som";
+    label.textContent = "Ruta godtar to ordninger - send som";
     const velger = document.createElement("select");
     velger.id = "ordningvelger";
     for (const ordning of ordninger) {
       const valg = document.createElement("option");
       valg.value = ordning;
       valg.textContent = ordning === "idporten"
-        ? "ID-porten (innbygger — ser bare seg selv)"
+        ? "ID-porten (innbygger - ser bare seg selv)"
         : `Maskinporten (${rute.scopes.join(", ") || "uten scope"})`;
       velger.appendChild(valg);
     }
@@ -497,7 +497,7 @@ async function renderDetaljer(rute: Rute): Promise<void> {
     merknad.textContent =
       "Assertionen er bygget her i nettleseren. Det virker fordi digdir-mock " +
       "validerer den på form, ikke på signatur. Ekte Maskinporten krever en " +
-      "assertion signert med en privat nøkkel som er registrert på klienten — " +
+      "assertion signert med en privat nøkkel som er registrert på klienten - " +
       "og en privat nøkkel skal aldri ligge i en nettleser.";
     boks.appendChild(merknad);
   }
@@ -580,14 +580,14 @@ function buildUrl(rute: Rute, felter: Map<RuteParameter, HTMLInputElement>): str
 /*
  * encodeURIComponent slipper apostrofen gjennom, og en apostrof inne i
  * enkeltfnutter avslutter dem. Uten skjermingen her blir kommandoen ukjørbar
- * — og «en curl som virker når den limes inn» er det siden lover.
+ * - og «en curl som virker når den limes inn» er det siden lover.
  */
 function shellQuote(verdi: unknown): string {
   return `'${String(verdi).replaceAll("'", `'\\''`)}'`;
 }
 
 /*
- * Kommandoen som skrives ut er den som ble kjørt, ikke en mal — med de samme
+ * Kommandoen som skrives ut er den som ble kjørt, ikke en mal - med de samme
  * headerne. To former: én som viser hvordan tokenet skaffes, og én med
  * tokenet skrevet inn, som virker umiddelbart. Dataene er syntetiske.
  */
@@ -626,7 +626,7 @@ async function sendRequest(
   if (tomme.length) {
     const mangler = document.createElement("p");
     mangler.className = "statuslinje feil";
-    mangler.textContent = `Fyll inn ${tomme.join(", ")} først — ${tomme.length === 1 ? "den er" : "de er"} påkrevd.`;
+    mangler.textContent = `Fyll inn ${tomme.join(", ")} først - ${tomme.length === 1 ? "den er" : "de er"} påkrevd.`;
     svarrute.appendChild(mangler);
     return;
   }
@@ -724,11 +724,11 @@ async function sendRequest(
 function explainRejection(rute: Rute, status: number, legitimasjon: Legitimasjon): string {
   const hjemmel = hjemmelFor(rute);
   if (status === 401) {
-    return `401 betyr «vi vet ikke hvem du er» — tokenet mangler, er utløpt, eller er ` +
+    return `401 betyr «vi vet ikke hvem du er» - tokenet mangler, er utløpt, eller er ` +
       `utstedt for en annen audience enn ${tjeneste!.navn}. Ruta krever ${hjemmel.tekst}.`;
   }
   return "403 betyr «vi vet hvem du er, og du har ikke lov». Legitimasjonen holdt, " +
-    "men den gjelder ikke denne ressursen — se grunnen i kroppen under. Et " +
+    "men den gjelder ikke denne ressursen - se grunnen i kroppen under. Et " +
     "ID-porten-token er bundet til én person, og et Maskinporten-token til ett scope.";
 }
 
@@ -751,7 +751,7 @@ async function loadTjeneste(
 ): Promise<void> {
   tjeneste = valgt;
   // Hvilket valg denne kjøringen gjelder. Bytter man tjeneste igjen før
-  // hentingen er ferdig, skal det trege svaret forkastes — ellers rendres
+  // hentingen er ferdig, skal det trege svaret forkastes - ellers rendres
   // én tjenestes ruter mens kallene går til en annens adresse.
   const gjelder = valgt;
   valgtRute = null;

@@ -50,7 +50,7 @@ export const fiksRegisterToken = { ...fiksTokenBase, scope: "ks:fiks:register" }
  * Asking for consent, answering it, and putting the resulting søknad in a
  * caseworker's queue. Used by prosess.ts.
  *
- * This service is a machine here, deliberately — it holds the verified citizen
+ * This service is a machine here, deliberately - it holds the verified citizen
  * token, decides, and then names the citizen in `aktor` on the way out. A service
  * that handed itself the citizen's identity would be the wrong lesson.
  */

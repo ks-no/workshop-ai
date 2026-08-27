@@ -91,7 +91,7 @@ type Rute = {
   sti: string;
   /**
    * Which authorisation this route requires. Omitting it means the closed value,
-   * "egne-data" — so a route added during the hackathon is protected unless someone
+   * "egne-data" - so a route added during the hackathon is protected unless someone
    * opens it on purpose. Failing closed is the only default that survives a rush.
    */
   tilgang?: Tilgang;
@@ -99,7 +99,7 @@ type Rute = {
   scope?: string;
   /**
    * Whose data this route touches, for the pid binding. Returning null means the
-   * route has no single subject — and then the handler must narrow the answer to
+   * route has no single subject - and then the handler must narrow the answer to
    * the caller itself. See the Tilgang docs in autentisering.ts.
    *
    * Runs after readState(), so it can look the subject up.
@@ -111,7 +111,7 @@ type Rute = {
 // --- who a route is about -------------------------------------------------
 
 // A prosessoekt belongs to a person. Binding the token to the session's owner is
-// the second half of the pid binding — without it the process path stays open even
+// the second half of the pid binding - without it the process path stays open even
 // though the direct HTTP path is closed, because a SJEKK step runs with
 // session.personId regardless of who asked.
 function eierAvOekt({ parametere, tilstand }: { parametere: PathParams; tilstand: State }) {
@@ -153,9 +153,9 @@ function getSporingsId(url: URL) {
  * oppdatert-stamp and save have one owner, so one drift surface.
  *
  * `krevAapen` is the guard: an AVVIST or FULLFORT økt takes no further svar,
- * handling or navigation — a replayed POST /handling on a FULLFORT økt would
+ * handling or navigation - a replayed POST /handling on a FULLFORT økt would
  * otherwise run the SUBMIT handler again and produce a duplicate søknad and a
- * new Fiks task per call. Reads pass `krevAapen: false` — demo-gui renders
+ * new Fiks task per call. Reads pass `krevAapen: false` - demo-gui renders
  * finished and rejected økter, and a rejection you cannot look at afterwards
  * would be worse than the replay this closes.
  *
@@ -273,7 +273,7 @@ const ruter: Rute[] = [
     metode: "GET",
     // Open because process definitions are not person data. They are the
     // workshop's raw material, and the prosessbygger reads and writes them
-    // without a token — a deliberate line, not an oversight. Do not "fix" it.
+    // without a token - a deliberate line, not an oversight. Do not "fix" it.
     tilgang: "aapen",
     sti: "/api/prosesser",
     handter: ({ response, url, tilstand }) => {
@@ -321,7 +321,7 @@ const ruter: Rute[] = [
     handter: ({ response }) => {
       // Built from state.ts's SEED_DATASETS, not from a literal here: the literal
       // listed four of eleven and hid the data three of the five cases run on.
-      // The response key stays `fil` — it is published wire format; only the
+      // The response key stays `fil` - it is published wire format; only the
       // constant's own property is English.
       jsonResponse(
         response,
@@ -540,7 +540,7 @@ const ruter: Rute[] = [
      * A thin proxy in front of SvarUt' status-sok, and the reason it exists is
      * the token: the browser holds an ID-porten token for the citizen, and the
      * SvarUt surface takes Maskinporten only. This route is where the
-     * municipality's hjemmel meets the citizen's — authorised as the søknad's
+     * municipality's hjemmel meets the citizen's - authorised as the søknad's
      * owner, then asked for on the machine's token.
      *
      * It answers about one forsendelse, the one this søknad's kvittering was
@@ -598,8 +598,8 @@ const ruter: Rute[] = [
   {
     metode: "GET",
     sti: "/api/revisjonslogg/:sporingsId",
-    // One sporingsId is one flow. A citizen may read their own — that is the
-    // transparency surface demo-gui renders — so the subject is whoever the flow
+    // One sporingsId is one flow. A citizen may read their own - that is the
+    // transparency surface demo-gui renders - so the subject is whoever the flow
     // was about. A flow with no person in it is open to any authenticated caller.
     finnPersonId: ({ parametere, tilstand }) =>
       tilstand.prosessoekter.find((session: any) => session.sporingsId === parametere.sporingsId)?.personId
@@ -649,7 +649,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
         request, response, url, parametere: treff.parametere,
         // The cast states the invariant rather than guessing at it: these are
         // exactly the routes in systemPaths, and they are the only handlers that
-        // never touch tilstand — which is the whole reason they are called before
+        // never touch tilstand - which is the whole reason they are called before
         // readState(). Widening Kontekst.tilstand to `State | null` instead would
         // push a null check into all forty handlers to describe five.
         tilstand: null as unknown as State,
@@ -676,7 +676,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
           kaller,
           tilgang: treff.rute.tilgang ?? "egne-data",
           scope: treff.rute.scope ?? SCOPE_LES,
-          // A subject we cannot resolve — an unknown oektsId, say — leaves pid null,
+          // A subject we cannot resolve - an unknown oektsId, say - leaves pid null,
           // and the handler then answers 404. Refusing with 403 instead would tell
           // an unauthenticated caller which session ids exist.
           pid: personId

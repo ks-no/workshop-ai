@@ -27,7 +27,7 @@ import { kanHaEid, kanOpptreSelv } from "../../shared/handleevne.ts";
 // WHY WE WRITE OUR OWN. The fiks-io stack ships an oidc-provider-mock, and it runs
 // on Ørjan's machine. It is not usable here for two reasons: participants cannot
 // pull the image from KS' Artifactory, and it only implements authorization_code
-// and refresh_token — there is no jwt-bearer grant, so no Maskinporten in it at
+// and refresh_token - there is no jwt-bearer grant, so no Maskinporten in it at
 // all. Its error bodies are unmodelled plain text and Tomcat HTML. So this is
 // modelled on Digdir's published contract and RFC 6749/6750 instead, not on it.
 //
@@ -36,7 +36,7 @@ import { kanHaEid, kanOpptreSelv } from "../../shared/handleevne.ts";
 // Real Maskinporten holds a registered public key per client and checks it. We have
 // no key registry, so any well-formed assertion is accepted and its `iss` is taken
 // as the client_id. That is fine here because the lesson lives on the resource
-// server — see the enforcement in sandbox-backend/src/autentisering.ts. It would
+// server - see the enforcement in sandbox-backend/src/autentisering.ts. It would
 // not be fine anywhere else.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -67,7 +67,7 @@ const codeLifetimeSeconds = 300;
 // --- keys -----------------------------------------------------------------
 
 // Generated on first boot and kept in state/, not in data/. A private key must
-// never be committed, not even a synthetic one — and persisting it means a restart
+// never be committed, not even a synthetic one - and persisting it means a restart
 // does not invalidate every token a participant already pasted somewhere.
 // ./start.sh --reset rotates it, which is the right semantics for a reset.
 const keyFile = path.join(stateDir, "digdir-nokkel.json");
@@ -248,7 +248,7 @@ type IdportenOptions = {
 function idportenTokens({ clientId, audience, pid, nonce }: IdportenOptions) {
   const felles = commonClaims(idportenIssuer, audience);
   const person = {
-    // `sub` is a pairwise pseudonym in real ID-porten — stable per person per
+    // `sub` is a pairwise pseudonym in real ID-porten - stable per person per
     // client, and deliberately not the fødselsnummer. `pid` is where the
     // fødselsnummer lives. Conflating them is a common mistake, so they differ here.
     sub: createHash("sha256").update(`${clientId}:${pid}`).digest("base64url"),
@@ -469,7 +469,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
       const antall = document.getElementById("antall");
       const alle = [...picker.options];
 
-      // A <select size=n> is a listbox, and a listbox starts with nothing selected —
+      // A <select size=n> is a listbox, and a listbox starts with nothing selected -
       // unlike a dropdown, which auto-selects its first option. Without this the
       // form cannot be submitted until the user clicks a row, which reads as a
       // broken button rather than as a missing choice.
@@ -508,18 +508,18 @@ function docsHtml(): string {
 <html lang="nb">
   <head><meta charset="utf-8"><title>Digdir Mock API</title></head>
   <body style="font-family: Arial, sans-serif; padding: 24px;">
-    <h1>Digdir Mock — Maskinporten og ID-porten</h1>
+    <h1>Digdir Mock - Maskinporten og ID-porten</h1>
     <p><a href="/openapi.yaml">Spesifikasjonen</a> · <a href="/openapi-ruter.json">Samme, lest, som JSON</a> · <a href="http://localhost:3001/utforsker">Prøv rutene i API-utforskeren</a></p>
     <h2>Maskinporten (maskin til maskin)</h2>
     <ul>
       <li><code>GET /.well-known/oauth-authorization-server</code></li>
-      <li><code>POST /token</code> — grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer</li>
+      <li><code>POST /token</code> - grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer</li>
     </ul>
     <h2>ID-porten (innbygger)</h2>
     <ul>
       <li><code>GET /idporten/.well-known/openid-configuration</code></li>
-      <li><code>GET /idporten/authorize</code> — testbrukervelger</li>
-      <li><code>POST /idporten/token</code> — grant_type=authorization_code</li>
+      <li><code>GET /idporten/authorize</code> - testbrukervelger</li>
+      <li><code>POST /idporten/token</code> - grant_type=authorization_code</li>
     </ul>
     <h2>Felles</h2>
     <ul>
@@ -568,7 +568,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     // Maskinporten's metadata. Real Maskinporten publishes this at
-    // /.well-known/oauth-authorization-server — it is an OAuth server, not an
+    // /.well-known/oauth-authorization-server - it is an OAuth server, not an
     // OpenID Provider, because no person is involved and there is no id_token.
     if (sti === "/.well-known/oauth-authorization-server") {
       jsonResponse(response, 200, {
@@ -606,7 +606,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     // The testbrukere, machine-readable.
     //
     // The information is the same as the picker page already publishes, but a
-    // listing is a contract and HTML is not — a script that scrapes the picker
+    // listing is a contract and HTML is not - a script that scrapes the picker
     // breaks with every restyling.
     //
     // Real ID-porten has nothing like this, and could not: there is no endpoint
@@ -650,7 +650,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         return;
       }
 
-      // Shape, not signature — see the note at the top of this file. Every field
+      // Shape, not signature - see the note at the top of this file. Every field
       // real Maskinporten requires is still required, so a client that works here
       // is built correctly.
       for (const felt of ["iss", "aud", "scope", "exp"]) {
@@ -769,7 +769,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         return;
       }
 
-      // PKCE. Required for public clients — demo-gui runs in a browser and cannot
+      // PKCE. Required for public clients - demo-gui runs in a browser and cannot
       // keep a secret, so the code alone must not be enough to redeem.
       if (stored.codeChallenge) {
         const verifier = form.get("code_verifier");

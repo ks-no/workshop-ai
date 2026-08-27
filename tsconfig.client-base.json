@@ -1,16 +1,16 @@
 {
-  // Felles innstillinger for all nettleserkode. Filene listes ikke her — hver
+  // Felles innstillinger for all nettleserkode. Filene listes ikke her - hver
   // client/-katalog har sin egen tsconfig.json som utvider denne.
   //
   // Grunnen er hvordan editorer finner en config: tsserver (IntelliJ, WebStorm,
   // VS Code, nvim) går oppover fra fila og leter etter en fil som heter nøyaktig
   // «tsconfig.json». En config med et annet navn blir ikke funnet, og da faller
-  // editoren tilbake på standardvalg — uten DOM-lib og uten moduleDetection
+  // editoren tilbake på standardvalg - uten DOM-lib og uten moduleDetection
   // legacy. Resultatet var «Cannot find name renderTopNav» på hver eneste linje
   // som brukte noe fra felles.ts.
   //
   // Nettleserkoden trenger stikk motsatt miljø av Node-siden: DOM i stedet for
-  // node:*, og ingen @types/node — uten "types": [] ville process og Buffer se
+  // node:*, og ingen @types/node - uten "types": [] ville process og Buffer se
   // ut som om de fantes i en nettleser.
   //
   // Filene serveres som .ts og type-strippes ved servering
@@ -27,7 +27,7 @@
     "noEmit": true,
     "erasableSyntaxOnly": true,
 
-    // Sidene er statisk HTML med globale funksjoner, ikke moduler — et bevisst
+    // Sidene er statisk HTML med globale funksjoner, ikke moduler - et bevisst
     // valg, se filhodet i client/felles.ts. Uten "legacy" ville TS regnet hver
     // .ts-fil som en modul (rot-package.json har "type": "module"), og da er
     // felles.ts sine funksjoner usynlige for sidescriptene.

@@ -1,6 +1,6 @@
 ---
 name: ksd-designsystem
-description: Bruk KS Digital sitt designsystem når du skriver frontend, HTML, CSS eller GUI i dette repoet — enten du utvider demo-gui/process-builder eller lager en ny frontend. Dekker oppsett, kaskaderegler og hvor komponentene er dokumentert. Bruk også når noen spør om styling, komponenter, ds-klasser, tokens, temaer, lys/mørk-modus eller universell utforming.
+description: Bruk KS Digital sitt designsystem når du skriver frontend, HTML, CSS eller GUI i dette repoet - enten du utvider demo-gui/process-builder eller lager en ny frontend. Dekker oppsett, kaskaderegler og hvor komponentene er dokumentert. Bruk også når noen spør om styling, komponenter, ds-klasser, tokens, temaer, lys/mørk-modus eller universell utforming.
 ---
 
 # KS Digital designsystem
@@ -10,7 +10,7 @@ Komponenter, API og tilgjengelighet er dokumentert hos Digdir:
 
 **Forventningen er at frontend bygges i et eget prosjekt utenfor dette repoet**, mot
 sandkassens API-er (`docs/bygg-selv.md`). Der installeres designsystemet fra npm
-(`@ks-digital/designsystem-themes`), og «Aldri»-punkt 1–3 under gjelder ikke — de er
+(`@ks-digital/designsystem-themes`), og «Aldri»-punkt 1–3 under gjelder ikke - de er
 regler for *dette* repoet. Bygger du likevel her inne, gjelder alt.
 
 `docs/designsystem.md` dekker begge oppsettene, kaskadefella og fallgruvene. Les den før

@@ -1,8 +1,8 @@
 // Formene i data/brreg.seed.json og data/folkeregister.seed.json.
 //
 // Tre tjenester leser de to filene: brreg-mcp og folkeregister-mcp over MCP, og
-// tools-api over REST. Det er en kjent duplisering av *kode* — se tjenestekartet
-// i AGENTS.md — men typene trenger ikke dupliseres med den. Endres et felt i
+// tools-api over REST. Det er en kjent duplisering av *kode* - se tjenestekartet
+// i AGENTS.md - men typene trenger ikke dupliseres med den. Endres et felt i
 // seeden, endres det her, og alle tre stopper på kompilering.
 //
 // Verdiene er dels `unknown`: dette er datasett hentet utenfra, og leserne
@@ -104,8 +104,8 @@ export type FolkeregisterPerson = {
  * En adresse fra https://ws.geonorge.no/adresser/v1.
  *
  * Feltene her er de sandkassen leser, ikke hele svaret. Både matrikkel-mock og
- * tools-api kaller API-et — den dupliseringen er kjent, se tjenestekartet i
- * AGENTS.md — men de leser samme form, så formen står ett sted.
+ * tools-api kaller API-et - den dupliseringen er kjent, se tjenestekartet i
+ * AGENTS.md - men de leser samme form, så formen står ett sted.
  */
 export type GeonorgeAdresse = {
   adressenavn?: string;

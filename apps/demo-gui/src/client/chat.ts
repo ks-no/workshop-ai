@@ -1,5 +1,5 @@
 // Sidescript for chat. Lastes som <script type="module">, så alt her har sitt
-// eget scope — to sider kan bruke samme navn på hver sin `backendBase` uten å
+// eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 export {};
@@ -17,7 +17,7 @@ const aiBase = "http://localhost:8082";
  * gir en tom visning i stedet for en tom side.
  */
 
-/** Resultatet av ett steg. Formen avhenger av stegtypen — derfor åpen. */
+/** Resultatet av ett steg. Formen avhenger av stegtypen - derfor åpen. */
 type Stegresultat = {
   godkjent?: boolean;
   melding?: string;
@@ -144,7 +144,7 @@ function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresul
      * hvilken kanal kvitteringen faktisk går på: kanalvalget tas av SvarUt
      * (chooseKanal i fiks-simulator), og en kopi av regelen her ville vært en
      * andre implementasjon som kan gli fra den ekte. Predikatet er derfor
-     * SvarUt sitt eget første trinn — kan varsles og ikke reservert — og
+     * SvarUt sitt eget første trinn - kan varsles og ikke reservert - og
      * statuslinja etter innsending navngir kanalen som ble valgt.
      */
     if (typeof result.reservert === "boolean") {
@@ -190,7 +190,7 @@ function promptForStep(steg: ProsessSteg | null | undefined): string {
   /*
    * Samtykketeksten er deterministisk og skal forbli det. Et samtykke må
    * være informert og utvetydig, så modellen får ikke skrive om selve
-   * spørsmålet — bare svare på oppfølgingsspørsmål om det, gjennom
+   * spørsmålet - bare svare på oppfølgingsspørsmål om det, gjennom
    * /ai/sporsmaal med sine sperrer.
    *
    * Det som er nytt her er ikke tonen, men at spørsmålet faktisk sier
@@ -205,7 +205,7 @@ function promptForStep(steg: ProsessSteg | null | undefined): string {
       "",
       `• Hva vi henter: ${dataKilder}`,
       `• Hvorfor: for å ${formaal}`,
-      "• Hvor fra: Skatteetaten, via KS Fiks — her simulert med syntetiske data",
+      "• Hvor fra: Skatteetaten, via KS Fiks - her simulert med syntetiske data",
       "• Sier du nei: da henter vi ingenting, og vi kan ikke vurdere saken videre nå",
       "• Du kan ombestemme deg og trekke samtykket etterpå",
       "",
@@ -282,7 +282,7 @@ function renderOektStatus(): void {
 
     // Revisjonsloggen rendres i siden, ikke som lenke i ny fane. En <a href>
     // kan ikke bære en Authorization-header, så under håndhevelse ville
-    // lenken blitt en 401-side — og loggen er den mest personsensitive
+    // lenken blitt en 401-side - og loggen er den mest personsensitive
     // flaten vi har. Den skal ikke være den ene uten port.
     const knapp = document.createElement("a");
     knapp.href = "#";
@@ -306,7 +306,7 @@ async function showRevisjonslogg(sporingsId: string): Promise<void> {
       const aktor = rad.aktor
         ? `${rad.aktor.type}${rad.aktor.id ? ` ${rad.aktor.id}` : ""}${rad.aktor.paaVegneAv ? ` på vegne av ${rad.aktor.paaVegneAv}` : ""}`
         : "ukjent";
-      return `${rad.handling} — ${rad.ressurs || "?"} — ${aktor}`;
+      return `${rad.handling} - ${rad.ressurs || "?"} - ${aktor}`;
     });
     addMsg("system", `Revisjonslogg (${rader.length} hendelser):\n${linjer.join("\n")}`);
   } catch (feil) {
@@ -345,7 +345,7 @@ function valgtPerson(): string {
  * Flyten er ryggraden, men et spørsmål underveis skal sette den på pause
  * i stedet for å bli avvist. Ruten er tilstandsfri med vilje: den kaller
  * aldri /svar, /handling eller /neste. Motoren er lineær, så et svar som
- * feilaktig ble lest som spørsmål koster én tur — mens et spørsmål som
+ * feilaktig ble lest som spørsmål koster én tur - mens et spørsmål som
  * ble lagret som svar er stille og ugjenkallelig.
  */
 
@@ -399,12 +399,12 @@ async function buildSporsmaalsKontekst(): Promise<Record<string, unknown>> {
     try {
       // req(), not a bare fetch: the lookup is egne-data, so it needs the
       // ID-porten token. Without it AUTH_ENFORCE answers 401 and the field
-      // would silently stay null — a lookup that looks like it works.
+      // would silently stay null - a lookup that looks like it works.
       mineEiendommer = await req<unknown>(
         `/api/matrikkel/mine-eiendommer?personId=${encodeURIComponent(oekt.personId)}`
       );
     } catch (_) {
-      // Best-effort — answer without ownership data if lookup fails
+      // Best-effort - answer without ownership data if lookup fails
     }
   }
   return {
@@ -414,7 +414,7 @@ async function buildSporsmaalsKontekst(): Promise<Record<string, unknown>> {
     flyt: buildFlyt(),
     satser: satser,
     // Står vi på samtykkesteget uten svar ennå, er «venter» sannere enn
-    // ingenting — og det er nettopp da innbygger spør hvorfor.
+    // ingenting - og det er nettopp da innbygger spør hvorfor.
     samtykke: sisteSamtykke || (oekt?.aktivtSteg?.type === "CONSENT_REQUEST"
       ? {
           status: "VENTER_PAA_SVAR",
@@ -467,12 +467,12 @@ async function answerSidesporsmaal(text: string, fraKnapp = false): Promise<void
   resumeFlyt(fraKnapp ? null : text);
 }
 
-// Flyten gjenopptas eksplisitt. stegIndex er ikke rørt — vi viser bare
+// Flyten gjenopptas eksplisitt. stegIndex er ikke rørt - vi viser bare
 // hvor vi står, og gir en vei ut av en feilruting.
 function resumeFlyt(opprinneligTekst: string | null): void {
   const steg = oekt?.aktivtSteg;
   if (!steg) return;
-  addMsg("system", `Sidespørsmål — flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
+  addMsg("system", `Sidespørsmål - flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
   addMsg("assistant", promptForStep(steg));
   renderQuickActionsFor(steg, opprinneligTekst);
 }
@@ -594,14 +594,14 @@ async function goNext(): Promise<void> {
 /* ── Innsendingen ──────────────────────────────────────────────────────
  *
  * Fram til nå endte en fullført prosess i én linje: «Søknaden er sendt inn».
- * Alt den faktisk produserte — dokumentet kommunen mottok, og kvitteringen på
- * vei ut til innbyggeren — lå usynlig i JSON. Her vises begge, og bare på
+ * Alt den faktisk produserte - dokumentet kommunen mottok, og kvitteringen på
+ * vei ut til innbyggeren - lå usynlig i JSON. Her vises begge, og bare på
  * chat-siden: stegvis-siden er et rå-JSON-verktøy og skal forbli det.
  */
 
 // Kodeverket ligger i apps/fiks-simulator/src/forsendelse.ts. Gjengitt som tekst
 // her fordi det er denne siden som skal si det på norsk. Ingenting pinner denne
-// tabellen mot kodeverket, så en ny status faller ut som «har status X» —
+// tabellen mot kodeverket, så en ny status faller ut som «har status X» -
 // synlig nok å oppdage, tomt nok å ikke lyve.
 const FORSENDELSESTEKST: Record<string, string> = {
   MOTTATT: "Kvitteringen er mottatt hos SvarUt.",
@@ -609,7 +609,7 @@ const FORSENDELSESTEKST: Record<string, string> = {
   SENDT_PRINT: "Kvitteringen er sendt til print og legges i posten.",
   LEST: "Kvitteringen er lest i den digitale postkassen.",
   PRINTET: "Kvitteringen er printet og sendt i posten.",
-  IKKE_LEVERT: "Kvitteringen kunne ikke leveres — verken digitalt eller på papir."
+  IKKE_LEVERT: "Kvitteringen kunne ikke leveres - verken digitalt eller på papir."
 };
 
 // Sluttilstandene. Der slutter pollingen, fordi statusen ikke kan endre seg mer.
@@ -629,7 +629,7 @@ const FORSENDELSE_MAKS_FEIL = 3;
 
 /*
  * Pollingen lever på tvers av turer i chatten, så den må kunne stoppes utenfra
- * — «Start chat» og «Nullstill» tømmer chatEl, og en runde som fortsatt skrev
+ * - «Start chat» og «Nullstill» tømmer chatEl, og en runde som fortsatt skrev
  * til den gamle boblen ville skrevet til et element ingen ser.
  *
  * Et løpenummer, ikke et flagg: en ny runde kan starte med én gang, uten å
@@ -643,7 +643,7 @@ function stopForsendelsespolling(): void {
 
 /*
  * Søknadsdokumentet, som egen boble med sin egen form. Bygget her i stedet for
- * med addMsg fordi boblen har to deler — en overskrift og selve dokumentet —
+ * med addMsg fordi boblen har to deler - en overskrift og selve dokumentet -
  * og fordi teksten er formatert på serversiden og skal leses slik den er.
  */
 function addDokumentboble(dokument: string): void {
@@ -667,12 +667,12 @@ function addDokumentboble(dokument: string): void {
  * Statuslinja skrives om i stedet for å få en ny boble per runde: seks linjer
  * sier ingenting mer enn den siste, og MOTTATT → SENDT → LEST er en bevegelse
  * man skal se, ikke lese seg gjennom. Spinneren står så lenge det kan komme
- * mer, og forsvinner når statusen er endelig — ellers spinner den for alltid.
+ * mer, og forsvinner når statusen er endelig - ellers spinner den for alltid.
  *
  * En runde som fant samme status som forrige gang skriver ingenting, og det er
  * ikke bare sparte DOM-operasjoner: #chat er aria-live="polite", så en
  * uendret tekst skrevet på nytt hvert tredje sekund leses opp på nytt hvert
- * tredje sekund — tjue ganger mens forsendelsen står i MOTTATT. Av samme grunn
+ * tredje sekund - tjue ganger mens forsendelsen står i MOTTATT. Av samme grunn
  * ruller siden bare når linja faktisk sa noe nytt: dokumentboblen over er høy,
  * og en leser som bla oppover i den skal ikke rykkes ned igjen mens hen leser.
  */
@@ -731,7 +731,7 @@ async function followForsendelse(soknadId: string): Promise<void> {
 
 /*
  * Kanalen navngis ikke her. Den avgjøres av SvarUt ut fra kontaktregisteret, og
- * statuslinja leser den avgjørelsen — SENDT_DIGITALT/LEST mot SENDT_PRINT/
+ * statuslinja leser den avgjørelsen - SENDT_DIGITALT/LEST mot SENDT_PRINT/
  * PRINTET er kanalvalget, sett fra utsiden.
  *
  * Kvitteringen er best effort, så en søknad kan være lagret uten at noe ble
@@ -796,7 +796,7 @@ async function runHandling(payload: Record<string, unknown>, successText: string
 
   // Et utfall reiser spørsmål. Å tilby dem er billigere enn å håpe at
   // innbygger vet at de kan spørre. Settes her, men tegnes av
-  // renderQuickActionsFor — goNext() tegner knappene på nytt rett etter.
+  // renderQuickActionsFor - goNext() tegner knappene på nytt rett etter.
   if (steg?.type === "SJEKK") {
     ventendeOppfolging = ["Hvorfor ble det slik?", "Hvilke opplysninger brukte dere?", "Hva skjer med opplysningene mine?"];
   } else if (steg?.type === "SUMMARY") {
@@ -964,7 +964,7 @@ async function sendMessage(
   try {
     if (steg.type === "INFO") {
       // Any input at an info step means the user has read the information
-      // and wants to move on — whether they say "fortsett", name a street,
+      // and wants to move on - whether they say "fortsett", name a street,
       // or anything else that is not a side-question.
       await goNext();
       return;
@@ -998,12 +998,12 @@ async function sendMessage(
         await answerSidesporsmaal(reellTekst);
         return;
       }
-      addMsg("assistant", "Jeg vil være sikker på at jeg forstod deg riktig. Svar gjerne «ja» eller «nei» — samtykke må være utvetydig.");
+      addMsg("assistant", "Jeg vil være sikker på at jeg forstod deg riktig. Svar gjerne «ja» eller «nei» - samtykke må være utvetydig.");
       return;
     }
 
     if (steg.type === "DATA_FETCH" || steg.type === "SJEKK" || steg.type === "SUMMARY") {
-      addMsg("assistant", "Jeg holder på med dette steget nå — men spør gjerne om noe imens.");
+      addMsg("assistant", "Jeg holder på med dette steget nå - men spør gjerne om noe imens.");
       return;
     }
 

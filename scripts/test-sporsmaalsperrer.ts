@@ -29,7 +29,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     bestatt += 1;
     return;
   }
-  feil.push(`${navn}${detalj ? ` — ${detalj}` : ""}`);
+  feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
 const kontekst = {
@@ -285,14 +285,14 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
 //
 // callOllama used to take (prompt, temperature, signal) while callOpenRouter and
 // callBedrock took a systemMessage in third place. callModel passed the system
-// message to all three, so on Ollama — the workshop default — it landed in the
+// message to all three, so on Ollama - the workshop default - it landed in the
 // `signal` slot and vanished. SYSTEM_JSON ("return only valid JSON, no code
 // fences") was therefore a no-op for exactly the three callers that parse the
 // reply as JSON.
 //
 // server.ts calls server.listen at top level and exports nothing, so it cannot be
 // imported (see K3 in the architecture review). Until it can, the signatures are
-// checked as source text — crude, but it fails on the regression, which is more
+// checked as source text - crude, but it fails on the regression, which is more
 // than existed before.
 //
 // The parameters carry type annotations, so the name is read from before the
@@ -312,7 +312,7 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
     check(
       `${name} har systemMessage som tredje parameter`,
       parameters[2] === "systemMessage",
-      `tredje parameter er «${parameters[2]}» — callModel sender posisjonelt til alle tre`
+      `tredje parameter er «${parameters[2]}» - callModel sender posisjonelt til alle tre`
     );
   }
   const passedToOllama = /callOllama\(prompt, temperature, systemMessage, signal\)/.test(source);

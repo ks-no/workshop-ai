@@ -4,8 +4,8 @@ REST tool endpoints over the other services, for process guidance, AI interpreta
 and Matrikkel data access.
 
 It was called `mcp-services` and answered `protocol: "mcp-style-http"` until
-23.08.2026. It is not the MCP protocol and never was — no JSON-RPC, no stdio, no SSE
-— so the name has been dropped rather than the claim repeated. `apps/brreg-mcp` and
+23.08.2026. It is not the MCP protocol and never was - no JSON-RPC, no stdio,
+no SSE - so the name has been dropped rather than the claim repeated. `apps/brreg-mcp` and
 `apps/folkeregister-mcp` *are* MCP, and are now the only things here called that.
 
 The `/mcp/*` paths remain: they are wire format, and renaming a path is a separate
@@ -26,8 +26,8 @@ This service exposes tool endpoints a generic agent can call to:
 
 ## Tool list
 
-`GET /mcp/tools` answers with the live catalogue — names, descriptions and
-`inputSchema` — and is the only list that cannot drift. `docs/api-oversikt.md`
+`GET /mcp/tools` answers with the live catalogue - names, descriptions and
+`inputSchema` - and is the only list that cannot drift. `docs/api-oversikt.md`
 has the same names in prose for reading without the stack up.
 
 A hand-copied table stood here and had lost six tools by the time anyone
@@ -37,9 +37,9 @@ without naming all of them.
 ## Matrikkel tools
 
 `suggest_step_tools` takes a step definition (id, tittel, tekst, felter) and returns tool suggestions with `bruk`:
-- `kontekst` — call proactively before showing the question
-- `validering` — call when the user answers, to normalize/validate input
-- `kontekst_og_validering` — both
+- `kontekst` - call proactively before showing the question
+- `validering` - call when the user answers, to normalize/validate input
+- `kontekst_og_validering` - both
 
 ## Endpoints
 
@@ -54,7 +54,7 @@ without naming all of them.
 - `BACKEND_BASE_URL` (default `http://sandbox-backend:8080`)
 - `AI_BASE_URL` (default `http://ai-gateway:8082`)
 - `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`)
-- `MATRIKKEL_MODE` — `mock` alle tre steder: kodedefault, compose-default og
+- `MATRIKKEL_MODE` - `mock` alle tre steder: kodedefault, compose-default og
   `.env.example`. `live` og `hybrid` slår opp gater direkte via Geonorge; `live` kaster
   videre ved nettfeil, `hybrid` faller tilbake til seed-dataene
 - `GEONORGE_ADRESSE_API_BASE_URL` (default `https://ws.geonorge.no/adresser/v1`)

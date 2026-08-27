@@ -225,7 +225,7 @@
             "url": "/api/regler/sjekk/ordning?personId={personId}&ordning=stottekontakt"
           },
           "forfatterhjelp": {
-            "hensikt": "Behovsavklaring mot kommunens registrerte tilbud. Vurderes på alder og kapasitet — ikke inntekt, og steget ber derfor ikke om inntektssamtykke.",
+            "hensikt": "Behovsavklaring mot kommunens registrerte tilbud. Vurderes på alder og kapasitet - ikke inntekt, og steget ber derfor ikke om inntektssamtykke.",
             "skrivetips": "Utfallet avhenger av hvor søkeren bor. Se data/tjenestetilbud.json."
           }
         },

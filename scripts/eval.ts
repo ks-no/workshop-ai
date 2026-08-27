@@ -8,7 +8,7 @@
 //
 // Two kinds of check:
 //
-//   deterministic  contains / notContains / matches / field — no model needed,
+//   deterministic  contains / notContains / matches / field - no model needed,
 //                  fast, and the right tool for endpoints that already return
 //                  validated JSON.
 //   judge          a second model call scoring free text against a criterion.
@@ -93,7 +93,7 @@ async function runJudge(check: any, { text }: Evalsvar) {
     signal: AbortSignal.timeout(180000)
   });
   if (!response.ok) {
-    // Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+    // Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
     const body = (await response.json().catch(() => ({}))) as any;
     return { ok: false, detail: `dommeren svarte ${response.status}: ${body.feil || ""}` };
   }
@@ -102,7 +102,7 @@ async function runJudge(check: any, { text }: Evalsvar) {
   return {
     ok: score >= threshold,
     score,
-    detail: `score ${score.toFixed(2)} mot terskel ${threshold} — ${begrunnelse || "ingen begrunnelse"}`
+    detail: `score ${score.toFixed(2)} mot terskel ${threshold} - ${begrunnelse || "ingen begrunnelse"}`
   };
 }
 
@@ -213,7 +213,7 @@ function reportHtml(suites: any) {
           </summary>
           <ul style="margin:6px 0">
             ${c.results.map((r: any) => `<li style="color:${r.ok ? "#2a6b2a" : "#a32222"}">
-              <code>${escapeHtml(r.type)}</code> ${escapeHtml(r.label || "")} — ${escapeHtml(r.detail)}</li>`).join("")}
+              <code>${escapeHtml(r.type)}</code> ${escapeHtml(r.label || "")} - ${escapeHtml(r.detail)}</li>`).join("")}
           </ul>
           <pre style="white-space:pre-wrap; background:#f6f6f6; padding:8px; border-radius:4px">${escapeHtml(c.answer)}</pre>
         </details>`).join("")}
@@ -224,7 +224,7 @@ function reportHtml(suites: any) {
 <body style="font-family: Arial, sans-serif; padding:24px; max-width:960px">
   <h1>Eval-rapport</h1>
   <p style="color:#666">Kjørt ${new Date().toISOString()} mot <code>${escapeHtml(aiBaseUrl)}</code>.
-     Nullstilles ikke — kjør på nytt for å oppdatere.</p>
+     Nullstilles ikke - kjør på nytt for å oppdatere.</p>
   ${body}
 </body></html>`;
 }

@@ -3,11 +3,11 @@
  *
  * SvarUt simplified: the routes live on the real forsendelse paths behind a
  * /svarut prefix, and this module holds everything that is a rule rather than
- * HTTP. The status set is an honest subset of the real API's thirteen — the
+ * HTTP. The status set is an honest subset of the real API's thirteen - the
  * omitted ones are listed in openapi/fiks-simulator.yaml, and the enum there is
  * pinned against FORSENDELSESSTATUSER by pnpm test:openapi.
  *
- * The progression is derived, never written — same pattern as the samtykke's
+ * The progression is derived, never written - same pattern as the samtykke's
  * UTLOEPT (see samtykke.ts): the stored row carries `kanal` and `opprettet`,
  * and deriveForsendelsesstatus answers what the status is *now*. No timers, no
  * second write path, no race. The state machine below is not enforced by any
@@ -57,7 +57,7 @@ export type Mottaker = {
   poststed?: string;
 };
 
-/** Only the metadata — the simulator never stores document bytes. */
+/** Only the metadata - the simulator never stores document bytes. */
 export type Forsendelsesdokument = { filnavn?: string; mimeType?: string };
 
 export type Utskriftskonfigurasjon = { utskriftMedFarger?: boolean; tosidig?: boolean };
@@ -77,7 +77,7 @@ export type ForsendelseKropp = {
   utskriftskonfigurasjon?: Utskriftskonfigurasjon;
 };
 
-/** The stored row: the metadata plus the decision — no status, that is derived. */
+/** The stored row: the metadata plus the decision - no status, that is derived. */
 export type Forsendelse = ForsendelseKropp & {
   id: string;
   kontoId: string;
@@ -96,7 +96,7 @@ export type Forsendelsesfeil = { kode: string; melding: string };
 
 /**
  * The validation the type cannot do: the body is JSON off the wire. First
- * failure wins — the caller gets one 400 with one kode, like the beregning's
+ * failure wins - the caller gets one 400 with one kode, like the beregning's
  * feilmeldinger but for a write that must not happen at all.
  */
 export function validateForsendelse(body: ForsendelseKropp): Forsendelsesfeil | null {
@@ -147,7 +147,7 @@ export type Kanalutfall =
  *
  *   1. a KRR row that can be notified and is not reserved → DIGITAL
  *   2. otherwise kunDigitalLevering → INGEN (→ IKKE_LEVERT, real SvarUt behaviour)
- *   3. otherwise a valid postal address → PRINT — reservert i KRR betyr print,
+ *   3. otherwise a valid postal address → PRINT - reservert i KRR betyr print,
  *      which is the case the whole surface exists to make testable
  *   4. otherwise the forsendelse cannot go anywhere, and that is a 400
  *
@@ -181,7 +181,7 @@ export function chooseKanal(
 /**
  * The status the forsendelse actually has now, derived from the clock.
  *
- * `naa` is a parameter so a test can pin it — same contract as samtykke.ts'
+ * `naa` is a parameter so a test can pin it - same contract as samtykke.ts'
  * isUtloept. sisteStatusEndring is derived along with the status: the moment
  * the row *entered* the answered status, not when anyone asked.
  *

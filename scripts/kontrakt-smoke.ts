@@ -21,7 +21,7 @@
 // compose without touching the shared runtime state in state/.
 // ai-gateway is started too, so stottekontaktflyt's innvilget case can reach
 // SUMMARY and SUBMIT. It runs with no AI_PROVIDER set, so /ai/oppsummering
-// answers with the deterministic mock template — no network call, no flakiness.
+// answers with the deterministic mock template - no network call, no flakiness.
 
 import { spawn } from "node:child_process";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
@@ -128,7 +128,7 @@ const dump: Record<string, unknown>[] = [];
 // the file mostly data, so every added test person produced a huge diff and buried
 // the contract change the diff exists to reveal.
 // `antall` og `first` er dumpens egne nøkler, ikke en tjenestes. Endres de,
-// endres hver linje i dumpen — og da er en før/etter-sammenlikning verdiløs
+// endres hver linje i dumpen - og da er en før/etter-sammenlikning verdiløs
 // til en ny baseline er tatt.
 function shapeOnly(kropp: any, antallViste: number) {
   if (!Array.isArray(kropp)) return kropp;
@@ -141,11 +141,11 @@ function shapeOnly(kropp: any, antallViste: number) {
 // path or query so most calls need no annotation at all.
 //
 // `somMaskin` is for the handful of calls that are not a citizen reading their own
-// data — the audit log, and the resource catalogue.
+// data - the audit log, and the resource catalogue.
 // Which person a generated id belongs to, learned from the responses that create
 // them. A prosessoekt and a soknad both carry `personId`, so after
 // POST /api/prosessoekter every later call on that oektsId knows whose token to
-// send — without annotating forty call sites.
+// send - without annotating forty call sites.
 //
 // This mirrors the binding the backend enforces from B3: a session belongs to a
 // person, and someone else's token must not drive it.
@@ -226,7 +226,7 @@ async function call(navn: string, sti: string, valg: Kallvalg = {}) {
 }
 
 // A call straight at fiks-simulator, as the machine the backend would be. The
-// register surfaces need a Maskinporten token with audience fiks-simulator — a
+// register surfaces need a Maskinporten token with audience fiks-simulator - a
 // backend token is refused there, which is the point of audience restriction.
 // Scope per call, because the surfaces have one each: the folkeregister lookups
 // need ks:fiks:folkeregister, and a register token must not open them.
@@ -275,7 +275,7 @@ async function staticLookups() {
   // all UGRADERT, so masking would not show up in a diff at all.
   //
   // person-031 is STRENGT_FORTROLIG (name and address masked), person-194 is
-  // FORTROLIG (address masked, name kept) — the two levels must stay observably
+  // FORTROLIG (address masked, name kept) - the two levels must stay observably
   // different. household-093 holds only protected people so its adresse is masked;
   // household-013 has three unprotected residents and deliberately keeps its own.
   await call("person-strengt-fortrolig", "/api/personer/person-031");
@@ -384,7 +384,7 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
 //
 // It is also the only case that consents to something other than inntekt: the
 // hent-kontaktinfo step between the samtykke and the SJEKK spends that consent on
-// KRR. stottekontaktUtenSamtykke below pins the other half — what that step
+// KRR. stottekontaktUtenSamtykke below pins the other half - what that step
 // answers when nobody consented.
 //
 // `tilSubmit` only makes sense for the innvilget case: the avvist case would
@@ -422,7 +422,7 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
 
   if (!tilSubmit) return;
 
-  // The only flow in this script reaching SUMMARY and SUBMIT — everything else
+  // The only flow in this script reaching SUMMARY and SUBMIT - everything else
   // deliberately stops earlier. Pins the soknadsdokument field alongside the
   // deterministic mock oppsummeringstekst it embeds, and the SvarUt kvittering
   // the same step sends.
@@ -439,7 +439,7 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
   // same way it is for forsendelseFlyt's status-sok below.
   //
   // somPerson is explicit because the søknadId is nested inside `resultat` on the
-  // POST /handling response, which learnOwner does not walk — the route is the
+  // POST /handling response, which learnOwner does not walk - the route is the
   // citizen's own, and reading it as nobody would only pin a 401.
   const soknadId = innsending.resultat.soknadId;
   await call(`${merkelapp}-forsendelse`, `/api/soknader/${soknadId}/forsendelse`, { somPerson: personId });
@@ -447,7 +447,7 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
 
 // The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
 // without answering it. The samtykke gate lives in the resource catalogue, not in
-// the step, so the 403 has to reach the caller through POST /handling unchanged —
+// the step, so the 403 has to reach the caller through POST /handling unchanged -
 // that relay is what this pins, and the direct-route 403 in kontaktinfoOppslag
 // cannot say anything about it.
 //
@@ -466,8 +466,8 @@ async function stottekontaktUtenSamtykke(merkelapp: string) {
     await call(`${merkelapp}-neste-${nummer}`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   }
   await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
-  // A refused step leaves the økt open — withSession saves nothing when the
-  // handler throws — so the citizen can go back and consent.
+  // A refused step leaves the økt open - withSession saves nothing when the
+  // handler throws - so the citizen can go back and consent.
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
@@ -508,7 +508,7 @@ async function soknadOgRevisjon() {
 }
 
 // The KRR lookup on fiks-simulator's real Fiks path, with every branch the route
-// has: notifiable, reserved (person-014 — the curated print-channel case), a kode
+// has: notifiable, reserved (person-014 - the curated print-channel case), a kode
 // 6 person whose contact info must come back nulled, the two 404s, and the 400.
 // The fnr values are the curated fixtures', so the dump stays deterministic.
 async function krrOppslag() {
@@ -546,7 +546,7 @@ async function folkeregisterOppslag() {
 
   await lookup("freg-oppvekst", rolleId("oppvekst"), "12818800078");
   await lookup("freg-helse-omsorg", rolleId("helse-omsorg"), "12818800078");
-  // No name, no address — the narrowest role, on the same person.
+  // No name, no address - the narrowest role, on the same person.
   await lookup("freg-folkehelse", rolleId("folkehelse"), "12818800078");
   // ?part= narrows within the role; the order in the answer is canonical, not
   // the query string's.
@@ -606,7 +606,7 @@ async function folkeregisterOppslag() {
   });
 }
 
-// SvarUt: one send per channel, then an immediate status-sok — deterministically
+// SvarUt: one send per channel, then an immediate status-sok - deterministically
 // MOTTATT for every row, since the derivation's first threshold is 10 seconds
 // out. The recipients are the curated KRR fixtures, same as krrOppslag above.
 async function forsendelseFlyt() {
@@ -620,7 +620,7 @@ async function forsendelseFlyt() {
   const digital = await callFiks("forsendelse-digital", sti, {
     tittel, mottaker: { navn: "Amir Hassan", digitalId: "14899200099" }, dokumenter
   }, svarut) as { id?: string };
-  // person-014 is authored reservert: PRINT — the curated main case.
+  // person-014 is authored reservert: PRINT - the curated main case.
   const print = await callFiks("forsendelse-print", sti, {
     tittel, mottaker: { navn: "Lina Berg", digitalId: "28829100055", ...postadresse }, dokumenter
   }, svarut) as { id?: string };
@@ -649,7 +649,7 @@ async function forsendelseFlyt() {
   await callFiks("forsendelse-feil-scope", `${sti}/status-sok`, { forsendelseIds: [] },
     { scope: "ks:fiks:register" });
 
-  // The audit entries: id, kanal and mottakerVarslet in grunnlag — and no
+  // The audit entries: id, kanal and mottakerVarslet in grunnlag - and no
   // contact info. Filtered like freg-revisjon above.
   const token = await getMaskinportenToken({
     digdirBaseUrl: digdirUrl, issuer: digdirUrl, clientId: "kontrakt-smoke",
@@ -671,8 +671,8 @@ async function forsendelseFlyt() {
 /*
  * The revisjonslogg, asserted rather than dumped.
  *
- * Everything else in this script is a diff baseline — a dump cannot fail, it can
- * only differ — and that is enough for wire format. It is not enough for a leak:
+ * Everything else in this script is a diff baseline - a dump cannot fail, it can
+ * only differ - and that is enough for wire format. It is not enough for a leak:
  * an address appearing in the log would show up as a diff a reader has to notice,
  * and the ticket's «uten at adresse eller kontaktinfo havner i … revisjonsloggen»
  * has to be able to fail a build on its own. So this one reads the whole log after
@@ -680,7 +680,7 @@ async function forsendelseFlyt() {
  *
  * The strings come off the seed rather than being written out here: the point is
  * that the protected person's real address is absent, not which street the
- * curated row happens to carry. kommune and kommunenummer are not in the list —
+ * curated row happens to carry. kommune and kommunenummer are not in the list -
  * masking keeps those on purpose, see apps/shared/skjerming.ts.
  *
  * For person-218 the poststed and the kommune are the same word, so a future
@@ -721,8 +721,8 @@ async function krevIngenAdresselekkasje(personId: string) {
 
 // The kontaktinfo resource in front of KRR: the consent gate closed, then open,
 // then the two shapes the 200 has. The consents are created on fiks-simulator's
-// samtykke surface directly — the same rows stottekontakt-behov's CONSENT_REQUEST
-// leaves — because the people below are not the ones that case is authored for,
+// samtykke surface directly - the same rows stottekontakt-behov's CONSENT_REQUEST
+// leaves - because the people below are not the ones that case is authored for,
 // and a whole prosessøkt per lookup would tell the dump nothing extra.
 async function kontaktinfoOppslag() {
   const samtykke = { scope: "ks:fiks:samtykke" };
@@ -741,11 +741,11 @@ async function kontaktinfoOppslag() {
   // "kontaktinfo" consent by now, from stottekontaktflyt's CONSENT_REQUEST.
   await call("kontaktinfo-uten-samtykke", "/api/personer/person-014/kontaktinfo");
 
-  // person-014 is authored reservert — the row a channel choice must read.
+  // person-014 is authored reservert - the row a channel choice must read.
   await grantSamtykke("person-014");
   await call("kontaktinfo-reservert", "/api/personer/person-014/kontaktinfo");
 
-  // person-001 now holds two kontaktinfo consents — stottekontaktflyt's and this
+  // person-001 now holds two kontaktinfo consents - stottekontaktflyt's and this
   // one. hasGyldigSamtykke picks the most recently created, so the formaal pinned
   // in the DATA_LES row below is deterministically this one's.
   await grantSamtykke("person-001");
@@ -760,8 +760,8 @@ async function kontaktinfoOppslag() {
   });
 
   // The audit trail the resource leaves, from every caller: first the rows the
-  // stottekontakt flows left — two DATA_LES from hent-kontaktinfo and one
-  // DATA_NEKTET from the økt that skipped its samtykke — then this function's own
+  // stottekontakt flows left - two DATA_LES from hent-kontaktinfo and one
+  // DATA_NEKTET from the økt that skipped its samtykke - then this function's own
   // DATA_NEKTET for the closed gate and one DATA_LES per lookup, advarsel included,
   // since the attempt is what the log audits. formaal comes from the consent, not
   // the catalogue label, which is why the two groups read differently.
@@ -835,7 +835,7 @@ async function run() {
     // spesifiseres."
     //
     // That branch had no test anywhere before this. Note that the protected
-    // person's amount still counts towards beregningsbeloep by design — only their
+    // person's amount still counts towards beregningsbeloep by design - only their
     // share is withheld. If the total ever drops here, something started masking
     // money instead of identity.
     await foreldrebetalingsflyt("sfo-moderasjon", "sfo-skjermet-medlem", {
@@ -849,7 +849,7 @@ async function run() {
     // person-218 has kode 7 and is reservert in KRR: no digital channel, and
     // masking left no postal address for the print channel either. SvarUt refuses
     // the forsendelse, the kvittering degrades into an advarsel, and the søknad is
-    // stored regardless — with no forsendelseId, so its status route answers 404.
+    // stored regardless - with no forsendelseId, so its status route answers 404.
     //
     // This is the leak-shaped case, and the dump is where it is pinned end to end:
     // the address must be absent from the søknadsdokument, from the SUBMIT

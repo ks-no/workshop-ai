@@ -39,7 +39,7 @@ function replaceParametere(url: string, oekt: Prosessoekt) {
       // with `felter` makes demo-gui's step-by-step page post an object
       // ({gatenavn: "Storgata"}), while /chat posts the raw string. Without this,
       // `fartsdempende-tiltak` worked in /chat and via curl but left a literal
-      // "{svar.velg-gate}" in the URL on localhost:3001 — surfacing as
+      // "{svar.velg-gate}" in the URL on localhost:3001 - surfacing as
       // `Fant ikke gaten "{svar.velg-gate}"`, which reads like a typo by the user.
       //
       // Only when there is exactly one field: with several, the short form is
@@ -76,7 +76,7 @@ async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kall
  * The søknad is appended inside the write queue, not pushed onto the request's
  * own copy of the array and written whole. That was a lost update with no queue
  * at all: two SUBMIT at once, and the second writer's array never contained the
- * first søknad — no error, nothing in the log, one citizen's application gone.
+ * first søknad - no error, nothing in the log, one citizen's application gone.
  *
  * It takes no State any more, and that is the point: there is no request-scoped
  * copy left for it to write.
@@ -85,8 +85,8 @@ export async function createSoknad(
   body: any,
   kaller: Caller,
   /**
-   * Set only by the SUBMIT step handler below. Without it — the direct
-   * POST /api/soknader route never passes it — the row and the response are
+   * Set only by the SUBMIT step handler below. Without it - the direct
+   * POST /api/soknader route never passes it - the row and the response are
    * byte-identical to before these fields existed.
    *
    * `person` is the masked row readState() handed out, so the recipient this
@@ -118,7 +118,7 @@ export async function createSoknad(
   /*
    * The Fiks task is best effort: the søknad is already recorded, and the citizen
    * is not made to send it again because a downstream queue is unhappy. But best
-   * effort still means *one* way of degrading — tryUpstream's, not a local
+   * effort still means *one* way of degrading - tryUpstream's, not a local
    * ok-check.
    */
   const oppgave = await tryUpstream<unknown>(
@@ -142,14 +142,14 @@ export async function createSoknad(
    * The kvittering is the second best-effort step, and it is deliberately after
    * the task: the caseworker's queue is what the municipality owes itself, the
    * receipt is what it owes the citizen, and neither may cost the other. The
-   * channel is not decided here — SvarUt reads KRR on `mottaker.digitalId` and
+   * channel is not decided here - SvarUt reads KRR on `mottaker.digitalId` and
    * chooses, exactly as the real one does. Everything past the receipt (the
    * vedtaksbrev, the varsling, the further case handling) is still the
    * participants' build surface.
    *
    * `forsendelseId` is written back onto the row in a second pass through the
    * queue rather than held back until the send returns, so a søknad is stored
-   * before anything downstream is attempted — and the row keeps no copy of the
+   * before anything downstream is attempted - and the row keeps no copy of the
    * advarsel: the response says what happened, the row says what exists.
    */
   const kvittering = dokumentInfo
@@ -247,7 +247,7 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
             sporingsId: oekt.sporingsId,
             // Only this service holds the verified token, so only it can say who
             // agreed. Without this the samtykke event would name fiks-simulator as
-            // the actor — honest, but far less useful than the truth.
+            // the actor - honest, but far less useful than the truth.
             aktor: aktorFor(kaller, oekt.personId)
           })
         })
@@ -285,8 +285,8 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
   /*
    * The gateway answers 200 with an `advarsel` when the model is unavailable and
    * it falls back to template text, so a failure here means the gateway itself
-   * broke. Failing the step leaves the økt on SUMMARY — withSession saves
-   * nothing when the handler throws — so a retry is a retry.
+   * broke. Failing the step leaves the økt on SUMMARY - withSession saves
+   * nothing when the handler throws - so a retry is a retry.
    */
   SUMMARY: async ({ oekt, prosess, steg }) => {
     const data = await callUpstream<any>(

@@ -2,7 +2,7 @@
 // reading a request body.
 //
 // This lived in apps/sandbox-backend/src/http.ts and was copied by hand into five
-// other services. The copies drifted — four different Allow-Headers values, two
+// other services. The copies drifted - four different Allow-Headers values, two
 // services that leave CORS off text responses, and one that sets Cache-Control.
 // Nothing caught it, because scripts/kontrakt-smoke.js records status and body but
 // not response headers.
@@ -33,7 +33,7 @@ export function cors(
 export type Svarpolicy = {
   /** Headers on every response. Defaults to `cors()`. */
   cors?: Record<string, string>;
-  /** Extra headers on JSON responses only — digdir-mock needs Cache-Control. */
+  /** Extra headers on JSON responses only - digdir-mock needs Cache-Control. */
   jsonHeaders?: Record<string, string>;
   /** Headers on text and HTML responses. Defaults to the same as `cors`. */
   tekstCors?: Record<string, string>;
@@ -81,7 +81,7 @@ export function svarhjelpere(policy: Svarpolicy = {}): Svarhjelpere {
  * its shape. Callers name the shape they expect with a cast at the call site, so
  * the assumption is written down where it is made rather than hidden here.
  *
- * An empty body yields `{}` — routes that take no arguments call this too.
+ * An empty body yields `{}` - routes that take no arguments call this too.
  */
 export async function readRequestBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];

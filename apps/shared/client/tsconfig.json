@@ -1,6 +1,6 @@
 {
   // Den delte klientkoden. Sidescriptene i de to frontendene trekker denne inn
-  // gjennom sine egne tsconfig.json — se kommentaren i tsconfig.client-base.json.
+  // gjennom sine egne tsconfig.json - se kommentaren i tsconfig.client-base.json.
   "extends": "../../../tsconfig.client-base.json",
   "include": ["./**/*.ts"]
 }

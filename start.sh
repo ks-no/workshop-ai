@@ -43,7 +43,7 @@ usage() {
   cat <<'EOF'
 Usage: ./start.sh [OPTIONS]
 
-Starts the sandbox. Platform, GPU and model are detected automatically —
+Starts the sandbox. Platform, GPU and model are detected automatically -
 you should not need any options.
 
 Options:
@@ -72,7 +72,7 @@ Examples:
   ./start.sh -m qwen2.5:7b    # smaller model
   ./start.sh -m qwen2.5:14b   # better quality, heavier
   ./start.sh -m llama3.1:8b   # alternative model family
-  ./start.sh --mock           # no model — useful on a bad connection
+  ./start.sh --mock           # no model - useful on a bad connection
   ./start.sh --reset          # forget every earlier demo run
   ./start.sh --reload         # restart services after a code change
   ./start.sh -d               # stop everything
@@ -92,7 +92,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)  usage; exit 0 ;;
     -g|--gpu|-p|--pull)
       # Kept so older commands do not break. Both are automatic now.
-      warn "$1 is no longer needed — GPU and model download are detected automatically"
+      warn "$1 is no longer needed - GPU and model download are detected automatically"
       shift ;;
     *) printf 'Unknown option: %s\n\n' "$1" >&2; usage; exit 1 ;;
   esac
@@ -244,7 +244,7 @@ preflight() {
 
 ensure_env() {
   if [[ -f .env ]]; then
-    info ".env exists — leaving it untouched"
+    info ".env exists - leaving it untouched"
     return
   fi
   [[ -f .env.example ]] || fail ".env.example is missing from the repo."
@@ -289,7 +289,7 @@ ensure_ollama_native() {
 
   ollama_up && { info "Ollama is running"; return; }
 
-  info "Ollama is not responding — starting it"
+  info "Ollama is not responding - starting it"
   if command -v brew >/dev/null 2>&1 && brew list ollama >/dev/null 2>&1; then
     # brew services survives closing the terminal; "ollama serve" does not.
     brew services start ollama >/dev/null
@@ -340,7 +340,7 @@ start_services() {
     # --no-deps because ai-gateway depends_on the ollama container, which we
     # deliberately do not use here: on macOS Ollama runs natively on the host,
     # and with --mock no model is used at all. Naming the services explicitly is
-    # what keeps the 4 GB ollama image from being pulled — it has no profile, so
+    # what keeps the 4 GB ollama image from being pulled - it has no profile, so
     # a bare "up -d" would start it even under --mock, on exactly the bad
     # connection that flag exists for.
     docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
@@ -372,14 +372,14 @@ json_field() { # json_field FIELD <<<JSON  -> the string value, unquoted
 
 # ai-gateway's active provider is whatever /admin last set, which can differ
 # from AI_PROVIDER in .env and survives a restart (state/ai-provider-override.json).
-# Ask it, rather than assuming ollama — the warning at the bottom used to
+# Ask it, rather than assuming ollama - the warning at the bottom used to
 # hardcode "Ollama is NOT connected" even when the active provider was Bedrock.
 active_provider() {
   curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider
 }
 
 # A real call, not just /helse: /helse's own bedrock/openrouter check only
-# confirms credentials are *configured*, not that a call actually succeeds — so
+# confirms credentials are *configured*, not that a call actually succeeds - so
 # only an end-to-end call here can tell a working setup from a broken one.
 verify_llm() {
   local response
@@ -398,13 +398,13 @@ verify_llm() {
   fi
   VERIFIED_MODEL="$(json_field modell <<<"$response")"
   # The advarsel check above cannot see the one case this whole step exists for.
-  # A template answer carries no advarsel at all — it only names itself in
-  # `modell` — so a gateway running mock (from AI_PROVIDER, or from a /admin
+  # A template answer carries no advarsel at all - it only names itself in
+  # `modell` - so a gateway running mock (from AI_PROVIDER, or from a /admin
   # choice stored in state/ai-provider-override.json that outlives a restart)
   # would be reported as a confirmed working model.
   if [[ "$VERIFIED_MODEL" == "mock-ai-gateway" ]]; then
     warn "ai-gateway answered with template text, not a model."
-    warn "the active provider is mock — check http://localhost:8082/admin,"
+    warn "the active provider is mock - check http://localhost:8082/admin,"
     warn "which overrides AI_PROVIDER and survives a restart."
     return 1
   fi
@@ -426,7 +426,7 @@ if $RELOAD; then
   # --mock has to be exported here too, not only on the start path below, which
   # this branch exits before reaching. "up -d" recreates the container from the
   # current environment, so without this line a --mock --reload silently swaps
-  # working template text for AI_PROVIDER=ollama out of .env — and the first
+  # working template text for AI_PROVIDER=ollama out of .env - and the first
   # code change a participant makes turns into "the model is not connected".
   if $MOCK; then
     export AI_PROVIDER=mock
@@ -441,7 +441,7 @@ if $RELOAD; then
   fi
   wait_for_services
   info "all ${#NODE_SERVICES[@]} services have reloaded"
-  printf '\n✅ Ready — code changes are live.\n\n'
+  printf '\n✅ Ready - code changes are live.\n\n'
   exit 0
 fi
 
@@ -465,7 +465,7 @@ if $RESET; then
   # Services seed themselves from data/ whenever a state file is missing,
   # so removing the directory is all it takes.
   rm -rf state
-  info "runtime state cleared — starting from the seed data"
+  info "runtime state cleared - starting from the seed data"
 fi
 
 if ! $MOCK; then
@@ -501,7 +501,7 @@ printf '\n   Overview and APIs:\n'
 printf '   🧭 Dashboard:       http://localhost:3001\n'
 printf '   🧪 API explorer:    http://localhost:3001/utforsker\n'
 printf '   📚 API docs:        http://localhost:8080/docs\n'
-printf '\n   Reference clients — examples, not the answer:\n'
+printf '\n   Reference clients - examples, not the answer:\n'
 printf '   📝 Step-by-step UI: http://localhost:3001/stegvis\n'
 printf '   🌐 Chat:            http://localhost:3001/chat\n'
 printf '   🧠 Agent:           http://localhost:3001/agent\n'
@@ -513,13 +513,13 @@ printf '   🔀 AI provider:     http://localhost:8082/admin\n'
 if $MOCK; then
   printf '\n   ⚠️  Running with --mock: AI replies are canned template text, not a model.\n'
 elif ! $LLM_OK; then
-  # The active provider is whatever /admin last set — not necessarily ollama —
+  # The active provider is whatever /admin last set - not necessarily ollama -
   # so the warning below names the provider actually configured, not a fixed guess.
   case "$(active_provider)" in
     bedrock)
       printf '\n   ⚠️  Provider is set to AWS Bedrock, but it did not answer. Replies will\n'
       printf '       look normal but come from templates. Check credentials and model access\n'
-      printf '       at http://localhost:8082/admin — and whether the account has submitted\n'
+      printf '       at http://localhost:8082/admin - and whether the account has submitted\n'
       printf '       the Anthropic use-case form (Bedrock console -> Model access).\n'
       ;;
     openrouter)

@@ -28,7 +28,7 @@ const bareKommune = bareIndex === -1 ? null : process.argv[bareIndex + 1];
 const API = process.env.GEONORGE_ADRESSE_API_BASE_URL || "https://ws.geonorge.no/adresser/v1";
 const SIDESTOERRELSE = 1000;
 
-// Svarene er any med vilje — se scripts/test-agent-natural-language.ts for begrunnelsen.
+// Svarene er any med vilje - se scripts/test-agent-natural-language.ts for begrunnelsen.
 // Seedfilene leses for å toppes opp; formen påstås av valider-data, ikke her.
 const read = async (fil: string): Promise<any> => JSON.parse(await readFile(fil, "utf8"));
 
@@ -98,7 +98,7 @@ function tilEiendom(adresse: any) {
     // Every property in the Bergen extract is a dwelling except three, so bolig is
     // the default here too - and it is what the ordninger care about.
     bruksenhetstype: "bolig"
-    // No `eiere` here. Ownership is not in the matrikkel — it is in the grunnbok,
+    // No `eiere` here. Ownership is not in the matrikkel - it is in the grunnbok,
     // and in this repo it lives in data/eierforhold.json, merged in by
     // matrikkel-mock at load.
   };

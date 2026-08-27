@@ -1,6 +1,6 @@
 # Feilsøking
 
-Finn symptomet som passer, og følg løsningen. Hvert avsnitt står for seg — du trenger
+Finn symptomet som passer, og følg løsningen. Hvert avsnitt står for seg - du trenger
 ikke lese fila fra toppen.
 
 Første stopp er alltid <http://localhost:3001>: den viser om alle tjenestene kjører og
@@ -9,16 +9,16 @@ denne fila tar resten.
 
 ## Alt svarer 401
 
-**Symptom:** Hvert autentisert kall svarer `401` — også kall som virket tidligere.
+**Symptom:** Hvert autentisert kall svarer `401` - også kall som virket tidligere.
 
 **Årsak:** `401` betyr «vi vet ikke hvem du er». Tre vanlige grunner:
 
 - `Authorization`-headeren mangler i kallet.
 - Tokenet er utløpt. I standardoppsettet lever et token i en time
-  (`DIGDIR_TOKEN_TTL` i `docker-compose.yml`) — lenge nok for en økt, kort nok til
+  (`DIGDIR_TOKEN_TTL` i `docker-compose.yml`) - lenge nok for en økt, kort nok til
   at gårsdagens token er dødt.
 - `digdir-mock` (`:8086`) er nede. Den utsteder alle tokens, og tokenfeilen svelges i
-  klienten — den synes bare i en containerlogg. Typisk ved manuell oppstart der den
+  klienten - den synes bare i en containerlogg. Typisk ved manuell oppstart der den
   ikke ble med i lista.
 
 **Løsning:** Hent et ferskt token, og sjekk at utstederen lever:
@@ -30,9 +30,9 @@ curl -s http://localhost:8086/helse
 
 Svarer ikke `:8086`, start den: `docker compose up -d digdir-mock`.
 
-Får du `403` i stedet, er du forbi autentiseringen — da er det hjemmelslaget som
+Får du `403` i stedet, er du forbi autentiseringen - da er det hjemmelslaget som
 virker, ikke en feil. Og bare `sandbox-backend` (`:8080`) og `fiks-simulator`
-(`:8081`) håndhever hjemmel — en `401` fra `:8082`–`:8085` er noe annet.
+(`:8081`) håndhever hjemmel - en `401` fra `:8082`–`:8085` er noe annet.
 Se `docs/deltakerstart.md` §4 og `examples/curl/README.md` §3.
 
 ## 401 etter at `state/` ble tømt
@@ -42,7 +42,7 @@ slettet for hånd, svarer autentiserte kall `401` selv med ferskt token.
 
 **Årsak:** `digdir-mock` lager ny signeringsnøkkel når `state/digdir-nokkel.json`
 mangler, og de andre tjenestene cacher fortsatt et maskintoken signert med den gamle.
-En ren omstart utløser ikke dette — nøkkelen overlever restart nettopp for at tokens
+En ren omstart utløser ikke dette - nøkkelen overlever restart nettopp for at tokens
 skal forbli gyldige. `./start.sh --reset` starter alt på nytt og treffer det heller
 ikke.
 
@@ -60,7 +60,7 @@ Nullstilling den trygge veien: se «Nullstille» nederst i denne fila.
 med «fetch failed», mens alt annet ser normalt ut.
 
 **Årsak:** `matrikkel-mock` (`:8085`) er ikke oppe. Den ser valgfri ut, men er kjerne
-for matrikkelcasen — og den glemmes lett ved manuell oppstart.
+for matrikkelcasen - og den glemmes lett ved manuell oppstart.
 
 **Løsning:**
 
@@ -76,7 +76,7 @@ på nett. Se «Manuell oppstart» i `README.md` for hele tjenestelista.
 
 ## Maltekst du ikke ba om
 
-**Symptom:** KI-svarene er maltekst selv om du startet med modell — eller motsatt: en
+**Symptom:** KI-svarene er maltekst selv om du startet med modell - eller motsatt: en
 modell svarer selv om du startet med `--mock`.
 
 **Årsak:** To muligheter, i denne rekkefølgen:
@@ -94,8 +94,8 @@ curl -s http://localhost:8082/helse
 ```
 
 Er `modellNaaBar` `false`, sier et `feil`-felt hvorfor. Velg riktig provider i
-<http://localhost:8082/admin> — byttet gjelder umiddelbart, uten omstart. Vil du
-fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` fila — se
+<http://localhost:8082/admin> - byttet gjelder umiddelbart, uten omstart. Vil du
+fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` fila - se
 «Nullstille» nederst.
 
 ## Modellkall henger eller tar lang tid
@@ -106,7 +106,7 @@ fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` fila — se
 `AI_TIMEOUT_MS` (180 sekunder som standard) og faller til maltekst med `advarsel`
 i stedet for å henge evig.
 
-**Løsning:** Vent — opptil et minutt på et oppsummeringssteg er normalt på en liten
+**Løsning:** Vent - opptil et minutt på et oppsummeringssteg er normalt på en liten
 maskin. Se hva modellen faktisk fikk og svarte på <http://localhost:8082/trace>.
 Går det alltid til timeout: sjekk `modellNaaBar` på `:8082/helse`, eller velg en
 mindre modell med `./start.sh -m qwen2.5:0.5b`.
@@ -143,8 +143,8 @@ gammel kjøring av sandkassen selv, eller en annen utviklingsserver på `3000`/`
 ./start.sh -d
 ```
 
-Hjelper ikke det, finn prosessen som holder porten — `lsof -i :3000` på macOS og
-Linux, `netstat -ano | findstr :3000` på Windows — og stopp den. Portene per
+Hjelper ikke det, finn prosessen som holder porten - `lsof -i :3000` på macOS og
+Linux, `netstat -ano | findstr :3000` på Windows - og stopp den. Portene per
 tjeneste står i tjenestetabellen i `README.md`.
 
 ## Container som ikke blir healthy
@@ -154,10 +154,10 @@ tjeneste står i tjenestetabellen i `README.md`.
 `healthy`.
 
 **Årsak:** Tjenesten svarer ikke på `/helse`. Vanligste grunn etter en kodeendring er
-en TypeScript-feil som får Node-prosessen til å dø i loop — watcheren restarter ved
+en TypeScript-feil som får Node-prosessen til å dø i loop - watcheren restarter ved
 hver lagring, men prosessen dør like fort igjen.
 
-**Løsning:** Les loggen — den sier nøyaktig hva som er galt:
+**Løsning:** Les loggen - den sier nøyaktig hva som er galt:
 
 ```bash
 docker compose logs -f <tjeneste>
@@ -174,10 +174,10 @@ Rett feilen og lagre; watcheren plukker den opp. `pnpm lint` finner samme feil u
 
 **Årsak:** Skriptet er bash.
 
-**Løsning:** Kjør det fra Git Bash eller WSL — da får du plattformdeteksjon,
+**Løsning:** Kjør det fra Git Bash eller WSL - da får du plattformdeteksjon,
 modellvalg og verifisering av at modellen svarer. `start.bat` finnes som nødløsning,
 men kjører alltid uten språkmodell og venter i blinde i stedet for å sjekke at noe
-kom opp. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp med polling —
+kom opp. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp med polling -
 filsystemhendelser når ikke gjennom Docker Desktops volummontering fra
 Windows-filsystemet. Detaljene står i «På Windows» i `README.md`.
 
@@ -196,7 +196,7 @@ vil begynne på nytt.
 ./start.sh --reset             # kjørte du med modell
 ```
 
-**Fella:** `--reset` er ikke bare en reset — den tømmer `state/` og starter deretter
+**Fella:** `--reset` er ikke bare en reset - den tømmer `state/` og starter deretter
 alt på vanlig måte, *inkludert modellnedlasting*. Ta derfor med `--mock` hvis du
 kjørte med `--mock`, ellers begynner den å laste ned flere gigabyte. Se «Valg» i
 `README.md`.

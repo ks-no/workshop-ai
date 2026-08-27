@@ -25,7 +25,7 @@ const digdirIssuer = process.env.DIGDIR_ISSUER || "http://localhost:8086";
 
 // This service is a machine with its own hjemmel, not the citizen. It reads person
 // data on behalf of whichever test person the agent is working with, so the audit
-// log records it as `system` with `paaVegneAv` — never as the person. A service
+// log records it as `system` with `paaVegneAv` - never as the person. A service
 // that can hand itself a citizen's identity is the opposite of the lesson.
 const TOKEN = {
   digdirBaseUrl,
@@ -58,8 +58,8 @@ let folkeregisterRegisterPromise: Promise<FolkeregisterRegister> | null = null;
 /*
  * Verktøykatalogen og formene rundt den.
  *
- * Argumentene til et verktøy kommer fra tråden — fra en modell eller en deltaker
- * — og er derfor Record<string, unknown>. Hvert verktøy plukker ut det det
+ * Argumentene til et verktøy kommer fra tråden - fra en modell eller en deltaker
+ * - og er derfor Record<string, unknown>. Hvert verktøy plukker ut det det
  * trenger og coercer selv; det er den samme jobben inputSchema beskriver utad.
  */
 type Verktoy = {
@@ -91,7 +91,7 @@ function argHeltall(verdi: unknown, fallback: number): number {
 type Prosessinfo = { id: string; navn: string; beskrivelse?: string; steg?: unknown[] };
 type Prosessliste = { prosesser?: Prosessinfo[]; maler?: Prosessinfo[] };
 type Personinfo = { personId: string; visningsnavn: string; bostedsadresse?: { kommune?: string } };
-/** En gate slik verktøyene svarer med den — fra mocken eller bygget fra Geonorge. */
+/** En gate slik verktøyene svarer med den - fra mocken eller bygget fra Geonorge. */
 type Gatetreff = {
   gateId: string;
   adressenavn: string;
@@ -427,7 +427,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "answer_citizen_question",
-    description: "Answer a free-standing question a citizen asks mid-flow (what the income threshold is, why tax data is needed, what happens to their data). Grounded only in the schemes, the process definition and what the session has already fetched — it looks nothing up and cannot reach consent-gated data. Guardrails run on the answer: no decisions, no invented amounts, no prompt injection.",
+    description: "Answer a free-standing question a citizen asks mid-flow (what the income threshold is, why tax data is needed, what happens to their data). Grounded only in the schemes, the process definition and what the session has already fetched - it looks nothing up and cannot reach consent-gated data. Guardrails run on the answer: no decisions, no invented amounts, no prompt injection.",
     inputSchema: {
       type: "object",
       required: ["tekst"],
@@ -495,7 +495,7 @@ function tekst(
 
 // A 400 from the backend is the caller's fault, not ours. Without the status code
 // here, "Ukjent ordning: ... Gyldige: ..." was repackaged as a 500 "Intern feil i
-// tools-api", and whoever called the tool — human or model — lost the message
+// tools-api", and whoever called the tool - human or model - lost the message
 // about what was wrong and could not correct itself.
 function upstreamError(data: { feil?: string }, status: number, kilde: string): ToolFeil {
   return new ToolFeil(data.feil || `${kilde} feil ${status}`, status);
@@ -1369,7 +1369,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     // Den samme spesifikasjonen, lest. En nettleser kan ikke lese YAML uten en
-    // parser, og sandkassen har ingen — så tjenesten leser sin egen fil og svarer
+    // parser, og sandkassen har ingen - så tjenesten leser sin egen fil og svarer
     // med det API-utforskeren trenger.
     if (request.method === "GET" && url.pathname === "/openapi-ruter.json") {
       json(response, 200, await routeOverview(openapiFile));
@@ -1377,8 +1377,8 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     /*
-     * The paths keep the /mcp prefix. They are wire format — process-agent, the
-     * cookbook and the spec all name them — and renaming a path is a different
+     * The paths keep the /mcp prefix. They are wire format - process-agent, the
+     * cookbook and the spec all name them - and renaming a path is a different
      * decision from renaming a service. It is the one place left where the prefix
      * still claims a protocol this service does not speak.
      *

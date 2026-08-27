@@ -1,5 +1,5 @@
-// Masking for address-protected people, applied once in the data layer — on the
-// way out of readState() — so every reader downstream (routes, ressurser,
+// Masking for address-protected people, applied once in the data layer - on the
+// way out of readState() - so every reader downstream (routes, ressurser,
 // regler, prosess) sees the same person. Services that read their own copy of
 // the data mask on their own way out; none of them can cover this one.
 //
@@ -14,13 +14,13 @@
 //   bostedsadresse
 //     .kommunenummer        TJENESTEBEHOV filters the municipality's own tilbud on
 //     .kommune              it, and demo-gui reads .kommune with no guard. Real
-//                           kode 6 hides the municipality too — that is a
+//                           kode 6 hides the municipality too - that is a
 //                           deliberate simplification here, not an oversight.
 //   adressebeskyttelse      The code is the explanation for why the other fields
 //   skjermet                are empty. Hiding it would leave the caller guessing.
 //
 // Values are nulled, never deleted. The wire format is frozen, and undefined
-// disappears in JSON.stringify — which would change the key set, not just the
+// disappears in JSON.stringify - which would change the key set, not just the
 // values.
 
 import type { Adressegradering, Husstand, Krr, Person, Personnavn } from "./innbyggerdata.ts";
@@ -98,12 +98,12 @@ export function maskPerson(person: Person): Person {
   return maskert;
 }
 
-// A KRR row is contact info by definition, so both protection grades null it —
+// A KRR row is contact info by definition, so both protection grades null it -
 // same skjulAdresse rule as maskPerson, read from the same table. reservert,
 // spraak and kanVarsles survive: they say whether the municipality may notify
 // digitally, not where the person is, and the KRR spec keeps them for kode 6/7
 // too. The whole objects go to null rather than their inner fields, matching how
-// a person with no registered contact info looks — absent and protected must be
+// a person with no registered contact info looks - absent and protected must be
 // indistinguishable on the wire.
 export function maskKrr(rad: Krr, gradering: unknown): Krr {
   const regel = regelFor(gradering);
@@ -114,9 +114,9 @@ export function maskKrr(rad: Krr, gradering: unknown): Krr {
 }
 
 // The folkeregister seed row, masked by the same rule table as maskPerson.
-// FORTROLIG nulls the fields that say where the person lives — the street
+// FORTROLIG nulls the fields that say where the person lives - the street
 // address, the matrikkel identifier, the Tenor extract's grunnkrets and
-// skolekrets — and the contact fields; STRENGT_FORTROLIG hides the name too.
+// skolekrets - and the contact fields; STRENGT_FORTROLIG hides the name too.
 // kommune and kommunenummer survive, the same deliberate simplification as
 // maskPerson, and `adressebeskyttelse` always survives: the code is the
 // explanation for why the other fields are empty.
@@ -132,7 +132,7 @@ export function maskFregPerson(person: FolkeregisterPerson): FolkeregisterPerson
   }
 
   // grunnkrets/skolekrets are top-level, so the person object itself goes
-  // through blankOut — only keys already present are nulled, as everywhere.
+  // through blankOut - only keys already present are nulled, as everywhere.
   const maskert = blankOut(person, ["grunnkrets", "skolekrets"]) as FolkeregisterPerson;
 
   if (regel.skjulNavn && person.personnavn) {

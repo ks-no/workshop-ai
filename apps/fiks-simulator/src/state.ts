@@ -1,8 +1,8 @@
 /**
  * Reading and writing state for fiks-simulator.
  *
- * Reading per request is deliberate — a hand edit to a seed file takes effect
- * without a restart, which matters during a hackathon — and `createStateReader`
+ * Reading per request is deliberate - a hand edit to a seed file takes effect
+ * without a restart, which matters during a hackathon - and `createStateReader`
  * keeps it cheap: read lazily, once per request, and only what the route asks
  * for. Writes go through `updateJson` in apps/shared/jsonstore.ts; this file
  * only points at it.
@@ -24,7 +24,7 @@ import { readJson } from "../../shared/jsonstore.ts";
  */
 /*
  * Datasettene denne tjenesten leser. Person, Husstand, Samtykke og Plass er
- * sandbox-backend sine — samme filer på disk, så samme typer. Inntekt, Oppgave
+ * sandbox-backend sine - samme filer på disk, så samme typer. Inntekt, Oppgave
  * og Melding finnes bare her.
  *
  * readJson gir `any`, som er riktig for en generisk JSON-leser. Typene settes
@@ -71,7 +71,7 @@ export type Melding = {
   syntetisk?: boolean;
 };
 
-/** Samtykket slik denne tjenesten skriver det — videre enn backendens lesing. */
+/** Samtykket slik denne tjenesten skriver det - videre enn backendens lesing. */
 export type FiksSamtykke = Samtykke & {
   formaal?: string;
   opprettet: string;

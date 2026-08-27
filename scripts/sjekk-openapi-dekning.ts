@@ -3,12 +3,12 @@
 /**
  * Keeps the specs and the code in step, by comparing them. It fails on:
  *
- *   1. a duplicate path key — YAML keeps the last and drops the first without a
+ *   1. a duplicate path key - YAML keeps the last and drops the first without a
  *      word, so this has to be caught on text level, before a parser collapses them
  *   2. a route in the code that the spec does not document
  *   3. a path in the spec that the code does not serve
  *   4. a method the code does not have on a path it does document
- *   5. an operation with no `security:` — neither its own nor a document default
+ *   5. an operation with no `security:` - neither its own nor a document default
  *   6. a security requirement that disagrees with the route's tilgang or scope
  *   7. an enum in the spec that has drifted from the kodeverk in the code
  *   8. a service in apps/shared/tjenester.json that this list disagrees with
@@ -55,7 +55,7 @@ type Tjeneste = {
   ruter?: () => Promise<Rute[]>;
   /**
    * Ruter som med vilje ikke hører i en API-spesifikasjon. Hver må ha en grunn,
-   * og grunnen skrives ut — en utelatelse ingen ser er ikke en avgrensning, den
+   * og grunnen skrives ut - en utelatelse ingen ser er ikke en avgrensning, den
    * er et hull.
    */
   utenfor?: Record<string, string>;
@@ -68,14 +68,14 @@ type Tjeneste = {
   /**
    * Kodeverk spesifikasjonen gjentar, og som derfor kan komme ut av takt med
    * koden. En enum i en spesifikasjon er en tredje sannhet ved siden av
-   * tilstandsmaskinen og informasjonsmodellen — den skal måles mot kilden.
+   * tilstandsmaskinen og informasjonsmodellen - den skal måles mot kilden.
    */
   kodeverk?: { skjema: string; verdier: () => Promise<readonly string[]> }[];
   /**
    * Nøstede kodeverk, målt mot verdiene dataene faktisk bruker. Relasjonen er
    * inneslutning, ikke likhet: spesifikasjonen får lov til å tillate mer enn
    * seeden inneholder (MEDMOR finnes i modellen og ikke i dataene), men aldri
-   * mindre — en verdi i dataene som spesifikasjonen ikke kjenner er en kontrakt
+   * mindre - en verdi i dataene som spesifikasjonen ikke kjenner er en kontrakt
    * som lyver.
    */
   datakodeverk?: {
@@ -114,7 +114,7 @@ function readEnum(tekst: string, skjema: string): string[] | null {
  * `enum:` under et navngitt felt inne i et skjema, uansett hvor dypt.
  *
  * Dette manglet, og det er derfor `Person.foreldrebarnrelasjon.relasjon` kunne stå
- * som `[BARN, FAR, MOR, MEDMOR]` i spesifikasjonen mens dataene skrev `FORELDER` —
+ * som `[BARN, FAR, MOR, MEDMOR]` i spesifikasjonen mens dataene skrev `FORELDER` -
  * readEnum så bare skjemaets øverste nivå, så nøstede kodeverk var utenfor
  * rekkevidde for enhver sjekk.
  */
@@ -148,7 +148,7 @@ function normalize(sti: string) {
 /**
  * A path regex from the source, as a path. Anything left that a URL cannot
  * contain literally means the pattern was not understood, and then this returns
- * null rather than guessing — an unparsed route has to become an error, never a
+ * null rather than guessing - an unparsed route has to become an error, never a
  * silently missing one.
  */
 function pathFromRegex(moenster: string): string | null {
@@ -164,7 +164,7 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
   const ruter: Rute[] = [];
   const uparsede: string[] = [];
 
-  // const X = "..."  og  const X = ["...", "..."] — matrikkel-mock legger stien
+  // const X = "..."  og  const X = ["...", "..."] - matrikkel-mock legger stien
   // sin i en konstant, og ai-gateway legger fem stier i en liste.
   const strenger = new Map<string, string[]>();
   for (const treff of kilde.matchAll(/^const (\w+) = "([^"]+)";$/gm)) {
@@ -174,10 +174,10 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
     strenger.set(treff[1], [...treff[2].matchAll(/"([^"]+)"/g)].map((m) => m[1]));
   }
 
-  // const xTreff = url.pathname.match(/.../);  — kan gå over flere linjer.
+  // const xTreff = url.pathname.match(/.../);  - kan gå over flere linjer.
   const moenstre = new Map<string, string>();
-  // The declaration lines themselves are not routes — the route is the `if` that
-  // uses the variable further down — so they are noted here and skipped below.
+  // The declaration lines themselves are not routes - the route is the `if` that
+  // uses the variable further down - so they are noted here and skipped below.
   const deklarasjoner = new Set<number>();
   for (const treff of kilde.matchAll(/const (\w+) = url\.pathname\.match\(\s*\/([^\n]+?)\/\s*\)/g)) {
     moenstre.set(treff[1], treff[2]);
@@ -185,10 +185,10 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
     deklarasjoner.add(foer.split("\n").length);
   }
 
-  // const sti = url.pathname;  — digdir-mock names the path once and compares the
+  // const sti = url.pathname;  - digdir-mock names the path once and compares the
   // name from there on. The shape belongs in this scanner, not in ikkeRuter: with
   // the alias unknown, all eleven of its routes were invisible and the check would
-  // have reported "0 ruter i koden" — failing loudly, but pointing at the wrong
+  // have reported "0 ruter i koden" - failing loudly, but pointing at the wrong
   // thing. Teaching the shape makes it robust for the next service that writes
   // its routes this way.
   const aliaser: string[] = [];
@@ -258,7 +258,7 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
 
     if (traff || !rutelinje.includes("url.pathname") || deklarasjoner.has(indeks + 1)) return;
     // A url.pathname the scanner did not recognise. Either it is a route written
-    // in a new shape — and then the shape belongs in this scanner — or it is not
+    // in a new shape - and then the shape belongs in this scanner - or it is not
     // a route, and then it belongs in ikkeRuter with a reason.
     if ((tjeneste.ikkeRuter || []).some((utdrag) => linje.includes(utdrag))) return;
     uparsede.push(`${indeks + 1}: ${linje.trim()}`);
@@ -289,7 +289,7 @@ const tjenester: Tjeneste[] = [
     ruter: backendRuter,
     // Forsendelsesstatus står i to spesifikasjoner fordi to tjenester svarer med
     // det: fiks-simulator utleder statusen, og sandbox-backend proxer den videre
-    // til søknadens eier. Kopien er greit så lenge den er portet — begge måles mot
+    // til søknadens eier. Kopien er greit så lenge den er portet - begge måles mot
     // den ene kodeverkslisten i koden.
     kodeverk: [
       {
@@ -417,7 +417,7 @@ const notater: string[] = [];
 //
 // apps/shared/tjenester.json er det dashboardet og API-utforskeren leser. Lista
 // her kan ikke slås sammen med den: oppføringene under bærer `kilde`, `ikkeRuter`
-// og `utenfor` — unntak som bare denne porten har bruk for. Men navnene skal stemme,
+// og `utenfor` - unntak som bare denne porten har bruk for. Men navnene skal stemme,
 // ellers får en ny tjeneste spesifikasjon uten å dukke opp for deltakerne, eller
 // omvendt.
 const registeret: { navn: string; spesifikasjon: boolean }[] = JSON.parse(
@@ -469,7 +469,7 @@ for (const tjeneste of tjenester) {
 
   const utenfor = tjeneste.utenfor || {};
   for (const [sti, grunn] of Object.entries(utenfor)) {
-    notater.push(`${tjeneste.navn}: ${sti} er holdt utenfor spesifikasjonen — ${grunn}`);
+    notater.push(`${tjeneste.navn}: ${sti} er holdt utenfor spesifikasjonen - ${grunn}`);
   }
 
   // 2 og 4. Hver rute i koden skal finnes i spesifikasjonen, med riktig metode.
@@ -603,7 +603,7 @@ for (const tjeneste of tjenester) {
       feil.push(
         `${tjeneste.spesifikasjon}: ${kodeverk.skjema}.${kodeverk.felt} lister ` +
         `${JSON.stringify(dokumentert)}, men dataene bruker ${JSON.stringify(ukjente)} ` +
-        `i tillegg. Spesifikasjonen er kontrakten — den kan tillate mer enn seeden ` +
+        `i tillegg. Spesifikasjonen er kontrakten - den kan tillate mer enn seeden ` +
         `inneholder, aldri mindre.`
       );
     }

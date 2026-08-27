@@ -7,7 +7,7 @@
 # Written as BEDROCK_AWS_* rather than plain AWS_*: a developer's own shell often
 # already exports AWS_ACCESS_KEY_ID/etc for unrelated personal credentials, and
 # both Compose and `node --env-file` prefer an already-set shell variable over one
-# from a .env file — so a plain AWS_ACCESS_KEY_ID in .env would silently be
+# from a .env file - so a plain AWS_ACCESS_KEY_ID in .env would silently be
 # shadowed by whatever the shell already has, pairing a personal permanent key
 # with this service's temporary session token: "The security token included in
 # the request is invalid." Confirmed happening in practice, not theoretical.
@@ -16,7 +16,7 @@
 #   AWS_PROFILE_KEY_FILE=state/aws-keys/<username>.json \
 #     ./scripts/aws-bedrock-assume.sh <role-arn> [env-file]
 #
-# Re-run this whenever the session expires (default 12h) — .env then has fresh
+# Re-run this whenever the session expires (default 12h) - .env then has fresh
 # short-lived creds instead of a permanent secret sitting in a dotfile.
 set -eu
 
@@ -28,7 +28,7 @@ fi
 ROLE_ARN="$1"
 ENV_FILE="${2:-.env}"
 REGION="${BEDROCK_AWS_REGION:-eu-north-1}"
-# Matches ROLE_MAX_SESSION_SECONDS in aws-bedrock-setup.sh — that script sets
+# Matches ROLE_MAX_SESSION_SECONDS in aws-bedrock-setup.sh - that script sets
 # the role's ceiling, this requests up to it. AssumeRole errors if this asks
 # for more than the role's own MaxSessionDuration allows, so keep them equal.
 DURATION_SECONDS="${DURATION_SECONDS:-43200}"
@@ -43,7 +43,7 @@ USER_AKID=$(echo "$USER_CREDS" | cut -d' ' -f1)
 USER_ASECRET=$(echo "$USER_CREDS" | cut -d' ' -f2)
 
 # The session name is the only thing that ties a Bedrock invocation (or a
-# CloudTrail AssumeRole event) back to a person — the assumed-role session
+# CloudTrail AssumeRole event) back to a person - the assumed-role session
 # ARN Bedrock logs carries this verbatim. Deriving it from the key file's
 # name (state/aws-keys/<username>.json, written by aws-bedrock-add-user.sh)
 # means aws-bedrock-dashboard.ts can attribute usage per user without
@@ -87,7 +87,7 @@ node -e '
 
   fs.writeFileSync(envFile, rows.join("\n").replace(/\n{2,}$/, "\n"));
   console.log("Wrote BEDROCK_AWS_REGION/BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY/BEDROCK_AWS_SESSION_TOKEN to " + envFile + ".");
-  console.log("Session expires: " + assumed.Expiration + " — re-run this script after that.");
+  console.log("Session expires: " + assumed.Expiration + " - re-run this script after that.");
 ' "$ASSUME_JSON" "$ENV_FILE" "$REGION"
 
 echo

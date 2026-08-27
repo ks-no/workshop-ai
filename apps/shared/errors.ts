@@ -9,7 +9,7 @@ export function feilmelding(feil: unknown): string {
 }
 
 /**
- * The `code` Node puts on filesystem and network errors — "ENOENT", "ECONNREFUSED".
+ * The `code` Node puts on filesystem and network errors - "ENOENT", "ECONNREFUSED".
  * It is not part of the `Error` interface, so it needs its own narrowing.
  * Returns undefined when the error carries no code, which is the common case for
  * errors we threw ourselves.
