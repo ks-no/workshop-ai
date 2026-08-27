@@ -33,9 +33,16 @@ pnpm test:folkeregister-mcp
 ```
 
 Testen implementerer klientsiden selv, så den viser at de to halvdelene er enige, ikke
-at innrammingen følger MCP-spesifikasjonen. Rører du transporten, sjekk mot en ekte
-klient også. `apps/brreg-mcp/README.md` viser kommandoen og forteller om gangen det
-faktisk gikk galt.
+at innrammingen følger MCP-spesifikasjonen. **Rører du transporten, sjekk mot en ekte
+klient også:**
+
+```bash
+npx -y @modelcontextprotocol/inspector --cli \
+  node apps/folkeregister-mcp/src/server.ts --method tools/list
+```
+
+Begge verktøyene skal komme opp i listen. `Connection timed out` betyr at innrammingen
+er brutt. `apps/brreg-mcp/README.md` forteller om gangen det faktisk skjedde.
 
 ## Eksempel på MCP-klientoppsett
 
