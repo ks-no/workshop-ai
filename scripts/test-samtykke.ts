@@ -488,7 +488,7 @@ try {
     JSON.stringify(utloept.kropp.historikk)
   );
   const listet = await call("/fiks/personer/person-004/samtykker");
-  check("lista viser samme utløpte status", listet.kropp[0]?.status === "UTLOEPT", listet.kropp[0]?.status);
+  check("listen viser samme utløpte status", listet.kropp[0]?.status === "UTLOEPT", listet.kropp[0]?.status);
   const trekkUtloept = await call(`/fiks/samtykke/${expiringId}/trekk`, { method: "PUT", body: {} });
   check("et utløpt samtykke kan ikke trekkes", trekkUtloept.status === 409, String(trekkUtloept.status));
   check(

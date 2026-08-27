@@ -37,7 +37,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/personer/person
 ```
 
 Slipper du å huske hvilket token en rute vil ha: <http://localhost:3001/utforsker> velger
-det ut fra hjemmelen ruta krever, og skriver ut en `curl` som virker når den limes inn.
+det ut fra hjemmelen ruten krever, og skriver ut en `curl` som virker når den limes inn.
 
 `pnpm token` treffer pnpms egen innebygde kommando - kall skriptet direkte.
 

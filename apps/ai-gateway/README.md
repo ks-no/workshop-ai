@@ -53,7 +53,7 @@ avgjort, eller er en klassifisering som valideres mot en hviteliste. Her kompone
 modellen, og da er promptinstrukser alene ingen sperre.
 
 Sperrene ligger i `src/sporsmaalsperrer.ts` - en modul uten avhengigheter, holdt utenfor
-`server.ts` fordi den fila kaller `server.listen` på toppnivå og derfor ikke kan
+`server.ts` fordi den filen kaller `server.listen` på toppnivå og derfor ikke kan
 importeres av en test. `pnpm test:sperrer` dekker dem og kjører i CI uten stack og uten
 modell.
 
@@ -126,7 +126,7 @@ http://localhost:8082/admin
 En side som viser hvilken provider som er aktiv og lar deg bytte mellom
 mock/ollama/openrouter/bedrock - og for Bedrock, hvilken modell - med et par klikk.
 Byttet gjelder umiddelbart og skrives til `state/ai-provider-override.json`, som
-overstyrer `AI_PROVIDER`/`BEDROCK_MODEL_ID` fra miljøet ved neste oppstart. Fila er
+overstyrer `AI_PROVIDER`/`BEDROCK_MODEL_ID` fra miljøet ved neste oppstart. Filen er
 i `state/` sammen med resten av kjøretidsdataene: gitignored, nullstilt av
 `./start.sh --reset`.
 

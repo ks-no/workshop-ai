@@ -504,7 +504,7 @@ async function readJsonRegister(fil: string): Promise<Register> {
  * de importen skriver, se scripts/hent-matrikkel.js.
  */
 type FlatLinje = Partial<Gate> & Partial<Eiendom> & {
-  /** "meta" på provenienslinja øverst i fila. */
+  /** "meta" på provenienslinja øverst i filen. */
   type?: string;
   /** Det nestede formatet: gate og eiendom hver for seg i stedet for flatt. */
   gate?: Partial<Gate>;
@@ -1162,7 +1162,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       const gnr = url.searchParams.get("gnr");
       const bnr = url.searchParams.get("bnr");
 
-      // Live-treff fra Geonorge mangler gateId og adressetilleggsnavn, så lista er
+      // Live-treff fra Geonorge mangler gateId og adressetilleggsnavn, så listen er
 
       // Partial - den blandes med fulle eiendommer fra registeret.
 

@@ -93,7 +93,7 @@ paths:
                         security:
                           type: array
                           items: { type: string }
-                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                          description: Ordningene ruten godtar. Tom liste betyr åpen.
                         scopes:
                           type: array
                           items: { type: string }
@@ -362,7 +362,7 @@ paths:
     get:
       summary: Rå inntektsposter for én person
       description: >-
-        Denne ruta delte ut full inntekt uten token før B4 - veien rundt
+        Denne ruten delte ut full inntekt uten token før B4 - veien rundt
         samtykke-før-inntekt, som er sandkassens viktigste policyregel. Hjemmel
         håndheves her; samtykket håndheves i sandbox-backend, som er den som
         kjenner innbyggeren.
@@ -723,7 +723,7 @@ paths:
         https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
 
         Avvik fra det ekte API-et: `/pdf`-variantene og den generiske
-        `/beregning`-ruta er ikke implementert.
+        `/beregning`-ruten er ikke implementert.
       security:
         - maskinporten: [ks:fiks:register]
       parameters:
@@ -860,7 +860,7 @@ paths:
         https://developers.fiks.ks.no/api/register-skatteoginntektsopplysninger-beregning-api-v1.json
 
         Avvik fra det ekte API-et: `/pdf`-variantene og den generiske
-        `/beregning`-ruta er ikke implementert.
+        `/beregning`-ruten er ikke implementert.
       security:
         - maskinporten: [ks:fiks:register]
       parameters:

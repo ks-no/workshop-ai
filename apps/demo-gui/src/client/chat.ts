@@ -616,7 +616,7 @@ const FORSENDELSESTEKST: Record<string, string> = {
 const FORSENDELSE_SLUTTSTATUSER = ["LEST", "PRINTET", "IKKE_LEVERT"];
 
 // Simulatoren utleder SENDT etter 10 s og LEVERT etter 60 s, så tre sekunder
-// mellom hvert oppslag viser hele progresjonen uten å hamre på ruta.
+// mellom hvert oppslag viser hele progresjonen uten å hamre på ruten.
 const FORSENDELSE_POLL_MS = 3000;
 
 // Uten en frist blir en forsendelse som aldri når en sluttilstand en linje som
@@ -673,7 +673,7 @@ function addDokumentboble(dokument: string): void {
  * ikke bare sparte DOM-operasjoner: #chat er aria-live="polite", så en
  * uendret tekst skrevet på nytt hvert tredje sekund leses opp på nytt hvert
  * tredje sekund - tjue ganger mens forsendelsen står i MOTTATT. Av samme grunn
- * ruller siden bare når linja faktisk sa noe nytt: dokumentboblen over er høy,
+ * ruller siden bare når linjen faktisk sa noe nytt: dokumentboblen over er høy,
  * og en leser som bla oppover i den skal ikke rykkes ned igjen mens hen leser.
  */
 function setForsendelsestekst(boble: HTMLElement, tekst: string, ferdig: boolean): void {
@@ -736,7 +736,7 @@ async function followForsendelse(soknadId: string): Promise<void> {
  *
  * Kvitteringen er best effort, så en søknad kan være lagret uten at noe ble
  * sendt. Da finnes det ingen status å polle, og det skal stå her i stedet for
- * at linja spinner på en forsendelse som aldri ble opprettet.
+ * at linjen spinner på en forsendelse som aldri ble opprettet.
  */
 function showInnsending(resultat: Stegresultat): void {
   if (resultat.soknadsdokument) {

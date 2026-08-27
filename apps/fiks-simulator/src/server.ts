@@ -101,7 +101,7 @@ const { jsonResponse, textResponse } = svarhjelpere({
  * Kroppene denne tjenesten tar imot, og de interne formene beregningen bygger.
  *
  * Kroppene er JSON fra tråden og har ikke vært gjennom noen validering når de
- * navngis her - typen sier hva ruta regner med, ikke hva den har fått. Derfor
+ * navngis her - typen sier hva ruten regner med, ikke hva den har fått. Derfor
  * står feilmeldingene i computeBeregning fortsatt: de sjekker det
  * typen ikke kan.
  */
@@ -329,7 +329,7 @@ function computeBeregning(body: BeregningKropp, personer: Person[], inntekter: I
   const deltakere: Deltaker[] = [];
   const personerResponse: Record<string, unknown>[] = [];
 
-  // Sjekket over - feilmeldinger-grenen returnerte allerede hvis lista manglet.
+  // Sjekket over - feilmeldinger-grenen returnerte allerede hvis listen manglet.
   for (const requested of body.personer ?? []) {
     // Without this check a malformed identifier returned PERSON_IKKE_FUNNET, which
     // wrongly implies it was well-formed. The two cases are kept apart because the
@@ -1024,7 +1024,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       const body = await readRequestBody(request) as SamtykkeKropp;
       const newSamtykke: FiksSamtykke = {
         samtykkeId: newId("samtykke"),
-        // Ikke validert: ruta har aldri krevd personId, og en kropp uten den
+        // Ikke validert: ruten har aldri krevd personId, og en kropp uten den
         // lagrer i dag et samtykke som ikke hører til noen. Typen sier `string`
         // fordi et samtykke uten person er meningsløst. Avviket er bevart her -
         // en migrering skal ikke endre atferd - men det er et ekte hull.

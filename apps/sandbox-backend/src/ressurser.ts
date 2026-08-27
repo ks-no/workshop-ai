@@ -341,7 +341,7 @@ export const ressurser: Ressurs[] = [
         // instead. The matrikkel already does prefix and substring matching, so a
         // miss here means the name really is not there.
         throw new HttpError(`Fant ikke gaten "${gateParam}".`, 404, {
-          hint: "Se GET /api/matrikkel/gater for hele lista over gater.",
+          hint: "Se GET /api/matrikkel/gater for hele listen over gater.",
           syntetisk: true
         });
       }

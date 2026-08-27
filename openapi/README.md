@@ -41,7 +41,7 @@ spesifikasjonen, i begge retninger, og feiler på:
 - en `security:` som er uenig med tilgangsbandet i koden. Kartet er `tilgang`-feltet på
   hver `Rute` i `routes.ts` og hver `Ressurs` i `ressurser.ts`: `aapen` → `security: []`,
   `egne-data` → ID-porten eller Maskinporten, `bred` → bare Maskinporten. Scopet må stemme
-  med det ruta krever
+  med det ruten krever
 - et kodeverk spesifikasjonen gjentar og som har kommet ut av takt med koden -
   `Samtykkestatus` og `Oppgavestatus` måles mot tilstandsmaskinene i `fiks-simulator`
 

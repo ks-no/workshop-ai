@@ -60,7 +60,7 @@ type Tjeneste = {
    */
   utenfor?: Record<string, string>;
   /**
-   * Linjer med url.pathname som ikke er en ruteerklæring. Uten denne lista måtte
+   * Linjer med url.pathname som ikke er en ruteerklæring. Uten denne listen måtte
    * skanneren gjette, og en rute skrevet på en form den ikke kjenner ville blitt
    * borte i stillhet. Nå må den føres opp her, med vitende og vilje.
    */
@@ -92,7 +92,7 @@ async function lesData(fil: string): Promise<any[]> {
 
 // --- spesifikasjonen ------------------------------------------------------
 
-/** Skjemablokka til `Person:` i components.schemas, uten resten av fila. */
+/** Skjemablokka til `Person:` i components.schemas, uten resten av filen. */
 function skjemablokk(tekst: string, skjema: string): string | null {
   const start = tekst.indexOf(`\n    ${skjema}:\n`);
   if (start === -1) return null;
@@ -375,8 +375,8 @@ const tjenester: Tjeneste[] = [
       "/assets/felles.css": "statisk stilark for /docs, ikke et API"
     },
     ikkeRuter: [
-      // Plukker oppgavetypen ut av stien inne i handleren; ruta er allerede
-      // fanget av gyldigeStier.includes(url.pathname) på linja over.
+      // Plukker oppgavetypen ut av stien inne i handleren; ruten er allerede
+      // fanget av gyldigeStier.includes(url.pathname) på linjen over.
       'url.pathname.replace("/ai/", "")'
     ]
   },
@@ -413,9 +413,9 @@ const show = process.argv.includes("--vis");
 const feil: string[] = [];
 const notater: string[] = [];
 
-// 8. Registeret og denne lista skal beskrive de samme tjenestene.
+// 8. Registeret og denne listen skal beskrive de samme tjenestene.
 //
-// apps/shared/tjenester.json er det dashboardet og API-utforskeren leser. Lista
+// apps/shared/tjenester.json er det dashboardet og API-utforskeren leser. Listen
 // her kan ikke slås sammen med den: oppføringene under bærer `kilde`, `ikkeRuter`
 // og `utenfor` - unntak som bare denne porten har bruk for. Men navnene skal stemme,
 // ellers får en ny tjeneste spesifikasjon uten å dukke opp for deltakerne, eller
@@ -429,9 +429,9 @@ if (iRegisteret.join(",") !== iLista.join(",")) {
   const mangler = iLista.filter((n) => !iRegisteret.includes(n));
   const ekstra = iRegisteret.filter((n) => !iLista.includes(n));
   feil.push(
-    "apps/shared/tjenester.json er ikke enig med tjenester-lista i dette skriptet." +
+    "apps/shared/tjenester.json er ikke enig med tjenester-listen i dette skriptet." +
       (mangler.length ? `\n    Mangler i registeret med spesifikasjon: true: ${mangler.join(", ")}` : "") +
-      (ekstra.length ? `\n    Star i registeret, men ikke i lista her: ${ekstra.join(", ")}` : "")
+      (ekstra.length ? `\n    Star i registeret, men ikke i listen her: ${ekstra.join(", ")}` : "")
   );
 }
 

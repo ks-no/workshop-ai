@@ -345,7 +345,7 @@ for (const file of markdown) {
     const extra = mentioned.filter((c) => !inCi.includes(c));
     if (missing.length || extra.length) {
       failures.push(
-        `${file}:${i + 1}: CI-lista er ute av takt med .github/workflows/ci.yml ` +
+        `${file}:${i + 1}: CI-listen er ute av takt med .github/workflows/ci.yml ` +
         `(${inCi.length} sjekker).` +
         (missing.length ? ` Mangler: ${missing.join(", ")}.` : "") +
         (extra.length ? ` Nevner som CI det ikke er: ${extra.join(", ")}.` : "")
@@ -380,7 +380,7 @@ for (const file of markdown) {
     failures.push(
       `${file}: verktøylista er ute av takt med apps/tools-api/src/server.ts ` +
       `(${toolNames.size} verktøy). Mangler: ${missing.join(", ")}. ` +
-      `Rett lista, eller slett den og pek på GET /mcp/tools.`
+      `Rett listen, eller slett den og pek på GET /mcp/tools.`
     );
   }
 }

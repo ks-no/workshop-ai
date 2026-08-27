@@ -13,7 +13,7 @@ Data er delt i to mapper, og skillet er absolutt:
 | `data/` | Kildedata. Leses av tjenestene, skrives aldri til. | Ja |
 | `state/` | Alt tjenestene skriver under kjøring. | Nei - gitignorert |
 
-Tjenestene leser fra `state/` hvis fila finnes der, og faller ellers tilbake på kilden i `data/`. Første gang noe skrives, opprettes kopien i `state/` automatisk. Det finnes ingen initialiseringskommando.
+Tjenestene leser fra `state/` hvis filen finnes der, og faller ellers tilbake på kilden i `data/`. Første gang noe skrives, opprettes kopien i `state/` automatisk. Det finnes ingen initialiseringskommando.
 
 Konsekvensen er at en demokjøring aldri endrer arbeidstreet. Kjører du en flyt og deretter `git status`, skal den være ren.
 
@@ -33,9 +33,9 @@ Merk: prosessdefinisjoner.json finnes i state/ og skygger for data/.
 Endringer du gjør i data/ blir ignorert til du kjører ./start.sh --reset.
 ```
 
-Ser du den linja og lurer på hvorfor redigeringene dine ikke virker: enten
+Ser du den linjen og lurer på hvorfor redigeringene dine ikke virker: enten
 `./start.sh --reset` (sletter *all* kjøringstilstand, inkludert prosesser du har
-laget i byggeren), eller slett bare den ene fila:
+laget i byggeren), eller slett bare den ene filen:
 
 ```bash
 rm state/prosessdefinisjoner.json
@@ -54,7 +54,7 @@ Nullstill all kjøringstilstand med:
 
 ### Å dele en prosess du har laget
 
-Prosesser du lager i prosessbyggeren havner i `state/prosessdefinisjoner.json`, siden byggeren skriver som alle andre tjenester. Vil du dele prosessen med andre, kopierer du fila til `data/` og committer den:
+Prosesser du lager i prosessbyggeren havner i `state/prosessdefinisjoner.json`, siden byggeren skriver som alle andre tjenester. Vil du dele prosessen med andre, kopierer du filen til `data/` og committer den:
 
 ```bash
 cp state/prosessdefinisjoner.json data/prosessdefinisjoner.json
@@ -110,7 +110,7 @@ node scripts/hent-matrikkel.ts                # topper opp matrikkelen fra Geono
 
 Importen bygger på nytt hver gang, men **id-ene er stabile**: `personId` og
 `husstandId` leses tilbake fra `personer.json`, så et nytt Tenor-uttrekk kan slippes
-i mappa uten at noen blir omnummerert. `--glem-id-er` tildeler dem fra bunnen, og gir
+i mappen uten at noen blir omnummerert. `--glem-id-er` tildeler dem fra bunnen, og gir
 samme resultat på uendret input - det er sånn determinismen er verifisert.
 
 ## Kart over koblingene
@@ -234,7 +234,7 @@ innlasting, i `apps/shared/skjerming.ts`, og gjelder alle lesere gjennom
 API-et. Hadde seeden vært maskert ville det ikke vært noe å beskytte, og
 maskeringstestene ville målt tomme strenger.
 
-Leser du fila direkte ser du klartekst. Går du gjennom API-et ser du «Skjermet
+Leser du filen direkte ser du klartekst. Går du gjennom API-et ser du «Skjermet
 person» for kode 6 og en nullet adresse for kode 7. `pnpm test:skjerming` holder det
 på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 

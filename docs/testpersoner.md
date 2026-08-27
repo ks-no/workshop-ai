@@ -1,7 +1,7 @@
 <!-- GENERERT AV scripts/importer-tenor.ts. Ikke rediger for hånd. -->
 # Testpersoner
 
-Hele befolkningen i sandkassen, generert fra `data/personer.json`. `pnpm test` feiler hvis denne fila er ute av takt med dataene, så tallene her er alltid de som faktisk gjelder.
+Hele befolkningen i sandkassen, generert fra `data/personer.json`. `pnpm test` feiler hvis denne filen er ute av takt med dataene, så tallene her er alltid de som faktisk gjelder.
 
 ## Hvor mange, og hvem kan hva
 
@@ -455,6 +455,6 @@ Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato - samme referans
 - **Inntekten er forfattet, ikke hentet.** Tenor hadde inntektsdata for 6 av 120 hoveddokumenter og ingen av foreldrene. Beløpene for de importerte utledes deterministisk fra fødselsnummeret; terskelscenarioene ligger hos de kuraterte husstandene, der de er forfattet og kontrollert.
 - **`kommune` er et visningsnavn, `kommunenummer` er nøkkelen.** Tenor oppgir bare nummeret; der `data/brreg.seed.json` kjenner navnet brukes det, ellers står poststedet.
 - **Matrikkelen dekker de gatene befolkningen faktisk bor i**, hentet fra Geonorge per kommune, pluss alle Bergens gater. Alle bosatte er bundet til en matrikkelenhet gjennom `bostedsadresse.adresseIdentifikatorFraMatrikkelen`. De som ikke er bosatt har ingen binding, og de som har D-nummer har ingen adresse i det hele tatt.
-- **Adressebeskyttede personer står med fullt navn og adresse i `data/personer.json`.** Det er med vilje: maskeringen skjer ved innlasting, i `apps/shared/skjerming.ts`, og hadde seeden vært maskert ville det ikke vært noe å beskytte. Leser du fila direkte ser du klartekst; går du gjennom API-et ser du maskeringen. `pnpm test:skjerming` holder den på plass.
+- **Adressebeskyttede personer står med fullt navn og adresse i `data/personer.json`.** Det er med vilje: maskeringen skjer ved innlasting, i `apps/shared/skjerming.ts`, og hadde seeden vært maskert ville det ikke vært noe å beskytte. Leser du filen direkte ser du klartekst; går du gjennom API-et ser du maskeringen. `pnpm test:skjerming` holder den på plass.
 - **Tolv personer er over 100 år**, den eldste 113. Det er Tenor slik det leveres.
 

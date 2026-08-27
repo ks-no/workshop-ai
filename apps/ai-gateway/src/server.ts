@@ -46,7 +46,7 @@ const TOKEN = {
  * Kroppene ai-gateway tar imot, og formene rundt modellkallet.
  *
  * Kroppene er JSON fra tråden og har ikke vært gjennom noen validering når de
- * navngis her. Typen sier hva ruta regner med, ikke hva den har fått - derfor
+ * navngis her. Typen sier hva ruten regner med, ikke hva den har fått - derfor
  * står alle feltene som valgfrie, og koden coercer fortsatt selv.
  */
 type Aktor = { type: string; id?: string; paaVegneAv?: string };

@@ -42,7 +42,7 @@ paths:
                     description: >
                       Hvilken fil eierforholdene ble lest fra, og hvor mange
                       matrikkelenheter som har en registrert eier. En enhet som
-                      ikke star i fila har ingen.
+                      ikke star i filen har ingen.
                     properties:
                       fil:
                         type: string
@@ -52,8 +52,8 @@ paths:
                   kilde:
                     type: object
                     description: >
-                      Provenans. `metadata.kommuner` i fila oppsummeres her til
-                      `antallKommuner` og en liste kommunenummer - den fulle lista
+                      Provenans. `metadata.kommuner` i filen oppsummeres her til
+                      `antallKommuner` og en liste kommunenummer - den fulle listen
                       er 97 oppføringer og hører ikke i en helsesjekk.
                     additionalProperties: true
   /openapi.yaml:
@@ -104,7 +104,7 @@ paths:
                         security:
                           type: array
                           items: { type: string }
-                          description: Ordningene ruta godtar. Tom liste betyr åpen.
+                          description: Ordningene ruten godtar. Tom liste betyr åpen.
                         scopes:
                           type: array
                           items: { type: string }
@@ -195,7 +195,7 @@ paths:
           required: false
           description: >
             Snevrer treffet inn til eiendommer denne personen eier, og er det
-            eneste som får `eiere` med i svaret. Uten den beskriver lista hva
+            eneste som får `eiere` med i svaret. Uten den beskriver listen hva
             eiendommene er, ikke hvem som eier dem.
           schema:
             type: string

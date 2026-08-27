@@ -620,7 +620,7 @@ for (const rad of eierforhold.eierforhold) {
   if (!rad.eiere?.length) {
     throw new Error(
       `${rad.matrikkelId} står i eierforhold.json uten eiere. En eiendom uten ` +
-      `registrert eier utelates fra fila i stedet.`
+      `registrert eier utelates fra filen i stedet.`
     );
   }
   const sumAndel = rad.eiere.reduce((sum: any, e: any) => sum + e.andel, 0);
@@ -1275,7 +1275,7 @@ if (faktiskDok !== forventetDok) {
   const foerste = forventedeLinjer.findIndex((linje, i) => linje !== faktiskeLinjer[i]);
   throw new Error(
     `docs/testpersoner.md er ute av takt med dataene, fra linje ${foerste + 1}:\n` +
-    `  i fila:     ${JSON.stringify(faktiskeLinjer[foerste])}\n` +
+    `  i filen:     ${JSON.stringify(faktiskeLinjer[foerste])}\n` +
     `  skal være:  ${JSON.stringify(forventedeLinjer[foerste])}\n` +
     `Kjør node scripts/importer-tenor.ts.`
   );
@@ -1500,7 +1500,7 @@ for (const barn of majasBarn) {
       await readFile(`data/${file}`, "utf8");
     } catch {
       throw new Error(
-        `SEED_DATASETS oppgir data/${file} for «${id}», men fila kan ikke leses. ` +
+        `SEED_DATASETS oppgir data/${file} for «${id}», men filen kan ikke leses. ` +
         `Katalogen på GET /api/katalog/datasett ville pekt på ingenting.`
       );
     }

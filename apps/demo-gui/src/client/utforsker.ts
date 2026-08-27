@@ -11,7 +11,7 @@ renderTopNav("/utforsker");
 // men porten må være kjent for å hente den første gangen. Navnet er samtidig
 // den audience tjenesten godtar et token for; se autentisering.ts.
 //
-// Lista sto her og på dashboardet, i to kopier. Dashboardets manglet
+// Listen sto her og på dashboardet, i to kopier. Dashboardets manglet
 // digdir-mock. Nå står den ett sted, og pnpm test:openapi krever at den er
 // enig med tjenestelista i scripts/sjekk-openapi-dekning.ts.
 // Formene tjenestene faktisk sender på GET /openapi-ruter.json. Fasiten er
@@ -29,7 +29,7 @@ type RuteParameter = {
 type Rute = {
   metode: string;
   sti: string;
-  /** null = ruta har ingen dokumentert hjemmel. */
+  /** null = ruten har ingen dokumentert hjemmel. */
   security: string[] | null;
   scopes: string[];
   sammendrag?: string;
@@ -101,7 +101,7 @@ function showBanner(tekst: string | null): void {
 const maskinportenBuffer = new Map<string, string>();
 /** Satt av «bruk mitt eget token» i identitetskortet. Overstyrer alt. */
 let manueltToken: string | null = null;
-/** Ordningen deltakeren har valgt for den valgte ruta, når den godtar flere. */
+/** Ordningen deltakeren har valgt for den valgte ruten, når den godtar flere. */
 let valgtOrdning: string | null = null;
 
 function ordningerFor(rute: Rute): string[] {
@@ -169,7 +169,7 @@ async function getMaskinportenToken(audience: string, scope: string): Promise<st
 }
 
 /**
- * Hvilken ordning som brukes for en rute. Godtar ruta flere, kan deltakeren
+ * Hvilken ordning som brukes for en rute. Godtar ruten flere, kan deltakeren
  * velge - det er der forskjellen på «egne data» og «maskin med scope» blir
  * synlig, og der en 403 er verdt å framkalle med vilje.
  */
@@ -199,7 +199,7 @@ async function getCredentials(rute: Rute): Promise<Legitimasjon> {
   }
 
   const ordning = chosenOrdningFor(rute);
-  if (!ordning) return { header: {}, hva: "ingen legitimasjon - ruta er åpen", curlHent: null };
+  if (!ordning) return { header: {}, hva: "ingen legitimasjon - ruten er åpen", curlHent: null };
 
   const audience = tjeneste!.navn;
 
@@ -209,7 +209,7 @@ async function getCredentials(rute: Rute): Promise<Legitimasjon> {
       return {
         mangler: token
           ? `ID-porten-tokenet for ${audience} er utløpt. Logg inn på nytt.`
-          : `Ruta krever et ID-porten-token for ${audience}. Logg inn øverst på siden.`
+          : `Ruten krever et ID-porten-token for ${audience}. Logg inn øverst på siden.`
       };
     }
     const pid = loggedInPid(audience) ?? "";
@@ -252,7 +252,7 @@ async function loadTestbrukere(): Promise<void> {
       testbrukere.set(bruker.pid, bruker);
     }
   } catch {
-    // Uten lista viser identitetslinja fødselsnummeret i stedet for navnet.
+    // Uten listen viser identitetslinja fødselsnummeret i stedet for navnet.
     // Det er en dårligere opplevelse, ikke en ødelagt side.
   }
 }
@@ -452,7 +452,7 @@ async function renderDetaljer(rute: Rute): Promise<void> {
   if (ordninger.length > 1 && !manueltToken) {
     const label = document.createElement("label");
     label.htmlFor = "ordningvelger";
-    label.textContent = "Ruta godtar to ordninger - send som";
+    label.textContent = "Ruten godtar to ordninger - send som";
     const velger = document.createElement("select");
     velger.id = "ordningvelger";
     for (const ordning of ordninger) {
@@ -675,7 +675,7 @@ async function sendRequest(
 
   // Et kall på tvers av origin ser bare de trygge headerne med mindre
   // tjenesten lister resten i Access-Control-Expose-Headers. curl ser alle,
-  // og det er verdt å si framfor å la lista se tom ut.
+  // og det er verdt å si framfor å la listen se tom ut.
   const headerNote = document.createElement("p");
   headerNote.className = "muted small";
   headerNote.textContent =
@@ -725,7 +725,7 @@ function explainRejection(rute: Rute, status: number, legitimasjon: Legitimasjon
   const hjemmel = hjemmelFor(rute);
   if (status === 401) {
     return `401 betyr «vi vet ikke hvem du er» - tokenet mangler, er utløpt, eller er ` +
-      `utstedt for en annen audience enn ${tjeneste!.navn}. Ruta krever ${hjemmel.tekst}.`;
+      `utstedt for en annen audience enn ${tjeneste!.navn}. Ruten krever ${hjemmel.tekst}.`;
   }
   return "403 betyr «vi vet hvem du er, og du har ikke lov». Legitimasjonen holdt, " +
     "men den gjelder ikke denne ressursen - se grunnen i kroppen under. Et " +
@@ -816,7 +816,7 @@ async function start(): Promise<void> {
   await loadTestbrukere();
   renderIdentitet();
 
-  // Ruta fra adressen, slik den ser ut etter en rundtur til ID-porten.
+  // Ruten fra adressen, slik den ser ut etter en rundtur til ID-porten.
   const parametere = new URLSearchParams(location.search);
   const oenskt = TJENESTER.find((kandidat) => kandidat.navn === parametere.get("tjeneste"));
   velger.value = (oenskt || TJENESTER[0]).base;

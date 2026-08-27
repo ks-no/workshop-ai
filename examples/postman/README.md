@@ -20,13 +20,13 @@ direkte.
 **Rutene krever token.** `AUTH_ENFORCE` er på som standard, og alt som ikke er
 uttrykkelig åpent svarer 401 uten `Authorization`. Hent et token med
 `node scripts/token.ts` - eller la <http://localhost:3001/utforsker> velge det riktige
-tokenet for ruta og gi deg en `curl` som virker.
+tokenet for ruten og gi deg en `curl` som virker.
 
 ## Dekningsgrad
 
 **Hver spesifikasjon dekker hver rute i koden**, med `security:` per rute.
 Rutetallene står ikke her: `pnpm test:openapi` skriver dem ut per tjeneste, og et tall i
-denne fila ville vært en kopi som ryker ved neste rute.
+denne filen ville vært en kopi som ryker ved neste rute.
 
 Beregningsendepunktet - det eneste som speiler et ekte KS-API - er beskrevet i
 `openapi/fiks-simulator.yaml` med lenke til

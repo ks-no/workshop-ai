@@ -206,7 +206,7 @@ async function errorFrom(
 
   // Without emptyOn the same 404 is a failure. «No such street» and «the matrikkel
   // does not have that route» must not be the same answer.
-  const uventet404 = await errorFrom(FIKS, responds(404, JSON.stringify({ feil: "Fant ikke ruta." })));
+  const uventet404 = await errorFrom(FIKS, responds(404, JSON.stringify({ feil: "Fant ikke ruten." })));
   check("404 uten emptyOn er en feil", uventet404?.status === 404, String(uventet404?.status));
 
   const nedeMedEmptyOn = await errorFrom(MATRIKKEL, rejects("ECONNREFUSED"));

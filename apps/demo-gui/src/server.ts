@@ -46,7 +46,7 @@ const sider: Record<string, string> = {
   "/": "dashboard.html",
   "/dashboard": "dashboard.html",
   "/stegvis": "stegvis.html",
-  // Ruta het /stegvis lenge før filen gjorde. Aliaset står fordi noen kan ha
+  // Ruten het /stegvis lenge før filen gjorde. Aliaset står fordi noen kan ha
   // bokmerket det.
   "/index.html": "stegvis.html",
   "/chat": "chat.html",

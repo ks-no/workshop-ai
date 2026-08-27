@@ -63,7 +63,7 @@ if (inBlock) {
 }
 
 if (blocks.length === 0) {
-  console.error(`${file}: fant ingen \`\`\`bash-blokker. Er fila tom eller omskrevet?`);
+  console.error(`${file}: fant ingen \`\`\`bash-blokker. Er filen tom eller omskrevet?`);
   process.exit(1);
 }
 

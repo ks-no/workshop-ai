@@ -6,7 +6,7 @@ spesifikasjonene ikke kan forklare selv.
 Grunnen: endepunktene fantes her i en håndskrevet liste, ved siden av `openapi/*.yaml`,
 ved siden av hver tjenestes `/docs`, og ved siden av `/openapi-ruter.json`. Fire lister
 over det samme driver fra hverandre, og den håndskrevne taper alltid. `pnpm test:openapi`
-holder spesifikasjonene i takt med koden; ingenting holdt denne fila i takt med noe.
+holder spesifikasjonene i takt med koden; ingenting holdt denne filen i takt med noe.
 
 ## Hvor endepunktene står
 
@@ -30,7 +30,7 @@ Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell
 | matrikkel-mock | 8085 | `openapi/matrikkel-mock.yaml` |
 | digdir-mock | 8086 | `openapi/digdir-mock.yaml` |
 
-Lista over tjenester bor i `apps/shared/tjenester.json`, som dashboardet og
+Listen over tjenester bor i `apps/shared/tjenester.json`, som dashboardet og
 API-utforskeren begge leser. `pnpm test:openapi` krever at den er enig med seg selv.
 
 Alle sju svarer også på `GET /helse`. Det finnes ingen `/health` - den var et alias som
