@@ -554,8 +554,9 @@ function adminHtml(): string {
         }).join("");
         // SDK-en før legitimasjonen: uten pakken er legitimasjonen uinteressant, og
         // «nøkkel mangler» ville sendt leseren til .env i stedet for til pnpm.
+        // Årsaken kommer ferdig formulert fra serveren - siden gjetter den ikke.
         document.getElementById("bedrockCreds").textContent = !data.bedrock.sdkAvailable
-          ? "@aws-sdk/client-bedrock-runtime er ikke installert. Kjør «pnpm install» på verten."
+          ? data.bedrock.sdkError
           : data.bedrock.credsConfigured
             ? "Region: " + data.bedrock.region
             : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
@@ -1485,21 +1486,29 @@ async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedroc
       if (kode !== "ERR_MODULE_NOT_FOUND" && kode !== "MODULE_NOT_FOUND") {
         throw feil;
       }
+      // The original message is kept, because the specifier that is actually missing
+      // is often a transitive @aws-sdk/* or @smithy/* rather than the one named here -
+      // that is what a dead junction under a hoisted root looks like. Naming only the
+      // top package would point at the wrong thing.
       throw new Error(
-        "@aws-sdk/client-bedrock-runtime er ikke installert. Kjør «pnpm install» på verten, " +
-          "eller velg en annen provider enn bedrock."
+        "@aws-sdk/client-bedrock-runtime lar seg ikke laste. Kjør «pnpm install» på verten, " +
+          `eller velg en annen provider enn bedrock. Underliggende feil: ${feilmelding(feil)}`,
+        { cause: feil }
       );
     }
   }
   return bedrockModul;
 }
 
-async function bedrockSdkTilgjengelig(): Promise<boolean> {
+// Returns the reason rather than just a flag. A bare boolean let /admin print «kjør
+// pnpm install» for a package that was installed and merely broken - the exact
+// round-in-circles the loader above goes out of its way to avoid.
+async function bedrockSdkStatus(): Promise<{ tilgjengelig: boolean; feil: string | null }> {
   try {
     await loadBedrockModul();
-    return true;
-  } catch {
-    return false;
+    return { tilgjengelig: true, feil: null };
+  } catch (feil) {
+    return { tilgjengelig: false, feil: feilmelding(feil) };
   }
 }
 
@@ -1615,6 +1624,7 @@ async function saveProviderOverride(): Promise<void> {
 
 async function buildProviderStatus() {
   const helse = await checkProvider();
+  const sdk = await bedrockSdkStatus();
   return {
     provider: aiProvider,
     providers: AI_PROVIDERS,
@@ -1632,7 +1642,11 @@ async function buildProviderStatus() {
       // has to be able to say «SDK-en mangler» the moment you pick bedrock in the
       // dropdown - before you click. What the lazy import buys is that no boot and
       // no /helse pays for it; one admin page load doing so is the point of it.
-      sdkAvailable: await bedrockSdkTilgjengelig()
+      sdkAvailable: sdk.tilgjengelig,
+      // Carried so the panel renders the reason instead of guessing one. Without it
+      // the browser had its own copy of the pnpm hint, free to drift and wrong for a
+      // package that is present but throws.
+      sdkError: sdk.feil
     },
     ollama: { model: ollamaModel, baseUrl: ollamaBaseUrl },
     openrouter: { model: openRouterModel, keyConfigured: Boolean(openRouterApiKey) }
