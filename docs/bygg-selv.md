@@ -138,6 +138,10 @@ mot, og de er norske: `melding`, `feil`, `grunnlag`, `svar`, `steg`, `stegId`,
 
 En lokal variabel hos deg kan hete hva som helst. Svarnøkkelen heter `melding`.
 
+Listen over er til å lese; `openapi/*.yaml` er den som gjelder, og den er alltid
+oppdatert fordi `pnpm test:openapi` sjekker den mot rutene i koden begge veier. Er du i
+tvil om et feltnavn, slå det opp der og ikke her.
+
 ---
 
 ## Utvide sandkassen innenfra

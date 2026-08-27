@@ -22,22 +22,17 @@ En endring er ikke ferdig før:
 - eventuelle API-endringer er synlige i `openapi/`
 - syntetiske data fortsatt er konsistente
 - policy-konsekvenser er vurdert
+- prosa følger språkregelen i `AGENTS.md` (`## Language`), og ingen identifikator,
+  JSON-nøkkel eller matchemønster er omdøpt underveis
 
 ## Konvensjoner
 
-- **språk i kode: engelsk teknikk, norsk fagspråk.** Alt som er rørlegging skrives
-  engelsk — `readRequestBody`, `findPerson`, `buildPrompt`, `HttpError`. Domenebegrepene
-  står på norsk, fordi de ikke har en ærlig engelsk oversettelse i denne sammenhengen:
-  `samtykke`, `inntekt`, `husstand`, `ordning`, `vilkaar`, `revisjonslogg`, `matrikkel`.
-  Blandede sammensetninger er riktig og forventet: `getInntektForPerson`,
-  `evaluateVilkaar`, `buildGrunnlag`. Verbet er engelsk også når substantivet er norsk.
-  Norske identifikatorer translittereres (`noekkel`, `foer`, `rekkefoelge`); kommentarer
-  og tekst bruker ordentlige norske tegn. Hele regelen står i `AGENTS.md`.
+- **språk:** hele regelen står i `AGENTS.md` under `## Language`, og gjelder også
+  commit-meldinger og PR-beskrivelser. Er du i tvil om noe er prosa eller en
+  identifikator, er det en identifikator.
 - **wire-formatet er frosset og forblir norsk.** JSON-nøkler og ruter er kontrakten alle
-  team bygger mot — `melding`, `feil`, `grunnlag`, `sporingsId`, `/api/personer`. Aldri
-  døp dem om. En lokal variabel kan hete `message`; svarnøkkelen heter `melding`.
-- språk i dokumentasjon: norsk er ok, engelsk er også greit hvis teamet trenger det
-- filencoding: bruk UTF-8 (Unicode) for kode, dokumentasjon og datafiler
+  team bygger mot, så du døper dem aldri om - heller ikke for å rette en skrivefeil.
+  Feltnavnene står i `openapi/*.yaml`.
 - API-felter: bruk konsistente navn og eksplisitt `syntetisk: true` der det passer
 - ikke introduser tunge plattformer før behovet er reelt
 - unngå å gjøre midlertidige referanseløsninger til harde krav for andre team
