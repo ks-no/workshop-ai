@@ -1,47 +1,28 @@
 # Tools API
 
-REST tool endpoints over the other services, for process guidance, AI interpretation
-and Matrikkel data access.
+**For deg som bygger en agent og trenger verktøy å kalle.** REST-endepunkter oppå de
+andre tjenestene: prosessveiledning, KI-tolkning og matrikkeldata i ett sett. Skal du
+bruke sandkassens API-er direkte, går du utenom denne og rett på tjenesten selv.
 
-It was called `mcp-services` and answered `protocol: "mcp-style-http"` until
-23.08.2026. It is not the MCP protocol and never was - no JSON-RPC, no stdio,
-no SSE - so the name has been dropped rather than the claim repeated. `apps/brreg-mcp` and
-`apps/folkeregister-mcp` *are* MCP, and are now the only things here called that.
+**Den er REST, ikke MCP-protokollen.** Ingen JSON-RPC, ingen stdio, ingen SSE, så ingen
+MCP-klient kan koble seg til. `apps/brreg-mcp` og `apps/folkeregister-mcp` *er* MCP.
+`/mcp/*`-stiene blir stående fordi de er wire-format, og å døpe om en sti er en annen
+avgjørelse enn å døpe om en tjeneste. `AGENTS.md` har historien bak navnet.
 
-The `/mcp/*` paths remain: they are wire format, and renaming a path is a separate
-decision from renaming a service.
+## Verktøylisten
 
-## Purpose
+`GET /mcp/tools` svarer med den levende katalogen: navn, beskrivelser og `inputSchema`.
+Den er den eneste listen som ikke kan komme i utakt. `docs/api-oversikt.md` har de samme
+navnene i prosa, til lesing uten at stacken er oppe.
 
-This service exposes tool endpoints a generic agent can call to:
+Her sto det en håndkopiert tabell, og den hadde mistet flere verktøy før noen oppdaget
+det. Derfor feiler `pnpm test:docs` nå ethvert dokument som navngir minst ti av dem uten
+å navngi alle.
 
-- list processes and people
-- start and inspect process sessions
-- answer question steps
-- handle consent steps
-- run action steps and move to next step
-- interpret user replies through `ai-gateway`
-- look up matrikkel streets, properties, and owners through `matrikkel-mock` and optional live gate lookup
-- **dynamically discover which tools are relevant for any given process step** via `suggest_step_tools`
+`suggest_step_tools` er den ene som fortjener en forklaring, og den bor i
+`docs/prosessmodell.md`: hva et steg må inneholde, og hva `bruk`-verdiene betyr.
 
-## Tool list
-
-`GET /mcp/tools` answers with the live catalogue - names, descriptions and
-`inputSchema` - and is the only list that cannot drift. `docs/api-oversikt.md`
-has the same names in prose for reading without the stack up.
-
-A hand-copied table stood here and had lost six tools by the time anyone
-noticed, so `pnpm test:docs` now fails any doc that names ten or more tools
-without naming all of them.
-
-## Matrikkel tools
-
-`suggest_step_tools` takes a step definition (id, tittel, tekst, felter) and returns tool suggestions with `bruk`:
-- `kontekst` - call proactively before showing the question
-- `validering` - call when the user answers, to normalize/validate input
-- `kontekst_og_validering` - both
-
-## Endpoints
+## Endepunkter
 
 - `GET /helse`
 - `GET /mcp`
@@ -49,21 +30,21 @@ without naming all of them.
 - `POST /mcp/tools/invoke`
 - `POST /mcp/tools/{toolName}/invoke`
 
-## Environment
+## Miljøvariabler
 
-- `BACKEND_BASE_URL` (default `http://sandbox-backend:8080`)
-- `AI_BASE_URL` (default `http://ai-gateway:8082`)
-- `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`)
-- `MATRIKKEL_MODE` - `mock` alle tre steder: kodedefault, compose-default og
+- `BACKEND_BASE_URL` (standard `http://sandbox-backend:8080`)
+- `AI_BASE_URL` (standard `http://ai-gateway:8082`)
+- `MATRIKKEL_BASE_URL` (standard `http://matrikkel-mock:8085`)
+- `MATRIKKEL_MODE` - `mock` alle tre steder: standardverdi i koden, i compose og i
   `.env.example`. `live` og `hybrid` slår opp gater direkte via Geonorge; `live` kaster
   videre ved nettfeil, `hybrid` faller tilbake til seed-dataene
-- `GEONORGE_ADRESSE_API_BASE_URL` (default `https://ws.geonorge.no/adresser/v1`)
-- `MATRIKKEL_HTTP_TIMEOUT_MS` (default `6000`)
+- `GEONORGE_ADRESSE_API_BASE_URL` (standard `https://ws.geonorge.no/adresser/v1`)
+- `MATRIKKEL_HTTP_TIMEOUT_MS` (standard `6000`)
 
 I `live`/`hybrid` brukes Geonorge også for eksakte adresseoppslag i `matrikkel_hent_eiendom`.
 `matrikkel_hent_eiere` kan da returnere tom eierliste med en forklarende `merknad`, siden den offentlige adressekilden ikke inneholder eierinformasjon.
 
-## Example
+## Eksempel
 
 ```bash
 curl -s http://localhost:8083/mcp/tools

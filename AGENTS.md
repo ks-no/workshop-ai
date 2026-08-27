@@ -328,6 +328,15 @@ to the console.
 this file, `CLAUDE.md`, `.github/copilot-instructions.md`, and the comments inside
 `ci.yml`.
 
+**A tool description is English for the same reason.** The `description` and
+`inputSchema` strings in `apps/brreg-mcp`, `apps/folkeregister-mcp` and
+`apps/tools-api` are what an MCP client puts in front of a model when it picks a tool,
+so they are the model's prompt rather than anyone's documentation. Keep them English,
+and keep the domain nouns Norwegian inside them the way point 3 says: «Get one
+organisation by organisasjonsnummer.» The README beside such a server is the opposite
+case - no client loads it, a person setting the server up reads it, so it is Norwegian
+like every other `apps/*/README.md`.
+
 **Code comments follow the identifier rule instead**: English for the technical,
 Norwegian where the comment reasons in the domain, and one language per block - a block
 never switches midway. Write them only where they earn their place, and explain *why*,

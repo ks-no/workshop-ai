@@ -1,62 +1,61 @@
 # BRREG MCP Service
 
-A real Model Context Protocol server for BRREG Enhetsregisteret test data -
-JSON-RPC 2.0 over **stdio**, newline-delimited, so an actual MCP client connects
-to it. Unlike `apps/tools-api`, which is REST that only borrows the name.
+**For deg som vil koble en ekte MCP-klient til sandkassen.** JSON-RPC 2.0 over
+**stdio**, linjeseparert, med testdata fra BRREG Enhetsregisteret. I motsetning til
+`apps/tools-api`, som er REST og bare låner navnet.
 
-## What it does
+## Hva den gjør
 
-Two MCP tools:
+To MCP-verktøy:
 
-- `brreg_search_organisations` - search by name or organisation number, with
-  optional `kommune` and `organisasjonsform` filters, paged via `offset`/`limit`.
-- `brreg_get_organisation` - fetch one organisation by `organisasjonsnummer`.
+- `brreg_search_organisations` - søker på navn eller organisasjonsnummer, med valgfrie
+  filtre på `kommune` og `organisasjonsform`, sidedelt med `offset`/`limit`.
+- `brreg_get_organisation` - henter én organisasjon på `organisasjonsnummer`.
 
-## Data source
+## Datakilde
 
-Reads `data/brreg.seed.json` (200 synthetic organisations from Tenor). Override
-with an absolute path:
+Leser `data/brreg.seed.json`, syntetiske organisasjoner fra Tenor. Overstyres med en
+absolutt sti:
 
 ```bash
-BRREG_DATA_FILE=/absolute/path/to/export.json node apps/brreg-mcp/src/server.ts
+BRREG_DATA_FILE=/absolutt/sti/til/export.json node apps/brreg-mcp/src/server.ts
 ```
 
-The server resolves the default relative to its own location, so it works no
-matter where you start it from.
+Serveren finner standardfilen ut fra sin egen plassering, så den virker uansett hvor du
+starter den fra.
 
-## Run
+## Kjør
 
 ```bash
 node apps/brreg-mcp/src/server.ts
 ```
 
-It speaks stdio, so on its own it just waits. Point a client at it.
+Den snakker stdio, så alene står den bare og venter. Pek en klient mot den.
 
-## Verify
-
-The bundled script spawns the server and drives it end to end:
+## Verifiser
 
 ```bash
 pnpm test:brreg-mcp
 ```
 
-That test implements the client side itself, so it proves the two halves agree -
-not that the framing matches the MCP spec. **When you touch the transport, check
-against a real client too:**
+Den testen implementerer klientsiden selv, så den viser at de to halvdelene er enige -
+ikke at innrammingen følger MCP-spesifikasjonen. **Rører du transporten, sjekk mot en
+ekte klient også:**
 
 ```bash
 npx -y @modelcontextprotocol/inspector --cli \
   node apps/brreg-mcp/src/server.ts --method tools/list
 ```
 
-Both tools should be listed. `Connection timed out` means the framing broke.
+Begge verktøyene skal komme opp i listen. `Connection timed out` betyr at innrammingen
+er brutt.
 
-> This is not hypothetical. The first version framed messages with LSP's
-> `Content-Length` header instead of MCP's newline-delimited JSON. `pnpm
-> test:brreg-mcp` passed - because the test used the same wrong framing - while
-> every real client hung on `initialize`.
+> Dette er ikke tenkt. Den første versjonen rammet inn meldinger med `Content-Length`
+> fra LSP i stedet for MCP sin linjeseparerte JSON. `pnpm test:brreg-mcp` gikk grønt,
+> fordi testen brukte den samme gale innrammingen, mens hver eneste ekte klient hang
+> på `initialize`.
 
-## MCP client config example
+## Eksempel på MCP-klientoppsett
 
 ```json
 {
@@ -64,13 +63,13 @@ Both tools should be listed. `Connection timed out` means the framing broke.
     "brreg": {
       "command": "node",
       "args": ["apps/brreg-mcp/src/server.ts"],
-      "cwd": "/absolute/path/to/workshop-ai"
+      "cwd": "/absolutt/sti/til/workshop-ai"
     }
   }
 }
 ```
 
-Or, in Claude Code, from the repo root:
+Eller, i Claude Code, fra roten av repoet:
 
 ```bash
 claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"

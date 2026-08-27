@@ -1,44 +1,34 @@
 # Process Agent
 
-Generic process-guide agent that uses MCP-style tools from `tools-api`.
+**For deg som vil se en prosess kjørt i naturlig språk, eller bygge en agent som gjør
+det samme.** Den veileder en bruker gjennom en prosess ved å kalle verktøy i
+`tools-api`: velge prosess, svare på spørsmålssteg, håndtere samtykke og sende inn.
+Vil du styre stegene selv, går du rett på `sandbox-backend`.
 
-## Purpose
+## Slik finner den verktøy
 
-The agent helps a user to:
+På et `QUESTION`-steg kaller agenten `suggest_step_tools` i `tools-api`, som spør
+`ai-gateway /ai/velg-verktoy` hvilke verktøy steget trenger og hvordan de skal brukes.
+Mekanismen og `bruk`-verdiene er forklart i `docs/prosessmodell.md`; den forklaringen
+bor der, ikke her.
 
-- choose a process
-- answer question steps, with proactive context from relevant MCP tools
-- get matrikkel guidance when a process asks for gatenavn
-- handle consent decisions
-- complete the process flow end-to-end
+Den dynamiske oppdagelsen er ekte, men **ikke den eneste veien**. Agenten bærer også
+hardkodede snarveier for `fartsdempende-tiltak`, med et stegnøklet intervjuskript i
+`guidedInterviewDefinitions`. Snarveiene finnes fordi de var raskeste vei til en
+fungerende demo, ikke fordi de er riktige. Hvilke steg og verktøy det gjelder står i
+`docs/prosessmodell.md`.
 
-## How tool discovery works
-
-When the agent reaches a `QUESTION` step it calls `suggest_step_tools` in `tools-api`.
-That tool calls `ai-gateway /ai/velg-verktoy`, which uses heuristics (LLM fallback) on the
-step definition to return which tools are relevant and how to use them:
-
-- `kontekst` - the agent calls the tool proactively and adds its output as a hint in the question prompt
-- `validering` - the agent calls the tool against the user's answer to normalize or reject it
-- `kontekst_og_validering` - both
-
-The dynamic discovery above is real, but it is **not the only path**. The agent also
-carries hardcoded shortcuts for the `fartsdempende-tiltak` case: step ids `velg-gate`,
-`hent-gate`, `boliger-bekreft` and `begrunnelse`, the tool name `matrikkel_finn_veger`,
-and a step-keyed interview script in `guidedInterviewDefinitions`. The shortcuts exist
-because they were the fastest route to a working demo, not because they are right.
-
-New data sources are wired in by adding heuristics in `ai-gateway` and a tool in
+Nye datakilder kobles inn ved å legge til heuristikk i `ai-gateway` og et verktøy i
 `tools-api`.
 
-## Endpoints
+## Endepunkter
 
 - `GET /helse`
-- `POST /agent/sessions` create a new agent session
-- `GET /agent/sessions/{sessionId}` get session status
-- `POST /agent/sessions/{sessionId}/messages` send a user message
+- `POST /agent/sessions` oppretter en ny agentøkt
+- `GET /agent/sessions/{sessionId}` henter status for økten
+- `POST /agent/sessions/{sessionId}/messages` sender en brukermelding
 
-## Quick test
+## Rask test
 
 ```bash
 curl -s -X POST http://localhost:8084/agent/sessions \
