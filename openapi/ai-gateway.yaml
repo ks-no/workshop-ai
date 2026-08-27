@@ -379,6 +379,11 @@ components:
             currentModel: { type: string }
             region: { type: string }
             credsConfigured: { type: boolean }
+            sdkAvailable:
+              type: boolean
+              description: >-
+                Om @aws-sdk/client-bedrock-runtime lar seg laste. Pakken lastes lat, så
+                gatewayen kjører uten den - men provideren bedrock gjør det ikke.
         ollama:
           type: object
           properties:

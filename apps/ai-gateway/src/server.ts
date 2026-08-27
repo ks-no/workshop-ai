@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import type { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeOverview } from "../../shared/openapi.ts";
@@ -552,9 +552,13 @@ function adminHtml(): string {
             "</option>"
           );
         }).join("");
-        document.getElementById("bedrockCreds").textContent = data.bedrock.credsConfigured
-          ? "Region: " + data.bedrock.region
-          : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
+        // SDK-en før legitimasjonen: uten pakken er legitimasjonen uinteressant, og
+        // «nøkkel mangler» ville sendt leseren til .env i stedet for til pnpm.
+        document.getElementById("bedrockCreds").textContent = !data.bedrock.sdkAvailable
+          ? "@aws-sdk/client-bedrock-runtime er ikke installert. Kjør «pnpm install» på verten."
+          : data.bedrock.credsConfigured
+            ? "Region: " + data.bedrock.region
+            : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
 
         updateBedrockVisibility(valgtProvider);
       }
@@ -1448,10 +1452,62 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
 
 // --- Bedrock -------------------------------------------------------------
 
+// The AWS SDK is this repo's only runtime dependency, and it is loaded lazily on
+// purpose. A static top-level import makes ESM resolve it before the first line of
+// this file runs, so the whole gateway died on a missing package even with
+// AI_PROVIDER=mock or ollama - which is the default in docker-compose.yml and what
+// start.bat sets. An optional provider must not be a boot requirement.
+//
+// Two ways the package goes missing, both of them normal: a fresh clone that ran
+// `docker compose up` without `pnpm install` (which README says is enough, and now
+// is again), and Windows, where pnpm links packages with NTFS junctions that do not
+// survive the ./:/workspace bind mount into the container.
+//
+// Only success is cached. A failure is retried on every call, which costs one failed
+// ESM resolution per /helse when the provider is bedrock and the package is missing -
+// a handful of stat calls up the tree, every 5s from the compose healthcheck. Caching
+// the failure instead would mean a participant who runs `pnpm install` keeps being
+// told to run `pnpm install` until the container restarts, and that is the worse of
+// the two for the people this sandbox is for.
+let bedrockModul: typeof import("@aws-sdk/client-bedrock-runtime") | null = null;
+
+async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedrock-runtime")> {
+  if (!bedrockModul) {
+    try {
+      bedrockModul = await import("@aws-sdk/client-bedrock-runtime");
+    } catch (feil) {
+      // Only a resolution miss becomes the pnpm hint. A package that is present but
+      // throws while evaluating - a Node incompatibility in a transitive @aws-sdk
+      // dependency, a half-extracted store entry - is rethrown untouched, because
+      // the static import used to surface that stack at boot and «kjør pnpm install»
+      // would send the reader round in circles forever.
+      const kode = (feil as NodeJS.ErrnoException)?.code;
+      if (kode !== "ERR_MODULE_NOT_FOUND" && kode !== "MODULE_NOT_FOUND") {
+        throw feil;
+      }
+      throw new Error(
+        "@aws-sdk/client-bedrock-runtime er ikke installert. Kjør «pnpm install» på verten, " +
+          "eller velg en annen provider enn bedrock."
+      );
+    }
+  }
+  return bedrockModul;
+}
+
+async function bedrockSdkTilgjengelig(): Promise<boolean> {
+  try {
+    await loadBedrockModul();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 let bedrockClient: BedrockRuntimeClient | null = null;
 
-function getBedrockClient(): BedrockRuntimeClient {
+async function getBedrockClient(): Promise<BedrockRuntimeClient> {
   if (!bedrockClient) {
+    const { BedrockRuntimeClient } = await loadBedrockModul();
     bedrockClient = new BedrockRuntimeClient({
       region: awsRegion,
       credentials: {
@@ -1469,6 +1525,11 @@ function getBedrockClient(): BedrockRuntimeClient {
 // models only, so this speaks the one shape: the same Messages format the direct
 // Anthropic API uses, with "bedrock-2023-05-31" as the anthropic_version.
 async function callBedrock(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
+  // Same order as the bedrock branch in checkProvider(): the SDK before the
+  // credentials. Otherwise /helse and a real call report different reasons for the
+  // same state, and the one you happen to read decides where you go looking.
+  const { InvokeModelCommand } = await loadBedrockModul();
+
   if (!awsAccessKeyId || !awsSecretAccessKey) {
     throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
   }
@@ -1486,9 +1547,11 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     messages: [{ role: "user", content: prompt }]
   });
 
+  const klient = await getBedrockClient();
+
   let svar;
   try {
-    svar = await getBedrockClient().send(
+    svar = await klient.send(
       new InvokeModelCommand({
         modelId: bedrockModel,
         contentType: "application/json",
@@ -1562,7 +1625,14 @@ async function buildProviderStatus() {
       models: BEDROCK_MODELS,
       currentModel: bedrockModel,
       region: awsRegion,
-      credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey)
+      credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey),
+      // Probed even when the active provider is not bedrock, so this does pull the
+      // SDK into the process on a /admin load under AI_PROVIDER=mock. Deliberate:
+      // /admin is a human page whose whole job is switching provider, and the panel
+      // has to be able to say «SDK-en mangler» the moment you pick bedrock in the
+      // dropdown - before you click. What the lazy import buys is that no boot and
+      // no /helse pays for it; one admin page load doing so is the point of it.
+      sdkAvailable: await bedrockSdkTilgjengelig()
     },
     ollama: { model: ollamaModel, baseUrl: ollamaBaseUrl },
     openrouter: { model: openRouterModel, keyConfigured: Boolean(openRouterApiKey) }
@@ -1607,6 +1677,14 @@ async function checkProvider() {
 
   if (aiProvider === "bedrock") {
     const modell = `bedrock:${bedrockModel}`;
+    // Checked before the credentials: without the SDK the credentials cannot be
+    // used no matter how well they are configured, and reporting the wrong one of
+    // the two sends people editing .env when the fix is `pnpm install`.
+    try {
+      await loadBedrockModul();
+    } catch (feil) {
+      return { naaBar: false, modell, feil: feilmelding(feil) };
+    }
     if (!awsAccessKeyId || !awsSecretAccessKey) {
       return { naaBar: false, modell, feil: "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler" };
     }
