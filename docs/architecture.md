@@ -74,7 +74,7 @@ Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktø
 brukerens svar.
 
 Agenten har i tillegg hardkodede snarveier for `fartsdempende-tiltak`: steg-ID-ene
-`velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, samt verktøynavnet
+`velg-gate`, `hent-gate`, `boliger-bekreft`, `begrunnelse` og verktøynavnet
 `matrikkel_finn_veger`. Den dynamiske oppdagelsen er altså ekte, men ikke enerådende.
 
 ## Utskiftbarhet

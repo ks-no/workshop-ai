@@ -1077,7 +1077,7 @@ components:
     Person:
       type: object
       description: >
-        Adressebeskyttelse anvendes ved innlasting, i skjerming.ts, og gjelder
+        Adressebeskyttelse brukes ved innlasting, i skjerming.ts, og gjelder
         derfor alle lesere. STRENGT_FORTROLIG (kode 6) mister navn og adresse:
         navnet blir «Skjermet person». FORTROLIG (kode 7) mister adressen og
         beholder navnet. Begge beholder fødselsnummer, fødselsdato, husstandId og
