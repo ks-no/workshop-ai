@@ -552,9 +552,8 @@ function adminHtml(): string {
             "</option>"
           );
         }).join("");
-        // SDK-en før legitimasjonen: uten pakken er legitimasjonen uinteressant, og
-        // «nøkkel mangler» ville sendt leseren til .env i stedet for til pnpm.
-        // Årsaken kommer ferdig formulert fra serveren - siden gjetter den ikke.
+        // SDK-en før legitimasjonen: «nøkkel mangler» ville sendt leseren til .env
+        // i stedet for til pnpm.
         document.getElementById("bedrockCreds").textContent = !data.bedrock.sdkAvailable
           ? data.bedrock.sdkError
           : data.bedrock.credsConfigured
@@ -1453,23 +1452,11 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
 
 // --- Bedrock -------------------------------------------------------------
 
-// The AWS SDK is this repo's only runtime dependency, and it is loaded lazily on
-// purpose. A static top-level import makes ESM resolve it before the first line of
-// this file runs, so the whole gateway died on a missing package even with
-// AI_PROVIDER=mock or ollama - which is the default in docker-compose.yml and what
-// start.bat sets. An optional provider must not be a boot requirement.
+// Loaded lazily, not statically: a top-level import makes ESM resolve the package
+// before the first line of this file runs, so a missing one killed the gateway even
+// under AI_PROVIDER=mock. An optional provider must not be a boot requirement.
 //
-// Two ways the package goes missing, both of them normal: a fresh clone that ran
-// `docker compose up` without `pnpm install` (which README says is enough, and now
-// is again), and Windows, where pnpm links packages with NTFS junctions that do not
-// survive the ./:/workspace bind mount into the container.
-//
-// Only success is cached. A failure is retried on every call, which costs one failed
-// ESM resolution per /helse when the provider is bedrock and the package is missing -
-// a handful of stat calls up the tree, every 5s from the compose healthcheck. Caching
-// the failure instead would mean a participant who runs `pnpm install` keeps being
-// told to run `pnpm install` until the container restarts, and that is the worse of
-// the two for the people this sandbox is for.
+// Only success is cached, so a `pnpm install` takes effect without a restart.
 let bedrockModul: typeof import("@aws-sdk/client-bedrock-runtime") | null = null;
 
 async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedrock-runtime")> {
@@ -1478,18 +1465,13 @@ async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedroc
       bedrockModul = await import("@aws-sdk/client-bedrock-runtime");
     } catch (feil) {
       // Only a resolution miss becomes the pnpm hint. A package that is present but
-      // throws while evaluating - a Node incompatibility in a transitive @aws-sdk
-      // dependency, a half-extracted store entry - is rethrown untouched, because
-      // the static import used to surface that stack at boot and «kjør pnpm install»
-      // would send the reader round in circles forever.
+      // throws while evaluating is rethrown untouched - «kjør pnpm install» would
+      // send the reader round in circles. The original message stays either way,
+      // since the missing specifier is often a transitive one.
       const kode = (feil as NodeJS.ErrnoException)?.code;
       if (kode !== "ERR_MODULE_NOT_FOUND" && kode !== "MODULE_NOT_FOUND") {
         throw feil;
       }
-      // The original message is kept, because the specifier that is actually missing
-      // is often a transitive @aws-sdk/* or @smithy/* rather than the one named here -
-      // that is what a dead junction under a hoisted root looks like. Naming only the
-      // top package would point at the wrong thing.
       throw new Error(
         "@aws-sdk/client-bedrock-runtime lar seg ikke laste. Kjør «pnpm install» på verten, " +
           `eller velg en annen provider enn bedrock. Underliggende feil: ${feilmelding(feil)}`,
@@ -1500,9 +1482,8 @@ async function loadBedrockModul(): Promise<typeof import("@aws-sdk/client-bedroc
   return bedrockModul;
 }
 
-// Returns the reason rather than just a flag. A bare boolean let /admin print «kjør
-// pnpm install» for a package that was installed and merely broken - the exact
-// round-in-circles the loader above goes out of its way to avoid.
+// The reason, not just a flag: /admin renders it rather than guessing a cause, so
+// «ikke installert» and «installert, men knekker» stay apart.
 async function bedrockSdkStatus(): Promise<{ tilgjengelig: boolean; feil: string | null }> {
   try {
     await loadBedrockModul();
@@ -1534,9 +1515,8 @@ async function getBedrockClient(): Promise<BedrockRuntimeClient> {
 // models only, so this speaks the one shape: the same Messages format the direct
 // Anthropic API uses, with "bedrock-2023-05-31" as the anthropic_version.
 async function callBedrock(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
-  // Same order as the bedrock branch in checkProvider(): the SDK before the
-  // credentials. Otherwise /helse and a real call report different reasons for the
-  // same state, and the one you happen to read decides where you go looking.
+  // SDK before credentials, same order as checkProvider(), so /helse and a real
+  // call never report different reasons for the same state.
   const { InvokeModelCommand } = await loadBedrockModul();
 
   if (!awsAccessKeyId || !awsSecretAccessKey) {
@@ -1636,16 +1616,10 @@ async function buildProviderStatus() {
       currentModel: bedrockModel,
       region: awsRegion,
       credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey),
-      // Probed even when the active provider is not bedrock, so this does pull the
-      // SDK into the process on a /admin load under AI_PROVIDER=mock. Deliberate:
-      // /admin is a human page whose whole job is switching provider, and the panel
-      // has to be able to say «SDK-en mangler» the moment you pick bedrock in the
-      // dropdown - before you click. What the lazy import buys is that no boot and
-      // no /helse pays for it; one admin page load doing so is the point of it.
+      // Probed whatever the active provider is, so a /admin load under mock does pull
+      // the SDK in. Deliberate: the panel must be able to say «SDK-en mangler» the
+      // moment you pick bedrock in the dropdown, before you click.
       sdkAvailable: sdk.tilgjengelig,
-      // Carried so the panel renders the reason instead of guessing one. Without it
-      // the browser had its own copy of the pnpm hint, free to drift and wrong for a
-      // package that is present but throws.
       sdkError: sdk.feil
     },
     ollama: { model: ollamaModel, baseUrl: ollamaBaseUrl },
@@ -1691,9 +1665,8 @@ async function checkProvider() {
 
   if (aiProvider === "bedrock") {
     const modell = `bedrock:${bedrockModel}`;
-    // Checked before the credentials: without the SDK the credentials cannot be
-    // used no matter how well they are configured, and reporting the wrong one of
-    // the two sends people editing .env when the fix is `pnpm install`.
+    // Before the credentials: reporting those instead sends people editing .env
+    // when the fix is `pnpm install`.
     try {
       await loadBedrockModul();
     } catch (feil) {

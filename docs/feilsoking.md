@@ -170,24 +170,18 @@ Rett feilen og lagre; watcheren plukker den opp. `pnpm lint` finner samme feil u
 
 ## «Cannot find module» i en container
 
-**Symptom:** En tjeneste stopper med `ERR_MODULE_NOT_FOUND` og et pakkenavn den ikke
-finner, typisk `@aws-sdk/client-bedrock-runtime` eller `nodemon`.
+**Symptom:** En tjeneste stopper med `ERR_MODULE_NOT_FOUND` og et pakkenavn, typisk
+`@aws-sdk/client-bedrock-runtime` eller `nodemon`.
 
-**Årsak:** Tjenestene kjører koden fra arbeidstreet ditt gjennom `./:/workspace`, så
-de bruker `node_modules` slik den ser ut på verten. pnpm lenker pakker inn i
-`node_modules/.pnpm` i stedet for å kopiere dem, og på Windows lages de lenkene som
-NTFS-junctions. Docker Desktop oversetter ikke en junction inn i Linux-VM-en, så
-pakken er borte inne i containeren selv om `pnpm install` gikk fint på verten.
+**Årsak:** Tjenestene bruker `node_modules` fra arbeidstreet ditt gjennom
+`./:/workspace`. pnpm lenker pakker i stedet for å kopiere dem, og på Windows blir
+lenkene NTFS-junctions, som Docker Desktop ikke oversetter inn i Linux-VM-en. Pakken
+er da borte inne i containeren selv om `pnpm install` gikk fint på verten.
 
-**Løsning:** `.npmrc` i roten setter `node-linker=hoisted` nettopp for dette, så en
-`pnpm install` legger en ekte kopi i rot-`node_modules` som containeren kan lese.
-Har du kjørt `pnpm install` før den filen kom på plass, kjør den på nytt. Filen
-forklarer selv hvorfor den finnes - les den før du fjerner linjen.
-
-`ai-gateway` er ikke lenger avhengig av dette for å starte: den laster AWS-SDK-en
-først når Bedrock-provideren brukes, så tjenesten kjører uten `pnpm install` i det
-hele tatt. Ser du pakkenavnet i en feilmelding derfra, er provideren satt til
-`bedrock` - `/helse` sier det samme, med en peker til `pnpm install`.
+**Løsning:** `.npmrc` setter `node-linker=hoisted` nettopp for dette. Kjørte du
+`pnpm install` før den filen kom, kjør den på nytt. `ai-gateway` trenger den ikke
+lenger for å starte - ser du pakkenavnet derfra, er provideren satt til `bedrock`, og
+`/helse` sier det samme.
 
 ## Windows-oppstart
 
