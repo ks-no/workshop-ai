@@ -17,8 +17,8 @@
  * from GET /openapi-ruter.json. One reader, two consumers: what the gate compares
  * against the code is the same text the API explorer renders.
  *
- * There is no YAML parser there and there is not going to be one: the sandbox has
- * no runtime dependencies, and for check 1 a parser would actively be in the way.
+ * There is no YAML parser there and there is not going to be one: the sandbox does
+ * not add runtime dependencies, and for check 1 a parser would actively be in the way.
  *
  * Path parameters are compared by position, not by name: the code's regexes carry
  * no parameter names at all, so `/fiks/samtykke/([^/]+)` and

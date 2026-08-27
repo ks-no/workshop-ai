@@ -370,7 +370,7 @@ is the one place prose transliterates, and the file carries a `rem` saying why s
   `http://localhost:3001/ds-eksempel` is it running. Read the doc before writing markup.
 - Inside this repo the design system ships as **plain CSS** (`apps/shared/ds-base.css` +
   `ds-ksdigital.css`, vendored from `@ks-digital/designsystem-themes`, refreshed by
-  `pnpm ds:hent`). That is the only reason it fits a repo with no dependencies and no
+  `pnpm ds:hent`). That is the only reason it fits a repo with one dependency and no
   build step. Do not reach for the React or Angular packages here.
 - **Never load `felles.css` and the design system CSS on the same page.** `felles.css` has
   no `@layer`, and unlayered rules outrank every layer in the cascade, so it silently

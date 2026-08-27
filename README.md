@@ -35,7 +35,7 @@ Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles AP
 
 ## Status
 
-Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På plass:
+Ni kjørende tjenester, én valgfri avhengighet i kjøretid, fem komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -55,7 +55,7 @@ Ni kjørende tjenester, null runtime-avhengigheter, fem komplette demo-case. På
 | **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
 | **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
 | **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
-| **pnpm** | bare testskriptene. `pnpm install` først |
+| **pnpm** | testskriptene, live reload av egne endringer, og Bedrock-provideren. `pnpm install` først. Å kjøre sandkassen trenger den ikke |
 
 På Windows: se [«På Windows»](#på-windows) lenger ned.
 
@@ -427,7 +427,10 @@ Dette repoet er lagt opp for flere team. Se:
 
 ## Kjente begrensninger
 
-- Tjenestene er bygget som en enkel null-avhengighets MVP, ikke som produksjonsklar applikasjon
+- Tjenestene er bygget som en enkel MVP uten byggesteg, ikke som produksjonsklar
+  applikasjon. Én avhengighet finnes i kjøretid - AWS-SDK-en `ai-gateway` bruker til
+  Bedrock - og den lastes først når den provideren brukes, så `docker compose up`
+  klarer seg uten `pnpm install`
 - CI kjører sjekkene som verken trenger modell eller kjørende stack. Listen står i
   `.github/workflows/ci.yml`, med en kommentar per steg om hva det fanger - den er
   kilden, og `pnpm test:docs` feiler hvis en doc gjengir den feil. Evalene og

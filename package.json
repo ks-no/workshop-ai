@@ -21,7 +21,7 @@
     "data:tenor": "node scripts/importer-tenor.ts",
     "token": "node scripts/token.ts",
     "dev": "echo \"Bruk docker compose up --build for å starte sandkassen\"",
-    "build": "echo \"Ingen build kreves i denne null-avhengighets MVP-en\"",
+    "build": "echo \"Ingen build kreves - Node type-stripper .ts ved innlasting\"",
     "test": "node scripts/valider-data.ts",
     "test:kontrakt": "node scripts/kontrakt-smoke.ts",
     "test:sperrer": "node scripts/test-sporsmaalsperrer.ts",

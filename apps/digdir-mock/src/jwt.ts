@@ -1,9 +1,8 @@
 // Minimal RS256 JWT, on node:crypto alone.
 //
-// The sandbox has no runtime dependencies, and a JWT is three base64url segments
-// with one signature over the first two. Pulling in a library for that would be
-// the only dependency in the repo, and it would hide exactly the mechanics the
-// workshop is meant to show.
+// The sandbox does not add runtime dependencies, and a JWT is three base64url
+// segments with one signature over the first two. Pulling in a library for that
+// would hide exactly the mechanics the workshop is meant to show.
 //
 // Deliberately not implemented: alg negotiation (RS256 only), encrypted tokens,
 // and "alg": "none". A token whose header asks for anything but RS256 is rejected

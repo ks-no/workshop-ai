@@ -5,8 +5,13 @@ tolkning, klarspråk og frie spørsmål fra innbygger - med sperrer som kjører 
 provider-bytte uten restart, og fullt spor av hvert modellkall. Lurer du bare på om
 modellen er koblet på, hopp til «Er modellen koblet på?».
 
-Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK - providerne
-kalles med rå `fetch`.
+Stack: Node.js med innebygd HTTP-server. Ollama og OpenRouter kalles med rå `fetch`,
+uten SDK. Bedrock er unntaket: den bruker `@aws-sdk/client-bedrock-runtime`, som er
+repoets eneste avhengighet i kjøretid.
+
+SDK-en lastes først når Bedrock-provideren faktisk brukes. Gatewayen starter og svarer
+som normalt uten den, med eller uten `pnpm install`. Er provideren `bedrock` og pakken
+ikke lar seg laste, sier `/helse` og `/admin` det, med en peker til `pnpm install`.
 
 ## Endepunkter
 

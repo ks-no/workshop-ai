@@ -2,7 +2,7 @@
  * Reads an OpenAPI document at text level.
  *
  * There is no YAML parser here and there is not going to be one. Two reasons: the
- * sandbox has no runtime dependencies, and the CI gate needs to see duplicate path
+ * sandbox does not add runtime dependencies, and the CI gate needs to see duplicate path
  * keys, which a parser collapses before anyone can look at them.
  *
  * Three consumers, which is why this lives here rather than inside a script:
