@@ -12,7 +12,7 @@ fødselsnummer og samtykkets kodeverk.
 | Fil | Hva | Lest av |
 |---|---|---|
 | `tjenester.json` | **Tjenestelista.** Navn, port, rolle, om den har spesifikasjon | dashboardet, API-utforskeren, `pnpm test:openapi`, `pnpm test:docs` |
-| `openapi.ts` | Leser en OpenAPI-fil uten YAML-parser og gir rutene som JSON | alle sju API-tjenestene, på `/openapi-ruter.json` |
+| `openapi.ts` | Leser en OpenAPI-fil uten YAML-parser og gir rutene som JSON | alle åtte API-tjenestene, på `/openapi-ruter.json` |
 | `client/felles.ts` | Innlogging, tokenhåndtering, helsestatus, felles DOM-hjelpere | alle sidene i `demo-gui` og `process-builder`, på `/delt/felles.ts` |
 | `assets.ts` | Serverer statiske filer, og type-stripper `.ts` på vei ut | `demo-gui`, `process-builder` |
 | `http.ts`, `errors.ts` | CORS, JSON- og tekstsvar, innsnevring av fanget feil | alle tjenestene |

@@ -86,7 +86,7 @@ type Tjeneste = {
 };
 
 /** Et datasett fra data/, for kodeverk som bare finnes der. */
-async function lesData(fil: string): Promise<any[]> {
+async function lesData(fil: string): Promise<any> {
   return JSON.parse(await readFile(path.join(repoRoot, "data", fil), "utf8"));
 }
 
@@ -394,6 +394,26 @@ const tjenester: Tjeneste[] = [
     navn: "matrikkel-mock",
     spesifikasjon: "openapi/matrikkel-mock.yaml",
     kilde: "apps/matrikkel-mock/src/server.ts"
+  },
+  {
+    navn: "pasientjournal-mock",
+    spesifikasjon: "openapi/pasientjournal-mock.yaml",
+    kilde: "apps/pasientjournal-mock/src/server.ts",
+    // De to kodeverkene i apps/shared/legeerklaering.ts, målt mot unionene i koden
+    // og ikke mot verdiene seeden tilfeldigvis bruker. Seeden holdes mot de samme
+    // unionene av pnpm test, så en verdi ingen rad bruker enda blir også fanget.
+    datakodeverk: [
+      {
+        skjema: "Legeerklaering",
+        felt: "funksjonsnedsetting",
+        verdier: async () => (await import("../apps/shared/legeerklaering.ts")).FUNKSJONSNEDSETTINGER
+      },
+      {
+        skjema: "Legeerklaering",
+        felt: "hjelpemiddel",
+        verdier: async () => (await import("../apps/shared/legeerklaering.ts")).HJELPEMIDLER
+      }
+    ]
   },
   {
     navn: "digdir-mock",

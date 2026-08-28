@@ -1,0 +1,272 @@
+openapi: 3.1.0
+info:
+  title: Pasientjournal Mock API
+  version: 0.1.0
+  description: >-
+    Legeerklæringer til søknad om TT-kort, formet som utdrag fra en elektronisk
+    pasientjournal. Alle data er syntetiske, og hvert svar bærer `syntetisk: true`.
+
+    Denne integrasjonen finnes ikke i virkeligheten. En journal eies av
+    virksomheten som yter helsehjelpen, det finnes ingen nasjonal API for
+    legeerklæringer, og i dag bærer innbyggeren en stemplet PDF som lastes opp som
+    vedlegg. Se `apps/pasientjournal-mock/README.md`.
+
+    Journalflaten ligger bak Maskinporten med audience `pasientjournal-mock` og
+    scopet `pasientjournal:legeerklaering.read`. Ekte helsedata ligger bak HelseID
+    hos Norsk helsenett; sandkassen har ingen HelseID.
+servers:
+  - url: http://localhost:8087
+paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  kilde:
+                    type: string
+                  antallErklaeringer:
+                    type: integer
+                  antallPersoner:
+                    type: integer
+                  lastetTidspunkt:
+                    type: string
+                    format: date-time
+                  tidspunkt:
+                    type: string
+                    format: date-time
+
+  /journal/legeerklaeringer:
+    get:
+      summary: Legeerklæringene til én person
+      description: >-
+        `fnr` er påkrevd, og det er ikke et valideringsdetalj: en journal har ett
+        personsubjekt om gangen. Uten kravet ville ruten vært et uttrekk av alle
+        helseopplysningene i sandkassen.
+      security:
+        - maskinporten: [pasientjournal:legeerklaering.read]
+      parameters:
+        - name: fnr
+          in: query
+          required: true
+          description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Erklæringene personen har, eventuelt en tom liste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fnr:
+                    type: string
+                  legeerklaeringer:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Legeerklaering"
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: fnr mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "401":
+          description: Token mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          description: Tokenet mangler scope, eller er et ID-porten-token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+  /journal/legeerklaeringer/{erklaeringId}:
+    get:
+      summary: Én legeerklæring
+      security:
+        - maskinporten: [pasientjournal:legeerklaering.read]
+      parameters:
+        - name: erklaeringId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Erklæringen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Legeerklaering"
+        "401":
+          description: Token mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          description: Tokenet mangler scope, eller er et ID-porten-token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "404":
+          description: Fant ikke erklæringen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      responses:
+        "200":
+          description: Ruteoversikt
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /docs:
+    get:
+      summary: Lesbar oversikt
+      security: []
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    maskinporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
+        Krever aud `pasientjournal-mock` og scope
+        `pasientjournal:legeerklaering.read`.
+
+        Et personlig ID-porten-token avvises med 403 KREVER_MASKINPORTEN.
+        Innbyggeren beviser hvem hen er overfor sandbox-backend, og
+        sandbox-backend henter her som maskin etter at samtykkeporten har åpnet.
+  schemas:
+    Legeerklaering:
+      type: object
+      properties:
+        erklaeringId:
+          type: string
+        dokumenttype:
+          type: string
+        fnr:
+          type: string
+        personId:
+          type: string
+        utstedt:
+          type: string
+          format: date
+        signert:
+          type: string
+          format: date-time
+        gyldigTil:
+          type: string
+          format: date
+          description: Utstedelsesdato pluss seks måneder. En stemplet og signert legeerklæring er gyldig i seks måneder.
+        diagnose:
+          type: object
+          properties:
+            kode:
+              type: string
+            kodeverk:
+              type: string
+              enum: [ICPC-2]
+            tekst:
+              type: string
+        funksjonsnedsetting:
+          type: string
+          enum: [blind-eller-sterkt-svaksynt, terminal-fase, kunstig-surstofftilfoersel, rullestolbrukar, anna]
+        varighetAar:
+          type: integer
+        funn:
+          type: object
+          description: De tre målingene rettleiingen for brukergodkjenning ber om.
+          properties:
+            visus:
+              type: [number, "null"]
+              description: Visus med korreksjon på begge øyne. Grensen for blind eller sterkt svaksynt er 0,33.
+            mmsScore:
+              type: [integer, "null"]
+              description: Resultat av MMS-test, påkrevd ved demens og kognitiv svikt.
+            fev1Prosent:
+              type: [integer, "null"]
+              description: FEV1 i prosent av forventet, påkrevd ved nedsatt lungekapasitet.
+        hjelpemiddel:
+          type: array
+          items:
+            type: string
+            enum: [krykke-eller-stokk, manuell-rullestol, elektrisk-rullestol, rullator, anna]
+        kanNytteKollektiv:
+          type: boolean
+        vurdering:
+          type: string
+        lege:
+          type: object
+          properties:
+            hprNummer:
+              type: string
+            navn:
+              type: string
+            legekontor:
+              type: string
+            organisasjonsnummer:
+              type: string
+            herId:
+              type: string
+              description: Adresseregisteret hos Norsk helsenett.
+        syntetisk:
+          type: boolean
+    Feil:
+      type: object
+      properties:
+        feil:
+          type: string
+        feilkode:
+          type: string
+        syntetisk:
+          type: boolean

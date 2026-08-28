@@ -29,11 +29,12 @@ Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell
 | process-agent | 8084 | `openapi/process-agent.yaml` |
 | matrikkel-mock | 8085 | `openapi/matrikkel-mock.yaml` |
 | digdir-mock | 8086 | `openapi/digdir-mock.yaml` |
+| pasientjournal-mock | 8087 | `openapi/pasientjournal-mock.yaml` |
 
 Listen over tjenester bor i `apps/shared/tjenester.json`, som dashboardet og
 API-utforskeren begge leser. `pnpm test:openapi` krever at den er enig med seg selv.
 
-Alle sju svarer også på `GET /helse`. Det finnes ingen `/health` - den var et alias som
+Alle åtte svarer også på `GET /helse`. Det finnes ingen `/health` - den var et alias som
 gjorde at hver tjeneste sto oppført to ganger i utforskeren.
 
 ## Sandbox Backend: ressurskatalogen

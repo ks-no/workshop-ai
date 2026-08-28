@@ -1,0 +1,753 @@
+{
+  "beskrivelse": "Syntetiske legeerklæringer til søknad om TT-kort, formet som utdrag fra en elektronisk pasientjournal. Diagnosen er kodet i ICPC-2, som er kodeverket fastleger bruker, og funn-feltet bærer de tre målingene Vestland sin rettleiing for brukergodkjenning faktisk ber om: visus ved synstap, MMS-score ved kognitiv svikt og FEV1 ved nedsatt lungekapasitet.",
+  "merknad": "Nøkkelen er fødselsnummer, den samme som i krr.json og folkeregister.seed.json, men ingenting er importert derfra: folkeregisteret inneholder aldri helseopplysninger. Filen leses bare av apps/pasientjournal-mock; sandbox-backend når erklæringene over HTTP, slik matrikkelen nås.",
+  "syntetisk": true,
+  "antall": 22,
+  "legeerklaeringer": [
+    {
+      "erklaeringId": "legeerkl-0001",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "14856997880",
+      "personId": "person-284",
+      "utstedt": "2026-05-14",
+      "signert": "2026-05-14T10:00:00Z",
+      "gyldigTil": "2026-11-14",
+      "diagnose": {
+        "kode": "N86",
+        "kodeverk": "ICPC-2",
+        "tekst": "Multippel sklerose"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "manuell-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Kan ikke gå av og på buss uten hjelp. Er avhengig av manuell rullestol utendørs.",
+      "lege": {
+        "hprNummer": "9000101",
+        "navn": "Ingrid Aasen",
+        "legekontor": "Nordnes legesenter",
+        "organisasjonsnummer": "912345678",
+        "herId": "101001"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0002",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "04875899266",
+      "personId": "person-124",
+      "utstedt": "2026-03-02",
+      "signert": "2026-03-02T10:00:00Z",
+      "gyldigTil": "2026-09-02",
+      "diagnose": {
+        "kode": "F94",
+        "kodeverk": "ICPC-2",
+        "tekst": "Blindhet"
+      },
+      "funksjonsnedsetting": "blind-eller-sterkt-svaksynt",
+      "varighetAar": 10,
+      "funn": {
+        "visus": 0.15,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Visus med korreksjon er 0,15 på begge øyne. Attest fra øyelege ligger ved.",
+      "lege": {
+        "hprNummer": "9000102",
+        "navn": "Sigrid Vik",
+        "legekontor": "Austevoll legekontor",
+        "organisasjonsnummer": "912345681",
+        "herId": "101004"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0003",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "11915397575",
+      "personId": "person-248",
+      "utstedt": "2026-06-20",
+      "signert": "2026-06-20T10:00:00Z",
+      "gyldigTil": "2026-12-20",
+      "diagnose": {
+        "kode": "K90",
+        "kodeverk": "ICPC-2",
+        "tekst": "Hjerneslag med varig lammelse"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "elektrisk-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Halvsidig lammelse etter hjerneslag. Bruker elektrisk rullestol og trenger bil med rampe.",
+      "lege": {
+        "hprNummer": "9000103",
+        "navn": "Olav Nesse",
+        "legekontor": "Øygarden legekontor",
+        "organisasjonsnummer": "912345684",
+        "herId": "101007"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0004",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "05816497703",
+      "personId": "person-142",
+      "utstedt": "2026-04-08",
+      "signert": "2026-04-08T10:00:00Z",
+      "gyldigTil": "2026-10-08",
+      "diagnose": {
+        "kode": "R95",
+        "kodeverk": "ICPC-2",
+        "tekst": "Kronisk obstruktiv lungesykdom"
+      },
+      "funksjonsnedsetting": "kunstig-surstofftilfoersel",
+      "varighetAar": 5,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": 28
+      },
+      "hjelpemiddel": [
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Spirometri viser FEV1 på 28 % av forventet. Er avhengig av oksygen og tåler ikke å vente på holdeplass.",
+      "lege": {
+        "hprNummer": "9000104",
+        "navn": "Marit Lunde",
+        "legekontor": "Sveio legesenter",
+        "organisasjonsnummer": "912345683",
+        "herId": "101006"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0005",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "02885897358",
+      "personId": "person-090",
+      "utstedt": "2026-06-02",
+      "signert": "2026-06-02T10:00:00Z",
+      "gyldigTil": "2026-12-02",
+      "diagnose": {
+        "kode": "A79",
+        "kodeverk": "ICPC-2",
+        "tekst": "Ondartet svulst uten spesifikasjon"
+      },
+      "funksjonsnedsetting": "terminal-fase",
+      "varighetAar": 2,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Er i palliativ fase og har ikke krefter til å bruke kollektivtransport.",
+      "lege": {
+        "hprNummer": "9000105",
+        "navn": "Jon Haugland",
+        "legekontor": "Kvinnherad legesenter",
+        "organisasjonsnummer": "912345682",
+        "herId": "101005"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0006",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "26865399463",
+      "personId": "person-353",
+      "utstedt": "2026-02-17",
+      "signert": "2026-02-17T10:00:00Z",
+      "gyldigTil": "2026-08-17",
+      "diagnose": {
+        "kode": "N87",
+        "kodeverk": "ICPC-2",
+        "tekst": "Parkinsonisme"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 4,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Ustø gange og fallrisiko. Klarer ikke å stå i en buss som er i bevegelse.",
+      "lege": {
+        "hprNummer": "9000106",
+        "navn": "Astrid Bø",
+        "legekontor": "Øygarden legekontor",
+        "organisasjonsnummer": "912345684",
+        "herId": "101007"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0007",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "12828597149",
+      "personId": "person-201",
+      "utstedt": "2026-05-30",
+      "signert": "2026-05-30T10:00:00Z",
+      "gyldigTil": "2026-11-30",
+      "diagnose": {
+        "kode": "L88",
+        "kodeverk": "ICPC-2",
+        "tekst": "Revmatoid artritt"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 6,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "manuell-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Kraftig nedsatt bevegelighet i hofter og knær. Bruker rullestol utendørs.",
+      "lege": {
+        "hprNummer": "9000107",
+        "navn": "Tore Fjellheim",
+        "legekontor": "Stryn legesenter",
+        "organisasjonsnummer": "912345685",
+        "herId": "101008"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0008",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "13918296128",
+      "personId": "person-275",
+      "utstedt": "2026-04-22",
+      "signert": "2026-04-22T10:00:00Z",
+      "gyldigTil": "2026-10-22",
+      "diagnose": {
+        "kode": "R95",
+        "kodeverk": "ICPC-2",
+        "tekst": "Kronisk obstruktiv lungesykdom"
+      },
+      "funksjonsnedsetting": "kunstig-surstofftilfoersel",
+      "varighetAar": 3,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": 31
+      },
+      "hjelpemiddel": [
+        "anna"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Spirometri viser FEV1 på 31 % av forventet. Bærer oksygenkolbe og kan ikke gå til holdeplassen.",
+      "lege": {
+        "hprNummer": "9000108",
+        "navn": "Hanne Rygg",
+        "legekontor": "Ullensvang legekontor",
+        "organisasjonsnummer": "912345687",
+        "herId": "101010"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0009",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "09838897417",
+      "personId": "person-211",
+      "utstedt": "2026-03-19",
+      "signert": "2026-03-19T10:00:00Z",
+      "gyldigTil": "2026-09-19",
+      "diagnose": {
+        "kode": "N99",
+        "kodeverk": "ICPC-2",
+        "tekst": "Nevrologisk sykdom uten spesifikasjon"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 2,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Anfallsvis svimmelhet og balansesvikt. Kan ikke reise alene med buss.",
+      "lege": {
+        "hprNummer": "9000109",
+        "navn": "Kari Systad",
+        "legekontor": "Stad legesenter",
+        "organisasjonsnummer": "912345686",
+        "herId": "101009"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0010",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "10847996817",
+      "personId": "person-224",
+      "utstedt": "2026-07-01",
+      "signert": "2026-07-01T10:00:00Z",
+      "gyldigTil": "2027-01-01",
+      "diagnose": {
+        "kode": "L75",
+        "kodeverk": "ICPC-2",
+        "tekst": "Femurfraktur med varig følge"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 3,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk",
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Går med krykker og tåler ikke lange avstander til holdeplass.",
+      "lege": {
+        "hprNummer": "9000110",
+        "navn": "Bjørn Eide",
+        "legekontor": "Kvinnherad legesenter",
+        "organisasjonsnummer": "912345682",
+        "herId": "101005"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0011",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "25861399926",
+      "personId": "person-205",
+      "utstedt": "2026-05-05",
+      "signert": "2026-05-05T10:00:00Z",
+      "gyldigTil": "2026-11-05",
+      "diagnose": {
+        "kode": "N86",
+        "kodeverk": "ICPC-2",
+        "tekst": "Multippel sklerose"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "manuell-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Trenger rullestol utendørs. Er under 18 år, så en foresatt må være avsender av søknaden.",
+      "lege": {
+        "hprNummer": "9000101",
+        "navn": "Ingrid Aasen",
+        "legekontor": "Nordnes legesenter",
+        "organisasjonsnummer": "912345678",
+        "herId": "101001"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0012",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "28870999668",
+      "personId": "person-216",
+      "utstedt": "2026-06-11",
+      "signert": "2026-06-11T10:00:00Z",
+      "gyldigTil": "2026-12-11",
+      "diagnose": {
+        "kode": "P70",
+        "kodeverk": "ICPC-2",
+        "tekst": "Kognitiv svikt etter hodeskade"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 5,
+      "funn": {
+        "visus": null,
+        "mmsScore": 19,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [],
+      "kanNytteKollektiv": false,
+      "vurdering": "MMS-score er 19. Finner ikke fram alene og klarer ikke å bytte buss på egen hånd.",
+      "lege": {
+        "hprNummer": "9000111",
+        "navn": "Per Alvær",
+        "legekontor": "Bergen sentrum legesenter",
+        "organisasjonsnummer": "912345679",
+        "herId": "101002"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0013",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "22857095328",
+      "personId": "person-329",
+      "utstedt": "2026-06-25",
+      "signert": "2026-06-25T10:00:00Z",
+      "gyldigTil": "2026-12-25",
+      "diagnose": {
+        "kode": "L84",
+        "kodeverk": "ICPC-2",
+        "tekst": "Ryggsyndrom uten smerteutstråling"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 1,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Forventer bedring etter operasjon til høsten. Tilstanden er forbigående.",
+      "lege": {
+        "hprNummer": "9000111",
+        "navn": "Per Alvær",
+        "legekontor": "Bergen sentrum legesenter",
+        "organisasjonsnummer": "912345679",
+        "herId": "101002"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0014",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "10878397784",
+      "personId": "person-236",
+      "utstedt": "2025-11-20",
+      "signert": "2025-11-20T10:00:00Z",
+      "gyldigTil": "2026-05-20",
+      "diagnose": {
+        "kode": "N87",
+        "kodeverk": "ICPC-2",
+        "tekst": "Parkinsonisme"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 8,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Ustø gange og fallrisiko. Erklæringen er skrevet før forrige søknadsrunde.",
+      "lege": {
+        "hprNummer": "9000111",
+        "navn": "Per Alvær",
+        "legekontor": "Bergen sentrum legesenter",
+        "organisasjonsnummer": "912345679",
+        "herId": "101002"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0015",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "20908199228",
+      "personId": "person-237",
+      "utstedt": "2026-04-30",
+      "signert": "2026-04-30T10:00:00Z",
+      "gyldigTil": "2026-10-30",
+      "diagnose": {
+        "kode": "F28",
+        "kodeverk": "ICPC-2",
+        "tekst": "Nedsatt syn"
+      },
+      "funksjonsnedsetting": "blind-eller-sterkt-svaksynt",
+      "varighetAar": 6,
+      "funn": {
+        "visus": 0.5,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": true,
+      "vurdering": "Visus med korreksjon er 0,5 på begge øyne. Ser dårlig i mørket, men klarer buss på dagtid.",
+      "lege": {
+        "hprNummer": "9000112",
+        "navn": "Solveig Rasmussen",
+        "legekontor": "Bergen øyeklinikk",
+        "organisasjonsnummer": "912345680",
+        "herId": "101003"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0016",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "03842250055",
+      "personId": "person-002",
+      "utstedt": "2026-05-18",
+      "signert": "2026-05-18T10:00:00Z",
+      "gyldigTil": "2026-11-18",
+      "diagnose": {
+        "kode": "N85",
+        "kodeverk": "ICPC-2",
+        "tekst": "Medfødt anomali i nervesystemet"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "manuell-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Bruker rullestol utendørs. Er under aldersgrensen for ordningen.",
+      "lege": {
+        "hprNummer": "9000101",
+        "navn": "Ingrid Aasen",
+        "legekontor": "Nordnes legesenter",
+        "organisasjonsnummer": "912345678",
+        "herId": "101001"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0017",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "28842150061",
+      "personId": "person-041",
+      "utstedt": "2026-06-06",
+      "signert": "2026-06-06T10:00:00Z",
+      "gyldigTil": "2026-12-06",
+      "diagnose": {
+        "kode": "N85",
+        "kodeverk": "ICPC-2",
+        "tekst": "Medfødt anomali i nervesystemet"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Nedsatt gangfunksjon. Er under aldersgrensen for ordningen.",
+      "lege": {
+        "hprNummer": "9000111",
+        "navn": "Per Alvær",
+        "legekontor": "Bergen sentrum legesenter",
+        "organisasjonsnummer": "912345679",
+        "herId": "101002"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0018",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "21868500007",
+      "personId": "person-003",
+      "utstedt": "2026-05-11",
+      "signert": "2026-05-11T10:00:00Z",
+      "gyldigTil": "2026-11-11",
+      "diagnose": {
+        "kode": "K90",
+        "kodeverk": "ICPC-2",
+        "tekst": "Hjerneslag med varig lammelse"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "elektrisk-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Bruker elektrisk rullestol. Bor utenfor Vestland og hører til en annen fylkeskommunes ordning.",
+      "lege": {
+        "hprNummer": "9000113",
+        "navn": "Åse Bratt",
+        "legekontor": "Trondheim legesenter",
+        "organisasjonsnummer": "912345688",
+        "herId": "101011"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0019",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "25886099722",
+      "personId": "person-125",
+      "utstedt": "2026-07-14",
+      "signert": "2026-07-14T10:00:00Z",
+      "gyldigTil": "2027-01-14",
+      "diagnose": {
+        "kode": "K92",
+        "kodeverk": "ICPC-2",
+        "tekst": "Aterosklerose og perifer karsykdom"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 4,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "krykke-eller-stokk"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Klarer under hundre meter uten hvile. Kommer seg ikke til holdeplassen.",
+      "lege": {
+        "hprNummer": "9000102",
+        "navn": "Sigrid Vik",
+        "legekontor": "Austevoll legekontor",
+        "organisasjonsnummer": "912345681",
+        "herId": "101004"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0020",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "25927699845",
+      "personId": "person-348",
+      "utstedt": "2026-02-05",
+      "signert": "2026-02-05T10:00:00Z",
+      "gyldigTil": "2026-08-05",
+      "diagnose": {
+        "kode": "P70",
+        "kodeverk": "ICPC-2",
+        "tekst": "Demens"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 7,
+      "funn": {
+        "visus": null,
+        "mmsScore": 21,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [],
+      "kanNytteKollektiv": false,
+      "vurdering": "MMS-score er 21. Blir forvirret av bytter og finner ikke tilbake.",
+      "lege": {
+        "hprNummer": "9000110",
+        "navn": "Bjørn Eide",
+        "legekontor": "Kvinnherad legesenter",
+        "organisasjonsnummer": "912345682",
+        "herId": "101005"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0021",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "14887397873",
+      "personId": "person-288",
+      "utstedt": "2026-06-30",
+      "signert": "2026-06-30T10:00:00Z",
+      "gyldigTil": "2026-12-30",
+      "diagnose": {
+        "kode": "L88",
+        "kodeverk": "ICPC-2",
+        "tekst": "Revmatoid artritt"
+      },
+      "funksjonsnedsetting": "rullestolbrukar",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "elektrisk-rullestol"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Bruker elektrisk rullestol hele døgnet og trenger bil med rampe.",
+      "lege": {
+        "hprNummer": "9000106",
+        "navn": "Astrid Bø",
+        "legekontor": "Øygarden legekontor",
+        "organisasjonsnummer": "912345684",
+        "herId": "101007"
+      },
+      "syntetisk": true
+    },
+    {
+      "erklaeringId": "legeerkl-0022",
+      "dokumenttype": "Legeerklæring til søknad om TT-kort",
+      "fnr": "08910898567",
+      "personId": "person-200",
+      "utstedt": "2026-03-27",
+      "signert": "2026-03-27T10:00:00Z",
+      "gyldigTil": "2026-09-27",
+      "diagnose": {
+        "kode": "N85",
+        "kodeverk": "ICPC-2",
+        "tekst": "Medfødt anomali i nervesystemet"
+      },
+      "funksjonsnedsetting": "anna",
+      "varighetAar": 10,
+      "funn": {
+        "visus": null,
+        "mmsScore": null,
+        "fev1Prosent": null
+      },
+      "hjelpemiddel": [
+        "rullator"
+      ],
+      "kanNytteKollektiv": false,
+      "vurdering": "Nedsatt gangfunksjon fra fødselen. Er under 18 år, så en foresatt må være avsender av søknaden.",
+      "lege": {
+        "hprNummer": "9000107",
+        "navn": "Tore Fjellheim",
+        "legekontor": "Stryn legesenter",
+        "organisasjonsnummer": "912345685",
+        "herId": "101008"
+      },
+      "syntetisk": true
+    }
+  ]
+}

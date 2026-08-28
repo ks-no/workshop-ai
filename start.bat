@@ -19,11 +19,11 @@ set DOWN=0
 set RESET=0
 set NO_CURL=0
 
-rem The nine Node services. Naming them explicitly keeps the ~4 GB ollama image
+rem The ten Node services. Naming them explicitly keeps the ~4 GB ollama image
 rem out of the pull: it has no compose profile, so a bare "up -d" would start it
 rem even though this script never downloads a model for it to serve.
-set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
-set SERVICE_PORTS=3000 3001 8080 8081 8082 8083 8084 8085 8086
+set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock demo-gui process-builder
+set SERVICE_PORTS=3000 3001 8080 8081 8082 8083 8084 8085 8086 8087
 
 :parse_args
 if "%~1"=="--reload" (set RELOAD=1 & shift & goto parse_args)

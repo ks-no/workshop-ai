@@ -6,6 +6,7 @@
   { "navn": "process-agent", "port": 8084, "rolle": "Agent-API", "spesifikasjon": true },
   { "navn": "matrikkel-mock", "port": 8085, "rolle": "Mock av Kartverket Matrikkel", "spesifikasjon": true },
   { "navn": "digdir-mock", "port": 8086, "rolle": "ID-porten og Maskinporten", "spesifikasjon": true },
+  { "navn": "pasientjournal-mock", "port": 8087, "rolle": "Mock av elektronisk pasientjournal", "spesifikasjon": true },
   { "navn": "demo-gui", "port": 3001, "rolle": "Sidene du er på nå", "spesifikasjon": false },
   { "navn": "process-builder", "port": 3000, "rolle": "Prosessbygger", "spesifikasjon": false }
 ]

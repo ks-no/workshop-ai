@@ -17,6 +17,7 @@
     "start:prosessbygger": "node apps/process-builder/src/server.ts",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.ts",
     "start:digdir": "node apps/digdir-mock/src/server.ts",
+    "start:pasientjournal": "node apps/pasientjournal-mock/src/server.ts",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.ts",
     "data:tenor": "node scripts/importer-tenor.ts",
     "token": "node scripts/token.ts",

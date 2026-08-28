@@ -137,6 +137,9 @@ services:
       # The backend no longer reads the matrikkel seed off disk. One matrikkel in
       # the sandbox, and it is the one that also speaks SOAP.
       - MATRIKKEL_BASE_URL=http://matrikkel-mock:8085
+      # Legeerklaeringene ligger utenfor Fiks fordi en pasientjournal ikke er et
+      # KS-register. Se apps/pasientjournal-mock/README.md.
+      - PASIENTJOURNAL_BASE_URL=http://pasientjournal-mock:8087
       # Two settings, deliberately: where we dial the issuer, and what we accept in
       # `iss`. Inside the network the issuer is digdir-mock:8086; the token a
       # browser holds says localhost:8086. Conflating them is an issuer mismatch.
@@ -146,6 +149,8 @@ services:
       - WATCH_POLL=${WATCH_POLL:-0}
     depends_on:
       matrikkel-mock:
+        condition: service_healthy
+      pasientjournal-mock:
         condition: service_healthy
       digdir-mock:
         condition: service_healthy
@@ -184,6 +189,27 @@ services:
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
       - "${BIND_HOST:-127.0.0.1}:8085:8085"
+    volumes:
+      - ./:/workspace
+
+  pasientjournal-mock:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8087/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["/bin/sh", "scripts/dev.sh", "apps/pasientjournal-mock/src/server.ts"]
+    environment:
+      - PORT=8087
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
+      - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
+      - AUTH_ENFORCE=${AUTH_ENFORCE:-true}
+      - WATCH_POLL=${WATCH_POLL:-0}
+    depends_on:
+      digdir-mock:
+        condition: service_healthy
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8087:8087"
     volumes:
       - ./:/workspace
 
