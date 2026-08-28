@@ -9,11 +9,19 @@ on:
   push:
     branches: [main]
 
+# At workflow level, so a job added later inherits least privilege instead of the
+# org default. A job that needs more asks for it in its own block.
+permissions:
+  contents: read
+
 jobs:
   sjekker:
     runs-on: ubuntu-latest
     steps:
+      # Otherwise checkout leaves GITHUB_TOKEN in .git/config for every later step.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
