@@ -242,3 +242,12 @@ diff state/foer.json state/etter.json
 
 Endrer du en prompt, kjør `pnpm test:eval`. Den krever en kjørende modell og nekter å
 score maltekst.
+
+---
+
+## Bruk Altinn Studio
+Du kan erstatte frontend/backend i sandkassen med en Altinn Studio app. Du får da f.eks. en avansert prosessmotor som støtter bl.a. ikke-lineære og/eller betingede prosesser. Appen kan kjøres lokalt på din maskin, og kan integreres mot de øvrige tjenestene i sandkassen. Appene kan og integreres mot de reelle tjenestene på sikt og kjøres i skyen.
+Frontend i Altinn Studio appen kan byttes ut med noe eget.
+
+En demo-implementasjon av en app som er tenkt til å kjøre i parallell med sandkassen utvikles på https://altinn.studio/repos/ttd/ks-hackathon-demo og kan stjeles rått eller brukes til inspirasjon.
+Merk at du må ha en bruker i Altinn Studio for å få tilgang - du registrerer deg første gang ved å logge inn via Ansattporten med BankID eller MinID.
