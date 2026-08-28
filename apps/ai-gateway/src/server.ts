@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
+import { cors, readRequestBody, sammeOpphav, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
 import type { Sporsmaalskontekst } from "./sporsmaalsperrer.ts";
 import {
@@ -2126,6 +2126,14 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     }
 
     if (request.method === "POST" && url.pathname === "/admin/provider") {
+      // CORS er «*», så uten dette kan enhver nettside i deltakerens nettleser
+      // bytte provider og fakturere noen andre.
+      if (!sammeOpphav(request)) {
+        jsonResponse(response, 403, {
+          feil: "POST /admin/provider tar bare kall fra denne tjenestens egen side eller fra en klient uten Origin."
+        });
+        return;
+      }
       const body = await readRequestBody(request) as AiKropp;
       const nyProvider = String(body?.provider || "").toLowerCase();
       if (!AI_PROVIDERS.includes(nyProvider)) {

@@ -175,6 +175,9 @@ paths:
       description: |
         Lagres til state/ai-provider-override.json, som overstyrer AI_PROVIDER/
         BEDROCK_MODEL_ID fra miljøet ved neste oppstart.
+
+        Tar bare kall fra tjenestens egen /admin-side, eller fra en klient uten
+        Origin-header, altså curl og skript.
       requestBody:
         required: true
         content:
@@ -196,6 +199,8 @@ paths:
                 $ref: "#/components/schemas/AdminStatus"
         "400":
           description: Ukjent provider eller ukjent Bedrock-modell
+        "403":
+          description: Origin-headeren peker et annet sted enn tjenesten selv
   /ai/dialogforslag:
     post:
       summary: Generer dialogforslag

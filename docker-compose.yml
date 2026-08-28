@@ -8,11 +8,12 @@ x-helsesjekk: &helsesjekk
   retries: 12
   start_period: 3s
 
+# Ports are loopback-only unless BIND_HOST says otherwise - see .env.example.
 services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+      - "${BIND_HOST:-127.0.0.1}:11434:11434"
     volumes:
       - ollama-data:/root/.ollama
     healthcheck:
@@ -75,7 +76,7 @@ services:
       # den - en global demping ville skjult ekte advarsler andre steder.
       - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
-      - "3000:3000"
+      - "${BIND_HOST:-127.0.0.1}:3000:3000"
     volumes:
       - ./:/workspace
 
@@ -94,7 +95,7 @@ services:
       # den - en global demping ville skjult ekte advarsler andre steder.
       - NODE_OPTIONS=--disable-warning=ExperimentalWarning
     ports:
-      - "3001:3001"
+      - "${BIND_HOST:-127.0.0.1}:3001:3001"
     volumes:
       - ./:/workspace
 
@@ -121,7 +122,7 @@ services:
       # svarer 401 uten at noe sier hvorfor. En time dekker en økt.
       - DIGDIR_TOKEN_TTL=${DIGDIR_TOKEN_TTL:-3600}
     ports:
-      - "8086:8086"
+      - "${BIND_HOST:-127.0.0.1}:8086:8086"
     volumes:
       - ./:/workspace
 
@@ -149,7 +150,7 @@ services:
       digdir-mock:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${BIND_HOST:-127.0.0.1}:8080:8080"
     volumes:
       - ./:/workspace
 
@@ -167,7 +168,7 @@ services:
       - AUTH_ENFORCE=${AUTH_ENFORCE:-true}
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
-      - "8081:8081"
+      - "${BIND_HOST:-127.0.0.1}:8081:8081"
     volumes:
       - ./:/workspace
 
@@ -182,7 +183,7 @@ services:
       - PORT=8085
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
-      - "8085:8085"
+      - "${BIND_HOST:-127.0.0.1}:8085:8085"
     volumes:
       - ./:/workspace
 
@@ -247,7 +248,7 @@ services:
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-eu.anthropic.claude-sonnet-4-5-20250929-v1:0}
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
-      - "8082:8082"
+      - "${BIND_HOST:-127.0.0.1}:8082:8082"
     volumes:
       - ./:/workspace
 
@@ -294,7 +295,7 @@ services:
       - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
-      - "8083:8083"
+      - "${BIND_HOST:-127.0.0.1}:8083:8083"
     volumes:
       - ./:/workspace
 
@@ -312,7 +313,7 @@ services:
       - TOOLS_BASE_URL=http://tools-api:8083
       - WATCH_POLL=${WATCH_POLL:-0}
     ports:
-      - "8084:8084"
+      - "${BIND_HOST:-127.0.0.1}:8084:8084"
     volumes:
       - ./:/workspace
 
