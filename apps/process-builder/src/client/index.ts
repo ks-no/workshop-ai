@@ -93,21 +93,23 @@ function fyllSkjema(prosess: Prosess): void {
   prosessSteg.value = JSON.stringify(prosess.steg || [], null, 2);
 }
 
+// POST og PUT /api/prosesser er åpne uten token med vilje, så alt her er tekst
+// hvem som helst kan ha skrevet.
 function showProsess(prosess: Prosess): void {
   const stegHtml = (prosess.steg || [])
     .map((steg, indeks) => {
       const feltInfo = steg.felter?.length ? ` (${steg.felter.length} felt)` : "";
-      return `<li><strong>${indeks + 1}. ${steg.tittel}</strong> - ${steg.type}${feltInfo}</li>`;
+      return `<li><strong>${indeks + 1}. ${htmlEscape(steg.tittel)}</strong> - ${htmlEscape(steg.type)}${feltInfo}</li>`;
     })
     .join("");
 
   detaljer.innerHTML = `
-    <h3>${prosess.navn}</h3>
-    <p>${prosess.beskrivelse}</p>
+    <h3>${htmlEscape(prosess.navn)}</h3>
+    <p>${htmlEscape(prosess.beskrivelse)}</p>
     <h4>Steg</h4>
     <ul>${stegHtml}</ul>
     <h4>Rådata</h4>
-    <pre>${JSON.stringify(prosess, null, 2)}</pre>
+    <pre>${htmlEscape(JSON.stringify(prosess, null, 2))}</pre>
   `;
 }
 
