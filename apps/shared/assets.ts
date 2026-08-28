@@ -2,7 +2,7 @@
 // stripping that lets the client be written in TypeScript.
 //
 // Node strips types from .ts on import, but a browser cannot - and this repo has
-// no build step and no runtime dependencies, which is the whole point. So the
+// no build step and does not add runtime dependencies, which is the whole point. So the
 // same runtime that already strips server-side .ts does it here too, at serve
 // time: module.stripTypeScriptTypes() replaces types with whitespace, so line
 // numbers in devtools still match the source file 1:1.

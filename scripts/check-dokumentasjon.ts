@@ -63,7 +63,7 @@ const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
 
 /**
  * The CI job names its checks as `run: pnpm <name>`. Parsing the yaml as text is
- * enough and keeps the no-dependency rule; the alternative is a yaml parser.
+ * enough and keeps the rule against adding dependencies; the alternative is a yaml parser.
  */
 function ciChecks(): string[] {
   const yaml = readFileSync(".github/workflows/ci.yml", "utf8");

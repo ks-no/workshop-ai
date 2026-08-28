@@ -38,7 +38,11 @@ paths:
                     description: Om provideren svarer og modellen er lastet ned.
                   feil:
                     type: string
-                    description: Kun til stede når modellNaaBar er false.
+                    description: >-
+                      Kun til stede når modellNaaBar er false. For provideren bedrock
+                      sjekkes SDK-en før legitimasjonen, så en manglende
+                      @aws-sdk/client-bedrock-runtime kommer ut her. GET /admin/providers.json
+                      skiller de to tilstandene i egne felter (sdkAvailable, sdkError).
                     example: "Ollama kjører, men modellen qwen2.5:14b er ikke lastet ned"
                   tidspunkt: { type: string, format: date-time }
   /openapi-ruter.json:
@@ -379,6 +383,17 @@ components:
             currentModel: { type: string }
             region: { type: string }
             credsConfigured: { type: boolean }
+            sdkAvailable:
+              type: boolean
+              description: >-
+                Om @aws-sdk/client-bedrock-runtime lar seg laste. Pakken lastes lat, så
+                gatewayen kjører uten den - men provideren bedrock gjør det ikke.
+            sdkError:
+              type: string
+              nullable: true
+              description: >-
+                Hvorfor SDK-en ikke lot seg laste, ferdig formulert, eller null når den
+                lot seg laste. Skiller «ikke installert» fra «installert, men knekker».
         ollama:
           type: object
           properties:

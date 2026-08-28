@@ -5,8 +5,8 @@ tolkning, klarspråk og frie spørsmål fra innbygger - med sperrer som kjører 
 provider-bytte uten restart, og fullt spor av hvert modellkall. Lurer du bare på om
 modellen er koblet på, hopp til «Er modellen koblet på?».
 
-Stack: Node.js med innebygd HTTP-server, null avhengigheter. Ingen SDK - providerne
-kalles med rå `fetch`.
+Stack: Node.js med innebygd HTTP-server. Ollama og OpenRouter kalles med rå `fetch`;
+Bedrock er unntaket og bruker en SDK - se «AWS Bedrock» under.
 
 ## Endepunkter
 
@@ -151,10 +151,13 @@ et navn lagt til i `AI_PROVIDERS`.
 
 ### AWS Bedrock
 
-Gatewayen kaller Bedrock med rå `fetch` og signerer selv med AWS Signature Version 4
-(`node:crypto`, ingen AWS SDK - samme "ingen SDK"-linje som resten av tjenesten). Se
-`signAwsRequestV4`/`callBedrock` i `src/server.ts`. Modellene i `/admin` er en
-kuratert liste (`BEDROCK_MODELS`), ikke hentet live fra AWS.
+Bedrock er den ene provideren som bruker en SDK: `@aws-sdk/client-bedrock-runtime`,
+repoets eneste avhengighet i kjøretid. Se `callBedrock` i `src/server.ts`. Modellene i
+`/admin` er en kuratert liste (`BEDROCK_MODELS`), ikke hentet live fra AWS.
+
+SDK-en lastes først når provideren faktisk brukes, så gatewayen starter og svarer uten
+den - `docker compose up` trenger ingen `pnpm install`. Er provideren `bedrock` og
+pakken mangler, sier `/helse` og `/admin` det i stedet for at tjenesten dør.
 
 Du får utdelte AWS-nøkler, ferdig begrenset til `bedrock:InvokeModel` på de riktige
 modellene - hvordan de ble laget er ikke noe du trenger å tenke på. Legg dem i `.env`:

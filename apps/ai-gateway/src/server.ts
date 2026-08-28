@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { readFile, appendFile, writeFile, mkdir } from "node:fs/promises";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import type { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeOverview } from "../../shared/openapi.ts";
@@ -552,9 +552,11 @@ function adminHtml(): string {
             "</option>"
           );
         }).join("");
-        document.getElementById("bedrockCreds").textContent = data.bedrock.credsConfigured
-          ? "Region: " + data.bedrock.region
-          : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
+        document.getElementById("bedrockCreds").textContent = !data.bedrock.sdkAvailable
+          ? data.bedrock.sdkError
+          : data.bedrock.credsConfigured
+            ? "Region: " + data.bedrock.region
+            : "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY er ikke satt i miljøet.";
 
         updateBedrockVisibility(valgtProvider);
       }
@@ -1448,10 +1450,55 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
 
 // --- Bedrock -------------------------------------------------------------
 
+// Loaded lazily, not statically: a top-level import makes ESM resolve the package
+// before the first line of this file runs, so a missing one killed the gateway even
+// under AI_PROVIDER=mock. An optional provider must not be a boot requirement.
+//
+// Only success is cached, so a `pnpm install` takes effect without a restart.
+let bedrockModule: typeof import("@aws-sdk/client-bedrock-runtime") | null = null;
+
+async function loadBedrockModule(): Promise<typeof import("@aws-sdk/client-bedrock-runtime")> {
+  if (!bedrockModule) {
+    try {
+      bedrockModule = await import("@aws-sdk/client-bedrock-runtime");
+    } catch (feil) {
+      // Only a resolution miss becomes the pnpm hint. A package that is present but
+      // throws while evaluating is rethrown untouched - «kjør pnpm install» would
+      // send the reader round in circles. The original message stays either way,
+      // since the missing specifier is often a transitive one.
+      const kode = (feil as NodeJS.ErrnoException)?.code;
+      if (kode !== "ERR_MODULE_NOT_FOUND" && kode !== "MODULE_NOT_FOUND") {
+        throw feil;
+      }
+      throw new Error(
+        "@aws-sdk/client-bedrock-runtime lar seg ikke laste. Kjør «pnpm install» på verten, " +
+          `eller velg en annen provider enn bedrock. Underliggende feil: ${feilmelding(feil)}`,
+        { cause: feil }
+      );
+    }
+  }
+  return bedrockModule;
+}
+
+type BedrockSdkStatus = { tilgjengelig: true; feil: null } | { tilgjengelig: false; feil: string };
+
+// The reason, not just a flag: /helse and /admin render it rather than guessing a
+// cause, so «ikke installert» and «installert, men knekker» stay apart. Discriminated,
+// so an unavailable SDK always arrives with its reason.
+async function bedrockSdkStatus(): Promise<BedrockSdkStatus> {
+  try {
+    await loadBedrockModule();
+    return { tilgjengelig: true, feil: null };
+  } catch (feil) {
+    return { tilgjengelig: false, feil: feilmelding(feil) };
+  }
+}
+
 let bedrockClient: BedrockRuntimeClient | null = null;
 
-function getBedrockClient(): BedrockRuntimeClient {
+async function getBedrockClient(): Promise<BedrockRuntimeClient> {
   if (!bedrockClient) {
+    const { BedrockRuntimeClient } = await loadBedrockModule();
     bedrockClient = new BedrockRuntimeClient({
       region: awsRegion,
       credentials: {
@@ -1469,6 +1516,9 @@ function getBedrockClient(): BedrockRuntimeClient {
 // models only, so this speaks the one shape: the same Messages format the direct
 // Anthropic API uses, with "bedrock-2023-05-31" as the anthropic_version.
 async function callBedrock(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
+  // Same order as checkProvider(), so /helse and a real call report the same reason.
+  const { InvokeModelCommand } = await loadBedrockModule();
+
   if (!awsAccessKeyId || !awsSecretAccessKey) {
     throw new Error("BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler");
   }
@@ -1486,9 +1536,11 @@ async function callBedrock(prompt: string, temperature: number, systemMessage: s
     messages: [{ role: "user", content: prompt }]
   });
 
+  const client = await getBedrockClient();
+
   let svar;
   try {
-    svar = await getBedrockClient().send(
+    svar = await client.send(
       new InvokeModelCommand({
         modelId: bedrockModel,
         contentType: "application/json",
@@ -1552,6 +1604,7 @@ async function saveProviderOverride(): Promise<void> {
 
 async function buildProviderStatus() {
   const helse = await checkProvider();
+  const sdk = await bedrockSdkStatus();
   return {
     provider: aiProvider,
     providers: AI_PROVIDERS,
@@ -1562,7 +1615,12 @@ async function buildProviderStatus() {
       models: BEDROCK_MODELS,
       currentModel: bedrockModel,
       region: awsRegion,
-      credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey)
+      credsConfigured: Boolean(awsAccessKeyId && awsSecretAccessKey),
+      // Probed whatever the active provider is, so a /admin load under mock does pull
+      // the SDK in. Deliberate: the panel must be able to say «SDK-en mangler» the
+      // moment you pick bedrock in the dropdown, before you click.
+      sdkAvailable: sdk.tilgjengelig,
+      sdkError: sdk.feil
     },
     ollama: { model: ollamaModel, baseUrl: ollamaBaseUrl },
     openrouter: { model: openRouterModel, keyConfigured: Boolean(openRouterApiKey) }
@@ -1607,6 +1665,12 @@ async function checkProvider() {
 
   if (aiProvider === "bedrock") {
     const modell = `bedrock:${bedrockModel}`;
+    // Before the credentials: reporting those instead sends people editing .env
+    // when the fix is `pnpm install`.
+    const sdk = await bedrockSdkStatus();
+    if (!sdk.tilgjengelig) {
+      return { naaBar: false, modell, feil: sdk.feil };
+    }
     if (!awsAccessKeyId || !awsSecretAccessKey) {
       return { naaBar: false, modell, feil: "BEDROCK_AWS_ACCESS_KEY_ID/BEDROCK_AWS_SECRET_ACCESS_KEY mangler" };
     }

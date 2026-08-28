@@ -215,7 +215,7 @@ Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
    registeret, men ikke i listen her» - en melding som ikke sier hvilken fil du skal
    åpne. Det er her folk står fast
 
-Repoet har ingen runtime-avhengigheter og ikke noe byggesteg. Node type-stripper
+Repoet legger ikke til avhengigheter og har ikke noe byggesteg. Node type-stripper
 `.ts`-filer selv, så `node src/server.ts` kjører direkte - også nettleserkoden, som
 strippes av serveren når den hentes. Alt i repoet er TypeScript; `pnpm lint` sjekker
 både Node-siden og nettleserkoden.

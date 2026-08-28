@@ -168,6 +168,21 @@ Rett feilen og lagre; watcheren plukker den opp. `pnpm lint` finner samme feil u
 `docker compose restart <tjeneste>`. Hvordan tjenestene overvåkes står i
 «Hva skriptet gjør for deg» i `README.md`.
 
+## «Cannot find module» i en container
+
+**Symptom:** En tjeneste stopper med `ERR_MODULE_NOT_FOUND` og et pakkenavn, typisk
+`@aws-sdk/client-bedrock-runtime` eller `nodemon`.
+
+**Årsak:** Tjenestene bruker `node_modules` fra arbeidstreet ditt gjennom
+`./:/workspace`. pnpm lenker pakker i stedet for å kopiere dem, og på Windows blir
+lenkene NTFS-junctions, som Docker Desktop ikke oversetter inn i Linux-VM-en. Pakken
+er da borte inne i containeren selv om `pnpm install` gikk fint på verten.
+
+**Løsning:** `.npmrc` setter `node-linker=hoisted` nettopp for dette. Kjørte du
+`pnpm install` før den filen kom, kjør `pnpm install` på nytt. `ai-gateway` trenger
+ikke SDK-en for å starte - ser du pakkenavnet derfra, er provideren satt til
+`bedrock`, og `/helse` sier det samme.
+
 ## Windows-oppstart
 
 **Symptom:** `./start.sh` virker ikke i PowerShell eller cmd.

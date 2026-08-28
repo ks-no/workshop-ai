@@ -152,7 +152,7 @@ Gjelder uansett hvor frontenden din bor:
 
 Gjelder bare hvis du likevel bygger inne i dette repoet:
 
-- **Ingen npm-avhengigheter og ingen byggesteg.** Repoet har null runtime-avhengigheter og
+- **Ingen npm-avhengigheter her og ingen byggesteg.** Repoet legger ikke til avhengigheter, og
   skal beholde det - derfor er den vendorede CSS-en eneste vei her inne.
 - **Ny frontend = ny fil.** `demo-gui` og `process-builder` er referanseimplementasjoner
   andre team leser; de skal fortsatt virke.
