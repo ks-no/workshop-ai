@@ -81,6 +81,15 @@ function argTekst(verdi: unknown): string {
   return String(verdi);
 }
 
+/**
+ * Et verktøyargument som del av en sti eller en query. «../..» i et rått argument
+ * er nok til å bytte hvilket endepunkt kallet treffer, og api() fester et
+ * maskintoken uansett hvor det ender.
+ */
+function argSti(verdi: unknown): string {
+  return encodeURIComponent(argTekst(verdi));
+}
+
 /** Et heltallsargument, med fallback når det mangler eller ikke er et heltall. */
 function argHeltall(verdi: unknown, fallback: number): number {
   return Number.isInteger(verdi) ? Number(verdi) : fallback;
@@ -981,7 +990,7 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "get_process_definition") {
-    return api(`/api/prosesser/${encodeURIComponent(argTekst(args.prosessId))}`);
+    return api(`/api/prosesser/${argSti(args.prosessId)}`);
   }
 
   if (name === "start_process_session") {
@@ -997,11 +1006,11 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "get_session") {
-    return api(`/api/prosessoekter/${args.oektsId}`);
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}`);
   }
 
   if (name === "answer_question") {
-    return api(`/api/prosessoekter/${args.oektsId}/svar`, {
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}/svar`, {
       method: "POST",
       body: JSON.stringify({
         stegId: args.stegId,
@@ -1022,7 +1031,7 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
       }
     }
 
-    return api(`/api/prosessoekter/${args.oektsId}/handling`, {
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}/handling`, {
       method: "POST",
       body: JSON.stringify({
         handling: "samtykkesvar",
@@ -1032,21 +1041,21 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "run_current_action") {
-    return api(`/api/prosessoekter/${args.oektsId}/handling`, {
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}/handling`, {
       method: "POST",
       body: JSON.stringify({})
     });
   }
 
   if (name === "next_step") {
-    return api(`/api/prosessoekter/${args.oektsId}/neste`, {
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}/neste`, {
       method: "POST",
       body: JSON.stringify({})
     });
   }
 
   if (name === "previous_step") {
-    return api(`/api/prosessoekter/${args.oektsId}/forrige`, {
+    return api(`/api/prosessoekter/${argSti(args.oektsId)}/forrige`, {
       method: "POST",
       body: JSON.stringify({})
     });
@@ -1064,11 +1073,11 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "get_household_income") {
-    return api(`/api/personer/${args.personId}/inntekt`);
+    return api(`/api/personer/${argSti(args.personId)}/inntekt`);
   }
 
   if (name === "check_eligibility") {
-    return api(`/api/regler/sjekk/foreldrebetaling?personId=${encodeURIComponent(argTekst(args.personId))}&ordning=${encodeURIComponent(argTekst(args.ordning))}`);
+    return api(`/api/regler/sjekk/foreldrebetaling?personId=${argSti(args.personId)}&ordning=${argSti(args.ordning)}`);
   }
 
   if (name === "list_schemes") {
@@ -1107,7 +1116,7 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "get_audit_log") {
-    return api(`/api/revisjonslogg/${args.sporingsId}`);
+    return api(`/api/revisjonslogg/${argSti(args.sporingsId)}`);
   }
 
   if (name === "matrikkel_finn_veger") {
@@ -1155,10 +1164,10 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
     }
 
     if (args.matrikkelId) {
-      return matrikkel(`/mock/matrikkel/eiendom/${encodeURIComponent(argTekst(args.matrikkelId))}`);
+      return matrikkel(`/mock/matrikkel/eiendom/${argSti(args.matrikkelId)}`);
     }
     if (args.adresse) {
-      return matrikkel(`/mock/matrikkel/eiendom-oppslag?adresse=${encodeURIComponent(argTekst(args.adresse))}`);
+      return matrikkel(`/mock/matrikkel/eiendom-oppslag?adresse=${argSti(args.adresse)}`);
     }
     if (Number.isInteger(args.gnr) && Number.isInteger(args.bnr)) {
       const eiendommer = await matrikkel<Matrikkeleiendom[]>("/mock/matrikkel/eiendommer");
