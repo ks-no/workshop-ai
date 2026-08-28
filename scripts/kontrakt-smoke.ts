@@ -16,6 +16,8 @@
 // matrikkel-mock is started too: the street lookup and the ownership SJEKK go over
 // HTTP, not off a seed the backend reads itself. digdir-mock likewise: identity
 // comes from a token, and the dump has to be taken as a real caller, not as nobody.
+// pasientjournal-mock likewise: the legeerklæring the TT-kort vedtak rests on goes
+// over HTTP, behind the samtykke gate.
 //
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.
@@ -38,11 +40,13 @@ const backendPort = Number(process.env.SMOKE_BACKEND_PORT) || 18080;
 const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
 const digdirPort = Number(process.env.SMOKE_DIGDIR_PORT) || 18088;
+const pasientjournalPort = Number(process.env.SMOKE_PASIENTJOURNAL_PORT) || 18090;
 const aiPort = Number(process.env.SMOKE_AI_PORT) || 18089;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 const matrikkelUrl = `http://127.0.0.1:${matrikkelPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
+const pasientjournalUrl = `http://127.0.0.1:${pasientjournalPort}`;
 const aiUrl = `http://127.0.0.1:${aiPort}`;
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
@@ -98,7 +102,7 @@ async function requireFreePort(portnummer: number) {
     const proeve = createServer();
     proeve.once("error", (feil) => avvis(
       feilkode(feil) === "EADDRINUSE"
-        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_AI_PORT til ledige porter.`)
+        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_PASIENTJOURNAL_PORT/SMOKE_AI_PORT til ledige porter.`)
         : feil
     ));
     proeve.listen(portnummer, "127.0.0.1", () => proeve.close(klar));
@@ -782,6 +786,53 @@ async function kontaktinfoOppslag() {
   });
 }
 
+
+/**
+ * TT-kort. Den eneste flyten som passerer samtykkeporten for særlige kategorier,
+ * og den eneste som når et vedtak uten å røre inntekt.
+ */
+async function ttkortflyt(personId: string, merkelapp: string) {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
+    method: "POST",
+    body: { personId, prosessId: "tt-kort" }
+  });
+  const id = oekt.oektsId;
+
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-om-soknaden`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: {
+      stegId: "om-soknaden",
+      svar: { soknadstype: "Ny søknad", kollektivtilbod: "Nei", hjelpemiddel: "Manuell rullestol" }
+    }
+  });
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-reisebehov`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: {
+      stegId: "reisebehov",
+      svar: { begrunnelse: "Kommer meg ikke opp trappen til holdeplassen", avstandPost: "nei" }
+    }
+  });
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "SAMTYKKET" }
+  });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-legeerklaering`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: {}
+  });
+  await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -789,6 +840,7 @@ async function run() {
   await requireFreePort(fiksPort);
   await requireFreePort(matrikkelPort);
   await requireFreePort(digdirPort);
+  await requireFreePort(pasientjournalPort);
   await requireFreePort(aiPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
@@ -798,6 +850,7 @@ async function run() {
     BACKEND_BASE_URL: backendUrl,
     AI_BASE_URL: aiUrl,
     MATRIKKEL_BASE_URL: matrikkelUrl,
+    PASIENTJOURNAL_BASE_URL: pasientjournalUrl,
     // Dial address and logical issuer are the same here: everything runs on
     // 127.0.0.1, so there is no docker-network split to bridge.
     DIGDIR_BASE_URL: digdirUrl,
@@ -811,6 +864,7 @@ async function run() {
     start("backend", "apps/sandbox-backend/src/server.ts", { ...miljo, PORT: String(backendPort) }),
     start("fiks", "apps/fiks-simulator/src/server.ts", { ...miljo, PORT: String(fiksPort) }),
     start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) }),
+    start("pasientjournal", "apps/pasientjournal-mock/src/server.ts", { ...miljo, PORT: String(pasientjournalPort) }),
     // No AI_PROVIDER: defaults to "mock", so /ai/oppsummering answers the
     // deterministic template with no outbound call.
     start("ai", "apps/ai-gateway/src/server.ts", { ...miljo, PORT: String(aiPort) })
@@ -822,6 +876,7 @@ async function run() {
       waitForHealth(backendUrl),
       waitForHealth(fiksUrl),
       waitForHealth(matrikkelUrl),
+      waitForHealth(pasientjournalUrl),
       waitForHealth(aiUrl)
     ]);
 
@@ -859,6 +914,14 @@ async function run() {
     await stottekontaktflyt("person-218", "stottekontakt-skjermet", true);
     await krevIngenAdresselekkasje("person-218");
     await stottekontaktUtenSamtykke("stottekontakt-uten-samtykke");
+    await ttkortflyt("person-284", "ttkort-innvilget");
+    // Erklæringen varer bare ett år, så vedtaket er avslag på et vilkår som ikke
+    // har noe med inntekt å gjøre - den ene tingen denne casen finnes for å vise.
+    await ttkortflyt("person-329", "ttkort-for-kort-varighet");
+    // Ingen erklæring i det hele tatt. DATA_FETCH-steget svarer 200 med
+    // legeerklaering: null, og vurderingen forklarer hvorfor - et 404 her ville
+    // stoppet økten framfor å gi søkeren et svar hen kan gjøre noe med.
+    await ttkortflyt("person-001", "ttkort-mangler-erklaering");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();

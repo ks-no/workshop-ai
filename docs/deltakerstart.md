@@ -67,7 +67,7 @@ raskere enn å lese spesifikasjonene selv.
 
 ## 3. Hvilken bruker til hvilken case
 
-Fem demo-case er publisert. Velg bruker etter case - **det er ikke én bruker som
+Seks demo-case er publisert. Velg bruker etter case - **det er ikke én bruker som
 passer alle:**
 
 | Case | Bruk denne brukeren |
@@ -77,6 +77,7 @@ passer alle:**
 | Behovsavklaring for støttekontakt | `person-001` **Maja Solberg** |
 | Søknad om fritidskort-støtte | `person-028` **Nora Fjeld** |
 | Søknad om fartsdempende tiltak | `person-001` |
+| Søknad om TT-kort | `person-284` **Levende Revebjelle** |
 
 Tabellen er pinnet i `data/deltakercaser.json` og sjekket av `pnpm test`, så et
 innvilget utfall her er et innvilget utfall i sandkassen.
@@ -98,6 +99,13 @@ får innvilget, mens `person-008` ligger på 653 000 og får avslag. Grensen er 
 
 For **fartsdempende tiltak** avgjør gatenavnet utfallet: `Storgata` gir godkjent,
 `Fjøsangerveien` gir avvist. `person-001` bor og eier i Storgata 3.
+
+For **TT-kort** avgjør legeerklæringen, aldri inntekten. `person-284` er 57 år, bor i
+Bergen og har en gyldig erklæring med ti års varighet, så hun får innvilget.
+`person-329` har en erklæring som bare varer ett år, `person-236` har en som gikk ut
+for lenge siden, og `person-001` har ingen i det hele tatt. Dette er den eneste casen
+som ber om samtykke til helseopplysninger - prøv å hoppe over samtykkesteget og kall
+`GET /api/personer/person-284/legeerklaering` direkte, så ser du porten svare 403.
 
 ## 3b. Hvem kan logge inn
 

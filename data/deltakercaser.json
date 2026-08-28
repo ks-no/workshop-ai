@@ -42,6 +42,14 @@
       "ordning": null,
       "forventetUtfall": null,
       "begrunnelse": "Gatenavnet avgjor, ikke en ordning: person-001 eier i Storgata og ikke i Fjosangerveien."
+    },
+    {
+      "prosessId": "tt-kort",
+      "navn": "Soknad om TT-kort",
+      "personId": "person-284",
+      "ordning": "tt-kort",
+      "forventetUtfall": "innvilget",
+      "begrunnelse": "Legeerklaringen avgjor, ikke inntekt. person-284 er 57 ar, bor i Bergen og har en gyldig erklaring med ti ars varighet."
     }
   ]
 }

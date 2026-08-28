@@ -40,7 +40,9 @@
 - **A rule that more than one caller needs lives in one module, and that module lives
   in `apps/shared/`** - `alder.ts`, `foedselsnummer.ts` (modulus 11 and Skatteetaten's
   +80 synthetic marker), `handleevne.ts` (who may act, and on whose behalf),
-  `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry). None of
+  `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry),
+  `legeerklaering.ts` (the shape of a legeerklæring, and which one is the current
+  one - read by the journal mock, the backend and the gate). None of
   them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
   stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
@@ -75,7 +77,7 @@
   two MCP servers and `tools-api`), `innbyggerdata.ts` (the shapes of `personer.json`,
   `husstander.json`, the two plass-datasets and `samtykker.json` - `sandbox-backend` and
   `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` - the
-  state I/O above and the one write queue that replaced three copies of it), the five
+  state I/O above and the one write queue that replaced three copies of it), the six
   domain modules above, and `statemachine.ts` under `samtykke.ts`.
 - **The arrows between apps form a DAG, and `pnpm test:imports` fails if they stop.**
   `sandbox-backend` and `fiks-simulator` used to import each other - the backend took the
