@@ -30,6 +30,21 @@ export function cors(
   };
 }
 
+/**
+ * Om kallet kommer fra tjenestens egen side, eller fra noe som ikke er en nettleser.
+ * Uten Origin er det curl eller et skript, og de slipper fri. «null» avvises.
+ *
+ * Hører her fordi cors() over setter Allow-Origin: *. Den åpenheten er med vilje -
+ * deltakere bygger egne frontender - men den gjør at enhver nettside i deltakerens
+ * nettleser kan poste hit. Ruter som koster penger eller bærer et maskintoken kan
+ * kalle denne; resten skal fortsatt stå åpne.
+ */
+export function sammeOpphav(request: IncomingMessage): boolean {
+  const opphav = request.headers.origin;
+  if (!opphav) return true;
+  return URL.parse(opphav)?.host === request.headers.host;
+}
+
 export type Svarpolicy = {
   /** Headers on every response. Defaults to `cors()`. */
   cors?: Record<string, string>;
