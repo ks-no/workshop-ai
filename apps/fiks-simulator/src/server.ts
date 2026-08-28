@@ -444,6 +444,11 @@ class FiksError extends Error {
   }
 }
 
+// KNOWN DUPLICATE, and known future work. This gate is near word-for-word the same
+// as the one in apps/pasientjournal-mock/src/server.ts - only the scope, the realm and
+// the error shape are genuinely per service. It belongs in apps/digdir-mock beside
+// verify.ts, which owns the protocol and which both services already import from,
+// so hoisting it adds no new arrow to the import graph.
 /**
  * Maskinporten for one named scope. `flate` names the surface in the 401 so the
  * message says which door was locked, not just that one was.
