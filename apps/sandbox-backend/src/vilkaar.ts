@@ -10,7 +10,7 @@
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
 import { alderVed } from "../../shared/alder.ts";
-import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
+import { datasettFor, findPerson, getPlasserForTjeneste, harPlassdatasett } from "./state.ts";
 import type { Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 import type { Plass } from "../../shared/innbyggerdata.ts";
 
@@ -202,8 +202,10 @@ export function selectOrdningForTjeneste(
     const gyldige = [...new Set(satser.ordninger.map((o) => o.tjeneste))].join(", ");
     throw new Error(`Ingen ordning for tjenesten ${tjeneste}. Gyldige: ${gyldige}.`);
   }
+  // Only a tjeneste with a plass dataset can be measured against a plass.
   const treff = kandidater.find(
-    (ordning) => plasserSomKvalifiserer(tilstand, personId, ordning, satser).length > 0
+    (ordning) => harPlassdatasett(ordning.tjeneste)
+      && plasserSomKvalifiserer(tilstand, personId, ordning, satser).length > 0
   );
   // No match still returns an ordning, so the citizen gets the ordinary "no place in
   // the target group" message rather than a 400 about routing.

@@ -25,7 +25,12 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { plasserSomKvalifiserer, regelKreverInntekt, evaluateVilkaar } from "../apps/sandbox-backend/src/vilkaar.ts";
+import {
+  plasserSomKvalifiserer,
+  regelKreverInntekt,
+  selectOrdningForTjeneste,
+  evaluateVilkaar
+} from "../apps/sandbox-backend/src/vilkaar.ts";
 import { feilmelding } from "../apps/shared/errors.ts";
 import type { Regeltype } from "../apps/sandbox-backend/src/types.ts";
 
@@ -252,7 +257,20 @@ check(
   vurderBehov([TILBUD], { foedselsdato: undefined }).melding === "Fant ikke fødselsdato for søkeren."
 );
 
-// --- 6. The interface's own contract ---------------------------------------
+// --- 6. Picking an ordning within a tjeneste -------------------------------
+function velgOrdning(tjeneste: string) {
+  const tilstand = medHusstand(tilstandMed({ sfoplasser: SFO_PLASSER as any })) as any;
+  return selectOrdningForTjeneste(
+    { ...tilstand, satser: { ...satser, ordninger: [ORDNING_INNTEKT, ORDNING_BEHOV] } } as any,
+    "p-voksen",
+    tjeneste
+  );
+}
+
+check("tjeneste uten plass-datasett velger sin ene ordning", velgOrdning("stottekontakt") === "test-tjenestebehov");
+check("plass-tjeneste velger fortsatt på plassen", velgOrdning("sfo") === "test-inntektsgrense");
+
+// --- 7. The interface's own contract ---------------------------------------
 check("regelKreverInntekt dekker alle tre regeltypene", Object.keys(regelKreverInntekt).length === 3);
 check("TJENESTEBEHOV krever ikke inntekt", regelKreverInntekt.TJENESTEBEHOV === false);
 check("INNTEKTSGRENSE krever inntekt", regelKreverInntekt.INNTEKTSGRENSE === true);
