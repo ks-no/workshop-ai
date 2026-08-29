@@ -436,6 +436,151 @@
         }
       ],
       "syntetisk": true
+    },
+    {
+      "id": "tt-kort",
+      "navn": "TT-kort for tilrettelagt transport",
+      "beskrivelse": "Søknad om TT-kort hos fylkeskommunen - drosje og tilrettelagt transport for deg som ikke kan bruke buss eller bane. Den eneste casen som henter helseopplysninger, og derfor den eneste som ber om uttrykkelig samtykke etter personvernforordningen artikkel 9.",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Samferdsel",
+        "hjelpetekst": "Modellert etter Vestland fylkeskommune sitt søknadsskjema og rettleiingen for brukergodkjenning. Vurderingen er deterministisk og ligger i vilkaar.ts."
+      },
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Om transportordningen",
+          "tekst": "TT-kort er et tilbud til deg som ikke kan bruke vanlig kollektivtransport. Ordningen dekker fritidsreiser, og den er ikke lovfestet - fylkeskommunen bestemmer selv omfanget. Du må som hovedregel være fylt 10 år, bo i fylket, og ha en legeerklæring som sier at tilstanden varer i minst to år.",
+          "forfatterhjelp": {
+            "hensikt": "Si hva ordningen dekker og hva den ikke dekker, før noen bruker tid på å søke.",
+            "skrivetips": "Reiser til arbeid, utdanning, lege og sykehus dekkes av andre ordninger. Det er verdt å si tidlig."
+          }
+        },
+        {
+          "id": "om-soknaden",
+          "type": "QUESTION",
+          "tittel": "Om søknaden",
+          "tekst": "Vi trenger noen opplysninger om reisebehovet ditt.",
+          "felter": [
+            {
+              "id": "soknadstype",
+              "label": "Hva gjelder søknaden?",
+              "type": "valg",
+              "alternativer": [
+                "Ny søknad",
+                "Fornyet søknad",
+                "Søknad om utvidet kvote"
+              ],
+              "obligatorisk": true
+            },
+            {
+              "id": "kollektivtilbod",
+              "label": "Kan du bruke det vanlige rutetilbudet i dag?",
+              "type": "valg",
+              "alternativer": [
+                "Ja",
+                "Nei",
+                "Av og til"
+              ],
+              "obligatorisk": true
+            },
+            {
+              "id": "hjelpemiddel",
+              "label": "Hvilket hjelpemiddel er du avhengig av?",
+              "type": "valg",
+              "alternativer": [
+                "Krykke eller stokk",
+                "Manuell rullestol",
+                "Elektrisk rullestol",
+                "Rullator",
+                "Annet",
+                "Ingen"
+              ],
+              "obligatorisk": true
+            }
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Feltene fra det ekte søknadsskjemaet, stilt til søkeren selv.",
+            "skrivetips": "Hjelpemiddelet står også i legeerklæringen, og det er den vurderingen leser. Spørsmålet er med fordi skjemaet stiller det, ikke fordi svaret avgjør noe."
+          }
+        },
+        {
+          "id": "reisebehov",
+          "type": "QUESTION",
+          "tittel": "Hvorfor kan du ikke bruke bussen?",
+          "tekst": "Forklar med egne ord hva som gjør det vanskelig.",
+          "felter": [
+            {
+              "id": "begrunnelse",
+              "label": "Forklar hvorfor du ikke kan bruke det vanlige rutetilbudet",
+              "type": "tekst",
+              "placeholder": "Skriv kort hva som er vanskelig",
+              "obligatorisk": true
+            },
+            {
+              "id": "avstandPost",
+              "label": "Bor du mer enn 20 km fra nærmeste post i butikk?",
+              "type": "ja-nei",
+              "obligatorisk": true
+            }
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Fritekst til saksbehandleren, og avstandsspørsmålet det ekte skjemaet stiller for å avgjøre kvotetillegget.",
+            "skrivetips": "Ingen av de to inngår i vurderingen her. Rettleiingen sier at manglende rutetilbud og lang vei til holdeplassen ikke vektlegges, og tillegget for lang vei til post er ikke regnet ut i sandkassen - beløpet står i data/satser.json som referanse."
+          }
+        },
+        {
+          "id": "samtykke-helseopplysninger",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi hente legeerklæringen din?",
+          "tekst": "Legeerklæringen er en helseopplysning, og vi henter den ikke uten at du sier ja. Du kan trekke samtykket når som helst.",
+          "formaal": "Handsame søknaden om TT-ordninga og treffe enkeltvedtak etter forvaltningslova",
+          "dataKilder": [
+            "helseopplysninger"
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Uttrykkelig samtykke etter personvernforordningen artikkel 9 nr. 2 bokstav a), jf. artikkel 6 nr. 1 bokstav a). Formålet er hentet ordrett fra Vestland sitt skjema, og det er formålet fra samtykket som havner i revisjonsloggen - ikke teksten i ressurskatalogen.",
+            "skrivetips": "Dette er den eneste casen som ber om særlige kategorier. Ordlyden bør si hva som hentes, hvorfor, og at det kan trekkes."
+          }
+        },
+        {
+          "id": "hent-legeerklaering",
+          "type": "DATA_FETCH",
+          "tittel": "Henter legeerklæringen",
+          "kreverSamtykke": "helseopplysninger",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/legeerklaering"
+          }
+        },
+        {
+          "id": "sjekk-rett",
+          "type": "SJEKK",
+          "tittel": "Vurderer om du fyller vilkårene for TT-kort",
+          "feilmelding": "Ut fra opplysningene vi har, fyller du ikke vilkårene for TT-kort.",
+          "api": {
+            "method": "GET",
+            "url": "/api/regler/sjekk/ordning?personId={personId}&ordning=tt-kort"
+          },
+          "forfatterhjelp": {
+            "hensikt": "Deterministisk vurdering i vilkaar.ts mot alder, fylke, varighet og gyldigheten på legeerklæringen. KI forklarer utfallet, men avgjør det ikke.",
+            "skrivetips": "Inntekt inngår aldri. Rettleiingen sier at bare nedsatt funksjonsevne legges til grunn, uavhengig av søkerens sosiale og økonomiske situasjon."
+          }
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send søknad"
+        }
+      ],
+      "syntetisk": true
     }
   ],
   "maler": [

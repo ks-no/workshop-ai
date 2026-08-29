@@ -76,7 +76,8 @@ type SporsmaalSvar = {
 const kildePerDatakilde: Record<string, string> = {
   inntekt: "Skatteetaten, via KS Fiks",
   kontaktinfo: "Kontakt- og reservasjonsregisteret, via KS Fiks",
-  tjenestebehov: "kommunens egne registre"
+  tjenestebehov: "kommunens egne registre",
+  helseopplysninger: "pasientjournalen hos den som ga helsehjelpen"
 };
 
 function kildeTekst(dataKilder: string[] | undefined): string {

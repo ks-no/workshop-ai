@@ -16,6 +16,7 @@ import {
 } from "./regler.ts";
 import { samtykkekilderFor, selectOrdningForTjeneste } from "./vilkaar.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
+import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { buildAdvarsel, tryUpstream } from "./upstream.ts";
@@ -223,6 +224,30 @@ export const ressurser: Ressurs[] = [
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: ({ tilstand, personId }) =>
       withStatus(404, () => getInntektForPerson(tilstand, personId))
+  },
+  {
+    // Særlig kategori etter personvernforordningen artikkel 9, og den eneste i
+    // katalogen. Hjemmelen er uttrykkelig samtykke etter artikkel 9 nr. 2 bokstav
+    // a), og det er porten runRessurs() lukker foran handter() her. Ingen
+    // `tilgang`, altså egne-data: en journal har ett personsubjekt om gangen.
+    metode: "GET",
+    sti: "/api/personer/:personId/legeerklaering",
+    ressurs: "legeerklaering",
+    beskrivelse: "Legeerklæringen til søknad om TT-kort, hentet fra pasientjournalen.",
+    kreverSamtykke: "helseopplysninger",
+    samtykkeEmne: "Helseopplysningene",
+    formaal: "Vurdere rett til TT-kort",
+    handter: async ({ tilstand, personId }) => {
+      const erklaering = await finnGjeldendeLegeerklaering(
+        tilstand,
+        personId,
+        tilstand.satser.gjelderFra
+      );
+      // 200 med legeerklaering: null, ikke 404. «Du har ingen gyldig erklæring» er
+      // et svar søkeren skal få vite, og et DATA_FETCH-steg som feiler stopper
+      // prosessøkten framfor å la vurderingen forklare hvorfor.
+      return { personId, legeerklaering: erklaering, syntetisk: true };
+    }
   },
   {
     metode: "GET",

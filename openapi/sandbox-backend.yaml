@@ -346,6 +346,49 @@ paths:
         "502":
           $ref: "#/components/responses/OppstroemsFeil"
 
+  /api/personer/{personId}/legeerklaering:
+    get:
+      summary: Hent legeerklæringen til søknad om TT-kort
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Krever registrert samtykke for datakilden "helseopplysninger". En
+        legeerklæring er en særlig kategori etter personvernforordningen artikkel
+        9, og Vestland fylkeskommune hjemler behandlingen i artikkel 9 nr. 2
+        bokstav a) jf. artikkel 6 nr. 1 bokstav a) - uttrykkelig samtykke. Alle
+        treff revisjonslogges, også når tilgangen nektes.
+
+        Svarer 200 med `legeerklaering: null` når personen ikke har noen. At
+        søkeren mangler en erklæring er et svar hen skal få vite, ikke en feil.
+
+        Erklæringen hentes fra pasientjournal-mock. Den integrasjonen finnes ikke i
+        virkeligheten - se `apps/pasientjournal-mock/README.md`.
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Den gjeldende legeerklæringen, eller null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personId:
+                    type: string
+                  legeerklaering:
+                    oneOf:
+                      - type: "null"
+                      - type: object
+                  syntetisk:
+                    type: boolean
+        "403":
+          $ref: "#/components/responses/ManglerSamtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
+
   /api/personer/{personId}/barnehage:
     get:
       summary: Hent barnehageplasser for barna i husstanden
