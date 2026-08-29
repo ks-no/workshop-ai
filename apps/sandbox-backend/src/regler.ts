@@ -13,6 +13,7 @@ import type { Satser, SjekkResultat, State } from "./types.ts";
 // it fetches the beregning, then hands the numbers over. The arrow points one way,
 // and pnpm test:vilkaar fails if vilkaar.ts imports this file back.
 import { regelBehov, evaluateVilkaar } from "./vilkaar.ts";
+import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
 
 // Fetches the household income basis from the Fiks simulator. Spouses, registered
 // partners and cohabitants count as one household, per forskrift om
@@ -87,7 +88,8 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
   // Only fetch income for rules that actually use it. Asking for an income basis to
   // assess støttekontakt would pull data the decision never touches, and drag the
   // consent for it along - the opposite of what consent-before-income is for.
-  const brukerInntekt = regelBehov[ordning.regel].inntekt;
+  const behov = regelBehov[ordning.regel];
+  const brukerInntekt = behov.inntekt;
   const beregning = brukerInntekt
     ? await getInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
     : null;
@@ -101,6 +103,13 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
     };
   }
 
+  // Samme mekanikk som over: bare reglene som faktisk bruker et journalutdrag
+  // henter et. Å slå opp i journalen for en barnehageordning ville vært å lese
+  // særlige kategorier vedtaket aldri rører.
+  const legeerklaering = behov.legeerklaering
+    ? await finnGjeldendeLegeerklaering(tilstand, personId, satser.gjelderFra)
+    : null;
+
   const grunnlag = beregning ? beregning.beregningsbeloep : null;
   const felles = {
     ordning: ordning.id,
@@ -113,7 +122,9 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
     ? " Merk at skatteoppgjøret ikke er ferdig, så grunnlaget kan endre seg."
     : "";
 
-  return evaluateVilkaar(ordning.regel, { tilstand, personId, ordning, satser, grunnlag, felles, forbehold });
+  return evaluateVilkaar(ordning.regel, {
+    tilstand, personId, ordning, satser, grunnlag, legeerklaering, felles, forbehold
+  });
 }
 
 // Every samtykke this person has given for this source, whatever state it is in.

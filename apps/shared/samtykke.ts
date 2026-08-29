@@ -16,7 +16,7 @@ import { createTilstandsmaskin } from "./statemachine.ts";
  * covers the resource catalogue and the rules; scripts/valider-data.ts measures
  * the process definitions, which are data, against the same list.
  */
-export const DATAKILDER = ["inntekt", "kontaktinfo"] as const;
+export const DATAKILDER = ["inntekt", "kontaktinfo", "helseopplysninger"] as const;
 export type Datakilde = (typeof DATAKILDER)[number];
 
 export function isDatakilde(verdi: string): verdi is Datakilde {

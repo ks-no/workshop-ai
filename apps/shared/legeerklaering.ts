@@ -1,8 +1,11 @@
-// Legeerklæringen til søknad om TT-kort: formen den har på tvers av tjenestene.
+// Legeerklæringen til søknad om TT-kort: formen, og valget av hvilken som gjelder.
 //
-// Her fordi to lesere trenger den. pasientjournal-mock serverer erklæringene og
-// scripts/valider-data.ts holder seeden mot kodeverkene, og en form som lever to
-// steder er to former som kan gå fra hverandre.
+// Her fordi to lesere trenger den. pasientjournal-mock serverer erklæringene,
+// sandbox-backend vurderer dem, og scripts/valider-data.ts pinner utfallene - og
+// et valg som lever tre steder er tre valg som kan gå fra hverandre.
+//
+// Rent og synkront, som alder.ts og vilkaar.ts, og av samme grunn: valget skal
+// kunne pinnes med literal-data og ingen tjenester i gang.
 
 /**
  * Funksjonsnedsettingene skjemaet krysser av for, og hjelpemidlene det spør om.
@@ -58,3 +61,18 @@ export type Legeerklaering = {
   };
   syntetisk: true;
 };
+
+/**
+ * Den erklæringen en vurdering skal bygge på: den nyeste som fortsatt er gyldig, og
+ * ellers den nyeste som finnes. At en utløpt erklæring kommer tilbake framfor null
+ * er med vilje - da kan vedtaket si «erklæringen din gikk ut 12. mars» i stedet for
+ * «vi fant ingenting». Datoene er ISO, så strengsammenlikning er datosammenlikning.
+ */
+export function velgGjeldendeLegeerklaering<T extends { utstedt: string; gyldigTil: string }>(
+  alle: T[],
+  paaDato: string
+): T | null {
+  if (alle.length === 0) return null;
+  const nyesteFoerst = [...alle].sort((a, b) => b.utstedt.localeCompare(a.utstedt));
+  return nyesteFoerst.find((erklaering) => erklaering.gyldigTil >= paaDato) || nyesteFoerst[0];
+}

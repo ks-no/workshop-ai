@@ -9,12 +9,16 @@ import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
 import {
   plasserSomKvalifiserer,
   regelBehov,
-  evaluateVilkaar
+  evaluateVilkaar,
+  type Avslagsgrunn
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { DATAKILDER, isDatakilde, SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
+// Valget av hvilken erklæring som gjelder, importert framfor speilet - av samme
+// grunn som vedtaket over.
 import {
   FUNKSJONSNEDSETTINGER,
   HJELPEMIDLER,
+  velgGjeldendeLegeerklaering,
   type Legeerklaering
 } from "../apps/shared/legeerklaering.ts";
 // The generated participant table, imported rather than re-rendered - the same
@@ -81,6 +85,7 @@ if (personer.length < 20) {
 const legeerklaeringer = (await read("data/legeerklaeringer.json")).legeerklaeringer as Legeerklaering[];
 const personPerFnr = new Map(personer.map((person) => [person.syntetiskFodselsnummer, person]));
 const settErklaeringId = new Set<string>();
+const erklaeringerPerPerson = new Map<string, Legeerklaering[]>();
 
 for (const erklaering of legeerklaeringer) {
   const person = personPerFnr.get(erklaering.fnr);
@@ -137,6 +142,17 @@ for (const erklaering of legeerklaeringer) {
       );
     }
   }
+
+  erklaeringerPerPerson.set(
+    erklaering.personId,
+    (erklaeringerPerPerson.get(erklaering.personId) || []).concat(erklaering)
+  );
+}
+
+// Nøklet på personId og ikke fødselsnummer: sløyfen over har alt slått fast at de
+// to peker på samme person, så oppslaget slipper å gå veien om personen igjen.
+function gjeldendeErklaeringFor(personId: string, paaDato: string) {
+  return velgGjeldendeLegeerklaering(erklaeringerPerPerson.get(personId) || [], paaDato);
 }
 
 // --- Relations must hold together ------------------------------------------
@@ -889,6 +905,9 @@ function vurder(husstand: Husstand, ordning: Ordning) {
     ordning,
     satser,
     grunnlag: g,
+    // Plass-reglene rører ikke journalen, og regelBehov over har alt sørget
+    // for at bare de kommer hit.
+    legeerklaering: null,
     // felles and forbehold only land in SjekkResultat.grunnlag and in the prose. This
     // gate asserts on godkjent, never on melding - rewording a message must not fail
     // a data check.
@@ -1060,6 +1079,69 @@ for (const ordning of satser.ordninger) {
         `${ordning.id}: ingen person i datasettet gir utfallet "${grunn}". ` +
         `Alle fire utfallene må være nåbare, ellers er grenen død kode. ` +
         `Juster data/tjenestetilbud.json.`
+      );
+    }
+  }
+}
+
+// --- TT-kort, vurdert per person mot journalutdraget ------------------------
+// Sju utfall, og alle må være nåbare i befolkningen - ellers er grenen som gir
+// dem død kode ingen oppdager.
+//
+// Til forskjell fra blokken over speiles ingenting her: regelen navngir selv
+// hvilken gren som slo til, i `grunnlag.avslagsgrunn`, så gaten teller det den
+// får svar om framfor å regne det ut på nytt. Det var alternativet den forrige
+// blokken ikke hadde - TJENESTEBEHOV returnerer samme nøkkelsett fra to grener,
+// og å legge til avslagsgrunn der ville endret kontraktdumpen for støttekontakt.
+for (const ordning of satser.ordninger) {
+  if (ordning.regel !== "TRANSPORTBEHOV") continue;
+  const utfall = new Map<string, number>();
+  for (const person of personer) {
+    const svar = evaluateVilkaar(ordning.regel, {
+      tilstand,
+      personId: person.personId,
+      ordning,
+      satser,
+      grunnlag: null,
+      legeerklaering: gjeldendeErklaeringFor(person.personId, satser.gjelderFra),
+      felles: {},
+      forbehold: ""
+    });
+    const gren = svar.godkjent ? "innvilget" : String(svar.grunnlag?.avslagsgrunn ?? "uten grunn");
+    utfall.set(gren, (utfall.get(gren) || 0) + 1);
+  }
+  if (utfall.has("uten grunn")) {
+    throw new Error(
+      `${ordning.id}: en avslagsgren svarer uten avslagsgrunn i grunnlaget. ` +
+      `Hver gren i vilkaar.ts må navngi seg selv, ellers kan ikke dekningen telles.`
+    );
+  }
+  // Typen er unionen fra vilkaar.ts, så en skrivefeil her stopper på kompilering.
+  // «mangler_foedselsdato» står ikke i listen: ingen i befolkningen mangler dato,
+  // og løkken under fanger grenen hvis noen en dag gjør det.
+  const forventedeGrener: (Avslagsgrunn | "innvilget")[] = [
+    "innvilget",
+    "for_ung",
+    "utenfor_fylket",
+    "mangler_erklaering",
+    "utloept_erklaering",
+    "for_kort_varighet",
+    "visus_over_grensen"
+  ];
+  for (const gren of forventedeGrener) {
+    if (!utfall.get(gren)) {
+      throw new Error(
+        `${ordning.id}: ingen person i datasettet gir utfallet "${gren}". ` +
+        `Alle sju utfallene må være nåbare, ellers er grenen død kode. ` +
+        `Juster data/legeerklaeringer.json.`
+      );
+    }
+  }
+  for (const gren of utfall.keys()) {
+    if (!(forventedeGrener as string[]).includes(gren)) {
+      throw new Error(
+        `${ordning.id}: regelen svarte med grenen "${gren}", som denne sjekken ikke kjenner. ` +
+        `Legg den i forventedeGrener, ellers telles den ikke.`
       );
     }
   }
@@ -1473,6 +1555,7 @@ for (const sak of deltakercaser.caser) {
       ordning,
       satser,
       grunnlag: null,
+      legeerklaering: gjeldendeErklaeringFor(sak.personId, satser.gjelderFra),
       felles: {},
       forbehold: ""
     }).godkjent;
@@ -1530,6 +1613,7 @@ for (const eksempel of stottekontaktMoteksempler) {
     ordning: stottekontaktOrdning,
     satser,
     grunnlag: null,
+    legeerklaering: null,
     felles: {},
     forbehold: ""
   });

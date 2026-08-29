@@ -78,6 +78,24 @@
       "regel": "TJENESTEBEHOV",
       "tilbudsdatasett": "tjenestetilbud",
       "beskrivelse": "Behovsavklaring mot kommunens registrerte tilbud. Vurderes på alder og kapasitet, ikke inntekt."
+    },
+    {
+      "id": "tt-kort",
+      "navn": "TT-kort (tilrettelagt transport)",
+      "tjeneste": "transport",
+      "regel": "TRANSPORTBEHOV",
+      "soekerAlderFraAar": 10,
+      "varighetMinstAar": 2,
+      "fylkesnummer": "46",
+      "visusgrense": 0.33,
+      "kvoter": {
+        "ordinaer": 6500,
+        "saerskilde-behov": 11050,
+        "blind-eller-rullestol": 47150,
+        "elektrisk-rullestol": 49750
+      },
+      "kvotetilleggLangtTilPost": 1300,
+      "beskrivelse": "Vurderes bare på nedsatt funksjonsevne, aldri på inntekt. Krever legeerklæring som sier at tilstanden varer i minst to år. Kvotebeløpene er referanse, ikke et beregnet vedtak: de publiserte kronebeløpene lar seg ikke avstemme mot multiplikatorene i forskriften."
     }
   ],
   "syntetisk": true
