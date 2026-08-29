@@ -12,7 +12,7 @@ import type { Satser, SjekkResultat, State } from "./types.ts";
 // The rules themselves live in vilkaar.ts and are pure. This file is the I/O half:
 // it fetches the beregning, then hands the numbers over. The arrow points one way,
 // and pnpm test:vilkaar fails if vilkaar.ts imports this file back.
-import { regelKreverInntekt, evaluateVilkaar } from "./vilkaar.ts";
+import { regelBehov, evaluateVilkaar } from "./vilkaar.ts";
 
 // Fetches the household income basis from the Fiks simulator. Spouses, registered
 // partners and cohabitants count as one household, per forskrift om
@@ -87,7 +87,7 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
   // Only fetch income for rules that actually use it. Asking for an income basis to
   // assess støttekontakt would pull data the decision never touches, and drag the
   // consent for it along - the opposite of what consent-before-income is for.
-  const brukerInntekt = regelKreverInntekt[ordning.regel];
+  const brukerInntekt = regelBehov[ordning.regel].inntekt;
   const beregning = brukerInntekt
     ? await getInntektsgrunnlag(tilstand, personId, sisteInntektsaar(tilstand, personId))
     : null;

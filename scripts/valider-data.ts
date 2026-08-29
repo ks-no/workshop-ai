@@ -8,10 +8,10 @@ import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
 // rests on - is validated against the copy instead of the rule that ships.
 import {
   plasserSomKvalifiserer,
-  regelKreverInntekt,
+  regelBehov,
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
-import { SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
+import { DATAKILDER, isDatakilde, SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
 // The generated participant table, imported rather than re-rendered - the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
@@ -757,9 +757,9 @@ function soekerFor(husstand: Husstand): string | null {
 }
 
 for (const ordning of satser.ordninger) {
-  // Needs-based ordninger have no plass dataset. Their target group is the
-  // applicant's own age, checked against data/tjenestetilbud.json further down.
-  if (ordning.regel === "TJENESTEBEHOV") continue;
+  // Ordninger with no plass dataset. Their target group is the applicant's own
+  // age, checked against data/tjenestetilbud.json further down.
+  if (!regelBehov[ordning.regel].plass) continue;
   // Asked through the rule, so it is the rule's own definition of "in the target
   // group" that is checked: a plass only counts if it belongs to a barn of the
   // household it sits in - a plass no household can reach cannot be granted either.
@@ -800,14 +800,14 @@ if (husstander.every(husstandsgrunnlag)) {
 // hit every ordning, the completeness check inverts, and the next reader concludes
 // data/forventet-utfall.json is stale. It is not; it is the oracle.
 function vurder(husstand: Husstand, ordning: Ordning) {
-  // TJENESTEBEHOV is assessed per person, not per household, so it has its own
-  // coverage check further down and is deliberately invisible here.
-  if (ordning.regel === "TJENESTEBEHOV") return null;
+  // A rule with no plass is assessed per person, not per household, so it has its
+  // own coverage check further down and is deliberately invisible here.
+  if (!regelBehov[ordning.regel].plass) return null;
   const soeker = soekerFor(husstand);
   if (soeker === null) return null;
   if (plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length === 0) return null;
   const g = husstandsgrunnlag(husstand);
-  if (regelKreverInntekt[ordning.regel] && g === null) return null;
+  if (regelBehov[ordning.regel].inntekt && g === null) return null;
   // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
   // not marked medregnes), so the income rules are driven with the same number the
   // running service would have fetched - no stack needed.
@@ -826,7 +826,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
 }
 
 for (const ordning of satser.ordninger) {
-  if (ordning.regel === "TJENESTEBEHOV") continue;
+  if (!regelBehov[ordning.regel].plass) continue;
   const utfall = husstander
     .map((h) => ({ id: h.husstandId, godkjent: vurder(h, ordning) }))
     .filter((r) => r.godkjent !== null);
@@ -1079,6 +1079,26 @@ for (const prosess of allProsesser) {
         `Prosessen ${prosess.id}, steg ${steg.id}, sjekker mot ordningen ${ordning}, ` +
         `som ikke finnes i data/satser.json.`
       );
+    }
+  }
+}
+
+// --- The consent sources in the processes, against the kodeverk -------------
+// The type covers the code; the process definitions are data and have to be
+// measured here.
+for (const prosess of allProsesser) {
+  for (const steg of prosess.steg || []) {
+    const kilder: string[] = [
+      ...(steg.dataKilder || []),
+      ...(steg.kreverSamtykke ? [steg.kreverSamtykke] : [])
+    ];
+    for (const kilde of kilder) {
+      if (!isDatakilde(kilde)) {
+        throw new Error(
+          `Prosessen ${prosess.id}, steg ${steg.id}, viser til datakilden ${kilde}, ` +
+          `som ikke finnes i kodeverket. Gyldige: ${DATAKILDER.join(", ")}.`
+        );
+      }
     }
   }
 }
@@ -1372,9 +1392,9 @@ for (const sak of deltakercaser.caser) {
   }
   const forventetJa = sak.forventetUtfall === "innvilget";
   let faktisk;
-  if (ordning.regel === "TJENESTEBEHOV") {
+  if (!regelBehov[ordning.regel].plass) {
     // Assessed per person, so vurder() deliberately returns null for it - the
-    // household loop above skips TJENESTEBEHOV for the same reason.
+    // household loop above skips it for the same reason.
     faktisk = evaluateVilkaar(ordning.regel, {
       tilstand,
       personId: sak.personId,

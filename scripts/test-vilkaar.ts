@@ -27,7 +27,8 @@
 import { readFile } from "node:fs/promises";
 import {
   plasserSomKvalifiserer,
-  regelKreverInntekt,
+  regelBehov,
+  samtykkekilderFor,
   selectOrdningForTjeneste,
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
@@ -271,10 +272,27 @@ check("tjeneste uten plass-datasett velger sin ene ordning", velgOrdning("stotte
 check("plass-tjeneste velger fortsatt på plassen", velgOrdning("sfo") === "test-inntektsgrense");
 
 // --- 7. The interface's own contract ---------------------------------------
-check("regelKreverInntekt dekker alle tre regeltypene", Object.keys(regelKreverInntekt).length === 3);
-check("TJENESTEBEHOV krever ikke inntekt", regelKreverInntekt.TJENESTEBEHOV === false);
-check("INNTEKTSGRENSE krever inntekt", regelKreverInntekt.INNTEKTSGRENSE === true);
-check("MAKS_ANDEL_AV_INNTEKT krever inntekt", regelKreverInntekt.MAKS_ANDEL_AV_INNTEKT === true);
+// Én tabell over hva hver regel forbruker. Kompilatoren krever en rad per
+// regeltype og et svar per kolonne; antallet sjekkes her fordi det er den ene
+// måten en regeltype uten rad blir synlig i en test.
+const antallRegeltyper = 3;
+check("regelBehov dekker alle regeltypene", Object.keys(regelBehov).length === antallRegeltyper);
+check("TJENESTEBEHOV krever ikke inntekt", regelBehov.TJENESTEBEHOV.inntekt === false);
+check("INNTEKTSGRENSE krever inntekt", regelBehov.INNTEKTSGRENSE.inntekt === true);
+check("MAKS_ANDEL_AV_INNTEKT krever inntekt", regelBehov.MAKS_ANDEL_AV_INNTEKT.inntekt === true);
+check("TJENESTEBEHOV vurderes ikke mot en plass", regelBehov.TJENESTEBEHOV.plass === false);
+check("INNTEKTSGRENSE vurderes mot en plass", regelBehov.INNTEKTSGRENSE.plass === true);
+
+// Samtykkeporten i ressurser.ts leser samtykkekilderFor. Kobles en inngang fra
+// datakilden sin, blir SJEKK-ruten en vei rundt porten.
+check("inntektsregler krever samtykke til inntekt",
+  samtykkekilderFor("INNTEKTSGRENSE").includes("inntekt"));
+check("regler uten hentede innganger krever ingen samtykker",
+  samtykkekilderFor("TJENESTEBEHOV").length === 0);
+// Porten leser bare den første kilden, og samtykkeblokken i runRessurs er bygget
+// rundt én. Den dagen en regel trenger to, må begge utvides.
+check("ingen regel krever mer enn ett samtykke",
+  (Object.keys(regelBehov) as Regeltype[]).every((r) => samtykkekilderFor(r).length <= 1));
 
 // An unknown regeltype must throw rather than silently pass. `regel` arrives from
 // JSON, so the type system cannot be the guard here.
