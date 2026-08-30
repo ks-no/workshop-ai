@@ -8,6 +8,33 @@ En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbygger
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får - dialog, skjema, oversikt, varsling eller noe annet - er teamets valg.
 
+## Før du begynner
+
+Dette må stå på maskinen din:
+
+| | Trengs til |
+|---|---|
+| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
+| **git** | å hente repoet |
+| **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
+| **pnpm** | å kjøre `pnpm <skript>` i det hele tatt. `pnpm install` i tillegg bare til `pnpm lint`, live reload på Windows, og Bedrock-provideren - verken sandkassen eller de andre testskriptene trenger et `pnpm install` |
+| **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
+
+Sjekk at du har det:
+
+```bash
+docker --version && node --version && git --version
+```
+
+**Portene `3000`, `3001`, `8080`–`8086` og `11434` må være ledige.** Er en av dem
+opptatt, står det i `docs/feilsoking.md` hvordan du finner ut hvilken.
+
+**Sett av tid første gang: 4-7 minutter** med `./start.sh --mock`, **12–25 minutter**
+med språkmodell, og vesentlig mer på delt konferansenett. Språkmodellen er fra 400 MB
+til 9 GB avhengig av hvor mye minne maskinen har. Senere oppstarter tar sekunder.
+
+På Windows: kjør fra Git Bash eller WSL - se [«På Windows»](#på-windows) lenger ned.
+
 > [!NOTE]
 > **Deltaker på hackathon? Denne filen er ikke inngangen din.** Tre sider, i rekkefølge:
 >
@@ -48,16 +75,7 @@ Ni kjørende tjenester, én valgfri avhengighet i kjøretid, fem komplette demo-
 
 ## Hvordan starte den
 
-**Forutsetninger:**
-
-| | Trengs til |
-|---|---|
-| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` |
-| **Homebrew** (bare macOS) | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` |
-| **Node 22.18 eller nyere** | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv |
-| **pnpm** | å kjøre `pnpm <skript>` i det hele tatt. `pnpm install` i tillegg bare til `pnpm lint`, live reload på Windows, og Bedrock-provideren - verken sandkassen eller de andre testskriptene trenger et `pnpm install` |
-
-På Windows: se [«På Windows»](#på-windows) lenger ned.
+Kravene til maskinen står under [«Før du begynner»](#før-du-begynner).
 
 **Vil du bare se noe kjøre? Start her:**
 
@@ -80,11 +98,8 @@ Skriptet finner ut hvilken plattform du er på, velger modell ut fra minnet i
 maskinen, starter tjenestene, og verifiserer at modellen faktisk svarer før den
 melder klar.
 
-**Sett av tid første gang: 12–25 minutter**, mer med en stor modell, og vesentlig
-mer på delt konferansenett. Språkmodellen er fra 400 MB til 9 GB avhengig av hvor
-mye minne du har. Senere oppstarter tar sekunder.
-
-Skriptet spør før det laster ned. På macOS spør det i tillegg før det installerer Ollama, siden den kjører nativt der; på Linux og WSL kjører Ollama i container og installeres ikke. `./start.sh -y` hopper over alle spørsmål.
+Tidsbruken første gang står under [«Før du begynner»](#før-du-begynner); en stor modell
+legger seg i overkant av det. Skriptet spør før det laster ned. På macOS spør det i tillegg før det installerer Ollama, siden den kjører nativt der; på Linux og WSL kjører Ollama i container og installeres ikke. `./start.sh -y` hopper over alle spørsmål.
 
 Stopp med `./start.sh -d`.
 

@@ -104,7 +104,7 @@ korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 heter MCP, og de *er* MCP. Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står
 igjen, fordi en sti er wire-format: det er det ene stedet prefikset fortsatt hevder
 en protokoll tjenesten ikke snakker. Navnehistorikken står i
-`apps/tools-api/README.md`.
+[`apps/tools-api/README.md`](../apps/tools-api/README.md).
 
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og

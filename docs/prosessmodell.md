@@ -144,7 +144,8 @@ fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
 
 Fem publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
 ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den -
-`examples/demoprosesser/README.md` har curl-kallene for å liste og kjøre dem.
+[`examples/demoprosesser/README.md`](../examples/demoprosesser/README.md) har
+curl-kallene for å liste og kjøre dem.
 
 | Prosess | Steg | Dekker |
 |---|---|---|

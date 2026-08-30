@@ -16,7 +16,7 @@ holder spesifikasjonene i takt med koden; ingenting holdt denne filen i takt med
 | Se rutene i én tjeneste | `http://localhost:<port>/docs` |
 | Lese kontrakten | `http://localhost:<port>/openapi.yaml`, eller `openapi/*.yaml` i repoet |
 | Lese den maskinelt | `http://localhost:<port>/openapi-ruter.json` |
-| Utforske i Postman | importer spesifikasjonene direkte - `examples/postman/README.md` |
+| Utforske i Postman | importer spesifikasjonene direkte - [`examples/postman/README.md`](../examples/postman/README.md) |
 
 Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell.
 
@@ -60,7 +60,7 @@ Spesifikasjonen har signaturene. Dette er det den ikke sier:
 - `POST /ai/sporsmaal` – Fritt spørsmål fra innbygger, midt i en prosessflyt. Svarer bare
   fra grunnlaget kalleren sender med, har ingen egen dataadgang, og kjører sperrer i kode
   på svaret. `tekst` ligger på toppnivå, som i `/ai/tolk-svar`. Se
-  `apps/ai-gateway/README.md`.
+  [`apps/ai-gateway/README.md`](../apps/ai-gateway/README.md).
 - `POST /ai/dommer` – LLM-as-judge for `scripts/eval.ts`. Ikke en del av en innbyggerflyt.
 - `POST /ai/velg-prosess`
 - `POST /ai/velg-verktoy` – Gitt et prosessteg og liste over tilgjengelige MCP-verktøy, returnerer hvilke som er relevante (`kontekst`, `validering`, eller `kontekst_og_validering`). Brukes av `tools-api/suggest_step_tools`.

@@ -5,7 +5,7 @@ tvungen måte å bygge på.** De er der for å spare deg tid hvis de passer, og 
 hvordan API-ene brukes hvis de ikke gjør det.
 
 Denne siden er veien fra «demoen kjører» til noe du har laget selv. Har du ikke kjørt
-sandkassen ennå, start med `docs/deltakerstart.md`.
+sandkassen ennå, start med [`docs/deltakerstart.md`](deltakerstart.md).
 
 ---
 
@@ -61,7 +61,7 @@ Den er et vanlig skript, ikke en modul, så funksjonene ligger globalt:
 | `checkModell(aiBase)` | Er språkmodellen koblet på |
 
 Vil du heller skrive det selv, er hele runden dokumentert i
-`apps/digdir-mock/README.md`.
+[`apps/digdir-mock/README.md`](../apps/digdir-mock/README.md).
 
 ### Stil
 
@@ -69,7 +69,7 @@ Vil du heller skrive det selv, er hele runden dokumentert i
 hver komponent, lest ut av DOM-en. Kopier derfra. Komponentene er dokumentert på
 <https://designsystemet.no/no>, med [Storybook](https://design.ksdigital.no) og et
 Figma-bibliotek for KS Digital-temaet. Oppsettet i sandkassen står i
-`docs/designsystem.md`.
+[`docs/designsystem.md`](designsystem.md).
 
 I ditt eget prosjekt installerer du det fra npm - `pnpm add @ks-digital/designsystem-themes`
 og importer `base.css` + `ksdigital.css`. Da er resten klasser og `data-`-attributter på
@@ -147,7 +147,8 @@ tvil om et feltnavn, slå det opp der og ikke her.
 ## Utvide sandkassen innenfra
 
 Vil du heller bygge videre på prosessmotoren enn ved siden av den, er det nesten alltid
-ett av disse fire stedene. Hele oppskriften står i `docs/prosessmodell.md`.
+ett av disse fire stedene. Hele oppskriften står i
+[`docs/prosessmodell.md`](prosessmodell.md).
 
 | Du vil | Endre |
 |---|---|

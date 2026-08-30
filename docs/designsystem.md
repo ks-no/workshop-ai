@@ -6,7 +6,7 @@
 **Vi forventer at du bygger frontenden din i ditt eget prosjekt, utenfor dette repoet.**
 Sandkassen er API-ene du kaller - den er ikke ment som app-rammeverket ditt. Alle
 tjenestene svarer med `Access-Control-Allow-Origin: *`, så en app på din egen port snakker
-rett med dem. Oppskriften står i `docs/bygg-selv.md`.
+rett med dem. Oppskriften står i [`docs/bygg-selv.md`](bygg-selv.md).
 
 Ingen hindrer deg i å utvide `demo-gui` i stedet, og noen ganger er det raskeste vei til en
 demo. Da gjelder ekstra regler - de står under.
@@ -158,8 +158,8 @@ Gjelder bare hvis du likevel bygger inne i dette repoet:
   andre team leser; de skal fortsatt virke.
 - **Aldri rediger `apps/shared/ds-base.css` eller `ds-ksdigital.css`.** De er hentet
   uendret fra temapakken, og `pnpm ds:hent` overskriver endringene dine.
-- **Språkregelen i `AGENTS.md` (`## Language`) gjelder her også.** Den er ikke gjengitt
-  her; klassenavn er teknikk og dermed engelske, og resten står der.
+- **Språkregelen i [`AGENTS.md`](../AGENTS.md) (`## Language`) gjelder her også.** Den
+  er ikke gjengitt her; klassenavn er teknikk og dermed engelske, og resten står der.
 - **Bygg DOM med `createElement` og `textContent`, ikke `innerHTML`.** Det er konvensjonen
   i resten av sandkassen, og innholdet kommer fra API-svar.
 
