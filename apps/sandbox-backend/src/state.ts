@@ -258,6 +258,11 @@ export const tjenesteDatasett = {
   fritid: "fritidsdeltakelse"
 };
 
+/** Whether the tjeneste has a plass dataset to pick from at all. */
+export function harPlassdatasett(tjeneste: string): boolean {
+  return tjeneste in tjenesteDatasett;
+}
+
 export function getBarnaIHusstand(tilstand: State, personId: string): string[] {
   const person = findPerson(tilstand, personId);
   if (!person) {
