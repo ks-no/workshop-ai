@@ -12,6 +12,11 @@ import {
   evaluateVilkaar
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { DATAKILDER, isDatakilde, SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
+import {
+  FUNKSJONSNEDSETTINGER,
+  HJELPEMIDLER,
+  type Legeerklaering
+} from "../apps/shared/legeerklaering.ts";
 // The generated participant table, imported rather than re-rendered - the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
@@ -43,6 +48,7 @@ const files = [
   "data/fritidsaktiviteter.json",
   "data/fritidsdeltakelse.json",
   "data/tjenestetilbud.json",
+  "data/legeerklaeringer.json",
   "data/forventet-utfall.json"
 ];
 
@@ -65,6 +71,72 @@ const satser = await read<Satser>("data/satser.json");
 
 if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
+}
+
+// --- Legeerklæringene peker på befolkningen -----------------------------------
+//
+// Datasettet nøkles på fødselsnummer, fordi en journal gjør det. personId står
+// ved siden av som lesehjelp, og de to kan gå fra hverandre uten at noe klager -
+// derfor klager dette.
+const legeerklaeringer = (await read("data/legeerklaeringer.json")).legeerklaeringer as Legeerklaering[];
+const personPerFnr = new Map(personer.map((person) => [person.syntetiskFodselsnummer, person]));
+const settErklaeringId = new Set<string>();
+
+for (const erklaering of legeerklaeringer) {
+  const person = personPerFnr.get(erklaering.fnr);
+  if (!person) {
+    throw new Error(
+      `${erklaering.erklaeringId} har fødselsnummer ${erklaering.fnr}, som ingen person har.`
+    );
+  }
+  if (person.personId !== erklaering.personId) {
+    throw new Error(
+      `${erklaering.erklaeringId} oppgir ${erklaering.personId}, men ${erklaering.fnr} tilhører ${person.personId}.`
+    );
+  }
+  if (settErklaeringId.has(erklaering.erklaeringId)) {
+    throw new Error(`Erklærings-id ${erklaering.erklaeringId} finnes to ganger.`);
+  }
+  settErklaeringId.add(erklaering.erklaeringId);
+
+  // Seks måneder fra signeringen, sier rettleiingen. gyldigTil er avledet, og en
+  // rad som regner feil ville gitt et avslag ingen kan forklare.
+  const utstedt = new Date(erklaering.utstedt);
+  const forventet = new Date(Date.UTC(
+    utstedt.getUTCFullYear(),
+    utstedt.getUTCMonth() + 6,
+    utstedt.getUTCDate()
+  )).toISOString().slice(0, 10);
+  if (erklaering.gyldigTil !== forventet) {
+    throw new Error(
+      `${erklaering.erklaeringId} har gyldigTil ${erklaering.gyldigTil}, men utstedt ` +
+      `${erklaering.utstedt} pluss seks måneder er ${forventet}.`
+    );
+  }
+
+  // Rettleiingen definerer blind og sterkt svaksynt som visus 0,33 eller lavere,
+  // og krever attest fra øyelege. En rad i den kategorien uten visus kan ikke
+  // vurderes.
+  if (erklaering.funksjonsnedsetting === "blind-eller-sterkt-svaksynt" && erklaering.funn.visus === null) {
+    throw new Error(`${erklaering.erklaeringId} er i syn-kategorien, men mangler visus.`);
+  }
+
+  // Kodeverkene er unioner i koden, og en skrivefeil i seeden ville flyttet søkeren
+  // stille mellom kategorier. Derfor måles seeden mot listene.
+  if (!(FUNKSJONSNEDSETTINGER as readonly string[]).includes(erklaering.funksjonsnedsetting)) {
+    throw new Error(
+      `${erklaering.erklaeringId} har funksjonsnedsetting "${erklaering.funksjonsnedsetting}". ` +
+      `Gyldige: ${FUNKSJONSNEDSETTINGER.join(", ")}.`
+    );
+  }
+  for (const hjelpemiddel of erklaering.hjelpemiddel) {
+    if (!(HJELPEMIDLER as readonly string[]).includes(hjelpemiddel)) {
+      throw new Error(
+        `${erklaering.erklaeringId} har hjelpemiddel "${hjelpemiddel}". ` +
+        `Gyldige: ${HJELPEMIDLER.join(", ")}.`
+      );
+    }
+  }
 }
 
 // --- Relations must hold together ------------------------------------------

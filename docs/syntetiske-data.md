@@ -79,6 +79,7 @@ Kildedata i `data/`:
 | `satser.json` | Inntektsgrenser og 6 %-regelen, med `gjelderFra` og `kilde` |
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
 | `tjenestetilbud.json` | Kommunale tilbud med målgruppe og ledige plasser. Grunnlaget for behovsavklaring |
+| `legeerklaeringer.json` | Legeerklæringer til TT-kort, formet som journalutdrag. Nøklet på fødselsnummer, lest bare av `pasientjournal-mock` |
 | `fritidsaktiviteter.json` | Katalog over fritidsaktiviteter med aldersgrenser |
 | `fritidsdeltakelse.json` | Hvilke barn som deltar i hvilken aktivitet, og til hvilken pris |
 | `informasjonsmodeller.json` | Begreper og attributter, med kodeverdier som `pnpm test` holder mot dataene |
@@ -304,5 +305,6 @@ har dem i tabell. Bruk dem som kilde, ikke en liste her.
 - 200 husstander, 281 inntektsrader, 298 rader i kontaktregisteret
 - 388 gater og 18 349 eiendommer i 97 kommuner, 176 med registrert eier. `matrikkel-mock` injiserer Bønesheien ved innlasting, så `/helse` sier 389 og 18 350
 - 8 ordninger og 237 tjenestetilbud
+- 22 legeerklæringer, én per søker
 - 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser
 - 5 prosessdefinisjoner + 1 mal
