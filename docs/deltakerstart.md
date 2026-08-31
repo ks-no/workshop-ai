@@ -5,6 +5,18 @@ Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan v
 **Lurer du på hva dere egentlig skal lage?** [`docs/oppdraget.md`](oppdraget.md) er én
 side om det, og tar to minutter.
 
+## Innhold
+
+- [0. Hent repoet](#0-hent-repoet)
+- [1. Start sandkassen](#1-start-sandkassen)
+- [2. Én URL du trenger, og seks du kommer til å bruke](#2-én-url-du-trenger-og-seks-du-kommer-til-å-bruke)
+- [3. Hvilken bruker til hvilken case](#3-hvilken-bruker-til-hvilken-case)
+- [3b. Hvem kan logge inn](#3b-hvem-kan-logge-inn)
+- [3c. Startpunkter, så demoene ikke kolliderer](#3c-startpunkter-så-demoene-ikke-kolliderer)
+- [4. Ditt første eget kall](#4-ditt-første-eget-kall)
+- [5. Tre sjekker når noe ser rart ut](#5-tre-sjekker-når-noe-ser-rart-ut)
+- [6. Nullstille](#6-nullstille)
+
 ## 0. Hent repoet
 
 Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din
@@ -175,6 +187,22 @@ To feil er verdt å kjenne fra hverandre:
 |---|---|
 | `401` | Vi vet ikke hvem du er. Du glemte headeren, eller tokenet er utløpt |
 | `403` | Vi vet hvem du er, og du får det likevel ikke - feil hjemmel, eller manglende samtykke |
+
+
+Og de faller på ulike steder i kjeden, som er verdt å se:
+
+```mermaid
+flowchart TD
+  K["Kallet ditt"] --> T{"Har det et<br/>gyldig token?"}
+  T -->|"nei"| E401["401<br/>vi vet ikke hvem du er"]
+  T -->|"ja"| H{"Har tokenet<br/>hjemmel til denne<br/>ressursen?"}
+  H -->|"nei"| E403["403<br/>feil hjemmel, eller<br/>samtykke mangler"]
+  H -->|"ja"| OK["200<br/>dataene, og en linje<br/>i revisjonsloggen"]
+```
+
+Begge avslagene er sandkassen som virker. `403` er poenget med hele hjemmelslaget, og
+det er den eneste av de to du kan møte etter at alt er satt opp riktig.
+
 
 **Ett token er én person.** `person-001`s token åpner ikke `person-031`s data; det
 gir `403`. Skal du bruke en annen testbruker, hent et nytt token.

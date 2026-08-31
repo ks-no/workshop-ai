@@ -1,5 +1,16 @@
 # Arkitektur
 
+## Innhold
+
+- [Målbilde](#målbilde)
+- [Arkitekturprinsipper](#arkitekturprinsipper)
+- [Autonomi og støtte](#autonomi-og-støtte)
+- [Samspill mellom tjenestene](#samspill-mellom-tjenestene)
+- [Dynamisk verktøyoppdagelse i agenten](#dynamisk-verktøyoppdagelse-i-agenten)
+- [Utskiftbarhet](#utskiftbarhet)
+- [Status og kjente avvik](#status-og-kjente-avvik)
+- [Neste steg](#neste-steg)
+
 ## Målbilde
 
 Tjenestene, portene og rollene deres står **ett sted**:
@@ -66,6 +77,47 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 9. `process-agent` bruker `tools-api` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
 10. alle relevante hendelser sendes til revisjonslogg
 
+Tegnet opp, med samtykkeporten markert:
+
+```mermaid
+flowchart LR
+  subgraph klienter["Klienter"]
+    PB["process-builder"]
+    DG["demo-gui"]
+    PAG["process-agent"]
+  end
+
+  subgraph kjerne["Kjerne"]
+    SB["sandbox-backend"]
+    TA["tools-api"]
+    AG["ai-gateway"]
+  end
+
+  subgraph mocker["Mockede integrasjoner"]
+    FS["fiks-simulator"]
+    MM["matrikkel-mock"]
+    PJ["pasientjournal-mock"]
+    DM["digdir-mock"]
+  end
+
+  PB --> SB
+  DG --> SB
+  PAG --> TA
+  TA --> SB
+  TA --> AG
+  TA --> MM
+  SB --> AG
+  SB --> MM
+  SB -->|"samtykke og beregning"| FS
+  SB -->|"bak samtykkeporten"| PJ
+  DM -.->|"token"| SB
+  DM -.->|"token"| FS
+```
+
+Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
+en flyt: den utsteder tokenet `sandbox-backend` og `fiks-simulator` krever.
+
+
 ## Dynamisk verktøyoppdagelse i agenten
 
 Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `tools-api`.
@@ -96,10 +148,11 @@ deterministisk vilkårsvurdering og seks demo-case er på plass. Det som følger
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.
 
-**`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
-verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, så en
-MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
-korrekt formede `inputSchema`, så veien til ekte MCP er kort.
+> [!IMPORTANT]
+> **`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
+> verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, så en
+> MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
+> korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 
 `apps/brreg-mcp` og `apps/folkeregister-mcp` er de eneste tingene i repoet som
 heter MCP, og de *er* MCP. Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står
@@ -162,3 +215,16 @@ kommune og svares gjennom den. `sandbox-backend` holder det verifiserte
 innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut - hjemmelen er
 maskinens, handlingen er innbyggerens. `pnpm test:samtykke` pinner begge
 avvisningene.
+
+---
+
+## Neste steg
+
+**Skal du bygge på sandkassen i stedet for i den?**
+[`docs/bygg-selv.md`](bygg-selv.md) er siden for det.
+
+**Skal du endre selve sandkassen?** [`AGENTS.md`](../AGENTS.md) er
+maintainer-dokumentet, og [`CONTRIBUTING.md`](../CONTRIBUTING.md) sier når en endring
+er ferdig.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

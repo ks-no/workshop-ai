@@ -7,6 +7,23 @@ Første stopp er alltid <http://localhost:3001>: den viser om alle tjenestene kj
 om modellen er koblet på. De tre raskeste sjekkene står i
 [`docs/deltakerstart.md`](deltakerstart.md) §5; denne filen tar resten.
 
+## Innhold
+
+| Symptom | Det du ser |
+|---|---|
+| [Alt svarer 401](#alt-svarer-401) | Hvert autentisert kall svarer `401`, også kall som virket i går |
+| [401 etter at `state/` ble tømt](#401-etter-at-state-ble-tømt) | Alt virket, du nullstilte, og nå er alt `401` igjen |
+| [«fetch failed» på matrikkel-oppslag](#fetch-failed-på-matrikkel-oppslag) | Gate- eller eiendomsoppslag feiler, gjerne uten nett |
+| [Maltekst du ikke ba om](#maltekst-du-ikke-ba-om) | KI-svarene er generiske, og du kjørte ikke med `--mock` |
+| [Modellkall henger eller tar lang tid](#modellkall-henger-eller-tar-lang-tid) | Et steg står og spinner |
+| [Treg eller manglende modellnedlasting](#treg-eller-manglende-modellnedlasting) | Oppstart kommer ikke videre, typisk på delt nett |
+| [Port opptatt](#port-opptatt) | Oppstart stopper med at en port er i bruk |
+| [Container som ikke blir healthy](#container-som-ikke-blir-healthy) | `docker compose ps` viser noe annet enn `healthy` |
+| [«Cannot find module» i en container](#cannot-find-module-i-en-container) | En tjeneste krasjer ved oppstart |
+| [Windows-oppstart](#windows-oppstart) | `./start.sh` eller `start.bat` oppfører seg rart på Windows |
+| [Nullstille](#nullstille) | Du vil bare begynne på nytt |
+| [Neste steg](#neste-steg) | Du fant ikke symptomet her |
+
 ## Alt svarer 401
 
 **Symptom:** Hvert autentisert kall svarer `401` - også kall som virket tidligere.
@@ -30,11 +47,12 @@ curl -s http://localhost:8086/helse
 
 Svarer ikke `:8086`, start den: `docker compose up -d digdir-mock`.
 
-Får du `403` i stedet, er du forbi autentiseringen - da er det hjemmelslaget som virker,
-ikke en feil. Og bare `sandbox-backend` (`:8080`) og `fiks-simulator` (`:8081`)
-håndhever hjemmel - en `401` fra `:8082`–`:8085` er noe annet. Se
-[`docs/deltakerstart.md`](deltakerstart.md) §4 og
-[`examples/curl/README.md`](../examples/curl/README.md) §3.
+> [!IMPORTANT]
+> Får du `403` i stedet, er du forbi autentiseringen - da er det hjemmelslaget som virker,
+> ikke en feil. Og bare `sandbox-backend` (`:8080`) og `fiks-simulator` (`:8081`)
+> håndhever hjemmel - en `401` fra `:8082`–`:8085` er noe annet. Se
+> [`docs/deltakerstart.md`](deltakerstart.md) §4 og
+> [`examples/curl/README.md`](../examples/curl/README.md) §3.
 
 ## 401 etter at `state/` ble tømt
 
@@ -227,3 +245,16 @@ KI-sporet (`state/ai-trace.jsonl`).
 [`docs/deltakerstart.md`](deltakerstart.md) §5 har de tre raske sjekkene, og
 [`README.md`](../README.md) har manuell oppstart og modellvalg under «Hvordan starte
 den».
+
+---
+
+## Neste steg
+
+**Fant du ikke symptomet her?** [`README.md`](../README.md) har hele bildet: alle flagg,
+alle porter, manuell oppstart og kjente begrensninger.
+
+**Usikker på om det du ser er en feil i det hele tatt?** Et `403` er hjemmelslaget som
+virker. [`docs/deltakerstart.md`](deltakerstart.md#4-ditt-første-eget-kall) forklarer
+forskjellen fra `401`.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

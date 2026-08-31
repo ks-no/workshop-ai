@@ -63,6 +63,14 @@ export function buildTestpersondok(
     "er alltid de som faktisk gjelder."
   );
   linjer.push("");
+  linjer.push("## Innhold");
+  linjer.push("");
+  linjer.push("- [Hvor mange, og hvem kan hva](#hvor-mange-og-hvem-kan-hva)");
+  linjer.push("- [Kontaktregisteret (KRR)](#kontaktregisteret-krr)");
+  linjer.push("- [Alle personene](#alle-personene)");
+  linjer.push("- [Grenser du bør kjenne](#grenser-du-bør-kjenne)");
+  linjer.push("- [Neste steg](#neste-steg)");
+  linjer.push("");
 
   const antall = personer.length;
   const bosatt = personer.filter((p: any) => p.personstatus === "BOSATT");
@@ -203,6 +211,24 @@ export function buildTestpersondok(
   linjer.push(
     "- **Tolv personer er over 100 år**, den eldste 113. Det er Tenor slik det leveres."
   );
+  linjer.push("");
+  linjer.push("---");
+  linjer.push("");
+  linjer.push("## Neste steg");
+  linjer.push("");
+  linjer.push(
+    "**Hvilken bruker passer casen din?** " +
+    "[`docs/deltakerstart.md`](deltakerstart.md#3-hvilken-bruker-til-hvilken-case) " +
+    "knytter bruker til case, og forklarer den vanligste snublesteinen."
+  );
+  linjer.push("");
+  linjer.push(
+    "**Hvor kommer dataene fra?** " +
+    "[`docs/syntetiske-data.md`](syntetiske-data.md) forklarer kildene, hva som er " +
+    "forfattet, og hvor grensene går."
+  );
+  linjer.push("");
+  linjer.push("**Tilbake til kartet:** [`docs/README.md`](README.md).");
   linjer.push("");
   return linjer.join("\n") + "\n";
 }

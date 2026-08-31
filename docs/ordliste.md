@@ -53,3 +53,13 @@ Kvitteringen vises i `/chat`.
 
 **Tenor** - Skatteetatens testdatasøk, kilden til den syntetiske befolkningen. Et syntetisk
 fødselsnummer kjennes igjen på at 80 er lagt til måneden. Råuttrekkene ligger i `data/tenor/`.
+
+---
+
+## Neste steg
+
+**Vil du se ordene i bruk?** [`docs/deltakerstart.md`](deltakerstart.md) er der du møter
+de fleste av dem første gang, og [`docs/oppdraget.md`](oppdraget.md) forklarer hvorfor
+sandkassen er bygget rundt dem.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

@@ -8,6 +8,32 @@ En samarbeidsvennlig sandkasse for hackathon og utforskning av moderne innbygger
 
 Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototype kommunale tjenester med syntetiske data, tydelige API-er, sporbarhet og mockede integrasjoner. Hvilken form tjenesten får - dialog, skjema, oversikt, varsling eller noe annet - er teamets valg.
 
+## Innhold
+
+<details>
+<summary>Alle seksjonene</summary>
+
+- [Før du begynner](#før-du-begynner)
+- [Hva sandkassen er](#hva-sandkassen-er)
+- [Designprinsipp for hackathon](#designprinsipp-for-hackathon)
+- [Status](#status)
+- [Hvordan starte den](#hvordan-starte-den)
+- [Hvordan stoppe den](#hvordan-stoppe-den)
+- [Oversikt over tjenester og porter](#oversikt-over-tjenester-og-porter)
+- [Koble MCP-serverne til editoren din](#koble-mcp-serverne-til-editoren-din)
+- [Demo-brukere](#demo-brukere)
+- [Demo-flyt](#demo-flyt)
+- [Eksempel på API-kall](#eksempel-på-api-kall)
+- [Sjekker du kan kjøre](#sjekker-du-kan-kjøre)
+- [Hvor syntetiske data ligger](#hvor-syntetiske-data-ligger)
+- [Hvordan legge til nye prosesser](#hvordan-legge-til-nye-prosesser)
+- [Hvordan legge til nye syntetiske datasett](#hvordan-legge-til-nye-syntetiske-datasett)
+- [Samarbeid](#samarbeid)
+- [Kjente begrensninger](#kjente-begrensninger)
+- [Viktige filer](#viktige-filer)
+
+</details>
+
 ## Før du begynner
 
 Dette må du ha installert på maskinen din:
@@ -49,6 +75,8 @@ På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https:
 >    tjenester, og hva som er frosset
 >
 > Kom tilbake hit når du vil ha hele bildet: alle flagg, porter og kjente begrensninger.
+>
+> [`docs/README.md`](docs/README.md) er kartet over all dokumentasjonen.
 
 ## Hva sandkassen er
 
@@ -203,6 +231,9 @@ Logger: `docker compose logs -f ai-gateway`.
 
 ### Manuell oppstart
 
+<details>
+<summary>Kommandoene, per plattform</summary>
+
 `./start.sh` gjør dette for deg. Les skriptet hvis du vil se detaljene - det er kommentert.
 
 macOS, med Ollama nativt på verten:
@@ -241,6 +272,8 @@ docker compose --profile models up ollama-pull-all
 ```
 
 Modellene er `qwen2.5:0.5b` (raskest), `qwen2.5:7b` (balansert), `qwen2.5:14b` (best av Qwen-variantene), `llama3.1:8b` og `mistral-nemo`.
+
+</details>
 
 ## Hvordan stoppe den
 
@@ -470,6 +503,7 @@ Dette repoet er lagt opp for flere team. Se:
 
 ## Viktige filer
 
+- [`docs/README.md`](docs/README.md) - kartet over all dokumentasjonen
 - `docs/deltakerstart.md` - start her hvis du er deltaker
 - `docs/ordliste.md` - forvaltningstermene forklart slik de brukes i sandkassen
 - `apps/shared/tjenester.json` - tjenestene, portene, rollene. Sannhetskilden

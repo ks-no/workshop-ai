@@ -26,6 +26,16 @@ for design og skisser.
 
 ---
 
+## Innhold
+
+- [Oppsett i ditt eget prosjekt](#oppsett-i-ditt-eget-prosjekt)
+- [Oppsett inne i sandkassen](#oppsett-inne-i-sandkassen)
+- [Hvor du slår opp](#hvor-du-slår-opp)
+- [Fallgruver](#fallgruver)
+- [Regler](#regler)
+- [Kommunevåpen](#kommunevåpen)
+- [Neste steg](#neste-steg)
+
 ## Oppsett i ditt eget prosjekt
 
 Dette er den forventede veien. Pakkene ligger på npm:
@@ -172,3 +182,12 @@ Gjelder bare hvis du likevel bygger inne i dette repoet:
 ```
 
 Filnavnet er kommunenummeret.
+
+---
+
+## Neste steg
+
+**Skal du koble frontenden på API-ene?** [`docs/bygg-selv.md`](bygg-selv.md) har token,
+CORS og hva som er frosset.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

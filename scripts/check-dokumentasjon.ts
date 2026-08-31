@@ -14,6 +14,16 @@
  *
  *   1. a number in markdown that disagrees with the source it describes
  *   2. a "CI kjører …" list that has drifted from .github/workflows/ci.yml
+ *   3. a hand-copied tool list that has drifted from tools-api
+ *   4. an anchor link that hits no heading
+ *   5. an "## Innhold" list that disagrees with the file's own headings
+ *   6. a relative markdown link whose target is not tracked, or whose visible text
+ *      names a different path than the one it points at
+ *   7. a mermaid label without quotes, or a service diagram missing a service
+ *
+ * Checks 4 to 7 guard navigation rather than numbers, and they exist for the same
+ * reason: a table of contents and an index are hand-typed copies of something the
+ * repo already knows.
  *
  * Check 1 scans for `<tall> [ord] <substantiv>` over the nouns where a global
  * count is meaningful. Norwegian number words count as numbers, because that is
@@ -35,9 +45,11 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { readSpec } from "../apps/shared/openapi.ts";
 
 const printOnly = process.argv.includes("--vis");
+const tocFor = process.argv[process.argv.indexOf("--innhold") + 1];
 
 // --- the sources -----------------------------------------------------------
 
@@ -389,7 +401,317 @@ for (const file of markdown) {
   }
 }
 
+// --- shared: headings, links and anchors ----------------------------------
+
+/**
+ * GitHub's heading anchor (github-slugger): lowercase, then *delete* every character
+ * that is not a letter, mark, digit, space, hyphen or underscore, then turn each
+ * remaining space into a hyphen.
+ *
+ * Delete, not replace, and that is the part worth getting right: `test:imports`
+ * becomes `testimports`, not `test-imports`, because the colon leaves no gap behind.
+ * There is no trim either, so a heading starting «§ 5» anchors as `-5` with a leading
+ * hyphen. Marks are kept (\p{M}) so a decomposed å survives as å rather than a.
+ *
+ * Unicode letters survive, which is why README.md's `#på-windows` has worked all
+ * along - so the class is \p{L}, not [a-z].
+ */
+function slug(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N} _-]/gu, "")
+    .replace(/ /g, "-");
+}
+
+/**
+ * Blanks fenced code blocks, keeping the line count so a failure still names the
+ * right line. Sixteen lines in this repo are read as ATX headings by a naive
+ * `^#{1,6} ` and are shell comments: `# ...endre noe...` in README.md is one. A
+ * markdown link inside an example is text, not navigation, for the same reason.
+ */
+function withoutCode(lines: string[]): string[] {
+  let inFence = false;
+  return lines.map((line) => {
+    if (/^\s*(?:```|~~~)/.test(line)) {
+      inFence = !inFence;
+      return "";
+    }
+    return inFence ? "" : line;
+  });
+}
+
+type Heading = { level: number; text: string; slug: string; line: number };
+
+function readHeadings(lines: string[]): Heading[] {
+  const used = new Map<string, number>();
+  const headings: Heading[] = [];
+  withoutCode(lines).forEach((line, i) => {
+    const match = line.match(/^(#{1,6})\s+(.+?)\s*$/);
+    if (!match) return;
+    const base = slug(match[2]);
+    /*
+     * GitHub disambiguates a repeated anchor with -1, -2, from an occurrence table
+     * rather than a counter: if a literal `## Foo-1` already took `foo-1`, the second
+     * `## Foo` has to skip past it. No file here has a duplicate today, so this path
+     * is untested by the content and has to be right by construction.
+     */
+    let candidate = base;
+    while (used.has(candidate)) {
+      const n = (used.get(base) ?? 0) + 1;
+      used.set(base, n);
+      candidate = `${base}-${n}`;
+    }
+    used.set(candidate, used.get(candidate) ?? 0);
+    headings.push({ level: match[1].length, text: match[2], slug: candidate, line: i + 1 });
+  });
+  return headings;
+}
+
+/** Cache, because check 6 reads the headings of every file it links to. */
+const headingCache = new Map<string, Heading[]>();
+
+function headingsOf(file: string): Heading[] {
+  let headings = headingCache.get(file);
+  if (headings === undefined) {
+    headings = readHeadings(readFileSync(file, "utf8").split("\n"));
+    headingCache.set(file, headings);
+  }
+  return headings;
+}
+
+/** `](#slug)`, anywhere on a line. */
+const ANCHOR_LINK = /\]\(#([^)\s]+)\)/g;
+
+function anchorTarget(raw: string): string {
+  // A slug with Norwegian letters survives an editor that percent-encodes it.
+  if (!raw.includes("%")) return raw.toLowerCase();
+  try {
+    return decodeURIComponent(raw).toLowerCase();
+  } catch {
+    return raw.toLowerCase();
+  }
+}
+
+/** The section titles that mean "this is the table of contents for this file". */
+const TOC_TITLES = new Set(["innhold", "contents"]);
+
+/** The H2 list a file's `## Innhold` is supposed to be, so a failure is copy-paste. */
+function buildToc(headings: Heading[]): string[] {
+  return headings
+    .filter((h) => h.level === 2 && !TOC_TITLES.has(slug(h.text)))
+    .map((h) => `- [${h.text}](#${h.slug})`);
+}
+
+/*
+ * Existence is tested against git, not the filesystem. macOS is case-insensitive by
+ * default and github.com is not, so `](Deltakerstart.md)` passes existsSync on the
+ * author's laptop and 404s for every participant. A lookup in the tracked set is
+ * case-sensitive everywhere, and it also rejects a link into gitignored state/,
+ * which is a link that works for one person only.
+ */
+const trackedPaths = new Set(
+  execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean)
+);
+
+let anchorsChecked = 0;
+let linksChecked = 0;
+let tocsChecked = 0;
+let diagramsChecked = 0;
+
+// --- check 4: an anchor link hits a heading in the same file ---------------
+
+/*
+ * A renamed heading turns an anchor into a link that silently scrolls nowhere: no
+ * 404, no warning, nothing to see in a diff. The heading is the source; the anchor
+ * is the copy.
+ */
+for (const file of markdown) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  const slugs = new Set(headingsOf(file).map((h) => h.slug));
+  withoutCode(lines).forEach((line, i) => {
+    for (const match of line.matchAll(ANCHOR_LINK)) {
+      anchorsChecked++;
+      const target = anchorTarget(match[1]);
+      if (slugs.has(target)) continue;
+      const near = [...slugs].find(
+        (s) => s.startsWith(target.slice(0, 8)) || target.startsWith(s.slice(0, 8))
+      );
+      failures.push(
+        `${file}:${i + 1}: ankeret «#${target}» treffer ingen overskrift i filen.` +
+        (near ? ` Nærmeste er «#${near}».` : "") +
+        ` Overskriften er kilden - rett ankeret, ikke overskriften.`
+      );
+    }
+  });
+}
+
+// --- check 5: an "Innhold" section lists every section --------------------
+
+/*
+ * Check 4 catches a renamed heading. This catches an added or removed one, which
+ * check 4 cannot see, because nothing points at a section that was never listed.
+ *
+ * The section runs from the `## Innhold` heading to the next heading at the same
+ * level or above, so it does not matter whether the list sits in a <details>, a
+ * table or a plain list - only that the anchors are in there, in document order.
+ * `node scripts/check-dokumentasjon.ts --innhold <fil>` prints the list to paste.
+ */
+for (const file of markdown) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  const headings = headingsOf(file);
+  const toc = headings.find((h) => h.level === 2 && TOC_TITLES.has(slug(h.text)));
+  if (toc === undefined) continue;
+  tocsChecked++;
+  const end = headings.find((h) => h.line > toc.line && h.level <= 2)?.line
+    ?? lines.length + 1;
+  const body = withoutCode(lines).slice(toc.line, end - 1).join("\n");
+  const listed = [...body.matchAll(ANCHOR_LINK)].map((m) => anchorTarget(m[1]));
+  const expected = headings
+    .filter((h) => h.level === 2 && h.line !== toc.line)
+    .map((h) => h.slug);
+  const missing = expected.filter((s) => !listed.includes(s));
+  const extra = listed.filter((s) => !expected.includes(s));
+  if (missing.length > 0 || extra.length > 0) {
+    failures.push(
+      `${file}:${toc.line}: innholdsfortegnelsen er ikke enig med overskriftene ` +
+      `(${expected.length} seksjoner i filen, ${listed.length} i listen).` +
+      (missing.length ? ` Mangler: ${missing.map((s) => `#${s}`).join(", ")}.` : "") +
+      (extra.length
+        ? ` Peker på noe som ikke finnes: ${extra.map((s) => `#${s}`).join(", ")}.`
+        : "") +
+      ` Kjør «node scripts/check-dokumentasjon.ts --innhold ${file}» og bytt ut listen.`
+    );
+  } else if (listed.join("|") !== expected.join("|")) {
+    failures.push(
+      `${file}:${toc.line}: innholdsfortegnelsen har riktige seksjoner i gal ` +
+      `rekkefølge. Kjør «node scripts/check-dokumentasjon.ts --innhold ${file}».`
+    );
+  }
+}
+
+// --- check 6: a relative markdown link resolves ---------------------------
+
+/*
+ * 49 relative links existed when this was written, and all 49 resolved - so it starts
+ * green and stays cheap. It is here because the navigation added on top of them
+ * multiplied that number, and a moved file breaks every link into it at once.
+ *
+ * The visible text is checked too. Every relative link in this repo is written
+ * [`docs/bygg-selv.md`](bygg-selv.md): repo-root path as text, relative path as href.
+ * Without the second half, a rename fixes the href and leaves the text a lie.
+ * Only backticked text is judged - prose is free to name a link whatever reads best.
+ */
+const RELATIVE_LINK = /\[([^\]]*)\]\(([^)\s#]+\.md)(?:#([^)\s]*))?\)/g;
+
+for (const file of markdown) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  withoutCode(lines).forEach((line, i) => {
+    for (const match of line.matchAll(RELATIVE_LINK)) {
+      const [, text, href, anchor] = match;
+      // An absolute URL that happens to end in .md is somebody else's file.
+      if (href.includes("://") || href.startsWith("/")) continue;
+      linksChecked++;
+      const target = posix.normalize(posix.join(posix.dirname(file), href));
+      if (!trackedPaths.has(target)) {
+        failures.push(
+          `${file}:${i + 1}: lenken «${href}» peker på ${target}, som ikke er sjekket ` +
+          `inn i git. Rett stien - store og små bokstaver teller på github.com selv ` +
+          `om de ikke gjør det på macOS.`
+        );
+        continue;
+      }
+      const shown = text.match(/^`(.+\.md)`$/);
+      if (shown && shown[1] !== target) {
+        failures.push(
+          `${file}:${i + 1}: lenken viser «${shown[1]}» men peker på ${target}. ` +
+          `Teksten skal være stien fra rota: \`${target}\`.`
+        );
+      }
+      if (anchor === undefined || anchor === "") continue;
+      const wanted = anchorTarget(anchor);
+      if (!headingsOf(target).some((h) => h.slug === wanted)) {
+        failures.push(
+          `${file}:${i + 1}: «${href}#${wanted}» - ${target} har ingen overskrift ` +
+          `med det ankeret. Rett ankeret, ikke overskriften i den andre filen.`
+        );
+      }
+    }
+  });
+}
+
+// --- check 7: mermaid diagrams ---------------------------------------------
+
+/*
+ * Two ways a mermaid block fails that no other check can see.
+ *
+ * First: an unquoted parenthesis in a node label is a parse error, and GitHub renders
+ * a red error box instead of the diagram. `A[Sandbox Backend (8080)]` is the single
+ * most common mermaid mistake, the fix is quoting the label, and nobody re-renders
+ * every diagram in the repo after a wording change. So every label must be quoted -
+ * a house rule rather than a mermaid rule, and mechanically checkable.
+ *
+ * Second: a diagram of the service map is a hand-typed copy of
+ * apps/shared/tjenester.json. That is check 3's failure in another shape:
+ * apps/tools-api/README.md carried 18 of 25 tool names for months while every count
+ * in the repo was right. Names drift, and check 1 only sees numbers. Five is the
+ * threshold - a diagram of one flow names two or three services, a diagram claiming
+ * to be the map names them all.
+ */
+const serviceNames = (
+  readJson("apps/shared/tjenester.json") as { navn: string }[]
+).map((service) => service.navn);
+
+/** `ID[`, `ID(` or `ID{` - the openers mermaid takes a node label after. */
+const NODE_LABEL = /(?:^|[\s>|-])([A-Za-z_][\w-]*)\s*([[({]+)\s*([^"'\s\])}])/g;
+
+for (const file of markdown) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  let start = -1;
+  lines.forEach((line, i) => {
+    if (start < 0) {
+      if (/^\s*```\s*mermaid\s*$/.test(line)) start = i;
+      return;
+    }
+    if (!/^\s*```\s*$/.test(line)) return;
+    const block = lines.slice(start + 1, i);
+    diagramsChecked++;
+    block.forEach((blockLine, offset) => {
+      for (const match of blockLine.matchAll(NODE_LABEL)) {
+        failures.push(
+          `${file}:${start + 2 + offset}: mermaid-etiketten etter «${match[1]}${match[2]}» ` +
+          `er ikke i hermetegn. En parentes i en etikett uten hermetegn er en ` +
+          `parsefeil, og GitHub viser en rød boks i stedet for diagrammet. ` +
+          `Skriv ${match[1]}["..."].`
+        );
+      }
+    });
+    const text = block.join("\n");
+    const mentioned = serviceNames.filter((name) => text.includes(name));
+    if (mentioned.length >= 5) {
+      const missing = serviceNames.filter((name) => !mentioned.includes(name));
+      if (missing.length > 0) {
+        failures.push(
+          `${file}:${start + 1}: diagrammet navngir ${mentioned.length} av ` +
+          `${serviceNames.length} tjenester, og er dermed en påstand om å være kartet. ` +
+          `Mangler: ${missing.join(", ")}. Legg dem inn, eller kutt diagrammet ned til ` +
+          `én flyt. Kilden er apps/shared/tjenester.json.`
+        );
+      }
+    }
+    start = -1;
+  });
+}
+
 // --- report ---------------------------------------------------------------
+
+if (process.argv.includes("--innhold")) {
+  if (!tocFor || !existsSync(tocFor)) {
+    console.error("Bruk: node scripts/check-dokumentasjon.ts --innhold <fil.md>");
+    process.exit(2);
+  }
+  console.log(buildToc(headingsOf(tocFor)).join("\n"));
+  process.exit(0);
+}
 
 if (printOnly) {
   for (const [name, source] of Object.entries(sources)) {
@@ -413,6 +735,11 @@ console.log(
   `${markdown.length} markdown-filer, ${checked} tallpåstander sjekket mot kilden, ` +
   `${skipped} unntatt.`
 );
+console.log(
+  `${linksChecked} relative lenker, ${anchorsChecked} ankere, ` +
+  `${tocsChecked} innholdsfortegnelse${tocsChecked === 1 ? "" : "r"} og ` +
+  `${diagramsChecked} mermaid-diagram sjekket mot kilden sin.`
+);
 if (renamed.length > 0) {
   console.log(
     `Merk: ${renamed.length} fil(er) står i git-indeksen men ikke på disk, ` +
@@ -421,7 +748,7 @@ if (renamed.length > 0) {
 }
 
 if (failures.length > 0) {
-  console.error(`\n${failures.length} påstand(er) i prosa som kilden motsier:`);
+  console.error(`\n${failures.length} ting dokumentasjonen ikke kan ha:`);
   for (const line of failures) console.error(`  - ${line}`);
   process.exit(1);
 }

@@ -1,5 +1,28 @@
 # Syntetiske data
 
+## Innhold
+
+<details>
+<summary>Alle seksjonene</summary>
+
+- [Prinsipp](#prinsipp)
+- [Kildedata og kjøringstilstand](#kildedata-og-kjøringstilstand)
+- [Datasett](#datasett)
+- [Kart over koblingene](#kart-over-koblingene)
+- [Spec-forankring](#spec-forankring)
+- [Fødselsnumrene er syntetiske, og merket som det](#fødselsnumrene-er-syntetiske-og-merket-som-det)
+- [Hvem kan logge inn](#hvem-kan-logge-inn)
+- [Døde, utflyttede og inaktive](#døde-utflyttede-og-inaktive)
+- [Scenariodekning](#scenariodekning)
+- [Adressebeskyttelse: seeden er ikke maskert](#adressebeskyttelse-seeden-er-ikke-maskert)
+- [Hva som er forfattet, og hvorfor](#hva-som-er-forfattet-og-hvorfor)
+- [Kjente grenser](#kjente-grenser)
+- [Regler](#regler)
+- [Nåværende innhold](#nåværende-innhold)
+- [Neste steg](#neste-steg)
+
+</details>
+
 ## Prinsipp
 
 All data i sandkassen skal være syntetisk. Ingen reelle personopplysninger skal brukes.
@@ -15,11 +38,13 @@ Data er delt i to mapper, og skillet er absolutt:
 
 Tjenestene leser fra `state/` hvis filen finnes der, og faller ellers tilbake på kilden i `data/`. Første gang noe skrives, opprettes kopien i `state/` automatisk. Det finnes ingen initialiseringskommando.
 
-Konsekvensen er at en demokjøring aldri endrer arbeidstreet. Kjører du en flyt og deretter `git status`, skal den være ren.
+> [!NOTE]
+> Konsekvensen er at en demokjøring aldri endrer arbeidstreet. Kjører du en flyt og deretter `git status`, skal den være ren.
 
 ### Fella: `state/` skygger for `data/`
 
-Dette koster folk mye tid, så les det før du begynner å redigere.
+> [!WARNING]
+> Dette koster folk mye tid, så les det før du begynner å redigere.
 
 I det øyeblikket du lagrer noe i prosessbyggeren, skrives
 `state/prosessdefinisjoner.json`. Fra da av leses **den**, og alt du redigerer for
@@ -310,3 +335,17 @@ liste her.
 - 22 legeerklæringer, én per søker
 - 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser
 - 6 prosessdefinisjoner + 1 mal
+
+---
+
+## Neste steg
+
+**Hvilken testperson skal du bruke?** [`docs/testpersoner.md`](testpersoner.md) har hele
+befolkningen med en `Logg inn`-kolonne, og
+[`docs/deltakerstart.md`](deltakerstart.md#3-hvilken-bruker-til-hvilken-case) knytter
+bruker til case.
+
+**Trenger du data som ikke finnes?** «Egne testdata» i
+[`docs/bygg-selv.md`](bygg-selv.md) viser hvordan du legger dem til uten å røre `data/`.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

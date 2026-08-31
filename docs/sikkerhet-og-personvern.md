@@ -15,10 +15,11 @@ Provideren avgjør om promptene forlater maskinen:
 - `openrouter` - til openrouter.ai: hele prompten går ut av maskinen, til en tredjepart.
 - `bedrock` - til AWS Bedrock: hele prompten går ut av maskinen, til AWS.
 
-Og prompten er ikke bare spørsmålet: den inneholder hele konteksten som rå JSON - navn,
-adresser og syntetiske fødselsnumre fra prosessøkten. Ufarlig her, fordi alt er
-syntetisk, men ikke et mønster å kopiere til en løsning med reelle data. Unntaket er
-`/ai/sporsmaal`, som minimerer konteksten i kode før modellen ser den.
+> [!WARNING]
+> Og prompten er ikke bare spørsmålet: den inneholder hele konteksten som rå JSON - navn,
+> adresser og syntetiske fødselsnumre fra prosessøkten. Ufarlig her, fordi alt er
+> syntetisk, men ikke et mønster å kopiere til en løsning med reelle data. Unntaket er
+> `/ai/sporsmaal`, som minimerer konteksten i kode før modellen ser den.
 
 **Bytteren sitter på <http://localhost:8082/admin>** og virker uten restart. Valget
 persisteres i `state/ai-provider-override.json` og overstyrer `AI_PROVIDER` fra `.env`
@@ -37,3 +38,13 @@ Filen er gitignorert og nullstilles av `./start.sh --reset`.
   De korrelerer på `sporingsId`.
 - KI-laget formulerer; det beregner og beslutter ikke. Vedtak ligger deterministisk i
   `apps/sandbox-backend/src/vilkaar.ts`.
+
+---
+
+## Neste steg
+
+**Skal du bytte KI-provider?** Bytteren er <http://localhost:8082/admin>, og
+[`docs/architecture.md`](architecture.md#status-og-kjente-avvik) forklarer hva som skjer
+når modellen ikke svarer.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

@@ -1,5 +1,18 @@
 # Prosessmodell
 
+## Innhold
+
+- [MVP-stegtyper](#mvp-stegtyper)
+- [`SJEKK`](#sjekk)
+- [Ressurskatalogen](#ressurskatalogen)
+- [Dynamisk agentassistanse for `QUESTION`](#dynamisk-agentassistanse-for-question)
+- [Slik legger du til en ny case](#slik-legger-du-til-en-ny-case)
+- [Substitusjon i tekst og URL-er](#substitusjon-i-tekst-og-url-er)
+- [Demo-casene](#demo-casene)
+- [Redigering i prosessbygger](#redigering-i-prosessbygger)
+- [Struktur for `QUESTION`](#struktur-for-question)
+- [Neste steg](#neste-steg)
+
 ## MVP-stegtyper
 
 Sju typer, definert i `apps/sandbox-backend/src/types.ts` og håndtert i `prosess.ts`:
@@ -14,6 +27,28 @@ Sju typer, definert i `apps/sandbox-backend/src/types.ts` og håndtert i `proses
 
 Motoren er lineær: `stegIndex` teller oppover, og det finnes ingen forgrening eller
 betinget hopping. `SJEKK` kan avvise en økt, men flyten er ellers rett fram.
+
+Flaggskipcasen `redusert-foreldrebetaling-barnehage` går gjennom sju steg, og bruker
+alle typene over unntatt `QUESTION`. Legg merke til at `DATA_FETCH` går to ganger: én
+gang før samtykket, for det som er åpent, og én gang etter, for det som er beskyttet.
+
+```mermaid
+flowchart LR
+  I["INFO<br/>hva dette er"]
+  D1["DATA_FETCH<br/>åpne opplysninger"]
+  C["CONSENT_REQUEST<br/>innbyggeren samtykker"]
+  D2["DATA_FETCH<br/>inntekt, bak porten"]
+  S["SJEKK<br/>vedtaket, i backend"]
+  U["SUMMARY<br/>modellen formulerer"]
+  B["SUBMIT<br/>søknaden sendes"]
+
+  I --> D1 --> C --> D2 --> S --> U --> B
+```
+
+`QUESTION` er ikke med i denne casen, men brukes der flyten trenger et svar fra
+innbyggeren. Pilene peker bare én vei: `stegIndex` teller oppover, og `SJEKK` kan
+avvise økten, men det finnes ingen vei tilbake eller til side.
+
 
 ## `SJEKK`
 
@@ -216,3 +251,16 @@ Støttede felttyper i første versjon:
 - `tekst`
 - `ja-nei`
 - `valg`
+
+---
+
+## Neste steg
+
+**Skal du bygge klienten selv?** [`docs/bygg-selv.md`](bygg-selv.md) viser egen frontend
+på egen port, og hvordan du snakker med API-ene direkte.
+
+**Trenger du testdata som passer casen din?**
+[`docs/syntetiske-data.md`](syntetiske-data.md) forklarer datagrunnlaget, og
+[`docs/testpersoner.md`](testpersoner.md) lister hele befolkningen.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

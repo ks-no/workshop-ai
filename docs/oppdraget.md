@@ -8,6 +8,11 @@ alt syntetisk, alt åpent for deg gjennom dokumenterte API-er.
 
 Det er hele føringen. Resten er ditt.
 
+> [!NOTE]
+> **Denne siden er hva og hvorfor.** Skal du få sandkassen til å kjøre, er
+> [`docs/deltakerstart.md`](deltakerstart.md) neste side, og
+> [`docs/README.md`](README.md) er kartet over resten av dokumentasjonen.
+
 ## To spørsmål hackathonet stiller
 
 Det er to spørsmål arrangøren er nysgjerrig på, og de forklarer hvorfor sandkassen ser

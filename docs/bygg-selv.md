@@ -9,6 +9,19 @@ sandkassen ennå, start med [`docs/deltakerstart.md`](deltakerstart.md).
 
 ---
 
+## Innhold
+
+- [Egen frontend, egen port](#egen-frontend-egen-port)
+- [Token, kort fortalt](#token-kort-fortalt)
+- [Finn ut hva som finnes, uten å lese spesifikasjonene](#finn-ut-hva-som-finnes-uten-å-lese-spesifikasjonene)
+- [Ting du ikke skal døpe om](#ting-du-ikke-skal-døpe-om)
+- [Utvide sandkassen innenfra](#utvide-sandkassen-innenfra)
+- [Egne testdata](#egne-testdata)
+- [Helt ny tjeneste](#helt-ny-tjeneste)
+- [Sjekker du kan kjøre underveis](#sjekker-du-kan-kjøre-underveis)
+- [Bruk Altinn Studio](#bruk-altinn-studio)
+- [Neste steg](#neste-steg)
+
 ## Egen frontend, egen port
 
 Du trenger ikke røre `demo-gui`. Kjør din egen app på din egen port - React, Vue, Svelte,
@@ -252,3 +265,20 @@ Frontend i Altinn Studio appen kan byttes ut med noe eget.
 
 En demo-implementasjon av en app som er tenkt til å kjøre i parallell med sandkassen utvikles på https://altinn.studio/repos/ttd/ks-hackathon-demo og kan stjeles rått eller brukes til inspirasjon.
 Merk at du må ha en bruker i Altinn Studio for å få tilgang - du registrerer deg første gang ved å logge inn via Ansattporten med BankID eller MinID.
+
+---
+
+## Neste steg
+
+**Virker ikke noe av det over?** [`docs/feilsoking.md`](feilsoking.md) har ett symptom
+per avsnitt, med årsak og løsning.
+
+**Skal du lage en ny case inne i prosessmotoren?**
+[`docs/prosessmodell.md`](prosessmodell.md) forklarer stegtypene og hvordan du legger
+til en flyt.
+
+**Skal frontenden se ut som resten av KS Digital?**
+[`docs/designsystem.md`](designsystem.md) har oppsettet, og fallgruven som gjør at
+stilarket ser ut som det ikke lastet.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).

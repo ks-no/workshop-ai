@@ -3,6 +3,14 @@
 
 Hele befolkningen i sandkassen, generert fra `data/personer.json`. `pnpm test` feiler hvis denne filen er ute av takt med dataene, så tallene her er alltid de som faktisk gjelder.
 
+## Innhold
+
+- [Hvor mange, og hvem kan hva](#hvor-mange-og-hvem-kan-hva)
+- [Kontaktregisteret (KRR)](#kontaktregisteret-krr)
+- [Alle personene](#alle-personene)
+- [Grenser du bør kjenne](#grenser-du-bør-kjenne)
+- [Neste steg](#neste-steg)
+
 ## Hvor mange, og hvem kan hva
 
 | | Antall |
@@ -457,4 +465,14 @@ Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato - samme referans
 - **Matrikkelen dekker de gatene befolkningen faktisk bor i**, hentet fra Geonorge per kommune, pluss alle Bergens gater. Alle bosatte er bundet til en matrikkelenhet gjennom `bostedsadresse.adresseIdentifikatorFraMatrikkelen`. De som ikke er bosatt har ingen binding, og de som har D-nummer har ingen adresse i det hele tatt.
 - **Adressebeskyttede personer står med fullt navn og adresse i `data/personer.json`.** Det er med vilje: maskeringen skjer ved innlasting, i `apps/shared/skjerming.ts`, og hadde seeden vært maskert ville det ikke vært noe å beskytte. Leser du filen direkte ser du klartekst; går du gjennom API-et ser du maskeringen. `pnpm test:skjerming` holder den på plass.
 - **Tolv personer er over 100 år**, den eldste 113. Det er Tenor slik det leveres.
+
+---
+
+## Neste steg
+
+**Hvilken bruker passer casen din?** [`docs/deltakerstart.md`](deltakerstart.md#3-hvilken-bruker-til-hvilken-case) knytter bruker til case, og forklarer den vanligste snublesteinen.
+
+**Hvor kommer dataene fra?** [`docs/syntetiske-data.md`](syntetiske-data.md) forklarer kildene, hva som er forfattet, og hvor grensene går.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).
 

@@ -4,6 +4,25 @@
 > hackathon participant, `docs/oppdraget.md` is your starting point - you do not
 > need to read this file, and nothing here is part of the participant materials.
 
+## Contents
+
+<details>
+<summary>All sections</summary>
+
+- [What this repo is](#what-this-repo-is)
+- [Service map (compose defaults)](#service-map-compose-defaults)
+- [Data and state model (important)](#data-and-state-model-important)
+- [Process-engine behavior to preserve](#process-engine-behavior-to-preserve)
+- [Language](#language)
+- [Project conventions you must follow](#project-conventions-you-must-follow)
+- [Frontend: the KS Digital design system](#frontend-the-ks-digital-design-system)
+- [Developer workflows](#developer-workflows)
+- [Integration edges and env vars](#integration-edges-and-env-vars)
+- [Matrikkel integration pattern](#matrikkel-integration-pattern)
+- [Useful places before editing](#useful-places-before-editing)
+
+</details>
+
 ## What this repo is
 - `workshop-ai` is a municipal-dialog sandbox: process-driven user flows over synthetic data, with explicit consent, policy checks, and audit trail.
 - Services are intentionally split by responsibility (UI, orchestration, mocks, AI, tools, agent) and communicate over HTTP, not shared internal libraries.

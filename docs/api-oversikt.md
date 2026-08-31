@@ -18,7 +18,8 @@ holder spesifikasjonene i takt med koden; ingenting holdt denne filen i takt med
 | Lese den maskinelt | `http://localhost:<port>/openapi-ruter.json` |
 | Utforske i Postman | importer spesifikasjonene direkte - [`examples/postman/README.md`](../examples/postman/README.md) |
 
-Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell.
+> [!TIP]
+> Dashboardet på <http://localhost:3001> har alle fire per tjeneste, i én tabell.
 
 | Tjeneste | Port | Spesifikasjon |
 |---|---|---|
@@ -73,6 +74,9 @@ den som leser uten å kjøre stacken.
 
 ### Verktøy
 
+<details>
+<summary>Hele katalogen</summary>
+
 | Navn | Beskrivelse |
 |---|---|
 | `list_processes` | List prosessdefinisjoner |
@@ -100,6 +104,8 @@ den som leser uten å kjøre stacken.
 | `folkeregister_search_persons` | Søk i folkeregisteret |
 | `folkeregister_get_person` | Hent person på fødselsnummer |
 
+</details>
+
 ## Matrikkel Mock (port 8085)
 
 SOAP-flaten er den eneste i sandkassen som ikke lar seg beskrive godt i OpenAPI, så den
@@ -110,3 +116,17 @@ står her:
   `FinnMatrikkelenheter`, `HentMatrikkelenhet`, `HentEiere`
 
 REST-hjelpeendepunktene står i `openapi/matrikkel-mock.yaml`.
+
+---
+
+## Neste steg
+
+**Vil du se en hel flyt, kall for kall?**
+[`examples/curl/README.md`](../examples/curl/README.md) har den som `curl`, og hvert kall
+i filen kjøres av en test, så et eksempel som ikke virker er en reell feil.
+
+**Får du `401` eller `403`?**
+[`docs/deltakerstart.md`](deltakerstart.md#4-ditt-første-eget-kall) forklarer hvilken av
+dem som betyr hva, og hvor de faller.
+
+**Tilbake til kartet:** [`docs/README.md`](README.md).
