@@ -310,13 +310,13 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
     .join("\n        ");
 
   // data-sok carries a lowercased haystack so the filter below never touches the
-  // DOM text. 369 options is too many to scroll, and a participant arrives knowing
-  // either a name or a personId.
+  // DOM text. Three hundred options is too many to scroll, and a participant arrives
+  // knowing either a name or a personId.
   const valg = personer
     .map((p) => {
       const label = p.visningsnavn === "Skjermet person" ? " \u00b7 skjermet" : "";
       return `<option value="${escapeHtml(p.pid)}" data-sok="${escapeHtml(`${p.visningsnavn} ${p.personId} ${p.pid} ${p.kommune}`.toLowerCase())}">`
-        + `${escapeHtml(p.visningsnavn)} \u2014 ${escapeHtml(p.personId)}`
+        + `${escapeHtml(p.visningsnavn)} - ${escapeHtml(p.personId)}`
         + `${p.kommune ? ` (${escapeHtml(p.kommune)})` : ""}${label}</option>`;
     })
     .join("\n            ");
@@ -329,7 +329,7 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Logg inn \u2014 ID-porten (sandkasse)</title>
+    <title>Logg inn - ID-porten (sandkasse)</title>
     <style>
       :root {
         --blue: #1a4a7a;
@@ -456,48 +456,47 @@ function pickerPage(personer: Testbruker[], parametere: URLSearchParams): string
         </form>
         <dl class="detaljer">
           <dt>Sikkerhetsniv\u00e5</dt><dd>idporten-loa-high (BankID)</dd>
-          <dt>Sendes til</dt><dd>${escapeHtml(back) || "\u2014"}</dd>
+          <dt>Sendes til</dt><dd>${escapeHtml(back) || "-"}</dd>
         </dl>
       </div>
     </main>
     <script>
       // Filtering happens on data-sok, so a search never depends on how the option
-      // happens to be rendered. Options are hidden rather than removed, so the
-      // form still posts a valid pid if the filter is cleared mid-selection.
+      // happens to be rendered.
       const sok = document.getElementById("sok");
       const picker = document.getElementById("pid");
       const antall = document.getElementById("antall");
       const alle = [...picker.options];
 
+      // Rows are detached rather than hidden: the hidden attribute on an <option> is
+      // not honoured by every browser, so the count updated while the list stood still.
+      //
       // A <select size=n> is a listbox, and a listbox starts with nothing selected -
-      // unlike a dropdown, which auto-selects its first option. Without this the
-      // form cannot be submitted until the user clicks a row, which reads as a
-      // broken button rather than as a missing choice.
-      function safeChoice() {
-        if (picker.selectedIndex >= 0 && !picker.options[picker.selectedIndex].hidden) {
-          return;
-        }
-        const first = alle.find((valg) => !valg.hidden);
-        if (first) {
-          first.selected = true;
+      // unlike a dropdown, which auto-selects its first option. Without the fallback
+      // here the form cannot be submitted until the user clicks a row, which reads as
+      // a broken button rather than as a missing choice.
+      function vis(treff) {
+        const valgt = picker.value;
+        picker.replaceChildren(...treff);
+        if (treff.some((rad) => rad.value === valgt)) {
+          picker.value = valgt;
+        } else if (treff.length) {
+          treff[0].selected = true;
         }
       }
 
       sok.addEventListener("input", () => {
         const needle = sok.value.trim().toLowerCase();
-        let visible = 0;
-        for (const valg of alle) {
-          const treff = !needle || valg.dataset.sok.includes(needle);
-          valg.hidden = !treff;
-          if (treff) visible += 1;
-        }
+        const treff = needle
+          ? alle.filter((rad) => rad.dataset.sok.includes(needle))
+          : alle;
+        vis(treff);
         antall.textContent = needle
-          ? visible + " av " + alle.length + " testbrukere"
+          ? treff.length + " av " + alle.length + " testbrukere"
           : alle.length + " testbrukere";
-        safeChoice();
       });
 
-      safeChoice();
+      vis(alle);
     </script>
   </body>
 </html>`;
