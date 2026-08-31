@@ -1,0 +1,89 @@
+name: SBOM images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker-compose.yml
+      - docker-compose.gpu.yml
+      - "**/Dockerfile*"
+      - .github/workflows/sbom-images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finn-images:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.les.outputs.images }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Les imagene ut av compose og Dockerfilene
+        id: les
+        run: |
+          set -euo pipefail
+          {
+            grep -hoE '^[[:space:]]*image:[[:space:]]*[^[:space:]]+' \
+              docker-compose.yml docker-compose.gpu.yml
+            git ls-files '*Dockerfile*' | xargs -r grep -hoE '^FROM[[:space:]]+[^[:space:]]+'
+          } | awk '{print $2}' | sort -u > images.txt
+          cat images.txt
+          test -s images.txt
+          echo "images=$(jq -R . < images.txt | jq -cs .)" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: finn-images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.finn-images.outputs.images) }}
+    steps:
+      - name: Utled prosjektnavn og versjon
+        id: navn
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          set -euo pipefail
+          tag="${IMAGE##*:}"
+          repo="${IMAGE%:*}"
+          if [ "$repo" = "$IMAGE" ]; then
+            tag="latest"
+          fi
+          echo "project=workshop-ai-${repo##*/}" >> "$GITHUB_OUTPUT"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Installer syft
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Lag CycloneDX-BOM
+        env:
+          IMAGE: ${{ matrix.image }}
+          PROJECT: ${{ steps.navn.outputs.project }}
+          VERSION: ${{ steps.navn.outputs.version }}
+        run: |
+          syft "registry:$IMAGE" \
+            --source-name "$PROJECT" \
+            --source-version "$VERSION" \
+            -o 'cyclonedx-json@1.6=bom.json'
+
+      - name: SBOM Upload and Report
+        uses: ks-no/github-actions-public/sbom-upload-and-report@main
+        with:
+          dependency_track_api_key: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
+          project_name: ${{ steps.navn.outputs.project }}
+          project_version: ${{ steps.navn.outputs.version }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sbom-${{ steps.navn.outputs.project }}-${{ steps.navn.outputs.version }}
+          path: bom.json

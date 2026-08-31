@@ -1,0 +1,42 @@
+name: SBOM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kildekode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Installer syft
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Lag CycloneDX-BOM
+        run: |
+          syft . \
+            --exclude './node_modules' \
+            --source-name workshop-ai \
+            --source-version main \
+            -o 'cyclonedx-json@1.6=bom.json'
+
+      - name: SBOM Upload and Report
+        uses: ks-no/github-actions-public/sbom-upload-and-report@main
+        with:
+          dependency_track_api_key: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sbom-kildekode
+          path: bom.json
