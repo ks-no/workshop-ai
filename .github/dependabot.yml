@@ -2,14 +2,20 @@
 #
 # Ecosystems covered, i.e. every place this repo actually declares a
 # dependency version:
-#   - npm:           root package.json + pnpm-workspace.yaml (apps/*)
-#   - docker:        docker-compose.yml (node:24-alpine, ollama/ollama)
-#   - docker:        apps/matrikkel-mock/Dockerfile - a standalone image, not
+#   - npm:            root package.json + pnpm-workspace.yaml (apps/*)
+#   - docker-compose: docker-compose.yml (node:24-alpine, ollama/ollama).
+#                     Compose files are their own ecosystem, not the "docker"
+#                     one: the docker fetcher only looks for a Dockerfile,
+#                     a Containerfile or Kubernetes YAML, so pointing it at
+#                     the root failed every run with "No Dockerfiles nor
+#                     Kubernetes YAML found in /". The same entry also matches
+#                     docker-compose.gpu.yml, which declares no images, so
+#                     there is nothing for Dependabot to find there.
+#   - docker:         apps/matrikkel-mock/Dockerfile - a standalone image, not
 #                     used by docker-compose.yml (see AGENTS.md service map),
-#                     so it needs its own directory entry.
+#                     so it needs its own directory entry. This is the repo's
+#                     only Dockerfile.
 #   - github-actions: .github/workflows/ci.yml
-# docker-compose.gpu.yml carries no image references, so there is nothing
-# for Dependabot to track there.
 #
 # Every ecosystem groups minor and patch bumps into a single PR per run;
 # major bumps are left out of the group, so each one lands as its own PR and
@@ -28,13 +34,13 @@ updates:
           - "minor"
           - "patch"
 
-  - package-ecosystem: "docker"
+  - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
     groups:
-      docker-minor-patch:
+      docker-compose-minor-patch:
         applies-to: "version-updates"
         update-types:
           - "minor"
