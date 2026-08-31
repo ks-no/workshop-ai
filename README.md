@@ -50,7 +50,7 @@ På Windows: kjør fra Git Bash eller WSL - se [«På Windows»](#på-windows) l
 
 Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig - ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
-Fem demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
+Seks demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
 testbruker som hører til hver, står i `docs/deltakerstart.md`.
 
@@ -62,7 +62,7 @@ Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles AP
 
 ## Status
 
-Ni kjørende tjenester, én valgfri avhengighet i kjøretid, fem komplette demo-case. På plass:
+Ti kjørende tjenester, én valgfri avhengighet i kjøretid, seks komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -70,7 +70,7 @@ Ni kjørende tjenester, én valgfri avhengighet i kjøretid, fem komplette demo-
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
-- OpenAPI for alle sju API-tjenestene, komplett og holdt i takt med koden av
+- OpenAPI for alle åtte API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
 ## Hvordan starte den
@@ -110,8 +110,9 @@ automatisk modellvalg basert på minnet i maskinen, og verifisering av at modell
 faktisk svarer.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
-ekvivalent. `start.bat` venter 20 sekunder uten å sjekke at noe faktisk kom opp, og tar
-`--reload`, `-d` og `--down`, men ingen modellflagg. **Den kjører alltid uten
+ekvivalent. `start.bat` sjekker portene, lager `.env` hvis den mangler, og venter til alle
+ti tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
+`--help`, men ingen modellflagg. **Den kjører alltid uten
 språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
 ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
 `./start.sh`. Foretrekk uansett den veien hvis du har valget.
@@ -207,7 +208,8 @@ brew services start ollama    # ikke "ollama serve" - den dør når terminalen l
 ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
+  tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock \
+  demo-gui process-builder
 ```
 
 **Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
@@ -309,7 +311,7 @@ bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren - og
 revisjonsloggen viser hver datatilgang underveis.
 
 Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
-kjøres via prosessøkt-API-et i backend. Alle fem casene, og hvilken testbruker som
+kjøres via prosessøkt-API-et i backend. Alle seks casene, og hvilken testbruker som
 hører til hver, står i tabellen i `docs/deltakerstart.md` §3, pinnet i
 `data/deltakercaser.json`.
 
@@ -401,6 +403,7 @@ Syntetiske data ligger under `data/`:
 - `data/satser.json`
 - `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` - grunnlaget for fritidskort
 - `data/tjenestetilbud.json` - kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
+- `data/legeerklaeringer.json` - legeerklæringer til TT-kort, lest av `pasientjournal-mock`
 - `data/matrikkel.json` - 388 gater og 18 349 eiendommer i 97 kommuner, lest av `matrikkel-mock`
 - `data/eierforhold.json` - tinglyst eierskap per matrikkelenhet, slått sammen av `matrikkel-mock` ved innlasting
 - `data/matrikkel.seed.json` - liten firegaters fixture for mockens egne tester

@@ -18,6 +18,7 @@
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
+- `apps/pasientjournal-mock` (`8087`): mock of an elektronisk pasientjournal, serving the legeerklæringer the TT-kort case is assessed against. **This integration does not exist in reality** - a journal is owned by the virksomhet that provided the care, there is no national API for a legeerklæring, and today the citizen carries a stamped PDF and uploads it. The mock is the structured form of that attachment, and its README says so first. Two things are deliberate: `fnr` is required, so the surface never answers a bulk query, and it is behind Maskinporten rather than ID-porten - real health data sits behind HelseID at Norsk helsenett, which the sandbox does not have. The only *service* that reads `data/legeerklaeringer.json`; the gate reads it too.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) - persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **REST, not the MCP protocol** - it answers `protocol: "rest"`, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`, so the road to real MCP is short. It was called `mcp-services` until 23.08.2026; the name was dropped rather than the disclaimer repeated in every doc. Its `/mcp/*` paths survive as wire format - the one place the prefix still claims a protocol the service does not speak.
 - `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** - JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `tools-api` does **not** - it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
@@ -39,7 +40,9 @@
 - **A rule that more than one caller needs lives in one module, and that module lives
   in `apps/shared/`** - `alder.ts`, `foedselsnummer.ts` (modulus 11 and Skatteetaten's
   +80 synthetic marker), `handleevne.ts` (who may act, and on whose behalf),
-  `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry). None of
+  `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry),
+  `legeerklaering.ts` (the shape of a legeerklæring, and which one is the current
+  one - read by the journal mock, the backend and the gate). None of
   them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
   stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
@@ -74,7 +77,7 @@
   two MCP servers and `tools-api`), `innbyggerdata.ts` (the shapes of `personer.json`,
   `husstander.json`, the two plass-datasets and `samtykker.json` - `sandbox-backend` and
   `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` - the
-  state I/O above and the one write queue that replaced three copies of it), the five
+  state I/O above and the one write queue that replaced three copies of it), the six
   domain modules above, and `statemachine.ts` under `samtykke.ts`.
 - **The arrows between apps form a DAG, and `pnpm test:imports` fails if they stop.**
   `sandbox-backend` and `fiks-simulator` used to import each other - the backend took the
@@ -413,9 +416,9 @@ pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fr
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
   Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed - a restart is enough.
-- All nine Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
-  `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`) are
-  volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
+- All ten Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
+  `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`,
+  `pasientjournal-mock`) are volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
   - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` - inotify
     events propagate natively; restarts are immediate.
   - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
@@ -464,7 +467,7 @@ pnpm test:agent:matrikkel
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) - run those locally.
-- All nine services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
+- All ten services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.
 
@@ -546,6 +549,6 @@ pnpm test:agent:matrikkel
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
 - Frontend and styling: `docs/designsystem.md`, and `apps/demo-gui/src/ds-eksempel.html` for working markup.
-- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/ai-gateway.yaml`.
+- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/pasientjournal-mock.yaml`, `openapi/ai-gateway.yaml`.
 - End-to-end behavior examples: `scripts/test-agent-flow.ts`, `scripts/test-agent-natural-language.ts`, `scripts/test-tools-matrikkel.ts`, `scripts/test-process-agent-matrikkel.ts`, `scripts/test-bergen-matrikkel-bulk.ts`.
 

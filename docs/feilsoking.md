@@ -191,9 +191,9 @@ ikke SDK-en for å starte - ser du pakkenavnet derfra, er provideren satt til
 **Årsak:** Skriptet er bash.
 
 **Løsning:** Kjør det fra Git Bash eller WSL - da får du plattformdeteksjon,
-modellvalg og verifisering av at modellen svarer. `start.bat` finnes som nødløsning,
-men kjører alltid uten språkmodell og venter i blinde i stedet for å sjekke at noe
-kom opp. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp med polling -
+modellvalg og verifisering av at modellen svarer. `start.bat` finnes som nødløsning:
+den sjekker porter og venter til tjenestene svarer på `/helse`, men den kjører alltid
+uten språkmodell. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp med polling -
 filsystemhendelser når ikke gjennom Docker Desktops volummontering fra
 Windows-filsystemet. Detaljene står i «På Windows» i [`README.md`](../README.md).
 

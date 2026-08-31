@@ -58,6 +58,8 @@ type ProsessSteg = {
   tittel?: string;
   tekst?: string;
   felter?: SpoersmaalsFelt[];
+  /** Ruten steget kaller. Bare på DATA_FETCH og SJEKK. */
+  api?: { method?: string; url?: string };
   /** Bare på CONSENT_REQUEST. */
   formaal?: string;
   dataKilder?: string[];

@@ -25,9 +25,16 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { plasserSomKvalifiserer, regelKreverInntekt, evaluateVilkaar } from "../apps/sandbox-backend/src/vilkaar.ts";
+import {
+  plasserSomKvalifiserer,
+  regelBehov,
+  samtykkekilderFor,
+  selectOrdningForTjeneste,
+  evaluateVilkaar
+} from "../apps/sandbox-backend/src/vilkaar.ts";
 import { feilmelding } from "../apps/shared/errors.ts";
 import type { Regeltype } from "../apps/sandbox-backend/src/types.ts";
+import type { Legeerklaering } from "../apps/shared/legeerklaering.ts";
 
 let bestatt = 0;
 const feil: string[] = [];
@@ -157,6 +164,7 @@ function vurder(ordning: any, grunnlag: any, opts: Record<string, any> = {}) {
     ordning,
     satser,
     grunnlag,
+    legeerklaering: opts.legeerklaering ?? null,
     felles: {},
     forbehold: opts.forbehold ?? ""
   });
@@ -224,6 +232,7 @@ function vurderBehov(tjenestetilbud: any, person: Record<string, unknown> = {}) 
     ordning: ORDNING_BEHOV as any,
     satser,
     grunnlag: null,
+    legeerklaering: null,
     felles: {},
     forbehold: ""
   });
@@ -252,17 +261,167 @@ check(
   vurderBehov([TILBUD], { foedselsdato: undefined }).melding === "Fant ikke fødselsdato for søkeren."
 );
 
-// --- 6. The interface's own contract ---------------------------------------
-check("regelKreverInntekt dekker alle tre regeltypene", Object.keys(regelKreverInntekt).length === 3);
-check("TJENESTEBEHOV krever ikke inntekt", regelKreverInntekt.TJENESTEBEHOV === false);
-check("INNTEKTSGRENSE krever inntekt", regelKreverInntekt.INNTEKTSGRENSE === true);
-check("MAKS_ANDEL_AV_INNTEKT krever inntekt", regelKreverInntekt.MAKS_ANDEL_AV_INNTEKT === true);
+const ORDNING_TT = {
+  id: "tt-kort",
+  navn: "TT-kort (tilrettelagt transport)",
+  tjeneste: "transport",
+  regel: "TRANSPORTBEHOV",
+  soekerAlderFraAar: 10,
+  varighetMinstAar: 2,
+  fylkesnummer: "46",
+  visusgrense: 0.33,
+  kvoter: { ordinaer: 6500, "blind-eller-rullestol": 47150, "elektrisk-rullestol": 49750, "saerskilde-behov": 11050 }
+};
+
+// --- 6. Picking an ordning within a tjeneste -------------------------------
+function velgOrdning(tjeneste: string) {
+  const tilstand = medHusstand(tilstandMed({ sfoplasser: SFO_PLASSER as any })) as any;
+  return selectOrdningForTjeneste(
+    { ...tilstand, satser: { ...satser, ordninger: [ORDNING_INNTEKT, ORDNING_BEHOV, ORDNING_TT] } } as any,
+    "p-voksen",
+    tjeneste
+  );
+}
+
+check("tjeneste uten plass-datasett velger sin ene ordning", velgOrdning("stottekontakt") === "test-tjenestebehov");
+check("TT-kort velges uten å slå opp en plass", velgOrdning("transport") === "tt-kort");
+check("plass-tjeneste velger fortsatt på plassen", velgOrdning("sfo") === "test-inntektsgrense");
+
+// --- 7. TRANSPORTBEHOV: TT-kort ---------------------------------------------
+// Vurderes bare på søkeren og journalutdraget. Ingen plass, ingen inntekt, ingen
+// husstand - derfor kan hvert utfall pinnes med to literal-objekter.
+
+function erklaeringMed(overstyr: Partial<Legeerklaering> = {}): Legeerklaering {
+  return {
+    erklaeringId: "legeerkl-test",
+    dokumenttype: "legeerklaering-tt",
+    fnr: "01019012345",
+    personId: "p-voksen",
+    utstedt: "2026-05-14",
+    signert: "2026-05-14",
+    gyldigTil: "2026-11-14",
+    diagnose: { kode: "N86", kodeverk: "ICPC-2", tekst: "Multippel sklerose" },
+    funksjonsnedsetting: "anna",
+    varighetAar: 5,
+    funn: { visus: null, mmsScore: null, fev1Prosent: null },
+    hjelpemiddel: [],
+    kanNytteKollektiv: false,
+    vurdering: "Test",
+    lege: {
+      hprNummer: "9000000",
+      navn: "Test Lege",
+      legekontor: "Testlegesenter",
+      organisasjonsnummer: "999999999",
+      herId: "900000"
+    },
+    syntetisk: true,
+    ...overstyr
+  };
+}
+
+function vurderTt(erklaering: Legeerklaering | null, person: Record<string, any> = {}) {
+  return evaluateVilkaar("TRANSPORTBEHOV", {
+    tilstand: medHusstand(tilstandMed({ person })) as any,
+    personId: "p-voksen",
+    ordning: ORDNING_TT as any,
+    satser,
+    grunnlag: null,
+    legeerklaering: erklaering,
+    felles: {},
+    forbehold: ""
+  });
+}
+
+check("TT-kort innvilges med gyldig erklæring", vurderTt(erklaeringMed()).godkjent === true);
+check(
+  "TT-kort avslås når søkeren er under aldersgrensen",
+  vurderTt(erklaeringMed(), { foedselsdato: "2020-01-10" }).godkjent === false
+);
+check(
+  "TT-kort avslås utenfor fylket",
+  vurderTt(erklaeringMed(), { bostedsadresse: { kommunenummer: "0301", kommune: "Oslo" } }).godkjent === false
+);
+check("TT-kort avslås uten erklæring", vurderTt(null).godkjent === false);
+check(
+  "TT-kort avslås på utløpt erklæring",
+  vurderTt(erklaeringMed({ utstedt: "2025-11-20", gyldigTil: "2026-05-20" })).godkjent === false
+);
+check(
+  "TT-kort avslås når varigheten er under to år",
+  vurderTt(erklaeringMed({ varighetAar: 1 })).godkjent === false
+);
+// Visus er definisjonen av kategorien, ikke et vilkår ved siden av. En erklæring
+// som krysser av for syn uten å nå 0,33 dokumenterer ikke det den påberoper seg.
+check(
+  "TT-kort avslås når visus er over grensen",
+  vurderTt(erklaeringMed({
+    funksjonsnedsetting: "blind-eller-sterkt-svaksynt",
+    funn: { visus: 0.5, mmsScore: null, fev1Prosent: null }
+  })).godkjent === false
+);
+check(
+  "blind innenfor grensen gir kvoten for blinde og rullestolbrukere",
+  vurderTt(erklaeringMed({
+    funksjonsnedsetting: "blind-eller-sterkt-svaksynt",
+    funn: { visus: 0.15, mmsScore: null, fev1Prosent: null }
+  })).grunnlag?.kvotekategori === "blind-eller-rullestol"
+);
+check(
+  "elektrisk rullestol slår ut foran de andre kategoriene",
+  vurderTt(erklaeringMed({
+    funksjonsnedsetting: "rullestolbrukar",
+    hjelpemiddel: ["manuell-rullestol", "elektrisk-rullestol"]
+  })).grunnlag?.kvotekategori === "elektrisk-rullestol"
+);
+check(
+  "terminal fase gir kvoten for særskilte behov",
+  vurderTt(erklaeringMed({ funksjonsnedsetting: "terminal-fase" })).grunnlag?.kvotekategori === "saerskilde-behov"
+);
+check(
+  "uten hjelpemiddel eller kategori blir kvoten ordinær",
+  vurderTt(erklaeringMed()).grunnlag?.kvotekategori === "ordinaer"
+);
+check(
+  "kvotebeløpet rapporteres som referanse",
+  vurderTt(erklaeringMed()).grunnlag?.kvoteReferanse === 6500
+);
+
+// --- 8. The interface's own contract ---------------------------------------
+// Én tabell over hva hver regel forbruker. Kompilatoren krever en rad per
+// regeltype og et svar per kolonne; antallet sjekkes her fordi det er den ene
+// måten en regeltype uten rad blir synlig i en test.
+const antallRegeltyper = 4;
+check("regelBehov dekker alle regeltypene", Object.keys(regelBehov).length === antallRegeltyper);
+check("TJENESTEBEHOV krever ikke inntekt", regelBehov.TJENESTEBEHOV.inntekt === false);
+check("INNTEKTSGRENSE krever inntekt", regelBehov.INNTEKTSGRENSE.inntekt === true);
+check("MAKS_ANDEL_AV_INNTEKT krever inntekt", regelBehov.MAKS_ANDEL_AV_INNTEKT.inntekt === true);
+check("TRANSPORTBEHOV krever ikke inntekt", regelBehov.TRANSPORTBEHOV.inntekt === false);
+check("TRANSPORTBEHOV krever legeerklæring", regelBehov.TRANSPORTBEHOV.legeerklaering === true);
+check("bare TRANSPORTBEHOV krever legeerklæring",
+  Object.values(regelBehov).filter((b) => b.legeerklaering).length === 1);
+check("TRANSPORTBEHOV vurderes ikke mot en plass", regelBehov.TRANSPORTBEHOV.plass === false);
+check("TJENESTEBEHOV vurderes ikke mot en plass", regelBehov.TJENESTEBEHOV.plass === false);
+check("INNTEKTSGRENSE vurderes mot en plass", regelBehov.INNTEKTSGRENSE.plass === true);
+
+// Samtykkeporten i ressurser.ts leser samtykkekilderFor. Kobles en inngang fra
+// datakilden sin, blir SJEKK-ruten en vei rundt porten - det var nettopp det som
+// skjedde da bare inntekt var koblet.
+check("inntektsregler krever samtykke til inntekt",
+  samtykkekilderFor("INNTEKTSGRENSE").includes("inntekt"));
+check("TT-kort krever samtykke til helseopplysninger",
+  samtykkekilderFor("TRANSPORTBEHOV").includes("helseopplysninger"));
+check("behovsavklaring krever ingen samtykke",
+  samtykkekilderFor("TJENESTEBEHOV").length === 0);
+// samtykkeForOrdningssjekk returnerer én kode. Trenger en regel to, må den og
+// samtykkeblokken i runRessurs utvides sammen - denne feiler i det øyeblikket.
+check("ingen regel trenger mer enn én datakilde",
+  (Object.keys(regelBehov) as Regeltype[]).every((r) => samtykkekilderFor(r).length <= 1));
 
 // An unknown regeltype must throw rather than silently pass. `regel` arrives from
 // JSON, so the type system cannot be the guard here.
 let kastet = false;
 try {
-  evaluateVilkaar("FINNES_IKKE" as Regeltype, { tilstand: medHusstand(tilstandMed()), personId: "p-voksen", ordning: ORDNING_INNTEKT as any, satser, grunnlag: 1, felles: {}, forbehold: "" });
+  evaluateVilkaar("FINNES_IKKE" as Regeltype, { tilstand: medHusstand(tilstandMed()), personId: "p-voksen", ordning: ORDNING_INNTEKT as any, satser, grunnlag: 1, legeerklaering: null, felles: {}, forbehold: "" });
 } catch (error) {
   kastet = feilmelding(error).startsWith("Ukjent regeltype: FINNES_IKKE. Gyldige: ");
 }

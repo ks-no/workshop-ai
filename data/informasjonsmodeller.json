@@ -174,11 +174,12 @@
             {
               "navn": "regel",
               "type": "kodeverdi",
-              "beskrivelse": "INNTEKTSGRENSE eller MAKS_ANDEL_AV_INNTEKT.",
+              "beskrivelse": "Hvilken regel som avgjør. Se regelHandlers i vilkaar.ts.",
               "kodeverdier": [
                 "INNTEKTSGRENSE",
                 "MAKS_ANDEL_AV_INNTEKT",
-                "TJENESTEBEHOV"
+                "TJENESTEBEHOV",
+                "TRANSPORTBEHOV"
               ]
             },
             {
@@ -188,12 +189,13 @@
             {
               "navn": "tjeneste",
               "type": "kodeverdi",
-              "beskrivelse": "barnehage eller sfo.",
+              "beskrivelse": "Hvilken tjeneste ordningen hører til.",
               "kodeverdier": [
                 "barnehage",
                 "fritid",
                 "sfo",
-                "stottekontakt"
+                "stottekontakt",
+                "transport"
               ]
             }
           ]

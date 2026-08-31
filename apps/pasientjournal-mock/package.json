@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/pasientjournal-mock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mock av elektronisk pasientjournal: legeerklæringer til søknad om TT-kort.",
+  "type": "module"
+}

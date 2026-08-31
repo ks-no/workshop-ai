@@ -40,7 +40,7 @@ Tilgjengelige sjekker:
 | Sti | Vurderer |
 |---|---|
 | `/api/regler/sjekk/foreldrebetaling` | Rett til en moderasjonsordning i `data/satser.json` |
-| `/api/regler/sjekk/ordning` | Rett til en navngitt ordning, eller den ordningen barnets trinn peker på når bare `tjeneste` er oppgitt. Tre av fem demo-case bruker denne |
+| `/api/regler/sjekk/ordning` | Rett til en navngitt ordning, eller den ordningen barnets trinn peker på når bare `tjeneste` er oppgitt. Fire av seks demo-case bruker denne |
 | `/api/matrikkel/sjekk/eierforhold` | Om søker eier eiendom i en gitt gate |
 
 Nye sjekker legges til i ressurskatalogen i
@@ -142,7 +142,7 @@ fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
 
 ## Demo-casene
 
-Fem publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
+Seks publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
 ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den -
 [`examples/demoprosesser/README.md`](../examples/demoprosesser/README.md) har
 curl-kallene for å liste og kjøre dem.
@@ -154,6 +154,7 @@ curl-kallene for å liste og kjøre dem.
 | `stottekontakt-behov` | 7 | Ingen inntektshenting. Samtykket gjelder kontaktinformasjon, og `hent-kontaktinfo` henter den fra kontaktregisteret (KRR). `SJEKK` leser `data/tjenestetilbud.json`; alder og kommune avgjør, ikke inntekt |
 | `fritidskort-stotte` | 7 | Spørsmål, samtykke og inntektshenting. Den `process-agent` bruker i `pnpm test:agent` |
 | `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et godkjent utfall og `Fjøsangerveien` for et avvist |
+| `tt-kort` | 8 | Eneste case som henter særlige kategorier. Uttrykkelig samtykke etter personvernforordningen artikkel 9, legeerklæring fra `pasientjournal-mock`, og en `SJEKK` som aldri ser på inntekt. Bruk `person-284` for innvilget og `person-329` for avslag |
 | `mal-enkel-soknad` | 6 | Kopi-malen fra oppskriften over. `redigering.mal: true` |
 
 ## Redigering i prosessbygger

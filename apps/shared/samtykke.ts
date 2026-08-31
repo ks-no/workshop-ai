@@ -8,6 +8,21 @@
 
 import { createTilstandsmaskin } from "./statemachine.ts";
 
+/**
+ * The data sources a samtykke can cover.
+ *
+ * hasGyldigSamtykke compares the source with `includes`, so a typo produced a
+ * samtykke that could never satisfy the gate, with nothing going red. The type
+ * covers the resource catalogue and the rules; scripts/valider-data.ts measures
+ * the process definitions, which are data, against the same list.
+ */
+export const DATAKILDER = ["inntekt", "kontaktinfo", "helseopplysninger"] as const;
+export type Datakilde = (typeof DATAKILDER)[number];
+
+export function isDatakilde(verdi: string): verdi is Datakilde {
+  return (DATAKILDER as readonly string[]).includes(verdi);
+}
+
 export type Samtykkestatus =
   | "VENTER_PAA_SVAR"
   | "SAMTYKKET"

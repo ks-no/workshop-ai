@@ -8,10 +8,19 @@ import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
 // rests on - is validated against the copy instead of the rule that ships.
 import {
   plasserSomKvalifiserer,
-  regelKreverInntekt,
-  evaluateVilkaar
+  regelBehov,
+  evaluateVilkaar,
+  type Avslagsgrunn
 } from "../apps/sandbox-backend/src/vilkaar.ts";
-import { SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
+import { DATAKILDER, isDatakilde, SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
+// Valget av hvilken erklæring som gjelder, importert framfor speilet - av samme
+// grunn som vedtaket over.
+import {
+  FUNKSJONSNEDSETTINGER,
+  HJELPEMIDLER,
+  velgGjeldendeLegeerklaering,
+  type Legeerklaering
+} from "../apps/shared/legeerklaering.ts";
 // The generated participant table, imported rather than re-rendered - the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
@@ -43,6 +52,7 @@ const files = [
   "data/fritidsaktiviteter.json",
   "data/fritidsdeltakelse.json",
   "data/tjenestetilbud.json",
+  "data/legeerklaeringer.json",
   "data/forventet-utfall.json"
 ];
 
@@ -65,6 +75,84 @@ const satser = await read<Satser>("data/satser.json");
 
 if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
+}
+
+// --- Legeerklæringene peker på befolkningen -----------------------------------
+//
+// Datasettet nøkles på fødselsnummer, fordi en journal gjør det. personId står
+// ved siden av som lesehjelp, og de to kan gå fra hverandre uten at noe klager -
+// derfor klager dette.
+const legeerklaeringer = (await read("data/legeerklaeringer.json")).legeerklaeringer as Legeerklaering[];
+const personPerFnr = new Map(personer.map((person) => [person.syntetiskFodselsnummer, person]));
+const settErklaeringId = new Set<string>();
+const erklaeringerPerPerson = new Map<string, Legeerklaering[]>();
+
+for (const erklaering of legeerklaeringer) {
+  const person = personPerFnr.get(erklaering.fnr);
+  if (!person) {
+    throw new Error(
+      `${erklaering.erklaeringId} har fødselsnummer ${erklaering.fnr}, som ingen person har.`
+    );
+  }
+  if (person.personId !== erklaering.personId) {
+    throw new Error(
+      `${erklaering.erklaeringId} oppgir ${erklaering.personId}, men ${erklaering.fnr} tilhører ${person.personId}.`
+    );
+  }
+  if (settErklaeringId.has(erklaering.erklaeringId)) {
+    throw new Error(`Erklærings-id ${erklaering.erklaeringId} finnes to ganger.`);
+  }
+  settErklaeringId.add(erklaering.erklaeringId);
+
+  // Seks måneder fra signeringen, sier rettleiingen. gyldigTil er avledet, og en
+  // rad som regner feil ville gitt et avslag ingen kan forklare.
+  const utstedt = new Date(erklaering.utstedt);
+  const forventet = new Date(Date.UTC(
+    utstedt.getUTCFullYear(),
+    utstedt.getUTCMonth() + 6,
+    utstedt.getUTCDate()
+  )).toISOString().slice(0, 10);
+  if (erklaering.gyldigTil !== forventet) {
+    throw new Error(
+      `${erklaering.erklaeringId} har gyldigTil ${erklaering.gyldigTil}, men utstedt ` +
+      `${erklaering.utstedt} pluss seks måneder er ${forventet}.`
+    );
+  }
+
+  // Rettleiingen definerer blind og sterkt svaksynt som visus 0,33 eller lavere,
+  // og krever attest fra øyelege. En rad i den kategorien uten visus kan ikke
+  // vurderes.
+  if (erklaering.funksjonsnedsetting === "blind-eller-sterkt-svaksynt" && erklaering.funn.visus === null) {
+    throw new Error(`${erklaering.erklaeringId} er i syn-kategorien, men mangler visus.`);
+  }
+
+  // Kodeverkene er unioner i koden, og en skrivefeil i seeden ville flyttet søkeren
+  // stille mellom kategorier. Derfor måles seeden mot listene.
+  if (!(FUNKSJONSNEDSETTINGER as readonly string[]).includes(erklaering.funksjonsnedsetting)) {
+    throw new Error(
+      `${erklaering.erklaeringId} har funksjonsnedsetting "${erklaering.funksjonsnedsetting}". ` +
+      `Gyldige: ${FUNKSJONSNEDSETTINGER.join(", ")}.`
+    );
+  }
+  for (const hjelpemiddel of erklaering.hjelpemiddel) {
+    if (!(HJELPEMIDLER as readonly string[]).includes(hjelpemiddel)) {
+      throw new Error(
+        `${erklaering.erklaeringId} har hjelpemiddel "${hjelpemiddel}". ` +
+        `Gyldige: ${HJELPEMIDLER.join(", ")}.`
+      );
+    }
+  }
+
+  erklaeringerPerPerson.set(
+    erklaering.personId,
+    (erklaeringerPerPerson.get(erklaering.personId) || []).concat(erklaering)
+  );
+}
+
+// Nøklet på personId og ikke fødselsnummer: sløyfen over har alt slått fast at de
+// to peker på samme person, så oppslaget slipper å gå veien om personen igjen.
+function gjeldendeErklaeringFor(personId: string, paaDato: string) {
+  return velgGjeldendeLegeerklaering(erklaeringerPerPerson.get(personId) || [], paaDato);
 }
 
 // --- Relations must hold together ------------------------------------------
@@ -757,9 +845,9 @@ function soekerFor(husstand: Husstand): string | null {
 }
 
 for (const ordning of satser.ordninger) {
-  // Needs-based ordninger have no plass dataset. Their target group is the
-  // applicant's own age, checked against data/tjenestetilbud.json further down.
-  if (ordning.regel === "TJENESTEBEHOV") continue;
+  // Ordninger with no plass dataset. Their target group is the applicant's own
+  // age, checked against data/tjenestetilbud.json further down.
+  if (!regelBehov[ordning.regel].plass) continue;
   // Asked through the rule, so it is the rule's own definition of "in the target
   // group" that is checked: a plass only counts if it belongs to a barn of the
   // household it sits in - a plass no household can reach cannot be granted either.
@@ -800,14 +888,14 @@ if (husstander.every(husstandsgrunnlag)) {
 // hit every ordning, the completeness check inverts, and the next reader concludes
 // data/forventet-utfall.json is stale. It is not; it is the oracle.
 function vurder(husstand: Husstand, ordning: Ordning) {
-  // TJENESTEBEHOV is assessed per person, not per household, so it has its own
-  // coverage check further down and is deliberately invisible here.
-  if (ordning.regel === "TJENESTEBEHOV") return null;
+  // A rule with no plass is assessed per person, not per household, so it has its
+  // own coverage check further down and is deliberately invisible here.
+  if (!regelBehov[ordning.regel].plass) return null;
   const soeker = soekerFor(husstand);
   if (soeker === null) return null;
   if (plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length === 0) return null;
   const g = husstandsgrunnlag(husstand);
-  if (regelKreverInntekt[ordning.regel] && g === null) return null;
+  if (regelBehov[ordning.regel].inntekt && g === null) return null;
   // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
   // not marked medregnes), so the income rules are driven with the same number the
   // running service would have fetched - no stack needed.
@@ -817,6 +905,9 @@ function vurder(husstand: Husstand, ordning: Ordning) {
     ordning,
     satser,
     grunnlag: g,
+    // Plass-reglene rører ikke journalen, og regelBehov over har alt sørget
+    // for at bare de kommer hit.
+    legeerklaering: null,
     // felles and forbehold only land in SjekkResultat.grunnlag and in the prose. This
     // gate asserts on godkjent, never on melding - rewording a message must not fail
     // a data check.
@@ -826,7 +917,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
 }
 
 for (const ordning of satser.ordninger) {
-  if (ordning.regel === "TJENESTEBEHOV") continue;
+  if (!regelBehov[ordning.regel].plass) continue;
   const utfall = husstander
     .map((h) => ({ id: h.husstandId, godkjent: vurder(h, ordning) }))
     .filter((r) => r.godkjent !== null);
@@ -993,6 +1084,69 @@ for (const ordning of satser.ordninger) {
   }
 }
 
+// --- TT-kort, vurdert per person mot journalutdraget ------------------------
+// Sju utfall, og alle må være nåbare i befolkningen - ellers er grenen som gir
+// dem død kode ingen oppdager.
+//
+// Til forskjell fra blokken over speiles ingenting her: regelen navngir selv
+// hvilken gren som slo til, i `grunnlag.avslagsgrunn`, så gaten teller det den
+// får svar om framfor å regne det ut på nytt. Det var alternativet den forrige
+// blokken ikke hadde - TJENESTEBEHOV returnerer samme nøkkelsett fra to grener,
+// og å legge til avslagsgrunn der ville endret kontraktdumpen for støttekontakt.
+for (const ordning of satser.ordninger) {
+  if (ordning.regel !== "TRANSPORTBEHOV") continue;
+  const utfall = new Map<string, number>();
+  for (const person of personer) {
+    const svar = evaluateVilkaar(ordning.regel, {
+      tilstand,
+      personId: person.personId,
+      ordning,
+      satser,
+      grunnlag: null,
+      legeerklaering: gjeldendeErklaeringFor(person.personId, satser.gjelderFra),
+      felles: {},
+      forbehold: ""
+    });
+    const gren = svar.godkjent ? "innvilget" : String(svar.grunnlag?.avslagsgrunn ?? "uten grunn");
+    utfall.set(gren, (utfall.get(gren) || 0) + 1);
+  }
+  if (utfall.has("uten grunn")) {
+    throw new Error(
+      `${ordning.id}: en avslagsgren svarer uten avslagsgrunn i grunnlaget. ` +
+      `Hver gren i vilkaar.ts må navngi seg selv, ellers kan ikke dekningen telles.`
+    );
+  }
+  // Typen er unionen fra vilkaar.ts, så en skrivefeil her stopper på kompilering.
+  // «mangler_foedselsdato» står ikke i listen: ingen i befolkningen mangler dato,
+  // og løkken under fanger grenen hvis noen en dag gjør det.
+  const forventedeGrener: (Avslagsgrunn | "innvilget")[] = [
+    "innvilget",
+    "for_ung",
+    "utenfor_fylket",
+    "mangler_erklaering",
+    "utloept_erklaering",
+    "for_kort_varighet",
+    "visus_over_grensen"
+  ];
+  for (const gren of forventedeGrener) {
+    if (!utfall.get(gren)) {
+      throw new Error(
+        `${ordning.id}: ingen person i datasettet gir utfallet "${gren}". ` +
+        `Alle sju utfallene må være nåbare, ellers er grenen død kode. ` +
+        `Juster data/legeerklaeringer.json.`
+      );
+    }
+  }
+  for (const gren of utfall.keys()) {
+    if (!(forventedeGrener as string[]).includes(gren)) {
+      throw new Error(
+        `${ordning.id}: regelen svarte med grenen "${gren}", som denne sjekken ikke kjenner. ` +
+        `Legg den i forventedeGrener, ellers telles den ikke.`
+      );
+    }
+  }
+}
+
 // --- Adressebeskyttelse is a kodeverk, not a boolean ------------------------
 // `skjermet: true` said nothing about which level applied. FREG grades it, and
 // the two levels behave differently, so the code is the field and the boolean is
@@ -1079,6 +1233,26 @@ for (const prosess of allProsesser) {
         `Prosessen ${prosess.id}, steg ${steg.id}, sjekker mot ordningen ${ordning}, ` +
         `som ikke finnes i data/satser.json.`
       );
+    }
+  }
+}
+
+// --- The consent sources in the processes, against the kodeverk -------------
+// The type covers the code; the process definitions are data and have to be
+// measured here.
+for (const prosess of allProsesser) {
+  for (const steg of prosess.steg || []) {
+    const kilder: string[] = [
+      ...(steg.dataKilder || []),
+      ...(steg.kreverSamtykke ? [steg.kreverSamtykke] : [])
+    ];
+    for (const kilde of kilder) {
+      if (!isDatakilde(kilde)) {
+        throw new Error(
+          `Prosessen ${prosess.id}, steg ${steg.id}, viser til datakilden ${kilde}, ` +
+          `som ikke finnes i kodeverket. Gyldige: ${DATAKILDER.join(", ")}.`
+        );
+      }
     }
   }
 }
@@ -1372,15 +1546,16 @@ for (const sak of deltakercaser.caser) {
   }
   const forventetJa = sak.forventetUtfall === "innvilget";
   let faktisk;
-  if (ordning.regel === "TJENESTEBEHOV") {
+  if (!regelBehov[ordning.regel].plass) {
     // Assessed per person, so vurder() deliberately returns null for it - the
-    // household loop above skips TJENESTEBEHOV for the same reason.
+    // household loop above skips it for the same reason.
     faktisk = evaluateVilkaar(ordning.regel, {
       tilstand,
       personId: sak.personId,
       ordning,
       satser,
       grunnlag: null,
+      legeerklaering: gjeldendeErklaeringFor(sak.personId, satser.gjelderFra),
       felles: {},
       forbehold: ""
     }).godkjent;
@@ -1438,6 +1613,7 @@ for (const eksempel of stottekontaktMoteksempler) {
     ordning: stottekontaktOrdning,
     satser,
     grunnlag: null,
+    legeerklaering: null,
     felles: {},
     forbehold: ""
   });

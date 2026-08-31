@@ -9,6 +9,7 @@ coverage
 
 state
 
+bom.json
 # Kjoeringstilstand hoerer i state/, ikke i data/. Se docs/syntetiske-data.md.
 data/revisjonslogg.json
 data/prosessoekter.json

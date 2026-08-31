@@ -14,7 +14,9 @@ import {
   getInntektForPerson,
   evaluateOrdning
 } from "./regler.ts";
-import { regelKreverInntekt, selectOrdningForTjeneste } from "./vilkaar.ts";
+import { samtykkekilderFor, selectOrdningForTjeneste } from "./vilkaar.ts";
+import type { Datakilde } from "../../shared/samtykke.ts";
+import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { buildAdvarsel, tryUpstream } from "./upstream.ts";
@@ -50,17 +52,22 @@ import {
 
 import type { State } from "./types.ts";
 
-// The rule type decides. An ordning assessed on need and capacity - støttekontakt -
-// never reads income, so demanding consent for income would collect a basis the
-// decision does not use. Anything unresolvable keeps the strict requirement.
-function samtykkeForOrdningssjekk(kontekst: RessursContext): string | null {
+// The rule type decides, and it decides for every input the assessment consumes -
+// not just income. samtykkekilderFor is the whole mapping, so a rule that consumes
+// an input cannot be assessed without the consent for it. Anything unresolvable
+// keeps the strict requirement.
+//
+// One code, not a list: no rule needs two today, and pnpm test:vilkaar fails the
+// moment one does - which is when this and the consent block in runRessurs have to
+// widen together.
+function samtykkeForOrdningssjekk(kontekst: RessursContext): Datakilde | null {
   try {
     const ordningId =
       kontekst.sok.get("ordning") ||
       selectOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
     const ordning = kontekst.tilstand.satser.ordninger.find((o: any) => o.id === ordningId);
     if (!ordning) return "inntekt";
-    return regelKreverInntekt[ordning.regel as keyof typeof regelKreverInntekt] ? "inntekt" : null;
+    return samtykkekilderFor(ordning.regel)[0] ?? null;
   } catch {
     return "inntekt";
   }
@@ -128,13 +135,13 @@ export type Ressurs = {
   /** Scope a machine caller must hold. Defaults to SCOPE_LES. */
   scope?: string;
   /** Data source that requires samtykke, or null. Shown in the resource catalogue. */
-  kreverSamtykke?: string | null;
+  kreverSamtykke?: Datakilde | null;
   /**
    * Resolves the consent requirement per request, for resources where it depends on
    * what is being asked for. Overrides kreverSamtykke when present. Fails closed:
    * if the request cannot be resolved, the strictest requirement stands.
    */
-  kreverSamtykkeFor?: (kontekst: RessursContext) => string | null;
+  kreverSamtykkeFor?: (kontekst: RessursContext) => Datakilde | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
   /**
@@ -217,6 +224,30 @@ export const ressurser: Ressurs[] = [
     formaal: "Vurdere rett til dialogrelatert tjeneste",
     handter: ({ tilstand, personId }) =>
       withStatus(404, () => getInntektForPerson(tilstand, personId))
+  },
+  {
+    // Særlig kategori etter personvernforordningen artikkel 9, og den eneste i
+    // katalogen. Hjemmelen er uttrykkelig samtykke etter artikkel 9 nr. 2 bokstav
+    // a), og det er porten runRessurs() lukker foran handter() her. Ingen
+    // `tilgang`, altså egne-data: en journal har ett personsubjekt om gangen.
+    metode: "GET",
+    sti: "/api/personer/:personId/legeerklaering",
+    ressurs: "legeerklaering",
+    beskrivelse: "Legeerklæringen til søknad om TT-kort, hentet fra pasientjournalen.",
+    kreverSamtykke: "helseopplysninger",
+    samtykkeEmne: "Helseopplysningene",
+    formaal: "Vurdere rett til TT-kort",
+    handter: async ({ tilstand, personId }) => {
+      const erklaering = await finnGjeldendeLegeerklaering(
+        tilstand,
+        personId,
+        tilstand.satser.gjelderFra
+      );
+      // 200 med legeerklaering: null, ikke 404. «Du har ingen gyldig erklæring» er
+      // et svar søkeren skal få vite, og et DATA_FETCH-steg som feiler stopper
+      // prosessøkten framfor å la vurderingen forklare hvorfor.
+      return { personId, legeerklaering: erklaering, syntetisk: true };
+    }
   },
   {
     metode: "GET",

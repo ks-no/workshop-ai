@@ -32,8 +32,15 @@ if [ "${WATCH_POLL:-0}" = "1" ] && [ ! -x node_modules/.bin/nodemon ]; then
 fi
 
 if [ "${WATCH_POLL:-0}" = "1" ]; then
+    # --exec node is not optional: nodemon picks an executor from the file
+    # extension, and for .ts that is ts-node, which is not installed anywhere in
+    # this repo. Without it every service died with "ts-node: not found" the
+    # moment nodemon existed - so a Windows box that had run an install was worse
+    # off than one that had not. Node 24 type-strips .ts on load; that is the
+    # whole build step here, and nodemon only has to restart it.
     exec node_modules/.bin/nodemon \
         --legacy-watch \
+        --exec node \
         --watch "$WATCH_DIR" \
         --watch data \
         --ext js,ts,json \

@@ -10,6 +10,10 @@ export const fiksBaseUrl = process.env.FIKS_BASE_URL || "http://fiks-simulator:8
 export const aiBaseUrl = process.env.AI_BASE_URL || "http://ai-gateway:8082";
 // matrikkel-mock is the only reader of the matrikkel seed. See matrikkel.ts.
 export const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrikkel-mock:8085";
+// pasientjournal-mock is the only reader of data/legeerklaeringer.json, the same
+// way. See pasientjournal.ts, and its README for why the integration is fiction.
+export const pasientjournalBaseUrl =
+  process.env.PASIENTJOURNAL_BASE_URL || "http://pasientjournal-mock:8087";
 
 // Synthetic role id. In real Fiks this identifies the municipality's role.
 export const fiksRolleId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -67,6 +71,19 @@ export const fiksDialogToken = {
  * token carrying both would make the two indistinguishable in fiks' audit log.
  */
 export const fiksSvarutToken = { ...fiksTokenBase, scope: "ks:fiks:svarut" };
+
+/**
+ * Reading a legeerklæring from pasientjournal-mock. Used by pasientjournal.ts.
+ * Why the scope sits outside the `ks:fiks:` family:
+ * apps/pasientjournal-mock/README.md.
+ */
+export const pasientjournalToken = {
+  digdirBaseUrl,
+  issuer: digdirIssuer,
+  clientId: "sandbox-backend",
+  resource: "pasientjournal-mock",
+  scope: "pasientjournal:legeerklaering.read"
+};
 
 // The municipality's SvarUt account. Synthetic and fixed, like fiksRolleId above:
 // in real SvarUt this is the kommune's registered konto, handed out on onboarding.
