@@ -33,6 +33,8 @@ En endring er ikke ferdig før:
 - **wire-formatet er frosset og forblir norsk.** JSON-nøkler og ruter er kontrakten alle
   team bygger mot, så du døper dem aldri om - heller ikke for å rette en skrivefeil.
   Feltnavnene står i `openapi/*.yaml`.
+- **nye pakkeversjoner skal være minst sju dager gamle.** Hele regelen står i
+  `AGENTS.md` under `## Project conventions you must follow`.
 - API-felter: bruk konsistente navn og eksplisitt `syntetisk: true` der det passer
 - ikke introduser tunge plattformer før behovet er reelt
 - unngå å gjøre midlertidige referanseløsninger til harde krav for andre team

@@ -361,6 +361,11 @@ is the one place prose transliterates, and the file carries a `rem` saying why s
 - Prefer existing endpoint patterns from current services and examples in `README.md` / `docs/api-oversikt.md`.
 - When API behavior changes, update matching OpenAPI docs in `openapi/*.yaml`.
 - Keep changes scoped to one app unless cross-service change is required.
+- **A new package version must be at least seven days old before it enters the repo.**
+  `minimumReleaseAge` in `pnpm-workspace.yaml` and `cooldown` in `.github/dependabot.yml`
+  enforce it. Dependabot security updates are exempt. Neither lever reaches a floating
+  reference - a `:latest` image tag, an action on `@main`, a `curl | sh` installer - and
+  the repo still has all three.
 
 ## Frontend: the KS Digital design system
 - Components, their API and their accessibility requirements are documented at

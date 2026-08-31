@@ -360,7 +360,7 @@ Bulk-smoketesten mot matrikkel-mocken sampler 40 gater og 25 adresser fra
 seed-datasettet:
 
 ```bash
-npx pnpm test:bergen-matrikkel
+pnpm test:bergen-matrikkel
 ```
 
 Den krever **nett**: adresser som bommer i seed-filen slår over på live
