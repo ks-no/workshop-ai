@@ -1,8 +1,10 @@
 # Shell scripts must stay LF. docker-compose.yml runs every service with
 # `command: ["/bin/sh", "scripts/dev.sh", ...]` from the bind mount, so a CRLF
-# checkout on Windows makes all nine containers die with `$'\r': not found` -
-# while start.bat still prints READY. Git for Windows sets core.autocrlf=true by
-# default, so without this line a Windows clone is broken out of the box.
+# checkout on Windows makes all nine containers die with `$'\r': not found`.
+# start.bat waits on /helse and reports the timeout instead of printing KLAR over
+# a dead stack, but the stack is dead either way. Git for Windows sets
+# core.autocrlf=true by default, so without this line a Windows clone is broken
+# out of the box.
 *.sh text eol=lf
 
 # Batch files are the mirror image: cmd.exe needs CRLF.
