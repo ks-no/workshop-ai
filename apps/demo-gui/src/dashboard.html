@@ -25,7 +25,11 @@
       .card > h2 + :not(p) { margin-top: 22px; }
       .card > p:last-child { margin-bottom: 0; }
 
-      .grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: start; }
+      .grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; }
+      /* Kortene i raden er like høye, og sluttmerknaden legger seg i bunnen.
+         Uten dette endte det korteste kortet midt i sin egen flate. */
+      .grid-2 > .card { display: flex; flex-direction: column; }
+      .grid-2 > .card > p:last-child { margin-top: auto; padding-top: 20px; }
 
       table { border-collapse: collapse; width: 100%; font-size: 14px; }
       th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--farge-kant-svak); vertical-align: top; }
@@ -253,7 +257,7 @@
               <tr><td>Laster…</td></tr>
             </tbody>
           </table>
-          <p class="muted small" style="margin-top:20px">Kjørte du med
+          <p class="muted small">Kjørte du med
             <code>./start.sh --mock</code>, skal den være av - og det er som forventet.
             Se hva modellen faktisk fikk i <a href="http://localhost:8082/trace">KI-sporet</a>.</p>
         </section>
@@ -269,7 +273,7 @@
             <a href="http://localhost:8083/mcp/tools">Verktøykatalog (tools-api)</a>
             <a href="/ds-eksempel">Designsystem-mal</a>
           </div>
-          <p class="muted small" style="margin-top:20px">Revisjonsloggen ligger på
+          <p class="muted small">Revisjonsloggen ligger på
             <code>GET /api/revisjonslogg/{sporingsId}</code>. Hver økt viser sin
             <code>sporingsId</code>, og den korrelerer med KI-sporet.</p>
         </section>
