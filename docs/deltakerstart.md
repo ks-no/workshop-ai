@@ -2,13 +2,13 @@
 
 Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan vente.
 
-**Lurer du på hva dere egentlig skal lage?** `docs/oppdraget.md` er én side om det, og
-tar to minutter.
+**Lurer du på hva dere egentlig skal lage?** [`docs/oppdraget.md`](oppdraget.md) er én
+side om det, og tar to minutter.
 
 ## 0. Hent repoet
 
 Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din
-(krever `git`):
+(krever [git](https://git-scm.com/downloads)):
 
 ```bash
 git clone https://github.com/<ditt-github-brukernavn>/workshop-ai.git
@@ -19,8 +19,9 @@ Resten av denne siden antar at du står i den mappen.
 
 ## 1. Start sandkassen
 
-Du trenger **Docker** installert og startet. Du trenger også **Node 22.18 eller
-nyere** så snart du skal kalle et API selv - se avsnitt 4. Så:
+Du trenger **[Docker](https://docs.docker.com/get-docker/)** installert og startet. Du
+trenger også **[Node 22.18 eller nyere](https://nodejs.org/en/download)** så snart du
+skal kalle et API selv - se avsnitt 4. Så:
 
 ```bash
 ./start.sh --mock
@@ -39,7 +40,7 @@ Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12�
 minutter til det, mer på delt konferansenett.
 
 På Windows: kjør fra Git Bash eller WSL. `start.bat` finnes som nødløsning, men den
-kjører alltid uten språkmodell - se «På Windows» i `README.md`.
+kjører alltid uten språkmodell - se «På Windows» i [`README.md`](../README.md).
 
 Stopp alt med `./start.sh -d`.
 
@@ -59,9 +60,9 @@ det den siden du går tilbake til.
 | <http://localhost:3001/stegvis> | Ett steg av gangen, med rå JSON og revisjonslogg synlig |
 | <http://localhost:3001/utforsker> | **API-utforskeren** - alle endepunktene, med skjema per rute og en `curl` som virker når den limes inn. Tokenet velges ut fra hjemmelen ruten krever |
 | <http://localhost:3000> | Prosessbygger - lag eller endre en flyt |
-| <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend - se `docs/designsystem.md` |
+| <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend - se [`docs/designsystem.md`](designsystem.md) |
 
-De øvrige tjenestene (`:8080`–`:8086`) er API-er du kan bygge mot. Du trenger ikke åpne
+De øvrige tjenestene (`:8080`–`:8087`) er API-er du kan bygge mot. Du trenger ikke åpne
 noen av dem for å se sandkassen virke - og skal du bygge mot dem, er API-utforskeren
 raskere enn å lese spesifikasjonene selv.
 
@@ -121,9 +122,10 @@ Ikke alle testpersonene kan brukes som innlogget bruker, og det er med vilje:
 - **Død, utflyttet eller D-nummer: ingen innlogging.** De finnes i registeret, og et
   barn med en død mor har fortsatt en mor - men de kan ikke være avsender.
 
-`docs/testpersoner.md` har hele befolkningen med en `Logg inn`-kolonne som sier
-`ja`, `part` eller `nei` for hver enkelt. `docs/syntetiske-data.md` forklarer
-datagrunnlaget: hvor det kommer fra, hva som er forfattet, og hvor grensene går.
+[`docs/testpersoner.md`](testpersoner.md) har hele befolkningen med en
+`Logg inn`-kolonne som sier `ja`, `part` eller `nei` for hver enkelt.
+[`docs/syntetiske-data.md`](syntetiske-data.md) forklarer datagrunnlaget: hvor det
+kommer fra, hva som er forfattet, og hvor grensene går.
 
 ## 3c. Startpunkter, så demoene ikke kolliderer
 
@@ -150,7 +152,7 @@ bor i en kommune uten registrert tilbud.
 
 > [!TIP]
 > Vil du ha flere husstander med barnehage- eller SFO-plass enn de som finnes,
-> trenger du ikke redigere `data/`. Se «Egne testdata» i `docs/bygg-selv.md`.
+> trenger du ikke redigere `data/`. Se «Egne testdata» i [`docs/bygg-selv.md`](bygg-selv.md).
 
 ## 4. Ditt første eget kall
 
@@ -221,14 +223,14 @@ docker compose ps
 
 Alle skal stå som `healthy`.
 
-Fant du ikke feilen med disse tre? **`docs/feilsoking.md` har resten**, ett symptom
-per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på matrikkel-oppslag,
-maltekst du ikke ba om, port opptatt, en container som ikke blir `healthy`, treg
-modellnedlasting og mer.
+Fant du ikke feilen med disse tre? **[`docs/feilsoking.md`](feilsoking.md) har resten**,
+ett symptom per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på
+matrikkel-oppslag, maltekst du ikke ba om, port opptatt, en container som ikke blir
+`healthy`, treg modellnedlasting og mer.
 
 Skal du demonstrere for andre, eller bytte KI-provider:
-`docs/sikkerhet-og-personvern.md` sier hva som sendes ut av maskinen per provider,
-og hvor bytteren sitter.
+[`docs/sikkerhet-og-personvern.md`](sikkerhet-og-personvern.md) sier hva som sendes ut
+av maskinen per provider, og hvor bytteren sitter.
 
 ## 6. Nullstille
 
@@ -244,16 +246,19 @@ i `state/`, som er gitignorert - en demokjøring skitner ikke til arbeidstreet.
 
 ---
 
-**Vil du vite mer?** `README.md` har hele bildet: alle flagg, porter, API-eksempler og
-kjente begrensninger.
+**Vil du vite mer?** [`README.md`](../README.md) har hele bildet: alle flagg, porter,
+API-eksempler og kjente begrensninger.
 
-**Skal du bygge noe eget?** `docs/bygg-selv.md` er veien videre: egen frontend på egen
-port, hvordan du finner ut hva som finnes, og hva som er frosset. `examples/curl/README.md`
-har ferdige kall for hele flyten, og `docs/prosessmodell.md` hvis du vil lage en ny case
-inne i prosessmotoren.
+**Skal du bygge noe eget?** [`docs/bygg-selv.md`](bygg-selv.md) er veien videre: egen
+frontend på egen port, hvordan du finner ut hva som finnes, og hva som er frosset.
+[`examples/curl/README.md`](../examples/curl/README.md) har ferdige kall for hele
+flyten, og [`docs/prosessmodell.md`](prosessmodell.md) hvis du vil lage en ny case inne
+i prosessmotoren.
 
-**Vil du forstå hvordan sandkassen henger sammen?** `docs/architecture.md` - men den er
-skrevet for den som vedlikeholder sandkassen, ikke for den som bygger på den.
+**Vil du forstå hvordan sandkassen henger sammen?**
+[`docs/architecture.md`](architecture.md) - men den er skrevet for den som vedlikeholder
+sandkassen, ikke for den som bygger på den.
 
-**Støter du på et forvaltningsord du ikke kjenner?** `docs/ordliste.md` forklarer termene -
-hjemmel, matrikkel, KRR, SvarUt og resten - slik de brukes i sandkassen.
+**Støter du på et forvaltningsord du ikke kjenner?** [`docs/ordliste.md`](ordliste.md)
+forklarer termene - hjemmel, matrikkel, KRR, SvarUt og resten - slik de brukes i
+sandkassen.

@@ -85,13 +85,13 @@ Kildedata i `data/`:
 | `informasjonsmodeller.json` | Begreper og attributter, med kodeverdier som `pnpm test` holder mot dataene |
 | `prosessdefinisjoner.json` | Prosesskatalog med publiserte prosesser og maler |
 | `forventet-utfall.json` | Hva hver husstand er ment å demonstrere. Pinnet, aldri regenerert |
-| `deltakercaser.json` | Case-til-person-tabellen i `docs/deltakerstart.md`, pinnet |
+| `deltakercaser.json` | Case-til-person-tabellen i [`docs/deltakerstart.md`](deltakerstart.md), pinnet |
 | `brreg.seed.json` | 200 syntetiske foretak fra Tenor. Ingen kobling til befolkningen |
 
-**`docs/testpersoner.md` er den genererte oversikten over hele befolkningen** - én rad
-per person med alder, status, husstand, hvem som kan logge inn, hvem som eier noe og
-hvem som har inntektsdata. Den skrives av importen og `pnpm test` feiler hvis den er
-ute av takt.
+**[`docs/testpersoner.md`](testpersoner.md) er den genererte oversikten over hele
+befolkningen** - én rad per person med alder, status, husstand, hvem som kan logge inn,
+hvem som eier noe og hvem som har inntektsdata. Den skrives av importen og `pnpm test`
+feiler hvis den er ute av takt.
 
 ### Generert, ikke redigert
 
@@ -291,15 +291,17 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
 
 - hver post skal være merket som syntetisk der det er relevant
 - datasett skal være konsistente på tvers av relasjoner
-- eksempelpersoner skal være enkle å bruke i demo - se `docs/testpersoner.md`
+- eksempelpersoner skal være enkle å bruke i demo - se
+  [`docs/testpersoner.md`](testpersoner.md)
 - nye datasett skal dokumenteres før de tas i bruk
 - tjenester skriver aldri i `data/`
 - filer i `data/` og `state/` skal lagres som UTF-8 (Unicode)
 
 ## Nåværende innhold
 
-`pnpm test` skriver de faktiske tallene ved hver kjøring, og `docs/testpersoner.md`
-har dem i tabell. Bruk dem som kilde, ikke en liste her.
+`pnpm test` skriver de faktiske tallene ved hver kjøring, og
+[`docs/testpersoner.md`](testpersoner.md) har dem i tabell. Bruk dem som kilde, ikke en
+liste her.
 
 - 394 personer i registeret, 369 av dem bosatte
 - 200 husstander, 281 inntektsrader, 298 rader i kontaktregisteret
