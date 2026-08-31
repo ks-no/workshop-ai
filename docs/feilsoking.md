@@ -135,7 +135,7 @@ Se «Hvordan starte den» i [`README.md`](../README.md) for modellvalget og tids
 in use».
 
 **Årsak:** Noe annet lytter på en av portene sandkassen bruker: `3000`, `3001`,
-`8080`–`8086`, og `11434` når Ollama kjører i container (Linux/WSL). Ofte er det en
+`8080`–`8087`, og `11434` når Ollama kjører i container (Linux/WSL). Ofte er det en
 gammel kjøring av sandkassen selv, eller en annen utviklingsserver på `3000`/`3001`.
 
 **Løsning:** Stopp en gammel kjøring først:

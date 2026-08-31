@@ -213,8 +213,8 @@ port_is_ours() {
 }
 
 preflight() {
-  command -v curl >/dev/null 2>&1 || fail "curl is not installed, and this script needs it. Install it with your package manager."
-  command -v docker >/dev/null 2>&1 || fail "Docker is not installed. See https://docs.docker.com/get-docker/"
+  command -v curl >/dev/null 2>&1 || fail "curl er ikke installert, og skriptet trenger den. Hent den med pakkebehandleren din."
+  command -v docker >/dev/null 2>&1 || fail "Docker er ikke installert. Hent den fra https://docs.docker.com/get-docker/"
 
   if ! docker info >/dev/null 2>&1; then
     # On Linux a missing docker group looks the same as a stopped daemon

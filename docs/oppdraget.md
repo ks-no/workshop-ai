@@ -1,8 +1,8 @@
 # Oppdraget
 
-Sandkassen er en kommune i miniatyr: innbyggere med familie og bosted, inntekter og
-eiendom, satser og regelverk, samtykke, hjemmel og revisjonslogg - alt syntetisk, alt
-åpent for deg gjennom dokumenterte API-er.
+Sandkassen er en kommune i miniatyr: innbyggere med familie og bosted, inntekter,
+eiendom og helseopplysninger, satser og regelverk, samtykke, hjemmel og revisjonslogg -
+alt syntetisk, alt åpent for deg gjennom dokumenterte API-er.
 
 **Oppgaven er å lage noe som er nyttig for innbyggerne i den kommunen.**
 
@@ -33,6 +33,12 @@ Under deg ligger et lag du ikke trenger å bygge:
 - deterministiske regler, atskilt fra språkmodellen med vilje
 - revisjonslogg over all datatilgang
 - et KI-lag med sperrer i kode, og et spor som viser deg hva modellen faktisk fikk
+- seks caser, fra barnehageplass til TT-kort. Den siste henter en legeerklæring,
+  og den ligger bak et uttrykkelig samtykke, fordi helseopplysninger er en særlig
+  kategori etter personvernforordningen artikkel 9
+
+Det er et gulv å stå på, ikke et tak. Alt sammen er kode og data i forken din, og du kan
+endre hvert punkt over hvis det er feil for det du lager.
 
 Alt dette svarer over HTTP, og [`docs/bygg-selv.md`](bygg-selv.md) viser hvordan du
 kobler deg på.
@@ -53,6 +59,9 @@ stack - [`docs/bygg-selv.md`](bygg-selv.md) har listen. Det eneste som er verdt 
 stå, er navnene utad: feltnavn i JSON-svarene og stiene i URL-ene er kontrakten de andre
 teamene leser deg gjennom. Samme fil forklarer hvorfor, under «Ting du ikke skal døpe
 om».
+
+## Bruk av KI utviklingsverktøy
+Dette er en KI-workshop, vi oppfordrer til bruk av ki-verktøy. Mangler du tilgang på KI verktøy så send en forespørsel til [bard.saari@ksdigital.no](mailto:baard.saari@ksdigital.no)
 
 ## Én ting det er verdt å vite om demoene
 
@@ -87,6 +96,20 @@ lete etter data vi ikke har tenkt på:
   Samme sted ligger dokumentasjonen for Digital lommebok
 - <https://developers.fiks.ks.no/> - KS Fiks, som `fiks-simulator` etterligner:
   registeroppslag, kontaktregisteret og SvarUt
+- <https://www.geonorge.no/> - Kartverkets katalog over kart- og eiendomsdata.
+  Adressene i `matrikkel-mock` kommer herfra
+- <https://utviklerportal.nhn.no/> - Norsk helsenett, der HelseID og de ekte
+  helsetjenestene ligger. Les avsnittet under før du leter der
+
+Én av mockene etterligner ingenting. **`pasientjournal-mock` finnes ikke i
+virkeligheten.** Det er ingen nasjonal dør inn til en legeerklæring: journalen eies av
+virksomheten som ga helsehjelpen, og det som finnes ligger bak Helsenettet og HelseID,
+ikke Maskinporten. I dag bærer innbyggeren en stemplet PDF.
+[`apps/pasientjournal-mock/README.md`](../apps/pasientjournal-mock/README.md) forklarer
+hvorfor mocken likevel er der. Leter du etter det API-et: det er ikke der.
+
+Vil du bytte ut prosessmotoren med en ekte en, har [`docs/bygg-selv.md`](bygg-selv.md)
+et avsnitt om Altinn Studio.
 
 Kildene bak selve dataene i sandkassen - Folkeregisterets informasjonsmodell,
 Fiks-beregningen, Geonorge - står i [`docs/syntetiske-data.md`](syntetiske-data.md),

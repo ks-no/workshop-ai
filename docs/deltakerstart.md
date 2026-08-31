@@ -8,7 +8,7 @@ side om det, og tar to minutter.
 ## 0. Hent repoet
 
 Fork repoet på GitHub («Fork»-knappen øverst på repo-siden), og klon forken din
-(krever `git`):
+(krever [git](https://git-scm.com/downloads)):
 
 ```bash
 git clone https://github.com/<ditt-github-brukernavn>/workshop-ai.git
@@ -19,8 +19,9 @@ Resten av denne siden antar at du står i den mappen.
 
 ## 1. Start sandkassen
 
-Du trenger **Docker** installert og startet. Du trenger også **Node 22.18 eller
-nyere** så snart du skal kalle et API selv - se avsnitt 4. Så:
+Du trenger **[Docker](https://docs.docker.com/get-docker/)** installert og startet. Du
+trenger også **[Node 22.18 eller nyere](https://nodejs.org/en/download)** så snart du
+skal kalle et API selv - se avsnitt 4. Så:
 
 ```bash
 ./start.sh --mock
@@ -61,7 +62,7 @@ det den siden du går tilbake til.
 | <http://localhost:3000> | Prosessbygger - lag eller endre en flyt |
 | <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend - se [`docs/designsystem.md`](designsystem.md) |
 
-De øvrige tjenestene (`:8080`–`:8086`) er API-er du kan bygge mot. Du trenger ikke åpne
+De øvrige tjenestene (`:8080`–`:8087`) er API-er du kan bygge mot. Du trenger ikke åpne
 noen av dem for å se sandkassen virke - og skal du bygge mot dem, er API-utforskeren
 raskere enn å lese spesifikasjonene selv.
 
