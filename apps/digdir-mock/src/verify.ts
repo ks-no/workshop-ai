@@ -15,7 +15,7 @@
 // request is handled. See requireTilgang in sandbox-backend/src/autentisering.ts.
 
 import { createPublicKey, createVerify } from "node:crypto";
-import type { JsonWebKey } from "node:crypto";
+import type { Jwk } from "./jwt.ts";
 
 export type VerifierOptions = {
   /** Where to fetch JWKS. Inside docker this is not the same as the issuer name. */
@@ -58,10 +58,10 @@ export function createVerifier(valg: VerifierOptions) {
   // rotates it, so an unknown kid triggers exactly one refetch before we give up.
   // Refetching on every unknown kid would turn a bad token into a way to make this
   // service hammer the issuer.
-  let jwks = new Map<string, JsonWebKey>();
+  let jwks = new Map<string, Jwk>();
   let fetchedAt = 0;
 
-  async function getKey(kid: string): Promise<JsonWebKey> {
+  async function getKey(kid: string): Promise<Jwk> {
     const known = jwks.get(kid);
     if (known) return known;
 

@@ -5,7 +5,7 @@
 # served the four-street fixture for two weeks after the 221-street extract landed.
 # Compose now mounts the working tree like every other service. Anything you change
 # in data/matrikkel.json needs a rebuild here, but nowhere else.
-FROM node:26-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 

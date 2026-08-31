@@ -10,7 +10,16 @@
 // classic JWT vulnerability, and failing closed here is cheaper than explaining it.
 
 import { createSign, createVerify, createPublicKey } from "node:crypto";
-import type { JsonWebKey, KeyObject } from "node:crypto";
+import type { KeyObject } from "node:crypto";
+
+export type Jwk = {
+  kty?: string;
+  n?: string;
+  e?: string;
+  alg?: string;
+  use?: string;
+  kid?: string;
+};
 
 /** A key this module can sign with. PEM string or a KeyObject, plus the kid to advertise. */
 export type SigningKey = {
@@ -85,7 +94,7 @@ export function decodeJwt(token: string): DecodedJwt {
  * resource server, and burying them here would make them invisible at the place
  * where the access decision is actually made.
  */
-export function verifyJwt(token: string, jwk: JsonWebKey): JwtClaims {
+export function verifyJwt(token: string, jwk: Jwk): JwtClaims {
   const { header, payload, signingInput, signature } = decodeJwt(token);
   if (header.alg !== "RS256") {
     throw new Error(`Forventet alg RS256, fikk ${header.alg}.`);

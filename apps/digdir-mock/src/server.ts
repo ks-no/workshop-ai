@@ -1,11 +1,10 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
-import type { JsonWebKey } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { decodeJwt, signJwt, type SigningKey } from "./jwt.ts";
+import { decodeJwt, signJwt, type Jwk, type SigningKey } from "./jwt.ts";
 import { routeOverview } from "../../shared/openapi.ts";
 import { cors, svarhjelpere } from "../../shared/http.ts";
 // The one place the two age thresholds live. digdir-mock decides who gets a token
@@ -73,7 +72,7 @@ const codeLifetimeSeconds = 300;
 const keyFile = path.join(stateDir, "digdir-nokkel.json");
 const openapiFile = path.resolve(__dirname, "../../../openapi/digdir-mock.yaml");
 
-type IssuerKeys = SigningKey & { jwk: JsonWebKey };
+type IssuerKeys = SigningKey & { jwk: Jwk };
 
 async function loadOrCreateKey(): Promise<IssuerKeys> {
   try {
@@ -86,12 +85,11 @@ async function loadOrCreateKey(): Promise<IssuerKeys> {
   const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const kid = randomUUID();
   const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }) as string;
-  const publicJwk: JsonWebKey = {
-    ...publicKey.export({ format: "jwk" }),
-    kid,
-    use: "sig",
-    alg: "RS256"
-  };
+  // Named fields rather than a spread of the export: this is what goes out on
+  // /jwks, and naming them is what guarantees a private key could never put `d`
+  // there. For an RSA public key the export is exactly kty, n and e.
+  const { kty, n, e } = publicKey.export({ format: "jwk" });
+  const publicJwk: Jwk = { kty, n, e, kid, use: "sig", alg: "RS256" };
 
   await mkdir(stateDir, { recursive: true });
   await writeFile(keyFile, JSON.stringify({ kid, privateKeyPem, publicJwk }, null, 2) + "\n");
