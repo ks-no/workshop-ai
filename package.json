@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Monorepo for hackathon-sandkasse for moderne innbyggerdialog i kommunal sektor.",
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "start:backend": "node apps/sandbox-backend/src/server.ts",
     "start:fiks": "node apps/fiks-simulator/src/server.ts",

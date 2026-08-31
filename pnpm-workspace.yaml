@@ -1,3 +1,5 @@
 packages:
   - "apps/*"
 
+# Seven days (see AGENTS.md), in minutes.
+minimumReleaseAge: 10080

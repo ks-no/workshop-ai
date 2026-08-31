@@ -15,11 +15,13 @@
 #                     used by docker-compose.yml (see AGENTS.md service map),
 #                     so it needs its own directory entry. This is the repo's
 #                     only Dockerfile.
-#   - github-actions: .github/workflows/ci.yml
+#   - github-actions: every workflow in .github/workflows/
 #
 # Every ecosystem groups minor and patch bumps into a single PR per run;
 # major bumps are left out of the group, so each one lands as its own PR and
 # gets reviewed on its own.
+#
+# cooldown is the Dependabot half of the rule in AGENTS.md.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -27,6 +29,8 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     groups:
       npm-minor-patch:
         applies-to: "version-updates"
@@ -43,6 +47,8 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     groups:
       docker-compose-minor-patch:
         applies-to: "version-updates"
@@ -59,6 +65,8 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     groups:
       docker-minor-patch:
         applies-to: "version-updates"
@@ -75,6 +83,8 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     groups:
       actions-minor-patch:
         applies-to: "version-updates"
