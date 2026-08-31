@@ -62,6 +62,29 @@ type SporsmaalSvar = {
   feil?: string;
 };
 
+/**
+ * Hvor opplysningene faktisk kommer fra, per datakilde.
+ *
+ * Sto som «Skatteetaten, via KS Fiks» uansett hva steget spurte om, og det er
+ * feil for alt annet enn inntekt: støttekontakt spør om kontaktinfo, som ligger
+ * i Kontakt- og reservasjonsregisteret. Et samtykke som oppgir feil kilde er
+ * ikke informert.
+ *
+ * Listen hører egentlig sammen med samtykkekodeverket i apps/shared/samtykke.ts.
+ * Den står her så lenge den bare er tekst til innbyggeren.
+ */
+const kildePerDatakilde: Record<string, string> = {
+  inntekt: "Skatteetaten, via KS Fiks",
+  kontaktinfo: "Kontakt- og reservasjonsregisteret, via KS Fiks",
+  tjenestebehov: "kommunens egne registre"
+};
+
+function kildeTekst(dataKilder: string[] | undefined): string {
+  const kilder = [...new Set((dataKilder || []).map((k) => kildePerDatakilde[k]).filter(Boolean))];
+  const hvor = kilder.length ? kilder.join(" og ") : "registeret som eier opplysningene";
+  return `${hvor} - her simulert med syntetiske data`;
+}
+
 /** POST /ai/tolk-svar. */
 type Tolkning = { intent?: string; confidence?: number; modell?: string; advarsel?: string };
 
@@ -199,13 +222,17 @@ function promptForStep(steg: ProsessSteg | null | undefined): string {
    */
   if (steg.type === "CONSENT_REQUEST") {
     const dataKilder = (steg.dataKilder || []).join(", ") || "nødvendige opplysninger";
-    const formaal = String(steg.formaal || "behandle saken").toLowerCase();
+    const raatt = String(steg.formaal || "behandle saken");
+    // Bare første bokstav ned. Formålet er forfatterens tekst og kan bære
+    // egennavn, og hele strengen i småbokstaver gjorde «TT-ordninga» til
+    // «tt-ordninga».
+    const formaal = raatt.charAt(0).toLowerCase() + raatt.slice(1);
     return [
       `For å komme videre trenger jeg samtykke fra deg til å hente ${dataKilder}.`,
       "",
       `• Hva vi henter: ${dataKilder}`,
       `• Hvorfor: for å ${formaal}`,
-      "• Hvor fra: Skatteetaten, via KS Fiks - her simulert med syntetiske data",
+      `• Hvor fra: ${kildeTekst(steg.dataKilder)}`,
       "• Sier du nei: da henter vi ingenting, og vi kan ikke vurdere saken videre nå",
       "• Du kan ombestemme deg og trekke samtykket etterpå",
       "",
@@ -393,9 +420,22 @@ function buildFlyt(): Record<string, unknown> | null {
   };
 }
 
+/**
+ * Om prosessen i det hele tatt slår opp i matrikkelen.
+ *
+ * Definisjonen sier det selv, så dette trenger ingen liste over case-ider. Uten
+ * sjekken hentet hvert frie spørsmål i hver sak innbyggerens eiendommer, og
+ * svaret oppga dem som kilde - i en sak om TT-kort er begge deler feil.
+ */
+function prosessBrukerMatrikkel(): boolean {
+  return (aktivProsess?.steg || []).some(
+    (s) => (s.api?.url || "").includes("/api/matrikkel/")
+  );
+}
+
 async function buildSporsmaalsKontekst(): Promise<Record<string, unknown>> {
   let mineEiendommer: unknown = null;
-  if (oekt?.personId) {
+  if (oekt?.personId && prosessBrukerMatrikkel()) {
     try {
       // req(), not a bare fetch: the lookup is egne-data, so it needs the
       // ID-porten token. Without it AUTH_ENFORCE answers 401 and the field
@@ -509,11 +549,13 @@ function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
     return "Fortell gjerne med dine egne ord.";
   }
   if (felter.length === 1) {
-    return `Fortell gjerne litt om dette: ${felter[0].label}.`;
+    return `Fortell gjerne litt om dette: ${felter[0].label}`;
   }
-  const liste = felter.map((felt) => felt.label.toLowerCase());
-  const siste = liste.pop();
-  return `Du kan gjerne svare samlet og si litt om ${liste.join(", ")} og ${siste}.`;
+  // Etikettene er ferdige spørsmål med sitt eget spørsmålstegn. Ble de føyd inn i
+  // en setning, kom de ut som «hva gjelder søknaden?, kan du …?.» - så de står
+  // som en liste og beholder store bokstaver.
+  const liste = felter.map((felt) => `- ${felt.label}`).join("\n");
+  return `Du kan gjerne svare på alt i én melding:\n${liste}`;
 }
 
 function vent(ms: number): Promise<void> {
