@@ -65,7 +65,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/process-builder/src/server.ts"]
     environment:
@@ -84,7 +84,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/demo-gui/src/server.ts"]
     environment:
@@ -103,7 +103,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8086/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     # Node strips the types on load, so .ts runs with no build step - the same
     # way sandbox-backend does. See tsconfig.json.
@@ -130,7 +130,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8080/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/sandbox-backend/src/server.ts"]
     environment:
@@ -158,7 +158,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8081/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/fiks-simulator/src/server.ts"]
     environment:
@@ -176,7 +176,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8085/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/matrikkel-mock/src/server.ts"]
     environment:
@@ -188,7 +188,7 @@ services:
       - ./:/workspace
 
   brreg-mcp:
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["node", "apps/brreg-mcp/src/server.ts"]
     environment:
@@ -199,7 +199,7 @@ services:
       - ./:/workspace
 
   folkeregister-mcp:
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["node", "apps/folkeregister-mcp/src/server.ts"]
     environment:
@@ -213,7 +213,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8082/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/ai-gateway/src/server.ts"]
     depends_on:
@@ -256,7 +256,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8083/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/tools-api/src/server.ts"]
     # service_healthy, not just service_started: tools-api proxies straight
@@ -303,7 +303,7 @@ services:
     healthcheck:
       <<: *helsesjekk
       test: ["CMD", "node", "-e", "fetch('http://localhost:8084/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-    image: node:24-alpine
+    image: node:26-alpine
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/process-agent/src/server.ts"]
     depends_on:
