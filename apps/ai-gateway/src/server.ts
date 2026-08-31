@@ -269,6 +269,23 @@ function escapeHtml(tekst: unknown): string {
 }
 
 /*
+ * Display names for the three tasks whose id lacks the Norwegian letters.
+ *
+ * Only the label changes: `task` in state/ai-trace.jsonl, the ?task= filter and
+ * data-task keep the id, and the raw value is kept in a title so it can still be
+ * copied out of the page.
+ */
+const navnPerOppgave: Record<string, string> = {
+  sporsmaal: "spørsmål",
+  klarsprak: "klarspråk",
+  "velg-verktoy": "velg verktøy"
+};
+
+const oppgavenavn = (task: string): string => navnPerOppgave[task] || task;
+const oppgavetittel = (task: string): string =>
+  navnPerOppgave[task] ? ` title="${escapeHtml(task)}"` : "";
+
+/*
  * Splits a prompt into the parts a reader actually wants apart.
  *
  * The grounding is a single line of minified JSON that can run to thousands of
@@ -332,7 +349,7 @@ function traceHtml(
       <article class="entry" data-task="${escapeHtml(l.task)}">
         <details ${indeks === 0 ? "open" : ""}>
           <summary>
-            <span class="tag tag-task">${escapeHtml(l.task)}</span>
+            <span class="tag tag-task"${oppgavetittel(l.task)}>${escapeHtml(oppgavenavn(l.task))}</span>
             ${modellMerke}
             <span class="tag">${l.durationMs} ms</span>
             <span class="meta">${escapeHtml(l.timestamp)}</span>
@@ -367,7 +384,7 @@ function traceHtml(
       const href = oppgave === "alle"
         ? `/trace?${beholdSporingsId.slice(1)}`
         : `/trace?task=${encodeURIComponent(oppgave)}${beholdSporingsId}`;
-      return `<a class="filter${aktiv}" href="${href}">${escapeHtml(oppgave)}</a>`;
+      return `<a class="filter${aktiv}" href="${href}"${oppgavetittel(oppgave)}>${escapeHtml(oppgavenavn(oppgave))}</a>`;
     })
     .join("");
 
