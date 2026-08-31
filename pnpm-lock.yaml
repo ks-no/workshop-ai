@@ -36,6 +36,8 @@ importers:
 
   apps/matrikkel-mock: {}
 
+  apps/pasientjournal-mock: {}
+
   apps/process-agent: {}
 
   apps/process-builder: {}
