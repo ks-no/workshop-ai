@@ -1,0 +1,65 @@
+# Dependabot configuration.
+#
+# Ecosystems covered, i.e. every place this repo actually declares a
+# dependency version:
+#   - npm:           root package.json + pnpm-workspace.yaml (apps/*)
+#   - docker:        docker-compose.yml (node:24-alpine, ollama/ollama)
+#   - docker:        apps/matrikkel-mock/Dockerfile - a standalone image, not
+#                     used by docker-compose.yml (see AGENTS.md service map),
+#                     so it needs its own directory entry.
+#   - github-actions: .github/workflows/ci.yml
+# docker-compose.gpu.yml carries no image references, so there is nothing
+# for Dependabot to track there.
+#
+# Every ecosystem groups minor and patch bumps into a single PR per run;
+# major bumps are left out of the group, so each one lands as its own PR and
+# gets reviewed on its own.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      docker-minor-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/matrikkel-mock"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      docker-minor-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
