@@ -96,9 +96,21 @@ export type Prosessoekt = {
 // new rule type appears. TJENESTEBEHOV is the first one that is not about money:
 // støttekontakt is assessed on need and capacity, and must not drag an income
 // lookup - and its consent - along with it.
-export type Regeltype = "INNTEKTSGRENSE" | "MAKS_ANDEL_AV_INNTEKT" | "TJENESTEBEHOV";
+export type Regeltype =
+  | "INNTEKTSGRENSE"
+  | "MAKS_ANDEL_AV_INNTEKT"
+  | "TJENESTEBEHOV"
+  | "TRANSPORTBEHOV";
 
-export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt";
+export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt" | "transport";
+
+export const KVOTEKATEGORIER = [
+  "ordinaer",
+  "saerskilde-behov",
+  "blind-eller-rullestol",
+  "elektrisk-rullestol"
+] as const;
+export type Kvotekategori = (typeof KVOTEKATEGORIER)[number];
 
 export type Ordning = {
   id: string;
@@ -113,6 +125,25 @@ export type Ordning = {
   trinnTil?: number;
   /** TJENESTEBEHOV: which dataset of tjenestetilbud the ordning is assessed against. */
   tilbudsdatasett?: string;
+  /**
+   * TRANSPORTBEHOV. Kept apart from alderFraAar, which bounds a *child* with a
+   * plass: here it is the applicant's own age that decides.
+   */
+  soekerAlderFraAar?: number;
+  /** TRANSPORTBEHOV: how long the funksjonsnedsetting must last. */
+  varighetMinstAar?: number;
+  /** TRANSPORTBEHOV: the fylkesnummer the applicant must live in. */
+  fylkesnummer?: string;
+  /** TRANSPORTBEHOV: visus at or below this counts as blind or sterkt svaksynt. */
+  visusgrense?: number;
+  /** TRANSPORTBEHOV: reference amounts per kvotekategori. Reported, not computed. */
+  kvoter?: Record<Kvotekategori, number>;
+  /**
+   * TRANSPORTBEHOV: the supplement for living more than 20 km from the nearest
+   * post i butikk. Reference only - the rule does not add it, because the
+   * process asks the citizen and the vedtak reads the legeerklæring.
+   */
+  kvotetilleggLangtTilPost?: number;
 };
 
 export type Satser = {
