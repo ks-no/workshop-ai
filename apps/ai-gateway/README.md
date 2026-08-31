@@ -5,8 +5,8 @@ tolkning, klarspråk og frie spørsmål fra innbygger - med sperrer som kjører 
 provider-bytte uten restart, og fullt spor av hvert modellkall. Lurer du bare på om
 modellen er koblet på, hopp til «Er modellen koblet på?».
 
-Stack: Node.js med innebygd HTTP-server. Ollama og OpenRouter kalles med rå `fetch`;
-Bedrock er unntaket og bruker en SDK - se «AWS Bedrock» under.
+Stack: Node.js med innebygd HTTP-server. Ollama, OpenRouter og Telenor AI Factory
+kalles med rå `fetch`; Bedrock er unntaket og bruker en SDK - se «AWS Bedrock» under.
 
 ## Endepunkter
 
@@ -100,6 +100,7 @@ Provider-modus:
 - `AI_PROVIDER=mock` (kodens default, ingen ekstern modell - men se under)
 - `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjørt i Docker Compose)
 - `AI_PROVIDER=openrouter` (billige/gratis modeller via OpenRouter)
+- `AI_PROVIDER=telenor-ai-factory` (Telenor AI Factory via et OpenAI-kompatibelt LiteLLM-endepunkt)
 - `AI_PROVIDER=bedrock` (AWS Bedrock, Anthropic-modeller - se eget avsnitt under)
 
 Merk at kodens default er `mock`, men både `.env.example` og `docker-compose.yml`
@@ -112,10 +113,32 @@ Valgfrie miljovariabler:
 - `OLLAMA_MODEL` (standard `qwen2.5:7b`)
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (standard `mistralai/mistral-7b-instruct:free`)
+- `TELENOR_AI_FACTORY_BASE_URL`, `TELENOR_AI_FACTORY_API_KEY`, `TELENOR_AI_FACTORY_MODEL`, `TELENOR_AI_FACTORY_CACHE_SALT`
 - `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`
 
 `AI_PROVIDER` og de variablene bare setter *startverdien*. Se `/admin` under for å
 bytte mens tjenesten kjører.
+
+### Telenor AI Factory
+
+AI Factory bruker samme meldingsformat som OpenAI og LiteLLM. Legg nøkkelen i `.env`,
+aldri i kode eller et curl-eksempel som skal lagres:
+
+```dotenv
+AI_PROVIDER=telenor-ai-factory
+TELENOR_AI_FACTORY_API_KEY=...
+TELENOR_AI_FACTORY_MODEL=NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+```
+
+`TELENOR_AI_FACTORY_BASE_URL` har standardverdien
+`https://litellm.apps.s99ct03.aifactory.telenor.com`. Modellen må være knyttet til
+abonnementet og API-nøkkelen i AI Factory. `TELENOR_AI_FACTORY_CACHE_SALT` kan settes til en
+stabil, unik verdi for denne sandkassen. Uten en verdi lager gatewayen et nytt salt
+ved hver oppstart, slik AI Factory anbefaler for å isolere den delte KV-cachen.
+
+AI Factory-kall går gjennom den samme `callModel`-funksjonen som de andre providerne.
+Timeout, fallback, sperrer og KI-spor fungerer derfor likt. API-nøkkelen og cache-saltet
+skrives ikke til KI-sporet.
 
 ## Bytt provider uten restart: `/admin`
 
@@ -124,7 +147,7 @@ http://localhost:8082/admin
 ```
 
 En side som viser hvilken provider som er aktiv og lar deg bytte mellom
-mock/ollama/openrouter/bedrock - og for Bedrock, hvilken modell - med et par klikk.
+mock/ollama/openrouter/telenor-ai-factory/bedrock - og for Bedrock, hvilken modell - med et par klikk.
 Byttet gjelder umiddelbart og skrives til `state/ai-provider-override.json`, som
 overstyrer `AI_PROVIDER`/`BEDROCK_MODEL_ID` fra miljøet ved neste oppstart. Filen er
 i `state/` sammen med resten av kjøretidsdataene: gitignored, nullstilt av
@@ -143,11 +166,9 @@ curl -s -X POST http://localhost:8082/admin/provider \
 `provider` valideres mot en hviteliste og `bedrockModel` mot listen i `BEDROCK_MODELS`
 (`src/server.ts`) - en ukjent verdi for begge gir 400, ikke et forsøk på å bruke den.
 
-Lagt inn som en fjerde provider, ikke en erstatning: koden fortsatt velger mellom
-`callOllama`/`callOpenRouter`/`callBedrock` i `callModel`, akkurat som beskrevet i
-"Legge til en ny provider" under. En eventuell femte provider er samme oppskrift -
-en funksjon med signaturen `(prompt, temperatur, signal)`, en gren i `callModel`, og
-et navn lagt til i `AI_PROVIDERS`.
+Providerne er side om side: `callModel` velger mellom `callOllama`, `callOpenRouter`,
+`callAiFactory` og `callBedrock`, akkurat som beskrevet i «Legge til en ny provider»
+under.
 
 ### AWS Bedrock
 
@@ -194,11 +215,11 @@ curl -s http://localhost:8082/helse
 
 `modellNaaBar: false` kommer med et `feil`-felt som sier hvorfor - Ollama er ikke nåbar,
 modellen er ikke lastet ned, `OPENROUTER_API_KEY` mangler, `BEDROCK_AWS_ACCESS_KEY_ID`/$
-`BEDROCK_AWS_SECRET_ACCESS_KEY` mangler, eller `AI_PROVIDER=mock`. Merk at status alltid er
+`BEDROCK_AWS_SECRET_ACCESS_KEY` eller `TELENOR_AI_FACTORY_API_KEY` mangler, eller
+`AI_PROVIDER=mock`. Merk at status alltid er
 200: tjenesten *lever* selv om modellen ikke gjør det. Som for OpenRouter sjekker
-Bedrock-sjekken bare at nøklene er satt - den kaller ikke AWS, så en feil nøkkel eller
-en modell IAM-policyen ikke tillater rapporteres som tilgjengelig og feiler først på
-neste faktiske kall.
+statusen for AI Factory og Bedrock bare at nøklene er satt. En feil nøkkel eller
+manglende modelltilgang rapporteres derfor først på neste faktiske kall.
 
 `demo-gui` sjekker dette ved sidelast og viser en gul stripe på `/chat` og `/agent` når
 modellen ikke er koblet på. Enkeltsvar som faller tilbake vises også i samtalen.
@@ -236,14 +257,15 @@ dør når vinduet lukkes - bruk `brew services start ollama` og sjekk med
 
 ## Legge til en ny provider
 
-Provider-laget er ett sted. `callModel` velger mellom `callOllama`, `callOpenRouter` og
-`callBedrock`, som alle tar `(prompt, temperatur, signal)` og returnerer
-`{ tekst, modell }`. En ny provider er én funksjon med den signaturen pluss en gren i
-`callModel` - ikke seks kopier slik det var før.
+Provider-laget er ett sted. `callModel` velger mellom `callOllama`, `callOpenRouter`,
+`callAiFactory` og `callBedrock`, som alle tar
+`(prompt, temperature, systemMessage, signal)` og returnerer `{ tekst, modell }`. En ny
+provider er én funksjon med den signaturen pluss en gren i `callModel` - ikke seks
+kopier slik det var før.
 
 **Én gren er ikke helt sant i dag.** Providernavnet står også som literal i
-`checkProvider` og i fire fallback-strenger, så en femte provider berører flere steder
-enn dette avsnittet lover. Å samle dem i én tabell er en avgrenset opprydding.
+`checkProvider` og i fire fallback-strenger, så en ny provider berører flere steder enn
+dette avsnittet lover. Å samle dem i én tabell er en avgrenset opprydding.
 
 ## macOS: kjør Ollama nativt
 
@@ -296,4 +318,3 @@ Eksempel p modellvalg:
 - `OLLAMA_MODEL=qwen2.5:14b`
 - `OLLAMA_MODEL=llama3.1:8b`
 - `OLLAMA_MODEL=mistral-nemo`
-

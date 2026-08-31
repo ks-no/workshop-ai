@@ -283,9 +283,9 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
 
 /* ── The provider signatures ──────────────────────────────────────────────── */
 //
-// callOllama used to take (prompt, temperature, signal) while callOpenRouter and
-// callBedrock took a systemMessage in third place. callModel passed the system
-// message to all three, so on Ollama - the workshop default - it landed in the
+// callOllama used to take (prompt, temperature, signal) while the remote
+// providers took a systemMessage in third place. callModel passed the system
+// message to every provider, so on Ollama - the workshop default - it landed in the
 // `signal` slot and vanished. SYSTEM_JSON ("return only valid JSON, no code
 // fences") was therefore a no-op for exactly the three callers that parse the
 // reply as JSON.
@@ -299,7 +299,12 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
 // colon. The check is about the order of the names, not the types.
 {
   const source = await readFile("apps/ai-gateway/src/server.ts", "utf8");
-  for (const name of ["callOllama", "callOpenRouter", "callBedrock"]) {
+  check(
+    "Telenor AI Factory har riktig provider-id",
+    /const AI_PROVIDERS = \[[^\]]*"telenor-ai-factory"/.test(source),
+    "AI_PROVIDERS mangler telenor-ai-factory"
+  );
+  for (const name of ["callOllama", "callOpenRouter", "callAiFactory", "callBedrock"]) {
     const match = source.match(new RegExp(`async function ${name}\\(([^)]*)\\)`));
     const parameters = (match?.[1] ?? "")
       .split(",")
@@ -320,6 +325,17 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
     "callModel sender systemMessage til callOllama",
     passedToOllama,
     "kallstedet i callModel utelater systemMessage"
+  );
+  const passedToAiFactory = /callAiFactory\(prompt, temperature, systemMessage, signal\)/.test(source);
+  check(
+    "callModel sender systemMessage til Telenor AI Factory",
+    passedToAiFactory,
+    "kallstedet i callModel utelater systemMessage"
+  );
+  check(
+    "Telenor AI Factory sender cache_salt",
+    /cache_salt:\s*aiFactoryCacheSalt/.test(source),
+    "AI Factory-kallet mangler cache_salt"
   );
 }
 

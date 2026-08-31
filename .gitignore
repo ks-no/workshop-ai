@@ -6,6 +6,7 @@ coverage
 .env.*
 !.env.example
 .idea
+.pnpm-store/
 
 state
 

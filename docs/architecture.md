@@ -115,15 +115,16 @@ tillegg `advarsel` per svar - men bare for resultater som kommer via backend (i 
 `POST /ai/klarsprak` - svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
 
 **Modellkall har timeout.** `AI_TIMEOUT_MS` (default 180000) avbryter og faller tilbake
-i stedet for å henge. Merk at `modellNaaBar` for `openrouter` og `bedrock` bare sjekker
-at nøkler finnes - den sonderer ikke tjenesten, så en feil nøkkel eller en modell IAM-
-policyen ikke tillater rapporteres som tilgjengelig og feiler først på neste kall. For
+i stedet for å henge. Merk at `modellNaaBar` for `openrouter`, `telenor-ai-factory` og `bedrock`
+bare sjekker at nøkler finnes - den sonderer ikke tjenesten, så en feil nøkkel eller
+manglende modelltilgang rapporteres som tilgjengelig og feiler først på neste kall. For
 `bedrock` sjekkes først at AWS-SDK-en lar seg laste, siden den lastes lat: mangler
 pakken, er nøklene uinteressante, og `feil` peker på `pnpm install` i stedet.
 
 **Provider byttes i en kjørende container.** `apps/ai-gateway`'s `GET /admin` bytter
-mellom `mock`/`ollama`/`openrouter`/`bedrock` (og Bedrock-modell) uten restart, lagret
-i `state/ai-provider-override.json`. `AI_PROVIDER` i miljøet er bare startverdien.
+mellom `mock`/`ollama`/`openrouter`/`telenor-ai-factory`/`bedrock` (og Bedrock-modell) uten
+restart, lagret i `state/ai-provider-override.json`. `AI_PROVIDER` i miljøet er bare
+startverdien.
 
 **Alle modellkall spores.** `state/ai-trace.jsonl` får én linje per kall med prompt,
 svar, modell og varighet. Les på `GET /trace` eller `GET /trace.json`

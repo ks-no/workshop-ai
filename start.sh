@@ -378,7 +378,7 @@ active_provider() {
   curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider
 }
 
-# A real call, not just /helse: /helse's own bedrock/openrouter check only
+# A real call, not just /helse: /helse's bedrock/openrouter/telenor-ai-factory check only
 # confirms credentials are *configured*, not that a call actually succeeds - so
 # only an end-to-end call here can tell a working setup from a broken one.
 verify_llm() {
@@ -526,6 +526,11 @@ elif ! $LLM_OK; then
       printf '\n   ⚠️  Leverandøren er satt til OpenRouter, men den svarte ikke. Svarene ser\n'
       printf '       normale ut, men kommer fra maler. Sjekk OPENROUTER_API_KEY, eller\n'
       printf '       bytt leverandør på http://localhost:8082/admin.\n'
+      ;;
+    telenor-ai-factory)
+      printf '\n   ⚠️  Leverandøren er satt til Telenor AI Factory, men den svarte ikke.\n'
+      printf '       Svarene ser normale ut, men kommer fra maler. Sjekk API-nøkkelen\n'
+      printf '       og modelltilgangen på http://localhost:8082/admin.\n'
       ;;
     ollama|"")
       printf '\n   ⚠️  Ollama er IKKE koblet til. Svarene ser normale ut, men kommer fra\n'

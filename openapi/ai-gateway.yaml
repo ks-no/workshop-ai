@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: AI Gateway API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     AI-abstraksjonslag for dialogforslag, oppsummering, klarspråk, intensjonstolkning og dynamisk verktøyoppdagelse.
-    Støtter mock, Ollama, OpenRouter og AWS Bedrock som provider (AI_PROVIDER-env).
+    Støtter mock, Ollama, OpenRouter, Telenor AI Factory og AWS Bedrock som provider (AI_PROVIDER-env).
     Provideren kan byttes i en kjørende instans via /admin, uten restart.
 servers:
   - url: http://localhost:8082
@@ -31,7 +31,7 @@ paths:
                 properties:
                   status: { type: string, example: ok }
                   tjeneste: { type: string, example: ai-gateway }
-                  provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
+                  provider: { type: string, enum: [mock, ollama, openrouter, telenor-ai-factory, bedrock] }
                   modell: { type: string, nullable: true, example: "ollama:qwen2.5:14b" }
                   modellNaaBar:
                     type: boolean
@@ -151,7 +151,7 @@ paths:
       summary: Provider-bytte, som en side
       description: |
         HTML-side som viser aktiv provider og lar deg bytte mellom
-        mock/ollama/openrouter/bedrock (og Bedrock-modell) uten restart.
+        mock/ollama/openrouter/telenor-ai-factory/bedrock (og Bedrock-modell) uten restart.
         Henter status fra /admin/providers.json og bytter via POST /admin/provider.
       responses:
         "200":
@@ -186,7 +186,7 @@ paths:
               type: object
               required: [provider]
               properties:
-                provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
+                provider: { type: string, enum: [mock, ollama, openrouter, telenor-ai-factory, bedrock] }
                 bedrockModel:
                   type: string
                   description: Må finnes i AdminStatus.bedrock.models. Brukes bare når provider=bedrock.
@@ -368,7 +368,7 @@ components:
       type: object
       required: [provider, providers, modellNaaBar]
       properties:
-        provider: { type: string, enum: [mock, ollama, openrouter, bedrock] }
+        provider: { type: string, enum: [mock, ollama, openrouter, telenor-ai-factory, bedrock] }
         providers:
           type: array
           items: { type: string }
@@ -408,6 +408,14 @@ components:
           type: object
           properties:
             model: { type: string }
+            keyConfigured: { type: boolean }
+        telenor-ai-factory:
+          type: object
+          properties:
+            model: { type: string, example: NVIDIA-Nemotron-3-Super-120B-A12B-FP8 }
+            baseUrl:
+              type: string
+              example: https://litellm.apps.s99ct03.aifactory.telenor.com
             keyConfigured: { type: boolean }
     SporsmaalRequest:
       type: object
