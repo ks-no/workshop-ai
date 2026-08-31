@@ -122,7 +122,7 @@
         <h2>Slik henger tjenestene sammen</h2>
         <div class="diagram">
           <svg viewBox="0 0 760 300" width="760" height="300" role="img"
-               aria-label="Arkitektur: nettleseren logger inn hos digdir-mock og snakker med sandbox-backend, som er eneste vei til fiks-simulator og matrikkel-mock og som verifiserer tokenet mot digdir-mocks jwks. ai-gateway, tools-api og process-agent ligger ved siden av.">
+               aria-label="Arkitektur: nettleseren logger inn hos digdir-mock og snakker med sandbox-backend, som er eneste vei til fiks-simulator, pasientjournal-mock og matrikkel-mock, og som verifiserer tokenet mot digdir-mocks jwks. ai-gateway, tools-api og process-agent ligger ved siden av.">
             <defs>
               <marker id="pil" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
                 <path d="M0,0 L10,5 L0,10 z" fill="#8695a6" />
@@ -151,6 +151,10 @@
             <text x="545" y="76" text-anchor="middle" font-size="13" fill="#17232f">fiks-simulator</text>
             <text x="545" y="94" text-anchor="middle" font-size="11" fill="#5b6a7a">8081</text>
 
+            <rect x="470" y="122" width="150" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
+            <text x="545" y="146" text-anchor="middle" font-size="13" fill="#17232f">pasientjournal-mock</text>
+            <text x="545" y="164" text-anchor="middle" font-size="11" fill="#5b6a7a">8087</text>
+
             <rect x="470" y="192" width="150" height="56" rx="8" fill="#ffffff" stroke="#ccd6e0" />
             <text x="545" y="216" text-anchor="middle" font-size="13" fill="#17232f">matrikkel-mock</text>
             <text x="545" y="234" text-anchor="middle" font-size="11" fill="#5b6a7a">8085</text>
@@ -171,6 +175,7 @@
             <g stroke="#8695a6" stroke-width="1.6" fill="none" marker-end="url(#pil)">
               <path d="M152 150 H226" />
               <path d="M382 140 L466 90" />
+              <path d="M382 150 H466" />
               <path d="M382 162 L466 212" />
               <path d="M305 110 V74" />
               <path d="M182 254 H226" />
@@ -239,6 +244,16 @@
                 <code>person-001</code> eier i Storgata 3, så <code>Storgata</code> gir
                 godkjent og <code>Fjøsangerveien</code> avvist. Med en bruker som eier
                 andre steder snur utfallene.</td>
+            </tr>
+            <tr>
+              <td>Søknad om TT-kort</td>
+              <td><code>person-284</code></td>
+              <td class="muted">Legeerklæringen avgjør, aldri inntekten.
+                <code>person-284</code> er 57 år, bor i Bergen og har en gyldig
+                erklæring med ti års varighet. <code>person-329</code> har én som
+                bare varer ett år, <code>person-236</code> én som gikk ut, og
+                <code>person-001</code> har ingen. Eneste case som ber om samtykke
+                til helseopplysninger.</td>
             </tr>
           </tbody>
         </table>
