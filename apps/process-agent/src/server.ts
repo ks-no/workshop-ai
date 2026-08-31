@@ -1321,7 +1321,10 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       state.awaiting = "consent";
       const datakilder = (step.dataKilder as string[] | undefined || []).join(", ") || "nødvendige opplysninger";
       const formaal = String(step.formaal || "behandle saken");
-      messages.push(`For å gå videre trenger jeg samtykke til å hente ${datakilder}. Dette brukes for å ${formaal.toLowerCase()}. Er det greit?`);
+      // Bare første bokstav ned: formålet er forfatterens tekst og kan inneholde
+      // egennavn.
+      const formaalIsetning = formaal.charAt(0).toLowerCase() + formaal.slice(1);
+      messages.push(`For å gå videre trenger jeg samtykke til å hente ${datakilder}. Dette brukes for å ${formaalIsetning}. Er det greit?`);
       return messages;
     }
 
