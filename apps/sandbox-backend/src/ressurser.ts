@@ -14,7 +14,8 @@ import {
   getInntektForPerson,
   evaluateOrdning
 } from "./regler.ts";
-import { regelKreverInntekt, selectOrdningForTjeneste } from "./vilkaar.ts";
+import { samtykkekilderFor, selectOrdningForTjeneste } from "./vilkaar.ts";
+import type { Datakilde } from "../../shared/samtykke.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { buildAdvarsel, tryUpstream } from "./upstream.ts";
@@ -50,17 +51,22 @@ import {
 
 import type { State } from "./types.ts";
 
-// The rule type decides. An ordning assessed on need and capacity - støttekontakt -
-// never reads income, so demanding consent for income would collect a basis the
-// decision does not use. Anything unresolvable keeps the strict requirement.
-function samtykkeForOrdningssjekk(kontekst: RessursContext): string | null {
+// The rule type decides, and it decides for every input the assessment consumes -
+// not just income. samtykkekilderFor is the whole mapping, so a rule that consumes
+// an input cannot be assessed without the consent for it. Anything unresolvable
+// keeps the strict requirement.
+//
+// One code, not a list: no rule needs two today, and pnpm test:vilkaar fails the
+// moment one does - which is when this and the consent block in runRessurs have to
+// widen together.
+function samtykkeForOrdningssjekk(kontekst: RessursContext): Datakilde | null {
   try {
     const ordningId =
       kontekst.sok.get("ordning") ||
       selectOrdningForTjeneste(kontekst.tilstand, kontekst.personId, kontekst.sok.get("tjeneste")!);
     const ordning = kontekst.tilstand.satser.ordninger.find((o: any) => o.id === ordningId);
     if (!ordning) return "inntekt";
-    return regelKreverInntekt[ordning.regel as keyof typeof regelKreverInntekt] ? "inntekt" : null;
+    return samtykkekilderFor(ordning.regel)[0] ?? null;
   } catch {
     return "inntekt";
   }
@@ -128,13 +134,13 @@ export type Ressurs = {
   /** Scope a machine caller must hold. Defaults to SCOPE_LES. */
   scope?: string;
   /** Data source that requires samtykke, or null. Shown in the resource catalogue. */
-  kreverSamtykke?: string | null;
+  kreverSamtykke?: Datakilde | null;
   /**
    * Resolves the consent requirement per request, for resources where it depends on
    * what is being asked for. Overrides kreverSamtykke when present. Fails closed:
    * if the request cannot be resolved, the strictest requirement stands.
    */
-  kreverSamtykkeFor?: (kontekst: RessursContext) => string | null;
+  kreverSamtykkeFor?: (kontekst: RessursContext) => Datakilde | null;
   /** Purpose written to the revisjonslogg alongside the consent basis. */
   formaal?: string;
   /**

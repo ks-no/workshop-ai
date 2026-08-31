@@ -10,7 +10,8 @@
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
 import { alderVed } from "../../shared/alder.ts";
-import { datasettFor, findPerson, getPlasserForTjeneste, harPlassdatasett } from "./state.ts";
+import type { Datakilde } from "../../shared/samtykke.ts";
+import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 import type { Plass } from "../../shared/innbyggerdata.ts";
 
@@ -79,14 +80,44 @@ export type RegelContext = {
   forbehold: string;
 };
 
-// Whether a rule type needs the income basis at all. Record<Regeltype, boolean>
-// makes the compiler demand an answer for every new rule type, so nobody adds one
-// that quietly triggers an income lookup it does not use.
-export const regelKreverInntekt: Record<Regeltype, boolean> = {
-  INNTEKTSGRENSE: true,
-  MAKS_ANDEL_AV_INNTEKT: true,
-  TJENESTEBEHOV: false
+/**
+ * What an assessment consumes, per rule type.
+ *
+ * One table rather than one per input: Record<Regeltype, …> demands a row for
+ * every new rule type, and the named columns demand an answer for every input.
+ * Separate maps let a new rule answer about one input and stay silent about the
+ * rest, and an input nobody has answered for is an input with no consent gate.
+ */
+export type Regelbehov = {
+  /** The household's income basis, fetched from Fiks. */
+  inntekt: boolean;
+  /** A plass in a tjeneste dataset. */
+  plass: boolean;
 };
+
+export const regelBehov: Record<Regeltype, Regelbehov> = {
+  INNTEKTSGRENSE:        { inntekt: true,  plass: true },
+  MAKS_ANDEL_AV_INNTEKT: { inntekt: true,  plass: true },
+  TJENESTEBEHOV:         { inntekt: false, plass: false }
+};
+
+// Hvilken datakilde hver hentede inngang krever samtykke til. Samtykkeporten i
+// ressurser.ts leser denne, slik at en regel som forbruker en inngang ikke kan
+// vurderes uten samtykket for den. `plass` er null fordi en barnehageplass ikke
+// er samtykkebelagt i sandkassen.
+const samtykkeForBehov: Record<keyof Regelbehov, Datakilde | null> = {
+  inntekt: "inntekt",
+  plass: null
+};
+
+/** The data sources a rule type needs consent for, in table order. */
+export function samtykkekilderFor(regeltype: Regeltype): Datakilde[] {
+  const behov = regelBehov[regeltype];
+  return (Object.keys(samtykkeForBehov) as (keyof Regelbehov)[])
+    .filter((inngang) => behov[inngang])
+    .map((inngang) => samtykkeForBehov[inngang])
+    .filter((kilde): kilde is Datakilde => kilde !== null);
+}
 
 // One handler per rule type in data/satser.json. A new rule type is one entry
 // here, the same way a new resource is one entry in ressurser.ts.
@@ -202,9 +233,8 @@ export function selectOrdningForTjeneste(
     const gyldige = [...new Set(satser.ordninger.map((o) => o.tjeneste))].join(", ");
     throw new Error(`Ingen ordning for tjenesten ${tjeneste}. Gyldige: ${gyldige}.`);
   }
-  // Only a tjeneste with a plass dataset can be measured against a plass.
   const treff = kandidater.find(
-    (ordning) => harPlassdatasett(ordning.tjeneste)
+    (ordning) => regelBehov[ordning.regel].plass
       && plasserSomKvalifiserer(tilstand, personId, ordning, satser).length > 0
   );
   // No match still returns an ordning, so the citizen gets the ordinary "no place in
