@@ -50,10 +50,13 @@ export class TokenError extends Error {
   }
 }
 
+/** What createVerifier returns. Named so a caller can take one as a parameter. */
+export type Verifiserer = (token: string) => Promise<VerifiedToken>;
+
 /** Clock skew tolerance. Small on purpose - everything here runs on one machine. */
 const slackSeconds = 10;
 
-export function createVerifier(valg: VerifierOptions) {
+export function createVerifier(valg: VerifierOptions): Verifiserer {
   // Cached by kid. digdir-mock persists its key across restarts, but --reset
   // rotates it, so an unknown kid triggers exactly one refetch before we give up.
   // Refetching on every unknown kid would turn a bad token into a way to make this
