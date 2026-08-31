@@ -79,5 +79,7 @@ Begge står som kommentar i koden, på ett sted hver, slik at de er lette å fin
   «Tokenet er signert med en nøkkel utstederen ikke kjenner». Fiks:
   `docker compose restart tools-api process-agent sandbox-backend fiks-simulator`.
 
-Verifiseringen (`src/verify.ts`) deles med `sandbox-backend` og `fiks-simulator`, så det
-finnes bare én implementasjon av «er dette tokenet gyldig».
+Verifiseringen (`src/verify.ts`) deles med `sandbox-backend`, `fiks-simulator` og
+`pasientjournal-mock`, så det finnes bare én implementasjon av «er dette tokenet
+gyldig». `src/tokenport.ts` er neste lag: porten en ressursserver setter foran en
+maskinflate, delt av de to som har en slik flate.

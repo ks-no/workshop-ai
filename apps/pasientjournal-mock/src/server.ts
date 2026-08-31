@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { IncomingMessage } from "node:http";
 
-import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
+import { createVerifier } from "../../digdir-mock/src/verify.ts";
+import { createMaskinportenPort, TokenportError } from "../../digdir-mock/src/tokenport.ts";
 import { cors, svarhjelpere } from "../../shared/http.ts";
 import { feilmelding } from "../../shared/errors.ts";
 import { isGyldigFoedselsnummer } from "../../shared/foedselsnummer.ts";
@@ -36,11 +37,15 @@ const authEnforce = process.env.AUTH_ENFORCE !== "false";
 // `ks:fiks:`-familien: README.md her i mappen.
 const SCOPE_LES = "pasientjournal:legeerklaering.read";
 
+// Ett navn, fordi de to må være like: --resource i 401-meldingen er det tokenet
+// skal være myntet for.
+const AUDIENCE = "pasientjournal-mock";
+
 const verifyToken = createVerifier({
   digdirBaseUrl,
   maskinportenIssuer: digdirIssuer,
   idportenIssuer: `${digdirIssuer}/idporten`,
-  audience: "pasientjournal-mock"
+  audience: AUDIENCE
 });
 
 const { jsonResponse, textResponse } = svarhjelpere({
@@ -93,75 +98,22 @@ async function lesJournal(): Promise<Journal> {
 // ikke mens tjenesten kjører; `node --watch` starter prosessen på nytt om den gjør.
 const journalPromise = lesJournal();
 
-// KNOWN DUPLICATE, and known future work. This gate is near word-for-word the same
-// as the one in apps/fiks-simulator/src/server.ts - only the scope, the realm and
-// the error shape are genuinely per service. It belongs in apps/digdir-mock beside
-// verify.ts, which owns the protocol and which both services already import from,
-// so hoisting it adds no new arrow to the import graph.
+// The gate itself lives in digdir-mock beside verify.ts, shared with
+// fiks-simulator. Only the journal's own error shape stays here.
+const requireMaskinporten = createMaskinportenPort({
+  verifiser: verifyToken,
+  realm: AUDIENCE,
+  authEnforce
+});
+
 /**
  * Maskinporten for det ene scopet. Et ID-porten-token avvises: innbyggeren beviser
  * hvem hen er overfor sandbox-backend, og sandbox-backend henter her som maskin
  * etter at samtykkeporten har åpnet. Skillet mellom hjemmel og aktør er hele
  * poenget, og det er det samme skillet fiks-simulator håndhever.
  */
-async function requireHjemmel(request: IncomingMessage): Promise<void> {
-  if (!authEnforce) return;
-
-  const header = request.headers.authorization;
-  if (!header) {
-    throw new JournalError(
-      "Journalflaten krever et Maskinporten-token. Hent et med "
-      + `scripts/token.ts --maskinporten ${SCOPE_LES} --resource pasientjournal-mock.`,
-      401,
-      "MANGLER_TOKEN",
-      { "WWW-Authenticate": 'Bearer realm="pasientjournal-mock", error="invalid_token"' }
-    );
-  }
-  const [ordning, token] = header.split(" ");
-  if (!/^bearer$/i.test(ordning || "") || !token) {
-    throw new JournalError(
-      "Authorization-headeren må være på formen «Bearer <token>».",
-      401,
-      "UGYLDIG_TOKEN",
-      { "WWW-Authenticate": 'Bearer realm="pasientjournal-mock", error="invalid_token"' }
-    );
-  }
-
-  let verified;
-  try {
-    verified = await verifyToken(token);
-  } catch (feil) {
-    if (feil instanceof TokenError) {
-      throw new JournalError(
-        feil.message,
-        feil.status,
-        feil.status === 401 ? "UGYLDIG_TOKEN" : "UTSTEDER_NEDE",
-        feil.status === 401
-          ? { "WWW-Authenticate": 'Bearer realm="pasientjournal-mock", error="invalid_token"' }
-          : {}
-      );
-    }
-    throw feil;
-  }
-
-  if (verified.utsteder !== "maskinporten") {
-    throw new JournalError(
-      "Journalflaten er en maskin-til-maskin-flate. Et personlig ID-porten-token "
-      + "gir ikke hjemmel her, uansett sikkerhetsnivå.",
-      403,
-      "KREVER_MASKINPORTEN"
-    );
-  }
-
-  const scopes = String(verified.krav.scope || "").split(" ").filter(Boolean);
-  if (!scopes.includes(SCOPE_LES)) {
-    throw new JournalError(
-      `Klienten ${verified.krav.client_id} mangler scope ${SCOPE_LES} `
-      + `(har: ${scopes.join(" ") || "ingen"}).`,
-      403,
-      "MANGLER_SCOPE"
-    );
-  }
+function requireHjemmel(request: IncomingMessage) {
+  return requireMaskinporten(request, { scope: SCOPE_LES, flate: "Journalflaten" });
 }
 
 /**
@@ -273,7 +225,7 @@ const server = createServer(async (request, response) => {
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    if (error instanceof JournalError) {
+    if (error instanceof JournalError || error instanceof TokenportError) {
       jsonResponse(
         response,
         error.status,

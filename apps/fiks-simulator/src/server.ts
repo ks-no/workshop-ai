@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
-import { createVerifier, TokenError } from "../../digdir-mock/src/verify.ts";
+import { createVerifier } from "../../digdir-mock/src/verify.ts";
+import { createMaskinportenPort, TokenportError } from "../../digdir-mock/src/tokenport.ts";
 // Masking reused rather than reimplemented: fiks-simulator reads
 // data/personer.json itself, so it is a second data layer that must mask on its
 // own way out - sandbox-backend's masking cannot cover it.
@@ -71,11 +72,15 @@ const SCOPE_FOLKEREGISTER = "ks:fiks:folkeregister";
 // lookup, and a register token must not open the door letters leave through.
 const SCOPE_SVARUT = "ks:fiks:svarut";
 
+// Ett navn, fordi de to må være like: --resource i 401-meldingen er det tokenet
+// skal være myntet for.
+const AUDIENCE = "fiks-simulator";
+
 const verifyToken = createVerifier({
   digdirBaseUrl,
   maskinportenIssuer: digdirIssuer,
   idportenIssuer: `${digdirIssuer}/idporten`,
-  audience: "fiks-simulator"
+  audience: AUDIENCE
 });
 
 // Its only call to the backend is the audit log, so its hjemmel is exactly that
@@ -423,14 +428,7 @@ function computeBeregning(body: BeregningKropp, personer: Person[], inntekter: I
   return { feilmeldinger, deltakere, personerResponse };
 }
 
-/**
- * Maskinporten on the register surface. Throws a FiksFeil the request handler maps,
- * so the shape is Fiks' own and not sandbox-backend's.
- *
- * Real Fiks would also check which organisation the consumer claim names, and
- * whether that municipality has a data-processing agreement for the register. We
- * check the scope and record the client, which is the part the workshop is about.
- */
+/** Fiks' own error shape, so the answer is Fiks' and not sandbox-backend's. */
 class FiksError extends Error {
   status: number;
   kode: string;
@@ -444,86 +442,22 @@ class FiksError extends Error {
   }
 }
 
-// KNOWN DUPLICATE, and known future work. This gate is near word-for-word the same
-// as the one in apps/pasientjournal-mock/src/server.ts - only the scope, the realm and
-// the error shape are genuinely per service. It belongs in apps/digdir-mock beside
-// verify.ts, which owns the protocol and which both services already import from,
-// so hoisting it adds no new arrow to the import graph.
-/**
- * Maskinporten for one named scope. `flate` names the surface in the 401 so the
- * message says which door was locked, not just that one was.
- */
-async function requireMaskinportenHjemmel(
-  request: IncomingMessage,
-  scope: string,
-  flate: string
-): Promise<{ clientId: string; consumer: string | null } | null> {
-  if (!authEnforce) return null;
-
-  const header = request.headers.authorization;
-  if (!header) {
-    throw new FiksError(
-      `${flate} i Fiks krever et Maskinporten-token. ` +
-      `Hent et med scripts/token.ts --maskinporten ${scope} --resource fiks-simulator.`,
-      401,
-      "MANGLER_TOKEN",
-      { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' }
-    );
-  }
-  const [ordning, token] = header.split(" ");
-  if (!/^bearer$/i.test(ordning || "") || !token) {
-    throw new FiksError(
-      "Authorization-headeren må være på formen «Bearer <token>».",
-      401,
-      "UGYLDIG_TOKEN",
-      { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' }
-    );
-  }
-
-  let verified;
-  try {
-    verified = await verifyToken(token);
-  } catch (feil) {
-    if (feil instanceof TokenError) {
-      throw new FiksError(feil.message, feil.status, feil.status === 401 ? "UGYLDIG_TOKEN" : "UTSTEDER_NEDE",
-        feil.status === 401 ? { "WWW-Authenticate": 'Bearer realm="fiks-simulator", error="invalid_token"' } : {});
-    }
-    throw feil;
-  }
-
-  // A citizen's ID-porten token cannot open these. They are machine-to-machine
-  // surfaces: the hjemmel belongs to the municipality, not to whoever happens to be
-  // logged in. sandbox-backend holds the verified citizen token, decides, and then
-  // acts here as a machine with `aktor` naming the citizen - which is exactly the
-  // hjemmel/aktør distinction the sandbox exists to show.
-  if (verified.utsteder !== "maskinporten") {
-    throw new FiksError(
-      `${flate} er en maskin-til-maskin-flate. Et personlig ID-porten-token ` +
-      "gir ikke hjemmel her, uansett sikkerhetsnivå.",
-      403,
-      "KREVER_MASKINPORTEN"
-    );
-  }
-
-  const scopes = String(verified.krav.scope || "").split(" ").filter(Boolean);
-  if (!scopes.includes(scope)) {
-    throw new FiksError(
-      `Klienten ${verified.krav.client_id} mangler scope ${scope} ` +
-      `(har: ${scopes.join(" ") || "ingen"}).`,
-      403,
-      "MANGLER_SCOPE"
-    );
-  }
-
-  return {
-    clientId: verified.krav.client_id || "ukjent",
-    consumer: verified.krav.consumer?.ID || null
-  };
-}
+// The gate itself lives in digdir-mock beside verify.ts, shared with
+// pasientjournal-mock. `flate` names the surface in the 401 so the message says
+// which door was locked.
+//
+// Real Fiks would also check which organisation the consumer claim names, and
+// whether that municipality has a data-processing agreement for the register. We
+// check the scope and record the client, which is the part the workshop is about.
+const requireMaskinporten = createMaskinportenPort({
+  verifiser: verifyToken,
+  realm: AUDIENCE,
+  authEnforce
+});
 
 /** The register surface keeps its own name at the call sites. */
 function requireRegisterHjemmel(request: IncomingMessage) {
-  return requireMaskinportenHjemmel(request, SCOPE_REGISTER, "Registerflaten");
+  return requireMaskinporten(request, { scope: SCOPE_REGISTER, flate: "Registerflaten" });
 }
 
 /**
@@ -545,19 +479,19 @@ function requireGyldigFnr(fnr: string, oppgitt: unknown): void {
 }
 
 const requireSamtykkeHjemmel = (request: IncomingMessage) =>
-  requireMaskinportenHjemmel(request, SCOPE_SAMTYKKE, "Samtykkeflaten");
+  requireMaskinporten(request, { scope: SCOPE_SAMTYKKE, flate: "Samtykkeflaten" });
 
 const requireOppgaveHjemmel = (request: IncomingMessage) =>
-  requireMaskinportenHjemmel(request, SCOPE_OPPGAVE, "Oppgaveflaten");
+  requireMaskinporten(request, { scope: SCOPE_OPPGAVE, flate: "Oppgaveflaten" });
 
 const requireMeldingHjemmel = (request: IncomingMessage) =>
-  requireMaskinportenHjemmel(request, SCOPE_MELDING, "Meldingsflaten");
+  requireMaskinporten(request, { scope: SCOPE_MELDING, flate: "Meldingsflaten" });
 
 const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
-  requireMaskinportenHjemmel(request, SCOPE_FOLKEREGISTER, "Folkeregisterflaten");
+  requireMaskinporten(request, { scope: SCOPE_FOLKEREGISTER, flate: "Folkeregisterflaten" });
 
 const requireSvarutHjemmel = (request: IncomingMessage) =>
-  requireMaskinportenHjemmel(request, SCOPE_SVARUT, "SvarUt-flaten");
+  requireMaskinporten(request, { scope: SCOPE_SVARUT, flate: "SvarUt-flaten" });
 
 // The masking in skjerming.ts that sandbox-backend's readState() applies, applied
 // here too. Without it a machine with register hjemmel would receive an
@@ -1275,7 +1209,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
     jsonResponse(response, 404, { feil: "Fant ikke endepunkt." });
   } catch (error) {
-    if (error instanceof FiksError) {
+    if (error instanceof FiksError || error instanceof TokenportError) {
       // Fiks' own error shape: a kode alongside the melding, the way the register
       // API answers. Not sandbox-backend's shape, and not Tomcat HTML.
       jsonResponse(response, error.status, {
