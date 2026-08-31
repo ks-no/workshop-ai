@@ -278,7 +278,7 @@ function escapeHtml(tekst: unknown): string {
 const navnPerOppgave: Record<string, string> = {
   sporsmaal: "spørsmål",
   klarsprak: "klarspråk",
-  "velg-verktoy": "velg-verktøy"
+  "velg-verktoy": "velg verktøy"
 };
 
 const oppgavenavn = (task: string): string => navnPerOppgave[task] || task;
