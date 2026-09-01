@@ -68,6 +68,22 @@ om».
 ## Bruk av KI utviklingsverktøy
 Dette er en KI-workshop, vi oppfordrer til bruk av ki-verktøy. Mangler du tilgang på KI verktøy så send en forespørsel til [bard.saari@ksdigital.no](mailto:baard.saari@ksdigital.no)
 
+## Digital lommebok
+
+Et av sporene på hackathonet handler om digital lommebok. Det er løsningen som følger
+av EUs eIDAS 2.0-forordning, og som lar innbyggeren lagre og dele digitale bevis om
+seg selv.
+
+Tanken er enkel: i stedet for at innbyggeren fyller ut et skjema med opplysninger det
+offentlige alt har, viser hen fram et digitalt bevis rett fra lommeboken - og velger
+selv hva som deles, og med hvem.
+
+Digitaliseringsdirektoratet deltar med utviklere og fagressurser. De holder et kort
+innlegg om digital lommebok og sandkassen sin, og er tilgjengelige gjennom hele
+hackathonet for team som vil teste utstedelse, deling og verifisering av digitale
+bevis. Ingenting i denne sandkassen etterligner lommeboken, så det er Digdirs egen du
+bruker - [`docs/bygg-selv.md`](bygg-selv.md) har rollene og lenkene videre.
+
 ## Én ting det er verdt å vite om demoene
 
 Sandkassen kommer med en chat, en agent og en stegvis klient. De ser ut som et svar på
@@ -97,8 +113,11 @@ lete etter data vi ikke har tenkt på:
 
 - <https://data.norge.no/> - Felles datakatalog: datasett, API-er, begreper og
   informasjonsmodeller fra hele offentlig sektor
-- <https://docs.digdir.no/> - ID-porten og Maskinporten, som `digdir-mock` etterligner.
-  Samme sted ligger dokumentasjonen for Digital lommebok
+- <https://docs.digdir.no/> - ID-porten og Maskinporten, som `digdir-mock` etterligner
+- <https://samarbeid.digdir.no/digital-lommebok/digital-lommebok/2897> - Digital
+  lommebok, som ingenting her etterligner fordi Digdir driver sin egen sandkasse for
+  den. Den tekniske dokumentasjonen ligger på
+  <https://docs.digdir.no/docs/lommebok/lommebok_om.html>
 - <https://developers.fiks.ks.no/> - KS Fiks, som `fiks-simulator` etterligner:
   registeroppslag, kontaktregisteret og SvarUt
 - <https://www.geonorge.no/> - Kartverkets katalog over kart- og eiendomsdata.

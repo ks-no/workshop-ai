@@ -3,6 +3,23 @@
 Forvaltningstermene i dokumentasjonen, forklart slik de brukes i sandkassen - kortversjonen,
 ikke jussen. Alfabetisk.
 
+**brukersted** - tjenesten som mottar et digitalt bevis fra en digital lommebok og
+verifiserer det. Digdirs dokumentasjon er på nynorsk og skriver «brukarstad»;
+«verifikator» brukes om det samme. Ikke i sandkassen - se
+[`docs/bygg-selv.md`](bygg-selv.md).
+
+**digital lommebok** - appen der innbyggeren lagrer digitale bevis om seg selv og selv
+velger hva som deles, og med hvem. Følger av eIDAS 2.0. Ingenting i sandkassen
+etterligner den; Digdir driver sin egen sandkasse for lommeboken, og
+[`docs/bygg-selv.md`](bygg-selv.md) forklarer hvordan du kobler deg på.
+
+**digitalt bevis** - en opplysning om innbyggeren, utstedt og signert av noen som har
+hjemmel til å si den, og som innbyggeren kan vise fram selv fra en digital lommebok.
+Ikke i sandkassen - se [`docs/bygg-selv.md`](bygg-selv.md).
+
+**eIDAS 2.0** - EU-forordningen som pålegger medlemslandene å tilby digital lommebok, og
+som avgjør hva bevisene i den skal se ut som.
+
 **Fiks** - KS' plattform for felleskomponentene kommunene deler: registeroppslag, samtykke,
 oppgaver og utsending. I sandkassen etterlignes hele plattformen av `fiks-simulator` (`:8081`).
 
@@ -37,6 +54,10 @@ REST. Eierskap står ikke der - se grunnbok.
 **MinID** - den enkleste elektroniske ID-en, og den første man kan få: den kan bestilles fra
 det året man fyller 13. Derfor kan ingen testperson under 13 logge inn i sandkassen.
 
+**PID** - identitetsbeviset i en digital lommebok: det som sier hvem innbyggeren er, og
+det de andre bevisene henger på. Ikke i sandkassen - der er det ID-porten som svarer på
+det spørsmålet.
+
 **rettslig handleevne** - å kunne opptre på egen hånd overfor forvaltningen, fra fylte 18.
 En 15-åring kan logge inn, men er bare part i saken: å starte en prosess gir `403` som
 navngir de foresatte som kan være avsender. Regelen ligger i `apps/shared/handleevne.ts`.
@@ -53,6 +74,10 @@ Kvitteringen vises i `/chat`.
 
 **Tenor** - Skatteetatens testdatasøk, kilden til den syntetiske befolkningen. Et syntetisk
 fødselsnummer kjennes igjen på at 80 er lagt til måneden. Råuttrekkene ligger i `data/tenor/`.
+
+**utsteder** - den som lager et digitalt bevis og signerer det, slik at et brukersted kan
+stole på det uten å spørre utstederen. Digdir skriver «utstedar». Ikke i sandkassen - se
+[`docs/bygg-selv.md`](bygg-selv.md).
 
 ---
 

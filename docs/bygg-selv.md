@@ -20,6 +20,7 @@ sandkassen ennå, start med [`docs/deltakerstart.md`](deltakerstart.md).
 - [Helt ny tjeneste](#helt-ny-tjeneste)
 - [Sjekker du kan kjøre underveis](#sjekker-du-kan-kjøre-underveis)
 - [Bruk Altinn Studio](#bruk-altinn-studio)
+- [Bruk digital lommebok](#bruk-digital-lommebok)
 - [Neste steg](#neste-steg)
 
 ## Egen frontend, egen port
@@ -265,6 +266,42 @@ Frontend i Altinn Studio appen kan byttes ut med noe eget.
 
 En demo-implementasjon av en app som er tenkt til å kjøre i parallell med sandkassen utvikles på https://altinn.studio/repos/ttd/ks-hackathon-demo og kan stjeles rått eller brukes til inspirasjon.
 Merk at du må ha en bruker i Altinn Studio for å få tilgang - du registrerer deg første gang ved å logge inn via Ansattporten med BankID eller MinID.
+
+---
+
+## Bruk digital lommebok
+
+Digital lommebok er løsningen som følger av EUs eIDAS 2.0-forordning, og som lar
+innbyggeren lagre og dele digitale bevis om seg selv. Tanken er den samme som
+spørsmålet om skjemaet i [`docs/oppdraget.md`](oppdraget.md): i stedet for at
+innbyggeren fyller ut opplysninger det offentlige alt har, viser hen fram et bevis
+rett fra lommeboken - og velger selv hva som deles, og med hvem.
+
+Tre roller er alt vokabularet du trenger for å komme i gang:
+
+- **utstederen** lager beviset og signerer det
+- **lommeboken** holder beviset, hos innbyggeren
+- **brukerstedet** mottar beviset og verifiserer det
+
+Digdirs egen dokumentasjon er på nynorsk og skriver «utstedar» og «brukarstad», og
+«verifikator» brukes om brukerstedet. Kjenner du de tre ordene, finner du resten selv.
+
+**Ingenting i denne sandkassen etterligner lommeboken.** Digdir driver en egen
+nasjonal sandkasse for den, med demo-lommebok, utsteder og brukersted, og du
+registrerer deg der selv. Skal du bruke lommeboken, snakker du altså med Digdirs
+sandkasse - ikke med noe som kjører på maskinen din herfra.
+
+**Digdir er til stede på hackathonet**, med utviklere og fagressurser. De holder et
+kort innlegg om lommeboken og sandkassen, og er tilgjengelige gjennom hele
+arrangementet for team som vil teste utstedelse, deling og verifisering. Det er den
+korteste veien inn, kortere enn å lese seg fram.
+
+Vil du lese:
+
+- <https://samarbeid.digdir.no/digital-lommebok/digital-lommebok/2897> - prosjektet,
+  bakgrunnen og kontaktpersonene i Digdir
+- <https://docs.digdir.no/docs/lommebok/lommebok_om.html> - den tekniske
+  dokumentasjonen, blant annet hvordan du kommer i gang som utsteder eller brukersted
 
 ---
 
