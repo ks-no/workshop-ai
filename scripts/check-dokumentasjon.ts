@@ -255,12 +255,8 @@ const EXCEPTIONS: { file: string; text: string; reason: string }[] = [
 
 // --- check 1: numbers in prose --------------------------------------------
 
-/*
- * `git ls-files` reads the index, which can name a file the disk no longer has -
- * exactly the state a half-staged rename leaves behind. Reading it blind crashed
- * with ENOENT on apps/mcp-services/README.md mid-rename, which reads like a bug in
- * a doc rather than an unstaged `git mv`. Skip and say so.
- */
+// `git ls-files` reads the index, so it can name a file the disk no longer has -
+// the state a half-staged rename leaves behind. Skip those and say so.
 const tracked = execFileSync("git", ["ls-files", "*.md"], { encoding: "utf8" })
   .split("\n")
   .filter(Boolean);
@@ -396,7 +392,7 @@ for (const file of markdown) {
     failures.push(
       `${file}: verktøylista er ute av takt med apps/tools-api/src/server.ts ` +
       `(${toolNames.size} verktøy). Mangler: ${missing.join(", ")}. ` +
-      `Rett listen, eller slett den og pek på GET /mcp/tools.`
+      `Rett listen, eller slett den og pek på GET /verktoy.`
     );
   }
 }

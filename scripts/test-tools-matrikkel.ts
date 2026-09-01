@@ -3,9 +3,9 @@ import { createServer } from "node:http";
 import { feilmelding } from "../apps/shared/errors.ts";
 
 const matrikkelPort = 18085;
-const mcpMockPort = 18083;
-const mcpLivePort = 18084;
-const mcpHybridPort = 18087;
+const toolsMockPort = 18083;
+const toolsLivePort = 18084;
+const toolsHybridPort = 18087;
 const geonorgePort = 18086;
 
 function wait(ms: number): Promise<void> {
@@ -99,7 +99,7 @@ function createFakeGeonorgeServer() {
 }
 
 async function invoke(port: number, name: string, args: Record<string, unknown> = {}): Promise<any> {
-  const svar = await fetch(`http://127.0.0.1:${port}/mcp/tools/invoke`, {
+  const svar = await fetch(`http://127.0.0.1:${port}/verktoy/invoke`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, arguments: args })
@@ -112,7 +112,7 @@ async function invoke(port: number, name: string, args: Record<string, unknown> 
   return data.result;
 }
 
-function startMcp(port: number, extraEnv: Record<string, string> = {}) {
+function startTools(port: number, extraEnv: Record<string, string> = {}) {
   return spawn("node", ["apps/tools-api/src/server.ts"], {
     env: {
       ...process.env,
@@ -134,65 +134,65 @@ async function kjor() {
   const geonorge = createFakeGeonorgeServer();
   await new Promise<void>((resolve) => { geonorge.listen(geonorgePort, () => resolve()); });
 
-  const mcpMock = startMcp(mcpMockPort);
-  const mcpLive = startMcp(mcpLivePort, {
+  const toolsMock = startTools(toolsMockPort);
+  const toolsLive = startTools(toolsLivePort, {
     MATRIKKEL_MODE: "live",
     GEONORGE_ADRESSE_API_BASE_URL: `http://127.0.0.1:${geonorgePort}`
   });
-  const mcpHybrid = startMcp(mcpHybridPort, {
+  const toolsHybrid = startTools(toolsHybridPort, {
     MATRIKKEL_MODE: "hybrid",
     GEONORGE_ADRESSE_API_BASE_URL: `http://127.0.0.1:${geonorgePort}`
   });
 
   try {
     await waitFor(`http://127.0.0.1:${matrikkelPort}/helse`);
-    await waitFor(`http://127.0.0.1:${mcpMockPort}/helse`);
-    await waitFor(`http://127.0.0.1:${mcpLivePort}/helse`);
-    await waitFor(`http://127.0.0.1:${mcpHybridPort}/helse`);
+    await waitFor(`http://127.0.0.1:${toolsMockPort}/helse`);
+    await waitFor(`http://127.0.0.1:${toolsLivePort}/helse`);
+    await waitFor(`http://127.0.0.1:${toolsHybridPort}/helse`);
 
-    const gate = await invoke(mcpMockPort, "matrikkel_finn_veger", { gate: "Storgata" });
+    const gate = await invoke(toolsMockPort, "matrikkel_finn_veger", { gate: "Storgata" });
     assert(gate.adressenavn === "Storgata", "matrikkel_finn_veger returnerte ikke Storgata");
 
-    const eiendom = await invoke(mcpMockPort, "matrikkel_hent_eiendom", { matrikkelId: "matr-storg-003" });
+    const eiendom = await invoke(toolsMockPort, "matrikkel_hent_eiendom", { matrikkelId: "matr-storg-003" });
     assert(eiendom.matrikkelId === "matr-storg-003", "matrikkel_hent_eiendom returnerte feil eiendom");
 
-    const adresseEiendom = await invoke(mcpMockPort, "matrikkel_hent_eiendom", { adresse: "Storgata 5" });
+    const adresseEiendom = await invoke(toolsMockPort, "matrikkel_hent_eiendom", { adresse: "Storgata 5" });
     assert(adresseEiendom.adresse === "Storgata 5", "matrikkel_hent_eiendom fant ikke riktig adresse");
 
-    const eiere = await invoke(mcpMockPort, "matrikkel_hent_eiere", { matrikkelId: "matr-storg-003" });
+    const eiere = await invoke(toolsMockPort, "matrikkel_hent_eiere", { matrikkelId: "matr-storg-003" });
     assert(Array.isArray(eiere.eiere), "matrikkel_hent_eiere mangler eierliste");
     assert(eiere.eiere.includes("person-001"), "forventet eier person-001 mangler");
 
-    const adresseEiere = await invoke(mcpMockPort, "matrikkel_hent_eiere", { adresse: "Storgata 5" });
+    const adresseEiere = await invoke(toolsMockPort, "matrikkel_hent_eiere", { adresse: "Storgata 5" });
     assert(Array.isArray(adresseEiere.eiere), "matrikkel_hent_eiere via adresse mangler eierliste");
 
-    const liveGater = await invoke(mcpLivePort, "matrikkel_finn_veger", { gate: "Bønesheien", all: true, limit: 10 });
+    const liveGater = await invoke(toolsLivePort, "matrikkel_finn_veger", { gate: "Bønesheien", all: true, limit: 10 });
     assert(Array.isArray(liveGater) && liveGater.some((g) => g.adressenavn === "Bønesheien"), "Live gateoppslag fant ikke Bønesheien");
 
-    const liveEiendom = await invoke(mcpLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10" });
+    const liveEiendom = await invoke(toolsLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10" });
     assert(liveEiendom.adresse === "Bønesheien 10", "Live adresseoppslag returnerte feil adresse");
     assert(liveEiendom.gnr === 20 && liveEiendom.bnr === 843, "Live adresseoppslag returnerte feil gnr/bnr");
     assert(liveEiendom.syntetisk === false, "Live adresseoppslag skal markeres som ikke-syntetisk");
 
-    const liveEiendomMedPoststed = await invoke(mcpLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10, 5154 BØNES" });
+    const liveEiendomMedPoststed = await invoke(toolsLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10, 5154 BØNES" });
     assert(liveEiendomMedPoststed.adresse === "Bønesheien 10", "Live adresseoppslag med poststed/postnummer traff ikke riktig adresse");
 
-    const liveEiendomMedPostnummerFoerst = await invoke(mcpLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10 5154 BØNES" });
+    const liveEiendomMedPostnummerFoerst = await invoke(toolsLivePort, "matrikkel_hent_eiendom", { adresse: "Bønesheien 10 5154 BØNES" });
     assert(liveEiendomMedPostnummerFoerst.adresse === "Bønesheien 10", "Live adresseoppslag med ekstra adresseformat traff ikke riktig adresse");
 
-    const liveEiere = await invoke(mcpLivePort, "matrikkel_hent_eiere", { adresse: "Bønesheien 10" });
+    const liveEiere = await invoke(toolsLivePort, "matrikkel_hent_eiere", { adresse: "Bønesheien 10" });
     assert(Array.isArray(liveEiere.eiere) && liveEiere.eiere.length === 0, "Live eieroppslag skal returnere tom eierliste");
     assert(liveEiere.syntetisk === false, "Live eieroppslag skal markeres som ikke-syntetisk");
     assert(String(liveEiere.merknad || "").includes("ikke eierinformasjon"), "Live eieroppslag mangler forklarende merknad");
 
-    const hybridEiendom = await invoke(mcpHybridPort, "matrikkel_hent_eiendom", { adresse: "Storgata 5" });
+    const hybridEiendom = await invoke(toolsHybridPort, "matrikkel_hent_eiendom", { adresse: "Storgata 5" });
     assert(hybridEiendom.matrikkelId === "matr-storg-005", "Hybrid adresseoppslag skulle falt tilbake til mock for Storgata 5");
 
     console.log("test:tools-matrikkel OK");
   } finally {
-    mcpHybrid.kill("SIGTERM");
-    mcpLive.kill("SIGTERM");
-    mcpMock.kill("SIGTERM");
+    toolsHybrid.kill("SIGTERM");
+    toolsLive.kill("SIGTERM");
+    toolsMock.kill("SIGTERM");
     matrikkel.kill("SIGTERM");
     await new Promise((resolve) => geonorge.close(resolve));
   }

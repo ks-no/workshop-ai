@@ -69,7 +69,7 @@ Spesifikasjonen har signaturene. Dette er det den ikke sier:
 
 ## Tools API (port 8083)
 
-`GET /mcp/tools` er fasit og svarer med den levende katalogen. Tabellen under er der for
+`GET /verktoy` er fasit og svarer med den levende katalogen. Tabellen under er der for
 den som leser uten å kjøre stacken.
 
 ### Verktøy

@@ -290,7 +290,7 @@ Tjenestene, portene og rollene deres ligger i `apps/shared/tjenester.json`, og
 <http://localhost:3001> viser dem med levende helsestatus og en lenke rett inn i
 API-utforskeren for hver.
 
-Tre ting tabellen ikke sier, og som er verdt å vite før noe feiler:
+To ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 
 - **`digdir-mock` (`8086`) utsteder alle tokens.** Er den nede, svarer hvert autentisert
   kall 401 mens `docker compose ps` ser helt frisk ut, fordi tokenfeilen svelges i
@@ -298,9 +298,6 @@ Tre ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 - **`matrikkel-mock` (`8085`) er kjerne, selv om den ser valgfri ut.** Uten den feiler
   alle `matrikkel_*`-verktøy og hele `fartsdempende-tiltak`-casen med «fetch failed»,
   mens alt annet ser normalt ut.
-- **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`.
-  `/mcp/*`-stiene står igjen - de er wire-format. Navnehistorikken står i
-  `apps/tools-api/README.md`.
 
 Hver API-tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, samme spesifikasjon
 lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`. Den midterste er det
@@ -471,8 +468,6 @@ Dette repoet er lagt opp for flere team. Se:
   verifiseres mot utstederens nøkler, og pid-bindingen holder. Det som er forenklet er
   klientassertionen - den valideres på form, ikke signatur. Se
   `apps/digdir-mock/README.md`
-- `tools-api` er REST, ikke MCP. Bare `/mcp/*`-stiene bærer prefikset videre, som
-  wire-format. Se `docs/architecture.md`
 
 ## Viktige filer
 

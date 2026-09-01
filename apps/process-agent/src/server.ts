@@ -9,7 +9,7 @@ import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilmelding } from "../../shared/errors.ts";
 
 const port = Number(process.env.PORT || 8084);
-const mcpBaseUrl = process.env.TOOLS_BASE_URL || "http://tools-api:8083";
+const toolsBaseUrl = process.env.TOOLS_BASE_URL || "http://tools-api:8083";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const openapiFile = path.resolve(__dirname, "../../../openapi/process-agent.yaml");
 
@@ -306,7 +306,7 @@ function listProcessesPrompt(processes: Prosessvalg[]): string {
 // Returtypen er unknown fordi hvert verktøy har sin egen svarform. Kallstedene
 // navngir formen de venter seg med et typeargument.
 async function invokeTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
-  const res = await fetch(`${mcpBaseUrl}/mcp/tools/invoke`, {
+  const res = await fetch(`${toolsBaseUrl}/verktoy/invoke`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, arguments: args })

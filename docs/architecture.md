@@ -148,17 +148,6 @@ deterministisk vilkårsvurdering og seks demo-case er på plass. Det som følger
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.
 
-> [!IMPORTANT]
-> **`tools-api` er REST, ikke MCP.** Den svarer `protocol: "rest"` og eksponerer 25
-> verktøy over REST. Det er ingen JSON-RPC og ingen stdio- eller SSE-transport, så en
-> MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
-> korrekt formede `inputSchema`, så veien til ekte MCP er kort.
-
-Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står igjen, fordi en sti er
-wire-format: det er det ene stedet prefikset fortsatt hevder en protokoll tjenesten
-ikke snakker. Navnehistorikken står i
-[`apps/tools-api/README.md`](../apps/tools-api/README.md).
-
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake
 til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBar`, og
 begge GUI-ene viser en gul stripe ved sidelast hvis modellen er nede. `/chat` viser i
