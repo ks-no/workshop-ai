@@ -17,7 +17,7 @@ fødselsnummer og samtykkets kodeverk.
 | `assets.ts` | Serverer statiske filer, og type-stripper `.ts` på vei ut | `demo-gui`, `process-builder` |
 | `http.ts`, `errors.ts` | CORS, JSON- og tekstsvar, innsnevring av fanget feil | alle tjenestene |
 | `jsonstore.ts` | `state/`-før-`data/`-lesing, og **den ene skrivekøen** | `sandbox-backend`, `fiks-simulator` |
-| `registerdata.ts` | Formene i `brreg.seed.json` og `folkeregister.seed.json` | `brreg-mcp`, `folkeregister-mcp`, `tools-api` |
+| `registerdata.ts` | Formene i `brreg.seed.json` og `folkeregister.seed.json` | `tools-api`, `fiks-simulator`, `matrikkel-mock`, `skjerming.ts` |
 | `innbyggerdata.ts` | Formene i `personer.json`, `husstander.json`, plass-datasettene og `samtykker.json` | `sandbox-backend`, `fiks-simulator` |
 | `alder.ts` | `alderVed` - alder på en gitt dato, ikke i dag | reglene, porten, importøren |
 | `foedselsnummer.ts` | Modulus 11 og Skatteetatens +80-markør | `sandbox-backend`, `fiks-simulator`, `process-agent`, porten |

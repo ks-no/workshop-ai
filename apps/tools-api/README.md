@@ -5,9 +5,9 @@ andre tjenestene: prosessveiledning, KI-tolkning og matrikkeldata i ett sett. Sk
 bruke sandkassens API-er direkte, går du utenom denne og rett på tjenesten selv.
 
 **Den er REST, ikke MCP-protokollen.** Ingen JSON-RPC, ingen stdio, ingen SSE, så ingen
-MCP-klient kan koble seg til. `apps/brreg-mcp` og `apps/folkeregister-mcp` *er* MCP.
-`/mcp/*`-stiene blir stående fordi de er wire-format, og å døpe om en sti er en annen
-avgjørelse enn å døpe om en tjeneste. `AGENTS.md` har historien bak navnet.
+MCP-klient kan koble seg til. `/mcp/*`-stiene blir stående fordi de er wire-format, og å
+døpe om en sti er en annen avgjørelse enn å døpe om en tjeneste. `AGENTS.md` har
+historien bak navnet.
 
 ## Verktøylisten
 

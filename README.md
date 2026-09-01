@@ -20,7 +20,6 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 - [Hvordan starte den](#hvordan-starte-den)
 - [Hvordan stoppe den](#hvordan-stoppe-den)
 - [Oversikt over tjenester og porter](#oversikt-over-tjenester-og-porter)
-- [Koble MCP-serverne til editoren din](#koble-mcp-serverne-til-editoren-din)
 - [Demo-brukere](#demo-brukere)
 - [Demo-flyt](#demo-flyt)
 - [Eksempel på API-kall](#eksempel-på-api-kall)
@@ -291,7 +290,7 @@ Tjenestene, portene og rollene deres ligger i `apps/shared/tjenester.json`, og
 <http://localhost:3001> viser dem med levende helsestatus og en lenke rett inn i
 API-utforskeren for hver.
 
-Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
+Tre ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 
 - **`digdir-mock` (`8086`) utsteder alle tokens.** Er den nede, svarer hvert autentisert
   kall 401 mens `docker compose ps` ser helt frisk ut, fordi tokenfeilen svelges i
@@ -302,29 +301,11 @@ Fire ting tabellen ikke sier, og som er verdt å vite før noe feiler:
 - **`tools-api` (`8083`) er REST, ikke MCP.** Den svarer `protocol: "rest"`.
   `/mcp/*`-stiene står igjen - de er wire-format. Navnehistorikken står i
   `apps/tools-api/README.md`.
-- **`brreg-mcp` og `folkeregister-mcp` har ingen port og er ikke del av demoflyten.** De
-  er ekte MCP over stdio, som en klient som Claude Code eller Cursor starter selv. De
-  fire verktøyene deres finnes også i `tools-api` over REST, mot de samme
-  seed-filene, så de utvider ikke sandkassen. Se avsnittet under.
 
 Hver API-tjeneste serverer sin egen spesifikasjon på `/openapi.yaml`, samme spesifikasjon
 lest som JSON på `/openapi-ruter.json`, og en lesbar side på `/docs`. Den midterste er det
 API-utforskeren rendrer, og `pnpm test:openapi` holder alle tre i takt med koden.
 
-
-## Koble MCP-serverne til editoren din
-
-`brreg-mcp` og `folkeregister-mcp` er ekte MCP over stdio. De gir fire
-oppslagsverktøy mot registerdataene - de samme oppslagene `tools-api` allerede
-eksponerer over REST, så de utvider ikke sandkassen. I Claude Code, fra repo-roten:
-
-```bash
-claude mcp add brreg -- node "$PWD/apps/brreg-mcp/src/server.ts"
-claude mcp add folkeregister -- node "$PWD/apps/folkeregister-mcp/src/server.ts"
-```
-
-Detaljer, klientkonfigurasjon for andre editorer og verifisering med
-`@modelcontextprotocol/inspector`: `apps/brreg-mcp/README.md`.
 
 ## Demo-brukere
 
@@ -417,14 +398,6 @@ pnpm test:bergen-matrikkel
 
 Den krever **nett**: adresser som bommer i seed-filen slår over på live
 Geonorge-oppslag, og uten nett svarer matrikkel-mock 500.
-
-De to MCP-serverne testes hver for seg, og de krever verken nett eller kjørende
-stack - de spawnes som subprosess:
-
-```bash
-pnpm test:brreg-mcp
-pnpm test:folkeregister-mcp
-```
 
 ## Hvor syntetiske data ligger
 

@@ -788,7 +788,7 @@ function buildTemplateResponse(type: string, body: AiKropp) {
   };
 }
 
-// Tool selection - which MCP tools are relevant for a given process step
+// Tool selection - which tools are relevant for a given process step
 
 function heuristicToolChoice(body: AiKropp) {
   const steg = body?.steg || {};

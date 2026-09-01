@@ -107,7 +107,7 @@ En sjekk er ikke en egen mekanisme. Det er bare en ressurs hvis svar inneholder
 Når `process-agent` møter et `QUESTION`-steg kaller den `suggest_step_tools`-verktøyet
 i `tools-api`. Dette kallet sender stegdefinisjonens tekst, tittel og feltlabeler
 til `ai-gateway POST /ai/velg-verktoy`, som bruker heuristikk (og LLM-fallback) til å
-avgjøre hvilke MCP-verktøy som er relevante.
+avgjøre hvilke verktøy som er relevante.
 
 Hvert forslag har ett av tre brukstyper:
 

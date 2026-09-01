@@ -24,15 +24,11 @@ importers:
         specifier: ^3.1120.0
         version: 3.1120.0
 
-  apps/brreg-mcp: {}
-
   apps/demo-gui: {}
 
   apps/digdir-mock: {}
 
   apps/fiks-simulator: {}
-
-  apps/folkeregister-mcp: {}
 
   apps/matrikkel-mock: {}
 
