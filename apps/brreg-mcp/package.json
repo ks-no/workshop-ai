@@ -1,8 +1,0 @@
-{
-  "name": "@innbyggerdialog/brreg-mcp",
-  "version": "0.1.0",
-  "private": true,
-  "description": "True MCP service for querying BRREG Enhetsregisteret testdata.",
-  "type": "module"
-}
-

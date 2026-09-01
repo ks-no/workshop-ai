@@ -1,9 +1,8 @@
 // Formene i data/brreg.seed.json og data/folkeregister.seed.json.
 //
-// Tre tjenester leser de to filene: brreg-mcp og folkeregister-mcp over MCP, og
-// tools-api over REST. Det er en kjent duplisering av *kode* - se tjenestekartet
-// i AGENTS.md - men typene trenger ikke dupliseres med den. Endres et felt i
-// seeden, endres det her, og alle tre stopper på kompilering.
+// tools-api og fiks-simulator leser seed-filene. matrikkel-mock, skjerming.ts og
+// test-skjerming.ts importerer typene uten å lese filene. Endres et felt i seeden,
+// endres det her, og alle stopper på kompilering.
 //
 // Verdiene er dels `unknown`: dette er datasett hentet utenfra, og leserne
 // tvinger hver verdi gjennom String(), Boolean() eller Array.isArray() før bruk.

@@ -322,7 +322,7 @@ paths:
           description: kriterium eller tekst mangler
   /ai/velg-verktoy:
     post:
-      summary: Dynamisk verktøyoppdagelse – hvilke MCP-verktøy er relevante for et prosessteg?
+      summary: Dynamisk verktøyoppdagelse – hvilke verktøy er relevante for et prosessteg?
       description: |
         Gitt et prosessteg (id, tittel, tekst, felter) og en liste over tilgjengelige verktøy,
         returnerer et rangert forslag med brukstype (kontekst, validering, kontekst_og_validering).

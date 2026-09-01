@@ -85,7 +85,7 @@ Bergen bulk-smoke test:
 node scripts/test-bergen-matrikkel-bulk.ts
 ```
 
-MCP-integrasjonstest for matrikkel-oppslag:
+Integrasjonstest for matrikkel-oppslag:
 
 ```bash
 pnpm test:tools-matrikkel

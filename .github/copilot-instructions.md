@@ -32,8 +32,8 @@ stack up; `pnpm test:eval` needs a live model.
 ## Components and ports
 
 See the service map in `AGENTS.md` - it is the maintained one, and it covers
-`matrikkel-mock`, the two real MCP servers, and which services are core versus
-ignorable. Do not duplicate it here; a second copy is how it went stale before.
+`matrikkel-mock` and which services are core versus ignorable. Do not duplicate it
+here; a second copy is how it went stale before.
 
 ## How it works (end-to-end)
 1. User starts in `demo-gui` and selects a test person and process.

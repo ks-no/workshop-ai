@@ -213,28 +213,6 @@ services:
     volumes:
       - ./:/workspace
 
-  brreg-mcp:
-    image: node:24-alpine
-    working_dir: /workspace
-    command: ["node", "apps/brreg-mcp/src/server.ts"]
-    environment:
-      - BRREG_DATA_FILE=/workspace/data/brreg.seed.json
-    stdin_open: true
-    tty: true
-    volumes:
-      - ./:/workspace
-
-  folkeregister-mcp:
-    image: node:24-alpine
-    working_dir: /workspace
-    command: ["node", "apps/folkeregister-mcp/src/server.ts"]
-    environment:
-      - FOLKEREGISTER_DATA_FILE=/workspace/data/folkeregister.seed.json
-    stdin_open: true
-    tty: true
-    volumes:
-      - ./:/workspace
-
   ai-gateway:
     healthcheck:
       <<: *helsesjekk
@@ -287,13 +265,6 @@ services:
     command: ["/bin/sh", "scripts/dev.sh", "apps/tools-api/src/server.ts"]
     # service_healthy, not just service_started: tools-api proxies straight
     # through to all three on the first request.
-    #
-    # brreg-mcp and folkeregister-mcp are deliberately NOT listed. tools-api
-    # never calls them - it reads data/brreg.seed.json and
-    # data/folkeregister.seed.json straight off disk (see src/server.ts) and
-    # exposes its own REST equivalents. They are standalone stdio MCP servers for
-    # external clients, with no HTTP surface, so service_healthy could never be
-    # satisfied for them either.
     depends_on:
       sandbox-backend:
         condition: service_healthy

@@ -40,7 +40,6 @@
 - `apps/pasientjournal-mock` (`8087`): mock of an elektronisk pasientjournal, serving the legeerklæringer the TT-kort case is assessed against. **This integration does not exist in reality** - a journal is owned by the virksomhet that provided the care, there is no national API for a legeerklæring, and today the citizen carries a stamped PDF and uploads it. The mock is the structured form of that attachment, and its README says so first. Two things are deliberate: `fnr` is required, so the surface never answers a bulk query, and it is behind Maskinporten rather than ID-porten - real health data sits behind HelseID at Norsk helsenett, which the sandbox does not have. The only *service* that reads `data/legeerklaeringer.json`; the gate reads it too.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) - persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. **REST, not the MCP protocol** - it answers `protocol: "rest"`, with no JSON-RPC and no stdio/SSE transport, so no MCP client can connect. The tools do carry well-formed `inputSchema`, so the road to real MCP is short. It was called `mcp-services` until 23.08.2026; the name was dropped rather than the disclaimer repeated in every doc. Its `/mcp/*` paths survive as wire format - the one place the prefix still claims a protocol the service does not speak.
-- `apps/brreg-mcp`, `apps/folkeregister-mcp` (no port): **these two are real MCP** - JSON-RPC 2.0 over stdio, newline-delimited, verified against `@modelcontextprotocol/inspector`. They are standalone servers for an external client (Claude Code, Cursor) to spawn; nothing in the sandbox talks to them. In particular `tools-api` does **not** - it reads the same `data/brreg.seed.json` and `data/folkeregister.seed.json` off disk and exposes its own REST equivalents, so the four brreg/folkeregister tools exist twice, in two protocols. Their compose entries only keep the containers alive on an idle stdin; they are not a dependency of anything.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` - but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
 
 ## Data and state model (important)
@@ -92,8 +91,9 @@
   CORS policy is a parameter, because the six copies it replaced had drifted apart) and
   `errors.ts` (`feilmelding`/`feilkode` for caught `unknown`). The rest are used by
   whoever needs them: `assets.ts` (static files and type stripping - the two frontends),
-  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` - the
-  two MCP servers and `tools-api`), `innbyggerdata.ts` (the shapes of `personer.json`,
+  `registerdata.ts` (the shapes of `brreg.seed.json` and `folkeregister.seed.json` -
+  `tools-api`, `fiks-simulator`, `matrikkel-mock` and `skjerming.ts`),
+  `innbyggerdata.ts` (the shapes of `personer.json`,
   `husstander.json`, the two plass-datasets and `samtykker.json` - `sandbox-backend` and
   `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` - the
   state I/O above and the one write queue that replaced three copies of it), the six
@@ -351,13 +351,12 @@ this file, `CLAUDE.md`, `.github/copilot-instructions.md`, and the comments insi
 `ci.yml`.
 
 **A tool description is English for the same reason.** The `description` and
-`inputSchema` strings in `apps/brreg-mcp`, `apps/folkeregister-mcp` and
-`apps/tools-api` are what an MCP client puts in front of a model when it picks a tool,
-so they are the model's prompt rather than anyone's documentation. Keep them English,
-and keep the domain nouns Norwegian inside them the way point 3 says: «Get one
-organisation by organisasjonsnummer.» The README beside such a server is the opposite
-case - no client loads it, a person setting the server up reads it, so it is Norwegian
-like every other `apps/*/README.md`.
+`inputSchema` strings in `apps/tools-api` are what a client puts in front of a model
+when it picks a tool, so they are the model's prompt rather than anyone's
+documentation. Keep them English, and keep the domain nouns Norwegian inside them the
+way point 3 says: «Get one organisation by organisasjonsnummer.» The README beside such
+a service is the opposite case - no client loads it, a person setting it up reads it, so
+it is Norwegian like every other `apps/*/README.md`.
 
 **Code comments follow the identifier rule instead**: English for the technical,
 Norwegian where the comment reasons in the domain, and one language per block - a block
@@ -475,13 +474,6 @@ pnpm test:tools-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
-- **Touching either MCP server's transport? Verify against a real client, not the
-  test script.** `scripts/test-brreg-mcp.ts` and `test-folkeregister-mcp.ts`
-  implement the client side themselves, so they prove the two halves agree - not
-  that the framing matches the spec. The first version used LSP `Content-Length`
-  framing instead of MCP's newline-delimited JSON: both tests passed while every
-  real client hung on `initialize`. Check with
-  `npx -y @modelcontextprotocol/inspector --cli node apps/brreg-mcp/src/server.ts --method tools/list`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,

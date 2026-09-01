@@ -122,7 +122,7 @@ en flyt: den utsteder tokenet `sandbox-backend` og `fiks-simulator` krever.
 
 Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `tools-api`.
 Dette kallet sender stegdefinisjonens tekst og feltlabeler til `ai-gateway /ai/velg-verktoy`,
-som returnerer hvilke MCP-verktøy som er relevante (`kontekst`, `validering` eller begge).
+som returnerer hvilke verktøy som er relevante (`kontekst`, `validering` eller begge).
 Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktøy til å normalisere
 brukerens svar.
 
@@ -154,10 +154,9 @@ kjenne til før du bygger på den.
 > MCP-klient som Claude Code eller Cursor kan ikke koble seg på. Verktøyene har derimot
 > korrekt formede `inputSchema`, så veien til ekte MCP er kort.
 
-`apps/brreg-mcp` og `apps/folkeregister-mcp` er de eneste tingene i repoet som
-heter MCP, og de *er* MCP. Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står
-igjen, fordi en sti er wire-format: det er det ene stedet prefikset fortsatt hevder
-en protokoll tjenesten ikke snakker. Navnehistorikken står i
+Stiene `/mcp`, `/mcp/tools` og `/mcp/tools/invoke` står igjen, fordi en sti er
+wire-format: det er det ene stedet prefikset fortsatt hevder en protokoll tjenesten
+ikke snakker. Navnehistorikken står i
 [`apps/tools-api/README.md`](../apps/tools-api/README.md).
 
 **KI-fallback er delvis synlig.** Når modellen ikke svarer, faller `ai-gateway` tilbake

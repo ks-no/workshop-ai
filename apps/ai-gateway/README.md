@@ -17,7 +17,7 @@ Ti, alle `POST`:
 | `/ai/oppsummering` | Formulerer `SUMMARY`-steget | `sandbox-backend` |
 | `/ai/tolk-svar` | Ja/nei/ukjent-klassifisering | `process-agent`, `tools-api` |
 | `/ai/velg-prosess` | Matcher fritekst mot prosess | `process-agent` |
-| `/ai/velg-verktoy` | Velger MCP-verktøy per steg | `tools-api` |
+| `/ai/velg-verktoy` | Velger verktøy per steg | `tools-api` |
 | `/ai/klarsprak` | Klarspråk-omskriving | ingen - fritt vilt |
 | `/ai/forklar-databruk` | Forklarer hvilke data som brukes | ingen - fritt vilt |
 | `/ai/dialogforslag` | Foreslår neste replikk | ingen - fritt vilt |
