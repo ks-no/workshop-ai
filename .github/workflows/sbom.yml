@@ -11,6 +11,7 @@ permissions:
 jobs:
   kildekode:
     runs-on: ubuntu-latest
+    if: github.repository == 'ks-no/workshop-ai'
     steps:
       - uses: actions/checkout@v7
         with:

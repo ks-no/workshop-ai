@@ -6,6 +6,16 @@ coverage
 .env.*
 !.env.example
 .idea
+.vscode/
+*.log
+
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+.netrc
 
 state
 

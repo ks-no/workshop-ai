@@ -16,6 +16,7 @@ permissions:
 jobs:
   finn-images:
     runs-on: ubuntu-latest
+    if: github.repository == 'ks-no/workshop-ai'
     outputs:
       images: ${{ steps.les.outputs.images }}
     steps:
@@ -39,6 +40,9 @@ jobs:
   images:
     needs: finn-images
     runs-on: ubuntu-latest
+    # Forks get an empty DEPENDENCY_TRACK_API_KEY, so this job would fail while
+    # still calling KS's Dependency-Track. Keep the run in the origin repo only.
+    if: github.repository == 'ks-no/workshop-ai'
     strategy:
       fail-fast: false
       matrix:
