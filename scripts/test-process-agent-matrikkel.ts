@@ -120,7 +120,7 @@ function createFakeToolsServer() {
     if (request.method === "POST" && request.url === "/verktoy/invoke") {
       const body = await readBody(request);
       const name = body.name;
-      const args = body.arguments || body.args || body.toolArgs || {};
+      const args = body.arguments || {};
 
       if (name === "list_processes") {
         json(response, 200, {
