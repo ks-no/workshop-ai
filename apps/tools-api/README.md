@@ -24,7 +24,6 @@ det. Derfor feiler `pnpm test:docs` nå ethvert dokument som navngir minst ti av
 ## Endepunkter
 
 - `GET /helse`
-- `GET /info`
 - `GET /verktoy`
 - `POST /verktoy/invoke`
 - `POST /verktoy/{toolName}/invoke`

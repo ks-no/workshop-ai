@@ -107,25 +107,6 @@ paths:
                               eksempel: { type: string }
                               beskrivelse: { type: string }
                         kroppEksempel: { type: string }
-  /info:
-    get:
-      summary: Tjenestens navn, protokoll og versjon
-      description: Navnet tjenesten kaller seg, protokollen den svarer over og versjonen.
-      responses:
-        "200":
-          description: Tjenesteinformasjon
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  protocol:
-                    type: string
-                    enum: [rest]
-                  version:
-                    type: string
   /verktoy:
     get:
       summary: List available tools
@@ -154,7 +135,7 @@ paths:
       summary: Kall et verktøy navngitt i stien
       description: >-
         Samme som POST /verktoy/invoke, men med verktøynavnet i stien framfor i
-        kroppen. Argumentene tas fra `toolArgs`, `args` eller `arguments`.
+        kroppen.
       parameters:
         - name: name
           in: path
@@ -168,12 +149,9 @@ paths:
             schema:
               type: object
               properties:
-                toolArgs:
-                  type: object
-                args:
-                  type: object
                 arguments:
                   type: object
+                  additionalProperties: true
       responses:
         "200":
           description: Tool response
@@ -234,12 +212,6 @@ components:
             ai-gateway /ai/sporsmaal, som kjører sperrene. Den har ingen egen
             dataadgang og kan ikke nå samtykkesperret data.
         arguments:
-          type: object
-          additionalProperties: true
-        args:
-          type: object
-          additionalProperties: true
-        toolArgs:
           type: object
           additionalProperties: true
     InvokeToolResponse:
