@@ -4,16 +4,15 @@
 andre tjenestene: prosessveiledning, KI-tolkning og matrikkeldata i ett sett. Skal du
 bruke sandkassens API-er direkte, går du utenom denne og rett på tjenesten selv.
 
-**Den er REST, ikke MCP-protokollen.** Ingen JSON-RPC, ingen stdio, ingen SSE, så ingen
-MCP-klient kan koble seg til. `/mcp/*`-stiene blir stående fordi de er wire-format, og å
-døpe om en sti er en annen avgjørelse enn å døpe om en tjeneste. `AGENTS.md` har
-historien bak navnet.
-
 ## Verktøylisten
 
-`GET /mcp/tools` svarer med den levende katalogen: navn, beskrivelser og `inputSchema`.
+`GET /verktoy` svarer med den levende katalogen: navn, beskrivelser og `inputSchema`.
 Den er den eneste listen som ikke kan komme i utakt. `docs/api-oversikt.md` har de samme
 navnene i prosa, til lesing uten at stacken er oppe.
+
+Formen er den vanlige for verktøykalling - `name`, `description` og et JSON Schema - så
+du kan mate katalogen rett inn i et modellkall. Derfor er de feltene engelske selv om
+resten av wire-formatet er norsk.
 
 Her sto det en håndkopiert tabell, og den hadde mistet flere verktøy før noen oppdaget
 det. Derfor feiler `pnpm test:docs` nå ethvert dokument som navngir minst ti av dem uten
@@ -25,10 +24,10 @@ det. Derfor feiler `pnpm test:docs` nå ethvert dokument som navngir minst ti av
 ## Endepunkter
 
 - `GET /helse`
-- `GET /mcp`
-- `GET /mcp/tools`
-- `POST /mcp/tools/invoke`
-- `POST /mcp/tools/{toolName}/invoke`
+- `GET /info`
+- `GET /verktoy`
+- `POST /verktoy/invoke`
+- `POST /verktoy/{toolName}/invoke`
 
 ## Miljøvariabler
 
@@ -47,11 +46,11 @@ I `live`/`hybrid` brukes Geonorge også for eksakte adresseoppslag i `matrikkel_
 ## Eksempel
 
 ```bash
-curl -s http://localhost:8083/mcp/tools
+curl -s http://localhost:8083/verktoy
 ```
 
 ```bash
-curl -s -X POST http://localhost:8083/mcp/tools/invoke \
+curl -s -X POST http://localhost:8083/verktoy/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "name": "list_processes",
@@ -60,7 +59,7 @@ curl -s -X POST http://localhost:8083/mcp/tools/invoke \
 ```
 
 ```bash
-curl -s -X POST http://localhost:8083/mcp/tools/invoke \
+curl -s -X POST http://localhost:8083/verktoy/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "name": "suggest_step_tools",
@@ -75,7 +74,7 @@ curl -s -X POST http://localhost:8083/mcp/tools/invoke \
 ```
 
 ```bash
-curl -s -X POST http://localhost:8083/mcp/tools/invoke \
+curl -s -X POST http://localhost:8083/verktoy/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "name": "matrikkel_hent_eiere",
@@ -86,7 +85,7 @@ curl -s -X POST http://localhost:8083/mcp/tools/invoke \
 ```
 
 ```bash
-curl -s -X POST http://localhost:8083/mcp/tools/invoke \
+curl -s -X POST http://localhost:8083/verktoy/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "name": "matrikkel_hent_eiendom",

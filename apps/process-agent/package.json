@@ -2,7 +2,7 @@
   "name": "@innbyggerdialog/process-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Generic process guide agent using MCP-style tools.",
+  "description": "Generic process guide agent using the tools-api REST tools.",
   "type": "module"
 }
 

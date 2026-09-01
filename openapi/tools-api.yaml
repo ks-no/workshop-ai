@@ -107,14 +107,10 @@ paths:
                               eksempel: { type: string }
                               beskrivelse: { type: string }
                         kroppEksempel: { type: string }
-  /mcp:
+  /info:
     get:
       summary: Tjenestens navn, protokoll og versjon
-      description: >-
-        Svarer `protocol: rest`. Dette er ikke Model Context Protocol: det finnes
-        ingen JSON-RPC, ingen stdio og ingen SSE, så en MCP-klient kan
-        ikke koble seg på. Verktøydefinisjonene har derimot riktig formede
-        inputSchema, så veien til ekte MCP er kort.
+      description: Navnet tjenesten kaller seg, protokollen den svarer over og versjonen.
       responses:
         "200":
           description: Tjenesteinformasjon
@@ -130,13 +126,13 @@ paths:
                     enum: [rest]
                   version:
                     type: string
-  /mcp/tools:
+  /verktoy:
     get:
       summary: List available tools
       responses:
         "200":
           description: Tool list
-  /mcp/tools/invoke:
+  /verktoy/invoke:
     post:
       summary: Invoke a named tool
       requestBody:
@@ -153,11 +149,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/InvokeToolResponse"
 
-  /mcp/tools/{name}/invoke:
+  /verktoy/{name}/invoke:
     post:
       summary: Kall et verktøy navngitt i stien
       description: >-
-        Samme som POST /mcp/tools/invoke, men med verktøynavnet i stien framfor i
+        Samme som POST /verktoy/invoke, men med verktøynavnet i stien framfor i
         kroppen. Argumentene tas fra `toolArgs`, `args` eller `arguments`.
       parameters:
         - name: name

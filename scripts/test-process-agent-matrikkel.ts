@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { feilmelding } from "../apps/shared/errors.ts";
 
-const mcpPort = 19083;
+const toolsPort = 19083;
 const agentPort = 19084;
 
 const fakeSession = {
@@ -110,14 +110,14 @@ async function req(
   return data;
 }
 
-function createFakeMcpServer() {
+function createFakeToolsServer() {
   return createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/helse") {
       json(response, 200, { status: "ok" });
       return;
     }
 
-    if (request.method === "POST" && request.url === "/mcp/tools/invoke") {
+    if (request.method === "POST" && request.url === "/verktoy/invoke") {
       const body = await readBody(request);
       const name = body.name;
       const args = body.arguments || body.args || body.toolArgs || {};
@@ -310,14 +310,14 @@ function createFakeMcpServer() {
 }
 
 async function run() {
-  const mcpServer = createFakeMcpServer();
-  await new Promise<void>((resolve) => { mcpServer.listen(mcpPort, () => resolve()); });
+  const toolsServer = createFakeToolsServer();
+  await new Promise<void>((resolve) => { toolsServer.listen(toolsPort, () => resolve()); });
 
   const agent = spawn("node", ["apps/process-agent/src/server.ts"], {
     env: {
       ...process.env,
       PORT: String(agentPort),
-      TOOLS_BASE_URL: `http://127.0.0.1:${mcpPort}`
+      TOOLS_BASE_URL: `http://127.0.0.1:${toolsPort}`
     },
     stdio: "inherit"
   });
@@ -509,7 +509,7 @@ async function run() {
     console.log("test:process-agent-matrikkel OK");
   } finally {
     agent.kill("SIGTERM");
-    await new Promise((resolve) => mcpServer.close(resolve));
+    await new Promise((resolve) => toolsServer.close(resolve));
   }
 }
 
