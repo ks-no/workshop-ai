@@ -544,6 +544,14 @@ function isNeiSvar(text: string): boolean {
   return ["nei", "ikke", "stopp", "senere", "ikke nå", "nei takk"].some((match) => lower.includes(match));
 }
 
+// Tekst som bare betyr «gå videre». Sammenlignes mot rå input, så ordene står
+// både med og uten norske tegn.
+function erFortsettSignal(text: string): boolean {
+  const lower = normalize(text);
+  return isJaSvar(text)
+    || ["start", "fortsett", "neste", "klar", "kjør på", "kjor pa", "gå videre", "ga videre"].some((match) => lower.includes(match));
+}
+
 function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
   const felter = steg?.felter || [];
   if (felter.length === 0) {
@@ -626,12 +634,14 @@ async function aiExplain(promptType: string, context: Record<string, unknown> = 
   return "";
 }
 
-async function goNext(): Promise<void> {
+async function goNext(valg: { tegnSteg?: boolean } = {}): Promise<void> {
   if (!oekt || oekt.status === "FULLFORT" || oekt.status === "AVVIST") return;
   if (oekt.stegIndex >= ((oekt.totaltAntallSteg ?? 0) - 1)) return;
   oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" });
   updateSessionInfo();
-  await renderStep();
+  if (valg.tegnSteg !== false) {
+    await renderStep();
+  }
 }
 
 /* ── Innsendingen ──────────────────────────────────────────────────────
@@ -969,6 +979,19 @@ function normalize(text: string): string {
   return text.toLowerCase().trim();
 }
 
+// Egen funksjon framfor et nytt sendMessage-kall: sendMessage skriver
+// innbyggerens melding i loggen øverst, så en runde til dobler den.
+async function svarPaaSpoersmaal(steg: ProsessSteg, tekst: string): Promise<void> {
+  if (!oekt) return;
+  oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
+    method: "POST",
+    body: JSON.stringify({ stegId: steg.id, svar: tekst })
+  });
+  addMsg("assistant", acknowledgeSvar(steg, tekst));
+  updateSessionInfo();
+  await goNext();
+}
+
 async function sendMessage(
   overstyrtTekst: string | null = null,
   valg: { hoppOverSporsmaalsruting?: boolean } = {}
@@ -1009,18 +1032,21 @@ async function sendMessage(
       // Any input at an info step means the user has read the information
       // and wants to move on - whether they say "fortsett", name a street,
       // or anything else that is not a side-question.
-      await goNext();
+      //
+      // Men var teksten mer enn et «gå videre», var den svaret på spørsmålet
+      // som kommer. Da sendes den inn i stedet for å kastes.
+      const nesteSteg = (aktivProsess?.steg || [])[oekt.stegIndex + 1];
+      const svarerFramfor = nesteSteg?.type === "QUESTION" && !erFortsettSignal(reellTekst);
+      await goNext({ tegnSteg: !svarerFramfor });
+      const nyttSteg = oekt?.aktivtSteg;
+      if (svarerFramfor && nyttSteg?.type === "QUESTION") {
+        await svarPaaSpoersmaal(nyttSteg, reellTekst);
+      }
       return;
     }
 
     if (steg.type === "QUESTION") {
-      oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
-        method: "POST",
-        body: JSON.stringify({ stegId: steg.id, svar: reellTekst })
-      });
-      addMsg("assistant", acknowledgeSvar(steg, reellTekst));
-      updateSessionInfo();
-      await goNext();
+      await svarPaaSpoersmaal(steg, reellTekst);
       return;
     }
 
