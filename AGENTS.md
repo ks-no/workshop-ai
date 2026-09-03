@@ -134,6 +134,19 @@
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable - never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
+- **`VANDELSKONTROLL` answers three ways, and that is the point.** `godkjent` and
+  `krever_manuell_vurdering` both let the søknad through - the second because an
+  anmerkning that no statute excludes outright is an egnethetsvurdering a person makes,
+  so the engine must not decide it. Only the outcomes the law decides are decided here.
+  `grunnlag.vandelsutfall` names the branch, and `scripts/valider-data.ts` counts the
+  six branches from it rather than mirroring the rule.
+- **The politiattest read is minimised before anything else sees it.** `minimerAttest`
+  in `apps/sandbox-backend/src/politiattest.ts` returns type, date and a count, never
+  what the anmerkninger are about. The `DATA_FETCH` result is stored on the session and
+  goes into the `SUMMARY` prompt and `state/ai-trace.jsonl`; straffedommer are artikkel
+  10-opplysninger and do not need to pass through a model to be phrased. The rule reads
+  the whole attest; every other caller reads the minimised view. `pnpm test:vilkaar`
+  pins that the grunnlag carries no category.
 - **Eligibility logic lives in one place: `vilkaar.ts`.** `evaluateVilkaar` is the only way
   in; `regelHandlers` is private, so a new rule type does not widen the interface. The
   module is pure and synchronous - the income basis arrives as a parameter - so an outcome
@@ -491,7 +504,7 @@ pnpm test:agent:matrikkel
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
-- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `STATE_DIR`.
+- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `PASIENTJOURNAL_BASE_URL`, `POLITIATTEST_BASE_URL`, `STATE_DIR`.
 - `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
   `advarsel` field. Check `GET /helse` - it reports `modellNaaBar` plus a `feil` string

@@ -29,6 +29,15 @@ ved neste oppstart - så sjekk aktiv provider på `/admin`, ikke i `.env`, før 
 `state/ai-trace.jsonl` - med vilje, for at du skal kunne se hva modellen faktisk fikk.
 Filen er gitignorert og nullstilles av `./start.sh --reset`.
 
+> [!NOTE]
+> To av casene håndterer opplysninger med sin egen hjemmelsterskel, og de to er løst
+> ulikt. TT-kort sender legeerklæringen med i oppsummeringen, så diagnosekoden står i
+> KI-sporet i klartekst - syntetisk, men verdt å vite om. Politiattest gjør det
+> motsatte: `apps/sandbox-backend/src/politiattest.ts` minimerer attesten før noe
+> annet ser den, så sporet får type, dato og antall anmerkninger, aldri hva de
+> gjelder. Straffedommer er artikkel 10-opplysninger, og de trenger ikke gjennom en
+> modell for å bli formulert.
+
 ## Det som håndheves i kode, ikke i prompt
 
 - Samtykke sjekkes før beskyttede oppslag, sentralt i `runRessurs()`

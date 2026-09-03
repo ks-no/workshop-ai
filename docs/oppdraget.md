@@ -38,9 +38,11 @@ Under deg ligger et lag du ikke trenger å bygge:
 - deterministiske regler, atskilt fra språkmodellen med vilje
 - revisjonslogg over all datatilgang
 - et KI-lag med sperrer i kode, og et spor som viser deg hva modellen faktisk fikk
-- seks caser, fra barnehageplass til TT-kort. Den siste henter en legeerklæring,
-  og den ligger bak et uttrykkelig samtykke, fordi helseopplysninger er en særlig
-  kategori etter personvernforordningen artikkel 9
+- sju caser, fra barnehageplass til politiattest. TT-kort-casen henter en
+  legeerklæring bak et uttrykkelig samtykke, fordi helseopplysninger er en særlig
+  kategori etter personvernforordningen artikkel 9. Politiattest-casen er den
+  eneste der utfallet kan bli «en saksbehandler må vurdere det» - og den eneste
+  der innbyggeren gir kommunen noe framfor å be om noe
 
 Det er et gulv å stå på, ikke et tak. Alt sammen er kode og data i forken din, og du kan
 endre hvert punkt over hvis det er feil for det du lager.

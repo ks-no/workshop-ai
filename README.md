@@ -81,7 +81,7 @@ På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https:
 
 Sandkassen er en lokal utviklingsarena for å utforske hvordan innbyggere kan møte kommunen. Demoene her er dialogbaserte fordi en samtale var raskeste vei til å ta i bruk alle API-ene samtidig - ikke fordi dialog er svaret. Se `docs/oppdraget.md`.
 
-Seks demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
+Sju demo-case er publisert; `Redusert foreldrebetaling i barnehage` er
 flaggskipet og det eneste som er dekket av en informasjonsmodell. Casene og hvilken
 testbruker som hører til hver, står i `docs/deltakerstart.md`.
 
@@ -93,7 +93,7 @@ Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles AP
 
 ## Status
 
-Elleve kjørende tjenester, én valgfri avhengighet i kjøretid, seks komplette demo-case. På plass:
+Elleve kjørende tjenester, én valgfri avhengighet i kjøretid, sju komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -326,7 +326,7 @@ bekrefter, søknaden sendes inn og oppretter en oppgave i Fiks-simulatoren - og
 revisjonsloggen viser hver datatilgang underveis.
 
 Demo-GUI-en er prosessdrevet: stegene leses fra valgt prosessdefinisjon, og flyten
-kjøres via prosessøkt-API-et i backend. Alle seks casene, og hvilken testbruker som
+kjøres via prosessøkt-API-et i backend. Alle sju casene, og hvilken testbruker som
 hører til hver, står i tabellen i `docs/deltakerstart.md` §3, pinnet i
 `data/deltakercaser.json`.
 

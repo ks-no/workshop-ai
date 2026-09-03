@@ -296,6 +296,14 @@ kort innlegg om lommeboken og sandkassen, og er tilgjengelige gjennom hele
 arrangementet for team som vil teste utstedelse, deling og verifisering. Det er den
 korteste veien inn, kortere enn å lese seg fram.
 
+**Én ting i sandkassen er formet for sporet.** Politiattesten er skoleeksempelet på et
+digitalt bevis: i virkeligheten er den en låst PDF som kan forfalskes, og sektoren har
+bedt om en verifiserbar løsning i årevis uten å få den. Hver attest fra
+`politiattest-mock` bærer derfor en `bevis`-blokk formet som et Verifiable Credential,
+med utsteder, subjekt, utstedelsesdato og gyldighet. Den kan utstedes i Digdirs
+lommebok, og framvisningssteget i `politiattest-oppdrag` er stedet der en verifisering
+hører hjemme i stedet for et oppslag.
+
 Vil du lese:
 
 - <https://samarbeid.digdir.no/digital-lommebok/digital-lommebok/2897> - prosjektet,
