@@ -88,6 +88,12 @@ if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
 }
 
+for (const ordning of satser.ordninger) {
+  if (typeof ordning.kilde !== "string" || ordning.kilde.trim().length === 0) {
+    throw new Error(`${ordning.id} mangler en kilde som gjelder for ordningen.`);
+  }
+}
+
 // --- Legeerklæringene peker på befolkningen -----------------------------------
 //
 // Datasettet nøkles på fødselsnummer, fordi en journal gjør det. personId står

@@ -50,6 +50,8 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 const pasientjournalUrl = `http://127.0.0.1:${pasientjournalPort}`;
 const politiattestUrl = `http://127.0.0.1:${politiattestPort}`;
 const aiUrl = `http://127.0.0.1:${aiPort}`;
+const STOTTEKONTAKT_KILDE =
+  "Helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40.";
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
@@ -854,7 +856,16 @@ async function vandelsflyt(personId: string, rolle: string, merkelapp: string) {
   await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   // Bekreftelsen på formål: åpen rute, ingen samtykke, fordi den ikke sier noe om
   // den som søker - bare hva som gjelder for rollen.
-  await call(`${merkelapp}-formaal`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  const formaal = await call(
+    `${merkelapp}-formaal`,
+    `/api/prosessoekter/${id}/handling`,
+    { method: "POST", body: {} }
+  ) as { resultat?: { kilde?: unknown } };
+  if (merkelapp === "vandel-godkjent" && formaal.resultat?.kilde !== STOTTEKONTAKT_KILDE) {
+    throw new Error(
+      `Bekreftelsen for person-026 har feil kilde: ${String(formaal.resultat?.kilde)}.`
+    );
+  }
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-svar-soekt`, `/api/prosessoekter/${id}/svar`, {
     method: "POST",
@@ -874,7 +885,20 @@ async function vandelsflyt(personId: string, rolle: string, merkelapp: string) {
   // det er dette svaret som havner i oppsummeringen og i modellprompten.
   await call(`${merkelapp}-attest`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  const vurdering = await call(
+    `${merkelapp}-sjekk`,
+    `/api/prosessoekter/${id}/handling`,
+    { method: "POST", body: {} }
+  ) as { resultat?: { grunnlag?: { kilde?: unknown } } };
+  if (
+    merkelapp === "vandel-godkjent"
+    && vurdering.resultat?.grunnlag?.kilde !== STOTTEKONTAKT_KILDE
+  ) {
+    throw new Error(
+      "Vandelsvurderingen for person-026 har feil kilde: " +
+      `${String(vurdering.resultat?.grunnlag?.kilde)}.`
+    );
+  }
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 

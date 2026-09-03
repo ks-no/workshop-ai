@@ -124,7 +124,7 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
     ordningNavn: ordning.navn,
     ...(beregning ? { beregningsbeloep: grunnlag, stadie: beregning.stadie } : {}),
     gjelderFra: satser.gjelderFra,
-    kilde: satser.kilde
+    kilde: ordning.kilde
   };
   const forbehold = beregning?.stadie === "UTKAST"
     ? " Merk at skatteoppgjøret ikke er ferdig, så grunnlaget kan endre seg."

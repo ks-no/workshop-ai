@@ -975,6 +975,9 @@ paths:
                     type: string
                   formaal:
                     type: string
+                  kilde:
+                    type: string
+                    description: Kilden som gjelder for ordningen rollen peker på.
                   hjemmel:
                     type: string
                   attesttype:
@@ -1686,7 +1689,9 @@ components:
           type: string
         grunnlag:
           type: object
-          description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
+          description: >
+            Opplysningene og den ordningsspesifikke kilden bak utfallet. Feltene
+            varierer med regeltypen.
     Feil:
       type: object
       description: >
@@ -1826,4 +1831,3 @@ components:
           properties:
             syntetisk:
               type: boolean
-

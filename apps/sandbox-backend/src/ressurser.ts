@@ -468,6 +468,7 @@ export const ressurser: Ressurs[] = [
         return {
           ordning: ordning.id,
           formaal: ordning.formaal,
+          kilde: ordning.kilde,
           hjemmel: ordning.hjemmel,
           attesttype: ordning.attesttype,
           maksAlderMaaneder: ordning.maksAlderMaaneder,
