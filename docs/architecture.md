@@ -73,9 +73,10 @@ Disse finnes for å senke terskelen og spare tid, ikke for å definere én rikti
 5. `sandbox-backend` kaller `ai-gateway` for oppsummering og forklaring
 6. `sandbox-backend` henter matrikkeldata fra `matrikkel-mock` over HTTP (`MATRIKKEL_BASE_URL`, se `apps/sandbox-backend/src/matrikkel.ts`) og eksponerer dem via `GET /api/matrikkel/gater` og `SJEKK`-steg. Mocken er eneste leser av seeden, og eneste vei til SOAP-flaten
 7. `sandbox-backend` henter legeerklæringen fra `pasientjournal-mock` over HTTP (`PASIENTJOURNAL_BASE_URL`), bak samtykkeporten. Mocken er eneste leser av `data/legeerklaeringer.json`, og integrasjonen finnes ikke i virkeligheten - se `apps/pasientjournal-mock/README.md`
-8. `tools-api` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
-9. `process-agent` bruker `tools-api` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
-10. alle relevante hendelser sendes til revisjonslogg
+8. `sandbox-backend` leser politiattesten fra `politiattest-mock` over HTTP (`POLITIATTEST_BASE_URL`), bak samtykkeporten, og minimerer svaret før noe annet ser det: type, dato og antall anmerkninger, aldri hva de gjelder. Mocken er eneste leser av `data/politiattester.json`, og integrasjonen finnes ikke i virkeligheten - se `apps/politiattest-mock/README.md`
+9. `tools-api` eksponerer verktøy mot backend, ai-gateway og matrikkel-mock
+10. `process-agent` bruker `tools-api` for all tilstand og data; oppdager relevante verktøy dynamisk per steg via `suggest_step_tools`
+11. alle relevante hendelser sendes til revisjonslogg
 
 Tegnet opp, med samtykkeporten markert:
 

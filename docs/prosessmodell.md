@@ -75,8 +75,9 @@ Tilgjengelige sjekker:
 | Sti | Vurderer |
 |---|---|
 | `/api/regler/sjekk/foreldrebetaling` | Rett til en moderasjonsordning i `data/satser.json` |
-| `/api/regler/sjekk/ordning` | Rett til en navngitt ordning, eller den ordningen barnets trinn peker på når bare `tjeneste` er oppgitt. Fire av seks demo-case bruker denne |
+| `/api/regler/sjekk/ordning` | Rett til en navngitt ordning, eller den ordningen barnets trinn peker på når bare `tjeneste` er oppgitt. Fire av sju demo-case bruker denne |
 | `/api/matrikkel/sjekk/eierforhold` | Om søker eier eiendom i en gitt gate |
+| `/api/regler/sjekk/vandel` | Vandelskontroll for en rolle. Eneste sjekk med et utfall som verken er ja eller nei: `krever_manuell_vurdering` slipper søknaden gjennom til et menneske |
 
 Nye sjekker legges til i ressurskatalogen i
 `apps/sandbox-backend/src/ressurser.ts`. Stegutførelsen slår opp på sti og

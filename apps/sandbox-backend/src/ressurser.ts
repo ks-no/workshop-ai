@@ -14,9 +14,14 @@ import {
   getInntektForPerson,
   evaluateOrdning
 } from "./regler.ts";
-import { samtykkekilderFor, selectOrdningForTjeneste } from "./vilkaar.ts";
+import {
+  samtykkekilderFor,
+  selectOrdningForFormaal,
+  selectOrdningForTjeneste
+} from "./vilkaar.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
 import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
+import { finnGjeldendeAttest, minimerAttest } from "./politiattest.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { fiksBaseUrl, fiksRegisterToken, fiksRolleId } from "./config.ts";
 import { buildAdvarsel, tryUpstream } from "./upstream.ts";
@@ -440,6 +445,89 @@ export const ressurser: Ressurs[] = [
         syntetisk: true
       };
     }
+  },
+  {
+    metode: "GET",
+    sti: "/api/vandel/formaal",
+    ressurs: "vandel-formaal",
+    beskrivelse:
+      "Bekreftelsen på formål: hjemmelen kontrollen gjøres etter, og hvilken attesttype " +
+      "formålet gir. Med ?rolle=stottekontakt|barnehage|skole.",
+    // Bekreftelsen er kommunens eget dokument og har ikke noe personsubjekt: den
+    // sier hva som gjelder for rollen, ikke noe om den som søker. Derfor åpen, og
+    // derfor ingen samtykkeport - det er ingenting her å samtykke til.
+    tilgang: "aapen",
+    valider: ({ sok }) => {
+      if (!sok.get("rolle")) {
+        throw new HttpError("rolle er påkrevd. Se GET /api/regler/satser for gyldige.", 400);
+      }
+    },
+    handter: ({ tilstand, sok }) =>
+      withStatus(400, () => {
+        const ordning = selectOrdningForFormaal(tilstand, sok.get("rolle")!);
+        return {
+          ordning: ordning.id,
+          formaal: ordning.formaal,
+          hjemmel: ordning.hjemmel,
+          attesttype: ordning.attesttype,
+          maksAlderMaaneder: ordning.maksAlderMaaneder,
+          slikSoekerDu: ordning.slikSoekerDu,
+          oppbevaring: ordning.oppbevaring,
+          syntetisk: true
+        };
+      })
+  },
+  {
+    // Politiattesten er innbyggerens eget dokument, og kommunen leser den fordi
+    // hen framviser den. Straffedommer er artikkel 10-opplysninger, og porten
+    // runRessurs() lukker foran handter() her er samtykket til å lese den.
+    metode: "GET",
+    sti: "/api/personer/:personId/politiattest",
+    ressurs: "politiattest",
+    beskrivelse:
+      "Politiattesten innbyggeren framviser, for ett formål. Svaret er minimert: "
+      + "type, dato og antall anmerkninger, aldri hva de gjelder.",
+    kreverSamtykke: "politiattest",
+    samtykkeEmne: "Politiattesten",
+    formaal: "Kontrollere vandel for oppdrag eller stilling",
+    valider: ({ sok }) => {
+      if (!sok.get("formaal")) {
+        throw new HttpError(
+          "formaal er påkrevd. En attest gjelder for det formålet den er utstedt til.",
+          400
+        );
+      }
+    },
+    handter: async ({ tilstand, personId, sok }) => {
+      const attest = await finnGjeldendeAttest(tilstand, personId, sok.get("formaal")!);
+      // 200 med politiattest: null, ikke 404. «Du har ingen attest for dette
+      // formålet» er et svar søkeren skal få, og et DATA_FETCH-steg som feiler
+      // stopper prosessøkten framfor å la vurderingen forklare hvorfor.
+      return { personId, politiattest: minimerAttest(attest), syntetisk: true };
+    }
+  },
+  {
+    metode: "GET",
+    sti: "/api/regler/sjekk/vandel",
+    ressurs: "vandelsvurdering",
+    beskrivelse:
+      "SJEKK: vandelskontroll for en rolle. Med ?rolle=stottekontakt|barnehage|skole.",
+    // Statisk samtykkekrav framfor kreverSamtykkeFor: regelBehov er nøklet på
+    // regeltype, så hver vandelsordning gir samme svar. En dynamisk oppslagsvei
+    // med ett mulig utfall er bare en vei rundt den som står her.
+    kreverSamtykke: "politiattest",
+    formaal: "Kontrollere vandel for oppdrag eller stilling",
+    valider: ({ sok, personId }) => {
+      if (!personId || !sok.get("rolle")) {
+        throw new HttpError("personId og rolle er påkrevd.", 400);
+      }
+    },
+    // Egen rute framfor ?ordning= på ruten over: `alternativer` i et QUESTION-steg
+    // vises som de er, og innbyggeren skal se rollen sin og ikke en ordnings-id.
+    handter: ({ tilstand, sok, personId }) =>
+      withStatus(400, () =>
+        evaluateOrdning(tilstand, personId, selectOrdningForFormaal(tilstand, sok.get("rolle")!).id)
+      )
   },
   {
     metode: "GET",
