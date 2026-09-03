@@ -160,9 +160,10 @@ function renderAktivtSteg(): void {
           `;
         }
         if (felt.type === "valg") {
-          const alternativer = (felt.alternativer || []).map((alternativ) =>
-            `<option value="${htmlEscape(alternativ)}" ${svarverdi === alternativ ? "selected" : ""}>${htmlEscape(alternativ)}</option>`
-          ).join("");
+          const alternativer = (felt.alternativer || []).map((alternativ) => {
+            const verdi = alternativVerdi(alternativ);
+            return `<option value="${htmlEscape(verdi)}" ${svarverdi === verdi ? "selected" : ""}>${htmlEscape(alternativLabel(alternativ))}</option>`;
+          }).join("");
           return `
             <div class="row">
               ${labelHtml}

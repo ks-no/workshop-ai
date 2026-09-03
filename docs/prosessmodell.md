@@ -252,6 +252,23 @@ Støttede felttyper i første versjon:
 - `ja-nei`
 - `valg`
 
+Et alternativ i `valg` kan skrives på to måter. En ren streng er både verdien som
+lagres og teksten innbyggeren leser, slik som `"Telefon"` over. Er verdien et
+kodeverk, skriv `{ "verdi": "...", "label": "..." }` i stedet, så leser
+innbyggeren «Støttekontakt» mens `stottekontakt` er det som lagres:
+
+```json
+"alternativer": [
+  { "verdi": "stottekontakt", "label": "Støttekontakt" },
+  { "verdi": "barnehage", "label": "Barnehage" }
+]
+```
+
+Svaret valideres mot listen. Kommer det inn noe utenfor den, svarer
+`POST /api/prosessoekter/{id}/svar` med 400 og lister de gyldige verdiene.
+Skrivemåten er fri - store bokstaver og æ/ø/å sammenlignes bort - og den
+kanoniske verdien er det som lagres.
+
 ---
 
 ## Neste steg

@@ -43,12 +43,14 @@ type ModellHelse = {
  * finnes fordi nettleseren ikke har noe modulsystem å importere gjennom - men den
  * er med vilje løsere: siden viser hva serveren sender, den håndhever ingenting.
  */
+type Alternativ = string | { verdi: string; label: string };
+
 type SpoersmaalsFelt = {
   id: string;
   label: string;
   type: string;
   obligatorisk?: boolean;
-  alternativer?: string[];
+  alternativer?: Alternativ[];
   placeholder?: string;
 };
 
@@ -146,6 +148,17 @@ function htmlEscape(tekst: unknown): string {
 
 function formatNumber(value: unknown): string {
   return new Intl.NumberFormat("nb-NO").format(Number(value || 0));
+}
+
+// Et alternativ som ren streng er både verdi og ledetekst. Objektformen skiller
+// dem, slik at innbyggeren leser «Støttekontakt» og kodeverket får
+// «stottekontakt».
+function alternativVerdi(alternativ: Alternativ): string {
+  return typeof alternativ === "string" ? alternativ : alternativ.verdi;
+}
+
+function alternativLabel(alternativ: Alternativ): string {
+  return typeof alternativ === "string" ? alternativ : alternativ.label;
 }
 
 function addMsg(role: string, text: string): HTMLDivElement | null {

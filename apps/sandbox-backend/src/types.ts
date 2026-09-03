@@ -27,13 +27,25 @@ export type Stegtype =
 
 export type Feltype = "tekst" | "ja-nei" | "valg";
 
+// A plain string is both value and label. The object form separates them, so a
+// kodeverk value can be stored while the citizen reads an ordinary word.
+export type Alternativ = string | { verdi: string; label: string };
+
 export type SpoersmaalsFelt = {
   id: string;
   label: string;
   type: Feltype;
   obligatorisk?: boolean;
-  alternativer?: string[];
+  alternativer?: Alternativ[];
 };
+
+export function alternativVerdi(alternativ: Alternativ): string {
+  return typeof alternativ === "string" ? alternativ : alternativ.verdi;
+}
+
+export function alternativLabel(alternativ: Alternativ): string {
+  return typeof alternativ === "string" ? alternativ : alternativ.label;
+}
 
 export type ApiKall = {
   method?: string;

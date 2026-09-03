@@ -552,10 +552,24 @@ function erFortsettSignal(text: string): boolean {
     || ["start", "fortsett", "neste", "klar", "kjør på", "kjor pa", "gå videre", "ga videre"].some((match) => lower.includes(match));
 }
 
+function enesteValgfelt(steg: ProsessSteg | null | undefined): SpoersmaalsFelt | null {
+  const felter = steg?.felter || [];
+  if (felter.length !== 1) return null;
+  const felt = felter[0];
+  return felt.type === "valg" && (felt.alternativer || []).length > 0 ? felt : null;
+}
+
 function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
   const felter = steg?.felter || [];
   if (felter.length === 0) {
     return "Fortell gjerne med dine egne ord.";
+  }
+  // Et lukket alternativsett skal vises. Uten det måtte innbyggeren gjette
+  // ordet, og en gjetning som ikke treffer, avvises.
+  const valgfelt = enesteValgfelt(steg);
+  if (valgfelt) {
+    const liste = (valgfelt.alternativer || []).map((alternativ) => `- ${alternativLabel(alternativ)}`).join("\n");
+    return `${valgfelt.label}\n${liste}`;
   }
   if (felter.length === 1) {
     return `Fortell gjerne litt om dette: ${felter[0].label}`;
@@ -936,6 +950,19 @@ function renderQuickActionsFor(steg: ProsessSteg, feilrutetTekst: string | null 
 
   if (steg.type === "INFO") {
     knapper.push({ label: "Start", onClick: () => goNext() });
+  }
+
+  const valgfelt = enesteValgfelt(steg);
+  if (steg.type === "QUESTION" && valgfelt) {
+    for (const alternativ of valgfelt.alternativer || []) {
+      const verdi = alternativVerdi(alternativ);
+      knapper.push({
+        label: alternativLabel(alternativ),
+        // hoppOverSporsmaalsruting: et trykk er aldri et spørsmål, og verdien
+        // skal inn uendret.
+        onClick: () => sendMessage(verdi, { hoppOverSporsmaalsruting: true })
+      });
+    }
   }
 
   if (steg.type === "CONSENT_REQUEST") {
