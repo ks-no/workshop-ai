@@ -345,7 +345,7 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
   // ordningen i data/satser.json framfor i koden.
   //
   // Regelen avgjør bare det som er deterministisk. En anmerkning som treffer
-  // absoluttUtelukkelse er et yrkesforbud loven har bestemt - barnehagelova § 30
+  // absoluttUtelukkelse er et yrkesforbud loven har bestemt - barnehageloven § 30
   // utelukker den som er dømt for seksuelle overgrep mot mindreårige, uten skjønn.
   // Alt annet er en egnethetsvurdering, og den skal et menneske gjøre: da svarer
   // regelen `krever_manuell_vurdering` og lar søknaden gå inn.

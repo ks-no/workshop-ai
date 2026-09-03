@@ -126,9 +126,9 @@
       "navn": "Vandelskontroll - barnehage",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
-      "kilde": "Barnehagelova § 30, jf. politiregisterloven § 39 første ledd.",
+      "kilde": "Barnehageloven § 30, jf. politiregisterloven § 39 første ledd.",
       "formaal": "barnehage",
-      "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+      "hjemmel": "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
       "attesttype": "barneomsorgsattest",
       "maksAlderMaaneder": 3,
       "absoluttUtelukkelse": [
