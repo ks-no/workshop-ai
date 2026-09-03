@@ -88,6 +88,10 @@ if (personer.length < 20) {
   throw new Error("Det må finnes minst 20 personer.");
 }
 
+if (typeof satser.kilde !== "string" || satser.kilde.trim().length === 0) {
+  throw new Error("Satsene mangler den felles kilden som API-kontrakten beholder.");
+}
+
 for (const ordning of satser.ordninger) {
   if (typeof ordning.kilde !== "string" || ordning.kilde.trim().length === 0) {
     throw new Error(`${ordning.id} mangler en kilde som gjelder for ordningen.`);

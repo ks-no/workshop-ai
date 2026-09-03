@@ -190,6 +190,8 @@ export type Ordning = {
 
 export type Satser = {
   gjelderFra: string;
+  /** Kept in GET /api/regler/satser for wire compatibility; assessments use Ordning.kilde. */
+  kilde: string;
   maksAndelAvInntekt: number;
   maanederMedBetaling: number;
   ordninger: Ordning[];

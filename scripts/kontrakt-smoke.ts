@@ -298,7 +298,10 @@ async function staticLookups() {
   await call("inntektsgrunnlag-uten-samtykke", "/api/husstander/household-001/inntektsgrunnlag", { somPerson: "person-001" });
   await call("soknader", "/api/personer/person-001/soknader");
   await call("inntekt-uten-samtykke", "/api/personer/person-001/inntekt");
-  await call("satser", "/api/regler/satser");
+  const satser = await call("satser", "/api/regler/satser") as { kilde?: unknown };
+  if (typeof satser.kilde !== "string" || satser.kilde.length === 0) {
+    throw new Error("GET /api/regler/satser mangler det eksisterende feltet kilde.");
+  }
   await call("prosesser", "/api/prosesser");
   await call("prosesser-med-maler", "/api/prosesser?inkluderMaler=true");
   await call("prosess", "/api/prosesser/redusert-foreldrebetaling-barnehage");

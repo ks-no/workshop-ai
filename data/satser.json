@@ -1,5 +1,6 @@
 {
   "gjelderFra": "2026-08-01",
+  "kilde": "Forskrift om foreldrebetaling i barnehager, samt kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
   "merknad": "Syntetiske sandkasse-satser. Noen grenser er nasjonale, andre kommunale. Verifiser mot gjeldende forskrift for din kommune før tallene brukes til annet enn demo.",
   "maksAndelAvInntekt": 0.06,
   "maanederMedBetaling": 11,
@@ -142,9 +143,9 @@
       "navn": "Vandelskontroll - skole og SFO",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
-      "kilde": "Opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd.",
+      "kilde": "Opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd.",
       "formaal": "skole",
-      "hjemmel": "opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd",
+      "hjemmel": "opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd",
       "attesttype": "barneomsorgsattest",
       "maksAlderMaaneder": 3,
       "absoluttUtelukkelse": [

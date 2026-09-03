@@ -57,6 +57,7 @@ const GJELDER_FRA = "2026-08-01";
 
 const satser = {
   gjelderFra: GJELDER_FRA,
+  kilde: "test-vilkaar",
   maksAndelAvInntekt: 0.06,
   maanederMedBetaling: 11,
   ordninger: []
