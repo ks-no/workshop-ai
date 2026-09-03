@@ -10,14 +10,73 @@ import { buildSoknadsdokument } from "./kvittering.ts";
 import { sendKvittering } from "./svarut.ts";
 import { findPerson, newId } from "./state.ts";
 import { buildAdvarsel, callUpstream, tryUpstream } from "./upstream.ts";
+import { alternativVerdi, alternativLabel } from "./types.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
+  SpoersmaalsFelt,
   Prosessoekt,
   SjekkResultat,
   Stegtype,
   State
 } from "./types.ts";
+
+/*
+ * Svaret på et lukket alternativsett kanoniseres her, og nowhere else: begge
+ * skrivepunktene (POST /svar og QUESTION-handleren) kaller denne.
+ *
+ * Uten den ble «Støttekontakt» lagret som den sto, og feilen kom to steg senere
+ * fra selectOrdningForFormaal - på et steg som ikke hadde noe med svaret å
+ * gjøre, og med økten alt flyttet dit.
+ */
+function brett(tekst: string): string {
+  return tekst
+    .toLowerCase()
+    .replace(/æ/g, "ae")
+    // NFKD tar «å» og «é»; «ø» har ingen dekomponering og må stå for seg.
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/ø/g, "o")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function kanoniserAlternativ(felt: SpoersmaalsFelt, verdi: unknown): string {
+  const alternativer = felt.alternativer || [];
+  const brettet = brett(String(verdi));
+  const treff = alternativer.find(
+    (alternativ) => brett(alternativVerdi(alternativ)) === brettet
+      || brett(alternativLabel(alternativ)) === brettet
+  );
+  if (!treff) {
+    const gyldige = alternativer.map(alternativVerdi).join(", ");
+    throw new HttpError(`Ugyldig svar på feltet ${felt.id}. Gyldige: ${gyldige}.`, 400);
+  }
+  return alternativVerdi(treff);
+}
+
+export function normaliserValgsvar(steg: ProsessSteg, svar: unknown): unknown {
+  if (steg.type !== "QUESTION") return svar;
+  const valgfelter = (steg.felter || []).filter(
+    (felt) => felt.type === "valg" && (felt.alternativer || []).length > 0
+  );
+  if (valgfelter.length === 0) return svar;
+
+  // /stegvis poster et objekt nøklet på felt-id, /chat poster en ren streng.
+  if (typeof svar === "string") {
+    return (steg.felter || []).length === 1
+      ? kanoniserAlternativ(valgfelter[0], svar)
+      : svar;
+  }
+  if (!svar || typeof svar !== "object") return svar;
+
+  const ut: Record<string, unknown> = { ...(svar as Record<string, unknown>) };
+  for (const felt of valgfelter) {
+    if (ut[felt.id] !== undefined && ut[felt.id] !== "") {
+      ut[felt.id] = kanoniserAlternativ(felt, ut[felt.id]);
+    }
+  }
+  return ut;
+}
 
 function replaceParametere(url: string, oekt: Prosessoekt) {
   let result = url;
@@ -191,10 +250,11 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
   INFO: () => ({ type: "INFO", melding: "Informasjonssteg krever ingen handling." }),
 
   QUESTION: ({ oekt, steg, body }) => {
-    const svar = body.svar ?? oekt.svar[steg.id];
-    if (!svar) {
+    const raatt = body.svar ?? oekt.svar[steg.id];
+    if (!raatt) {
       throw new HttpError("Spørsmålssteg krever et svar.", 400);
     }
+    const svar = normaliserValgsvar(steg, raatt);
     oekt.svar[steg.id] = svar;
     return { type: "QUESTION", svar };
   },

@@ -23,7 +23,7 @@ import {
 } from "../../shared/handleevne.ts";
 import { openapiFile } from "./config.ts";
 import { routeOverview } from "../../shared/openapi.ts";
-import { buildProsessoektRespons, createSoknad, runStegHandling } from "./prosess.ts";
+import { buildProsessoektRespons, createSoknad, normaliserValgsvar, runStegHandling } from "./prosess.ts";
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
@@ -477,7 +477,11 @@ const ruter: Rute[] = [
       if (!steg) {
         throw new HttpError("Fant ikke aktivt steg.", 400);
       }
-      session.svar[body.stegId || steg.id] = body.svar;
+      // Steget svaret gjelder, ikke nødvendigvis det aktive: ruten har alltid
+      // godtatt en stegId. Er den ukjent, er det ingenting å validere mot.
+      const stegId = body.stegId || steg.id;
+      const maalSteg = prosess.steg.find((kandidat) => kandidat.id === stegId);
+      session.svar[stegId] = maalSteg ? normaliserValgsvar(maalSteg, body.svar) : body.svar;
       await addRevisjon({
         sporingsId: session.sporingsId,
         handling: "STEG_SVAR_LAGRET",
