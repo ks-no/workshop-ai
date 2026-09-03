@@ -80,7 +80,7 @@ raskere enn å lese spesifikasjonene selv.
 
 ## 3. Hvilken bruker til hvilken case
 
-Seks demo-case er publisert. Velg bruker etter case - **det er ikke én bruker som
+Sju demo-case er publisert. Velg bruker etter case - **det er ikke én bruker som
 passer alle:**
 
 | Case | Bruk denne brukeren |
@@ -91,6 +91,7 @@ passer alle:**
 | Søknad om fritidskort-støtte | `person-028` **Nora Fjeld** |
 | Søknad om fartsdempende tiltak | `person-001` |
 | Søknad om TT-kort | `person-284` **Levende Revebjelle** |
+| Politiattest for oppdrag i kommunen | `person-026` **Randi Ås** |
 
 Tabellen er pinnet i `data/deltakercaser.json` og sjekket av `pnpm test`, så et
 innvilget utfall her er et innvilget utfall i sandkassen.

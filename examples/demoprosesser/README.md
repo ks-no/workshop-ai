@@ -1,11 +1,11 @@
 # Demo-prosesser
 
-Seks publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`
+Sju publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`
 (`formatVersion` 0.2.0). Malen
 ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den:
 
 ```bash
-curl -s "http://localhost:8080/api/prosesser"                    # 6 publiserte
+curl -s "http://localhost:8080/api/prosesser"                    # 7 publiserte
 curl -s "http://localhost:8080/api/prosesser?inkluderMaler=true" # + mal-enkel-soknad
 ```
 

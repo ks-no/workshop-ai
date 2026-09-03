@@ -41,12 +41,14 @@ const fiksPort = Number(process.env.SMOKE_FIKS_PORT) || 18081;
 const matrikkelPort = Number(process.env.SMOKE_MATRIKKEL_PORT) || 18086;
 const digdirPort = Number(process.env.SMOKE_DIGDIR_PORT) || 18088;
 const pasientjournalPort = Number(process.env.SMOKE_PASIENTJOURNAL_PORT) || 18090;
+const politiattestPort = Number(process.env.SMOKE_POLITIATTEST_PORT) || 18091;
 const aiPort = Number(process.env.SMOKE_AI_PORT) || 18089;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 const matrikkelUrl = `http://127.0.0.1:${matrikkelPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 const pasientjournalUrl = `http://127.0.0.1:${pasientjournalPort}`;
+const politiattestUrl = `http://127.0.0.1:${politiattestPort}`;
 const aiUrl = `http://127.0.0.1:${aiPort}`;
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
@@ -102,7 +104,7 @@ async function requireFreePort(portnummer: number) {
     const proeve = createServer();
     proeve.once("error", (feil) => avvis(
       feilkode(feil) === "EADDRINUSE"
-        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_PASIENTJOURNAL_PORT/SMOKE_AI_PORT til ledige porter.`)
+        ? new Error(`Port ${portnummer} er opptatt. Sett SMOKE_BACKEND_PORT/SMOKE_FIKS_PORT/SMOKE_MATRIKKEL_PORT/SMOKE_DIGDIR_PORT/SMOKE_PASIENTJOURNAL_PORT/SMOKE_POLITIATTEST_PORT/SMOKE_AI_PORT til ledige porter.`)
         : feil
     ));
     proeve.listen(portnummer, "127.0.0.1", () => proeve.close(klar));
@@ -833,6 +835,49 @@ async function ttkortflyt(personId: string, merkelapp: string) {
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 
+/**
+ * Vandelskontroll. Den eneste flyten der et godkjent-utfall kan bety «et menneske
+ * må vurdere det», og den eneste der kommunen leser noe innbyggeren framviser.
+ */
+async function vandelsflyt(personId: string, rolle: string, merkelapp: string) {
+  const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
+    method: "POST",
+    body: { personId, prosessId: "politiattest-oppdrag" }
+  });
+  const id = oekt.oektsId;
+
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-rolle`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: { stegId: "velg-rolle", svar: { rolle } }
+  });
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  // Bekreftelsen på formål: åpen rute, ingen samtykke, fordi den ikke sier noe om
+  // den som søker - bare hva som gjelder for rollen.
+  await call(`${merkelapp}-formaal`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-soekt`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: { stegId: "bekreft-soknad", svar: { harSoekt: "ja" } }
+  });
+  await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "SAMTYKKET" }
+  });
+  await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  // Svaret er minimert: type, dato og antall. Dumpen er stedet det pinnes, for
+  // det er dette svaret som havner i oppsummeringen og i modellprompten.
+  await call(`${merkelapp}-attest`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+}
+
 // --- run ------------------------------------------------------------------
 
 async function run() {
@@ -841,6 +886,7 @@ async function run() {
   await requireFreePort(matrikkelPort);
   await requireFreePort(digdirPort);
   await requireFreePort(pasientjournalPort);
+  await requireFreePort(politiattestPort);
   await requireFreePort(aiPort);
 
   const stateDir = await mkdtemp(path.join(tmpdir(), "kontrakt-smoke-"));
@@ -851,6 +897,7 @@ async function run() {
     AI_BASE_URL: aiUrl,
     MATRIKKEL_BASE_URL: matrikkelUrl,
     PASIENTJOURNAL_BASE_URL: pasientjournalUrl,
+    POLITIATTEST_BASE_URL: politiattestUrl,
     // Dial address and logical issuer are the same here: everything runs on
     // 127.0.0.1, so there is no docker-network split to bridge.
     DIGDIR_BASE_URL: digdirUrl,
@@ -865,6 +912,7 @@ async function run() {
     start("fiks", "apps/fiks-simulator/src/server.ts", { ...miljo, PORT: String(fiksPort) }),
     start("matrikkel", "apps/matrikkel-mock/src/server.ts", { ...miljo, PORT: String(matrikkelPort) }),
     start("pasientjournal", "apps/pasientjournal-mock/src/server.ts", { ...miljo, PORT: String(pasientjournalPort) }),
+    start("politiattest", "apps/politiattest-mock/src/server.ts", { ...miljo, PORT: String(politiattestPort) }),
     // No AI_PROVIDER: defaults to "mock", so /ai/oppsummering answers the
     // deterministic template with no outbound call.
     start("ai", "apps/ai-gateway/src/server.ts", { ...miljo, PORT: String(aiPort) })
@@ -877,6 +925,7 @@ async function run() {
       waitForHealth(fiksUrl),
       waitForHealth(matrikkelUrl),
       waitForHealth(pasientjournalUrl),
+      waitForHealth(politiattestUrl),
       waitForHealth(aiUrl)
     ]);
 
@@ -922,6 +971,17 @@ async function run() {
     // legeerklaering: null, og vurderingen forklarer hvorfor - et 404 her ville
     // stoppet økten framfor å gi søkeren et svar hen kan gjøre noe med.
     await ttkortflyt("person-001", "ttkort-mangler-erklaering");
+    await vandelsflyt("person-026", "stottekontakt", "vandel-godkjent");
+    // Én anmerkning som ingen lov utelukker direkte. Utfallet er godkjent, men
+    // vandelsutfallet sier krever_manuell_vurdering - og det er hele grunnen til
+    // at unionen dekker begge sidene. Dumpen pinner at søknaden går videre.
+    await vandelsflyt("person-138", "stottekontakt", "vandel-manuell-vurdering");
+    // Samme slags anmerkning, annen hjemmel: barnehagelova § 30 utelukker direkte,
+    // så her avviser motoren økten. Forskjellen mellom de to radene er casens poeng.
+    await vandelsflyt("person-137", "barnehage", "vandel-absolutt-utelukkelse");
+    // Ingen attest for formålet. DATA_FETCH svarer 200 med politiattest: null, og
+    // vurderingen forklarer hva søkeren må gjøre.
+    await vandelsflyt("person-207", "stottekontakt", "vandel-mangler-attest");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
     await soknadOgRevisjon();

@@ -178,7 +178,7 @@ fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
 
 ## Demo-casene
 
-Seks publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
+Sju publiserte prosesser og én mal ligger i `data/prosessdefinisjoner.json`. Malen
 ligger under `maler`, ikke `prosesser`, og vises bare i API-et når du ber om den -
 [`examples/demoprosesser/README.md`](../examples/demoprosesser/README.md) har
 curl-kallene for å liste og kjøre dem.
@@ -191,6 +191,7 @@ curl-kallene for å liste og kjøre dem.
 | `fritidskort-stotte` | 7 | Spørsmål, samtykke og inntektshenting. Den `process-agent` bruker i `pnpm test:agent` |
 | `fartsdempende-tiltak` | 8 | Mest komplett: tre `QUESTION`, matrikkeloppslag, `SJEKK` og `{svar.<stegId>}`-substitusjon. Bruk `Storgata` for et godkjent utfall og `Fjøsangerveien` for et avvist |
 | `tt-kort` | 8 | Eneste case som henter særlige kategorier. Uttrykkelig samtykke etter personvernforordningen artikkel 9, legeerklæring fra `pasientjournal-mock`, og en `SJEKK` som aldri ser på inntekt. Bruk `person-284` for innvilget og `person-329` for avslag |
+| `politiattest-oppdrag` | 9 | Eneste case der innbyggeren gir kommunen noe framfor å be om noe, og eneste med et utfall som verken er ja eller nei: `krever_manuell_vurdering` slipper søknaden gjennom til et menneske. Formålet velges først og avgjør hjemmelen og attesttypen. Bruk `person-026` for godkjent, `person-138` for manuell vurdering |
 | `mal-enkel-soknad` | 6 | Kopi-malen fra oppskriften over. `redigering.mal: true` |
 
 ## Redigering i prosessbygger

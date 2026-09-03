@@ -1707,7 +1707,7 @@ for (const sak of deltakercaser.caser) {
       satser,
       grunnlag: null,
       legeerklaering: gjeldendeErklaeringFor(sak.personId, satser.gjelderFra),
-      politiattest: null,
+      politiattest: gjeldendeAttestFor(sak.personId, ordning.formaal || ""),
       felles: {},
       forbehold: ""
     }).godkjent;
