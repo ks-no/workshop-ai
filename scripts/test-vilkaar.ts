@@ -452,7 +452,7 @@ const ORDNING_VANDEL_BARNEHAGE = {
   tjeneste: "vandel",
   regel: "VANDELSKONTROLL",
   formaal: "barnehage",
-  hjemmel: "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+  hjemmel: "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
   attesttype: "barneomsorgsattest",
   maksAlderMaaneder: 3,
   absoluttUtelukkelse: ["seksuallovbrudd-mot-mindreaarig"]
@@ -478,7 +478,7 @@ function attestMed(overstyr: Partial<Politiattest> = {}): Politiattest {
     fnr: "01019012345",
     personId: "p-voksen",
     formaal: "barnehage",
-    hjemmel: "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+    hjemmel: "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
     attesttype: "barneomsorgsattest",
     utstedt: "2026-06-15",
     utsteder: { navn: "Politiet", enhet: "Enhet for vandelskontroll", organisasjonsnummer: "889640782" },
@@ -532,7 +532,7 @@ const overgrep = attestMed({
 const utelukket = vurderVandel(overgrep);
 check("absolutt utelukkelse navngis", utelukket.grunnlag?.vandelsutfall === "absolutt_utelukkelse");
 check("absolutt utelukkelse oppgir hjemmelen den følger av",
-  utelukket.melding.includes("barnehagelova § 30"));
+  utelukket.melding.includes("barnehageloven § 30"));
 
 // Samme anmerkning, annen hjemmel: helse- og omsorgstjenesteloven utelukker ingen
 // direkte, så den samme raden blir en egnethetsvurdering. Det er hele forskjellen

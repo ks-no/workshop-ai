@@ -1003,7 +1003,7 @@ async function run() {
     // vandelsutfallet sier krever_manuell_vurdering - og det er hele grunnen til
     // at unionen dekker begge sidene. Dumpen pinner at søknaden går videre.
     await vandelsflyt("person-138", "stottekontakt", "vandel-manuell-vurdering");
-    // Samme slags anmerkning, annen hjemmel: barnehagelova § 30 utelukker direkte,
+    // Samme slags anmerkning, annen hjemmel: barnehageloven § 30 utelukker direkte,
     // så her avviser motoren økten. Forskjellen mellom de to radene er casens poeng.
     await vandelsflyt("person-137", "barnehage", "vandel-absolutt-utelukkelse");
     // Ingen attest for formålet. DATA_FETCH svarer 200 med politiattest: null, og
