@@ -179,7 +179,8 @@
                 "INNTEKTSGRENSE",
                 "MAKS_ANDEL_AV_INNTEKT",
                 "TJENESTEBEHOV",
-                "TRANSPORTBEHOV"
+                "TRANSPORTBEHOV",
+                "VANDELSKONTROLL"
               ]
             },
             {
@@ -195,7 +196,8 @@
                 "fritid",
                 "sfo",
                 "stottekontakt",
-                "transport"
+                "transport",
+                "vandel"
               ]
             }
           ]

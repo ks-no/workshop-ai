@@ -10,6 +10,7 @@ import {
   plasserSomKvalifiserer,
   regelBehov,
   evaluateVilkaar,
+  VANDELSUTFALL,
   type Avslagsgrunn
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { DATAKILDER, isDatakilde, SAMTYKKESTATUSER } from "../apps/shared/samtykke.ts";
@@ -35,7 +36,8 @@ import {
   ATTESTFORMAAL,
   ATTESTTYPER,
   REAKSJONER,
-  byggAttestbevis
+  byggAttestbevis,
+  velgGjeldendeAttest
 } from "../apps/shared/politiattest.ts";
 import type { Politiattest } from "../apps/shared/politiattest.ts";
 
@@ -171,7 +173,6 @@ function gjeldendeErklaeringFor(personId: string, paaDato: string) {
 type Attestrad = Omit<Politiattest, "bevis">;
 const politiattester = (await read("data/politiattester.json")).attester as Attestrad[];
 const settAttestId = new Set<string>();
-const hjemmelPerFormaal = new Map<string, string>();
 const attesterPerPerson = new Map<string, Politiattest[]>();
 
 for (const attest of politiattester) {
@@ -222,16 +223,24 @@ for (const attest of politiattester) {
     }
   }
 
-  // Hjemmelen følger av formålet, ikke av personen. To attester for samme formål
-  // med ulik hjemmel er en av dem skrevet feil.
-  const kjent = hjemmelPerFormaal.get(attest.formaal);
-  if (kjent && kjent !== attest.hjemmel) {
+  // Hjemmelen følger av formålet, og ordningen i data/satser.json eier den. Målt
+  // mot den framfor mot de andre attestene: en kopi som bare sammenliknes med seg
+  // selv kan drive bort fra den verdien vedtaket faktisk bruker.
+  const ordningForFormaal = satser.ordninger.find(
+    (ordning) => ordning.regel === "VANDELSKONTROLL" && ordning.formaal === attest.formaal
+  );
+  if (!ordningForFormaal) {
     throw new Error(
-      `${attest.attestId} oppgir hjemmelen «${attest.hjemmel}» for formålet ${attest.formaal}, ` +
-      `mens en annen attest for samme formål oppgir «${kjent}».`
+      `${attest.attestId} har formålet ${attest.formaal}, som ingen vandelsordning i ` +
+      `data/satser.json dekker.`
     );
   }
-  hjemmelPerFormaal.set(attest.formaal, attest.hjemmel);
+  if (ordningForFormaal.hjemmel !== attest.hjemmel) {
+    throw new Error(
+      `${attest.attestId} oppgir hjemmelen «${attest.hjemmel}», mens ${ordningForFormaal.id} ` +
+      `i data/satser.json - den vedtaket leser - oppgir «${ordningForFormaal.hjemmel}».`
+    );
+  }
 
   // Beviset bygges av samme funksjon mocken bruker, så det som pinnes her er det
   // som går på tråden.
@@ -242,6 +251,12 @@ for (const attest of politiattester) {
       bevis: byggAttestbevis(attest)
     })
   );
+}
+
+// Samme grunn som over: sløyfen har alt slått fast at fnr og personId peker på
+// samme person, så oppslaget slipper å gå veien om personen igjen.
+function gjeldendeAttestFor(personId: string, formaal: string) {
+  return velgGjeldendeAttest(attesterPerPerson.get(personId) || [], formaal);
 }
 
 // --- Relations must hold together ------------------------------------------
@@ -997,6 +1012,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
     // Plass-reglene rører ikke journalen, og regelBehov over har alt sørget
     // for at bare de kommer hit.
     legeerklaering: null,
+    politiattest: null,
     // felles and forbehold only land in SjekkResultat.grunnlag and in the prose. This
     // gate asserts on godkjent, never on melding - rewording a message must not fail
     // a data check.
@@ -1193,6 +1209,7 @@ for (const ordning of satser.ordninger) {
       satser,
       grunnlag: null,
       legeerklaering: gjeldendeErklaeringFor(person.personId, satser.gjelderFra),
+      politiattest: null,
       felles: {},
       forbehold: ""
     });
@@ -1231,6 +1248,51 @@ for (const ordning of satser.ordninger) {
       throw new Error(
         `${ordning.id}: regelen svarte med grenen "${gren}", som denne sjekken ikke kjenner. ` +
         `Legg den i forventedeGrener, ellers telles den ikke.`
+      );
+    }
+  }
+}
+
+// --- Vandelskontroll, vurdert per person mot politiattesten -----------------
+// Seks utfall, og alle må være nåbare - ellers er grenen som gir dem død kode.
+//
+// Telles på tvers av de tre vandelsordningene og ikke per ordning: absolutt
+// utelukkelse er ikke nåbar for støttekontakt, fordi helse- og
+// omsorgstjenesteloven ikke utelukker noen direkte. Det er hele forskjellen
+// mellom en hjemmel som avgjør og en som overlater til skjønn, så en sjekk som
+// krevde alle seks per ordning ville krevd at dataene løy.
+{
+  const vandelsordninger = satser.ordninger.filter((ordning) => ordning.regel === "VANDELSKONTROLL");
+  const utfall = new Map<string, number>();
+  for (const ordning of vandelsordninger) {
+    const formaal = ordning.formaal || "";
+    for (const person of personer) {
+      const svar = evaluateVilkaar(ordning.regel, {
+        tilstand,
+        personId: person.personId,
+        ordning,
+        satser,
+        grunnlag: null,
+        legeerklaering: null,
+        politiattest: gjeldendeAttestFor(person.personId, formaal),
+        felles: {},
+        forbehold: ""
+      });
+      const gren = String(svar.grunnlag?.vandelsutfall ?? "uten utfall");
+      utfall.set(gren, (utfall.get(gren) || 0) + 1);
+    }
+  }
+  if (utfall.has("uten utfall")) {
+    throw new Error(
+      "En gren i vandelskontrollen svarer uten vandelsutfall i grunnlaget. Hver gren i " +
+      "vilkaar.ts må navngi seg selv, ellers kan ikke dekningen telles."
+    );
+  }
+  for (const gren of VANDELSUTFALL) {
+    if (!utfall.get(gren)) {
+      throw new Error(
+        `Ingen person i datasettet gir vandelsutfallet "${gren}". Alle seks utfallene må ` +
+        "være nåbare, ellers er grenen død kode. Juster data/politiattester.json."
       );
     }
   }
@@ -1645,6 +1707,7 @@ for (const sak of deltakercaser.caser) {
       satser,
       grunnlag: null,
       legeerklaering: gjeldendeErklaeringFor(sak.personId, satser.gjelderFra),
+      politiattest: null,
       felles: {},
       forbehold: ""
     }).godkjent;
@@ -1703,6 +1766,7 @@ for (const eksempel of stottekontaktMoteksempler) {
     satser,
     grunnlag: null,
     legeerklaering: null,
+    politiattest: null,
     felles: {},
     forbehold: ""
   });

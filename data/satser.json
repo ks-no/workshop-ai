@@ -96,6 +96,52 @@
       },
       "kvotetilleggLangtTilPost": 1300,
       "beskrivelse": "Vurderes bare på nedsatt funksjonsevne, aldri på inntekt. Krever legeerklæring som sier at tilstanden varer i minst to år. Kvotebeløpene er referanse, ikke et beregnet vedtak: de publiserte kronebeløpene lar seg ikke avstemme mot multiplikatorene i forskriften."
+    },
+    {
+      "id": "politiattest-stottekontakt",
+      "navn": "Vandelskontroll - støttekontakt",
+      "tjeneste": "vandel",
+      "regel": "VANDELSKONTROLL",
+      "formaal": "stottekontakt",
+      "hjemmel": "helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40",
+      "attesttype": "helse-og-omsorgsattest",
+      "maksAlderMaaneder": 3,
+      "absoluttUtelukkelse": [],
+      "beskrivelse": "Kommunen skal kreve politiattest av den som får tilbud om stilling eller oppdrag der hen yter helse- og omsorgstjenester. Ingen anmerkning utelukker automatisk: hver merknad er en egnethetsvurdering en saksbehandler må gjøre.",
+      "slikSoekerDu": "Du søker selv hos politiet, med denne bekreftelsen som vedlegg. Behandlingstiden er rundt to uker, og attesten kommer i din digitale postkasse.",
+      "oppbevaring": "Kommunen ser attesten, registrerer at kontrollen er gjort, og beholder den ikke."
+    },
+    {
+      "id": "politiattest-barnehage",
+      "navn": "Vandelskontroll - barnehage",
+      "tjeneste": "vandel",
+      "regel": "VANDELSKONTROLL",
+      "formaal": "barnehage",
+      "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "maksAlderMaaneder": 3,
+      "absoluttUtelukkelse": [
+        "seksuallovbrudd-mot-mindreaarig"
+      ],
+      "beskrivelse": "Den som skal arbeide i barnehage må legge fram barneomsorgsattest. Den som er dømt for seksuelle overgrep mot mindreårige er utelukket, og utelukkelsen følger direkte av loven. Andre anmerkninger er en egnethetsvurdering.",
+      "slikSoekerDu": "Du søker selv hos politiet, med denne bekreftelsen som vedlegg. Behandlingstiden er rundt to uker, og attesten kommer i din digitale postkasse.",
+      "oppbevaring": "Kommunen ser attesten og registrerer at kontrollen er gjort. Forskriften krever at den makuleres straks den er brukt i tilsettingssaken."
+    },
+    {
+      "id": "politiattest-skole",
+      "navn": "Vandelskontroll - skole og SFO",
+      "tjeneste": "vandel",
+      "regel": "VANDELSKONTROLL",
+      "formaal": "skole",
+      "hjemmel": "opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "maksAlderMaaneder": 3,
+      "absoluttUtelukkelse": [
+        "seksuallovbrudd-mot-mindreaarig"
+      ],
+      "beskrivelse": "Attesten kreves bare av den som får tilbud om stillingen, og skal ikke være eldre enn tre måneder. Forskriften sier at merknader kan føre til endring i tilbodet om stilling - altså skjønn, med unntak for det loven utelukker direkte.",
+      "slikSoekerDu": "Du søker selv hos politiet, med denne bekreftelsen som vedlegg. Behandlingstiden er rundt to uker, og attesten kommer i din digitale postkasse.",
+      "oppbevaring": "Kommunen ser attesten og registrerer at kontrollen er gjort. Forskriften krever at den makuleres straks den er brukt i tilsettingssaken."
     }
   ],
   "syntetisk": true

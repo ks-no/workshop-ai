@@ -14,6 +14,7 @@ import type { Satser, SjekkResultat, State } from "./types.ts";
 // and pnpm test:vilkaar fails if vilkaar.ts imports this file back.
 import { regelBehov, evaluateVilkaar } from "./vilkaar.ts";
 import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
+import { finnGjeldendeAttest } from "./politiattest.ts";
 
 // Fetches the household income basis from the Fiks simulator. Spouses, registered
 // partners and cohabitants count as one household, per forskrift om
@@ -110,6 +111,13 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
     ? await finnGjeldendeLegeerklaering(tilstand, personId, satser.gjelderFra)
     : null;
 
+  // Samme mekanikk igjen: bare vandelskontrollen slår opp en politiattest. En
+  // straffedom er artikkel 10-opplysninger, og de leses ikke for en ordning
+  // vedtaket aldri rører.
+  const politiattest = behov.politiattest && ordning.formaal
+    ? await finnGjeldendeAttest(tilstand, personId, ordning.formaal)
+    : null;
+
   const grunnlag = beregning ? beregning.beregningsbeloep : null;
   const felles = {
     ordning: ordning.id,
@@ -123,7 +131,7 @@ export async function evaluateOrdning(tilstand: State, personId: string, ordning
     : "";
 
   return evaluateVilkaar(ordning.regel, {
-    tilstand, personId, ordning, satser, grunnlag, legeerklaering, felles, forbehold
+    tilstand, personId, ordning, satser, grunnlag, legeerklaering, politiattest, felles, forbehold
   });
 }
 
