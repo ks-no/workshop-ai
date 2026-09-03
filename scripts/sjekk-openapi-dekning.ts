@@ -416,6 +416,34 @@ const tjenester: Tjeneste[] = [
     ]
   },
   {
+    navn: "politiattest-mock",
+    spesifikasjon: "openapi/politiattest-mock.yaml",
+    kilde: "apps/politiattest-mock/src/server.ts",
+    // De fire kodeverkene i apps/shared/politiattest.ts, målt mot unionene i koden.
+    datakodeverk: [
+      {
+        skjema: "Politiattest",
+        felt: "formaal",
+        verdier: async () => (await import("../apps/shared/politiattest.ts")).ATTESTFORMAAL
+      },
+      {
+        skjema: "Politiattest",
+        felt: "attesttype",
+        verdier: async () => (await import("../apps/shared/politiattest.ts")).ATTESTTYPER
+      },
+      {
+        skjema: "Politiattest",
+        felt: "kategori",
+        verdier: async () => (await import("../apps/shared/politiattest.ts")).ANMERKNINGSKATEGORIER
+      },
+      {
+        skjema: "Politiattest",
+        felt: "reaksjon",
+        verdier: async () => (await import("../apps/shared/politiattest.ts")).REAKSJONER
+      }
+    ]
+  },
+  {
     navn: "digdir-mock",
     spesifikasjon: "openapi/digdir-mock.yaml",
     kilde: "apps/digdir-mock/src/server.ts",

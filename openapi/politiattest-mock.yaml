@@ -1,0 +1,303 @@
+openapi: 3.1.0
+info:
+  title: Politiattest Mock API
+  version: 0.1.0
+  description: >-
+    Politiattester, formet som det dokumentet innbyggeren har fått fra politiet og
+    framviser til kommunen. Alle data er syntetiske, og hvert svar bærer
+    `syntetisk: true`.
+
+    Denne integrasjonen finnes ikke i virkeligheten. Det finnes ingen API for
+    politiattest, attesten er ikke maskinlesbar, og i dag framviser innbyggeren en
+    låst PDF. Tjenesten modellerer ikke politiets reaksjonsregister: den svarer bare
+    på attester som alt er utstedt til en person for et bestemt formål. Se
+    `apps/politiattest-mock/README.md`.
+
+    Attestflaten ligger bak Maskinporten med audience `politiattest-mock` og scopet
+    `politiattest:attest.read`.
+servers:
+  - url: http://localhost:8088
+paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  kilde:
+                    type: string
+                  antallAttester:
+                    type: integer
+                  antallPersoner:
+                    type: integer
+                  lastetTidspunkt:
+                    type: string
+                    format: date-time
+                  tidspunkt:
+                    type: string
+                    format: date-time
+
+  /docs:
+    get:
+      summary: Lesbar oversikt
+      security: []
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      responses:
+        "200":
+          description: Ruteoversikt
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /attester:
+    get:
+      summary: Politiattestene én person har for ett formål
+      description: >-
+        Både `fnr` og `formaal` er påkrevd. `fnr` fordi ruten ellers ville vært et
+        uttrekk av alle anmerkninger i sandkassen. `formaal` fordi en attest gjelder
+        for det formålet den ble utstedt til - et oppslag uten formål er spørsmålet
+        «hva har denne personen på seg», og det skal ingen kunne stille.
+      security:
+        - maskinporten: [politiattest:attest.read]
+      parameters:
+        - name: fnr
+          in: query
+          required: true
+          description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          schema:
+            type: string
+        - name: formaal
+          in: query
+          required: true
+          description: Rollen attesten er utstedt til, og som avgjør hjemmelen og attesttypen.
+          schema:
+            type: string
+            enum: [stottekontakt, barnehage, skole]
+      responses:
+        "200":
+          description: Attestene personen har for formålet, eventuelt en tom liste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fnr:
+                    type: string
+                  formaal:
+                    type: string
+                  attester:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Politiattest"
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: fnr eller formaal mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "401":
+          description: Token mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          description: Tokenet mangler scope, eller er et ID-porten-token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+  /attester/{attestId}:
+    get:
+      summary: Én politiattest
+      security:
+        - maskinporten: [politiattest:attest.read]
+      parameters:
+        - name: attestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attesten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Politiattest"
+        "401":
+          description: Token mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          description: Tokenet mangler scope, eller er et ID-porten-token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "404":
+          description: Fant ikke attesten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+components:
+  securitySchemes:
+    maskinporten:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Maskin-til-maskin. RS256-signert JWT fra digdir-mock, hentet med
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer mot POST /token.
+        Krever aud `politiattest-mock` og scope `politiattest:attest.read`.
+
+        Et personlig ID-porten-token avvises med 403 KREVER_MASKINPORTEN.
+        Innbyggeren beviser hvem hen er overfor sandbox-backend, og sandbox-backend
+        henter her som maskin etter at samtykkeporten har åpnet.
+  schemas:
+    Politiattest:
+      type: object
+      properties:
+        attestId:
+          type: string
+        dokumenttype:
+          type: string
+        fnr:
+          type: string
+        personId:
+          type: string
+        formaal:
+          type: string
+          description: Rollen attesten er utstedt til. Formålet avgjør hjemmelen og attesttypen.
+          enum: [stottekontakt, barnehage, skole]
+        hjemmel:
+          type: string
+          description: Hjemmelen kontrollen er gjort etter, slik den står i bekreftelsen på formål.
+        attesttype:
+          type: string
+          description: >-
+            `helse-og-omsorgsattest` er sandkassens navn, ikke lovens: attesten etter
+            helse- og omsorgstjenesteloven § 5-4 er satt sammen av lovbruddene i
+            politiregisterloven § 41 nr. 1 og § 40, og politiet identifiserer den
+            gjennom formålet.
+          enum: [barneomsorgsattest, helse-og-omsorgsattest, ordinaer, uttoemmende, utvidet]
+        utstedt:
+          type: string
+          format: date
+          description: >-
+            Attesten har ingen utløpsdato. Tremånedersgrensen er mottakerens regel, og
+            den vurderes mot denne datoen.
+        utsteder:
+          type: object
+          properties:
+            navn:
+              type: string
+            enhet:
+              type: string
+            organisasjonsnummer:
+              type: string
+        anmerkninger:
+          type: array
+          description: >-
+            Tom liste betyr attest uten merknad. En anmerkning er ikke det samme som
+            en dom, og skillet er grunnen til at vurderingen er skjønn.
+          items:
+            type: object
+            properties:
+              kategori:
+                type: string
+                enum: [seksuallovbrudd-mot-mindreaarig, seksuallovbrudd-mot-voksen, voldslovbrudd, narkotikalovbrudd, vinningslovbrudd, bedrageri-eller-underslag]
+              hjemmel:
+                type: string
+                description: Straffebudet, slik det står på attesten.
+              reaksjon:
+                type: string
+                description: De fire ordene politiregisterloven § 39 bruker.
+                enum: [siktet, tiltalt, forelegg, dom]
+              dato:
+                type: string
+                format: date
+        bevis:
+          type: object
+          description: >-
+            Attesten som Verifiable Credential. Feltnavnene er engelske fordi de
+            tilhører W3C-modellen og ikke denne sandkassen. Det finnes ingen
+            kryptografisk `proof`: sandkassen signerer ikke bevis.
+          properties:
+            type:
+              type: array
+              items:
+                type: string
+            issuer:
+              type: string
+            credentialSubject:
+              type: object
+              properties:
+                id:
+                  type: string
+                formaal:
+                  type: string
+                attesttype:
+                  type: string
+                anmerkninger:
+                  type: integer
+            issuanceDate:
+              type: string
+              format: date-time
+            expirationDate:
+              type: string
+              format: date-time
+              description: Utstedelsesdato pluss tre måneder, slik at grensen er synlig for den som verifiserer.
+        syntetisk:
+          type: boolean
+    Feil:
+      type: object
+      properties:
+        feil:
+          type: string
+        feilkode:
+          type: string
+        syntetisk:
+          type: boolean

@@ -14,3 +14,15 @@ export function alderVed(foedselsdato: string, referansedato: string): number {
     (reference.getMonth() === foedt.getMonth() && reference.getDate() < foedt.getDate());
   return beforeBirthday ? alder - 1 : alder;
 }
+
+/**
+ * Månedene mellom to ISO-datoer. Samme regning som over, uten å dele på tolv -
+ * her fordi datoregningen hører i én modul, og fordi en regel som trenger måneder
+ * ikke skal importere et domene for å få dem.
+ */
+export function maanederMellom(fra: string, til: string): number {
+  const a = new Date(fra);
+  const b = new Date(til);
+  const maaneder = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  return b.getDate() < a.getDate() ? maaneder - 1 : maaneder;
+}
