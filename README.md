@@ -93,7 +93,7 @@ Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles AP
 
 ## Status
 
-Ti kjørende tjenester, én valgfri avhengighet i kjøretid, seks komplette demo-case. På plass:
+Elleve kjørende tjenester, én valgfri avhengighet i kjøretid, seks komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -101,7 +101,7 @@ Ti kjørende tjenester, én valgfri avhengighet i kjøretid, seks komplette demo
 - syntetiske data forankret i Folkeregisterets informasjonsmodell og KS Fiks beregnings-API
 - KI-spor: hvert modellkall lagres med prompt og svar, lesbart på `GET /trace`
 - evals av KI-laget: `pnpm test:eval`
-- OpenAPI for alle åtte API-tjenestene, komplett og holdt i takt med koden av
+- OpenAPI for alle ni API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
 
 ## Hvordan starte den
@@ -142,7 +142,7 @@ faktisk svarer.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
 ekvivalent. `start.bat` sjekker portene, lager `.env` hvis den mangler, og venter til alle
-ti tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
+elleve tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
 `--help`, men ingen modellflagg. **Den kjører alltid uten
 språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
 ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
@@ -243,7 +243,7 @@ ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock \
-  demo-gui process-builder
+  politiattest-mock demo-gui process-builder
 ```
 
 **Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
@@ -411,6 +411,7 @@ Syntetiske data ligger under `data/`:
 - `data/fritidsaktiviteter.json` og `data/fritidsdeltakelse.json` - grunnlaget for fritidskort
 - `data/tjenestetilbud.json` - kommunale tilbud med målgruppe og kapasitet, grunnlaget for støttekontakt
 - `data/legeerklaeringer.json` - legeerklæringer til TT-kort, lest av `pasientjournal-mock`
+- `data/politiattester.json` - politiattester til vandelskontroll, lest av `politiattest-mock`
 - `data/matrikkel.json` - 388 gater og 18 349 eiendommer i 97 kommuner, lest av `matrikkel-mock`
 - `data/eierforhold.json` - tinglyst eierskap per matrikkelenhet, slått sammen av `matrikkel-mock` ved innlasting
 - `data/matrikkel.seed.json` - liten firegaters fixture for mockens egne tester

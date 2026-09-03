@@ -105,6 +105,7 @@ Kildedata i `data/`:
 | `barnehageplasser.json`, `sfoplasser.json` | Plass og månedspris, som 6 %-regelen måles mot |
 | `tjenestetilbud.json` | Kommunale tilbud med målgruppe og ledige plasser. Grunnlaget for behovsavklaring |
 | `legeerklaeringer.json` | Legeerklæringer til TT-kort, formet som journalutdrag. Nøklet på fødselsnummer, lest bare av `pasientjournal-mock` |
+| `politiattester.json` | Politiattester til vandelskontroll, formet som attesten innbyggeren framviser. Nøklet på fødselsnummer, lest bare av `politiattest-mock` |
 | `fritidsaktiviteter.json` | Katalog over fritidsaktiviteter med aldersgrenser |
 | `fritidsdeltakelse.json` | Hvilke barn som deltar i hvilken aktivitet, og til hvilken pris |
 | `informasjonsmodeller.json` | Begreper og attributter, med kodeverdier som `pnpm test` holder mot dataene |

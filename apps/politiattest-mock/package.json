@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/politiattest-mock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mock av politiattest: attesten innbyggeren framviser til kommunen.",
+  "type": "module"
+}

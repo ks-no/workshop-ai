@@ -30,6 +30,14 @@ import {
   isSyntetiskFoedselsnummer,
   stemmerMedFoedselsdato
 } from "../apps/shared/foedselsnummer.ts";
+import {
+  ANMERKNINGSKATEGORIER,
+  ATTESTFORMAAL,
+  ATTESTTYPER,
+  REAKSJONER,
+  byggAttestbevis
+} from "../apps/shared/politiattest.ts";
+import type { Politiattest } from "../apps/shared/politiattest.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
 // created by the services on first write.
@@ -53,6 +61,7 @@ const files = [
   "data/fritidsdeltakelse.json",
   "data/tjenestetilbud.json",
   "data/legeerklaeringer.json",
+  "data/politiattester.json",
   "data/forventet-utfall.json"
 ];
 
@@ -153,6 +162,86 @@ for (const erklaering of legeerklaeringer) {
 // to peker på samme person, så oppslaget slipper å gå veien om personen igjen.
 function gjeldendeErklaeringFor(personId: string, paaDato: string) {
   return velgGjeldendeLegeerklaering(erklaeringerPerPerson.get(personId) || [], paaDato);
+}
+
+// --- Politiattestene peker på befolkningen -----------------------------------
+//
+// Samme form som legeerklæringene: nøkkelen er fødselsnummer, personId står ved
+// siden av som lesehjelp, og de to kan gå fra hverandre uten at noe klager.
+type Attestrad = Omit<Politiattest, "bevis">;
+const politiattester = (await read("data/politiattester.json")).attester as Attestrad[];
+const settAttestId = new Set<string>();
+const hjemmelPerFormaal = new Map<string, string>();
+const attesterPerPerson = new Map<string, Politiattest[]>();
+
+for (const attest of politiattester) {
+  const person = personPerFnr.get(attest.fnr);
+  if (!person) {
+    throw new Error(`${attest.attestId} har fødselsnummer ${attest.fnr}, som ingen person har.`);
+  }
+  if (person.personId !== attest.personId) {
+    throw new Error(
+      `${attest.attestId} oppgir ${attest.personId}, men ${attest.fnr} tilhører ${person.personId}.`
+    );
+  }
+  if (settAttestId.has(attest.attestId)) {
+    throw new Error(`Attest-id ${attest.attestId} finnes to ganger.`);
+  }
+  settAttestId.add(attest.attestId);
+
+  // Kodeverkene er unioner i koden, og en skrivefeil i seeden ville gjort et
+  // absolutt yrkesforbud til en skjønnsvurdering i stillhet.
+  if (!(ATTESTFORMAAL as readonly string[]).includes(attest.formaal)) {
+    throw new Error(
+      `${attest.attestId} har formaal "${attest.formaal}". Gyldige: ${ATTESTFORMAAL.join(", ")}.`
+    );
+  }
+  if (!(ATTESTTYPER as readonly string[]).includes(attest.attesttype)) {
+    throw new Error(
+      `${attest.attestId} har attesttype "${attest.attesttype}". Gyldige: ${ATTESTTYPER.join(", ")}.`
+    );
+  }
+  for (const anmerkning of attest.anmerkninger) {
+    if (!(ANMERKNINGSKATEGORIER as readonly string[]).includes(anmerkning.kategori)) {
+      throw new Error(
+        `${attest.attestId} har kategorien "${anmerkning.kategori}". ` +
+        `Gyldige: ${ANMERKNINGSKATEGORIER.join(", ")}.`
+      );
+    }
+    if (!(REAKSJONER as readonly string[]).includes(anmerkning.reaksjon)) {
+      throw new Error(
+        `${attest.attestId} har reaksjonen "${anmerkning.reaksjon}". ` +
+        `Gyldige: ${REAKSJONER.join(", ")}.`
+      );
+    }
+    if (anmerkning.dato > attest.utstedt) {
+      throw new Error(
+        `${attest.attestId} har en anmerkning datert ${anmerkning.dato}, etter at attesten ` +
+        `ble utstedt ${attest.utstedt}.`
+      );
+    }
+  }
+
+  // Hjemmelen følger av formålet, ikke av personen. To attester for samme formål
+  // med ulik hjemmel er en av dem skrevet feil.
+  const kjent = hjemmelPerFormaal.get(attest.formaal);
+  if (kjent && kjent !== attest.hjemmel) {
+    throw new Error(
+      `${attest.attestId} oppgir hjemmelen «${attest.hjemmel}» for formålet ${attest.formaal}, ` +
+      `mens en annen attest for samme formål oppgir «${kjent}».`
+    );
+  }
+  hjemmelPerFormaal.set(attest.formaal, attest.hjemmel);
+
+  // Beviset bygges av samme funksjon mocken bruker, så det som pinnes her er det
+  // som går på tråden.
+  attesterPerPerson.set(
+    attest.personId,
+    (attesterPerPerson.get(attest.personId) || []).concat({
+      ...attest,
+      bevis: byggAttestbevis(attest)
+    })
+  );
 }
 
 // --- Relations must hold together ------------------------------------------

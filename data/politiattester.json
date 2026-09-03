@@ -1,0 +1,165 @@
+{
+  "beskrivelse": "Syntetiske politiattester, formet som attesten innbyggeren har fått og bærer selv. Formålet er rollen personen skal tre inn i, og det avgjør både hjemmelen og attesttypen: barneomsorgsattest til barnehage og skole etter politiregisterloven § 39 første ledd, og den sammensatte attesten etter helse- og omsorgstjenesteloven § 5-4 til oppdrag som støttekontakt. Anmerkningene bruker de fire ordene loven bruker - siktet, tiltalt, forelegg, dom - fordi en anmerkning ikke er det samme som en dom.",
+  "merknad": "Det finnes ingen slik integrasjon i virkeligheten: politiattesten er en låst PDF uten maskinlesbart innhold, og ingen kommune kan slå den opp. Se apps/politiattest-mock/README.md. Nøkkelen er fødselsnummer, den samme som i krr.json, men ingenting er importert derfra. Filen leses bare av apps/politiattest-mock; sandbox-backend når attestene over HTTP. bevis-blokken står ikke her: den er avledet av attesten og flettes inn ved innlasting, slik matrikkel-mock fletter inn eierforhold.",
+  "syntetisk": true,
+  "antall": 8,
+  "attester": [
+    {
+      "attestId": "att-0001",
+      "dokumenttype": "Politiattest",
+      "fnr": "03889400020",
+      "personId": "person-026",
+      "formaal": "stottekontakt",
+      "hjemmel": "helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40",
+      "attesttype": "helse-og-omsorgsattest",
+      "utstedt": "2026-06-15",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0002",
+      "dokumenttype": "Politiattest",
+      "fnr": "02829000078",
+      "personId": "person-040",
+      "formaal": "barnehage",
+      "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "utstedt": "2026-07-02",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0003",
+      "dokumenttype": "Politiattest",
+      "fnr": "11928199438",
+      "personId": "person-215",
+      "formaal": "skole",
+      "hjemmel": "opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "utstedt": "2026-07-10",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0004",
+      "dokumenttype": "Politiattest",
+      "fnr": "15859098549",
+      "personId": "person-137",
+      "formaal": "barnehage",
+      "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "utstedt": "2026-06-20",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [
+        {
+          "kategori": "seksuallovbrudd-mot-mindreaarig",
+          "hjemmel": "straffeloven § 302",
+          "reaksjon": "dom",
+          "dato": "2019-04-11"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0005",
+      "dokumenttype": "Politiattest",
+      "fnr": "28858698261",
+      "personId": "person-138",
+      "formaal": "stottekontakt",
+      "hjemmel": "helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40",
+      "attesttype": "helse-og-omsorgsattest",
+      "utstedt": "2026-06-05",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [
+        {
+          "kategori": "narkotikalovbrudd",
+          "hjemmel": "straffeloven § 231",
+          "reaksjon": "forelegg",
+          "dato": "2024-09-02"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0006",
+      "dokumenttype": "Politiattest",
+      "fnr": "09848298961",
+      "personId": "person-214",
+      "formaal": "stottekontakt",
+      "hjemmel": "helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40",
+      "attesttype": "helse-og-omsorgsattest",
+      "utstedt": "2026-07-14",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [
+        {
+          "kategori": "vinningslovbrudd",
+          "hjemmel": "straffeloven § 321",
+          "reaksjon": "dom",
+          "dato": "2021-11-08"
+        }
+      ],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0007",
+      "dokumenttype": "Politiattest",
+      "fnr": "08917799599",
+      "personId": "person-203",
+      "formaal": "skole",
+      "hjemmel": "opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "utstedt": "2026-02-10",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0008",
+      "dokumenttype": "Politiattest",
+      "fnr": "26858099829",
+      "personId": "person-206",
+      "formaal": "barnehage",
+      "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "ordinaer",
+      "utstedt": "2026-06-28",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [],
+      "syntetisk": true
+    }
+  ]
+}

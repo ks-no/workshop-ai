@@ -38,6 +38,7 @@
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
 - `apps/pasientjournal-mock` (`8087`): mock of an elektronisk pasientjournal, serving the legeerklæringer the TT-kort case is assessed against. **This integration does not exist in reality** - a journal is owned by the virksomhet that provided the care, there is no national API for a legeerklæring, and today the citizen carries a stamped PDF and uploads it. The mock is the structured form of that attachment, and its README says so first. Two things are deliberate: `fnr` is required, so the surface never answers a bulk query, and it is behind Maskinporten rather than ID-porten - real health data sits behind HelseID at Norsk helsenett, which the sandbox does not have. The only *service* that reads `data/legeerklaeringer.json`; the gate reads it too.
+- `apps/politiattest-mock` (`8088`): mock of a politiattest, serving the attest the vandelskontroll case is assessed against. **This integration does not exist in reality** - there is no API for a politiattest, the attest is a locked PDF with no machine-readable content, it is issued to the citizen rather than to the kommune, and nobody can look it up. The mock is the structured form of the document the citizen presents, and its README says so first. It does not model politiets reaksjonsregister: it answers only for attests already issued for a stated formål. Three things are deliberate: `fnr` is required, so the surface never answers a bulk query; `formaal` is required too, because an attest exists for one purpose and a lookup without one is «what does this person have on them»; and it is behind Maskinporten rather than ID-porten. The only *service* that reads `data/politiattester.json`; the gate reads it too.
 - `apps/ai-gateway` (`8082`): AI provider abstraction (`mock|ollama|openrouter|bedrock`). Switch live, no restart, at `GET /admin` (or `POST /admin/provider`) - persisted to `state/ai-provider-override.json`, which overrides `AI_PROVIDER`/`BEDROCK_MODEL_ID` on next boot. Also exposes `POST /ai/velg-verktoy` for dynamic step-tool discovery.
 - `apps/tools-api` (`8083`): 25 tool endpoints wrapping backend + AI + matrikkel, over REST. Includes `suggest_step_tools`, `matrikkel_finn_veger`, `matrikkel_hent_eiendom`, `matrikkel_hent_eiere`. The catalogue is `GET /verktoy`; a tool is invoked over `POST /verktoy/invoke` or `POST /verktoy/{name}/invoke`.
 - `apps/process-agent` (`8084`): agent API using the tool endpoints. Discovers which tools to call per step via `suggest_step_tools` - but **also carries hardcoded shortcuts** for the `fartsdempende-tiltak` case: step ids `velg-gate`, `hent-gate`, `boliger-bekreft` and `begrunnelse`, plus the tool name `matrikkel_finn_veger`. The dynamic path is real; it is not the only path.
@@ -60,7 +61,8 @@
   +80 synthetic marker), `handleevne.ts` (who may act, and on whose behalf),
   `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry),
   `legeerklaering.ts` (the shape of a legeerklæring, and which one is the current
-  one - read by the journal mock, the backend and the gate). None of
+  one - read by the journal mock, the backend and the gate), `politiattest.ts` (the
+  shape of a politiattest, its four kodeverk, and which attest applies for a formål). None of
   them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
   stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
@@ -439,9 +441,9 @@ pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fr
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
   Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed - a restart is enough.
-- All ten Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
+- All eleven Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
   `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`,
-  `pasientjournal-mock`) are volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
+  `pasientjournal-mock`, `politiattest-mock`) are volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
   - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` - inotify
     events propagate natively; restarts are immediate.
   - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
@@ -483,7 +485,7 @@ pnpm test:agent:matrikkel
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) - run those locally.
-- All ten services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
+- All eleven services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.
 
@@ -565,6 +567,7 @@ pnpm test:agent:matrikkel
 ## Useful places before editing
 - Architecture/context: `docs/architecture.md`, `docs/prosessmodell.md`, `docs/sikkerhet-og-personvern.md`.
 - Frontend and styling: `docs/designsystem.md`, and `apps/demo-gui/src/ds-eksempel.html` for working markup.
-- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/pasientjournal-mock.yaml`, `openapi/ai-gateway.yaml`.
+- Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/pasientjournal-mock.yaml`,
+  `openapi/politiattest-mock.yaml`, `openapi/ai-gateway.yaml`.
 - End-to-end behavior examples: `scripts/test-agent-flow.ts`, `scripts/test-agent-natural-language.ts`, `scripts/test-tools-matrikkel.ts`, `scripts/test-process-agent-matrikkel.ts`, `scripts/test-bergen-matrikkel-bulk.ts`.
 
