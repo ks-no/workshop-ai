@@ -975,6 +975,9 @@ paths:
                     type: string
                   formaal:
                     type: string
+                  kilde:
+                    type: string
+                    description: Kilden som gjelder for ordningen rollen peker på.
                   hjemmel:
                     type: string
                   attesttype:
@@ -1012,7 +1015,7 @@ paths:
         `absolutt_utelukkelse`.
 
         Bare det loven avgjør, avgjøres her. Barnehagelova § 30 og opplæringslova
-        § 10-9 utelukker den som er dømt for seksuelle overgrep mot mindreårige,
+        § 17-11 utelukker den som er dømt for seksuelle overgrep mot mindreårige,
         uten skjønn. Helse- og omsorgstjenesteloven § 5-4 utelukker ingen direkte,
         så der er hver merknad en egnethetsvurdering.
 
@@ -1686,7 +1689,9 @@ components:
           type: string
         grunnlag:
           type: object
-          description: Tallene bak utfallet, inkludert beregningsbeloep og terskel.
+          description: >
+            Opplysningene og den ordningsspesifikke kilden bak utfallet. Feltene
+            varierer med regeltypen.
     Feil:
       type: object
       description: >
@@ -1826,4 +1831,3 @@ components:
           properties:
             syntetisk:
               type: boolean
-

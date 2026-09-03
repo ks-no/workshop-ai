@@ -141,6 +141,7 @@ export type Ordning = {
   navn: string;
   tjeneste: Tjeneste;
   regel: Regeltype;
+  kilde: string;
   beskrivelse?: string;
   inntektsgrense?: number;
   alderFraAar?: number;
@@ -189,6 +190,7 @@ export type Ordning = {
 
 export type Satser = {
   gjelderFra: string;
+  /** Kept in GET /api/regler/satser for wire compatibility; assessments use Ordning.kilde. */
   kilde: string;
   maksAndelAvInntekt: number;
   maanederMedBetaling: number;

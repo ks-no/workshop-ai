@@ -50,6 +50,8 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 const pasientjournalUrl = `http://127.0.0.1:${pasientjournalPort}`;
 const politiattestUrl = `http://127.0.0.1:${politiattestPort}`;
 const aiUrl = `http://127.0.0.1:${aiPort}`;
+const STOTTEKONTAKT_KILDE =
+  "Helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40.";
 
 const outFile = path.resolve(process.cwd(), argValue("--ut") || "state/kontrakt-dump.json");
 
@@ -296,7 +298,10 @@ async function staticLookups() {
   await call("inntektsgrunnlag-uten-samtykke", "/api/husstander/household-001/inntektsgrunnlag", { somPerson: "person-001" });
   await call("soknader", "/api/personer/person-001/soknader");
   await call("inntekt-uten-samtykke", "/api/personer/person-001/inntekt");
-  await call("satser", "/api/regler/satser");
+  const satser = await call("satser", "/api/regler/satser") as { kilde?: unknown };
+  if (typeof satser.kilde !== "string" || satser.kilde.length === 0) {
+    throw new Error("GET /api/regler/satser mangler det eksisterende feltet kilde.");
+  }
   await call("prosesser", "/api/prosesser");
   await call("prosesser-med-maler", "/api/prosesser?inkluderMaler=true");
   await call("prosess", "/api/prosesser/redusert-foreldrebetaling-barnehage");
@@ -854,7 +859,16 @@ async function vandelsflyt(personId: string, rolle: string, merkelapp: string) {
   await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   // Bekreftelsen på formål: åpen rute, ingen samtykke, fordi den ikke sier noe om
   // den som søker - bare hva som gjelder for rollen.
-  await call(`${merkelapp}-formaal`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  const formaal = await call(
+    `${merkelapp}-formaal`,
+    `/api/prosessoekter/${id}/handling`,
+    { method: "POST", body: {} }
+  ) as { resultat?: { kilde?: unknown } };
+  if (merkelapp === "vandel-godkjent" && formaal.resultat?.kilde !== STOTTEKONTAKT_KILDE) {
+    throw new Error(
+      `Bekreftelsen for person-026 har feil kilde: ${String(formaal.resultat?.kilde)}.`
+    );
+  }
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-svar-soekt`, `/api/prosessoekter/${id}/svar`, {
     method: "POST",
@@ -874,7 +888,20 @@ async function vandelsflyt(personId: string, rolle: string, merkelapp: string) {
   // det er dette svaret som havner i oppsummeringen og i modellprompten.
   await call(`${merkelapp}-attest`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
+  const vurdering = await call(
+    `${merkelapp}-sjekk`,
+    `/api/prosessoekter/${id}/handling`,
+    { method: "POST", body: {} }
+  ) as { resultat?: { grunnlag?: { kilde?: unknown } } };
+  if (
+    merkelapp === "vandel-godkjent"
+    && vurdering.resultat?.grunnlag?.kilde !== STOTTEKONTAKT_KILDE
+  ) {
+    throw new Error(
+      "Vandelsvurderingen for person-026 har feil kilde: " +
+      `${String(vurdering.resultat?.grunnlag?.kilde)}.`
+    );
+  }
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
 }
 

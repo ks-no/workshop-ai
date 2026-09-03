@@ -180,7 +180,7 @@
                 "beregningsbeloep": 485000,
                 "stadie": "OPPGJOER",
                 "gjelderFra": "2026-08-01",
-                "kilde": "Forskrift om foreldrebetaling i barnehager, samt kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
+                "kilde": "Forskrift om foreldrebetaling i barnehager, slik den er framstilt av Bergen kommune.",
                 "aarspris": 35200,
                 "maksAndelAvInntekt": 0.06,
                 "tak": 29100
@@ -388,7 +388,7 @@
                 "beregningsbeloep": 485000,
                 "stadie": "OPPGJOER",
                 "gjelderFra": "2026-08-01",
-                "kilde": "Forskrift om foreldrebetaling i barnehager, samt kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
+                "kilde": "Forskrift om foreldrebetaling i barnehager, slik den er framstilt av Bergen kommune.",
                 "aarspris": 35200,
                 "maksAndelAvInntekt": 0.06,
                 "tak": 29100

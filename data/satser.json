@@ -12,6 +12,7 @@
       "navn": "Redusert foreldrebetaling i barnehage",
       "tjeneste": "barnehage",
       "regel": "MAKS_ANDEL_AV_INNTEKT",
+      "kilde": "Forskrift om foreldrebetaling i barnehager, slik den er framstilt av Bergen kommune.",
       "beskrivelse": "Foreldrebetalingen skal maksimalt utgjøre 6 % av husholdningens skattepliktige person- og kapitalinntekt."
     },
     {
@@ -19,6 +20,7 @@
       "navn": "Gratis kjernetid i barnehage, 2–5 år",
       "tjeneste": "barnehage",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Forskrift om foreldrebetaling i barnehager, slik den er framstilt av Bergen kommune.",
       "inntektsgrense": 692465,
       "alderFraAar": 2,
       "alderTilAar": 5,
@@ -29,6 +31,7 @@
       "navn": "Gratis kjernetid i barnehage, 1 år",
       "tjeneste": "barnehage",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Forskrift om foreldrebetaling i barnehager, slik den er framstilt av Bergen kommune.",
       "inntektsgrense": 220000,
       "alderFraAar": 1,
       "alderTilAar": 1,
@@ -39,6 +42,7 @@
       "navn": "Gratis SFO-plass, 1. trinn",
       "tjeneste": "sfo",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
       "inntektsgrense": 350000,
       "trinnFra": 1,
       "trinnTil": 1
@@ -48,6 +52,7 @@
       "navn": "Redusert betaling i SFO, 2.–3. trinn",
       "tjeneste": "sfo",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
       "inntektsgrense": 154917,
       "trinnFra": 2,
       "trinnTil": 3
@@ -57,6 +62,7 @@
       "navn": "Redusert betaling i SFO, 4. trinn",
       "tjeneste": "sfo",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Kommunale SFO-vedtekter, slik de er framstilt av Bergen kommune.",
       "inntektsgrense": 651017,
       "trinnFra": 4,
       "trinnTil": 4
@@ -66,6 +72,7 @@
       "navn": "Fritidskort-støtte",
       "tjeneste": "fritid",
       "regel": "INNTEKTSGRENSE",
+      "kilde": "Syntetisk kommunal fritidskortordning laget for sandkassen.",
       "inntektsgrense": 360000,
       "alderFraAar": 6,
       "alderTilAar": 18,
@@ -76,6 +83,7 @@
       "navn": "Støttekontakt",
       "tjeneste": "stottekontakt",
       "regel": "TJENESTEBEHOV",
+      "kilde": "Syntetiske kommunale tjenestetilbud laget for sandkassen.",
       "tilbudsdatasett": "tjenestetilbud",
       "beskrivelse": "Behovsavklaring mot kommunens registrerte tilbud. Vurderes på alder og kapasitet, ikke inntekt."
     },
@@ -84,6 +92,7 @@
       "navn": "TT-kort (tilrettelagt transport)",
       "tjeneste": "transport",
       "regel": "TRANSPORTBEHOV",
+      "kilde": "Vestland fylkeskommune sin rettleiing for brukergodkjenning til transportordninga for funksjonshemma.",
       "soekerAlderFraAar": 10,
       "varighetMinstAar": 2,
       "fylkesnummer": "46",
@@ -102,6 +111,7 @@
       "navn": "Vandelskontroll - støttekontakt",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
+      "kilde": "Helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40.",
       "formaal": "stottekontakt",
       "hjemmel": "helse- og omsorgstjenesteloven § 5-4, jf. politiregisterloven § 41 nr. 1 og § 40",
       "attesttype": "helse-og-omsorgsattest",
@@ -116,6 +126,7 @@
       "navn": "Vandelskontroll - barnehage",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
+      "kilde": "Barnehagelova § 30, jf. politiregisterloven § 39 første ledd.",
       "formaal": "barnehage",
       "hjemmel": "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
       "attesttype": "barneomsorgsattest",
@@ -132,8 +143,9 @@
       "navn": "Vandelskontroll - skole og SFO",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
+      "kilde": "Opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd.",
       "formaal": "skole",
-      "hjemmel": "opplæringslova § 10-9, jf. politiregisterloven § 39 første ledd",
+      "hjemmel": "opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd",
       "attesttype": "barneomsorgsattest",
       "maksAlderMaaneder": 3,
       "absoluttUtelukkelse": [
