@@ -9,11 +9,12 @@
 // stays in regler.ts. Nothing in this file may import it: the point of the split is
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
-import { alderVed } from "../../shared/alder.ts";
+import { alderVed, maanederMellom } from "../../shared/alder.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
 import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Kvotekategori, Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 import type { Legeerklaering } from "../../shared/legeerklaering.ts";
+import type { Politiattest } from "../../shared/politiattest.ts";
 import type { Plass } from "../../shared/innbyggerdata.ts";
 
 function formatBelop(belop: number) {
@@ -37,6 +38,49 @@ export const AVSLAGSGRUNNER = [
   "visus_over_grensen"
 ] as const;
 export type Avslagsgrunn = (typeof AVSLAGSGRUNNER)[number];
+
+/**
+ * Utfallene VANDELSKONTROLL kan svare med, positive og negative i samme union.
+ *
+ * `krever_manuell_vurdering` er hele grunnen til at unionen dekker begge sider.
+ * En anmerkning som ikke utelukker absolutt, er en egnethetsvurdering et menneske
+ * skal gjøre - så søknaden skal gå inn, og utfallet er verken ja eller nei. Med
+ * bare `godkjent: boolean` ville den blitt tvunget til å lyve i én av retningene.
+ */
+export const VANDELSUTFALL = [
+  "godkjent",
+  "krever_manuell_vurdering",
+  "mangler_attest",
+  "feil_attesttype",
+  "attest_for_gammel",
+  "absolutt_utelukkelse"
+] as const;
+export type Vandelsutfall = (typeof VANDELSUTFALL)[number];
+
+/**
+ * Utfallene som slipper søknaden gjennom. `krever_manuell_vurdering` er med fordi
+ * en anmerkning ingen lov utelukker direkte skal til et menneske, og da må
+ * søknaden inn - så dette er stedet den avgjørelsen bor, framfor på hvert kallsted.
+ */
+const SLIPPER_GJENNOM: readonly Vandelsutfall[] = ["godkjent", "krever_manuell_vurdering"];
+
+/**
+ * Et vandelsutfall, med utfallet navngitt i grunnlaget.
+ *
+ * `vandelsutfall` er wire, og finnes for at scripts/valider-data.ts skal kunne
+ * telle grenene uten å bygge sin egen kopi av regelen.
+ */
+function vandel(
+  vandelsutfall: Vandelsutfall,
+  melding: string,
+  grunnlag: Record<string, unknown>
+): SjekkResultat {
+  return {
+    godkjent: SLIPPER_GJENNOM.includes(vandelsutfall),
+    melding,
+    grunnlag: { ...grunnlag, vandelsutfall }
+  };
+}
 
 /**
  * Et avslag med grunnen navngitt i grunnlaget.
@@ -126,6 +170,11 @@ export type RegelContext = {
    * i regler.ts, og et utfall skal kunne pinnes med et literal-objekt.
    */
   legeerklaering: Legeerklaering | null;
+  /**
+   * Attesten fra politiattest-mock, eller null for reglene som ikke bruker den.
+   * Kommer inn som parameter av samme grunn som de to over.
+   */
+  politiattest: Politiattest | null;
   /** Fields every assessment attaches as its explanation. */
   felles: Record<string, unknown>;
   /** Note that the tax assessment is not final, or an empty string. */
@@ -147,13 +196,16 @@ export type Regelbehov = {
   legeerklaering: boolean;
   /** A plass in a tjeneste dataset. */
   plass: boolean;
+  /** En politiattest, hentet fra politiattest-mock. */
+  politiattest: boolean;
 };
 
 export const regelBehov: Record<Regeltype, Regelbehov> = {
-  INNTEKTSGRENSE:        { inntekt: true,  legeerklaering: false, plass: true },
-  MAKS_ANDEL_AV_INNTEKT: { inntekt: true,  legeerklaering: false, plass: true },
-  TJENESTEBEHOV:         { inntekt: false, legeerklaering: false, plass: false },
-  TRANSPORTBEHOV:        { inntekt: false, legeerklaering: true,  plass: false }
+  INNTEKTSGRENSE:        { inntekt: true,  legeerklaering: false, plass: true,  politiattest: false },
+  MAKS_ANDEL_AV_INNTEKT: { inntekt: true,  legeerklaering: false, plass: true,  politiattest: false },
+  TJENESTEBEHOV:         { inntekt: false, legeerklaering: false, plass: false, politiattest: false },
+  TRANSPORTBEHOV:        { inntekt: false, legeerklaering: true,  plass: false, politiattest: false },
+  VANDELSKONTROLL:       { inntekt: false, legeerklaering: false, plass: false, politiattest: true }
 };
 
 // Hvilken datakilde hver hentede inngang krever samtykke til. Samtykkeporten i
@@ -163,7 +215,8 @@ export const regelBehov: Record<Regeltype, Regelbehov> = {
 const samtykkeForBehov: Record<keyof Regelbehov, Datakilde | null> = {
   inntekt: "inntekt",
   legeerklaering: "helseopplysninger",
-  plass: null
+  plass: null,
+  politiattest: "politiattest"
 };
 
 /** The data sources a rule type needs consent for, in table order. */
@@ -287,6 +340,104 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
     };
   },
 
+  // Vandelskontroll. Formålet er inngangen: rollen innbyggeren skal tre inn i
+  // avgjør både hjemmelen og hvilken attesttype som gjelder, og de tre står på
+  // ordningen i data/satser.json framfor i koden.
+  //
+  // Regelen avgjør bare det som er deterministisk. En anmerkning som treffer
+  // absoluttUtelukkelse er et yrkesforbud loven har bestemt - barnehagelova § 30
+  // utelukker den som er dømt for seksuelle overgrep mot mindreårige, uten skjønn.
+  // Alt annet er en egnethetsvurdering, og den skal et menneske gjøre: da svarer
+  // regelen `krever_manuell_vurdering` og lar søknaden gå inn.
+  //
+  // Grunnlaget bærer aldri hva anmerkningen gjelder. Det er ikke pedanteri:
+  // grunnlaget havner i oppsummeringen, og oppsummeringen havner i modellprompten
+  // og i state/ai-trace.jsonl. Straffedommer er artikkel 10-opplysninger, og de
+  // trenger ikke gjennom en modell for å bli formulert. Antallet og hjemmelen er
+  // nok til å begrunne utfallet; innbyggeren har attesten selv.
+  VANDELSKONTROLL: ({ ordning, satser, politiattest, felles }) => {
+    const krav = {
+      ...felles,
+      formaal: ordning.formaal ?? null,
+      hjemmel: ordning.hjemmel ?? null,
+      attesttypeKrevd: ordning.attesttype ?? null,
+      maksAlderMaaneder: ordning.maksAlderMaaneder ?? null
+    };
+
+    if (!politiattest) {
+      return vandel(
+        "mangler_attest",
+        "Vi fant ingen politiattest for dette formålet. Du søker selv hos politiet, med " +
+        "bekreftelsen på formål fra kommunen som vedlegg. Behandlingstiden er rundt to uker.",
+        krav
+      );
+    }
+
+    const attest = {
+      ...krav,
+      attestId: politiattest.attestId,
+      utstedt: politiattest.utstedt,
+      attesttype: politiattest.attesttype,
+      antallAnmerkninger: politiattest.anmerkninger.length
+    };
+
+    // Feil attesttype er ikke søkerens skyld alene: formålet velges i søknaden hos
+    // politiet, og velger man feil formål der, kommer en attest som ikke dekker
+    // rollen. Den kan ikke brukes, og meldingen sier hvorfor.
+    if (ordning.attesttype && politiattest.attesttype !== ordning.attesttype) {
+      return vandel(
+        "feil_attesttype",
+        `Attesten er en ${politiattest.attesttype}, men rollen krever en ` +
+        `${ordning.attesttype} etter ${ordning.hjemmel}. Søk på nytt hos politiet med ` +
+        "formålet som står i bekreftelsen fra kommunen.",
+        attest
+      );
+    }
+
+    // Tremånedersgrensen er mottakerens regel og ikke politiets: attesten har
+    // ingen utløpsdato. Målt mot satser.gjelderFra, som er den pinnede
+    // referansedatoen i denne sandkassen.
+    const maksAlder = ordning.maksAlderMaaneder ?? 3;
+    const alderIMaaneder = maanederMellom(politiattest.utstedt, satser.gjelderFra);
+    if (alderIMaaneder > maksAlder) {
+      return vandel(
+        "attest_for_gammel",
+        `Attesten er utstedt ${politiattest.utstedt} og er ${alderIMaaneder} måneder gammel. ` +
+        `Den skal ikke være eldre enn ${maksAlder} måneder når den framvises, så du trenger en ny.`,
+        { ...attest, alderIMaaneder }
+      );
+    }
+
+    const absolutte = ordning.absoluttUtelukkelse ?? [];
+    if (politiattest.anmerkninger.some((anmerkning) => absolutte.includes(anmerkning.kategori))) {
+      return vandel(
+        "absolutt_utelukkelse",
+        "Attesten har en anmerkning som utelukker fra rollen etter " +
+        `${ordning.hjemmel}. Utelukkelsen følger direkte av loven, og kommunen kan ikke ` +
+        "gjøre unntak.",
+        attest
+      );
+    }
+
+    if (politiattest.anmerkninger.length > 0) {
+      return vandel(
+        "krever_manuell_vurdering",
+        `Attesten har ${politiattest.anmerkninger.length} anmerkning(er) som ikke utelukker ` +
+        "automatisk. En saksbehandler må vurdere egnetheten, og søknaden går videre til den " +
+        "vurderingen. Kommunen avgjør ikke dette maskinelt.",
+        attest
+      );
+    }
+
+    return vandel(
+      "godkjent",
+      `Politiattesten er uten merknad, utstedt ${politiattest.utstedt}, og er den attesttypen ` +
+      `rollen krever etter ${ordning.hjemmel}. Kommunen registrerer at kontrollen er gjort, ` +
+      "og beholder ikke attesten.",
+      attest
+    );
+  },
+
   // Need and capacity, not money. The applicant is assessed against the municipality's
   // own tilbud, so the answer depends on where they live and how old they are - never
   // on what they earn.
@@ -385,6 +536,27 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
 // for. Hardcoding one ordning would tell a household whose only child is in first
 // or fourth grade "no SFO place in 2nd-3rd grade" - true, but it reads as a bug,
 // and it hides that the child qualifies elsewhere.
+/**
+ * Ordningen som gjelder for et vandelsformål.
+ *
+ * Formålet er inngangen fordi det er formålet som avgjør hjemmelen og
+ * attesttypen. Oppslaget står her og ikke i ressurser.ts, slik at prosessen kan
+ * sende rollen innbyggeren valgte framfor en ordnings-id ingen innbygger skal se.
+ *
+ * Gir ordningen og ikke id-en: hvert kallsted trenger feltene, og en id de måtte
+ * slå opp igjen var bare arvet fra selectOrdningForTjeneste.
+ */
+export function selectOrdningForFormaal(tilstand: State, formaal: string): Ordning {
+  const satser: Satser = tilstand.satser;
+  const kandidater = satser.ordninger.filter((ordning) => ordning.regel === "VANDELSKONTROLL");
+  const treff = kandidater.find((ordning) => ordning.formaal === formaal);
+  if (!treff) {
+    const gyldige = kandidater.map((ordning) => ordning.formaal).join(", ");
+    throw new Error(`Ingen vandelskontroll for formålet ${formaal}. Gyldige: ${gyldige}.`);
+  }
+  return treff;
+}
+
 export function selectOrdningForTjeneste(
   tilstand: State,
   personId: string,

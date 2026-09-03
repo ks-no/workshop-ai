@@ -30,11 +30,14 @@ import {
   regelBehov,
   samtykkekilderFor,
   selectOrdningForTjeneste,
-  evaluateVilkaar
+  evaluateVilkaar,
+  VANDELSUTFALL
 } from "../apps/sandbox-backend/src/vilkaar.ts";
 import { feilmelding } from "../apps/shared/errors.ts";
 import type { Regeltype } from "../apps/sandbox-backend/src/types.ts";
 import type { Legeerklaering } from "../apps/shared/legeerklaering.ts";
+import { byggAttestbevis } from "../apps/shared/politiattest.ts";
+import type { Politiattest } from "../apps/shared/politiattest.ts";
 
 let bestatt = 0;
 const feil: string[] = [];
@@ -165,6 +168,7 @@ function vurder(ordning: any, grunnlag: any, opts: Record<string, any> = {}) {
     satser,
     grunnlag,
     legeerklaering: opts.legeerklaering ?? null,
+    politiattest: opts.politiattest ?? null,
     felles: {},
     forbehold: opts.forbehold ?? ""
   });
@@ -233,6 +237,7 @@ function vurderBehov(tjenestetilbud: any, person: Record<string, unknown> = {}) 
     satser,
     grunnlag: null,
     legeerklaering: null,
+    politiattest: null,
     felles: {},
     forbehold: ""
   });
@@ -327,6 +332,7 @@ function vurderTt(erklaering: Legeerklaering | null, person: Record<string, any>
     satser,
     grunnlag: null,
     legeerklaering: erklaering,
+    politiattest: null,
     felles: {},
     forbehold: ""
   });
@@ -390,7 +396,7 @@ check(
 // Én tabell over hva hver regel forbruker. Kompilatoren krever en rad per
 // regeltype og et svar per kolonne; antallet sjekkes her fordi det er den ene
 // måten en regeltype uten rad blir synlig i en test.
-const antallRegeltyper = 4;
+const antallRegeltyper = 5;
 check("regelBehov dekker alle regeltypene", Object.keys(regelBehov).length === antallRegeltyper);
 check("TJENESTEBEHOV krever ikke inntekt", regelBehov.TJENESTEBEHOV.inntekt === false);
 check("INNTEKTSGRENSE krever inntekt", regelBehov.INNTEKTSGRENSE.inntekt === true);
@@ -399,6 +405,11 @@ check("TRANSPORTBEHOV krever ikke inntekt", regelBehov.TRANSPORTBEHOV.inntekt ==
 check("TRANSPORTBEHOV krever legeerklæring", regelBehov.TRANSPORTBEHOV.legeerklaering === true);
 check("bare TRANSPORTBEHOV krever legeerklæring",
   Object.values(regelBehov).filter((b) => b.legeerklaering).length === 1);
+check("VANDELSKONTROLL krever politiattest", regelBehov.VANDELSKONTROLL.politiattest === true);
+check("bare VANDELSKONTROLL krever politiattest",
+  Object.values(regelBehov).filter((b) => b.politiattest).length === 1);
+check("VANDELSKONTROLL krever verken inntekt eller legeerklæring",
+  regelBehov.VANDELSKONTROLL.inntekt === false && regelBehov.VANDELSKONTROLL.legeerklaering === false);
 check("TRANSPORTBEHOV vurderes ikke mot en plass", regelBehov.TRANSPORTBEHOV.plass === false);
 check("TJENESTEBEHOV vurderes ikke mot en plass", regelBehov.TJENESTEBEHOV.plass === false);
 check("INNTEKTSGRENSE vurderes mot en plass", regelBehov.INNTEKTSGRENSE.plass === true);
@@ -412,6 +423,8 @@ check("TT-kort krever samtykke til helseopplysninger",
   samtykkekilderFor("TRANSPORTBEHOV").includes("helseopplysninger"));
 check("behovsavklaring krever ingen samtykke",
   samtykkekilderFor("TJENESTEBEHOV").length === 0);
+check("vandelskontroll krever samtykke til politiattesten",
+  samtykkekilderFor("VANDELSKONTROLL").includes("politiattest"));
 // samtykkeForOrdningssjekk returnerer én kode. Trenger en regel to, må den og
 // samtykkeblokken i runRessurs utvides sammen - denne feiler i det øyeblikket.
 check("ingen regel trenger mer enn én datakilde",
@@ -421,11 +434,142 @@ check("ingen regel trenger mer enn én datakilde",
 // JSON, so the type system cannot be the guard here.
 let kastet = false;
 try {
-  evaluateVilkaar("FINNES_IKKE" as Regeltype, { tilstand: medHusstand(tilstandMed()), personId: "p-voksen", ordning: ORDNING_INNTEKT as any, satser, grunnlag: 1, legeerklaering: null, felles: {}, forbehold: "" });
+  evaluateVilkaar("FINNES_IKKE" as Regeltype, { tilstand: medHusstand(tilstandMed()), personId: "p-voksen", ordning: ORDNING_INNTEKT as any, satser, grunnlag: 1, legeerklaering: null, politiattest: null, felles: {}, forbehold: "" });
 } catch (error) {
   kastet = feilmelding(error).startsWith("Ukjent regeltype: FINNES_IKKE. Gyldige: ");
 }
 check("ukjent regeltype kaster med de gyldige listet opp", kastet);
+
+// --- 9. VANDELSKONTROLL: politiattest --------------------------------------
+// Vurderes bare på ordningen og attesten. Ingen plass, ingen inntekt, ingen
+// husstand - derfor kan hvert utfall pinnes med to literal-objekter.
+//
+// satser.gjelderFra er referansedatoen, som i TT-kort-blokken over.
+
+const ORDNING_VANDEL_BARNEHAGE = {
+  id: "politiattest-barnehage",
+  navn: "Vandelskontroll - barnehage",
+  tjeneste: "vandel",
+  regel: "VANDELSKONTROLL",
+  formaal: "barnehage",
+  hjemmel: "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+  attesttype: "barneomsorgsattest",
+  maksAlderMaaneder: 3,
+  absoluttUtelukkelse: ["seksuallovbrudd-mot-mindreaarig"]
+};
+
+const ORDNING_VANDEL_STOTTEKONTAKT = {
+  ...ORDNING_VANDEL_BARNEHAGE,
+  id: "politiattest-stottekontakt",
+  navn: "Vandelskontroll - støttekontakt",
+  formaal: "stottekontakt",
+  hjemmel: "helse- og omsorgstjenesteloven § 5-4",
+  attesttype: "helse-og-omsorgsattest",
+  // Ingen absolutt utelukkelse: loven overlater hver merknad til skjønn.
+  absoluttUtelukkelse: []
+};
+
+// Beviset bygges av byggAttestbevis, ikke skrevet av hånd: en kopi her gikk ut av
+// takt med attesten uten at noe klaget.
+function attestMed(overstyr: Partial<Politiattest> = {}): Politiattest {
+  const rad = {
+    attestId: "att-test",
+    dokumenttype: "Politiattest",
+    fnr: "01019012345",
+    personId: "p-voksen",
+    formaal: "barnehage",
+    hjemmel: "barnehagelova § 30, jf. politiregisterloven § 39 første ledd",
+    attesttype: "barneomsorgsattest",
+    utstedt: "2026-06-15",
+    utsteder: { navn: "Politiet", enhet: "Enhet for vandelskontroll", organisasjonsnummer: "889640782" },
+    anmerkninger: [],
+    syntetisk: true,
+    ...overstyr
+  } as Omit<Politiattest, "bevis">;
+  return { ...rad, bevis: byggAttestbevis(rad) };
+}
+
+// VANDELSKONTROLL leser bare ordningen og attesten, så tilstanden er den samme for
+// hvert utfall og bygges én gang.
+const VANDELSTILSTAND = medHusstand(tilstandMed()) as any;
+
+function vurderVandel(attest: Politiattest | null, ordning: any = ORDNING_VANDEL_BARNEHAGE) {
+  return evaluateVilkaar("VANDELSKONTROLL", {
+    tilstand: VANDELSTILSTAND,
+    personId: "p-voksen",
+    ordning: ordning as any,
+    satser,
+    grunnlag: null,
+    legeerklaering: null,
+    politiattest: attest,
+    felles: {},
+    forbehold: ""
+  });
+}
+
+// Utfallet er det som pinnes, og godkjent følger av det: vandel() leser
+// SLIPPER_GJENNOM, så de to kan ikke gå fra hverandre. Tabellen under er stedet
+// den koblingen sjekkes, framfor ved hvert utfall.
+const utenMerknad = vurderVandel(attestMed());
+check("attest uten merknad godkjennes", utenMerknad.grunnlag?.vandelsutfall === "godkjent");
+check("uten attest navngis grenen",
+  vurderVandel(null).grunnlag?.vandelsutfall === "mangler_attest");
+check("feil attesttype navngis",
+  vurderVandel(attestMed({ attesttype: "ordinaer" })).grunnlag?.vandelsutfall === "feil_attesttype");
+
+// Tremånedersgrensen er mottakerens regel: attesten har ingen utløpsdato.
+const forGammel = vurderVandel(attestMed({ utstedt: "2026-02-10" }));
+check("for gammel attest navngis", forGammel.grunnlag?.vandelsutfall === "attest_for_gammel");
+check("meldingen oppgir alderen i måneder", forGammel.melding.includes("5 måneder"));
+check("grensen er ikke strengere enn tre måneder",
+  vurderVandel(attestMed({ utstedt: "2026-05-01" })).grunnlag?.vandelsutfall === "godkjent");
+
+const overgrep = attestMed({
+  anmerkninger: [
+    { kategori: "seksuallovbrudd-mot-mindreaarig", hjemmel: "straffeloven § 302", reaksjon: "dom", dato: "2019-04-11" }
+  ]
+});
+const utelukket = vurderVandel(overgrep);
+check("absolutt utelukkelse navngis", utelukket.grunnlag?.vandelsutfall === "absolutt_utelukkelse");
+check("absolutt utelukkelse oppgir hjemmelen den følger av",
+  utelukket.melding.includes("barnehagelova § 30"));
+
+// Samme anmerkning, annen hjemmel: helse- og omsorgstjenesteloven utelukker ingen
+// direkte, så den samme raden blir en egnethetsvurdering. Det er hele forskjellen
+// mellom en hjemmel som avgjør og en som overlater til skjønn.
+const tilSkjonn = vurderVandel(
+  { ...overgrep, formaal: "stottekontakt", attesttype: "helse-og-omsorgsattest" } as Politiattest,
+  ORDNING_VANDEL_STOTTEKONTAKT
+);
+check("samme anmerkning uten absolutt hjemmel går til skjønn",
+  tilSkjonn.grunnlag?.vandelsutfall === "krever_manuell_vurdering");
+check("skjønnsutfallet sier at et menneske avgjør",
+  tilSkjonn.melding.includes("saksbehandler"));
+
+// Koblingen mellom utfall og godkjent, sjekket én gang for alle seks. To av dem
+// slipper gjennom, og krever_manuell_vurdering er den ene som overrasker.
+const SLIPPER: Record<string, boolean> = {
+  godkjent: true,
+  krever_manuell_vurdering: true,
+  mangler_attest: false,
+  feil_attesttype: false,
+  attest_for_gammel: false,
+  absolutt_utelukkelse: false
+};
+for (const svar of [utenMerknad, vurderVandel(null), forGammel, utelukket, tilSkjonn]) {
+  const gren = String(svar.grunnlag?.vandelsutfall);
+  check(`${gren} slipper gjennom bare når det skal`, svar.godkjent === SLIPPER[gren]);
+}
+check("tabellen dekker hele unionen", Object.keys(SLIPPER).length === VANDELSUTFALL.length);
+
+// Minimering: grunnlaget går inn i oppsummeringen, og oppsummeringen går til
+// modellen. Hva anmerkningen gjelder skal ikke dit.
+for (const svar of [utelukket, tilSkjonn]) {
+  const somTekst = JSON.stringify(svar);
+  check("grunnlaget bærer ikke hva anmerkningen gjelder",
+    !somTekst.includes("seksuallovbrudd") && !somTekst.includes("straffeloven"));
+}
+check("grunnlaget teller anmerkningene", tilSkjonn.grunnlag?.antallAnmerkninger === 1);
 
 // --- the import direction -------------------------------------------------
 //

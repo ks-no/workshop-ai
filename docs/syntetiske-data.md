@@ -332,8 +332,9 @@ liste her.
 - 394 personer i registeret, 369 av dem bosatte
 - 200 husstander, 281 inntektsrader, 298 rader i kontaktregisteret
 - 388 gater og 18 349 eiendommer i 97 kommuner, 176 med registrert eier. `matrikkel-mock` injiserer Bønesheien ved innlasting, så `/helse` sier 389 og 18 350
-- 9 ordninger og 237 tjenestetilbud
+- 12 ordninger og 237 tjenestetilbud
 - 22 legeerklæringer, én per søker
+- 8 politiattester, én per søker
 - 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser
 - 6 prosessdefinisjoner + 1 mal
 

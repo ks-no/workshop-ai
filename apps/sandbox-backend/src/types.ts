@@ -13,6 +13,11 @@
 // the same files off the same disk, so Person and Husstand belong to neither
 // service. Re-exported nowhere - a caller that needs Person imports it from there.
 import type { Husstand, MedFelter, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+import type {
+  Anmerkningskategori,
+  Attestformaal,
+  Attesttype
+} from "../../shared/politiattest.ts";
 
 // --- process model --------------------------------------------------------
 
@@ -112,9 +117,16 @@ export type Regeltype =
   | "INNTEKTSGRENSE"
   | "MAKS_ANDEL_AV_INNTEKT"
   | "TJENESTEBEHOV"
-  | "TRANSPORTBEHOV";
+  | "TRANSPORTBEHOV"
+  | "VANDELSKONTROLL";
 
-export type Tjeneste = "barnehage" | "sfo" | "fritid" | "stottekontakt" | "transport";
+export type Tjeneste =
+  | "barnehage"
+  | "sfo"
+  | "fritid"
+  | "stottekontakt"
+  | "transport"
+  | "vandel";
 
 export const KVOTEKATEGORIER = [
   "ordinaer",
@@ -156,6 +168,23 @@ export type Ordning = {
    * process asks the citizen and the vedtak reads the legeerklæring.
    */
   kvotetilleggLangtTilPost?: number;
+  /** VANDELSKONTROLL: rollen attesten må være utstedt til. Formålet, med andre ord. */
+  formaal?: Attestformaal;
+  /** VANDELSKONTROLL: hjemmelen kontrollen gjøres etter, slik bekreftelsen oppgir den. */
+  hjemmel?: string;
+  /** VANDELSKONTROLL: attesttypen formålet gir rett til. */
+  attesttype?: Attesttype;
+  /** VANDELSKONTROLL: hvor gammel attesten kan være ved framvisning. Tre måneder. */
+  maksAlderMaaneder?: number;
+  /**
+   * VANDELSKONTROLL: anmerkningene som utelukker absolutt, uten skjønn. Tom liste
+   * betyr at hver anmerkning er en egnethetsvurdering et menneske må gjøre.
+   */
+  absoluttUtelukkelse?: Anmerkningskategori[];
+  /** VANDELSKONTROLL: hva innbyggeren skal gjøre, slik bekreftelsen sier det. */
+  slikSoekerDu?: string;
+  /** VANDELSKONTROLL: hva kommunen gjør med attesten etterpå. */
+  oppbevaring?: string;
 };
 
 export type Satser = {

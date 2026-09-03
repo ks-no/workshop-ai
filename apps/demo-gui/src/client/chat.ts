@@ -77,7 +77,8 @@ const kildePerDatakilde: Record<string, string> = {
   inntekt: "Skatteetaten, via KS Fiks",
   kontaktinfo: "Kontakt- og reservasjonsregisteret, via KS Fiks",
   tjenestebehov: "kommunens egne registre",
-  helseopplysninger: "pasientjournalen hos den som ga helsehjelpen"
+  helseopplysninger: "pasientjournalen hos den som ga helsehjelpen",
+  politiattest: "politiattesten du har fått fra politiet, og som du framviser selv"
 };
 
 function kildeTekst(dataKilder: string[] | undefined): string {

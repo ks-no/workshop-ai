@@ -14,6 +14,10 @@ export const matrikkelBaseUrl = process.env.MATRIKKEL_BASE_URL || "http://matrik
 // way. See pasientjournal.ts, and its README for why the integration is fiction.
 export const pasientjournalBaseUrl =
   process.env.PASIENTJOURNAL_BASE_URL || "http://pasientjournal-mock:8087";
+// politiattest-mock is the only reader of data/politiattester.json. See
+// politiattest.ts, and its README for why the integration is fiction.
+export const politiattestBaseUrl =
+  process.env.POLITIATTEST_BASE_URL || "http://politiattest-mock:8088";
 
 // Synthetic role id. In real Fiks this identifies the municipality's role.
 export const fiksRolleId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
@@ -83,6 +87,19 @@ export const pasientjournalToken = {
   clientId: "sandbox-backend",
   resource: "pasientjournal-mock",
   scope: "pasientjournal:legeerklaering.read"
+};
+
+/**
+ * Reading a politiattest from politiattest-mock. Used by politiattest.ts.
+ * Why the scope sits outside the `ks:fiks:` family:
+ * apps/politiattest-mock/README.md.
+ */
+export const politiattestToken = {
+  digdirBaseUrl,
+  issuer: digdirIssuer,
+  clientId: "sandbox-backend",
+  resource: "politiattest-mock",
+  scope: "politiattest:attest.read"
 };
 
 // The municipality's SvarUt account. Synthetic and fixed, like fiksRolleId above:
