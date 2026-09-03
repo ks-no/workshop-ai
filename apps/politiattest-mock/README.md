@@ -24,7 +24,7 @@ har digitalisert søknaden og forsendelsen, ikke verifiseringen.
 **Slik gjøres det i dag:** kommunen gir søkeren en bekreftelse på formål, søkeren
 søker hos politiet, får PDF-en, og viser den fram. Kommunen ser på den, noterer at
 kontrollen er gjort, og skal ikke beholde den lenger enn formålet krever - etter
-forskriften til opplæringslova kapittel 15 skal den makuleres straks den er brukt i
+forskriften til opplæringsloven kapittel 15 skal den makuleres straks den er brukt i
 tilsettingssaken.
 
 Mocken er den strukturerte utgaven av den PDF-en. Den er med fordi et vedlegg ikke
