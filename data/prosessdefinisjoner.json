@@ -581,6 +581,137 @@
         }
       ],
       "syntetisk": true
+    },
+    {
+      "id": "politiattest-oppdrag",
+      "navn": "Politiattest for oppdrag i kommunen",
+      "beskrivelse": "Vandelskontroll for deg som skal bli støttekontakt, eller arbeide i barnehage, skole eller SFO. Den eneste casen der innbyggeren gir kommunen noe framfor å be om noe, og den eneste der utfallet kan bli «en saksbehandler må vurdere det».",
+      "versjon": "0.1.0",
+      "redigering": {
+        "status": "publisert",
+        "eier": "Helse og omsorg",
+        "hjelpetekst": "Modellert etter politiregisterloven kapittel 7 og Bergen kommunes egen side for å bli støttekontakt. Vurderingen er deterministisk der loven utelukker direkte, og overlater resten til et menneske."
+      },
+      "steg": [
+        {
+          "id": "intro",
+          "type": "INFO",
+          "tittel": "Om politiattesten",
+          "tekst": "Skal du bli støttekontakt, eller arbeide i barnehage, skole eller SFO, må du legge fram politiattest. Kommunen kan ikke hente den for deg: du søker selv hos politiet, med en bekreftelse på formål fra kommunen som vedlegg. Behandlingstiden er rundt to uker. Attesten skal ikke være eldre enn tre måneder når du viser den fram, og kommunen beholder den ikke - vi registrerer bare at kontrollen er gjort.",
+          "forfatterhjelp": {
+            "hensikt": "Si tidlig at innbyggeren søker selv, og at kommunen ikke lagrer attesten. Begge er ekte regler og begge overrasker folk.",
+            "skrivetips": "Vandelskontroll krever hjemmel i lov eller forskrift, jf. politiregisterloven § 36. Kommunen kan altså ikke spørre om attest fordi den har lyst."
+          }
+        },
+        {
+          "id": "velg-rolle",
+          "type": "QUESTION",
+          "tittel": "Hva skal du gjøre?",
+          "tekst": "Rollen avgjør hvilken hjemmel som gjelder og hvilken attesttype du skal søke om.",
+          "felter": [
+            {
+              "id": "rolle",
+              "label": "Hvilken rolle gjelder det?",
+              "type": "valg",
+              "alternativer": [
+                {
+                  "verdi": "stottekontakt",
+                  "label": "Støttekontakt"
+                },
+                {
+                  "verdi": "barnehage",
+                  "label": "Barnehage"
+                },
+                {
+                  "verdi": "skole",
+                  "label": "Skole eller SFO"
+                }
+              ],
+              "obligatorisk": true
+            }
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Formålet er inngangen til hele casen: det bestemmer hjemmelen, attesttypen og hva som utelukker absolutt.",
+            "skrivetips": "`verdi` er kodeverket hjemmelen slås opp med, `label` er det innbyggeren leser. Legger du til en rolle, må verdien finnes som `formaal` på en VANDELSKONTROLL-ordning i data/satser.json."
+          }
+        },
+        {
+          "id": "hent-formaal",
+          "type": "DATA_FETCH",
+          "tittel": "Henter bekreftelsen på formål",
+          "api": {
+            "method": "GET",
+            "url": "/api/vandel/formaal?rolle={svar.velg-rolle}"
+          }
+        },
+        {
+          "id": "bekreft-soknad",
+          "type": "QUESTION",
+          "tittel": "Har du søkt om attesten?",
+          "tekst": "Bekreftelsen over er den du legger ved søknaden til politiet.",
+          "felter": [
+            {
+              "id": "harSoekt",
+              "label": "Har du søkt om politiattest for dette formålet?",
+              "type": "ja-nei",
+              "obligatorisk": true
+            }
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Motoren er lineær og kan ikke hoppe, så svaret stopper ingen. Spørsmålet står fordi det er her innbyggeren faktisk må gjøre noe utenfor kommunen.",
+            "skrivetips": "Svarer noen nei, blir utfallet mangler_attest lenger ned - og meldingen der sier hva som må gjøres."
+          }
+        },
+        {
+          "id": "samtykke-politiattest",
+          "type": "CONSENT_REQUEST",
+          "tittel": "Kan vi lese politiattesten din?",
+          "tekst": "Attesten er ditt eget dokument, og vi leser den bare fordi du viser den fram. Vi ser hvilken type den er, når den ble utstedt og om den har merknader - og vi lagrer bare utfallet av kontrollen. Du kan trekke samtykket når som helst.",
+          "formaal": "Kontrollere vandel før tilbud om stilling eller oppdrag, etter politiregisterloven kapittel 7",
+          "dataKilder": [
+            "politiattest"
+          ],
+          "forfatterhjelp": {
+            "hensikt": "Opplysninger om straffedommer og lovovertredelser er artikkel 10-opplysninger, med sin egen hjemmelsterskel. Hjemmelen for selve kontrollen er loven, ikke samtykket - samtykket gjelder lesingen, og det er formålet herfra som havner i revisjonsloggen.",
+            "skrivetips": "Si hva kommunen ser, og hva den ikke beholder. Det er det innbyggeren lurer på."
+          }
+        },
+        {
+          "id": "hent-politiattest",
+          "type": "DATA_FETCH",
+          "tittel": "Leser politiattesten",
+          "kreverSamtykke": "politiattest",
+          "api": {
+            "method": "GET",
+            "url": "/api/personer/{personId}/politiattest?formaal={svar.velg-rolle}"
+          }
+        },
+        {
+          "id": "sjekk-vandel",
+          "type": "SJEKK",
+          "tittel": "Kontrollerer vandelen",
+          "feilmelding": "Ut fra attesten du har framvist, kan kontrollen ikke godkjennes nå.",
+          "api": {
+            "method": "GET",
+            "url": "/api/regler/sjekk/vandel?personId={personId}&rolle={svar.velg-rolle}"
+          },
+          "forfatterhjelp": {
+            "hensikt": "Her går grensen casen handler om. Regelen avgjør bare det loven avgjør: attesttype, tremånedersgrensen, og de anmerkningene som utelukker direkte. Alt annet svarer den krever_manuell_vurdering på, og lar søknaden gå inn til et menneske.",
+            "skrivetips": "Grunnlaget bærer aldri hva anmerkningen gjelder. Oppsummeringen går til modellen, og en straffedom trenger ikke dit for å bli formulert."
+          }
+        },
+        {
+          "id": "oppsummering",
+          "type": "SUMMARY",
+          "tittel": "Oppsummering"
+        },
+        {
+          "id": "send-inn",
+          "type": "SUBMIT",
+          "tittel": "Send inn"
+        }
+      ],
+      "syntetisk": true
     }
   ],
   "maler": [

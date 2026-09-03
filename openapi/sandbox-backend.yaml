@@ -389,6 +389,80 @@ paths:
         "502":
           $ref: "#/components/responses/OppstroemsFeil"
 
+  /api/personer/{personId}/politiattest:
+    get:
+      summary: Les politiattesten innbyggeren framviser
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Krever registrert samtykke for datakilden "politiattest". Opplysninger om
+        straffedommer og lovovertredelser har sin egen hjemmelsterskel etter
+        personvernforordningen artikkel 10. Hjemmelen for selve vandelskontrollen
+        er loven, jf. politiregisterloven § 36; samtykket gjelder lesingen. Alle
+        treff revisjonslogges, også når tilgangen nektes.
+
+        `formaal` er påkrevd: en attest gjelder for det formålet den er utstedt
+        til, og formålet avgjør hjemmelen og attesttypen.
+
+        Svaret er minimert med vilje. Det sier hvilken attesttype attesten er, når
+        den ble utstedt og hvor mange anmerkninger den har - aldri hva de gjelder.
+        Svaret lagres på prosessøkten og går inn i oppsummeringen, og
+        oppsummeringen går til modellen.
+
+        Svarer 200 med `politiattest: null` når personen ikke har noen attest for
+        formålet. Attesten hentes fra politiattest-mock. Den integrasjonen finnes
+        ikke i virkeligheten - se `apps/politiattest-mock/README.md`.
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+        - name: formaal
+          in: query
+          required: true
+          description: Rollen attesten er utstedt til.
+          schema:
+            type: string
+            enum: [stottekontakt, barnehage, skole]
+      responses:
+        "200":
+          description: Den gjeldende attesten i minimert form, eller null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personId:
+                    type: string
+                  politiattest:
+                    oneOf:
+                      - type: "null"
+                      - type: object
+                        properties:
+                          attestId:
+                            type: string
+                          formaal:
+                            type: string
+                          attesttype:
+                            type: string
+                          utstedt:
+                            type: string
+                            format: date
+                          antallAnmerkninger:
+                            type: integer
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: formaal mangler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          $ref: "#/components/responses/ManglerSamtykke"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
+
   /api/personer/{personId}/barnehage:
     get:
       summary: Hent barnehageplasser for barna i husstanden
@@ -859,6 +933,111 @@ paths:
                 $ref: "#/components/schemas/SjekkResultat"
         "400":
           description: Ukjent ordning, ukjent tjeneste eller manglende parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          $ref: "#/components/responses/ManglerSamtykke"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
+
+  /api/vandel/formaal:
+    get:
+      summary: Bekreftelsen på formål for en rolle
+      security: []
+      description: >
+        Kommunens eget dokument: hvilket formål som gjelder for rollen, hvilken
+        hjemmel kontrollen gjøres etter, hvilken attesttype formålet gir, og hvor
+        gammel attesten kan være. Dette er bekreftelsen innbyggeren legger ved
+        søknaden til politiet.
+
+        Åpen fordi den ikke har noe personsubjekt: den sier hva som gjelder for
+        rollen, ikke noe om den som søker.
+      parameters:
+        - name: rolle
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [stottekontakt, barnehage, skole]
+      responses:
+        "200":
+          description: Bekreftelsen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rolle:
+                    type: string
+                  ordning:
+                    type: string
+                  formaal:
+                    type: string
+                  hjemmel:
+                    type: string
+                  attesttype:
+                    type: string
+                  maksAlderMaaneder:
+                    type: integer
+                  slikSoekerDu:
+                    type: string
+                  oppbevaring:
+                    type: string
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: rolle mangler eller er ukjent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+  /api/regler/sjekk/vandel:
+    get:
+      summary: Vandelskontroll for en rolle
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      description: >
+        Vurderer politiattesten mot ordningen rollen peker på. Krever registrert
+        samtykke for datakilden "politiattest".
+
+        Utfallet står i `grunnlag.vandelsutfall` og har seks verdier. To av dem
+        slipper søknaden gjennom: `godkjent`, og `krever_manuell_vurdering` for en
+        anmerkning som ikke utelukker automatisk - da skal et menneske vurdere
+        egnetheten, og søknaden går inn til den vurderingen. De fire andre er
+        avslag: `mangler_attest`, `feil_attesttype`, `attest_for_gammel` og
+        `absolutt_utelukkelse`.
+
+        Bare det loven avgjør, avgjøres her. Barnehagelova § 30 og opplæringslova
+        § 10-9 utelukker den som er dømt for seksuelle overgrep mot mindreårige,
+        uten skjønn. Helse- og omsorgstjenesteloven § 5-4 utelukker ingen direkte,
+        så der er hver merknad en egnethetsvurdering.
+
+        `grunnlag` bærer aldri hva anmerkningen gjelder.
+      parameters:
+        - name: personId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: rolle
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [stottekontakt, barnehage, skole]
+      responses:
+        "200":
+          description: Vurdering utført
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SjekkResultat"
+        "400":
+          description: Ukjent rolle eller manglende parameter
           content:
             application/json:
               schema:
