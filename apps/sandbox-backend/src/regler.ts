@@ -173,10 +173,11 @@ export function hasGyldigSamtykke(
   tilstand: Samtykketilstand,
   personId: string,
   datakilde: string,
-  foretrukketId?: string | null
+  foretrukketId?: string | null,
+  now: number = Date.now()
 ) {
   const gyldige = samtykkerFor(tilstand, personId, datakilde)
-    .filter((samtykke: any) => effektivStatus(samtykke) === "SAMTYKKET");
+    .filter((samtykke: any) => effektivStatus(samtykke, now) === "SAMTYKKET");
   if (gyldige.length === 0) {
     return null;
   }
@@ -198,7 +199,12 @@ export function hasGyldigSamtykke(
  * samtykke" is a confusing thing to read when you remember agreeing - the useful
  * answer says the consent expired and has to be given again.
  */
-export function hasUtloeptSamtykke(tilstand: Samtykketilstand, personId: string, datakilde: string) {
+export function hasUtloeptSamtykke(
+  tilstand: Samtykketilstand,
+  personId: string,
+  datakilde: string,
+  now: number = Date.now()
+) {
   return samtykkerFor(tilstand, personId, datakilde)
-    .some((samtykke: any) => effektivStatus(samtykke) === "UTLOEPT");
+    .some((samtykke: any) => effektivStatus(samtykke, now) === "UTLOEPT");
 }

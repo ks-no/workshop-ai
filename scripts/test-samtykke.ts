@@ -45,6 +45,7 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 
 let bestatt = 0;
 const feil: string[] = [];
+const TEST_NOW = Date.parse("2026-08-15T12:00:00.000Z");
 
 function check(navn: string, betingelse: unknown, detalj = ""): void {
   if (betingelse) {
@@ -54,7 +55,10 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
   feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
-const iTida = (dager: any) => new Date(Date.now() + dager * 24 * 60 * 60 * 1000).toISOString();
+// Fast klokke der fiksturen og den som dømmer den er samme prosess. Basis er en
+// parameter for det ene stedet raden går over wire - se 6h.
+const iTida = (dager: number, basis = TEST_NOW) =>
+  new Date(basis + dager * 24 * 60 * 60 * 1000).toISOString();
 
 // --- 1. kodeverket ---------------------------------------------------------
 
@@ -125,36 +129,36 @@ check("ukjent lagret status gir 409", !raatten.lovlig && raatten.status === 409,
 
 // --- 3. utløp --------------------------------------------------------------
 
-check("utløp i framtida er ikke utløpt", isUtloept({ utloper: iTida(1) }) === false);
-check("utløp i fortida er utløpt", isUtloept({ utloper: iTida(-1) }) === true);
-check("uten utloper er ingenting utløpt", isUtloept({}) === false);
-check("ugyldig utloper er ingenting utløpt", isUtloept({ utloper: "i morgen" }) === false);
+check("utløp i framtida er ikke utløpt", isUtloept({ utloper: iTida(1) }, TEST_NOW) === false);
+check("utløp i fortida er utløpt", isUtloept({ utloper: iTida(-1) }, TEST_NOW) === true);
+check("uten utloper er ingenting utløpt", isUtloept({}, TEST_NOW) === false);
+check("ugyldig utloper er ingenting utløpt", isUtloept({ utloper: "i morgen" }, TEST_NOW) === false);
 // An offset-carrying fixture must compare correctly against a Z-stamped clock.
-check("utløp med tidssone-offset sammenlignes riktig", isUtloept({ utloper: "2020-01-01T00:00:00+02:00" }) === true);
+check("utløp med tidssone-offset sammenlignes riktig", isUtloept({ utloper: "2020-01-01T00:00:00+02:00" }, TEST_NOW) === true);
 
 check(
   "utløpt SAMTYKKET leses som UTLOEPT",
-  effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }) === "UTLOEPT"
+  effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }, TEST_NOW) === "UTLOEPT"
 );
 check(
   "gyldig SAMTYKKET leses som SAMTYKKET",
-  effektivStatus({ status: "SAMTYKKET", utloper: iTida(30) }) === "SAMTYKKET"
+  effektivStatus({ status: "SAMTYKKET", utloper: iTida(30) }, TEST_NOW) === "SAMTYKKET"
 );
 // Expiry applies to a consent that was given. A request nobody answered stays
 // answerable - see SAMTYKKEOVERGANGER.
 check(
   "utløpt VENTER_PAA_SVAR er fortsatt VENTER_PAA_SVAR",
-  effektivStatus({ status: "VENTER_PAA_SVAR", utloper: iTida(-1) }) === "VENTER_PAA_SVAR"
+  effektivStatus({ status: "VENTER_PAA_SVAR", utloper: iTida(-1) }, TEST_NOW) === "VENTER_PAA_SVAR"
 );
 check(
   "en trukket rad forblir TRUKKET selv om den er utløpt",
-  effektivStatus({ status: "TRUKKET", utloper: iTida(-1) }) === "TRUKKET"
+  effektivStatus({ status: "TRUKKET", utloper: iTida(-1) }, TEST_NOW) === "TRUKKET"
 );
 
 // Expiry must be refused by the same rule that refuses everything else.
 check(
   "et utløpt samtykke kan ikke trekkes",
-  validateSamtykkeovergang(effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }), "TRUKKET").lovlig === false
+  validateSamtykkeovergang(effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }, TEST_NOW), "TRUKKET").lovlig === false
 );
 
 // --- 4. hjemmel: utløpt samtykke hjemler ingen lesning ---------------------
@@ -176,35 +180,37 @@ const expiredRow = {
 
 check(
   "et gyldig samtykke hjemler lesning",
-  hasGyldigSamtykke({ samtykker: [gyldigRad] }, "person-001", "inntekt")?.samtykkeId === "samtykke-gyldig"
+  hasGyldigSamtykke({ samtykker: [gyldigRad] }, "person-001", "inntekt", undefined, TEST_NOW)
+    ?.samtykkeId === "samtykke-gyldig"
 );
 check(
   "et utløpt samtykke hjemler ingen lesning",
-  hasGyldigSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt") === null
+  hasGyldigSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt", undefined, TEST_NOW) === null
 );
 // The newest wins, but only among the ones that still count. Before expiry was
 // real, the newer expired row would have been picked over the valid older one.
 check(
   "nyeste gyldige velges, ikke nyeste utløpte",
-  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt")?.samtykkeId === "samtykke-gyldig"
+  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", undefined, TEST_NOW)
+    ?.samtykkeId === "samtykke-gyldig"
 );
 // An expired consent must not win by being asked for by id either.
 check(
   "et utløpt samtykke velges ikke selv om økten foretrekker det",
-  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", "samtykke-utloept")
+  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", "samtykke-utloept", TEST_NOW)
     ?.samtykkeId === "samtykke-gyldig"
 );
 check(
   "utløpt samtykke skilles fra manglende samtykke",
-  hasUtloeptSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt") === true
+  hasUtloeptSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt", TEST_NOW) === true
 );
 check(
   "ingen samtykke er ikke et utløpt samtykke",
-  hasUtloeptSamtykke({ samtykker: [] }, "person-001", "inntekt") === false
+  hasUtloeptSamtykke({ samtykker: [] }, "person-001", "inntekt", TEST_NOW) === false
 );
 check(
   "et trukket samtykke er ikke et utløpt samtykke",
-  hasUtloeptSamtykke({ samtykker: [{ ...gyldigRad, status: "TRUKKET" }] }, "person-001", "inntekt") === false
+  hasUtloeptSamtykke({ samtykker: [{ ...gyldigRad, status: "TRUKKET" }] }, "person-001", "inntekt", TEST_NOW) === false
 );
 
 // --- 5. oppgavens maskin ---------------------------------------------------
@@ -472,12 +478,19 @@ try {
   );
 
   // 6h. utløp på wire
+  //
+  // Den ene raden i denne filen som krysser wire, og den eneste som ikke skal ha
+  // den faste klokken: fiks-simulator dømmer den med sin egen Date.now(), og
+  // effektivStatus der tar ingen `now`. Med TEST_NOW ville «i går» blitt den
+  // absolutte datoen 2026-08-14, som bare er fortid fordi veggklokken tilfeldigvis
+  // er senere - og påstandene under ville sagt noe om tilstandsmaskinen når de
+  // egentlig sa noe om datoen i dag.
   const utloepende = await nytt("person-004");
   const expiringId = utloepende.kropp.samtykkeId;
   await call(`/fiks/samtykke/${expiringId}/svar`, { method: "PUT", body: { status: "SAMTYKKET" } });
   const onDisk = JSON.parse(await readFile(samtykkeFil, "utf8"));
   const rad = onDisk.find((kandidat: any) => kandidat.samtykkeId === expiringId);
-  rad.utloper = iTida(-1);
+  rad.utloper = iTida(-1, Date.now());
   await writeFile(samtykkeFil, JSON.stringify(onDisk, null, 2) + "\n");
 
   const utloept = await call(`/fiks/samtykke/${expiringId}`);
@@ -620,6 +633,37 @@ try {
   digdir.kill("SIGTERM");
   revisjonstjener.close();
   await rm(stateDir, { recursive: true, force: true });
+}
+
+// --- klokken er oppgitt overalt -------------------------------------------
+
+/*
+ * Hvert kall til en funksjon som tar en klokke, oppgir en.
+ *
+ * Tredingen var ellers bare en konvensjon: droppet du `, TEST_NOW` på et kallsted,
+ * falt funksjonen tilbake på `Date.now()` og testen var fortsatt grønn. Den ene
+ * påstanden som fanget det, gjorde det tilfeldig - fordi veggklokken lå noen uker
+ * foran `TEST_NOW`, ikke fordi noe krevde det.
+ *
+ * Ren tekstanalyse av denne filen, som `pnpm test:imports` gjør med importgrafen.
+ * Importlinjen er utenfor: den nevner navnene uten å kalle dem.
+ */
+const KLOKKEFUNKSJONER = ["isUtloept", "effektivStatus", "hasGyldigSamtykke", "hasUtloeptSamtykke"];
+const egenKilde = (await readFile(fileURLToPath(import.meta.url), "utf8"))
+  .split("\n")
+  .filter((linje) => !linje.trimStart().startsWith("import") && !linje.includes("KLOKKEFUNKSJONER"))
+  .join("\n");
+for (const navn of KLOKKEFUNKSJONER) {
+  const utenKlokke: string[] = [];
+  for (const treff of egenKilde.matchAll(new RegExp(`\\b${navn}\\(`, "g"))) {
+    const start = treff.index + treff[0].length;
+    const slutt = egenKilde.indexOf(";", start);
+    const argumenter = egenKilde.slice(start, slutt === -1 ? start + 400 : slutt);
+    if (!argumenter.includes("TEST_NOW") && !argumenter.includes("Date.now()")) {
+      utenKlokke.push(argumenter.split("\n")[0]!.slice(0, 60));
+    }
+  }
+  check(`hvert kall til ${navn} oppgir en klokke`, utenKlokke.length === 0, utenKlokke.join(" | "));
 }
 
 // --- rapport --------------------------------------------------------------
