@@ -1,5 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
-import { alderVed } from "../apps/shared/alder.ts";
+import { alderVed, maanederEtter } from "../apps/shared/alder.ts";
 import { SEED_DATASETS } from "../apps/sandbox-backend/src/state.ts";
 import type { Ordning, Satser, State } from "../apps/sandbox-backend/src/types.ts";
 import type { Husstand, Person, Plass } from "../apps/shared/innbyggerdata.ts";
@@ -105,6 +105,17 @@ for (const ordning of satser.ordninger) {
 // derfor klager dette.
 const legeerklaeringer = (await read("data/legeerklaeringer.json")).legeerklaeringer as Legeerklaering[];
 const personPerFnr = new Map(personer.map((person) => [person.syntetiskFodselsnummer, person]));
+/*
+ * Verdien mot kodeverket. Ni kopier av den samme kastelinjen sto her, hver med sin
+ * egen `as readonly string[]`; forskjellen mellom dem var bare hvem som spurte.
+ */
+function krevKodeverk(hvem: string, felt: string, verdi: string, kodeverk: readonly string[], hale = "") {
+  if (kodeverk.includes(verdi)) return;
+  throw new Error(
+    `${hvem} oppgir ${felt} "${verdi}", som ikke er i kodeverket. ${hale}Gyldige: ${kodeverk.join(", ")}.`
+  );
+}
+
 const settErklaeringId = new Set<string>();
 const erklaeringerPerPerson = new Map<string, Legeerklaering[]>();
 
@@ -127,12 +138,7 @@ for (const erklaering of legeerklaeringer) {
 
   // Seks måneder fra signeringen, sier rettleiingen. gyldigTil er avledet, og en
   // rad som regner feil ville gitt et avslag ingen kan forklare.
-  const utstedt = new Date(erklaering.utstedt);
-  const forventet = new Date(Date.UTC(
-    utstedt.getUTCFullYear(),
-    utstedt.getUTCMonth() + 6,
-    utstedt.getUTCDate()
-  )).toISOString().slice(0, 10);
+  const forventet = maanederEtter(erklaering.utstedt, 6);
   if (erklaering.gyldigTil !== forventet) {
     throw new Error(
       `${erklaering.erklaeringId} har gyldigTil ${erklaering.gyldigTil}, men utstedt ` +
@@ -1273,7 +1279,20 @@ for (const ordning of satser.ordninger) {
 // krevde alle seks per ordning ville krevd at dataene løy.
 {
   const vandelsordninger = satser.ordninger.filter((ordning) => ordning.regel === "VANDELSKONTROLL");
+
+  // Unionene er typer over JSON og sier ingenting ved kjøring. Radene i
+  // politiattester.json var validert; ordningene vedtaket leser var det ikke.
+  for (const ordning of vandelsordninger) {
+    krevKodeverk(ordning.id, "formaal", ordning.formaal || "", ATTESTFORMAAL);
+    if (ordning.attesttype) krevKodeverk(ordning.id, "attesttype", ordning.attesttype, ATTESTTYPER);
+    for (const kategori of ordning.absoluttUtelukkelse ?? []) {
+      krevKodeverk(ordning.id, "absoluttUtelukkelse", kategori, ANMERKNINGSKATEGORIER,
+        "Regelen ville aldri truffet, og utelukkelsen blitt stille borte. ");
+    }
+  }
+
   const utfall = new Map<string, number>();
+  const utelukketPerOrdning = new Map<string, number>();
   for (const ordning of vandelsordninger) {
     const formaal = ordning.formaal || "";
     for (const person of personer) {
@@ -1290,6 +1309,22 @@ for (const ordning of satser.ordninger) {
       });
       const gren = String(svar.grunnlag?.vandelsutfall ?? "uten utfall");
       utfall.set(gren, (utfall.get(gren) || 0) + 1);
+      if (gren === "absolutt_utelukkelse") {
+        utelukketPerOrdning.set(ordning.id, (utelukketPerOrdning.get(ordning.id) || 0) + 1);
+      }
+    }
+  }
+
+  // Den aggregerte tellingen under kan dekkes av én ordning alene, og gjorde det:
+  // en skrivefeil i skolens absoluttUtelukkelse var usynlig så lenge barnehagen
+  // fortsatt utelukket noen. Erklærer en ordning regelen, må den også være brukt.
+  for (const ordning of vandelsordninger) {
+    if ((ordning.absoluttUtelukkelse ?? []).length === 0) continue;
+    if (!utelukketPerOrdning.get(ordning.id)) {
+      throw new Error(
+        `${ordning.id} erklærer absoluttUtelukkelse, men ingen person i datasettet utløser den. ` +
+        "Enten er kategorien feilskrevet, eller så mangler attesten som skulle truffet den."
+      );
     }
   }
   if (utfall.has("uten utfall")) {

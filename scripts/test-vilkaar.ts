@@ -514,15 +514,26 @@ const utenMerknad = vurderVandel(attestMed());
 check("attest uten merknad godkjennes", utenMerknad.grunnlag?.vandelsutfall === "godkjent");
 check("uten attest navngis grenen",
   vurderVandel(null).grunnlag?.vandelsutfall === "mangler_attest");
-check("feil attesttype navngis",
-  vurderVandel(attestMed({ attesttype: "ordinaer" })).grunnlag?.vandelsutfall === "feil_attesttype");
+const feilAttesttype = vurderVandel(attestMed({ attesttype: "ordinaer" }));
+check("feil attesttype navngis", feilAttesttype.grunnlag?.vandelsutfall === "feil_attesttype");
 
 // Tremånedersgrensen er mottakerens regel: attesten har ingen utløpsdato.
 const forGammel = vurderVandel(attestMed({ utstedt: "2026-02-10" }));
 check("for gammel attest navngis", forGammel.grunnlag?.vandelsutfall === "attest_for_gammel");
-check("meldingen oppgir alderen i måneder", forGammel.melding.includes("5 måneder"));
-check("grensen er ikke strengere enn tre måneder",
-  vurderVandel(attestMed({ utstedt: "2026-05-01" })).grunnlag?.vandelsutfall === "godkjent");
+check("meldingen oppgir datoen attesten kunne brukes til", forGammel.melding.includes("2026-05-10"));
+
+const paaGrensen = vurderVandel(attestMed({ utstedt: "2026-05-01" }));
+check("grensen er ikke strengere enn tre måneder", paaGrensen.grunnlag?.vandelsutfall === "godkjent");
+// ... og ikke slappere heller: hele måneder slapp gjennom en attest på tre måneder
+// og tretti dager, mens beviset den bar alt var utløpt.
+const knapptForGammel = vurderVandel(attestMed({ utstedt: "2026-04-02" }));
+check("en attest eldre enn tre måneder slipper ikke gjennom på avrunding",
+  knapptForGammel.grunnlag?.vandelsutfall === "attest_for_gammel",
+  String(knapptForGammel.grunnlag?.vandelsutfall));
+// Regelen og beviset måler mot den samme datoen, så de kan ikke gå fra hverandre.
+check("regelen godtar nøyaktig så lenge beviset er gyldig",
+  attestMed({ utstedt: "2026-05-01" }).bevis.expirationDate.startsWith(satser.gjelderFra),
+  attestMed({ utstedt: "2026-05-01" }).bevis.expirationDate);
 
 const overgrep = attestMed({
   anmerkninger: [
@@ -546,6 +557,26 @@ check("samme anmerkning uten absolutt hjemmel går til skjønn",
 check("skjønnsutfallet sier at et menneske avgjør",
   tilSkjonn.melding.includes("saksbehandler"));
 
+// Reaksjonen avgjør, ikke bare kategorien. Straffebudet er det samme i alle fire
+// radene under; det som skiller dem er om påtalemyndigheten er ferdig. Bare dommen
+// utelukker - resten er en anmerkning et menneske må vurdere.
+for (const reaksjon of ["siktet", "tiltalt", "forelegg"] as const) {
+  const svar = vurderVandel(attestMed({
+    anmerkninger: [
+      { kategori: "seksuallovbrudd-mot-mindreaarig", hjemmel: "straffeloven § 302", reaksjon, dato: "2019-04-11" }
+    ]
+  }));
+  check(`${reaksjon} er ikke en dom og utelukker ikke automatisk`,
+    svar.grunnlag?.vandelsutfall === "krever_manuell_vurdering",
+    String(svar.grunnlag?.vandelsutfall));
+}
+check("dommen utelukker fortsatt",
+  vurderVandel(attestMed({
+    anmerkninger: [
+      { kategori: "seksuallovbrudd-mot-mindreaarig", hjemmel: "straffeloven § 302", reaksjon: "dom", dato: "2019-04-11" }
+    ]
+  })).grunnlag?.vandelsutfall === "absolutt_utelukkelse");
+
 // Koblingen mellom utfall og godkjent, sjekket én gang for alle seks. To av dem
 // slipper gjennom, og krever_manuell_vurdering er den ene som overrasker.
 const SLIPPER: Record<string, boolean> = {
@@ -556,11 +587,13 @@ const SLIPPER: Record<string, boolean> = {
   attest_for_gammel: false,
   absolutt_utelukkelse: false
 };
-for (const svar of [utenMerknad, vurderVandel(null), forGammel, utelukket, tilSkjonn]) {
+for (const svar of [utenMerknad, vurderVandel(null), forGammel, utelukket, tilSkjonn, feilAttesttype]) {
   const gren = String(svar.grunnlag?.vandelsutfall);
   check(`${gren} slipper gjennom bare når det skal`, svar.godkjent === SLIPPER[gren]);
 }
-check("tabellen dekker hele unionen", Object.keys(SLIPPER).length === VANDELSUTFALL.length);
+// Medlemskap og ikke bare antall: en omdøpt gren holder antallet og ville sluppet unna.
+check("tabellen dekker unionen nøyaktig",
+  VANDELSUTFALL.every((gren) => gren in SLIPPER) && Object.keys(SLIPPER).length === VANDELSUTFALL.length);
 
 // Minimering: grunnlaget går inn i oppsummeringen, og oppsummeringen går til
 // modellen. Hva anmerkningen gjelder skal ikke dit.

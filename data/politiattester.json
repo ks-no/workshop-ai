@@ -2,7 +2,7 @@
   "beskrivelse": "Syntetiske politiattester, formet som attesten innbyggeren har fått og bærer selv. Formålet er rollen personen skal tre inn i, og det avgjør både hjemmelen og attesttypen: barneomsorgsattest til barnehage og skole etter politiregisterloven § 39 første ledd, og den sammensatte attesten etter helse- og omsorgstjenesteloven § 5-4 til oppdrag som støttekontakt. Anmerkningene bruker de fire ordene loven bruker - siktet, tiltalt, forelegg, dom - fordi en anmerkning ikke er det samme som en dom.",
   "merknad": "Det finnes ingen slik integrasjon i virkeligheten: politiattesten er en låst PDF uten maskinlesbart innhold, og ingen kommune kan slå den opp. Se apps/politiattest-mock/README.md. Nøkkelen er fødselsnummer, den samme som i krr.json, men ingenting er importert derfra. Filen leses bare av apps/politiattest-mock; sandbox-backend når attestene over HTTP. bevis-blokken står ikke her: den er avledet av attesten og flettes inn ved innlasting, slik matrikkel-mock fletter inn eierforhold.",
   "syntetisk": true,
-  "antall": 8,
+  "antall": 9,
   "attester": [
     {
       "attestId": "att-0001",
@@ -159,6 +159,30 @@
         "organisasjonsnummer": "889640782"
       },
       "anmerkninger": [],
+      "syntetisk": true
+    },
+    {
+      "attestId": "att-0009",
+      "dokumenttype": "Politiattest",
+      "fnr": "02918400071",
+      "personId": "person-004",
+      "formaal": "skole",
+      "hjemmel": "opplæringsloven § 17-11, jf. politiregisterloven § 39 første ledd",
+      "attesttype": "barneomsorgsattest",
+      "utstedt": "2026-06-20",
+      "utsteder": {
+        "navn": "Politiet",
+        "enhet": "Enhet for vandelskontroll og politiattester",
+        "organisasjonsnummer": "889640782"
+      },
+      "anmerkninger": [
+        {
+          "kategori": "seksuallovbrudd-mot-mindreaarig",
+          "hjemmel": "straffeloven § 302",
+          "reaksjon": "dom",
+          "dato": "2018-09-27"
+        }
+      ],
       "syntetisk": true
     }
   ]
