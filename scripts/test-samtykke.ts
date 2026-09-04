@@ -45,6 +45,7 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 
 let bestatt = 0;
 const feil: string[] = [];
+const TEST_NOW = Date.parse("2026-08-15T12:00:00.000Z");
 
 function check(navn: string, betingelse: unknown, detalj = ""): void {
   if (betingelse) {
@@ -54,7 +55,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
   feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
-const iTida = (dager: any) => new Date(Date.now() + dager * 24 * 60 * 60 * 1000).toISOString();
+const iTida = (dager: number) => new Date(TEST_NOW + dager * 24 * 60 * 60 * 1000).toISOString();
 
 // --- 1. kodeverket ---------------------------------------------------------
 
@@ -125,36 +126,36 @@ check("ukjent lagret status gir 409", !raatten.lovlig && raatten.status === 409,
 
 // --- 3. utløp --------------------------------------------------------------
 
-check("utløp i framtida er ikke utløpt", isUtloept({ utloper: iTida(1) }) === false);
-check("utløp i fortida er utløpt", isUtloept({ utloper: iTida(-1) }) === true);
-check("uten utloper er ingenting utløpt", isUtloept({}) === false);
-check("ugyldig utloper er ingenting utløpt", isUtloept({ utloper: "i morgen" }) === false);
+check("utløp i framtida er ikke utløpt", isUtloept({ utloper: iTida(1) }, TEST_NOW) === false);
+check("utløp i fortida er utløpt", isUtloept({ utloper: iTida(-1) }, TEST_NOW) === true);
+check("uten utloper er ingenting utløpt", isUtloept({}, TEST_NOW) === false);
+check("ugyldig utloper er ingenting utløpt", isUtloept({ utloper: "i morgen" }, TEST_NOW) === false);
 // An offset-carrying fixture must compare correctly against a Z-stamped clock.
-check("utløp med tidssone-offset sammenlignes riktig", isUtloept({ utloper: "2020-01-01T00:00:00+02:00" }) === true);
+check("utløp med tidssone-offset sammenlignes riktig", isUtloept({ utloper: "2020-01-01T00:00:00+02:00" }, TEST_NOW) === true);
 
 check(
   "utløpt SAMTYKKET leses som UTLOEPT",
-  effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }) === "UTLOEPT"
+  effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }, TEST_NOW) === "UTLOEPT"
 );
 check(
   "gyldig SAMTYKKET leses som SAMTYKKET",
-  effektivStatus({ status: "SAMTYKKET", utloper: iTida(30) }) === "SAMTYKKET"
+  effektivStatus({ status: "SAMTYKKET", utloper: iTida(30) }, TEST_NOW) === "SAMTYKKET"
 );
 // Expiry applies to a consent that was given. A request nobody answered stays
 // answerable - see SAMTYKKEOVERGANGER.
 check(
   "utløpt VENTER_PAA_SVAR er fortsatt VENTER_PAA_SVAR",
-  effektivStatus({ status: "VENTER_PAA_SVAR", utloper: iTida(-1) }) === "VENTER_PAA_SVAR"
+  effektivStatus({ status: "VENTER_PAA_SVAR", utloper: iTida(-1) }, TEST_NOW) === "VENTER_PAA_SVAR"
 );
 check(
   "en trukket rad forblir TRUKKET selv om den er utløpt",
-  effektivStatus({ status: "TRUKKET", utloper: iTida(-1) }) === "TRUKKET"
+  effektivStatus({ status: "TRUKKET", utloper: iTida(-1) }, TEST_NOW) === "TRUKKET"
 );
 
 // Expiry must be refused by the same rule that refuses everything else.
 check(
   "et utløpt samtykke kan ikke trekkes",
-  validateSamtykkeovergang(effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }), "TRUKKET").lovlig === false
+  validateSamtykkeovergang(effektivStatus({ status: "SAMTYKKET", utloper: iTida(-1) }, TEST_NOW), "TRUKKET").lovlig === false
 );
 
 // --- 4. hjemmel: utløpt samtykke hjemler ingen lesning ---------------------
@@ -176,35 +177,35 @@ const expiredRow = {
 
 check(
   "et gyldig samtykke hjemler lesning",
-  hasGyldigSamtykke({ samtykker: [gyldigRad] }, "person-001", "inntekt")?.samtykkeId === "samtykke-gyldig"
+  hasGyldigSamtykke({ samtykker: [gyldigRad] }, "person-001", "inntekt", undefined, TEST_NOW)?.samtykkeId === "samtykke-gyldig"
 );
 check(
   "et utløpt samtykke hjemler ingen lesning",
-  hasGyldigSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt") === null
+  hasGyldigSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt", undefined, TEST_NOW) === null
 );
 // The newest wins, but only among the ones that still count. Before expiry was
 // real, the newer expired row would have been picked over the valid older one.
 check(
   "nyeste gyldige velges, ikke nyeste utløpte",
-  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt")?.samtykkeId === "samtykke-gyldig"
+  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", undefined, TEST_NOW)?.samtykkeId === "samtykke-gyldig"
 );
 // An expired consent must not win by being asked for by id either.
 check(
   "et utløpt samtykke velges ikke selv om økten foretrekker det",
-  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", "samtykke-utloept")
+  hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", "samtykke-utloept", TEST_NOW)
     ?.samtykkeId === "samtykke-gyldig"
 );
 check(
   "utløpt samtykke skilles fra manglende samtykke",
-  hasUtloeptSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt") === true
+  hasUtloeptSamtykke({ samtykker: [expiredRow] }, "person-001", "inntekt", TEST_NOW) === true
 );
 check(
   "ingen samtykke er ikke et utløpt samtykke",
-  hasUtloeptSamtykke({ samtykker: [] }, "person-001", "inntekt") === false
+  hasUtloeptSamtykke({ samtykker: [] }, "person-001", "inntekt", TEST_NOW) === false
 );
 check(
   "et trukket samtykke er ikke et utløpt samtykke",
-  hasUtloeptSamtykke({ samtykker: [{ ...gyldigRad, status: "TRUKKET" }] }, "person-001", "inntekt") === false
+  hasUtloeptSamtykke({ samtykker: [{ ...gyldigRad, status: "TRUKKET" }] }, "person-001", "inntekt", TEST_NOW) === false
 );
 
 // --- 5. oppgavens maskin ---------------------------------------------------
