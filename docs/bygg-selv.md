@@ -216,6 +216,10 @@ To ting å huske:
 
 ## Helt ny tjeneste
 
+> [!TIP]
+> «Kopier en eksisterende» gjelder oppsettet, ikke hva tjenesten skal gjøre. Er det
+> ikke avgjort, se `.claude/skills/nytt-bruksomraade/SKILL.md` først.
+
 Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
 
 1. `apps/<navn>/` med en `package.json` på sju linjer - kopier en eksisterende
