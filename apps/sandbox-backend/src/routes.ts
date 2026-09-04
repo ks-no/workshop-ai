@@ -23,7 +23,13 @@ import {
 } from "../../shared/handleevne.ts";
 import { openapiFile } from "./config.ts";
 import { routeOverview } from "../../shared/openapi.ts";
-import { buildProsessoektRespons, createSoknad, normaliserValgsvar, runStegHandling } from "./prosess.ts";
+import {
+  buildProsessoektRespons,
+  createSoknad,
+  normaliserValgsvar,
+  resultaterNaa,
+  runStegHandling
+} from "./prosess.ts";
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
@@ -168,8 +174,9 @@ function getSporingsId(url: URL) {
  * as HttpError and reach the client before anything is saved.
  */
 async function withSession(
-  { response, parametere, tilstand }: Pick<Kontekst, "response" | "parametere" | "tilstand">,
-  { krevAapen = true, lagre = true }: { krevAapen?: boolean; lagre?: boolean },
+  { response, parametere, tilstand, kaller }: Pick<Kontekst, "response" | "parametere" | "tilstand" | "kaller">,
+  { krevAapen = true, lagre = true, loggGjenlesing = false }:
+    { krevAapen?: boolean; lagre?: boolean; loggGjenlesing?: boolean },
   fn: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<unknown> | unknown
 ) {
   const session = findProsessoekt(tilstand, parametere.oektsId);
@@ -190,13 +197,42 @@ async function withSession(
     session.oppdatert = new Date().toISOString();
     await lagreProsessoekt(session);
   }
-  jsonResponse(
-    response,
-    200,
-    resultat === undefined
-      ? buildProsessoektRespons(session, prosess)
-      : { oekt: buildProsessoektRespons(session, prosess), resultat }
+  // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
+  // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
+  const { resultater, gjenlest } = resultaterNaa(tilstand, session, prosess, kaller);
+  if (loggGjenlesing) {
+    await loggGjenleste(tilstand, session, gjenlest, kaller);
+  }
+  const oektSvar = buildProsessoektRespons(session, prosess, resultater);
+  jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
+}
+
+/*
+ * GET-ruten svarer med det DATA_FETCH-stegene hentet, og det er en datatilgang.
+ * Én rad per kilde per økt, ikke per henting: agentsløyfa poller denne ruten, og
+ * addRevisjon skriver hele revisjonsloggen om igjen inne i den delte skrivekøen.
+ */
+async function loggGjenleste(
+  tilstand: State,
+  session: Prosessoekt,
+  gjenlest: string[],
+  kaller: Caller
+) {
+  const alleredeLogget = new Set(
+    (tilstand.revisjonslogg || [])
+      .filter((rad: any) => rad.sporingsId === session.sporingsId && rad.formaal === GJENLESING)
+      .map((rad: any) => rad.ressurs)
   );
+  for (const kilde of gjenlest) {
+    if (alleredeLogget.has(kilde)) continue;
+    await addRevisjon({
+      sporingsId: session.sporingsId,
+      handling: "DATA_LES",
+      ressurs: kilde,
+      formaal: GJENLESING,
+      aktor: aktorFor(kaller, session.personId)
+    });
+  }
 }
 
 // --- system routes: answer without reading state --------------------------
@@ -457,7 +493,7 @@ const ruter: Rute[] = [
         ressurs: "prosessoekt",
         aktor: aktorFor(kaller, newSession.personId)
       });
-      jsonResponse(response, 201, buildProsessoektRespons(newSession, prosess));
+      jsonResponse(response, 201, buildProsessoektRespons(newSession, prosess, newSession.resultater));
     }
   },
   {
@@ -465,7 +501,8 @@ const ruter: Rute[] = [
     sti: "/api/prosessoekter/:oektsId",
     finnPersonId: eierAvOekt,
     // A read: closed økter stay readable, and nothing is stamped or saved.
-    handter: (kontekst) => withSession(kontekst, { krevAapen: false, lagre: false }, () => {})
+    handter: (kontekst) =>
+      withSession(kontekst, { krevAapen: false, lagre: false, loggGjenlesing: true }, () => {})
   },
   {
     metode: "POST",
@@ -631,6 +668,9 @@ function findRoute(metode: string, sti: string): { rute: Rute; parametere: PathP
   }
   return null;
 }
+
+// Formålet gjenlesingsradene bærer, brukt både når de skrives og når de telles.
+const GJENLESING = "Gjenlesing av prosessøkt";
 
 const systemPaths = new Set(systemruter.map((rute) => rute.sti));
 
