@@ -148,6 +148,11 @@ paths:
   /attester/{attestId}:
     get:
       summary: Én politiattest
+      description: >-
+        `fnr` og `formaal` er påkrevd her også. Id-en presiserer hvilken attest,
+        den er ingen nøkkel: id-ene er fortløpende, så et oppslag på id alene ville
+        vært det uttrekket `/attester` er bygd for å nekte. Stemmer ikke attesten
+        med begge, er svaret 404.
       security:
         - maskinporten: [politiattest:attest.read]
       parameters:
@@ -156,6 +161,19 @@ paths:
           required: true
           schema:
             type: string
+        - name: fnr
+          in: query
+          required: true
+          description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          schema:
+            type: string
+        - name: formaal
+          in: query
+          required: true
+          description: Rollen attesten er utstedt til.
+          schema:
+            type: string
+            enum: [stottekontakt, barnehage, skole]
       responses:
         "200":
           description: Attesten
@@ -163,6 +181,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Politiattest"
+        "400":
+          description: fnr eller formaal mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
         "401":
           description: Token mangler eller er ugyldig
           content:

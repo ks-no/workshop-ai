@@ -178,8 +178,11 @@ const server = createServer(async (request, response) => {
     const erklaeringTreff = url.pathname.match(/^\/journal\/legeerklaeringer\/([^/]+)$/);
     if (request.method === "GET" && erklaeringTreff) {
       await requireHjemmel(request);
+      // Id-en presiserer hvilken erklæring, den er ingen nøkkel. Uten fnr er
+      // fortløpende id-er et uttrekk av hele journalen.
+      const fnr = krevFnr(url.searchParams);
       const erklaering = journal.perId.get(decodeURIComponent(erklaeringTreff[1]));
-      if (!erklaering) {
+      if (!erklaering || erklaering.fnr !== fnr) {
         jsonResponse(response, 404, { feil: "Fant ikke legeerklæringen.", syntetisk: true });
         return;
       }

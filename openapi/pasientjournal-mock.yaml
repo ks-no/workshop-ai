@@ -101,12 +101,23 @@ paths:
   /journal/legeerklaeringer/{erklaeringId}:
     get:
       summary: Én legeerklæring
+      description: >-
+        `fnr` er påkrevd her også. Id-en presiserer hvilken erklæring, den er ingen
+        nøkkel: id-ene er fortløpende, så et oppslag på id alene ville vært det
+        uttrekket ruten over er bygd for å nekte. Hører erklæringen til noen andre,
+        er svaret 404.
       security:
         - maskinporten: [pasientjournal:legeerklaering.read]
       parameters:
         - name: erklaeringId
           in: path
           required: true
+          schema:
+            type: string
+        - name: fnr
+          in: query
+          required: true
+          description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
           schema:
             type: string
       responses:
@@ -116,6 +127,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Legeerklaering"
+        "400":
+          description: fnr mangler eller er ugyldig
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
         "401":
           description: Token mangler eller er ugyldig
           content:

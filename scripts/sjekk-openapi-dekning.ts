@@ -66,6 +66,13 @@ type Tjeneste = {
    */
   ikkeRuter?: string[];
   /**
+   * Ruter som er åpne med vitende og vilje, i en tjeneste som ellers vokter. Uten
+   * denne listen måtte skanneren gjette hva fraværet av en vakt betyr, og den
+   * gjetningen ville vært «åpen» - altså et grønt svar om at ruten er ugjettet
+   * åpen. Her må åpenheten skrives ned, som for ikkeRuter.
+   */
+  aapneRuter?: string[];
+  /**
    * Kodeverk spesifikasjonen gjentar, og som derfor kan komme ut av takt med
    * koden. En enum i en spesifikasjon er en tredje sannhet ved siden av
    * tilstandsmaskinen og informasjonsmodellen - den skal måles mot kilden.
@@ -164,6 +171,46 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
   const ruter: Rute[] = [];
   const uparsede: string[] = [];
 
+  // Hvilket scope hver vaktfunksjon krever. Uten dette var «tilgang» bare satt av
+  // backendRuter(), så bandet var ukjent for de åtte skannede tjenestene og alle
+  // hjemmelspåstandene under hoppet stille over dem.
+  // Begge formene finnes: fiks-simulator skriver vaktene sine som pilfunksjoner,
+  // de to nyeste mockene som vanlige. Og en rute kan sette bort hele svaret til en
+  // hjelper som vokter - de tre beregningsrutene gjør det - så settet lukkes til
+  // det ikke vokser mer, framfor å bare se ett ledd.
+  const vakter = new Map<string, string>();
+  // Kroppen er teksten fram til neste funksjonserklæring. Et fast vindu ville hoppet
+  // stille over en vakt som sto lenger ned i en lang funksjon.
+  const erklaeringer = [...kilde.matchAll(/(?:function|const)\s+(\w+)\s*=?\s*(?:async\s*)?\(/g)];
+  const funksjoner = erklaeringer.map((treff, i) => ({
+    navn: treff[1]!,
+    kropp: kilde.slice(treff.index!, erklaeringer[i + 1]?.index ?? kilde.length)
+  }));
+  for (const { navn, kropp } of funksjoner) {
+    const scope = kropp.match(/requireMaskinporten\(request,\s*\{\s*scope:\s*(\w+)/);
+    if (scope) vakter.set(navn, scope[1]!);
+  }
+  // En rute kan sette bort hele svaret til en hjelper som vokter - de tre
+  // beregningsrutene gjør det - så settet lukkes til det ikke vokser mer.
+  const kallMonster = new Map<string, RegExp>();
+  let vokste = true;
+  while (vokste) {
+    vokste = false;
+    for (const { navn, kropp } of funksjoner) {
+      if (vakter.has(navn)) continue;
+      for (const [vakt, scope] of vakter) {
+        if (vakt === navn) continue;
+        const monster = kallMonster.get(vakt) ?? new RegExp(`\\b${vakt}\\(`);
+        kallMonster.set(vakt, monster);
+        if (monster.test(kropp)) {
+          vakter.set(navn, scope);
+          vokste = true;
+          break;
+        }
+      }
+    }
+  }
+
   // const X = "..."  og  const X = ["...", "..."] - matrikkel-mock legger stien
   // sin i en konstant, og ai-gateway legger fem stier i en liste.
   const strenger = new Map<string, string[]>();
@@ -201,7 +248,41 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
   const alias = aliaser.length ? new RegExp(`\\b(?:${aliaser.join("|")})\\b`, "g") : null;
 
   const linjer = kilde.split("\n");
+
+  /*
+   * Bandet for ruten som starter på denne linjen. Vakten står som første setning i
+   * blokken, så et avgrenset framblikk holder, og det stopper på neste rute slik at
+   * en uvoktet rute ikke arver naboens vakt.
+   *
+   * «ukjent» og ikke «aapen» når ingen vakt ble funnet i en tjeneste som har vakter:
+   * «aapen» er en påstand - sjekken krever da at spesifikasjonen ikke har security -
+   * og en vakt skanneren ikke forsto ville blitt til et grønt svar om at ruten er
+   * åpen. Det er nøyaktig den feilformen denne sjekken finnes for å fange.
+   */
+  const bandFraVakt = (start: number): { tilgang: string; scope?: string } => {
+    for (let i = start + 1; i < Math.min(start + 9, linjer.length); i++) {
+      const linje = linjer[i]!;
+      if (/request\.method === "|url\.pathname === /.test(linje)) break;
+      const treff = linje.match(/\b(\w+)\(request\b/);
+      if (!treff) continue;
+      // «bred» og ikke «egne-data»: disse flatene avviser et ID-porten-token.
+      if (treff[1] === "requireMaskinporten") return { tilgang: "bred" };
+      const scopeNavn = vakter.get(treff[1]!);
+      if (!scopeNavn) continue;
+      return { tilgang: "bred", scope: strenger.get(scopeNavn)?.[0] };
+    }
+    return { tilgang: vakter.size > 0 ? "ukjent" : "aapen" };
+  };
+
+  const erklaertAapen = new Set(tjeneste.aapneRuter || []);
+  const loesBand = (band: { tilgang: string; scope?: string }, sti: string) =>
+    band.tilgang === "ukjent" && erklaertAapen.has(sti) ? { tilgang: "aapen" } : band;
+
   linjer.forEach((linje, indeks) => {
+    // Bare for linjer som viser seg å være ruter: kallet er ellers kastet arbeid på
+    // hver eneste kildelinje. Lat, så den kjører én gang per rutelinje.
+    let bandet: { tilgang: string; scope?: string } | null = null;
+    const band = () => (bandet ??= bandFraVakt(indeks));
     // The line as the matchers below want to see it. The original is kept for the
     // ikkeRuter lookup and for the error message: both have to speak about the
     // source as it is written.
@@ -219,7 +300,7 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
         continue;
       }
       for (const metode of metoder.length ? metoder : ["GET"]) {
-        ruter.push({ metode, sti });
+        ruter.push({ metode, sti, ...loesBand(band(), sti) });
       }
       traff = true;
     }
@@ -234,7 +315,7 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
       }
       for (const sti of stier) {
         for (const metode of metoder.length ? metoder : ["GET"]) {
-          ruter.push({ metode, sti });
+          ruter.push({ metode, sti, ...loesBand(band(), sti) });
         }
       }
       traff = true;
@@ -250,7 +331,7 @@ function scanRoutes(kilde: string, tjeneste: Tjeneste) {
       }
       for (const sti of stier) {
         for (const metode of metoder.length ? metoder : ["GET"]) {
-          ruter.push({ metode, sti });
+          ruter.push({ metode, sti, ...loesBand(band(), sti) });
         }
       }
       traff = true;
@@ -345,6 +426,9 @@ const tjenester: Tjeneste[] = [
   {
     navn: "fiks-simulator",
     spesifikasjon: "openapi/fiks-simulator.yaml",
+    // Systemrutene. En helsesjekk som krever legitimasjon kan ikke si fra at
+    // tjenesten er syk, og dokumentasjon er ikke data.
+    aapneRuter: ["/helse", "/docs", "/openapi.yaml", "/openapi-ruter.json"],
     kilde: "apps/fiks-simulator/src/server.ts",
     kodeverk: [
       {
@@ -398,6 +482,9 @@ const tjenester: Tjeneste[] = [
   {
     navn: "pasientjournal-mock",
     spesifikasjon: "openapi/pasientjournal-mock.yaml",
+    // Systemrutene. En helsesjekk som krever legitimasjon kan ikke si fra at
+    // tjenesten er syk, og dokumentasjon er ikke data.
+    aapneRuter: ["/helse", "/docs", "/openapi.yaml", "/openapi-ruter.json"],
     kilde: "apps/pasientjournal-mock/src/server.ts",
     // De to kodeverkene i apps/shared/legeerklaering.ts, målt mot unionene i koden
     // og ikke mot verdiene seeden tilfeldigvis bruker. Seeden holdes mot de samme
@@ -418,6 +505,9 @@ const tjenester: Tjeneste[] = [
   {
     navn: "politiattest-mock",
     spesifikasjon: "openapi/politiattest-mock.yaml",
+    // Systemrutene. En helsesjekk som krever legitimasjon kan ikke si fra at
+    // tjenesten er syk, og dokumentasjon er ikke data.
+    aapneRuter: ["/helse", "/docs", "/openapi.yaml", "/openapi-ruter.json"],
     kilde: "apps/politiattest-mock/src/server.ts",
     // De fire kodeverkene i apps/shared/politiattest.ts, målt mot unionene i koden.
     datakodeverk: [
@@ -584,6 +674,15 @@ for (const tjeneste of tjenester) {
       const rute = bandFor.get(`${operasjon.metode} ${normalize(sti.path)}`);
       if (!rute || operasjon.security === null) continue;
 
+      if (rute.tilgang === "ukjent") {
+        feil.push(
+          `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} har ingen ` +
+          "vakt skanneren kjenner igjen, i en tjeneste som ellers vokter. Er ruten åpen med vitende " +
+          "og vilje, før den opp i «aapneRuter» for tjenesten. Er den ikke det, mangler den vakten - " +
+          "eller så er vakten skrevet på en form skanneren ikke kjenner, og da hører formen her."
+        );
+        continue;
+      }
       if (rute.tilgang === "aapen" && operasjon.security.length > 0) {
         feil.push(
           `${tjeneste.spesifikasjon}:${operasjon.linje}: ${operasjon.metode} ${sti.path} krever ` +

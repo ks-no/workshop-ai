@@ -49,10 +49,11 @@ En regel må ha en verdi å sammenligne mot, så sandkassen navngir den
 ## To ting som er bevisst
 
 **Ingen bulkoppslag, og ingen oppslag uten formål.** Både `fnr` og `formaal` er
-påkrevd på `/attester`. `fnr` fordi ruten ellers ville vært et uttrekk av alle
+påkrevd på begge attestrutene. `fnr` fordi ruten ellers ville vært et uttrekk av alle
 anmerkninger i sandkassen. `formaal` fordi en attest gjelder for det formålet den ble
 utstedt til - et oppslag uten formål er spørsmålet «hva har denne personen på seg»,
-og det skal ingen kunne stille.
+og det skal ingen kunne stille. Det gjelder også oppslaget på `attestId`:
+attest-id-ene er fortløpende, så uten kravet var en telleløkke hele registeret.
 
 **Maskinporten, ikke ID-porten.** Innbyggeren beviser hvem hen er overfor
 `sandbox-backend`, som sjekker handleevne og samtykke og deretter henter her som
@@ -82,7 +83,8 @@ Alle svar bærer `syntetisk: true`.
 - `GET /helse` - åpen
 - `GET /attester?fnr=&formaal=` - **bak Maskinporten**, scope
   `politiattest:attest.read`
-- `GET /attester/{attestId}` - samme scope
+- `GET /attester/{attestId}?fnr=&formaal=` - samme scope og samme krav. Id-en
+  presiserer hvilken attest; stemmer den ikke med begge, er svaret 404.
 - `GET /openapi.yaml`, `GET /openapi-ruter.json`, `GET /docs` - åpne
 
 ```bash

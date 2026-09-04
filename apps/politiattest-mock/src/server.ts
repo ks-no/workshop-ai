@@ -207,8 +207,12 @@ const server = createServer(async (request, response) => {
     const attestTreff = url.pathname.match(/^\/attester\/([^/]+)$/);
     if (request.method === "GET" && attestTreff) {
       await requireHjemmel(request);
+      // Id-en presiserer hvilken attest, den er ingen nøkkel. Uten fnr og
+      // formaal er fortløpende id-er et uttrekk av hele registeret.
+      const fnr = krevFnr(url.searchParams);
+      const formaal = krevFormaal(url.searchParams);
       const attest = register.perId.get(decodeURIComponent(attestTreff[1]));
-      if (!attest) {
+      if (!attest || attest.fnr !== fnr || attest.formaal !== formaal) {
         jsonResponse(response, 404, { feil: "Fant ikke attesten.", syntetisk: true });
         return;
       }
