@@ -35,6 +35,7 @@
     "test:revisjon": "node scripts/test-revisjonsspor.ts",
     "test:concurrency": "node scripts/test-concurrency.ts",
     "test:imports": "node scripts/test-imports.ts",
+    "test:kodeverk": "node scripts/test-kodeverk.ts",
     "test:replay": "node scripts/test-prosessoekt-lukket.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:docs": "node scripts/check-dokumentasjon.ts",

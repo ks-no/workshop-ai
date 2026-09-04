@@ -13,6 +13,7 @@
 - [Service map (compose defaults)](#service-map-compose-defaults)
 - [Data and state model (important)](#data-and-state-model-important)
 - [Process-engine behavior to preserve](#process-engine-behavior-to-preserve)
+- [Adding a new case: what the last one taught](#adding-a-new-case-what-the-last-one-taught)
 - [Language](#language)
 - [Project conventions you must follow](#project-conventions-you-must-follow)
 - [Frontend: the KS Digital design system](#frontend-the-ks-digital-design-system)
@@ -190,6 +191,57 @@
   backend uses for «samtykke mangler». `pnpm test:upstream` pins all of it,
   including that the call sites still hand their fetches over.
 - Audit events are first-class output (`state/revisjonslogg.json`); keep behavior observable.
+
+## Adding a new case: what the last one taught
+
+The politiattest case was reviewed end to end after it landed, and the bugs it
+turned up were not in the prose - every one of them sat under a paragraph in this
+file that described the intended behaviour correctly. What was missing was a check
+under the paragraph. Six shapes, all of which recurred:
+
+**A claim about a surface must be checked on every route of it.** This file said
+`fnr` is required "so the surface never answers a bulk query". It was required on
+`/attester` and not on `/attester/{attestId}`, and the same copy-paste sat in
+`pasientjournal-mock`. Note which paragraphs here held up: the ones that end with
+"`pnpm test:concurrency` pins it". A claim with no named check is a wish.
+
+**A check that cannot resolve its subject must fail, not skip.** The `security`
+comparison in `sjekk-openapi-dekning.ts` was `if (!rute) continue`, and `rute` was
+never set for eight of the nine services - so it passed for years without ever
+comparing anything. The scanner now reads the token guard out of the code, and a
+route whose guard it cannot recognise is an error rather than an assumed-open
+route: openness has to be declared in `aapneRuter`, the way `ikkeRuter` already
+works.
+
+**Coverage counted across a group hides a hole in one member.** The six
+VANDELSKONTROLL branches were counted across all three ordninger, so barnehage
+covered skole's - and `politiattest-skole` turned out to declare an absolute
+exclusion no test person ever triggered. Count per member unless there is a stated
+reason not to, and then state it.
+
+**A union type over data from a file is documentation, not a check.**
+`absoluttUtelukkelse?: Anmerkningskategori[]` is erased at runtime. Validate the
+kodeverk in `scripts/valider-data.ts` on **every** file the rule reads, not just
+the one that looks like the data - `satser.json` is as much an input as
+`politiattester.json`.
+
+**A kodeverk nobody reads is a claim the code does not honour.** `REAKSJONER`
+exists because only a conviction excludes from a job, and `reaksjon` had one
+occurrence in `apps/`: its own type declaration. `pnpm test:kodeverk` pins that
+every kodeverk in `apps/shared` has a field someone actually reads.
+
+**Dates are arithmetic on the ISO string, never `new Date()` plus the local
+getters.** Every runner and container is UTC, so this class is invisible in CI by
+construction - and it bites the machines that are not: parsing as UTC, computing
+with the local setters and going back out through `toISOString()` made
+`byggAttestbevis` write an expiry one day early in Europe/Oslo, and right in CI.
+Use `alderVed` and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the
+rules once in Norwegian time.
+
+One more, from the same review and not on the list above because it is about
+runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
+`DATA_FETCH` results were consent-gated when they were fetched and then re-served
+on every later read of the økt, so a withdrawn consent changed nothing.
 
 ## Language
 
@@ -492,7 +544,7 @@ pnpm test:agent:matrikkel
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
-  `test:replay`, `test:imports`,
+  `test:replay`, `test:imports`, `test:kodeverk`, `test:revisjon`,
   `test:openapi`, `test:docs` and
   `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
