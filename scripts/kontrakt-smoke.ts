@@ -721,19 +721,20 @@ async function krevIngenAdresselekkasje(personId: string) {
   const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  // hendelseId, sporingsId, oektsId and soknadId are Date.now() plus a few random
-  // base36 characters (newId in state.ts), and tidspunkt is an ISO timestamp -
-  // none of it is seed data. A 4-character postnummer like "8693" has roughly a
-  // 1-in-300000 chance of turning up inside one of those by pure coincidence, and
-  // the log holds hundreds of rows across a full run - so this check drops the
-  // volatile fields rather than stringifying the whole row, or a passing run
-  // would occasionally fail on nothing but bad luck.
-  const rader = (await svar.json()) as Record<string, unknown>[];
-  const logg = JSON.stringify(rader, (nokkel, verdi) =>
-    ["hendelseId", "sporingsId", "oektsId", "soknadId", "tidspunkt"].includes(nokkel)
-      ? undefined
-      : verdi
-  );
+  // Uten dette er en 403 eller 500 en bestått lekkasjesjekk: feilkroppen inneholder
+  // ingen adresse, så `includes` finner ingenting og røyktesten går videre.
+  if (!svar.ok) {
+    throw new Error(`Kunne ikke lese revisjonsloggen: ${svar.status} ${await svar.text()}`);
+  }
+  // Samme normalisering som dumpen bruker, framfor en liste over feltnavn.
+  //
+  // Et id-ledd fra `newId` er tretten sifre, og et firesifret postnummer treffer et
+  // av de ti vinduene i det omtrent én gang av tusen. De åtte første sifrene ligger
+  // fast gjennom en kjøring, så et treff er ikke et flaks-flak: det er rødt hver
+  // gang, i drøyt et døgn, til sifferet ruller. Feltnavn duger ikke som filter -
+  // `sporingsId` er det kalleren sendte, `hendelseId` kan overstyres av kroppen til
+  // POST /api/revisjonslogg, og id-er står også nedi `grunnlag` og inni meldinger.
+  const logg = JSON.stringify(normalize((await svar.json()) as Record<string, unknown>[]));
   const lekket = hemmeligheter.filter((hemmelig) => logg.includes(hemmelig));
   if (lekket.length) {
     throw new Error(
