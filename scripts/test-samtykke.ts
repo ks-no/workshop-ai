@@ -22,11 +22,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getInnbyggerToken, maskinportenHeader } from "../apps/digdir-mock/src/client.ts";
-import { hasGyldigSamtykke, hasUtloeptSamtykke } from "../apps/sandbox-backend/src/regler.ts";
+import {
+  hasGyldigSamtykke as hasGyldigSamtykkeMedKlokke,
+  hasUtloeptSamtykke as hasUtloeptSamtykkeMedKlokke
+} from "../apps/sandbox-backend/src/regler.ts";
 import {
   SAMTYKKESTATUSER,
-  effektivStatus,
-  isUtloept,
+  effektivStatus as effektivStatusMedKlokke,
+  isUtloept as isUtloeptMedKlokke,
   validateSamtykkeovergang
 } from "../apps/shared/samtykke.ts";
 import { validateOppgaveovergang } from "../apps/fiks-simulator/src/oppgave.ts";
@@ -45,6 +48,22 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 
 let bestatt = 0;
 const feil: string[] = [];
+const TEST_NOW = Date.parse("2026-08-15T12:00:00.000Z");
+const isUtloept = (samtykke: Parameters<typeof isUtloeptMedKlokke>[0]) =>
+  isUtloeptMedKlokke(samtykke, TEST_NOW);
+const effektivStatus = (samtykke: Parameters<typeof effektivStatusMedKlokke>[0]) =>
+  effektivStatusMedKlokke(samtykke, TEST_NOW);
+const hasGyldigSamtykke = (
+  tilstand: Parameters<typeof hasGyldigSamtykkeMedKlokke>[0],
+  personId: string,
+  datakilde: string,
+  foretrukketId?: string | null
+) => hasGyldigSamtykkeMedKlokke(tilstand, personId, datakilde, foretrukketId, TEST_NOW);
+const hasUtloeptSamtykke = (
+  tilstand: Parameters<typeof hasUtloeptSamtykkeMedKlokke>[0],
+  personId: string,
+  datakilde: string
+) => hasUtloeptSamtykkeMedKlokke(tilstand, personId, datakilde, TEST_NOW);
 
 function check(navn: string, betingelse: unknown, detalj = ""): void {
   if (betingelse) {
@@ -54,7 +73,7 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
   feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
 }
 
-const iTida = (dager: any) => new Date(Date.now() + dager * 24 * 60 * 60 * 1000).toISOString();
+const iTida = (dager: number) => new Date(TEST_NOW + dager * 24 * 60 * 60 * 1000).toISOString();
 
 // --- 1. kodeverket ---------------------------------------------------------
 
