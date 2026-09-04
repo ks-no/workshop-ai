@@ -536,7 +536,7 @@
           "type": "CONSENT_REQUEST",
           "tittel": "Kan vi hente legeerklæringen din?",
           "tekst": "Legeerklæringen er en helseopplysning, og vi henter den ikke uten at du sier ja. Du kan trekke samtykket når som helst.",
-          "formaal": "Handsame søknaden om TT-ordninga og treffe enkeltvedtak etter forvaltningsloven",
+          "formaal": "Behandle søknaden om TT-ordningen og treffe enkeltvedtak etter forvaltningsloven",
           "dataKilder": [
             "helseopplysninger"
           ],

@@ -17,7 +17,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Multippel sklerose"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,
@@ -85,7 +85,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Hjerneslag med varig lammelse"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,
@@ -221,7 +221,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Revmatoid artritt"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 6,
       "funn": {
         "visus": null,
@@ -358,7 +358,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Multippel sklerose"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,
@@ -526,7 +526,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Medfødt anomali i nervesystemet"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,
@@ -594,7 +594,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Hjerneslag med varig lammelse"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,
@@ -694,7 +694,7 @@
         "kodeverk": "ICPC-2",
         "tekst": "Revmatoid artritt"
       },
-      "funksjonsnedsetting": "rullestolbrukar",
+      "funksjonsnedsetting": "rullestolbruker",
       "varighetAar": 10,
       "funn": {
         "visus": null,

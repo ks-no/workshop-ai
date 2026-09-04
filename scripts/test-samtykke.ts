@@ -125,8 +125,8 @@ check("ukjent lagret status gir 409", !raatten.lovlig && raatten.status === 409,
 
 // --- 3. utløp --------------------------------------------------------------
 
-check("utløp i framtida er ikke utløpt", isUtloept({ utloper: iTida(1) }) === false);
-check("utløp i fortida er utløpt", isUtloept({ utloper: iTida(-1) }) === true);
+check("utløp i framtiden er ikke utløpt", isUtloept({ utloper: iTida(1) }) === false);
+check("utløp i fortiden er utløpt", isUtloept({ utloper: iTida(-1) }) === true);
 check("uten utloper er ingenting utløpt", isUtloept({}) === false);
 check("ugyldig utloper er ingenting utløpt", isUtloept({ utloper: "i morgen" }) === false);
 // An offset-carrying fixture must compare correctly against a Z-stamped clock.

@@ -145,7 +145,7 @@ if (output.code !== 0) {
 }
 
 if (failures.length > 0) {
-  console.error(`\n${failures.length} problem(er) i kokeboka:`);
+  console.error(`\n${failures.length} problem(er) i kokeboken:`);
   for (const failure of failures) console.error(`  - ${failure}`);
   console.error(
     `\nKokeboka lover at «virker et kall ikke, er det en reell feil». ` +
@@ -153,4 +153,4 @@ if (failures.length > 0) {
   );
   process.exit(1);
 }
-console.log("Alle kall i kokeboka svarer som dokumentert.");
+console.log("Alle kall i kokeboken svarer som dokumentert.");

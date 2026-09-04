@@ -208,7 +208,7 @@ async function lookupPid(digdirBaseUrl: string, personId?: string): Promise<stri
 
   const svar = await fetch(`${digdirBaseUrl}/idporten/testbrukere`);
   if (!svar.ok) {
-    throw new Error(`Fikk ikke testbrukerlista fra digdir-mock: ${await readError(svar)}`);
+    throw new Error(`Fikk ikke testbrukerlisten fra digdir-mock: ${await readError(svar)}`);
   }
   for (const bruker of await svar.json() as Array<{ personId: string; pid: string }>) {
     pidCache.set(bruker.personId, bruker.pid);

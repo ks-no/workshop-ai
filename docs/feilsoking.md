@@ -91,7 +91,7 @@ curl -s http://localhost:8085/helse
 Er den oppe, men adressen finnes ikke: utenfor seed-filen prøver `matrikkel-mock` et
 live Geonorge-oppslag, og uten nett degraderer det til `404` («Fant ikke …») i stedet
 for en serverfeil. Hold deg til adresser i seedet (f.eks. `Storgata`), eller kom deg
-på nett. Se «Manuell oppstart» i [`README.md`](../README.md) for hele tjenestelista.
+på nett. Se «Manuell oppstart» i [`README.md`](../README.md) for hele tjenestelisten.
 
 ## Maltekst du ikke ba om
 
