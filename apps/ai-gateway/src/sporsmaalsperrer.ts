@@ -656,3 +656,24 @@ export function buildGrunnlag(kontekst: Sporsmaalskontekst): { kilder: string[];
 
   return { kilder, verdier: kontekst };
 }
+
+/*
+ * Direkte identifikatorer ut av det som sendes til en modell. Prompten lagres
+ * ordrett i state/ai-trace.jsonl, og modellen trenger tallene for å formulere,
+ * ikke hvem de hører til.
+ *
+ * Nektliste og ikke tillatelsesliste, i motsetning til sanitizeSporsmaalKontekst
+ * over: oppsummeringen må kunne gjengi vilkårlige resultatformer, så den kan ikke
+ * navngi feltene den slipper gjennom. Det gjør dette til et gulv, ikke et tak.
+ */
+const IDENTIFIKATORFELT = new Set(["identifikator", "fnr", "syntetiskFodselsnummer", "personId", "pid"]);
+
+export function utenIdentifikatorer(verdi: unknown): unknown {
+  if (Array.isArray(verdi)) return verdi.map(utenIdentifikatorer);
+  if (!verdi || typeof verdi !== "object") return verdi;
+  return Object.fromEntries(
+    Object.entries(verdi as Record<string, unknown>)
+      .filter(([navn]) => !IDENTIFIKATORFELT.has(navn))
+      .map(([navn, felt]) => [navn, utenIdentifikatorer(felt)])
+  );
+}

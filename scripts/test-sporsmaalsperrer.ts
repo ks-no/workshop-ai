@@ -18,7 +18,8 @@ import {
   manglendeGrunnlagFor,
   sanitizeSporsmaalKontekst,
   validateAnswer,
-  buildGrunnlag
+  buildGrunnlag,
+  utenIdentifikatorer
 } from "../apps/ai-gateway/src/sporsmaalsperrer.ts";
 
 let bestatt = 0;
@@ -323,9 +324,38 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
   );
 }
 
+// --- projeksjonen foran de fem generiske /ai/-stiene ------------------------
+//
+// Denne lå hos den ene som kalte, i en annen tjeneste, og dekket ett av fem
+// endepunkter. Prompten lagres ordrett i sporet, så feltene må ut før den bygges.
+{
+  const kontekst = {
+    personId: "person-001",
+    tjeneste: "Redusert foreldrebetaling",
+    data: {
+      "hent-inntekt": {
+        beregningsbeloep: 412000,
+        visningsposter: [{ personer: [{ identifikator: "12818800078", beloep: 412000 }] }]
+      },
+      "hent-husstand": { husstandId: "household-001", medlemmer: [{ fnr: "12818800078" }] }
+    }
+  };
+  const rent = utenIdentifikatorer(kontekst) as any;
+  const somTekst = JSON.stringify(rent);
+  check("personId er ute", rent.personId === undefined);
+  check("identifikator dypt i beregningen er ute", !somTekst.includes("identifikator"));
+  check("fnr i husstanden er ute", !somTekst.includes("\"fnr\""));
+  check("ingen elleve sifre står igjen", !/[0-9]{11}/.test(somTekst));
+  check("beløpet står igjen", rent.data["hent-inntekt"].beregningsbeloep === 412000);
+  check("tjenesten står igjen", rent.tjeneste === "Redusert foreldrebetaling");
+  check("husstands-id-en står igjen", rent.data["hent-husstand"].husstandId === "household-001");
+}
+
 /* ── Oppsummering ─────────────────────────────────────────────────────────── */
 
 const totalt = bestatt + feil.length;
+
+
 if (feil.length > 0) {
   console.error(`Sperretest: ${bestatt}/${totalt} bestått.\n`);
   for (const linje of feil) {
