@@ -38,9 +38,11 @@ parallellen til det denne mocken gjør.
 
 ## To ting som er bevisst
 
-**Ingen bulkoppslag.** `fnr` er påkrevd på `/journal/legeerklaeringer`, og ruten
-svarer på én person om gangen. Uten det kravet ville den vært et uttrekk av alle
-helseopplysningene i sandkassen, og en journal svarer aldri på «gi meg alle».
+**Ingen bulkoppslag.** `fnr` er påkrevd på begge journalrutene, og de svarer på én
+person om gangen. Uten det kravet ville de vært et uttrekk av alle helseopplysningene
+i sandkassen, og en journal svarer aldri på «gi meg alle». Det gjelder også oppslaget
+på `erklaeringId`: id-ene er fortløpende, så uten kravet var en telleløkke hele
+journalen.
 
 **Maskinporten, ikke ID-porten.** Innbyggeren beviser hvem hen er overfor
 `sandbox-backend`, som sjekker handleevne og samtykke og deretter henter her som
@@ -56,7 +58,8 @@ Alle svar bærer `syntetisk: true`.
 - `GET /helse` - åpen
 - `GET /journal/legeerklaeringer?fnr=` - **bak Maskinporten**, scope
   `pasientjournal:legeerklaering.read`
-- `GET /journal/legeerklaeringer/{erklaeringId}` - samme scope
+- `GET /journal/legeerklaeringer/{erklaeringId}?fnr=` - samme scope og samme krav.
+  Id-en presiserer hvilken erklæring; hører den til noen andre, er svaret 404.
 - `GET /openapi.yaml`, `GET /openapi-ruter.json`, `GET /docs` - åpne
 
 ```bash
