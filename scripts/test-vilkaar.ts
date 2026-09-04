@@ -375,7 +375,7 @@ check(
 check(
   "elektrisk rullestol slår ut foran de andre kategoriene",
   vurderTt(erklaeringMed({
-    funksjonsnedsetting: "rullestolbruker",
+    funksjonsnedsetting: "rullestolbrukar",
     hjelpemiddel: ["manuell-rullestol", "elektrisk-rullestol"]
   })).grunnlag?.kvotekategori === "elektrisk-rullestol"
 );

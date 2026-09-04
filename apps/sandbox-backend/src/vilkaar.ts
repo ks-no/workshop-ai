@@ -107,7 +107,7 @@ function kvotekategoriFor(erklaering: Legeerklaering): Kvotekategori {
   if (hjelpemiddel.includes("elektrisk-rullestol")) return "elektrisk-rullestol";
   if (erklaering.funksjonsnedsetting === "blind-eller-sterkt-svaksynt"
     || hjelpemiddel.includes("manuell-rullestol")
-    || erklaering.funksjonsnedsetting === "rullestolbruker") return "blind-eller-rullestol";
+    || erklaering.funksjonsnedsetting === "rullestolbrukar") return "blind-eller-rullestol";
   if (["terminal-fase", "kunstig-surstofftilfoersel"].includes(erklaering.funksjonsnedsetting)) {
     return "saerskilde-behov";
   }

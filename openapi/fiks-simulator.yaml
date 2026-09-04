@@ -160,7 +160,7 @@ paths:
       summary: Hent ett samtykke
       description: >-
         Statusen som returneres er den *effektive*: et samtykke med `utloper` i
-        fortiden svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
+        fortida svarer `UTLOEPT` selv om raden på disk står som `SAMTYKKET`.
         Utløp utledes på vei ut, på samme måte som skjermingen av
         adressebeskyttede - se apps/shared/samtykke.ts.
       security:

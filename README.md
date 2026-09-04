@@ -247,7 +247,7 @@ docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
 ```
 
 **Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
-når de mangler. Hvordan de feiler står i punktlisten under
+når de mangler. Hvordan de feiler står i punktlista under
 [tjenesteoversikten](#oversikt-over-tjenester-og-porter).
 
 `--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som

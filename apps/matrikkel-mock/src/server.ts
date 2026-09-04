@@ -504,7 +504,7 @@ async function readJsonRegister(fil: string): Promise<Register> {
  * de importen skriver, se scripts/hent-matrikkel.js.
  */
 type FlatLinje = Partial<Gate> & Partial<Eiendom> & {
-  /** "meta" på provenienslinjen øverst i filen. */
+  /** "meta" på provenienslinja øverst i filen. */
   type?: string;
   /** Det nestede formatet: gate og eiendom hver for seg i stedet for flatt. */
   gate?: Partial<Gate>;
@@ -1325,3 +1325,4 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Matrikkel-mock kjører på http://localhost:${port}`);
 });
+

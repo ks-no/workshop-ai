@@ -9,7 +9,7 @@ renderTopNav("/");
 const aiBase = "http://localhost:8082";
 
 /*
- * Tjenestelisten sto her, håndholdt, ved siden av en identisk liste i
+ * Tjenestelista sto her, håndholdt, ved siden av en identisk liste i
  * utforsker.html. Denne kopien manglet digdir-mock og oppga feil docs-sti for
  * to tjenester. Nå leses begge fra /assets/tjenester.json, og
  * pnpm test:openapi krever at registeret er enig med CI-portens egen liste.

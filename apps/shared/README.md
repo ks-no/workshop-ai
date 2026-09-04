@@ -11,7 +11,7 @@ fødselsnummer og samtykkets kodeverk.
 
 | Fil | Hva | Lest av |
 |---|---|---|
-| `tjenester.json` | **Tjenestelisten.** Navn, port, rolle, om den har spesifikasjon | dashboardet, API-utforskeren, `pnpm test:openapi`, `pnpm test:docs` |
+| `tjenester.json` | **Tjenestelista.** Navn, port, rolle, om den har spesifikasjon | dashboardet, API-utforskeren, `pnpm test:openapi`, `pnpm test:docs` |
 | `openapi.ts` | Leser en OpenAPI-fil uten YAML-parser og gir rutene som JSON | alle ni API-tjenestene, på `/openapi-ruter.json` |
 | `client/felles.ts` | Innlogging, tokenhåndtering, helsestatus, felles DOM-hjelpere | alle sidene i `demo-gui` og `process-builder`, på `/delt/felles.ts` |
 | `assets.ts` | Serverer statiske filer, og type-stripper `.ts` på vei ut | `demo-gui`, `process-builder` |
@@ -27,7 +27,7 @@ fødselsnummer og samtykkets kodeverk.
 | `felles.css` | Stilen `demo-gui` og `process-builder` faktisk bruker | samme |
 | `ds-base.css`, `ds-ksdigital.css` | KS Digital designsystem, vendoret som ren CSS | `ds-eksempel.html` |
 
-## `tjenester.json` er sannhetskilden for tjenestelisten
+## `tjenester.json` er sannhetskilden for tjenestelista
 
 Den filen er grunnen til at det ikke finnes en tjenestetabell i `README.md` - en
 håndholdt kopi driver. Legger du til en tjeneste, er dette filen du endrer -
