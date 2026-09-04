@@ -267,9 +267,10 @@ getters.** Every runner and container is UTC, so this class is invisible in CI b
 construction - and it bites the machines that are not: parsing as UTC, computing
 with the local setters and going back out through `toISOString()` made
 `byggAttestbevis` write an expiry one day early in Europe/Oslo, and right in CI.
-Use UTC getters and setters, and inject a fixed UTC clock in tests. Use `alderVed`
-and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the rules once in
-Norwegian time.
+Store timestamps as UTC and compare instants as epoch milliseconds. When a domain
+rule needs a Norwegian calendar date, convert explicitly to `Europe/Oslo`; never
+use the host timezone. Inject a fixed UTC clock in tests. Use `alderVed` and
+`maanederEtter` in `apps/shared/alder.ts`; CI also runs the rules in Norwegian time.
 
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
@@ -531,6 +532,7 @@ pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
+pnpm test:dato            # Norwegian calendar dates from UTC instants, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
@@ -576,7 +578,7 @@ pnpm test:agent:matrikkel
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
+  `test:samtykke`, `test:forsendelse`, `test:dato`, `test:upstream`, `test:concurrency`,
   `test:replay`, `test:imports`, `test:kodeverk`, `test:revisjon`,
   `test:openapi`, `test:docs` and
   `test:kontrakt` on every PR
