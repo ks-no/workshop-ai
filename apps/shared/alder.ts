@@ -12,6 +12,19 @@ function delerAv(isodato: string): [number, number, number] {
   return [aar!, maaned!, dag!];
 }
 
+const norskAarsformat = new Intl.DateTimeFormat("en", { timeZone: "Europe/Oslo", year: "numeric" });
+
+/**
+ * Kalenderåret i Norge. Ikke maskinens: containere og CI står i UTC, så
+ * `getFullYear()` svarer fjoråret den siste timen før norsk nyttår. Den ene
+ * funksjonen her som tar et øyeblikk framfor en ISO-dato, fordi en tidssone ikke
+ * er regnestykke på en streng. `naa` er parameter så grensen kan pinnes uten å
+ * stille klokken.
+ */
+export function norskKalenderaar(naa: number = Date.now()): number {
+  return Number(norskAarsformat.format(naa));
+}
+
 export function alderVed(foedselsdato: string, referansedato: string): number {
   const [foedtAar, foedtMaaned, foedtDag] = delerAv(foedselsdato);
   const [refAar, refMaaned, refDag] = delerAv(referansedato);

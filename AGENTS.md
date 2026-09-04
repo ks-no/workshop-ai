@@ -274,6 +274,15 @@ rules once in Norwegian time. `pnpm test:vilkaar` pins the month boundaries
 rollover - because every date in the vandel block happened to be a safe one, so a
 regression to `setMonth` semantics was green.
 
+The one operation string arithmetic cannot do is the inverse: turning an *instant*
+into a Norwegian calendar field, because that needs a timezone. `norskKalenderaar`
+in the same module is the one place it happens, and it reads `Europe/Oslo`
+explicitly rather than the host's zone - `new Date().getFullYear()` in
+`sisteInntektsaar` answered last year's number for a Norwegian citizen for the hour
+between 23:00 UTC and midnight on New Year's Eve, and no test in UTC could see it.
+That is the only local-getter site the repo had. `pnpm test:vilkaar` pins the
+boundary from both sides and fails on the naive version even under `TZ=UTC`.
+
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
 `DATA_FETCH` results were consent-gated when they were fetched and then re-served

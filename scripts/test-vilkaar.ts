@@ -36,7 +36,7 @@ import {
 import { feilmelding } from "../apps/shared/errors.ts";
 import type { Regeltype } from "../apps/sandbox-backend/src/types.ts";
 import type { Legeerklaering } from "../apps/shared/legeerklaering.ts";
-import { maanederEtter } from "../apps/shared/alder.ts";
+import { maanederEtter, norskKalenderaar } from "../apps/shared/alder.ts";
 import { byggAttestbevis } from "../apps/shared/politiattest.ts";
 import type { Politiattest } from "../apps/shared/politiattest.ts";
 
@@ -656,6 +656,37 @@ check("grunnlaget teller anmerkningene", tilSkjonn.grunnlag?.antallAnmerkninger 
     }
   }
 }
+
+// --- norsk kalenderår --------------------------------------------------------
+
+/*
+ * Årsskiftet i norsk tid, ikke i maskinens. Testen står her framfor i en egen fil
+ * fordi den hører til alder.ts, som resten av datoregningen over.
+ *
+ * 23:00 UTC nyttårsaften er midnatt i Oslo om vinteren, og det er nettopp den timen
+ * `new Date().getFullYear()` svarte feil i - usynlig i CI, som står i UTC. Grensen
+ * prøves fra begge sider.
+ *
+ * Det disse tre ikke kan pinne, er at sonen leses framfor et fast forsprang på én
+ * time: årsskiftet ligger alltid om vinteren, da Oslo faktisk er UTC+1, så en
+ * funksjon som svarer med årstall kan ikke skille de to. Sommertid vises bare i
+ * timer, og timer krysser ikke et årsskifte.
+ *
+ * Og de skiller bare utenfor norsk tid. Bytter du formattereren mot
+ * `new Date(naa).getFullYear()`, blir dette rødt under `TZ=UTC` - som er der CI
+ * kjører de fleste stegene, og der den opprinnelige feilen bodde - men grønt under
+ * `TZ=Europe/Oslo`, fordi maskinens sone da tilfeldigvis er den riktige. Begge
+ * kjøringene finnes i ci.yml; det er den første som fanger dette.
+ */
+check("siste millisekund før norsk nyttår er fortsatt fjoråret",
+  norskKalenderaar(Date.parse("2025-12-31T22:59:59.999Z")) === 2025,
+  String(norskKalenderaar(Date.parse("2025-12-31T22:59:59.999Z"))));
+check("norsk midnatt nyttårsaften er det nye året",
+  norskKalenderaar(Date.parse("2025-12-31T23:00:00.000Z")) === 2026,
+  String(norskKalenderaar(Date.parse("2025-12-31T23:00:00.000Z"))));
+check("UTC-midnatt nyttårsaften er alt det nye året i Norge",
+  norskKalenderaar(Date.parse("2026-01-01T00:00:00.000Z")) === 2026,
+  String(norskKalenderaar(Date.parse("2026-01-01T00:00:00.000Z"))));
 
 // --- report ----------------------------------------------------------------
 if (feil.length > 0) {
