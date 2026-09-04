@@ -590,6 +590,10 @@ const SLIPPER: Record<string, boolean> = {
 for (const svar of [utenMerknad, vurderVandel(null), forGammel, utelukket, tilSkjonn, feilAttesttype]) {
   const gren = String(svar.grunnlag?.vandelsutfall);
   check(`${gren} slipper gjennom bare når det skal`, svar.godkjent === SLIPPER[gren]);
+  // Arten er det kvitteringen tegner. «Godkjent» på et utfall ingen har avgjort er
+  // feil ord, og det ordet velges her framfor på hvert kallsted.
+  const forventetArt = gren === "krever_manuell_vurdering" ? "til_manuell" : SLIPPER[gren] ? "godkjent" : "avvist";
+  check(`${gren} navngir arten sin`, svar.utfall === forventetArt, String(svar.utfall));
 }
 // Medlemskap og ikke bare antall: en omdøpt gren holder antallet og ville sluppet unna.
 check("tabellen dekker unionen nøyaktig",

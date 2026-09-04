@@ -57,7 +57,8 @@
       "personId": "person-026",
       "ordning": "politiattest-stottekontakt",
       "forventetUtfall": "innvilget",
-      "begrunnelse": "Attesten avgjør, ikke inntekt. person-026 har en attest for formålet stottekontakt, utstedt 2026-06-15 og uten merknad. Bruk person-138 for utfallet som krever manuell vurdering, og person-137 med formålet barnehage for absolutt utelukkelse."
+      "begrunnelse": "Attesten avgjør, ikke inntekt. person-026 har en attest for formålet stottekontakt, utstedt 2026-06-15 og uten merknad. Bruk person-138 for utfallet som krever manuell vurdering, og person-137 med formålet barnehage for absolutt utelukkelse.",
+      "forventetVandelsutfall": "godkjent"
     }
   ]
 }

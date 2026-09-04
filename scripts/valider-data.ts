@@ -31,6 +31,7 @@ import {
   isSyntetiskFoedselsnummer,
   stemmerMedFoedselsdato
 } from "../apps/shared/foedselsnummer.ts";
+import { alternativVerdi } from "../apps/sandbox-backend/src/types.ts";
 import {
   ANMERKNINGSKATEGORIER,
   ATTESTFORMAAL,
@@ -1433,6 +1434,63 @@ for (const prosess of allProsesser) {
   }
 }
 
+// --- {svar.X} i en steg-URL, mot steget det peker på ------------------------
+//
+// Motoren bytter ut {svar.<stegId>} med det innbyggeren svarte. Peker malen på et
+// steg som ikke finnes, eller på ett som kommer senere, står den usubstituert og
+// kallet går til en URL med krøllparentes i. Og lander verdien i et formaal, er
+// alternativsettet et løfte om hvilke ordninger som finnes.
+{
+  // Parameteren avgjør hvilket kodeverk verdien måles mot. En ny gatet parameter
+  // er en rad her, ikke et nytt regex-alternativ.
+  const verdidomener: Record<string, Set<string>> = {
+    formaal: new Set(
+      satser.ordninger
+        .filter((ordning) => ordning.regel === "VANDELSKONTROLL")
+        .map((ordning) => String(ordning.formaal ?? ""))
+    )
+  };
+  verdidomener.rolle = verdidomener.formaal!;
+
+  for (const prosess of allProsesser) {
+    const steg = prosess.steg || [];
+    for (const [indeks, detteSteget] of steg.entries()) {
+      const url = detteSteget.api?.url || "";
+      for (const treff of url.matchAll(/\{svar\.([^}.]+)(?:\.[^}]+)?\}/g)) {
+        const vistTil = treff[1]!;
+        const kildeIndeks = steg.findIndex((kandidat: any) => kandidat.id === vistTil);
+        if (kildeIndeks === -1) {
+          throw new Error(
+            `Prosessen ${prosess.id}, steg ${detteSteget.id}, viser til {svar.${vistTil}}, ` +
+            "men prosessen har ikke noe steg med den id-en."
+          );
+        }
+        if (kildeIndeks >= indeks) {
+          throw new Error(
+            `Prosessen ${prosess.id}, steg ${detteSteget.id}, viser til {svar.${vistTil}}, ` +
+            "som kommer senere i prosessen. Motoren er lineær, så svaret finnes ikke ennå."
+          );
+        }
+        const parameter = Object.keys(verdidomener)
+          .find((navn) => new RegExp(`${navn}=\\{svar\\.${vistTil}`).test(url));
+        if (!parameter) continue;
+        const domene = verdidomener[parameter]!;
+        const verdier = (steg[kildeIndeks]!.felter || [])
+          .flatMap((felt: any) => felt.alternativer || [])
+          .map(alternativVerdi);
+        const ukjent = verdier.find((verdi: string) => !domene.has(verdi));
+        if (ukjent) {
+          throw new Error(
+            `Prosessen ${prosess.id}: alternativet "${ukjent}" på steget ${vistTil} går inn ` +
+            `som ${parameter} i ${detteSteget.id}, men ingen VANDELSKONTROLL-ordning i ` +
+            `data/satser.json har det formålet. Gyldige: ${[...domene].join(", ")}.`
+          );
+        }
+      }
+    }
+  }
+}
+
 // --- The consent sources in the processes, against the kodeverk -------------
 // The type covers the code; the process definitions are data and have to be
 // measured here.
@@ -1742,10 +1800,11 @@ for (const sak of deltakercaser.caser) {
   }
   const forventetJa = sak.forventetUtfall === "innvilget";
   let faktisk;
+  let vandelsutfall: string | null = null;
   if (!regelBehov[ordning.regel].plass) {
     // Assessed per person, so vurder() deliberately returns null for it - the
     // household loop above skips it for the same reason.
-    faktisk = evaluateVilkaar(ordning.regel, {
+    const svar = evaluateVilkaar(ordning.regel, {
       tilstand,
       personId: sak.personId,
       ordning,
@@ -1755,7 +1814,9 @@ for (const sak of deltakercaser.caser) {
       politiattest: gjeldendeAttestFor(sak.personId, ordning.formaal || ""),
       felles: {},
       forbehold: ""
-    }).godkjent;
+    });
+    vandelsutfall = (svar.grunnlag as any)?.vandelsutfall ?? null;
+    faktisk = svar.godkjent;
   } else {
     faktisk = vurder(krevHusstand(person.husstandId), ordning);
     if (faktisk === null) {
@@ -1770,6 +1831,13 @@ for (const sak of deltakercaser.caser) {
       `data/deltakercaser.json sier ${sak.prosessId} med ${sak.personId} gir ` +
       `${sak.forventetUtfall}, men reglene gir ${faktisk ? "innvilget" : "avslag"}. ` +
       `Det er nøyaktig feilen som lå i SFO-caset: en anbefalt bruker som får avslag.`
+    );
+  }
+  // «innvilget» dekker to av vandelsgrenene, så grenen pinnes for seg.
+  if (sak.forventetVandelsutfall && vandelsutfall !== sak.forventetVandelsutfall) {
+    throw new Error(
+      `data/deltakercaser.json venter vandelsutfallet ${sak.forventetVandelsutfall} for ` +
+      `${sak.personId} i ${sak.prosessId}, men regelen svarer ${vandelsutfall}.`
     );
   }
 }

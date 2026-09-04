@@ -64,6 +64,9 @@ export type Vandelsutfall = (typeof VANDELSUTFALL)[number];
  */
 const SLIPPER_GJENNOM: readonly Vandelsutfall[] = ["godkjent", "krever_manuell_vurdering"];
 
+/** Grenene som slipper gjennom uten å være et ja. Samme sted som tabellen over. */
+const TIL_MANUELL: readonly Vandelsutfall[] = ["krever_manuell_vurdering"];
+
 /**
  * Et vandelsutfall, med utfallet navngitt i grunnlaget.
  *
@@ -75,8 +78,10 @@ function vandel(
   melding: string,
   grunnlag: Record<string, unknown>
 ): SjekkResultat {
+  const godkjent = SLIPPER_GJENNOM.includes(vandelsutfall);
   return {
-    godkjent: SLIPPER_GJENNOM.includes(vandelsutfall),
+    godkjent,
+    utfall: TIL_MANUELL.includes(vandelsutfall) ? "til_manuell" : godkjent ? "godkjent" : "avvist",
     melding,
     grunnlag: { ...grunnlag, vandelsutfall }
   };
