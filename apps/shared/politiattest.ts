@@ -1,3 +1,4 @@
+import { maanederEtter } from "./alder.ts";
 // Politiattesten: formen, kodeverkene, og valget av hvilken attest som gjelder.
 //
 // Her fordi tre lesere trenger den. politiattest-mock serverer attestene,
@@ -136,8 +137,6 @@ export function velgGjeldendeAttest<T extends { formaal: string; utstedt: string
  * fletter beviset inn ved innlasting, slik matrikkel-mock fletter inn eierforhold.
  */
 export function byggAttestbevis(attest: Omit<Politiattest, "bevis">): Attestbevis {
-  const gaarUt = new Date(attest.utstedt);
-  gaarUt.setMonth(gaarUt.getMonth() + TREMAANEDSGRENSEN);
   return {
     type: ["VerifiableCredential", "Politiattest"],
     issuer: "did:web:politiet.no",
@@ -148,6 +147,6 @@ export function byggAttestbevis(attest: Omit<Politiattest, "bevis">): Attestbevi
       anmerkninger: attest.anmerkninger.length
     },
     issuanceDate: `${attest.utstedt}T09:00:00Z`,
-    expirationDate: `${gaarUt.toISOString().slice(0, 10)}T09:00:00Z`
+    expirationDate: `${maanederEtter(attest.utstedt, TREMAANEDSGRENSEN)}T09:00:00Z`
   };
 }

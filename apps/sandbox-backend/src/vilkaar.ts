@@ -9,7 +9,7 @@
 // stays in regler.ts. Nothing in this file may import it: the point of the split is
 // that a caller can reach the rules without paying for regler.ts's dependency
 // chain, which builds a 2048-chunk RSA keypair at module load.
-import { alderVed, maanederMellom } from "../../shared/alder.ts";
+import { alderVed, maanederEtter } from "../../shared/alder.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
 import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Kvotekategori, Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
@@ -397,19 +397,27 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
     // Tremånedersgrensen er mottakerens regel og ikke politiets: attesten har
     // ingen utløpsdato. Målt mot satser.gjelderFra, som er den pinnede
     // referansedatoen i denne sandkassen.
+    // Tremånedersgrensen er mottakerens regel og ikke politiets: attesten har ingen
+    // utløpsdato. Målt mot den samme datoen beviset skriver som expirationDate, så
+    // regelen og beviset ikke kan svare hver sitt om den samme attesten.
     const maksAlder = ordning.maksAlderMaaneder ?? 3;
-    const alderIMaaneder = maanederMellom(politiattest.utstedt, satser.gjelderFra);
-    if (alderIMaaneder > maksAlder) {
+    const gikkUt = maanederEtter(politiattest.utstedt, maksAlder);
+    if (gikkUt < satser.gjelderFra) {
       return vandel(
         "attest_for_gammel",
-        `Attesten er utstedt ${politiattest.utstedt} og er ${alderIMaaneder} måneder gammel. ` +
+        `Attesten er utstedt ${politiattest.utstedt} og kunne brukes til ${gikkUt}. ` +
         `Den skal ikke være eldre enn ${maksAlder} måneder når den framvises, så du trenger en ny.`,
-        { ...attest, alderIMaaneder }
+        { ...attest, gikkUt }
       );
     }
 
+    // Bare dommen utelukker. Barnehageloven § 30 og opplæringsloven § 17-11
+    // utelukker den som er dømt, ikke den som er siktet eller tiltalt - og
+    // uskyldspresumsjonen er hele grunnen til at reaksjonen står på attesten.
     const absolutte = ordning.absoluttUtelukkelse ?? [];
-    if (politiattest.anmerkninger.some((anmerkning) => absolutte.includes(anmerkning.kategori))) {
+    if (politiattest.anmerkninger.some(
+      (anmerkning) => anmerkning.reaksjon === "dom" && absolutte.includes(anmerkning.kategori)
+    )) {
       return vandel(
         "absolutt_utelukkelse",
         "Attesten har en anmerkning som utelukker fra rollen etter " +

@@ -20,6 +20,7 @@ import {
   selectOrdningForTjeneste
 } from "./vilkaar.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
+import { ATTESTFORMAAL } from "../../shared/politiattest.ts";
 import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
 import { finnGjeldendeAttest, minimerAttest } from "./politiattest.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
@@ -492,9 +493,19 @@ export const ressurser: Ressurs[] = [
     samtykkeEmne: "Politiattesten",
     formaal: "Kontrollere vandel for oppdrag eller stilling",
     valider: ({ sok }) => {
-      if (!sok.get("formaal")) {
+      const formaal = sok.get("formaal");
+      if (!formaal) {
         throw new HttpError(
           "formaal er påkrevd. En attest gjelder for det formålet den er utstedt til.",
+          400
+        );
+      }
+      // Ukjent formaal er kallerens feil, og skal si det. Uten dette gikk verdien
+      // på tråden, mocken svarte 400, og callUpstream - som helt riktig ikke
+      // relayer - gjorde den til 502. Spesifikasjonen lover 400.
+      if (!(ATTESTFORMAAL as readonly string[]).includes(formaal)) {
+        throw new HttpError(
+          `Ukjent formaal ${formaal}. Gyldige: ${ATTESTFORMAAL.join(", ")}.`,
           400
         );
       }
