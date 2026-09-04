@@ -54,6 +54,9 @@ here; a second copy is how it went stale before.
 - `scripts/`: validation and flow test utilities.
 
 ## Development guidance for Copilot
+- **A new use-case does not start by copying an existing one.** See
+  `## New use-cases: diverge before you build` in `AGENTS.md`. Explore the idea with
+  the participant before writing code, rather than reproducing the shape of a demo case.
 - Keep changes minimal and scoped to one app unless cross-service changes are requested.
 - Preserve the process-driven model; avoid hardcoding flow logic in UI when a process definition should drive behavior.
 - Prefer existing endpoint and payload patterns from current service code.

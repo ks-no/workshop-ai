@@ -3,6 +3,9 @@
 > **The maintainer document, for agents changing the sandbox itself.** If you are a
 > hackathon participant, `docs/oppdraget.md` is your starting point - you do not
 > need to read this file, and nothing here is part of the participant materials.
+> One exception: `CLAUDE.md` is `@AGENTS.md`, so in a fork this file is loaded for a
+> participant's agent as well, and
+> [New use-cases](#new-use-cases-diverge-before-you-build) is written for that case.
 
 ## Contents
 
@@ -10,6 +13,7 @@
 <summary>All sections</summary>
 
 - [What this repo is](#what-this-repo-is)
+- [New use-cases: diverge before you build](#new-use-cases-diverge-before-you-build)
 - [Service map (compose defaults)](#service-map-compose-defaults)
 - [Data and state model (important)](#data-and-state-model-important)
 - [Process-engine behavior to preserve](#process-engine-behavior-to-preserve)
@@ -27,6 +31,34 @@
 ## What this repo is
 - `workshop-ai` is a municipal-dialog sandbox: process-driven user flows over synthetic data, with explicit consent, policy checks, and audit trail.
 - Services are intentionally split by responsibility (UI, orchestration, mocks, AI, tools, agent) and communicate over HTTP, not shared internal libraries.
+
+## New use-cases: diverge before you build
+
+This section is for an agent helping a hackathon participant build something new. The
+rest of the file is unchanged and still the maintainer document.
+
+**A new use-case does not start by copying an existing one.** The pull is strong, and
+this repo creates it: `docs/prosessmodell.md` says to copy `mal-enkel-soknad`,
+`docs/bygg-selv.md` says to copy an existing service, and every demo case walks the
+same road: `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` ->
+`SUMMARY` -> `SUBMIT`. Those are recipes for the plumbing, not a template for the
+idea. `docs/oppdraget.md` says the same thing to the participant: the demo clients
+look like an answer to what to build, and they are not.
+
+So when a participant asks for a new case, a new service or a new frontend and has not
+settled what it should be, **do not write code on the first turn**. Read what the
+sandbox actually offers, ask one question at a time, put up directions that genuinely
+differ, and let the participant choose before anything is built.
+
+`.claude/skills/nytt-bruksomraade/SKILL.md` carries the procedure and the axes the
+alternatives have to differ on. Follow it. Skip it when the participant has already
+decided. The rule is against building the default unexamined, not against
+building.
+
+What gets reused is the floor, not the shape: the frozen wire format, the consent
+gate, rules outside the model, and the audit trail. What must not be assumed is the
+rest: that the engine is linear, that a flow has seven steps, that the interface is a
+chat, or that every service is a søknad.
 
 ## Service map (compose defaults)
 - `apps/process-builder` (`3000`): process definition UI.
