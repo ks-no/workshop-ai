@@ -44,7 +44,7 @@ fra backend er hjemmelslaget som virker - feil hjemmel eller manglende samtykke 
 feil i sandkassen. `401` betyr bare at tokenet mangler eller er utløpt.
 
 **kode 6** - strengt fortrolig adresse i Folkeregisteret. Slike personer maskeres ved
-innlasting (`apps/shared/skjerming.ts`): API-et viser «Skjermet person», mens seedfila med
+innlasting (`apps/shared/skjerming.ts`): API-et viser «Skjermet person», mens seedfilen med
 vilje står i klartekst. Kode 7 (fortrolig adresse) gir nullet adresse.
 
 **KRR** - Kontakt- og reservasjonsregisteret: innbyggerens e-post, telefon og eventuelle

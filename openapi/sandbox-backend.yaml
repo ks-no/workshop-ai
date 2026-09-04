@@ -553,7 +553,7 @@ paths:
         er dette ruten å lese den av.
 
         Krever registrert samtykke for datakilden "kontaktinfo", som
-        inntektsruta. Avvik fra ekte forvaltning: der slås KRR opp med hjemmel
+        inntektsruten. Avvik fra ekte forvaltning: der slås KRR opp med hjemmel
         i eForvaltningsforskriften, uten samtykke - sandkassen samtykkegater
         ressursen fordi samtykke-før-data er mønsteret katalogen lærer bort.
 
@@ -1058,7 +1058,7 @@ paths:
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
         Henter beregningen fra fiks-simulator for hele husholdningen. Samme data
-        som personruta, og derfor samme samtykkekrav.
+        som personruten, og derfor samme samtykkekrav.
       parameters:
         - name: husstandId
           in: path
@@ -1382,7 +1382,7 @@ components:
           enum: [felles, mor, far, medmor, andre, ukjent, null]
           description: >
             Hvem som har foreldreansvar for denne personen. Speilet fra
-            Folkeregisteret, ikke utledet av foreldrelista - en far kan være far
+            Folkeregisteret, ikke utledet av foreldrelisten - en far kan være far
             uten å ha foreldreansvar. Grunnlaget for hvem som kan være avsender
             for en mindreårig.
         kontakt:
@@ -1771,7 +1771,7 @@ components:
     MinEiendom:
       type: object
       description: >
-        Projeksjon, ikke matrikkelenheten: eierlista er utelatt med vilje, så
+        Projeksjon, ikke matrikkelenheten: eierlisten er utelatt med vilje, så
         medeiere ikke følger med ut av matrikkelen.
       required: [matrikkelId, adresse]
       properties:

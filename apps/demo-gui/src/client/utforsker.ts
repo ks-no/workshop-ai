@@ -13,7 +13,7 @@ renderTopNav("/utforsker");
 //
 // Listen sto her og på dashboardet, i to kopier. Dashboardets manglet
 // digdir-mock. Nå står den ett sted, og pnpm test:openapi krever at den er
-// enig med tjenestelista i scripts/sjekk-openapi-dekning.ts.
+// enig med tjenestelisten i scripts/sjekk-openapi-dekning.ts.
 // Formene tjenestene faktisk sender på GET /openapi-ruter.json. Fasiten er
 // Route, Parameter og RouteOverview i apps/shared/openapi.ts - dette er den
 // samme kontrakten sett fra nettleseren, som ikke kan importere den.
@@ -252,7 +252,7 @@ async function loadTestbrukere(): Promise<void> {
       testbrukere.set(bruker.pid, bruker);
     }
   } catch {
-    // Uten listen viser identitetslinja fødselsnummeret i stedet for navnet.
+    // Uten listen viser identitetslinjen fødselsnummeret i stedet for navnet.
     // Det er en dårligere opplevelse, ikke en ødelagt side.
   }
 }
@@ -347,7 +347,7 @@ function renderIdentitet(): void {
   kort.appendChild(eget);
 }
 
-/* ── Rutelista ─────────────────────────────────────────────────────── */
+/* ── Rutelisten ─────────────────────────────────────────────────────── */
 
 function renderRuteliste(): void {
   const sok = krevEl<HTMLInputElement>("sok").value.trim().toLowerCase();
@@ -416,7 +416,7 @@ function selectRute(rute: Rute): void {
   renderDetaljer(rute);
 }
 
-/* ── Detaljruta ────────────────────────────────────────────────────── */
+/* ── Detaljruten ────────────────────────────────────────────────────── */
 
 async function renderDetaljer(rute: Rute): Promise<void> {
   const panel = krevEl("detaljer");
