@@ -9,14 +9,14 @@
 
 /**
  * Funksjonsnedsettingene skjemaet krysser av for, og hjelpemidlene det spør om.
- * Unioner og ikke `string`: en skrivefeil i «rullestolbrukar» ville flyttet søkeren
+ * Unioner og ikke `string`: en skrivefeil i «rullestolbruker» ville flyttet søkeren
  * til en annen kvote uten at noe ble rødt.
  */
 export const FUNKSJONSNEDSETTINGER = [
   "blind-eller-sterkt-svaksynt",
   "terminal-fase",
   "kunstig-surstofftilfoersel",
-  "rullestolbrukar",
+  "rullestolbruker",
   "anna"
 ] as const;
 export type Funksjonsnedsetting = (typeof FUNKSJONSNEDSETTINGER)[number];

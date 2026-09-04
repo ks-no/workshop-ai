@@ -237,7 +237,7 @@ components:
               type: string
         funksjonsnedsetting:
           type: string
-          enum: [blind-eller-sterkt-svaksynt, terminal-fase, kunstig-surstofftilfoersel, rullestolbrukar, anna]
+          enum: [blind-eller-sterkt-svaksynt, terminal-fase, kunstig-surstofftilfoersel, rullestolbruker, anna]
         varighetAar:
           type: integer
         funn:
