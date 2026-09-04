@@ -267,8 +267,9 @@ getters.** Every runner and container is UTC, so this class is invisible in CI b
 construction - and it bites the machines that are not: parsing as UTC, computing
 with the local setters and going back out through `toISOString()` made
 `byggAttestbevis` write an expiry one day early in Europe/Oslo, and right in CI.
-Use `alderVed` and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the
-rules once in Norwegian time.
+Use UTC getters and setters, and inject a fixed UTC clock in tests. Use `alderVed`
+and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the rules once in
+Norwegian time.
 
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
@@ -667,4 +668,3 @@ pnpm test:agent:matrikkel
 - Contracts: `openapi/README.md`, `openapi/sandbox-backend.yaml`, `openapi/process-agent.yaml`, `openapi/tools-api.yaml`, `openapi/matrikkel-mock.yaml`, `openapi/pasientjournal-mock.yaml`,
   `openapi/politiattest-mock.yaml`, `openapi/ai-gateway.yaml`.
 - End-to-end behavior examples: `scripts/test-agent-flow.ts`, `scripts/test-agent-natural-language.ts`, `scripts/test-tools-matrikkel.ts`, `scripts/test-process-agent-matrikkel.ts`, `scripts/test-bergen-matrikkel-bulk.ts`.
-

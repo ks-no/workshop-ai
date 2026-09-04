@@ -69,7 +69,7 @@ function sisteInntektsaar(tilstand: State, personId: string) {
   const aar = tilstand.inntekter
     .filter((rad: any) => identer.includes(rad.identifikator))
     .map((rad: any) => rad.inntektsaar);
-  return aar.length ? Math.max(...aar) : new Date().getFullYear() - 1;
+  return aar.length ? Math.max(...aar) : new Date().getUTCFullYear() - 1;
 }
 
 export async function getInntektForPerson(tilstand: State, personId: string) {
