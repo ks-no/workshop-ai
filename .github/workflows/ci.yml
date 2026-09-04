@@ -144,7 +144,8 @@ jobs:
 
       # A direct HTTP read of a SJEKK resource leaves a DATA_LES, and the engine
       # path does not log it twice - nothing else covers that. It also pins that a
-      # withdrawn consent takes the result back out of the økt. Four services on
+      # withdrawn consent takes the result back out of the økt, including out of the
+      # SJEKK grunnlag, which carries the same income one step away. Four services on
       # their own ports against a temp STATE_DIR; no model, no stack.
       - name: Revisjonssporet
         run: pnpm test:revisjon

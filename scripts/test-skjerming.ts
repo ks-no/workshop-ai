@@ -308,6 +308,17 @@ function kontaktinfoResultatFor(personId: string): unknown {
 
 // The økt as it looks when SUBMIT runs: the answers the citizen gave, the
 // kontaktinfo lookup's result, and the two generated texts.
+// Resultatene ligger ved siden av økten framfor inni: buildSoknadsdokument tar dem
+// som egen parameter, fordi det som havner i dokumentet skal ha vært gjennom
+// samtykkeporten.
+function resultaterFor(personId: string): Record<string, unknown> {
+  return {
+    "hent-kontaktinfo": kontaktinfoResultatFor(personId),
+    "sjekk-tilbud": { godkjent: true, melding: "Kommunen har et tilbud som passer." },
+    oppsummering: { tekst: "Du har bedt om en støttekontakt." }
+  };
+}
+
 function oektFor(personId: string): Prosessoekt {
   return {
     oektsId: "prosessoekt-0000000000000-skjerm",
@@ -322,11 +333,7 @@ function oektFor(personId: string): Prosessoekt {
         kontaktkanal: "Telefon"
       }
     },
-    resultater: {
-      "hent-kontaktinfo": kontaktinfoResultatFor(personId),
-      "sjekk-tilbud": { godkjent: true, melding: "Kommunen har et tilbud som passer." },
-      oppsummering: { tekst: "Du har bedt om en støttekontakt." }
-    },
+    resultaterRaa: resultaterFor(personId),
     sporingsId: "flyt-0000000000000-skjerm",
     opprettet: "2026-08-26T00:00:00.000Z",
     oppdatert: "2026-08-26T00:00:00.000Z"
@@ -401,7 +408,7 @@ check("person-001 har en postadresse SvarUt kan bruke", hasPostadresse(mottaker0
 // The whole request body, and the document the citizen reads back, as text.
 for (const id of forventetSkjermede) {
   const kropp = JSON.stringify(buildKvitteringKropp(person(id), "soknad-0000000000000-skjerm", stottekontakt.navn));
-  const dokument = buildSoknadsdokument(stottekontakt, oektFor(id), person(id));
+  const dokument = buildSoknadsdokument(stottekontakt, oektFor(id), person(id), resultaterFor(id));
   for (const hemmelig of hemmeligheter) {
     check(`"${hemmelig}" finnes ikke i forsendelsen til ${id}`, !kropp.includes(hemmelig));
     check(`"${hemmelig}" finnes ikke i søknadsdokumentet til ${id}`, !dokument.includes(hemmelig));
@@ -420,7 +427,7 @@ for (const id of forventetSkjermede) {
 // and tlf as objects. They are dropped because they are not primitives, not
 // because they were masked - so this would catch a document builder that started
 // flattening nested fields into the text.
-const dokument001 = buildSoknadsdokument(stottekontakt, oektFor("person-001"), person("person-001"));
+const dokument001 = buildSoknadsdokument(stottekontakt, oektFor("person-001"), person("person-001"), resultaterFor("person-001"));
 const navn001 = [kilde("person-001").navn.fornavn, kilde("person-001").navn.etternavn].join(" ");
 check("person-001 sitt søknadsdokument har ingen e-post", !/@/.test(dokument001), dokument001);
 check(

@@ -274,7 +274,24 @@ rules once in Norwegian time.
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
 `DATA_FETCH` results were consent-gated when they were fetched and then re-served
-on every later read of the økt, so a withdrawn consent changed nothing.
+on every later read of the økt, so a withdrawn consent changed nothing. The raw
+field is called `resultaterRaa` for that reason, and nothing outside
+`resultaterNaa` reads it: the økt response, the `SUMMARY` prompt and the
+søknadsdokument are all handed the gated view, `buildProsessoektRespons` and
+`buildSoknadsdokument` require it as a parameter, and a fourth reader that skipped
+the gate would not compile. Which steps the gate covers is `erKatalogsteg`, not a
+list of step types - a list had `SJEKK` missing, and the vilkårsvurdering carries
+the income in its own grunnlag.
+
+**A step that derives from a gated result is gated too, and that is not the same
+test.** `SUMMARY` has no `api`, so the catalogue cannot answer for it - and its text
+is written *from* the gated results and quotes the income in plain words, more than
+the `SJEKK` grunnlag carries. It is therefore held behind the union of every kilde
+the process needs consent for. `SUMMARY` and `SUBMIT` additionally refuse with 403
+when anything was gated away, before the model is called: a summary or a
+søknadsdokument built on a withdrawn basis is a record that does not say what the
+decision rests on, and the honest answer is to stop rather than to emit a partial
+one. `pnpm test:revisjon` pins all of it.
 
 ## Language
 

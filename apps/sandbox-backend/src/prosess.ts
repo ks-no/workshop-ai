@@ -12,6 +12,8 @@ import { sendKvittering } from "./svarut.ts";
 import { findPerson, newId } from "./state.ts";
 import { buildAdvarsel, callUpstream, tryUpstream } from "./upstream.ts";
 import { alternativVerdi, alternativLabel } from "./types.ts";
+import { erKatalogsteg } from "./types.ts";
+import type { Katalogsteg } from "./types.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
@@ -114,13 +116,17 @@ function replaceParametere(url: string, oekt: Prosessoekt) {
 
 // Katalogen håndhever samtykket, så kilden leses derfra og ikke fra stegets
 // eget kreverSamtykke - to erklæringer kunne bare komme ut av takt.
+//
+// `erKatalogsteg` og ikke en liste over stegtyper: porten skal gjelde nøyaktig de
+// stegene getFraKatalog henter for. Med en liste var SJEKK glemt, og porten serverte
+// beregningsbeløpet videre under vilkårsstegets id.
 function samtykkekildeForSteg(
   tilstand: State,
   oekt: Prosessoekt,
   steg: ProsessSteg | undefined,
   kaller: Caller
 ): string | null {
-  if (!steg || steg.type !== "DATA_FETCH" || !steg.api?.url) return null;
+  if (!erKatalogsteg(steg)) return null;
   const url = new URL(`http://localhost${replaceParametere(steg.api.url, oekt)}`);
   const treff = findRessurs(steg.api.method || "GET", url.pathname);
   if (!treff) return null;
@@ -146,6 +152,28 @@ function samtykkekildeForSteg(
  * Et samtykke kan være trukket eller ha utløpt i mellomtiden, og uten dette
  * serverte hver henting av økten dem ut igjen uten at porten var innom.
  */
+/*
+ * Kildene prosessen henter noe fra, og som fortsatt er samtykket.
+ *
+ * `SUMMARY` har ingen `api`, så porten kan ikke måles på steget selv - men teksten
+ * er skrevet AV de gatede resultatene og siterer beløpet i klartekst, mer enn
+ * SJEKK-grunnlaget bærer. Den holder derfor bare så lenge hver kilde prosessen
+ * krever samtykke for, fortsatt er samtykket.
+ */
+function alleKilderSamtykket(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon | null,
+  kaller: Caller
+): boolean {
+  for (const steg of prosess?.steg || []) {
+    const kilde = samtykkekildeForSteg(tilstand, oekt, steg, kaller);
+    if (!kilde) continue;
+    if (!hasGyldigSamtykke(tilstand, oekt.personId, kilde, oekt.aktivtSamtykkeId)) return false;
+  }
+  return true;
+}
+
 export function resultaterNaa(
   tilstand: State,
   oekt: Prosessoekt,
@@ -154,8 +182,15 @@ export function resultaterNaa(
 ) {
   const beholdt: Record<string, unknown> = {};
   const gjenlest = new Set<string>();
-  for (const [stegId, resultat] of Object.entries(oekt.resultater || {})) {
+  // Regnet én gang, og bare hvis et avledet steg spør etter den.
+  let avledetHolder: boolean | null = null;
+  for (const [stegId, resultat] of Object.entries(oekt.resultaterRaa || {})) {
     const steg = prosess?.steg?.find((kandidat) => kandidat.id === stegId);
+    if (steg?.type === "SUMMARY") {
+      avledetHolder ??= alleKilderSamtykket(tilstand, oekt, prosess, kaller);
+      if (avledetHolder) beholdt[stegId] = resultat;
+      continue;
+    }
     const kilde = samtykkekildeForSteg(tilstand, oekt, steg, kaller);
     if (!kilde) {
       beholdt[stegId] = resultat;
@@ -176,8 +211,11 @@ export function buildProsessoektRespons(
   // servert ugjennomgåtte resultater, og det ville typesjekket.
   resultater: Record<string, unknown>
 ) {
+  // Raa-feltet destruktureres bort framfor å bli overskrevet av spredningen: da er
+  // det umulig å svare med det ved et uhell, også om feltet skulle bytte navn igjen.
+  const { resultaterRaa: _raa, ...resten } = oekt;
   return {
-    ...oekt,
+    ...resten,
     resultater,
     aktivtSteg: prosess?.steg?.[oekt.stegIndex] || null,
     totaltAntallSteg: prosess?.steg?.length || 0
@@ -186,7 +224,7 @@ export function buildProsessoektRespons(
 
 // DATA_FETCH and SJEKK consult the shared resource catalog through the same path
 // as the HTTP router, so consent gating and audit cannot diverge between them.
-async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: any, kaller: Caller) {
+async function getFraKatalog(tilstand: State, oekt: Prosessoekt, steg: Katalogsteg, kaller: Caller) {
   const resolvedUrl = replaceParametere(steg.api.url, oekt);
   return runRessurs(tilstand, steg.api.method || "GET", new URL(`http://localhost${resolvedUrl}`), {
     oekt,
@@ -302,16 +340,51 @@ type StegContext = {
   tilstand: State;
   oekt: Prosessoekt;
   prosess: ProsessDefinisjon;
-  steg: any;
+  steg: ProsessSteg;
   body: any;
+  /**
+   * Resultatene økten kan svare med nå, ikke `oekt.resultaterRaa`. Regnet én gang i
+   * `runStegHandling` og gitt videre, så en handler ikke kan glemme porten.
+   */
+  resultater: Record<string, unknown>;
   /** Who is calling, from the token. See autentisering.ts. */
   kaller: Caller;
 };
 
+/*
+ * Konteksten en handler får, med `steg` innsnevret til sin egen stegtype.
+ *
+ * Uten dette var `steg` en `any`, og da fikk CONSENT_REQUEST-handleren lese
+ * `steg.api` og DATA_FETCH-handleren `steg.formaal` uten at noe sa fra. Nå er det
+ * unionen i types.ts som bestemmer hva hver handler ser.
+ */
+/*
+ * De to stegene som forbruker resultatene, gjør det ikke på et halvt grunnlag.
+ *
+ * Oppsummeringen og søknadsdokumentet bygges av de gjennomgåtte resultatene, så et
+ * trukket samtykke tok inntekten og vedtakslinjen stille ut av begge - en tekst og et
+ * dokument som ikke lenger sier hva avgjørelsen bygger på. Å nekte er det ærlige
+ * svaret: innbyggeren har trukket grunnlaget, og da er det ikke noe å oppsummere
+ * eller sende. 403, som ellers når samtykke mangler.
+ */
+function krevHeltGrunnlag(oekt: Prosessoekt, resultater: Record<string, unknown>): void {
+  const gatetBort = Object.keys(oekt.resultaterRaa || {}).filter((stegId) => !(stegId in resultater));
+  if (gatetBort.length === 0) return;
+  throw new HttpError(
+    "Samtykket søknaden bygger på er trukket eller utløpt, så den kan ikke gå videre. " +
+    "Gi samtykke på nytt, så kan du fortsette.",
+    403
+  );
+}
+
+type StegContextFor<T extends Stegtype> = Omit<StegContext, "steg"> & {
+  steg: Extract<ProsessSteg, { type: T }>;
+};
+
 // One handler per step type. A new step type is one entry here; the execution
-// below needs no change. Record<Stegtype, ...> makes the compiler demand a
-// handler as soon as a new step type is added to types.ts.
-export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promise<unknown>> = {
+// below needs no change. The mapped type makes the compiler demand a handler as
+// soon as a new step type is added to types.ts.
+export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown | Promise<unknown> } = {
   INFO: () => ({ type: "INFO", melding: "Informasjonssteg krever ingen handling." }),
 
   QUESTION: ({ oekt, steg, body }) => {
@@ -343,7 +416,7 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
         })
       );
       oekt.aktivtSamtykkeId = data.samtykkeId;
-      oekt.resultater[steg.id] = data;
+      oekt.resultaterRaa[steg.id] = data;
       return data;
     }
 
@@ -377,7 +450,7 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
           })
         })
       );
-      oekt.resultater[steg.id] = data;
+      oekt.resultaterRaa[steg.id] = data;
       return data;
     }
 
@@ -386,14 +459,14 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
 
   DATA_FETCH: async ({ tilstand, oekt, steg, kaller }) => {
     const data = await getFraKatalog(tilstand, oekt, steg, kaller);
-    oekt.resultater[steg.id] = data;
+    oekt.resultaterRaa[steg.id] = data;
     return data;
   },
 
   SJEKK: async ({ tilstand, oekt, steg, kaller }) => {
     const resultat = await getFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
 
-    oekt.resultater[steg.id] = resultat;
+    oekt.resultaterRaa[steg.id] = resultat;
     if (!resultat.godkjent) {
       oekt.status = "AVVIST";
       oekt.avvistMelding = resultat.melding;
@@ -413,7 +486,10 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
    * broke. Failing the step leaves the økt on SUMMARY - withSession saves
    * nothing when the handler throws - so a retry is a retry.
    */
-  SUMMARY: async ({ oekt, prosess, steg }) => {
+  // Porten er tidspunktet for lesing, også når leseren er en prompt: et trukket
+  // samtykke skal ikke nå modellen eller state/ai-trace.jsonl.
+  SUMMARY: async ({ oekt, prosess, steg, resultater }) => {
+    krevHeltGrunnlag(oekt, resultater);
     const data = await callUpstream<any>(
       { service: "KI-tjenesten", action: "Å lage oppsummeringen" },
       () => fetch(`${aiBaseUrl}/ai/oppsummering`, {
@@ -424,27 +500,30 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
           kontekst: {
             tjeneste: prosess.navn,
             prosessId: oekt.prosessId,
-            data: oekt.resultater,
+            data: resultater,
             svar: oekt.svar
           },
           sprak: "nb"
         })
       })
     );
-    oekt.resultater[steg.id] = data;
+    oekt.resultaterRaa[steg.id] = data;
     return data;
   },
 
-  SUBMIT: async ({ tilstand, oekt, prosess, steg, kaller }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, resultater, kaller }) => {
     const person = findPerson(tilstand, oekt.personId);
-    const dokument = buildSoknadsdokument(prosess, oekt, person);
+    krevHeltGrunnlag(oekt, resultater);
+    // Dokumentet lagres på søknadsraden og går til SvarUt, så det som står i det
+    // kommer ikke ut igjen. Derfor samme port som svaret på økten.
+    const dokument = buildSoknadsdokument(prosess, oekt, person, resultater);
     const data = await createSoknad({
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
     }, kaller, { dokument, person });
-    oekt.resultater[steg.id] = data;
+    oekt.resultaterRaa[steg.id] = data;
     oekt.status = "FULLFORT";
     return data;
   }
@@ -462,7 +541,10 @@ export async function runStegHandling(
     throw new HttpError("Fant ikke aktivt steg.", 400);
   }
 
-  const handterer = stegHandlers[steg.type as Stegtype];
+  // Oppslaget er på `steg.type`, så handleren og steget hører sammen - men det vet
+  // bare kjøretiden, og derfor står castet her framfor i hver handler.
+  const handterer = stegHandlers[steg.type as Stegtype] as
+    ((k: StegContext) => unknown | Promise<unknown>) | undefined;
   if (!handterer) {
     throw new HttpError(
       `Støtter ikke stegtypen ${steg.type}. Gyldige: ${Object.keys(stegHandlers).join(", ")}.`,
@@ -470,5 +552,6 @@ export async function runStegHandling(
     );
   }
 
-  return handterer({ tilstand, oekt, prosess, steg, body, kaller });
+  const { resultater } = resultaterNaa(tilstand, oekt, prosess, kaller);
+  return handterer({ tilstand, oekt, prosess, steg, body, resultater, kaller });
 }

@@ -158,15 +158,13 @@ function getSporingsId(url: URL) {
  * Every route on one prosessoekt goes through here: lookup, 404, 409,
  * oppdatert-stamp and save have one owner, so one drift surface.
  *
- * `krevAapen` is the guard: an AVVIST or FULLFORT økt takes no further svar,
- * handling or navigation - a replayed POST /handling on a FULLFORT økt would
- * otherwise run the SUBMIT handler again and produce a duplicate søknad and a
- * new Fiks task per call. Reads pass `krevAapen: false` - demo-gui renders
- * finished and rejected økter, and a rejection you cannot look at afterwards
- * would be worse than the replay this closes.
- *
- * `lagre: false` is for those same reads: a GET must not touch `oppdatert` or
- * the write queue.
+ * `lesing` is the one knob, because the two things it decides always moved
+ * together. A write on an AVVIST or FULLFORT økt is refused - a replayed POST
+ * /handling on a FULLFORT økt would otherwise run the SUBMIT handler again and
+ * produce a duplicate søknad and a new Fiks task per call - and a read neither
+ * refuses nor stamps `oppdatert`. demo-gui renders finished and rejected økter,
+ * and a rejection you cannot look at afterwards would be worse than the replay
+ * this closes.
  *
  * `fn` is the handler's single mutation. Returning nothing answers with the
  * plain økt response; returning a value answers `{ oekt, resultat }`, which is
@@ -175,15 +173,14 @@ function getSporingsId(url: URL) {
  */
 async function withSession(
   { response, parametere, tilstand, kaller }: Pick<Kontekst, "response" | "parametere" | "tilstand" | "kaller">,
-  { krevAapen = true, lagre = true, loggGjenlesing = false }:
-    { krevAapen?: boolean; lagre?: boolean; loggGjenlesing?: boolean },
+  { lesing = false }: { lesing?: boolean },
   fn: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<unknown> | unknown
 ) {
   const session = findProsessoekt(tilstand, parametere.oektsId);
   if (!session) {
     throw new HttpError("Fant ikke prosessøkt.", 404);
   }
-  if (krevAapen && (session.status === "AVVIST" || session.status === "FULLFORT")) {
+  if (!lesing && (session.status === "AVVIST" || session.status === "FULLFORT")) {
     throw new HttpError("Prosessøkten er avsluttet og kan ikke fortsette.", 400);
   }
   // The prosessbygger can delete a published process while an økt is mid-flow,
@@ -193,23 +190,22 @@ async function withSession(
     throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
   }
   const resultat = await fn(session, prosess);
-  if (lagre) {
+  if (!lesing) {
     session.oppdatert = new Date().toISOString();
     await lagreProsessoekt(session);
   }
   // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
   // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
   const { resultater, gjenlest } = resultaterNaa(tilstand, session, prosess, kaller);
-  if (loggGjenlesing) {
-    await loggGjenleste(tilstand, session, gjenlest, kaller);
-  }
+  await loggGjenleste(tilstand, session, gjenlest, kaller);
   const oektSvar = buildProsessoektRespons(session, prosess, resultater);
   jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
 }
 
 /*
- * GET-ruten svarer med det DATA_FETCH-stegene hentet, og det er en datatilgang.
- * Én rad per kilde per økt, ikke per henting: agentsløyfa poller denne ruten, og
+ * Alle fem øktrutene svarer med det stegene hentet, og det er en datatilgang.
+ * GET var alene om å skrive raden, så en agentsløyfe som bare kaller /neste var
+ * usynlig i sporet. Én rad per kilde per økt, ikke per henting: sløyfa poller, og
  * addRevisjon skriver hele revisjonsloggen om igjen inne i den delte skrivekøen.
  */
 async function loggGjenleste(
@@ -218,6 +214,7 @@ async function loggGjenleste(
   gjenlest: string[],
   kaller: Caller
 ) {
+  if (gjenlest.length === 0) return;
   const alleredeLogget = new Set(
     (tilstand.revisjonslogg || [])
       .filter((rad: any) => rad.sporingsId === session.sporingsId && rad.formaal === GJENLESING)
@@ -479,7 +476,7 @@ const ruter: Rute[] = [
         status: "AKTIV",
         stegIndex: 0,
         svar: {},
-        resultater: {},
+        resultaterRaa: {},
         aktivtSamtykkeId: null,
         opprettet: new Date().toISOString(),
         oppdatert: new Date().toISOString(),
@@ -493,7 +490,7 @@ const ruter: Rute[] = [
         ressurs: "prosessoekt",
         aktor: aktorFor(kaller, newSession.personId)
       });
-      jsonResponse(response, 201, buildProsessoektRespons(newSession, prosess, newSession.resultater));
+      jsonResponse(response, 201, buildProsessoektRespons(newSession, prosess, {}));
     }
   },
   {
@@ -502,7 +499,7 @@ const ruter: Rute[] = [
     finnPersonId: eierAvOekt,
     // A read: closed økter stay readable, and nothing is stamped or saved.
     handter: (kontekst) =>
-      withSession(kontekst, { krevAapen: false, lagre: false, loggGjenlesing: true }, () => {})
+      withSession(kontekst, { lesing: true }, () => {})
   },
   {
     metode: "POST",

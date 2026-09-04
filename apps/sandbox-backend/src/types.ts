@@ -73,6 +73,19 @@ export type ProsessSteg = StegFelles & (
   | { type: "SUBMIT" }
 );
 
+/**
+ * Stegene som henter gjennom ressurskatalogen, altså de som har et `api`.
+ *
+ * Ett sted, og avledet av unionen framfor listet opp: samtykkeporten og
+ * getFraKatalog spør om det samme, og en liste over stegtyper ville blitt glemt
+ * neste gang en type kom til - i stillhet, siden svaret da blir «ingen port».
+ */
+export type Katalogsteg = Extract<ProsessSteg, { api: ApiKall }>;
+
+export function erKatalogsteg(steg: ProsessSteg | undefined): steg is Katalogsteg {
+  return Boolean(steg && "api" in steg && steg.api?.url);
+}
+
 export type Redigering = {
   status?: string;
   mal?: boolean;
@@ -99,7 +112,12 @@ export type Prosessoekt = {
   status: OektStatus;
   stegIndex: number;
   svar: Record<string, unknown>;
-  resultater: Record<string, unknown>;
+  /**
+   * Det stegene hentet, ugjennomgått. `Raa` fordi et samtykke kan være trukket
+   * siden: hver leser skal gå via `resultaterNaa`, og navnet gjør en direkte
+   * lesing synlig. På wire heter feltet fortsatt `resultater`.
+   */
+  resultaterRaa: Record<string, unknown>;
   aktivtSamtykkeId: string | null;
   avvistMelding?: string;
   opprettet: string;

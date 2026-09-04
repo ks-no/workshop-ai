@@ -73,7 +73,10 @@ const SJEKKORD: Record<Sjekkutfall, string> = {
 export function buildSoknadsdokument(
   prosess: ProsessDefinisjon,
   oekt: Prosessoekt,
-  person: Person | null
+  person: Person | null,
+  // Påkrevd med vilje, som i buildProsessoektRespons: dokumentet går til SvarUt og
+  // kommer ikke ut igjen, så det skal aldri bygges av ugjennomgåtte resultater.
+  resultater: Record<string, unknown>
 ): string {
   const navn = person ? fulltNavn(person) : oekt.personId;
 
@@ -89,7 +92,7 @@ export function buildSoknadsdokument(
   }
 
   const dataLinjer = prosess.steg
-    .map((steg) => dataFetchLinjeForSteg(steg, oekt.resultater[steg.id]))
+    .map((steg) => dataFetchLinjeForSteg(steg, resultater[steg.id]))
     .filter((linje): linje is string => linje !== null);
   if (dataLinjer.length) {
     linjer.push("Innhentede opplysninger:", ...dataLinjer.map((linje) => `- ${linje}`), "");
@@ -97,14 +100,14 @@ export function buildSoknadsdokument(
 
   for (const steg of prosess.steg) {
     if (steg.type !== "SJEKK") continue;
-    const resultat = oekt.resultater[steg.id] as SjekkResultat | undefined;
+    const resultat = resultater[steg.id] as SjekkResultat | undefined;
     if (!resultat) continue;
     linjer.push(`Sjekk: ${SJEKKORD[resultat.utfall ?? (resultat.godkjent ? "godkjent" : "avvist")]} - ${resultat.melding}`, "");
   }
 
   for (const steg of prosess.steg) {
     if (steg.type !== "SUMMARY") continue;
-    const resultat = oekt.resultater[steg.id] as { tekst?: string } | undefined;
+    const resultat = resultater[steg.id] as { tekst?: string } | undefined;
     if (resultat?.tekst) {
       linjer.push("Oppsummering:", resultat.tekst, "");
     }

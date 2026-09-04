@@ -20,12 +20,13 @@
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
+import { resultaterNaa } from "../apps/sandbox-backend/src/prosess.ts";
 import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -229,10 +230,10 @@ async function motorFartsdemping(token: string) {
 // --- 4. et trukket samtykke tar resultatet ut av økten ------------------------
 
 /*
- * DATA_FETCH-resultatene ble liggende på økten og ble servert igjen på hver
- * henting, uten at porten i runRessurs var innom. Trekker innbyggeren samtykket,
- * skal inntekten ut av svaret - og gjenlesingen skal ha en rad, slik en direkte
- * lesing har.
+ * Resultatene ble liggende på økten og ble servert igjen på hver henting, uten at
+ * porten i runRessurs var innom. Trekker innbyggeren samtykket, skal inntekten ut
+ * av svaret - både DATA_FETCH-resultatet og vilkårsgrunnlaget, som bærer det samme
+ * beløpet - og gjenlesingen skal ha en rad, slik en direkte lesing har.
  */
 async function trukketSamtykkeTommerOekten() {
   // En annen person enn de tre foran: person-001 har alt et gyldig inntektssamtykke
@@ -292,6 +293,17 @@ async function trukketSamtykkeTommerOekten() {
     `fant ${gjenlesinger.length} gjenlesingsrader etter fire hentinger`
   );
 
+  // -> sjekk-rett. Vilkårsvurderingen legger inntekten i grunnlaget sitt, så
+  // resultatet er den samme opplysningen en gang til, under en annen steg-id.
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const sjekk = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  check("vilkårssteget svarer 200", sjekk.status === 200, `status ${sjekk.status}`);
+  check(
+    "vilkårsgrunnlaget bærer inntekten mens samtykket står",
+    typeof sjekk.kropp?.oekt?.resultater?.["sjekk-rett"]?.grunnlag?.beregningsbeloep === "number",
+    JSON.stringify(sjekk.kropp?.oekt?.resultater?.["sjekk-rett"]?.grunnlag)
+  );
+
   const fiksToken = await maskinAuth("ks:fiks:samtykke", "fiks-simulator");
   const trukket = await kall(fiksUrl, `/fiks/samtykke/${samtykkeId}/trekk`, fiksToken, {
     method: "PUT",
@@ -311,6 +323,132 @@ async function trukketSamtykkeTommerOekten() {
     etter.kropp?.resultater?.["hent-husstand"] !== undefined,
     JSON.stringify(Object.keys(etter.kropp?.resultater || {}))
   );
+  // Samme beløp, ett steg unna: porten gjaldt bare DATA_FETCH, så dette ble stående.
+  check(
+    "vilkårsgrunnlaget er ute av økten når samtykket er trukket",
+    etter.kropp?.resultater?.["sjekk-rett"] === undefined,
+    JSON.stringify(etter.kropp?.resultater?.["sjekk-rett"]?.grunnlag)
+  );
+
+}
+
+/*
+ * Og flyten går ikke videre på et grunnlag som er trukket.
+ *
+ * Oppsummeringen og søknadsdokumentet bygges av de gjennomgåtte resultatene, så uten
+ * vakten gikk søknaden gjennom med inntekten og vedtakslinjen stille borte.
+ *
+ * Egen person: person-003 sitt vedtak er avslag, så økten er AVVIST etter SJEKK og
+ * tar ingen flere handlinger. person-006 innvilges og står AKTIV.
+ */
+async function flytenStopperNaarGrunnlagetErTrukket() {
+  const token = await innbyggerAuth("person-006");
+  const opprettet = await kall(backendUrl, "/api/prosessoekter", token, {
+    method: "POST",
+    body: { personId: "person-006", prosessId: "redusert-foreldrebetaling-barnehage" }
+  });
+  const id = opprettet.kropp.oektsId;
+
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const bedt = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  const samtykkeId = bedt.kropp?.oekt?.aktivtSamtykkeId;
+  await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "SAMTYKKET" }
+  });
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const sjekk = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  check(
+    "person-006 innvilges, så økten står åpen",
+    sjekk.kropp?.oekt?.status === "AKTIV",
+    `${sjekk.kropp?.oekt?.status}: ${JSON.stringify(sjekk.kropp?.resultat?.melding)}`
+  );
+
+  const fiksToken = await maskinAuth("ks:fiks:samtykke", "fiks-simulator");
+  await kall(fiksUrl, `/fiks/samtykke/${samtykkeId}/trekk`, fiksToken, {
+    method: "PUT",
+    body: { sporingsId: "samtykke-trekk-innsending" }
+  });
+
+  // -> oppsummering. Vakten står før kallet til KI-tjenesten, så dette er en 403 og
+  // ikke en 502 om at modellen ikke svarte.
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const oppsummering = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
+    method: "POST",
+    body: {}
+  });
+  check(
+    "oppsummeringen nektes når samtykket er trukket",
+    oppsummering.status === 403,
+    `status ${oppsummering.status}: ${JSON.stringify(oppsummering.kropp)}`
+  );
+  const soknader = await kall(backendUrl, "/api/personer/person-006/soknader", token);
+  const antall = (soknader.kropp?.soknader || soknader.kropp || []).length;
+  check("og ingen søknad ble lagret", antall === 0, JSON.stringify(soknader.kropp));
+}
+
+/*
+ * Oppsummeringen er skrevet AV de gatede resultatene og siterer beløpet i klartekst,
+ * mer enn SJEKK-grunnlaget bærer. Steget har ingen `api`, så porten kan ikke måles på
+ * det - den holder bare så lenge hver kilde prosessen krever samtykke for, står.
+ *
+ * Ren funksjon, med literal-tilstand: å komme fram til SUMMARY over HTTP ville krevd
+ * en KI-tjeneste, og det denne sjekken handler om er porten, ikke modellen.
+ */
+async function oppsummeringenGatesAvKildeneSine() {
+  const definisjoner = JSON.parse(
+    await readFile(path.join(repoRoot, "data/prosessdefinisjoner.json"), "utf8")
+  );
+  const prosess = (definisjoner.prosesser || definisjoner)
+    .find((kandidat: any) => kandidat.id === "redusert-foreldrebetaling-barnehage");
+  const satser = JSON.parse(await readFile(path.join(repoRoot, "data/satser.json"), "utf8"));
+  const samtykke = {
+    samtykkeId: "samtykke-test",
+    personId: "person-001",
+    dataKilder: ["inntekt"],
+    status: "SAMTYKKET",
+    opprettet: "2026-08-01T00:00:00.000Z",
+    utloper: "2099-01-01T00:00:00.000Z"
+  };
+  const resultaterRaa = {
+    "hent-husstand": { type: "ENSLIG_FORSORGER" },
+    "hent-inntekt": { beregningsbeloep: 485000 },
+    "sjekk-rett": { grunnlag: { beregningsbeloep: 485000 } },
+    oppsummering: { tekst: "Inntektsgrunnlag 2025: 485 000 kr." }
+  };
+  const oekt = {
+    oektsId: "oekt-test", personId: "person-001", prosessId: prosess.id,
+    sporingsId: "flyt-test", status: "AKTIV", stegIndex: 5, svar: {},
+    aktivtSamtykkeId: "samtykke-test", resultaterRaa,
+    opprettet: "2026-08-01T00:00:00.000Z", oppdatert: "2026-08-01T00:00:00.000Z"
+  } as any;
+  const kaller = { type: "innbygger", id: "12818800078" } as any;
+
+  const med = resultaterNaa(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    oekt, prosess, kaller
+  );
+  check("oppsummeringen står så lenge kildene er samtykket",
+    med.resultater.oppsummering !== undefined, JSON.stringify(Object.keys(med.resultater)));
+
+  for (const [navn, rad] of [
+    ["trukket", { ...samtykke, status: "TRUKKET" }],
+    ["utløpt", { ...samtykke, utloper: "2020-01-01T00:00:00.000Z" }]
+  ] as const) {
+    const uten = resultaterNaa(
+      { samtykker: [rad], satser, personer: [], husstander: [] } as any,
+      oekt, prosess, kaller
+    );
+    check(`oppsummeringen er ute når samtykket er ${navn}`,
+      uten.resultater.oppsummering === undefined, JSON.stringify(Object.keys(uten.resultater)));
+  }
 }
 
 // --- run ---------------------------------------------------------------------
@@ -357,6 +495,8 @@ async function run() {
     await direkteRegelsjekk(fnr, token);
     await motorFartsdemping(token);
     await trukketSamtykkeTommerOekten();
+    await flytenStopperNaarGrunnlagetErTrukket();
+    await oppsummeringenGatesAvKildeneSine();
   } finally {
     for (const tjeneste of tjenester) {
       tjeneste.kill("SIGTERM");

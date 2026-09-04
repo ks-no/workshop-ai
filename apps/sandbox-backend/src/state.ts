@@ -218,7 +218,18 @@ export function findProsess(tilstand: State, prosessId: string) {
 }
 
 export function findProsessoekt(tilstand: State, oektsId: string) {
-  return tilstand.prosessoekter.find((oekt: any) => oekt.oektsId === oektsId) || null;
+  const oekt = tilstand.prosessoekter.find((kandidat: any) => kandidat.oektsId === oektsId);
+  if (!oekt) return null;
+  // Feltet het `resultater` før samtykkeporten ble strammet. state/ er gitignorert og
+  // `./start.sh --reset` tømmer det, men `--reload` gjør ikke, og en økt som lå der
+  // fra før ga «Intern feil i sandbox-backend» på neste handling - som ser ut som en
+  // feil i sandkassen framfor en gammel fil. Kan slettes når ingen har en slik økt.
+  const raa = oekt as { resultaterRaa?: Record<string, unknown>; resultater?: Record<string, unknown> };
+  if (!raa.resultaterRaa) {
+    raa.resultaterRaa = raa.resultater || {};
+    delete raa.resultater;
+  }
+  return oekt;
 }
 
 /**
