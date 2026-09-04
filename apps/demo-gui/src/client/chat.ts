@@ -39,6 +39,12 @@ type Stegresultat = {
   // Kontaktinfo fra KRR (hent-kontaktinfo i stottekontakt-behov).
   reservert?: boolean;
   kanVarsles?: boolean;
+  // Bekreftelsen på formål (hent-formaal i politiattest-oppdrag).
+  hjemmel?: string;
+  attesttype?: string;
+  slikSoekerDu?: string;
+  // Attesten, minimert av minimerAttest: aldri hva anmerkningene gjelder.
+  politiattest?: { attesttype?: string; utstedt?: string; antallAnmerkninger?: number } | null;
   // SUBMIT svarer med soknadsraden, dokumentet og utfallet av kvitteringen.
   soknadId?: string;
   soknadsdokument?: string;
@@ -172,6 +178,23 @@ function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresul
      * SvarUt sitt eget første trinn - kan varsles og ikke reservert - og
      * statuslinja etter innsending navngir kanalen som ble valgt.
      */
+    // Bekreftelsen på formål. Dette er dokumentet søkeren skal ta med til politiet,
+    // så hjemmelen og attesttypen må fram - ikke «steget ble gjennomført».
+    if (result.hjemmel && result.attesttype) {
+      const framgangsmaate = result.slikSoekerDu ? ` ${result.slikSoekerDu}` : "";
+      return `Du trenger en ${result.attesttype} etter ${result.hjemmel}.${framgangsmaate}`;
+    }
+    // Attesten selv er minimert: type, dato og antall, aldri hva anmerkningene gjelder.
+    if ("politiattest" in result) {
+      const attest = result.politiattest;
+      if (!attest) {
+        return "Jeg finner ingen politiattest registrert på deg for dette formålet ennå.";
+      }
+      const merknader = attest.antallAnmerkninger === 0
+        ? "uten anmerkninger"
+        : `med ${attest.antallAnmerkninger} anmerkning(er)`;
+      return `Jeg har hentet politiattesten din: en ${attest.attesttype} utstedt ${attest.utstedt}, ${merknader}.`;
+    }
     if (typeof result.reservert === "boolean") {
       return result.kanVarsles && !result.reservert
         ? "Jeg har hentet kontaktopplysningene dine. Kontaktregisteret sier at du kan varsles digitalt, så post fra kommunen kan gå til din digitale postkasse."

@@ -10,7 +10,7 @@
 
 import { isSkjermet } from "../../shared/skjerming.ts";
 import type { Person } from "../../shared/innbyggerdata.ts";
-import type { ProsessDefinisjon, ProsessSteg, Prosessoekt, SjekkResultat } from "./types.ts";
+import type { ProsessDefinisjon, ProsessSteg, Prosessoekt, SjekkResultat, Sjekkutfall } from "./types.ts";
 
 // A DATA_FETCH result's own id-fields and fødselsnummer never belong in a document
 // the citizen reads back - those are for the audit log and the wire, not for the
@@ -63,6 +63,13 @@ function dataFetchLinjeForSteg(steg: ProsessSteg, resultat: unknown): string | n
  * so the same svar produce byte-identical text every time (see
  * kontrakt-smoke.ts's before/after diff).
  */
+// Ordene for hver utfallsart. Arten settes i vilkaar.ts; her velges bare ordet.
+const SJEKKORD: Record<Sjekkutfall, string> = {
+  godkjent: "Godkjent",
+  avvist: "Avvist",
+  til_manuell: "Til manuell vurdering"
+};
+
 export function buildSoknadsdokument(
   prosess: ProsessDefinisjon,
   oekt: Prosessoekt,
@@ -92,7 +99,7 @@ export function buildSoknadsdokument(
     if (steg.type !== "SJEKK") continue;
     const resultat = oekt.resultater[steg.id] as SjekkResultat | undefined;
     if (!resultat) continue;
-    linjer.push(`Sjekk: ${resultat.godkjent ? "Godkjent" : "Avvist"} - ${resultat.melding}`, "");
+    linjer.push(`Sjekk: ${SJEKKORD[resultat.utfall ?? (resultat.godkjent ? "godkjent" : "avvist")]} - ${resultat.melding}`, "");
   }
 
   for (const steg of prosess.steg) {

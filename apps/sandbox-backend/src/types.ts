@@ -202,8 +202,16 @@ export type Satser = {
  * The contract a SJEKK step must satisfy. If `godkjent` is false the oekt becomes
  * AVVIST and `melding` becomes `avvistMelding`. See docs/prosessmodell.md.
  */
+/**
+ * `godkjent` er toveis fordi den styrer rutingen. `utfall` finnes fordi et utfall
+ * kan slippe gjennom uten å være et ja - en anmerkning ingen lov utelukker skal til
+ * et menneske - og den som tegner resultatet må kunne si det uten å kjenne regelen.
+ */
+export type Sjekkutfall = "godkjent" | "avvist" | "til_manuell";
+
 export type SjekkResultat = {
   godkjent: boolean;
+  utfall?: Sjekkutfall;
   melding: string;
   grunnlag?: Record<string, unknown>;
 };

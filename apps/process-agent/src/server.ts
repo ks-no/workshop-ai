@@ -303,6 +303,16 @@ function listProcessesPrompt(processes: Prosessvalg[]): string {
   ].join("\n\n");
 }
 
+// Statusen følger feilen, så et 400 fra motoren ikke blir et 500 fra agenten.
+class Verktoyfeil extends Error {
+  status: number;
+  constructor(melding: string, status: number) {
+    super(melding);
+    this.name = "Verktoyfeil";
+    this.status = status;
+  }
+}
+
 // Returtypen er unknown fordi hvert verktøy har sin egen svarform. Kallstedene
 // navngir formen de venter seg med et typeargument.
 async function invokeTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
@@ -313,7 +323,7 @@ async function invokeTool<T = unknown>(name: string, args: Record<string, unknow
   });
   const data = (await res.json()) as { ok?: boolean; result?: unknown; feil?: string; detalj?: string };
   if (!res.ok || !data.ok) {
-    throw new Error(data.detalj || data.feil || `Tool call feilet: ${name}`);
+    throw new Verktoyfeil(data.detalj || data.feil || `Tool call feilet: ${name}`, res.status);
   }
   return data.result as T;
 }
@@ -1340,6 +1350,26 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
   }
 }
 
+/*
+ * Et 4xx fra motoren er innbyggerens tur igjen, ikke en intern feil. Motoren eier
+ * alternativsettet og sier selv hvilke verdier som gjelder, så agenten skal ikke
+ * tolke svaret om igjen - bare vise refusjonen og spørre på nytt.
+ *
+ * På grensen og ikke ved hvert kallsted: answer_question kalles fem steder, og en
+ * fangst per sted er en fangst noen glemmer på det sjette.
+ */
+async function svarPaaMelding(state: Agentsesjon, message: string): Promise<string[]> {
+  try {
+    return await handleMessage(state, message);
+  } catch (feil) {
+    if (feil instanceof Verktoyfeil && feil.status >= 400 && feil.status < 500) {
+      state.awaiting = "question";
+      return [feil.message];
+    }
+    throw feil;
+  }
+}
+
 async function handleMessage(state: Agentsesjon, message: string): Promise<string[]> {
   const text = String(message || "").trim();
   if (!text) {
@@ -1939,7 +1969,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       const userMessage = String(body.message || "");
       session.history.push({ role: "user", message: userMessage, tidspunkt: new Date().toISOString() });
 
-      const replies = await handleMessage(session, userMessage);
+      const replies = await svarPaaMelding(session, userMessage);
       for (const message of replies) {
         session.history.push({ role: "assistant", message, tidspunkt: new Date().toISOString() });
       }

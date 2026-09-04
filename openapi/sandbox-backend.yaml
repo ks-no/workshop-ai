@@ -1685,6 +1685,14 @@ components:
       properties:
         godkjent:
           type: boolean
+        utfall:
+          type: string
+          enum: [godkjent, avvist, til_manuell]
+          description: >
+            Arten av utfallet, for den som skal skrive det ut. `godkjent` er toveis
+            fordi den styrer rutingen, men et utfall kan slippe gjennom uten å være
+            et ja: en anmerkning ingen lov utelukker skal til en saksbehandler, og
+            «Godkjent» er feil ord om den. Settes av regelen, ikke av kallstedet.
         melding:
           type: string
         grunnlag:
