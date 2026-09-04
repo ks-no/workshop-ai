@@ -45,7 +45,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { alderVed } from "../apps/shared/alder.ts";
 import { buildTestpersondok } from "./testpersondok.ts";
-import { feilmelding } from "../apps/shared/errors.ts";
+import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = path.join(repoRoot, "data");
@@ -319,7 +319,10 @@ async function readIdLedger() {
   let eksisterende;
   try {
     eksisterende = await read(path.join(dataDir, "personer.json"));
-  } catch {
+  } catch (feil) {
+    // Bare «filen finnes ikke». En ødelagt personer.json skal stoppe importen,
+    // ikke få den til å renummerere hele befolkningen og melde suksess.
+    if (feilkode(feil) !== "ENOENT") throw feil;
     return { personId: new Map(), husstandId: new Map() };
   }
   return {
@@ -908,9 +911,13 @@ async function run() {
     51,
     ...[...ledger.personId.values()].map((id) => Number(String(id).split("-").pop()))
   ) + 1;
+  // 25 personer har husstandId null, og må ha det. Number("null") er NaN, og uten
+  // filteret ble hver ny husstand «household-NaN».
   let nesteHusstand = Math.max(
     18,
-    ...[...ledger.husstandId.values()].map((id) => Number(String(id).split("-").pop()))
+    ...[...ledger.husstandId.values()]
+      .filter(Boolean)
+      .map((id) => Number(String(id).split("-").pop()))
   ) + 1;
 
   const tildelPersonId = (fnr: any) => {

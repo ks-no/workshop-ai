@@ -126,6 +126,29 @@ jobs:
       - name: Importgrafen
         run: pnpm test:imports
 
+      # A kodeverk nobody reads is a claim the code does not honour. REAKSJONER -
+      # the four words politiregisterloven § 39 uses - decided whether a person is
+      # excluded from a job, and `reaksjon` had exactly one occurrence in apps/:
+      # its own type declaration. The rule matched on the category alone, so a
+      # charge was treated as a conviction and nothing was red. Pure text analysis.
+      - name: Kodeverkene har en leser
+        run: pnpm test:kodeverk
+
+      # The same rules again in Europe/Oslo, which is where the developer machines
+      # are. Every runner and container is UTC, so a date that round-trips through
+      # `new Date()` and back out with toISOString() is invisible here by
+      # construction - byggAttestbevis wrote an expiry one day early on a Norwegian
+      # laptop and the right answer in CI.
+      - name: Datoregningen i norsk tidssone
+        run: TZ=Europe/Oslo pnpm test:vilkaar && TZ=Europe/Oslo pnpm test:handleevne
+
+      # A direct HTTP read of a SJEKK resource leaves a DATA_LES, and the engine
+      # path does not log it twice - nothing else covers that. It also pins that a
+      # withdrawn consent takes the result back out of the økt. Four services on
+      # their own ports against a temp STATE_DIR; no model, no stack.
+      - name: Revisjonssporet
+        run: pnpm test:revisjon
+
       # Every route in the code against every path in the seven specs: coverage both
       # ways, methods, duplicate path keys, security per route and the kodeverk the
       # specs repeat. Needs neither stack nor model.

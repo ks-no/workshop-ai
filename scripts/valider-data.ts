@@ -991,7 +991,10 @@ if (!inntekter.some((r: any) => r.stadie === "UTKAST")) {
 if (!personer.some((p) => p.skjermet)) {
   throw new Error("Mangler minst én person med skjermet identitet.");
 }
-if (husstander.every(husstandsgrunnlag)) {
+// «uten inntektsopplysninger» er null, ikke usant. every() tester sannhetsverdi, så
+// household-011 med grunnlaget 0 oppfylte sjekken alene - og household-016, den
+// eneste som faktisk mangler opplysninger, kunne fjernes uten at noe ble rødt.
+if (!husstander.some((husstand) => husstandsgrunnlag(husstand) === null)) {
   throw new Error("Mangler minst én husstand uten inntektsopplysninger.");
 }
 
