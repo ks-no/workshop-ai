@@ -1357,13 +1357,16 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
  *
  * På grensen og ikke ved hvert kallsted: answer_question kalles fem steder, og en
  * fangst per sted er en fangst noen glemmer på det sjette.
+ *
+ * `state.awaiting` røres ikke, og det er ikke en forglemmelse: fangsten satte den
+ * til "question", så et 409 fra samtykkesteget flyttet sesjonen bort fra samtykket
+ * med en awaitingStepId som ikke pekte dit, og steget kunne ikke fullføres.
  */
 async function svarPaaMelding(state: Agentsesjon, message: string): Promise<string[]> {
   try {
     return await handleMessage(state, message);
   } catch (feil) {
     if (feil instanceof Verktoyfeil && feil.status >= 400 && feil.status < 500) {
-      state.awaiting = "question";
       return [feil.message];
     }
     throw feil;
@@ -1791,7 +1794,9 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
 
     if (intent.intent === "summary_no") {
       await invokeTool<Oektsvar>("previous_step", { oektsId: state.oektsId });
-      state.awaiting = null;
+      // `awaiting` nulles ikke her. advanceAndPrompt setter den for hver stegtype,
+      // og kaster den et 4xx, er «der innbyggeren sto» det riktige svaret - ikke
+      // null, som klienten leser som at prosessen er fullført (agent.ts:136).
       state.awaitingStepId = null;
       return [
         "Skjonner. Da gar vi tilbake sa du kan forbedre beskrivelsen av trafikkproblemet.",

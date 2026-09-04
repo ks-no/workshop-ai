@@ -1796,7 +1796,18 @@ for (const sak of deltakercaser.caser) {
       );
     }
   }
-  if (!sak.ordning) continue;
+  // Feltet sjekkes før `continue`-en: en rad uten ordning kan ikke ha et
+  // vandelsutfall, og uten dette hoppet en feilskrevet nøkkel på nettopp den raden
+  // stille - som er den feilformen sjekken under finnes for.
+  if (!sak.ordning) {
+    if (sak.forventetVandelsutfall !== undefined) {
+      throw new Error(
+        `${sak.prosessId} oppgir forventetVandelsutfall uten å peke på en ordning. ` +
+        "Feltet gjelder bare VANDELSKONTROLL-ordninger."
+      );
+    }
+    continue;
+  }
   const ordning = satser.ordninger.find((o) => o.id === sak.ordning);
   if (!ordning) {
     throw new Error(`data/deltakercaser.json peker på ordningen ${sak.ordning}, som ikke finnes.`);
@@ -1836,11 +1847,30 @@ for (const sak of deltakercaser.caser) {
       `Det er nøyaktig feilen som lå i SFO-caset: en anbefalt bruker som får avslag.`
     );
   }
-  // «innvilget» dekker to av vandelsgrenene, så grenen pinnes for seg.
-  if (sak.forventetVandelsutfall && vandelsutfall !== sak.forventetVandelsutfall) {
+  // «innvilget» dekker to av vandelsgrenene, så grenen pinnes for seg - og feltet
+  // er påkrevd framfor valgfritt: en `if (sak.forventetVandelsutfall && ...)` hopper
+  // stille om nøkkelen blir omdøpt eller feilskrevet, og da er dette en sjekk som
+  // ikke kan finne det den sjekker.
+  if (ordning.regel === "VANDELSKONTROLL") {
+    if (!sak.forventetVandelsutfall) {
+      throw new Error(
+        `${sak.prosessId} med ${sak.personId} peker på VANDELSKONTROLL-ordningen ` +
+        `${ordning.id}, men raden mangler forventetVandelsutfall. «innvilget» dekker ` +
+        `både godkjent og krever_manuell_vurdering, så utfallet må navngis. Gyldige: ` +
+        `${VANDELSUTFALL.join(", ")}.`
+      );
+    }
+    krevKodeverk(sak.prosessId, "forventetVandelsutfall", sak.forventetVandelsutfall, VANDELSUTFALL);
+    if (vandelsutfall !== sak.forventetVandelsutfall) {
+      throw new Error(
+        `data/deltakercaser.json venter vandelsutfallet ${sak.forventetVandelsutfall} for ` +
+        `${sak.personId} i ${sak.prosessId}, men regelen svarer ${vandelsutfall}.`
+      );
+    }
+  } else if (sak.forventetVandelsutfall) {
     throw new Error(
-      `data/deltakercaser.json venter vandelsutfallet ${sak.forventetVandelsutfall} for ` +
-      `${sak.personId} i ${sak.prosessId}, men regelen svarer ${vandelsutfall}.`
+      `${sak.prosessId} med ${sak.personId} oppgir forventetVandelsutfall, men ` +
+      `${ordning.id} bruker regelen ${ordning.regel}. Feltet gjelder bare VANDELSKONTROLL.`
     );
   }
 }
