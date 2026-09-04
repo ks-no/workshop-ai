@@ -136,6 +136,11 @@ i funksjonen `heuristicToolChoice` og ikke på toppnivå - og/eller et nytt verk
 
 ## Slik legger du til en ny case
 
+> [!TIP]
+> Oppskriften under er for rørleggingen, ikke for ideen. Er det ikke avgjort *hva*
+> casen skal være, begynn i `.claude/skills/nytt-bruksomraade/SKILL.md` framfor å
+> kopiere formen til en case som alt finnes.
+
 De fleste caser krever ingen kode i det hele tatt.
 
 | Jeg vil… | Rediger | Kode? |
