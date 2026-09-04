@@ -423,7 +423,6 @@ export const stegHandlers: Record<Stegtype, (k: StegContext) => unknown | Promis
           sporingsId: oekt.sporingsId,
           kontekst: {
             tjeneste: prosess.navn,
-            personId: oekt.personId,
             prosessId: oekt.prosessId,
             data: oekt.resultater,
             svar: oekt.svar

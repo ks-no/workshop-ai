@@ -1036,9 +1036,9 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "consent_response") {
-    const session = await api<{ aktivtSamtykkeId?: string }>(`/api/prosessoekter/${args.oektsId}`);
+    const session = await api<{ aktivtSamtykkeId?: string }>(`/api/prosessoekter/${argSti(args.oektsId)}`);
     if (!session.aktivtSamtykkeId) {
-      const opprett = await api<{ oekt?: { aktivtSamtykkeId?: string } }>(`/api/prosessoekter/${args.oektsId}/handling`, {
+      const opprett = await api<{ oekt?: { aktivtSamtykkeId?: string } }>(`/api/prosessoekter/${argSti(args.oektsId)}/handling`, {
         method: "POST",
         body: JSON.stringify({ handling: "opprett-samtykke" })
       });
