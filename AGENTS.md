@@ -267,9 +267,8 @@ getters.** Every runner and container is UTC, so this class is invisible in CI b
 construction - and it bites the machines that are not: parsing as UTC, computing
 with the local setters and going back out through `toISOString()` made
 `byggAttestbevis` write an expiry one day early in Europe/Oslo, and right in CI.
-Use UTC getters and setters, and inject a fixed UTC clock in tests. Use `alderVed`
-and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the rules once in
-Norwegian time.
+Use `alderVed` and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the
+rules once in Norwegian time.
 
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**
