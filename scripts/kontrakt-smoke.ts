@@ -721,7 +721,19 @@ async function krevIngenAdresselekkasje(personId: string) {
   const svar = await fetch(`${backendUrl}/api/revisjonslogg`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  const logg = JSON.stringify(await svar.json());
+  // hendelseId, sporingsId, oektsId and soknadId are Date.now() plus a few random
+  // base36 characters (newId in state.ts), and tidspunkt is an ISO timestamp -
+  // none of it is seed data. A 4-character postnummer like "8693" has roughly a
+  // 1-in-300000 chance of turning up inside one of those by pure coincidence, and
+  // the log holds hundreds of rows across a full run - so this check drops the
+  // volatile fields rather than stringifying the whole row, or a passing run
+  // would occasionally fail on nothing but bad luck.
+  const rader = (await svar.json()) as Record<string, unknown>[];
+  const logg = JSON.stringify(rader, (nokkel, verdi) =>
+    ["hendelseId", "sporingsId", "oektsId", "soknadId", "tidspunkt"].includes(nokkel)
+      ? undefined
+      : verdi
+  );
   const lekket = hemmeligheter.filter((hemmelig) => logg.includes(hemmelig));
   if (lekket.length) {
     throw new Error(
