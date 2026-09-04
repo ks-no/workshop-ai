@@ -15,6 +15,7 @@
  *      samtykkets formaal og grunnlag.
  *   3. Motor-stien (fartsdempende-tiltak) logger SJEKK_OK uten DATA_LES for
  *      sjekk-ressursen - og DATA_FETCH-steget logger fortsatt sin.
+ *   4. Et trukket samtykke tar inntekten ut av økten, og gjenlesingen logges.
  */
 
 import { spawn } from "node:child_process";
@@ -225,6 +226,93 @@ async function motorFartsdemping(token: string) {
     JSON.stringify(loggRader(rader, "DATA_LES")));
 }
 
+// --- 4. et trukket samtykke tar resultatet ut av økten ------------------------
+
+/*
+ * DATA_FETCH-resultatene ble liggende på økten og ble servert igjen på hver
+ * henting, uten at porten i runRessurs var innom. Trekker innbyggeren samtykket,
+ * skal inntekten ut av svaret - og gjenlesingen skal ha en rad, slik en direkte
+ * lesing har.
+ */
+async function trukketSamtykkeTommerOekten() {
+  // En annen person enn de tre foran: person-001 har alt et gyldig inntektssamtykke
+  // fra §2, og da er det riktige svaret at inntekten blir stående.
+  const token = await innbyggerAuth("person-003");
+  const opprettet = await kall(backendUrl, "/api/prosessoekter", token, {
+    method: "POST",
+    body: { personId: "person-003", prosessId: "redusert-foreldrebetaling-barnehage" }
+  });
+  const id = opprettet.kropp.oektsId;
+  const sporingsId = opprettet.kropp.sporingsId;
+
+  // INFO -> hent-husstand
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  // -> samtykke-inntekt
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const bedt = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  check("samtykket opprettes fra steget", bedt.status === 200, `status ${bedt.status}`);
+  const samtykkeId = bedt.kropp?.oekt?.aktivtSamtykkeId;
+  check("økten kjenner sitt aktive samtykke", Boolean(samtykkeId), JSON.stringify(bedt.kropp?.oekt?.aktivtSamtykkeId));
+  await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "SAMTYKKET" }
+  });
+  // -> hent-inntekt
+  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  const inntekt = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
+  check("inntektssteget svarer 200", inntekt.status === 200, `status ${inntekt.status}`);
+
+  const foer = await kall(backendUrl, `/api/prosessoekter/${id}`, token);
+  check(
+    "økten bærer inntektsresultatet mens samtykket står",
+    foer.kropp?.resultater?.["hent-inntekt"] !== undefined,
+    JSON.stringify(Object.keys(foer.kropp?.resultater || {}))
+  );
+  const etterFoerste = await loggFor(sporingsId);
+  check(
+    "gjenlesing med gyldig samtykke logges",
+    loggRader(etterFoerste, "DATA_LES", "inntekt").length >= 2,
+    JSON.stringify(loggRader(etterFoerste, "DATA_LES").map((rad) => rad.ressurs))
+  );
+
+  // Agentsløyfa poller denne ruten, og hver rad skriver hele revisjonsloggen om
+  // igjen. Én rad per kilde per økt, ikke én per henting.
+  for (let runde = 0; runde < 3; runde++) {
+    await kall(backendUrl, `/api/prosessoekter/${id}`, token);
+  }
+  const gjenlesinger = (await loggFor(sporingsId))
+    .filter((rad: any) => rad.formaal === "Gjenlesing av prosessøkt" && rad.ressurs === "inntekt");
+  check(
+    "gjentatt henting av økten gir ikke en rad per henting",
+    gjenlesinger.length === 1,
+    `fant ${gjenlesinger.length} gjenlesingsrader etter fire hentinger`
+  );
+
+  const fiksToken = await maskinAuth("ks:fiks:samtykke", "fiks-simulator");
+  const trukket = await kall(fiksUrl, `/fiks/samtykke/${samtykkeId}/trekk`, fiksToken, {
+    method: "PUT",
+    body: { sporingsId: "samtykke-trekk" }
+  });
+  check("samtykket trekkes", trukket.status === 200, `status ${trukket.status}`);
+
+  const etter = await kall(backendUrl, `/api/prosessoekter/${id}`, token);
+  check("økten svarer fortsatt 200 etter trekket", etter.status === 200, `status ${etter.status}`);
+  check(
+    "inntektsresultatet er ute av økten når samtykket er trukket",
+    etter.kropp?.resultater?.["hent-inntekt"] === undefined,
+    JSON.stringify(Object.keys(etter.kropp?.resultater || {}))
+  );
+  check(
+    "husstanden, som ikke krever samtykke, står igjen",
+    etter.kropp?.resultater?.["hent-husstand"] !== undefined,
+    JSON.stringify(Object.keys(etter.kropp?.resultater || {}))
+  );
+}
+
 // --- run ---------------------------------------------------------------------
 
 async function run() {
@@ -268,6 +356,7 @@ async function run() {
     await direkteEierforhold(fnr, token);
     await direkteRegelsjekk(fnr, token);
     await motorFartsdemping(token);
+    await trukketSamtykkeTommerOekten();
   } finally {
     for (const tjeneste of tjenester) {
       tjeneste.kill("SIGTERM");

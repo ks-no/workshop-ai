@@ -2,7 +2,8 @@ import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { aktorFor, type Caller } from "./autentisering.ts";
 import { aiBaseUrl, fiksBaseUrl, fiksDialogToken } from "./config.ts";
 import { HttpError } from "./errors.ts";
-import { runRessurs } from "./ressurser.ts";
+import { findRessurs, runRessurs, samtykkekildeFor } from "./ressurser.ts";
+import { hasGyldigSamtykke } from "./regler.ts";
 import { addRevisjon } from "./revisjon.ts";
 import { updateJson } from "../../shared/jsonstore.ts";
 import type { Person } from "../../shared/innbyggerdata.ts";
@@ -111,9 +112,73 @@ function replaceParametere(url: string, oekt: Prosessoekt) {
   return result;
 }
 
-export function buildProsessoektRespons(oekt: Prosessoekt, prosess: ProsessDefinisjon | null) {
+// Katalogen håndhever samtykket, så kilden leses derfra og ikke fra stegets
+// eget kreverSamtykke - to erklæringer kunne bare komme ut av takt.
+function samtykkekildeForSteg(
+  tilstand: State,
+  oekt: Prosessoekt,
+  steg: ProsessSteg | undefined,
+  kaller: Caller
+): string | null {
+  if (!steg || steg.type !== "DATA_FETCH" || !steg.api?.url) return null;
+  const url = new URL(`http://localhost${replaceParametere(steg.api.url, oekt)}`);
+  const treff = findRessurs(steg.api.method || "GET", url.pathname);
+  if (!treff) return null;
+  const { ressurs, parametere } = treff;
+  const sok = url.searchParams;
+  return samtykkekildeFor(ressurs, {
+    tilstand,
+    parametere,
+    sok,
+    // Samme rekkefølge som runRessurs: en kilde som avhenger av ?personId= skal
+    // avgjøres likt når data hentes og når økten serverer dem om igjen.
+    personId: parametere.personId || sok.get("personId") || oekt.personId || "",
+    sporingsId: oekt.sporingsId,
+    oekt,
+    steg,
+    kaller
+  });
+}
+
+/**
+ * Resultatene økten kan svare med nå, ikke de den kunne svare med da stegene kjørte.
+ *
+ * Et samtykke kan være trukket eller ha utløpt i mellomtiden, og uten dette
+ * serverte hver henting av økten dem ut igjen uten at porten var innom.
+ */
+export function resultaterNaa(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon | null,
+  kaller: Caller
+) {
+  const beholdt: Record<string, unknown> = {};
+  const gjenlest = new Set<string>();
+  for (const [stegId, resultat] of Object.entries(oekt.resultater || {})) {
+    const steg = prosess?.steg?.find((kandidat) => kandidat.id === stegId);
+    const kilde = samtykkekildeForSteg(tilstand, oekt, steg, kaller);
+    if (!kilde) {
+      beholdt[stegId] = resultat;
+      continue;
+    }
+    if (hasGyldigSamtykke(tilstand, oekt.personId, kilde, oekt.aktivtSamtykkeId)) {
+      beholdt[stegId] = resultat;
+      gjenlest.add(kilde);
+    }
+  }
+  return { resultater: beholdt, gjenlest: [...gjenlest] };
+}
+
+export function buildProsessoektRespons(
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon | null,
+  // Påkrevd med vilje: med en standardverdi ville en ny rute som glemmer den
+  // servert ugjennomgåtte resultater, og det ville typesjekket.
+  resultater: Record<string, unknown>
+) {
   return {
     ...oekt,
+    resultater,
     aktivtSteg: prosess?.steg?.[oekt.stegIndex] || null,
     totaltAntallSteg: prosess?.steg?.length || 0
   };

@@ -583,6 +583,14 @@ export const ressurser: Ressurs[] = [
 
 const kompilerte = ressurser.map((ressurs) => ({ ressurs, monster: compilePathPattern(ressurs.sti) }));
 
+/**
+ * Samtykket en ressurs krever for dette kallet. Én avgjørelse, to lesere: porten i
+ * runRessurs når data hentes, og prosess.ts når økten serverer dem om igjen.
+ */
+export function samtykkekildeFor(ressurs: any, kontekst: RessursContext): Datakilde | null {
+  return (ressurs.kreverSamtykkeFor ? ressurs.kreverSamtykkeFor(kontekst) : ressurs.kreverSamtykke) ?? null;
+}
+
 export function findRessurs(metode: string, sti: string) {
   for (const { ressurs, monster } of kompilerte) {
     if (ressurs.metode !== metode) continue;
@@ -703,9 +711,7 @@ export async function runRessurs(
     ? { omfatter }
     : {};
 
-  const kreverSamtykke = ressurs.kreverSamtykkeFor
-    ? ressurs.kreverSamtykkeFor(kontekst)
-    : ressurs.kreverSamtykke;
+  const kreverSamtykke = samtykkekildeFor(ressurs, kontekst);
 
   let samtykke = null;
   if (kreverSamtykke) {
