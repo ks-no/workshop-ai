@@ -14,7 +14,7 @@ Bakgrunn:
 - Derfor holder vi `matrikkel-mock` lett og lokalt syntetisk, samtidig som vi beholder håndkuraterte demo-gater som `Storgata`, `Nordnesveien`, `Fjøsangerveien` og `Laksevågvegen`.
 - Adressegrunnlaget hentes med `node scripts/hent-matrikkel.ts`, som henter de gatene befolkningen faktisk bor i fra Geonorges adresse-API. Nett kreves når skriptet kjøres, ikke når sandkassen kjører.
 
-Seedfila er stabil og skal være nok for vanlig lokal utvikling. Ved enkelte oppslag kan mocken hente data fra Geonorge dersom et treff mangler i seeden.
+Seedfilen er stabil og skal være nok for vanlig lokal utvikling. Ved enkelte oppslag kan mocken hente data fra Geonorge dersom et treff mangler i seeden.
 
 ## Kjør lokalt med Node
 

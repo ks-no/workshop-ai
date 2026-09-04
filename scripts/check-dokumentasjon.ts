@@ -390,7 +390,7 @@ for (const file of markdown) {
   const missing = [...toolNames].filter((n) => !named.has(n));
   if (missing.length > 0) {
     failures.push(
-      `${file}: verktøylista er ute av takt med apps/tools-api/src/server.ts ` +
+      `${file}: verktøylisten er ute av takt med apps/tools-api/src/server.ts ` +
       `(${toolNames.size} verktøy). Mangler: ${missing.join(", ")}. ` +
       `Rett listen, eller slett den og pek på GET /verktoy.`
     );

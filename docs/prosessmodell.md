@@ -174,7 +174,7 @@ En ny ressurs ser slik ut:
 ## Substitusjon i tekst og URL-er
 
 Svaret fra et `QUESTION`-steg kan brukes videre med `{svar.<stegId>}`, og `{personId}`
-fylles alltid inn fra økta. `fartsdempende-tiltak` er eksempelet å se på:
+fylles alltid inn fra økten. `fartsdempende-tiltak` er eksempelet å se på:
 
 ```json
 { "id": "hent-gate", "type": "DATA_FETCH",

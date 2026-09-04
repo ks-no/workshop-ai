@@ -176,7 +176,7 @@ function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresul
      * (chooseKanal i fiks-simulator), og en kopi av regelen her ville vært en
      * andre implementasjon som kan gli fra den ekte. Predikatet er derfor
      * SvarUt sitt eget første trinn - kan varsles og ikke reservert - og
-     * statuslinja etter innsending navngir kanalen som ble valgt.
+     * statuslinjen etter innsending navngir kanalen som ble valgt.
      */
     // Bekreftelsen på formål. Dette er dokumentet søkeren skal ta med til politiet,
     // så hjemmelen og attesttypen må fram - ikke «steget ble gjennomført».
@@ -755,7 +755,7 @@ function addDokumentboble(dokument: string): void {
 }
 
 /*
- * Statuslinja skrives om i stedet for å få en ny boble per runde: seks linjer
+ * Statuslinjen skrives om i stedet for å få en ny boble per runde: seks linjer
  * sier ingenting mer enn den siste, og MOTTATT → SENDT → LEST er en bevegelse
  * man skal se, ikke lese seg gjennom. Spinneren står så lenge det kan komme
  * mer, og forsvinner når statusen er endelig - ellers spinner den for alltid.
@@ -822,7 +822,7 @@ async function followForsendelse(soknadId: string): Promise<void> {
 
 /*
  * Kanalen navngis ikke her. Den avgjøres av SvarUt ut fra kontaktregisteret, og
- * statuslinja leser den avgjørelsen - SENDT_DIGITALT/LEST mot SENDT_PRINT/
+ * statuslinjen leser den avgjørelsen - SENDT_DIGITALT/LEST mot SENDT_PRINT/
  * PRINTET er kanalvalget, sett fra utsiden.
  *
  * Kvitteringen er best effort, så en søknad kan være lagret uten at noe ble

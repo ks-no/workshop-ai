@@ -133,7 +133,7 @@ for (const line of output.text.split("\n")) {
 if (!output.text.includes("FULLFORT")) {
   failures.push(
     `${file}: barnehageflyten i §4 nådde ikke status FULLFORT. ` +
-    `Kokeboka påstår at den gjør det, så enten stoppet et steg eller så er teksten gal.`
+    `Kokeboken påstår at den gjør det, så enten stoppet et steg eller så er teksten gal.`
   );
 }
 
@@ -145,12 +145,12 @@ if (output.code !== 0) {
 }
 
 if (failures.length > 0) {
-  console.error(`\n${failures.length} problem(er) i kokeboka:`);
+  console.error(`\n${failures.length} problem(er) i kokeboken:`);
   for (const failure of failures) console.error(`  - ${failure}`);
   console.error(
-    `\nKokeboka lover at «virker et kall ikke, er det en reell feil». ` +
+    `\nKokeboken lover at «virker et kall ikke, er det en reell feil». ` +
     `Enten er kallet galt, eller så er koden det.`
   );
   process.exit(1);
 }
-console.log("Alle kall i kokeboka svarer som dokumentert.");
+console.log("Alle kall i kokeboken svarer som dokumentert.");

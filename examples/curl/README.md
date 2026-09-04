@@ -1,6 +1,6 @@
 # Curl-kokebok
 
-**Flytene, ikke rutelista.** Trenger du å vite hvilke ruter som finnes, hva de tar imot og
+**Flytene, ikke rutelisten.** Trenger du å vite hvilke ruter som finnes, hva de tar imot og
 hvordan et enkelt kall ser ut, bruk <http://localhost:3001/utforsker>: den leser
 spesifikasjonene tjenestene selv serverer, velger riktig token for ruten, og skriver ut en
 `curl` som virker når den limes inn. En rutetabell her ville vært en kopi som driver.
@@ -128,7 +128,7 @@ curl -s -m 180 -X POST "$API/$OEKT/handling" -H "$AUTH" -H "$JSON" -d '{}'   # 5
 neste
 steg                                                         # 6 SUBMIT
 
-# Hele økta. Skal ha status FULLFORT.
+# Hele økten. Skal ha status FULLFORT.
 curl -s "$API/$OEKT" -H "$AUTH"
 ```
 
@@ -184,7 +184,7 @@ hentes fra **samtykket**, ikke fra kallet.
 Symptomene som gjelder hele sandkassen - `401` på alt (utløpt token inkludert),
 «fetch failed» på matrikkel, maltekst du ikke ba om, nullstilling - står i
 `docs/feilsoking.md`, ett symptom per avsnitt med årsak og løsning. Her er bare det
-som er spesifikt for kokeboka:
+som er spesifikt for kokeboken:
 
 | Symptom | Årsak |
 |---|---|

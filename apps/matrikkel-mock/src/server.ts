@@ -504,7 +504,7 @@ async function readJsonRegister(fil: string): Promise<Register> {
  * de importen skriver, se scripts/hent-matrikkel.js.
  */
 type FlatLinje = Partial<Gate> & Partial<Eiendom> & {
-  /** "meta" på provenienslinja øverst i filen. */
+  /** "meta" på provenienslinjen øverst i filen. */
   type?: string;
   /** Det nestede formatet: gate og eiendom hver for seg i stedet for flatt. */
   gate?: Partial<Gate>;
