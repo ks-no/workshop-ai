@@ -55,6 +55,9 @@ const files = [
   "data/satser.json",
   "data/prosessdefinisjoner.json",
   "data/informasjonsmodeller.json",
+  // Med i listen selv om ingen sjekk under leser innholdet: den er sporet seed-data,
+  // og uten den nådde verken parse-sikringen eller antall-sjekken den.
+  "data/brreg.seed.json",
   "data/folkeregister.seed.json",
   "data/kuratert.json",
   "data/matrikkel.seed.json",
@@ -73,29 +76,92 @@ const files = [
 // under jobber mot Person, Husstand og Satser og ikke mot any. Datasett uten en
 // egen type i sandbox-backend leses som `any` - de er rene fikstur-filer, og en
 // håndlaget type her ville blitt en syvende kopi av formen.
-async function read<T = any>(fil: string): Promise<T> {
-  return JSON.parse(await readFile(fil, "utf8")) as T;
+//
+// Husker det den har lest: filene under leses både av løkken rett nedenfor og ved
+// navn lenger nede, og matrikkel.json er 12 MB av de 14. Uten dette parses den
+// filen tre ganger for å svare på tre spørsmål om den.
+const tekster = new Map<string, string>();
+const parset = new Map<string, unknown>();
+
+async function readText(fil: string): Promise<string> {
+  let tekst = tekster.get(fil);
+  if (tekst === undefined) {
+    tekst = await readFile(fil, "utf8");
+    tekster.set(fil, tekst);
+  }
+  return tekst;
 }
 
-for (const fil of files) {
-  await read(fil);
+async function read<T = any>(fil: string): Promise<T> {
+  if (!parset.has(fil)) {
+    parset.set(fil, JSON.parse(await readText(fil)));
+  }
+  return parset.get(fil) as T;
 }
 
 /*
- * Lovnavnene i dataene, mot korttitlene lovene faktisk har.
+ * `antall` mot lengden på listen, og lovnavnene mot korttitlene lovene har.
  *
- * Et lovnavn er bare en streng i en `kilde` eller en `hjemmel`, så en
- * målformopprydding kan døpe om en lov uten at noe blir rødt. Det skjedde:
- * `Opplæringslova` - den offisielle korttittelen på 2023-loven, som er nynorsk -
- * ble skrevet om til `opplæringsloven` sammen med en runde ekte skrivefeil.
- * Navnene vises til innbyggeren i vedtaket, så feil navn er feil hjemmel.
+ * Én løkke, fordi begge spørsmålene gjelder hver fil og filen bare skal leses én
+ * gang. At filen i det hele tatt parser, faller ut av det samme kallet.
  *
- * Leser hele filen som tekst framfor å gå gjennom feltene: navnene står i `kilde`,
- * `hjemmel`, `formaal`, `hensikt` og `beskrivelse`, og en liste over felter her
+ * `antall`: to av de fire filene som fører feltet hadde sjekken, hver som sin egen
+ * hardkodede linje, så `politiattester.json` og `legeerklaeringer.json` sto
+ * usjekket - og en ny fil ville stått usjekket også.
+ *
+ * Lovnavn: et lovnavn er bare en streng i en `kilde` eller en `hjemmel`, så en
+ * målformopprydding kan døpe om en lov uten at noe blir rødt. Det skjedde med
+ * `Opplæringslova`, den offisielle korttittelen på 2023-loven. Navnene vises til
+ * innbyggeren i vedtaket, så feil navn er feil hjemmel. Leser hele filen som tekst
+ * framfor å gå gjennom feltene: en liste over hvilke felter som kan bære et lovnavn
  * ville vært den listen som drev neste gang et felt kom til.
  */
-for (const fil of files) {
-  const tekst = await readFile(fil, "utf8");
+/*
+ * Filene som fører et `antall`. Erklært framfor utledet: åtte andre filer har
+ * nøyaktig én liste på toppnivå uten å føre feltet, så formen kan ikke avgjøre det.
+ * Begge veier, slik at listen ikke kan bli foreldet i stillhet - en fil som mister
+ * feltet er en feil, og en fil som får det uten å stå her er det også.
+ *
+ * «Begge veier» rekker så langt som `files` over. Den listen er nå hver sporet fil
+ * under `data/`; `data/tenor/*.json` er utenfor med vilje, som eksterne uttrekk.
+ */
+const FILER_MED_ANTALL = [
+  "data/eierforhold.json",
+  "data/folkeregister.seed.json",
+  "data/legeerklaeringer.json",
+  "data/politiattester.json"
+];
+
+function krevAntall(fil: string, innhold: any): void {
+  const skalHa = FILER_MED_ANTALL.includes(fil);
+  const har = Boolean(innhold) && typeof innhold === "object" && typeof innhold.antall === "number";
+  if (!skalHa && !har) return;
+  if (!skalHa) {
+    throw new Error(
+      `${fil} fører et antall-felt uten å stå i FILER_MED_ANTALL i scripts/valider-data.ts. ` +
+      "Før den opp, ellers telles feltet av ingen."
+    );
+  }
+  if (!har) {
+    throw new Error(
+      `${fil} skal føre antall som et tall, men feltet er ${JSON.stringify(innhold?.antall)}. ` +
+      "Fjernes feltet med vilje, må filen ut av FILER_MED_ANTALL."
+    );
+  }
+  const lister = Object.entries(innhold).filter(([, verdi]) => Array.isArray(verdi));
+  if (lister.length !== 1) {
+    throw new Error(
+      `${fil} oppgir antall=${innhold.antall}, men har ${lister.length} lister på toppnivå. ` +
+      "Med flere lister sier ikke feltet hva det teller, og sjekken kan ikke avgjøre det."
+    );
+  }
+  const [navn, rader] = lister[0] as [string, unknown[]];
+  if (innhold.antall !== rader.length) {
+    throw new Error(`${fil} sier antall=${innhold.antall} men har ${rader.length} rader i ${navn}.`);
+  }
+}
+
+function krevLovnavn(fil: string, tekst: string): void {
   // Et registrert sitat som er borte er en feil i seg selv: fritaket slipper gjennom
   // en skrivemåte, men fanger ikke at noen retter selve sitatet til korttittelen.
   for (const sitat of bortkomneSitater(fil, tekst)) {
@@ -113,6 +179,11 @@ for (const fil of files) {
       "Er skrivemåten et sitat som skal stå, hører den i SITERTE_LOVNAVN med filen, " +
       "teksten og begrunnelsen - ikke rett den, og ikke legg den i LOVTITLER. ");
   }
+}
+
+for (const fil of files) {
+  krevAntall(fil, await read(fil));
+  krevLovnavn(fil, await readText(fil));
 }
 
 const personer = await read<Person[]>("data/personer.json");
@@ -616,11 +687,6 @@ for (const husstand of husstander) {
 // is the FREG-shaped mirror. Both are written by the same import and both hold
 // every person; nothing but this check holds them together.
 const freg = await read("data/folkeregister.seed.json");
-if (freg.antall !== freg.personer.length) {
-  throw new Error(
-    `folkeregister.seed.json sier antall=${freg.antall} men har ${freg.personer.length} personer.`
-  );
-}
 const fregPerPersonId = new Map<string, any>(freg.personer.map((p: any) => [p._sandbox?.personId, p]));
 if (fregPerPersonId.size !== freg.personer.length) {
   throw new Error("folkeregister.seed.json har to rader med samme _sandbox.personId.");
@@ -842,12 +908,6 @@ for (const person of personer) {
 // distribution is derived now - a household owns the home it lives in - and this
 // is what stops it drifting back.
 const eierforhold = await read("data/eierforhold.json");
-if (eierforhold.antall !== eierforhold.eierforhold.length) {
-  throw new Error(
-    `eierforhold.json sier antall=${eierforhold.antall} men har ` +
-    `${eierforhold.eierforhold.length} rader.`
-  );
-}
 const EIERFORMER = new Set(["SELVEIER", "UTLEIE", "UOPPGJORT_DODSBO"]);
 const eidAv = new Map();
 const seetteMatrikkelIder = new Set();

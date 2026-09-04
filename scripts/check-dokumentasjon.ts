@@ -97,6 +97,14 @@ const sources = {
     source: "apps/tools-api/src/server.ts"
   },
   ordninger: { count: count("data/satser.json", "ordninger"), source: "data/satser.json" },
+  // «8 politiattester» sto i docs/syntetiske-data.md etter at den niende kom til,
+  // og ingen sjekk talte dem. Legeerklæringene sto ved siden av og var riktige, som
+  // er nettopp hvorfor tallet ikke er verdt å ha i prosa uten en kilde.
+  politiattester: { count: count("data/politiattester.json", "attester"), source: "data/politiattester.json" },
+  "legeerklæringer": {
+    count: count("data/legeerklaeringer.json", "legeerklaeringer"),
+    source: "data/legeerklaeringer.json"
+  },
   personer: { count: count("data/personer.json"), source: "data/personer.json" },
   husstander: { count: count("data/husstander.json"), source: "data/husstander.json" },
   datasett: {
@@ -146,18 +154,23 @@ const specTotals = {
 type SpecKind = keyof typeof specTotals;
 
 /** Nouns counted per spec rather than against one global source. */
-const SPEC_NOUNS: Record<string, SpecKind> = {
+const NORSKE_SPEC_NOUNS: Record<string, SpecKind> = {
   stier: "stier",
   stiene: "stier",
   ruter: "ruter",
   rutene: "ruter",
   endepunkter: "ruter",
-  endepunktene: "ruter",
-  // English forms, digits only, like the English forms in NOUNS.
+  endepunktene: "ruter"
+};
+
+// English forms, digits only, like the English forms in NOUNS.
+const ENGELSKE_SPEC_NOUNS: Record<string, SpecKind> = {
   paths: "stier",
   routes: "ruter",
   endpoints: "ruter"
 };
+
+const SPEC_NOUNS: Record<string, SpecKind> = { ...NORSKE_SPEC_NOUNS, ...ENGELSKE_SPEC_NOUNS };
 
 /** The spec a claim is about: same line, then same paragraph, then app directory. */
 function resolveSpec(file: string, lines: string[], lineIndex: number): string | undefined {
@@ -178,7 +191,7 @@ function resolveSpec(file: string, lines: string[], lineIndex: number): string |
 }
 
 /** Plural forms as the prose actually writes them, mapped to their source. */
-const NOUNS: Record<string, Category> = {
+const NORSKE_NOUNS: Record<string, Category> = {
   tjenester: "tjenester",
   tjenestene: "tjenester",
   spesifikasjoner: "spesifikasjoner",
@@ -191,14 +204,24 @@ const NOUNS: Record<string, Category> = {
   husstander: "husstander",
   husstandene: "husstander",
   datasett: "datasett",
-  /*
-   * English forms, for the English files: AGENTS.md, CLAUDE.md and
-   * .github/copilot-instructions.md. A count there drifts exactly like a Norwegian one.
-   * The four app READMEs that used to be English are Norwegian now, so this is the
-   * whole English surface, and it is small: the only claim that reaches these today is
-   * "25 tool endpoints" in AGENTS.md, silenced in EXCEPTIONS below because it is right.
-   * Only digits count in front of them - see WORD_NUMBER_NOUNS.
-   */
+  politiattester: "politiattester",
+  politiattestene: "politiattester",
+  "legeerklæringer": "legeerklæringer",
+  "legeerklæringene": "legeerklæringer",
+};
+
+/*
+ * English forms, for the English files: AGENTS.md, CLAUDE.md and
+ * .github/copilot-instructions.md. A count there drifts exactly like a Norwegian one.
+ * The four app READMEs that used to be English are Norwegian now, so this is the
+ * whole English surface, and it is small: the only claim that reaches these today is
+ * "25 tool endpoints" in AGENTS.md, silenced in EXCEPTIONS below because it is right.
+ *
+ * Their own list, not a comment inside the Norwegian one: only digits count in front
+ * of these - see WORD_NUMBER_NOUNS - so the consistency check below has to be able to
+ * tell the two halves apart without a third hand-kept copy of this list.
+ */
+const ENGELSKE_NOUNS: Record<string, Category> = {
   services: "tjenester",
   specifications: "spesifikasjoner",
   tools: "verktøy",
@@ -207,6 +230,8 @@ const NOUNS: Record<string, Category> = {
   households: "husstander",
   datasets: "datasett"
 };
+
+const NOUNS: Record<string, Category> = { ...NORSKE_NOUNS, ...ENGELSKE_NOUNS };
 
 /*
  * A spelled-out number is only read as a count in front of a Norwegian noun.
@@ -218,8 +243,30 @@ const WORD_NUMBER_NOUNS = new Set([
   "tjenester", "tjenestene", "spesifikasjoner", "spesifikasjonene", "verktøy",
   "ordninger", "ordningene", "personer", "personene", "husstander",
   "husstandene", "datasett", "stier", "stiene", "ruter", "rutene",
-  "endepunkter", "endepunktene"
+  "endepunkter", "endepunktene",
+  "politiattester", "politiattestene", "legeerklæringer", "legeerklæringene"
 ]);
+
+/*
+ * Hvert norsk tellenavn skal stå i WORD_NUMBER_NOUNS.
+ *
+ * Et navn som mangler der hopper stille over hver påstand der tallet er skrevet med
+ * bokstaver: «åtte politiattester» ble aldri sammenlignet med filen, mens «8
+ * politiattester» ble. Det var nettopp den drifta tellingen ble lagt inn for å fange.
+ *
+ * Begge listene, fordi `nounPattern` bygges av begge - `ruter` og `stier` bor i
+ * SPEC_NOUNS og har samme hull. Kastes her framfor å telles som en feil i
+ * dokumentasjonen, fordi det er skriptet som er ute av takt med seg selv.
+ */
+for (const navn of [...Object.keys(NORSKE_NOUNS), ...Object.keys(NORSKE_SPEC_NOUNS)]) {
+  if (WORD_NUMBER_NOUNS.has(navn)) continue;
+  throw new Error(
+    `«${navn}» er et norsk tellenavn som ikke står i WORD_NUMBER_NOUNS i ` +
+    "scripts/check-dokumentasjon.ts. Da hoppes hver påstand med tallet skrevet ut, " +
+    "i stillhet. Før ordet opp der også - eller, er det et engelsk ord, i " +
+    "ENGELSKE_NOUNS eller ENGELSKE_SPEC_NOUNS, der bare sifre teller."
+  );
+}
 
 const NUMBER_WORDS: Record<string, number> = {
   én: 1, en: 1, ett: 1, to: 2, tre: 3, fire: 4, fem: 5, seks: 6, sju: 7, syv: 7,

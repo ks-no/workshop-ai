@@ -25,6 +25,8 @@ fødselsnummer og samtykkets kodeverk.
 | `skjerming.ts` | Maskering av adressebeskyttede personer | `sandbox-backend`, `fiks-simulator` |
 | `handleevne.ts` | Hvem som kan opptre, og på hvems vegne | `sandbox-backend`, `digdir-mock` |
 | `samtykke.ts`, `statemachine.ts` | Samtykkets kodeverk, tilstandsmaskin og utløp | `sandbox-backend`, `fiks-simulator` |
+| `legeerklaering.ts` | Formen på en legeerklæring, og hvilken som gjelder | `pasientjournal-mock`, `sandbox-backend`, porten |
+| `politiattest.ts` | Formen på en politiattest, de fire kodeverkene og attesten som gjelder for et formål | `politiattest-mock`, `sandbox-backend`, porten |
 | `felles.css` | Stilen `demo-gui` og `process-builder` faktisk bruker | samme |
 | `ds-base.css`, `ds-ksdigital.css` | KS Digital designsystem, vendoret som ren CSS | `ds-eksempel.html` |
 

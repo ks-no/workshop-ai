@@ -53,7 +53,9 @@ differ, and let the participant choose before anything is built.
 `.claude/skills/nytt-bruksomraade/SKILL.md` carries the procedure and the axes the
 alternatives have to differ on. Follow it. Skip it when the participant has already
 decided. The rule is against building the default unexamined, not against
-building.
+building. Once it is decided,
+[Adding a new case: what the last one taught](#adding-a-new-case-what-the-last-one-taught)
+is the list of checks the last case turned out to need.
 
 What gets reused is the floor, not the shape: the frozen wire format, the consent
 gate, rules outside the model, and the audit trail. What must not be assumed is the
@@ -229,6 +231,10 @@ chat, or that every service is a søknad.
 
 ## Adding a new case: what the last one taught
 
+This section is about the checks a case needs once it is decided what to build.
+[New use-cases: diverge before you build](#new-use-cases-diverge-before-you-build)
+is about the step before it, and is the one to read first.
+
 The politiattest case was reviewed end to end after it landed, and the bugs it
 turned up were not in the prose - every one of them sat under a paragraph in this
 file that described the intended behaviour correctly. What was missing was a check
@@ -255,7 +261,11 @@ works.
 VANDELSKONTROLL branches were counted across all three ordninger, so barnehage
 covered skole's - and `politiattest-skole` turned out to declare an absolute
 exclusion no test person ever triggered. Count per member unless there is a stated
-reason not to, and then state it.
+reason not to, and then state it. Only `absolutt_utelukkelse` is counted per
+ordning today (`scripts/valider-data.ts`, `utelukketPerOrdning`); the other five
+branches are still counted across the group, with the reason in a comment beside
+them - `stottekontakt` cannot reach an absolute exclusion at all, because the law
+leaves every anmerkning there to skjønn.
 
 **A union type over data from a file is documentation, not a check.**
 `absoluttUtelukkelse?: Anmerkningskategori[]` is erased at runtime. Validate the
