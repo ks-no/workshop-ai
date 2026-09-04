@@ -598,7 +598,9 @@ const kompilerte = ressurser.map((ressurs) => ({ ressurs, monster: compilePathPa
  * Samtykket en ressurs krever for dette kallet. Én avgjørelse, to lesere: porten i
  * runRessurs når data hentes, og prosess.ts når økten serverer dem om igjen.
  */
-export function samtykkekildeFor(ressurs: any, kontekst: RessursContext): Datakilde | null {
+export function samtykkekildeFor(ressurs: Ressurs, kontekst: RessursContext): Datakilde | null {
+  // `Ressurs` og ikke `any`: med `any` lot en omdøpt `kreverSamtykkeFor` seg
+  // kompilere og svarte `null` - en port som åpner i taushet.
   return (ressurs.kreverSamtykkeFor ? ressurs.kreverSamtykkeFor(kontekst) : ressurs.kreverSamtykke) ?? null;
 }
 

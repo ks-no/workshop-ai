@@ -101,6 +101,10 @@ paths:
         Ett kall per linje, nyeste øverst, med full prompt og fullt svar før
         heuristikk og validering har vært innom. Sporet ligger i
         `state/ai-trace.jsonl` og nullstilles av `./start.sh --reset`.
+
+        Tar bare kall fra tjenestens egen side, eller fra en klient uten
+        Origin-header, som `curl`. CORS er «*» og sporet bærer hele prompten, så
+        uten det kunne enhver nettside i deltakerens nettleser lese den.
       parameters:
         - { in: query, name: limit, schema: { type: integer, default: 50 } }
         - { in: query, name: sporingsId, schema: { type: string } }
@@ -111,14 +115,21 @@ paths:
           content:
             text/html:
               schema: { type: string }
+        "403":
+          description: Origin-headeren peker et annet sted enn tjenesten selv
   /trace.json:
     get:
       summary: KI-spor som JSON
+      description: |
+        Samme spor som `/trace`, og samme vakt: bare kall fra tjenestens egen side
+        eller fra en klient uten Origin-header.
       parameters:
         - { in: query, name: limit, schema: { type: integer, default: 50 } }
         - { in: query, name: sporingsId, schema: { type: string } }
         - { in: query, name: task, schema: { type: string }, example: oppsummering }
       responses:
+        "403":
+          description: Origin-headeren peker et annet sted enn tjenesten selv
         "200":
           description: Sporlinjer, nyeste først
           content:

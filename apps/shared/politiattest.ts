@@ -1,4 +1,3 @@
-import { maanederEtter } from "./alder.ts";
 // Politiattesten: formen, kodeverkene, og valget av hvilken attest som gjelder.
 //
 // Her fordi tre lesere trenger den. politiattest-mock serverer attestene,
@@ -6,6 +5,8 @@ import { maanederEtter } from "./alder.ts";
 //
 // Rent og synkront, som legeerklaering.ts og alder.ts: utfallet skal kunne pinnes
 // med literal-data og ingen tjenester i gang.
+
+import { maanederEtter } from "./alder.ts";
 
 /**
  * Attesttypene politiregisterloven skiller mellom, pluss den ene sandkassen må

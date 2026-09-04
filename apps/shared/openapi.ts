@@ -767,8 +767,11 @@ export function hjemmelFor(route: Route): string {
  *
  * Grunnen til at den genereres: en håndskrevet liste er en tredje sannhet ved
  * siden av koden og spesifikasjonen, og de to første holdes i takt av
- * pnpm test:openapi mens den tredje driver i stillhet. Tjenestene som allerede
- * har en håndskrevet side beholder den; denne er for de som ikke har noen.
+ * pnpm test:openapi mens den tredje driver i stillhet. Det er ikke teoretisk -
+ * pasientjournal-mock sin håndskrevne side viste en rute uten fnr, som svarer 400.
+ *
+ * Fem tjenester har fortsatt en håndskrevet side: matrikkel-mock, ai-gateway,
+ * fiks-simulator, digdir-mock og sandbox-backend. De bør hit, én om gangen.
  */
 export function docsHtml(overview: RouteOverview, explorer = "http://localhost:3001/explorer"): string {
   const rows = overview.ruter
