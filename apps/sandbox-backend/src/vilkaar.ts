@@ -416,7 +416,7 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
       );
     }
 
-    // Bare dommen utelukker. Barnehageloven § 30 og opplæringsloven § 17-11
+    // Bare dommen utelukker. Barnehageloven § 30 og opplæringslova § 17-11
     // utelukker den som er dømt, ikke den som er siktet eller tiltalt - og
     // uskyldspresumsjonen er hele grunnen til at reaksjonen står på attesten.
     const absolutte = ordning.absoluttUtelukkelse ?? [];

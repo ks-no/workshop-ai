@@ -96,7 +96,9 @@ chat, or that every service is a søknad.
   `skjerming.ts` (masking), `samtykke.ts` (the samtykke kodeverk and expiry),
   `legeerklaering.ts` (the shape of a legeerklæring, and which one is the current
   one - read by the journal mock, the backend and the gate), `politiattest.ts` (the
-  shape of a politiattest, its four kodeverk, and which attest applies for a formål). None of
+  shape of a politiattest, its four kodeverk, and which attest applies for a formål),
+  `hjemmel.ts` (the short title each act this sandbox cites actually has, and the
+  spellings that are quotations - see Language point 5). None of
   them may import `regler.ts`. `vilkaar.ts` (the vedtak) is the same kind of module but
   stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
@@ -132,7 +134,7 @@ chat, or that every service is a søknad.
   `innbyggerdata.ts` (the shapes of `personer.json`,
   `husstander.json`, the two plass-datasets and `samtykker.json` - `sandbox-backend` and
   `fiks-simulator`), `jsonstore.ts` (`seedDir`/`stateDir`, `readJson`, `updateJson` - the
-  state I/O above and the one write queue that replaced three copies of it), the six
+  state I/O above and the one write queue that replaced three copies of it), the
   domain modules above, and `statemachine.ts` under `samtykke.ts`.
 - **The arrows between apps form a DAG, and `pnpm test:imports` fails if they stop.**
   `sandbox-backend` and `fiks-simulator` used to import each other - the backend took the
@@ -386,6 +388,31 @@ reason that has nothing to do with style; see point 9.
 `fila`, `lista`, `ruta`, `mappa`, `linja`. Bokmål permits both; this repo picks one so
 the docs read in a single register. It is a house style, not a claim about correct
 Norwegian.
+
+**It applies to our own prose, and stops at a quotation.** The TT-kort case is
+modelled on Vestland fylkeskommune, which writes nynorsk, and the `formaal` in
+`data/prosessdefinisjoner.json` is lifted word for word from their form - the
+`hensikt` field beside it says so, and that string is what lands in the
+revisjonslogg. `vilkaar.ts` carries a passage from their rettleiing inside
+guillemets for the same reason. A statute name is not ours to re-spell either:
+A house style that rewrites a source is no longer quoting it.
+
+`apps/shared/hjemmel.ts` holds the short title each act this sandbox cites actually
+has, with its Lovdata id, and the spellings that are quotations rather than titles.
+The register is a module and not a paragraph because which title an act has is not
+something a reader can reason out: `opplæringslova` is nynorsk because the 2023 act
+was passed that way and `barnehageloven` is bokmål because the 2005 one was, so a
+paragraph citing both is correct rather than inconsistent - and `Opplæringslova` was
+renamed to `opplæringsloven` in a spelling sweep with nothing turning red, because a
+statute name is only a string in a `kilde`. `pnpm test` now reads every statute name
+out of the seed files it validates and fails on one the register does not carry - the
+BRREG and Tenor extracts are outside it, because a statute name an external register
+writes is not ours to re-spell. A spelling that is a
+quotation is exempted by file and by the position of the hit, the way `EXCEPTIONS` in
+`scripts/check-dokumentasjon.ts` is - exempting the spelling alone would have made
+`forvaltningslova` legal everywhere, and exempting it per file made it legal anywhere
+in that file. A registered quotation that goes missing is itself an error, because the
+sweep the register exists to catch is the one that "corrects" the quotation.
 
 ### 6. No em dash.
 

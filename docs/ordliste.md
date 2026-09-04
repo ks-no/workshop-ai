@@ -43,6 +43,12 @@ hvem som eier den - derfor ligger eierskapet i egen fil, `data/eierforhold.json`
 fra backend er hjemmelslaget som virker - feil hjemmel eller manglende samtykke - ikke en
 feil i sandkassen. `401` betyr bare at tokenet mangler eller er utløpt.
 
+Lovene sandkassen viser til står i `apps/shared/hjemmel.ts`, med korttittelen loven
+faktisk har og Lovdata-id-en å slå den opp på. Målformen er lovens egen, ikke vår:
+`opplæringslova` er nynorsk og `barnehageloven` er bokmål, så en `kilde` som viser
+til begge er riktig. `pnpm test` leser lovnavnene ut av seed-filene og feiler på et
+navn som ikke står i modulen - det er ikke en liste å kopiere hit.
+
 **kode 6** - strengt fortrolig adresse i Folkeregisteret. Slike personer maskeres ved
 innlasting (`apps/shared/skjerming.ts`): API-et viser «Skjermet person», mens seedfila med
 vilje står i klartekst. Kode 7 (fortrolig adresse) gir nullet adresse.

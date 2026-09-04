@@ -143,9 +143,9 @@
       "navn": "Vandelskontroll - skole og SFO",
       "tjeneste": "vandel",
       "regel": "VANDELSKONTROLL",
-      "kilde": "opplæringsloven § 17-11, jf. politiregisterloven § 39 første ledd.",
+      "kilde": "Opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd.",
       "formaal": "skole",
-      "hjemmel": "opplæringsloven § 17-11, jf. politiregisterloven § 39 første ledd",
+      "hjemmel": "opplæringslova § 17-11, jf. politiregisterloven § 39 første ledd",
       "attesttype": "barneomsorgsattest",
       "maksAlderMaaneder": 3,
       "absoluttUtelukkelse": [

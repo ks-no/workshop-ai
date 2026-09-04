@@ -16,6 +16,7 @@ fødselsnummer og samtykkets kodeverk.
 | `client/felles.ts` | Innlogging, tokenhåndtering, helsestatus, felles DOM-hjelpere | alle sidene i `demo-gui` og `process-builder`, på `/delt/felles.ts` |
 | `assets.ts` | Serverer statiske filer, og type-stripper `.ts` på vei ut | `demo-gui`, `process-builder` |
 | `http.ts`, `errors.ts` | CORS, JSON- og tekstsvar, innsnevring av fanget feil | alle tjenestene |
+| `hjemmel.ts` | **Korttitlene lovene faktisk har**, og hvilke skrivemåter som er sitat | `pnpm test` |
 | `jsonstore.ts` | `state/`-før-`data/`-lesing, og **den ene skrivekøen** | `sandbox-backend`, `fiks-simulator` |
 | `registerdata.ts` | Formene i `brreg.seed.json` og `folkeregister.seed.json` | `tools-api`, `fiks-simulator`, `matrikkel-mock`, `skjerming.ts` |
 | `innbyggerdata.ts` | Formene i `personer.json`, `husstander.json`, plass-datasettene og `samtykker.json` | `sandbox-backend`, `fiks-simulator` |

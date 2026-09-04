@@ -40,6 +40,7 @@ import {
   byggAttestbevis,
   velgGjeldendeAttest
 } from "../apps/shared/politiattest.ts";
+import { LOVTITLER, bortkomneSitater, finnLovnavn, sitatspenn } from "../apps/shared/hjemmel.ts";
 import type { Politiattest } from "../apps/shared/politiattest.ts";
 
 // Only seed data. Runtime datasets live in state/, are gitignored, and are
@@ -78,6 +79,40 @@ async function read<T = any>(fil: string): Promise<T> {
 
 for (const fil of files) {
   await read(fil);
+}
+
+/*
+ * Lovnavnene i dataene, mot korttitlene lovene faktisk har.
+ *
+ * Et lovnavn er bare en streng i en `kilde` eller en `hjemmel`, så en
+ * målformopprydding kan døpe om en lov uten at noe blir rødt. Det skjedde:
+ * `Opplæringslova` - den offisielle korttittelen på 2023-loven, som er nynorsk -
+ * ble skrevet om til `opplæringsloven` sammen med en runde ekte skrivefeil.
+ * Navnene vises til innbyggeren i vedtaket, så feil navn er feil hjemmel.
+ *
+ * Leser hele filen som tekst framfor å gå gjennom feltene: navnene står i `kilde`,
+ * `hjemmel`, `formaal`, `hensikt` og `beskrivelse`, og en liste over felter her
+ * ville vært den listen som drev neste gang et felt kom til.
+ */
+for (const fil of files) {
+  const tekst = await readFile(fil, "utf8");
+  // Et registrert sitat som er borte er en feil i seg selv: fritaket slipper gjennom
+  // en skrivemåte, men fanger ikke at noen retter selve sitatet til korttittelen.
+  for (const sitat of bortkomneSitater(fil, tekst)) {
+    throw new Error(
+      `${fil} skal bære sitatet «${sitat.tekst}», men det står ikke der. ${sitat.begrunnelse} ` +
+      "Er teksten endret med vilje, må SITERTE_LOVNAVN i apps/shared/hjemmel.ts endres med den."
+    );
+  }
+  const spenn = sitatspenn(fil, tekst);
+  for (const { navn, indeks } of finnLovnavn(tekst)) {
+    if (LOVTITLER[navn]) continue;
+    // Forankret til forekomsten: at sitatet finnes et annet sted i filen fritar ikke.
+    if (spenn.some((s) => indeks >= s.fra && indeks < s.til)) continue;
+    krevKodeverk(fil, "lovnavn", navn, Object.keys(LOVTITLER),
+      "Er skrivemåten et sitat som skal stå, hører den i SITERTE_LOVNAVN med filen, " +
+      "teksten og begrunnelsen - ikke rett den, og ikke legg den i LOVTITLER. ");
+  }
 }
 
 const personer = await read<Person[]>("data/personer.json");
