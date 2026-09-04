@@ -6,6 +6,10 @@ name: CI
 
 on:
   pull_request:
+  # A merge queue creates a new temporary commit from the PR and its current base.
+  # This must run the required checks too, otherwise GitHub can merge code that no
+  # CI run has tested.
+  merge_group:
   push:
     branches: [main]
 
