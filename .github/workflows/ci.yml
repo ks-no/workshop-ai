@@ -93,6 +93,9 @@ jobs:
       - name: Forsendelsens kanalvalg og utledning
         run: pnpm test:forsendelse
 
+      - name: Norsk kalenderdato via UTC
+        run: pnpm test:dato
+
       # What a non-ok answer from an upstream service means, as pure functions:
       # `send` is a callback, so a Response is handed in as a literal. Every case
       # is one the kontrakt dump cannot reach - that dump records the flows where
