@@ -66,8 +66,13 @@ export type Anmerkning = {
 };
 
 /**
- * Tremånedersgrensen. Den er mottakerens regel og ikke politiets, og den enkelte
- * ordningen i data/satser.json eier tallet - dette er bare det beviset skriver.
+ * Tremånedersgrensen. Mottakerens regel og ikke politiets - attesten har ingen
+ * utløpsdato av seg selv - og derfor ett tall, her.
+ *
+ * Sto en periode også som `maksAlderMaaneder` på hver ordning i data/satser.json.
+ * Beviset kan bare skrive ett tall som `expirationDate`, så en ordning som oppga et
+ * annet ga et vedtak som godkjente en attest som selv sa at den var utløpt. Skal
+ * grensen kunne variere, må `byggAttestbevis` ta imot den.
  */
 export const TREMAANEDSGRENSEN = 3;
 

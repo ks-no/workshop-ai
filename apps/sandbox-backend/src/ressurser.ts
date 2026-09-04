@@ -20,7 +20,7 @@ import {
   selectOrdningForTjeneste
 } from "./vilkaar.ts";
 import type { Datakilde } from "../../shared/samtykke.ts";
-import { ATTESTFORMAAL } from "../../shared/politiattest.ts";
+import { ATTESTFORMAAL, TREMAANEDSGRENSEN } from "../../shared/politiattest.ts";
 import { finnGjeldendeLegeerklaering } from "./pasientjournal.ts";
 import { finnGjeldendeAttest, minimerAttest } from "./politiattest.ts";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
@@ -472,7 +472,7 @@ export const ressurser: Ressurs[] = [
           kilde: ordning.kilde,
           hjemmel: ordning.hjemmel,
           attesttype: ordning.attesttype,
-          maksAlderMaaneder: ordning.maksAlderMaaneder,
+          maksAlderMaaneder: TREMAANEDSGRENSEN,
           slikSoekerDu: ordning.slikSoekerDu,
           oppbevaring: ordning.oppbevaring,
           syntetisk: true

@@ -175,8 +175,6 @@ export type Ordning = {
   hjemmel?: string;
   /** VANDELSKONTROLL: attesttypen formålet gir rett til. */
   attesttype?: Attesttype;
-  /** VANDELSKONTROLL: hvor gammel attesten kan være ved framvisning. Tre måneder. */
-  maksAlderMaaneder?: number;
   /**
    * VANDELSKONTROLL: anmerkningene som utelukker absolutt, uten skjønn. Tom liste
    * betyr at hver anmerkning er en egnethetsvurdering et menneske må gjøre.

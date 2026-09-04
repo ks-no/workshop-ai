@@ -14,6 +14,7 @@ import type { Datakilde } from "../../shared/samtykke.ts";
 import { datasettFor, findPerson, getPlasserForTjeneste } from "./state.ts";
 import type { Kvotekategori, Ordning, Regeltype, Satser, SjekkResultat, State } from "./types.ts";
 import type { Legeerklaering } from "../../shared/legeerklaering.ts";
+import { TREMAANEDSGRENSEN } from "../../shared/politiattest.ts";
 import type { Politiattest } from "../../shared/politiattest.ts";
 import type { Plass } from "../../shared/innbyggerdata.ts";
 
@@ -366,7 +367,7 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
       formaal: ordning.formaal ?? null,
       hjemmel: ordning.hjemmel ?? null,
       attesttypeKrevd: ordning.attesttype ?? null,
-      maksAlderMaaneder: ordning.maksAlderMaaneder ?? null
+      maksAlderMaaneder: TREMAANEDSGRENSEN
     };
 
     if (!politiattest) {
@@ -399,19 +400,15 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
       );
     }
 
-    // Tremånedersgrensen er mottakerens regel og ikke politiets: attesten har
-    // ingen utløpsdato. Målt mot satser.gjelderFra, som er den pinnede
-    // referansedatoen i denne sandkassen.
     // Tremånedersgrensen er mottakerens regel og ikke politiets: attesten har ingen
-    // utløpsdato. Målt mot den samme datoen beviset skriver som expirationDate, så
-    // regelen og beviset ikke kan svare hver sitt om den samme attesten.
-    const maksAlder = ordning.maksAlderMaaneder ?? 3;
-    const gikkUt = maanederEtter(politiattest.utstedt, maksAlder);
+    // utløpsdato. Målt mot satser.gjelderFra, den pinnede referansedatoen, og mot
+    // den samme konstanten beviset skriver som expirationDate.
+    const gikkUt = maanederEtter(politiattest.utstedt, TREMAANEDSGRENSEN);
     if (gikkUt < satser.gjelderFra) {
       return vandel(
         "attest_for_gammel",
         `Attesten er utstedt ${politiattest.utstedt} og kunne brukes til ${gikkUt}. ` +
-        `Den skal ikke være eldre enn ${maksAlder} måneder når den framvises, så du trenger en ny.`,
+        `Den skal ikke være eldre enn ${TREMAANEDSGRENSEN} måneder når den framvises, så du trenger en ny.`,
         { ...attest, gikkUt }
       );
     }

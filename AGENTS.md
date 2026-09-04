@@ -269,7 +269,10 @@ construction - and it bites the machines that are not: parsing as UTC, computing
 with the local setters and going back out through `toISOString()` made
 `byggAttestbevis` write an expiry one day early in Europe/Oslo, and right in CI.
 Use `alderVed` and `maanederEtter` in `apps/shared/alder.ts`; CI now runs the
-rules once in Norwegian time.
+rules once in Norwegian time. `pnpm test:vilkaar` pins the month boundaries
+`maanederEtter` exists for - the 30th, the 31st, a leap February and a year
+rollover - because every date in the vandel block happened to be a safe one, so a
+regression to `setMonth` semantics was green.
 
 One more, from the same review and not on the list above because it is about
 runtime rather than about a check: **a gate is time-of-read, not time-of-fetch.**

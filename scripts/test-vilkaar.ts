@@ -36,6 +36,7 @@ import {
 import { feilmelding } from "../apps/shared/errors.ts";
 import type { Regeltype } from "../apps/sandbox-backend/src/types.ts";
 import type { Legeerklaering } from "../apps/shared/legeerklaering.ts";
+import { maanederEtter } from "../apps/shared/alder.ts";
 import { byggAttestbevis } from "../apps/shared/politiattest.ts";
 import type { Politiattest } from "../apps/shared/politiattest.ts";
 
@@ -454,7 +455,6 @@ const ORDNING_VANDEL_BARNEHAGE = {
   formaal: "barnehage",
   hjemmel: "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
   attesttype: "barneomsorgsattest",
-  maksAlderMaaneder: 3,
   absoluttUtelukkelse: ["seksuallovbrudd-mot-mindreaarig"]
 };
 
@@ -534,6 +534,23 @@ check("en attest eldre enn tre måneder slipper ikke gjennom på avrunding",
 check("regelen godtar nøyaktig så lenge beviset er gyldig",
   attestMed({ utstedt: "2026-05-01" }).bevis.expirationDate.startsWith(satser.gjelderFra),
   attestMed({ utstedt: "2026-05-01" }).bevis.expirationDate);
+
+/*
+ * maanederEtter er regnestykket under både grensen over og bevisets expirationDate,
+ * og ingen test traff månedsskiftet den finnes for. Ingen av datoene i blokken over
+ * er den 29., 30. eller 31., og ingen krysser et årsskifte, så en regresjon til
+ * setMonth-semantikk - som ruller 30. november over til 2. mars - ville vært grønn.
+ */
+check("30. november pluss tre måneder klemmes til siste dag i februar",
+  maanederEtter("2025-11-30", 3) === "2026-02-28", maanederEtter("2025-11-30", 3));
+check("31. mai pluss tre måneder beholder den 31.",
+  maanederEtter("2026-05-31", 3) === "2026-08-31", maanederEtter("2026-05-31", 3));
+check("31. januar pluss én måned klemmes, og skuddåret teller",
+  maanederEtter("2024-01-31", 1) === "2024-02-29", maanederEtter("2024-01-31", 1));
+check("31. desember pluss tre måneder krysser årsskiftet",
+  maanederEtter("2025-12-31", 3) === "2026-03-31", maanederEtter("2025-12-31", 3));
+check("oktober pluss tre måneder krysser årsskiftet uten å hoppe et år",
+  maanederEtter("2025-10-15", 3) === "2026-01-15", maanederEtter("2025-10-15", 3));
 
 const overgrep = attestMed({
   anmerkninger: [

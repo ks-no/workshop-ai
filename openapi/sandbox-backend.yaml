@@ -984,6 +984,11 @@ paths:
                     type: string
                   maksAlderMaaneder:
                     type: integer
+                    description: >-
+                      Hvor gammel attesten kan være når den framvises. Samme tall for
+                      alle ordningene, fra TREMAANEDSGRENSEN i apps/shared/politiattest.ts:
+                      beviset attesten bærer skriver det som expirationDate, og de to må
+                      være enige.
                   slikSoekerDu:
                     type: string
                   oppbevaring:
