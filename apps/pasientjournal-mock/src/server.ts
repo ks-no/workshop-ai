@@ -9,7 +9,7 @@ import { createMaskinportenPort, TokenportError } from "../../digdir-mock/src/to
 import { cors, svarhjelpere } from "../../shared/http.ts";
 import { feilmelding } from "../../shared/errors.ts";
 import { isGyldigFoedselsnummer } from "../../shared/foedselsnummer.ts";
-import { routeOverview } from "../../shared/openapi.ts";
+import { docsHtml, routeOverview } from "../../shared/openapi.ts";
 import type { Legeerklaering } from "../../shared/legeerklaering.ts";
 
 // PASIENTJOURNAL-MOCK
@@ -201,26 +201,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // Generert av spesifikasjonen, som i politiattest-mock: den håndskrevne listen
+    // var en tredje liste over de samme rutene, og den drev.
     if (request.method === "GET" && url.pathname === "/docs") {
       textResponse(
         response,
         200,
-        [
-          "<!doctype html>",
-          "<html lang=\"nb\"><head><meta charset=\"utf-8\"><title>Pasientjournal Mock</title></head><body>",
-          "<h1>Pasientjournal Mock</h1>",
-          "<p>Legeerklæringer til søknad om TT-kort. <strong>Denne integrasjonen finnes ikke i "
-          + "virkeligheten</strong> - se <code>apps/pasientjournal-mock/README.md</code>.</p>",
-          "<p><a href=\"/openapi.yaml\">Spesifikasjonen</a> · "
-          + "<a href=\"/openapi-ruter.json\">Samme, lest, som JSON</a> · "
-          + "<a href=\"http://localhost:3001/utforsker\">Prøv rutene i API-utforskeren</a></p>",
-          "<ul>",
-          "<li><code>GET /helse</code></li>",
-          "<li><code>GET /journal/legeerklaeringer?fnr=04875899266</code></li>",
-          "<li><code>GET /journal/legeerklaeringer/legeerkl-0002</code></li>",
-          "</ul>",
-          "</body></html>"
-        ].join("\n"),
+        docsHtml(await routeOverview(openapiFile), "http://localhost:3001/utforsker"),
         "text/html; charset=utf-8"
       );
       return;

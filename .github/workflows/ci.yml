@@ -118,6 +118,12 @@ jobs:
       - name: Lukkede prosessøkter
         run: pnpm test:replay
 
+      # Kravet om fnr og formaal manglet en gang på id-ruten i begge mockene, og
+      # rettelsen pinnet ingenting. Ruter, parametere og eksempelverdier leses av
+      # spesifikasjonene. Tre tjenester på egne porter; ingen modell, ingen stack.
+      - name: Påkrevde parametere på mockene
+        run: pnpm test:parametere
+
       # The import graph between apps, checked for cycles. sandbox-backend and
       # fiks-simulator used to import each other, and so did sandbox-backend and
       # digdir-mock - one leaf wide in each case. Every arrow was locally right, so

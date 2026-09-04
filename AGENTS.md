@@ -236,7 +236,10 @@ under the paragraph. Six shapes, all of which recurred:
 `fnr` is required "so the surface never answers a bulk query". It was required on
 `/attester` and not on `/attester/{attestId}`, and the same copy-paste sat in
 `pasientjournal-mock`. Note which paragraphs here held up: the ones that end with
-"`pnpm test:concurrency` pins it". A claim with no named check is a wish.
+"`pnpm test:concurrency` pins it". A claim with no named check is a wish - and this
+paragraph was one for a while: the fix landed on the two routes and pinned nothing.
+`pnpm test:parametere` now calls every route the specs mark as requiring a query
+parameter, once per parameter, with a valid token.
 
 **A check that cannot resolve its subject must fail, not skip.** The `security`
 comparison in `sjekk-openapi-dekning.ts` was `if (!rute) continue`, and `rute` was
@@ -529,6 +532,7 @@ pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtu
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
+pnpm test:parametere      # required query parameters per route, read off the specs
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
@@ -577,9 +581,8 @@ pnpm test:agent:matrikkel
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
-  `test:replay`, `test:imports`, `test:kodeverk`, `test:revisjon`,
-  `test:openapi`, `test:docs` and
-  `test:kontrakt` on every PR
+  `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
+  `test:revisjon`, `test:openapi`, `test:docs` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
   (need the compose stack up) - run those locally.

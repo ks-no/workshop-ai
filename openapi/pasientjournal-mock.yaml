@@ -61,6 +61,7 @@ paths:
           in: query
           required: true
           description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          example: "04875899266"
           schema:
             type: string
       responses:
@@ -112,12 +113,14 @@ paths:
         - name: erklaeringId
           in: path
           required: true
+          example: legeerkl-0002
           schema:
             type: string
         - name: fnr
           in: query
           required: true
           description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          example: "04875899266"
           schema:
             type: string
       responses:

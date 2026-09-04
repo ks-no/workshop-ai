@@ -99,12 +99,14 @@ paths:
           in: query
           required: true
           description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          example: "03889400020"
           schema:
             type: string
         - name: formaal
           in: query
           required: true
           description: Rollen attesten er utstedt til, og som avgjør hjemmelen og attesttypen.
+          example: stottekontakt
           schema:
             type: string
             enum: [stottekontakt, barnehage, skole]
@@ -159,18 +161,21 @@ paths:
         - name: attestId
           in: path
           required: true
+          example: att-0001
           schema:
             type: string
         - name: fnr
           in: query
           required: true
           description: Fødselsnummer, elleve siffer med gyldig kontrollsiffer.
+          example: "03889400020"
           schema:
             type: string
         - name: formaal
           in: query
           required: true
           description: Rollen attesten er utstedt til.
+          example: stottekontakt
           schema:
             type: string
             enum: [stottekontakt, barnehage, skole]
