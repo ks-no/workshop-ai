@@ -673,6 +673,87 @@ async function oppsummeringenGatesAvKildeneSine() {
     JSON.stringify(etterTyporetting.resultater)
   );
 
+  for (const stegtype of ["INFO", "QUESTION"] as const) {
+    const utenResultatOekt = normalizeProsessoekt({
+      ...structuredClone(oekt),
+      resultaterRaa: {
+        "hent-inntekt": resultaterRaa["hent-inntekt"]
+      }
+    });
+    const utenResultatProsess = {
+      ...prosess,
+      steg: [{
+        id: "hent-inntekt",
+        type: stegtype,
+        tittel: `${stegtype} med historisk resultat`
+      }]
+    };
+    frysResultatKilder(
+      { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+      utenResultatOekt,
+      utenResultatProsess
+    );
+    const etterTilbakestilling = resultaterNaa(
+      {
+        samtykker: [{ ...samtykke, status: "TRUKKET" }],
+        satser,
+        personer: [],
+        husstander: []
+      } as any,
+      utenResultatOekt,
+      prosess
+    );
+    check(
+      `${stegtype} fryser ikke et historisk resultat som ubeskyttet`,
+      !Object.hasOwn(utenResultatOekt.resultatKilder, "hent-inntekt"),
+      JSON.stringify(utenResultatOekt.resultatKilder)
+    );
+    check(
+      `historisk resultat forblir skjult etter at ${stegtype} rettes til DATA_FETCH`,
+      etterTilbakestilling.resultater["hent-inntekt"] === undefined,
+      JSON.stringify(etterTilbakestilling.resultater)
+    );
+  }
+
+  const nullMetadataOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      "hent-inntekt": resultaterRaa["hent-inntekt"]
+    },
+    resultatKilder: null
+  } as any);
+  check(
+    "normalisering bevarer eksplisitt null i kildemetadata",
+    (nullMetadataOekt as any).resultatKilder === null,
+    JSON.stringify(nullMetadataOekt.resultatKilder)
+  );
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    nullMetadataOekt,
+    endretProsess
+  );
+  const etterNullMetadata = resultaterNaa(
+    {
+      samtykker: [{ ...samtykke, status: "TRUKKET" }],
+      satser,
+      personer: [],
+      husstander: []
+    } as any,
+    nullMetadataOekt,
+    prosess
+  );
+  check(
+    "eksplisitt null kan ikke fryses som kjent ubeskyttet metadata",
+    (nullMetadataOekt as any).resultatKilder === null
+      && nullMetadataOekt.resultatKilderFrosset
+      && etterNullMetadata.resultater["hent-inntekt"] === undefined,
+    JSON.stringify({
+      resultatKilder: nullMetadataOekt.resultatKilder,
+      resultatKilderFrosset: nullMetadataOekt.resultatKilderFrosset,
+      resultater: etterNullMetadata.resultater
+    })
+  );
+
   const malformedOekt = normalizeProsessoekt({
     ...structuredClone(oekt),
     resultaterRaa: {

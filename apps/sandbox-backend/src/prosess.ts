@@ -145,6 +145,9 @@ function finnSamtykkekildeForSteg(
   switch (stegtype) {
     case "INFO":
     case "QUESTION":
+      // Disse stegene lagrer aldri resultater. Et historisk resultat med samme id
+      // kan derfor ikke klassifiseres ut fra den gjeldende definisjonen.
+      return { status: "ukjent" };
     case "CONSENT_REQUEST":
     case "SUMMARY":
     case "SUBMIT":
@@ -259,7 +262,12 @@ function lagreResultat(
   kilder: readonly Datakilde[]
 ): void {
   oekt.resultaterRaa[stegId] = resultat;
-  oekt.resultatKilder ??= {};
+  const metadata = oekt.resultatKilder as unknown;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    // Nye kilder kan lagres, men eldre treff uten metadata forblir ukjente.
+    oekt.resultatKilder = {};
+    oekt.resultatKilderFrosset = true;
+  }
   oekt.resultatKilder[stegId] = [...new Set(kilder)];
 }
 

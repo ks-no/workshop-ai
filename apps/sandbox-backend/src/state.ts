@@ -246,7 +246,9 @@ export function normalizeProsessoekt(oekt: Prosessoekt): Prosessoekt {
   }
   // En tom mappe er ikke det samme som ferdig migrert. Prosessoppdateringen fyller
   // eldre treff før definisjonen endres og setter sitt eget frosset-flagg.
-  raa.resultatKilder ??= {};
+  if (!Object.hasOwn(raa, "resultatKilder")) {
+    raa.resultatKilder = {};
+  }
   return oekt;
 }
 
@@ -254,8 +256,10 @@ function readResultatKilder(
   oekt: Prosessoekt,
   stegId: string
 ): Datakilde[] | null | undefined {
-  if (!Object.hasOwn(oekt.resultatKilder, stegId)) return undefined;
-  const kilder = (oekt.resultatKilder as Record<string, unknown>)[stegId];
+  const metadata = oekt.resultatKilder as unknown;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  if (!Object.hasOwn(metadata, stegId)) return undefined;
+  const kilder = (metadata as Record<string, unknown>)[stegId];
   if (!Array.isArray(kilder) || !kilder.every(
     (kilde): kilde is Datakilde => typeof kilde === "string" && isDatakilde(kilde)
   )) {
