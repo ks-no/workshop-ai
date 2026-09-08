@@ -530,8 +530,7 @@ async function oppsummeringenGatesAvKildeneSine() {
     "hent-inntekt": { beregningsbeloep: 485000 },
     "sjekk-rett": { grunnlag: { beregningsbeloep: 485000 } },
     oppsummering: { tekst: "Inntektsgrunnlag 2025: 485 000 kr." },
-    "send-inn": { status: "SENDT_INN" },
-    "historisk-ukjent": { beregningsbeloep: 485000 }
+    "send-inn": { status: "SENDT_INN" }
   };
   const oekt = {
     oektsId: "oekt-test", personId: "person-001", prosessId: prosess.id,
@@ -549,10 +548,26 @@ async function oppsummeringenGatesAvKildeneSine() {
     med.resultater["send-inn"] !== undefined, JSON.stringify(Object.keys(med.resultater)));
   check("eldre økt beholder kjent ubeskyttet resultat",
     med.resultater["hent-husstand"] !== undefined, JSON.stringify(Object.keys(med.resultater)));
+  const historiskUkjentOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: { "historisk-ukjent": { beregningsbeloep: 485000 } }
+  });
+  const historiskUkjent = resultaterNaa(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    historiskUkjentOekt,
+    prosess
+  );
   check("eldre økt holder tilbake resultat uten metadata og matchende steg",
-    med.resultater["historisk-ukjent"] === undefined, JSON.stringify(Object.keys(med.resultater)));
+    historiskUkjent.resultater["historisk-ukjent"] === undefined,
+    JSON.stringify(Object.keys(historiskUkjent.resultater)));
 
-  const migrertOekt = normalizeProsessoekt(structuredClone(oekt));
+  const migrertOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      ...structuredClone(resultaterRaa),
+      "historisk-ukjent": { beregningsbeloep: 485000 }
+    }
+  });
   check(
     "eldre økt fryser kildene før prosessdefinisjonen endres",
     frysResultatKilder(
@@ -708,6 +723,70 @@ async function oppsummeringenGatesAvKildeneSine() {
     "SUBMIT forblir skjult etter at manglende API rettes",
     etterApiRetting.resultater["send-inn"] === undefined,
     JSON.stringify(etterApiRetting.resultater)
+  );
+
+  const fjernetSummaryOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      "fjernet-inntekt": resultaterRaa["hent-inntekt"],
+      oppsummering: resultaterRaa.oppsummering
+    }
+  });
+  const kunSummaryProsess = {
+    ...prosess,
+    steg: [{ id: "oppsummering", type: "SUMMARY", tittel: "Oppsummering" }]
+  };
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    fjernetSummaryOekt,
+    kunSummaryProsess
+  );
+  const summaryEtterFjerning = resultaterNaa(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    fjernetSummaryOekt,
+    kunSummaryProsess
+  );
+  check(
+    "fjernet historisk produsent fryser ikke SUMMARY som ubeskyttet",
+    !Object.hasOwn(fjernetSummaryOekt.resultatKilder, "oppsummering"),
+    JSON.stringify(fjernetSummaryOekt.resultatKilder)
+  );
+  check(
+    "SUMMARY med fjernet historisk produsent forblir skjult",
+    summaryEtterFjerning.resultater.oppsummering === undefined,
+    JSON.stringify(summaryEtterFjerning.resultater)
+  );
+
+  const fjernetSubmitOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      "fjernet-inntekt": resultaterRaa["hent-inntekt"],
+      "send-inn": resultaterRaa["send-inn"]
+    }
+  });
+  const kunSubmitProsess = {
+    ...prosess,
+    steg: [{ id: "send-inn", type: "SUBMIT", tittel: "Send inn" }]
+  };
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    fjernetSubmitOekt,
+    kunSubmitProsess
+  );
+  const submitEtterFjerning = resultaterNaa(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    fjernetSubmitOekt,
+    kunSubmitProsess
+  );
+  check(
+    "fjernet historisk produsent fryser ikke SUBMIT som ubeskyttet",
+    !Object.hasOwn(fjernetSubmitOekt.resultatKilder, "send-inn"),
+    JSON.stringify(fjernetSubmitOekt.resultatKilder)
+  );
+  check(
+    "SUBMIT med fjernet historisk produsent forblir skjult",
+    submitEtterFjerning.resultater["send-inn"] === undefined,
+    JSON.stringify(submitEtterFjerning.resultater)
   );
 
   const eldsteOekt = {
