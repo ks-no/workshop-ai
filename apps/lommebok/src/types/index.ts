@@ -37,6 +37,7 @@ export interface CredentialDefinition {
   format: "dc+sd-jwt" | "mso_mdoc";
   vct: string;
   credentialConfigurationId: string;
+  defaultIssuerUrl?: string;
   claims: ClaimDefinition[];
   lagEksempelData: (person: Person) => Record<string, any>;
   lagDcqlQuery: () => Record<string, any>;

@@ -7,8 +7,9 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
     beskrivelse: "Offisielt digitalt identitetsbevis iht. eIDAS 2.0-standarden med fødselsnummer, navn og alder.",
     utstederNavn: "Digitaliseringsdirektoratet / Skatteetaten",
     format: "dc+sd-jwt",
-    vct: "no:digdir:eudiw:pid:1",
+    vct: "urn:eudi:pid:1",
     credentialConfigurationId: "no.digdir.eudiw.pid_sd_jwt_vc",
+    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/pid",
     claims: [
       { path: "personal_administrative_number", label: "Fødselsnummer", required: true },
       { path: "family_name", label: "Etternavn", required: true },
@@ -33,7 +34,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
           id: "pid-bevis",
           format: "dc+sd-jwt",
           meta: {
-            vct_values: ["no:digdir:eudiw:pid:1"]
+            vct_values: ["urn:eudi:pid:1"]
           },
           claims: [
             { path: ["personal_administrative_number"] },
@@ -54,6 +55,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
     format: "dc+sd-jwt",
     vct: "no:kontaktregisteret:kontaktinformasjon:1",
     credentialConfigurationId: "no.kontaktregisteret.kontaktinformasjon_sd_jwt_vc",
+    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
     claims: [
       { path: "personidentifikator", label: "Personidentifikator", required: true },
       { path: "epostadresse", label: "E-postadresse", required: true },
@@ -93,8 +95,9 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
     beskrivelse: "Kommunalt bevis som dokumenterer tildelt barnehageplass, plassprosent og barnehage.",
     utstederNavn: "KS Kommunal Barnehagetjeneste",
     format: "dc+sd-jwt",
-    vct: "no:kommune:barnehageplass:1",
-    credentialConfigurationId: "no.kommune.barnehageplass_sd_jwt_vc",
+    vct: "no:ks:barnehageplass:1",
+    credentialConfigurationId: "no.ks.barnehageplass_sd_jwt_vc",
+    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
     claims: [
       { path: "foresatt_identifikator", label: "Foresatt (FNR)", required: true },
       { path: "barnehagenavn", label: "Barnehagens navn", required: true },
@@ -120,7 +123,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
           id: "barnehage-bevis",
           format: "dc+sd-jwt",
           meta: {
-            vct_values: ["no:kommune:barnehageplass:1"]
+            vct_values: ["no:ks:barnehageplass:1"]
           },
           claims: [
             { path: ["foresatt_identifikator"] },
@@ -139,8 +142,9 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
     beskrivelse: "Attest for vandel uten anmerkninger, til bruk i barnehage, skole og helse/frivillighet.",
     utstederNavn: "Politiet (Enhet for vandelskontroll)",
     format: "dc+sd-jwt",
-    vct: "no:politiet:politiattest:1",
-    credentialConfigurationId: "no.politiet.politiattest_sd_jwt_vc",
+    vct: "net.eidas2sandkasse:politi_attest",
+    credentialConfigurationId: "net.eidas2sandkasse:politi_attest_sd_jwt_vc",
+    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
     claims: [
       { path: "personidentifikator", label: "Fødselsnummer", required: true },
       { path: "attesttype", label: "Type attest", required: true },
@@ -157,6 +161,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
       status: "INTET_Å_BEMERKE",
       utstedt_dato: "2026-08-01",
       gyldig_til: "2026-11-01",
+      is_verified: true,
       anmerkninger: []
     }),
     lagDcqlQuery: () => ({
@@ -165,13 +170,10 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
           id: "politiattest-bevis",
           format: "dc+sd-jwt",
           meta: {
-            vct_values: ["no:politiet:politiattest:1"]
+            vct_values: ["net.eidas2sandkasse:politi_attest", "no:ks:politiattest:1"]
           },
           claims: [
-            { path: ["personidentifikator"] },
-            { path: ["attesttype"] },
-            { path: ["status"] },
-            { path: ["utstedt_dato"] }
+            { path: ["is_verified"] }
           ]
         }
       ]

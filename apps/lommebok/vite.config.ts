@@ -64,7 +64,7 @@ function lommebokApiPlugin() {
           }
 
           // Forsøk å hente direkte fra verifier-service hvis ikke i cache
-          const verifierBase = process.env.VERIFIER_SERVICE_URL || "http://localhost:9285";
+          const verifierBase = process.env.VERIFIER_SERVICE_URL || "https://verifier-service.test.eidas2sandkasse.net";
           const clientApp = process.env.VERIFIER_CLIENT_ID || "bevisgenerator-login";
           try {
             const fetchRes = await fetch(`${verifierBase}/api/v1/${clientApp}/verify/result/${transactionId}`, {
@@ -131,8 +131,9 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api/v1": {
-        target: process.env.VERIFIER_SERVICE_URL || "http://localhost:9285",
+        target: process.env.VERIFIER_SERVICE_URL || "https://verifier-service.test.eidas2sandkasse.net",
         changeOrigin: true,
+        secure: false,
         headers: {
           "X-API-KEY": "KS-HACKATHON"
         }

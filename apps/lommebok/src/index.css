@@ -73,6 +73,16 @@ body {
   letter-spacing: 0.5px;
 }
 
+.env-badge {
+  background: #0d8a43;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
 .nav-link {
   color: var(--farge-primar);
   text-decoration: none;

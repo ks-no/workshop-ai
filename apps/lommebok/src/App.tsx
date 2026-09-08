@@ -23,6 +23,7 @@ export function App() {
         <div className="header-inner">
           <div className="brand">
             <span className="brand-badge">EUDI WALLET</span>
+            <span className="env-badge" title="Tilkoblet *.test.eidas2sandkasse.net">TESTMILJØ</span>
             <h1>Digital Lommebok - Sandkasse</h1>
           </div>
           <div className="header-links">

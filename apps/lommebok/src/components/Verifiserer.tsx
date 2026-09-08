@@ -36,6 +36,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
     setVerifisertResultat(null);
     setStatus("WAIT");
 
+    const verifierBase = "https://verifier-service.test.eidas2sandkasse.net";
     const clientApp = "bevisgenerator-login";
     const redirectUri = `${window.location.origin}/verifisering-fullfort`;
     const requestBody = {
@@ -43,7 +44,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
       redirect_uri: redirectUri
     };
 
-    const startCurl = `curl -X POST "http://localhost:9285/api/v1/${clientApp}/verify/start/" \\
+    const startCurl = `curl -X POST "${verifierBase}/api/v1/${clientApp}/verify/start/" \\
   -H "Content-Type: application/json" \\
   -H "X-API-KEY: KS-HACKATHON" \\
   -d '${JSON.stringify(requestBody, null, 2)}'`;
@@ -70,7 +71,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
         tittel: `1. Start verifisering (${valgtBevis.tittel})`,
         tidspunkt: new Date().toLocaleTimeString("nb-NO"),
         metode: "POST",
-        url: `http://localhost:9285/api/v1/${clientApp}/verify/start/`,
+        url: `${verifierBase}/api/v1/${clientApp}/verify/start/`,
         headers: {
           "Content-Type": "application/json",
           "X-API-KEY": "KS-HACKATHON"
@@ -84,10 +85,10 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
       // Start polling for status
       startStatusPolling(data.verifier_transaction_id, clientApp);
     } catch (err: any) {
-      console.warn("Klarte ikke koble til lokal verifier-service:", err.message);
-      // Generer en mock/fallback transaksjon for testing dersom eudiw-verifier-service ikke kjører lokalt
+      console.warn("Klarte ikke koble til verifier-service i testmiljøet:", err.message);
+      // Generer en mock/fallback transaksjon for testing dersom eudiw-verifier-service ikke svarer
       const fallbackTxId = `tx-demo-${Date.now().toString(36)}`;
-      const fallbackAuthRequest = `eudi-openid4vp://?client_id=abr.vc.local&request_uri=http://localhost:9285/api/v1/${clientApp}/openid4vp/${fallbackTxId}`;
+      const fallbackAuthRequest = `eudi-openid4vp://${verifierBase.replace(/^https?:\/\//, "")}?client_id=abr.vc.local&request_uri=${verifierBase}/api/v1/${clientApp}/openid4vp/${fallbackTxId}`;
 
       const fallbackData: VerificationStartResponse = {
         verifier_transaction_id: fallbackTxId,
@@ -95,14 +96,14 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
       };
 
       setTransaksjon(fallbackData);
-      setFeil("Merknad: Lokal eudiw-verifier-service (port 9285) svarte ikke. Viser demo-flyt slik at du kan teste og simulere.");
+      setFeil("Merknad: Kunne ikke koble til verifier-service i testmiljøet. Viser simulert visning slik at du kan teste flyten.");
 
       onLogApiCall({
         id: `tx-start-${Date.now()}`,
-        tittel: `1. Start verifisering (lokal demo): ${valgtBevis.tittel}`,
+        tittel: `1. Start verifisering (simulert): ${valgtBevis.tittel}`,
         tidspunkt: new Date().toLocaleTimeString("nb-NO"),
         metode: "POST",
-        url: `http://localhost:9285/api/v1/${clientApp}/verify/start/`,
+        url: `${verifierBase}/api/v1/${clientApp}/verify/start/`,
         headers: {
           "Content-Type": "application/json",
           "X-API-KEY": "KS-HACKATHON"
@@ -153,7 +154,8 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
 
   // 3. Hent verifisert resultat
   const hentResultat = async (txId: string, clientApp: string) => {
-    const resultCurl = `curl -X GET "http://localhost:9285/api/v1/${clientApp}/verify/result/${txId}" \\
+    const verifierBase = "https://verifier-service.test.eidas2sandkasse.net";
+    const resultCurl = `curl -X GET "${verifierBase}/api/v1/${clientApp}/verify/result/${txId}" \\
   -H "Accept: application/json" \\
   -H "X-API-KEY: KS-HACKATHON"`;
 
@@ -181,7 +183,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
           tittel: `3. Hent verifisert resultat`,
           tidspunkt: new Date().toLocaleTimeString("nb-NO"),
           metode: "GET",
-          url: `http://localhost:9285/api/v1/${clientApp}/verify/result/${txId}`,
+          url: `${verifierBase}/api/v1/${clientApp}/verify/result/${txId}`,
           headers: {
             "Accept": "application/json",
             "X-API-KEY": "KS-HACKATHON"

@@ -33,6 +33,15 @@ curl -X GET "http://localhost:3002/api/verifikasjon/<transaction_id>" \
 ### 4. Utviklerpanel (Developer Experience)
 Under fanene vises alle utgående og inngående API-kall i sanntid, inkludert headers med `X-API-KEY: KS-HACKATHON`, payload, og ferdige `curl`-kommandoer som kan kopieres med ett klikk.
 
+## Miljøer
+
+Applikasjonen er konfigurert til å gå mot det offisielle **testmiljøet**:
+- **Issuer Server (PID)**: `https://utsteder.test.eidas2sandkasse.net/pid`
+- **Issuer Server (Bevisgenerator)**: `https://utsteder.test.eidas2sandkasse.net/bevisgenerator`
+- **Verifier Service**: `https://verifier-service.test.eidas2sandkasse.net`
+
+Utviklerserveren på port 3002 proxier verifier-kallene gjennom `/api/v1` for å unngå CORS-utfordringer i nettleseren.
+
 ## Kjøre applikasjonen lokalt
 
 Fra rotmappen til `workshop-ai`:

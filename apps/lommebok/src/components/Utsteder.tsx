@@ -17,7 +17,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
   // Resultat etter utstedelse
-  const [issuerUrl, setIssuerUrl] = useState<string>("https://utsteder.eidas2sandkasse.dev");
+  const [issuerUrl, setIssuerUrl] = useState<string>(
+    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/pid"
+  );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
   const [utstedtData, setUtstedtData] = useState<any | null>(null);
   const [kopiert, setKopiert] = useState<boolean>(false);
@@ -171,6 +173,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 className={`choice-card ${active ? "active" : ""}`}
                 onClick={() => {
                   setValgtBevisId(id);
+                  if (def.defaultIssuerUrl) {
+                    setIssuerUrl(def.defaultIssuerUrl);
+                  }
                   setUtstedtOfferUri(null);
                 }}
               >
@@ -262,7 +267,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
         <div className="form-row" style={{ marginTop: "1rem" }}>
           <div className="form-group flex-1">
-            <label htmlFor="issuerUrlInput">Issuer Server URL (må være HTTPS for mobil-lommebok):</label>
+            <label htmlFor="issuerUrlInput">Issuer Server URL (testmiljø):</label>
             <input
               id="issuerUrlInput"
               type="text"
@@ -272,10 +277,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 setIssuerUrl(e.target.value);
                 setUtstedtOfferUri(null);
               }}
-              placeholder="https://utsteder.eidas2sandkasse.dev"
+              placeholder="https://utsteder.test.eidas2sandkasse.net/pid"
             />
             <small style={{ color: "#666", display: "block", marginTop: "0.25rem" }}>
-              Standard: <code>https://utsteder.eidas2sandkasse.dev</code> (EUDI-lommebøker på mobil krever gyldig HTTPS).
+              Standard i testmiljøet: <code>https://utsteder.test.eidas2sandkasse.net/pid</code> (for PID) eller <code>https://utsteder.test.eidas2sandkasse.net/bevisgenerator</code> (for øvrige bevis).
             </small>
           </div>
         </div>
