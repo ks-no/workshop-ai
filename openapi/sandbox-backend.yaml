@@ -191,6 +191,9 @@ paths:
 
         Hver lesing som faktisk serverer en samtykkegatet kilde gir en
         `DATA_LES` i revisjonsloggen, én rad per kilde per økt.
+
+        `aktivtStegFullfort` sier om `/neste` kan aktivere neste steg. Klienter
+        kan bruke feltet til å sperre navigasjonen uten å kopiere fullføringsreglene.
       parameters:
         - name: oektsId
           in: path
@@ -203,6 +206,10 @@ paths:
   /api/prosessoekter/{oektsId}/svar:
     post:
       summary: Lagre svar i prosessøkt
+      description: >
+        Lagrer svar på det aktive QUESTION-steget. Bruk `/forrige` før et tidligere
+        svar skal endres. Når et endret svar lagres, slettes svar og resultater fra
+        senere steg, som dermed må kjøres på nytt.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -215,9 +222,19 @@ paths:
       responses:
         "200":
           description: Svar lagret
+        "400":
+          description: Steget er ikke det aktive QUESTION-steget
+        "409":
+          description: En steghandling pågår, eller prosessøkten ble endret av et annet kall
   /api/prosessoekter/{oektsId}/handling:
     post:
       summary: Utfør aktiv steg-handling
+      description: >
+        Utfører bare det aktive steget. En handling som feiler lagrer ikke et
+        resultat. En mislykket DATA_FETCH blir derfor stående som ufullført og
+        må prøves på nytt før `/neste` kan brukes. Kjøres et tidligere fullført
+        steg på nytt, fjernes det gamle resultatet og alle senere svar og resultater
+        før forsøket.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -252,6 +269,8 @@ paths:
                 $ref: "#/components/schemas/Feil"
         "409":
           description: >
+            Navigasjon eller svar forsøkes mens en steghandling pågår, eller økten
+            ble endret av et annet kall.
             Samtykkesteget: fiks-simulator avviste svaret, typisk fordi
             forespørselen alt er besvart eller trukket. Status og melding er
             samtykketjenestens egne, ikke omskrevet. DATA_FETCH og SJEKK svarer
@@ -266,6 +285,12 @@ paths:
   /api/prosessoekter/{oektsId}/neste:
     post:
       summary: Gå til neste steg
+      description: >
+        Aktiverer neste steg når det aktive steget er fullført. Ruten utfører
+        aldri steg-handlingen. Spørsmål må være besvart, samtykkeforespørsler må
+        være besvart, og DATA_FETCH-, SJEKK- og SUMMARY-steg må være kjørt via
+        `/handling`. Svaret på prosessøkten har `aktivtStegFullfort`, som klienten
+        kan bruke til å sperre knappen før et kall.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -278,9 +303,16 @@ paths:
       responses:
         "200":
           description: Neste steg aktivert
+        "400":
+          description: Aktivt steg er ikke fullført, eller økten står på siste steg
+        "409":
+          description: En steghandling pågår, eller prosessøkten ble endret av et annet kall
   /api/prosessoekter/{oektsId}/forrige:
     post:
       summary: Gå til forrige steg
+      description: >
+        Flytter økten ett steg tilbake. Endres svaret på et tidligere QUESTION-steg
+        etterpå, slettes alle senere svar og resultater.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -293,6 +325,8 @@ paths:
       responses:
         "200":
           description: Forrige steg aktivert
+        "409":
+          description: En steghandling pågår, eller prosessøkten ble endret av et annet kall
   /api/personer:
     get:
       summary: List syntetiske personer

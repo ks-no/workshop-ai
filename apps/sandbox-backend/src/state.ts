@@ -6,6 +6,7 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
+import { HttpError } from "./errors.ts";
 import { isDatakilde, type Datakilde } from "../../shared/samtykke.ts";
 import type {
   Datasettnoekkel,
@@ -351,9 +352,18 @@ export function mergeFrossetProsessoekt(
  * Source metadata is merged because a process update can freeze it while a slow
  * handler is in flight.
  */
-export function lagreProsessoekt(oekt: Prosessoekt): Promise<void> {
+export function lagreProsessoekt(
+  oekt: Prosessoekt,
+  forventet?: { oppdatert: string }
+): Promise<void> {
   return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
+    if (forventet && (i === -1 || alle[i].oppdatert !== forventet.oppdatert)) {
+      throw new HttpError(
+        "Prosessøkten ble endret av et annet kall. Hent økten på nytt og prøv igjen.",
+        409
+      );
+    }
     if (i === -1) alle.push(oekt);
     else alle[i] = mergeProsessoektForLagring(alle[i], oekt);
   });

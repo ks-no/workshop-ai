@@ -164,8 +164,12 @@ function samtykkerFor(tilstand: Samtykketilstand, personId: string, datakilde: s
  * consent from a previous run as the basis for this read, and then the trail
  * could not be followed back to the moment the citizen agreed.
  *
- * Without a preference, the most recently created one wins. An arbitrary order is
- * the one thing an audit basis must not be.
+ * A preferred consent is authoritative only when it covers the person and source
+ * being read. If that consent was denied, withdrawn or expired, an older grant for
+ * the same scope must not replace the citizen's current answer. A preferred consent
+ * for another scope says nothing about this read, so the most recently created valid
+ * consent for the requested scope wins instead. An arbitrary order is the one thing
+ * an audit basis must not be.
  *
  * Expiry counts from Del D on: `utloper` was written 30 days ahead and read by
  * nobody, so a consent given a year ago still opened the income route. The status
@@ -179,17 +183,20 @@ export function hasGyldigSamtykke(
   foretrukketId?: string | null,
   now: number = Date.now()
 ) {
-  const gyldige = samtykkerFor(tilstand, personId, datakilde)
-    .filter((samtykke: any) => effektivStatus(samtykke, now) === "SAMTYKKET");
-  if (gyldige.length === 0) {
-    return null;
+  const relevante = samtykkerFor(tilstand, personId, datakilde);
+  if (foretrukketId) {
+    const foretrukket = tilstand.samtykker.find(
+      (samtykke: any) => samtykke.samtykkeId === foretrukketId
+    );
+    const dekkerForespurtOmfang = foretrukket?.personId === personId
+      && Array.isArray(foretrukket.dataKilder)
+      && foretrukket.dataKilder.includes(datakilde);
+    if (dekkerForespurtOmfang) {
+      return effektivStatus(foretrukket, now) === "SAMTYKKET" ? foretrukket : null;
+    }
   }
-  const foretrukket = foretrukketId
-    ? gyldige.find((samtykke: any) => samtykke.samtykkeId === foretrukketId)
-    : null;
-  if (foretrukket) {
-    return foretrukket;
-  }
+  const gyldige = relevante.filter((samtykke: any) => effektivStatus(samtykke, now) === "SAMTYKKET");
+  if (gyldige.length === 0) return null;
   return gyldige.reduce((nyeste: any, kandidat: any) =>
     String(kandidat.opprettet || "") > String(nyeste.opprettet || "") ? kandidat : nyeste
   );

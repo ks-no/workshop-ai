@@ -25,8 +25,10 @@ Sju typer, definert i `apps/sandbox-backend/src/types.ts` og håndtert i `proses
 - `SUMMARY`
 - `SUBMIT`
 
-Motoren er lineær: `stegIndex` teller oppover, og det finnes ingen forgrening eller
-betinget hopping. `SJEKK` kan avvise en økt, men flyten er ellers rett fram.
+Motoren har én lineær rekkefølge uten forgrening eller betinget hopping. `/neste`
+øker `stegIndex` når det aktive steget er fullført, og utfører aldri steget.
+`/forrige` er den uttrykkelige veien tilbake. `SJEKK` kan avvise en økt, men flyten
+er ellers rett fram.
 
 Flaggskipcasen `redusert-foreldrebetaling-barnehage` går gjennom sju steg, og bruker
 alle typene over unntatt `QUESTION`. Legg merke til at `DATA_FETCH` går to ganger: én
@@ -46,8 +48,18 @@ flowchart LR
 ```
 
 `QUESTION` er ikke med i denne casen, men brukes der flyten trenger et svar fra
-innbyggeren. Pilene peker bare én vei: `stegIndex` teller oppover, og `SJEKK` kan
-avvise økten, men det finnes ingen vei tilbake eller til side.
+innbyggeren. Et svar kan bare lagres på det aktive spørsmålssteget. Skal et tidligere
+svar endres, går klienten tilbake med `/forrige` først. Når det endrede svaret lagres,
+slettes svar og resultater fra alle senere steg. De må kjøres på nytt før flyten kan
+gå framover igjen.
+
+Et handlingssteg er fullført først når handlingen har lagret et resultat. Feiler en
+`DATA_FETCH`, blir økten stående på samme steg uten resultat. Klienten kan prøve
+handlingen på nytt, men `/neste` avviser framdrift til hentingen lykkes. Kjøres et
+tidligere fullført handlingssteg på nytt etter `/forrige`, fjernes det gamle resultatet
+og alle senere svar og resultater før forsøket. En feil kan derfor ikke gjenbruke et
+gammelt resultat som fullføring. Hvis to kall prøver å endre samme økt samtidig, får
+det som leste den gamle versjonen 409 og må hente økten på nytt.
 
 
 ## `SJEKK`

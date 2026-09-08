@@ -474,15 +474,18 @@ async function flytenStopperNaarGrunnlagetErTrukket() {
     `${sjekk.kropp?.oekt?.status}: ${JSON.stringify(sjekk.kropp?.resultat?.melding)}`
   );
 
+  const tilOppsummering = await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  check("fullført SJEKK lar økten nå SUMMARY før samtykket trekkes",
+    tilOppsummering.status === 200 && tilOppsummering.kropp?.aktivtSteg?.type === "SUMMARY",
+    JSON.stringify(tilOppsummering));
   const fiksToken = await maskinAuth("ks:fiks:samtykke", "fiks-simulator");
   await kall(fiksUrl, `/fiks/samtykke/${samtykkeId}/trekk`, fiksToken, {
     method: "PUT",
     body: { sporingsId: "samtykke-trekk-innsending" }
   });
 
-  // -> oppsummering. Vakten står før kallet til KI-tjenesten, så dette er en 403 og
-  // ikke en 502 om at modellen ikke svarte.
-  await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
+  // The session is already on SUMMARY: withdrawing the basis also makes /neste
+  // reject the preceding SJEKK, which would test navigation instead of this guard.
   const oppsummering = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, {
     method: "POST",
     body: {}

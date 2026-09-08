@@ -18,6 +18,9 @@ const oektsIdEl = krevEl("oektsId");
 const stegCounter = krevEl("stegTeller");
 const aktivtStegEl = krevEl("aktivtSteg");
 const prosessOversikt = krevEl("prosessOversikt");
+const forrigeKnapp = krevEl<HTMLButtonElement>("forrige");
+const nesteKnapp = krevEl<HTMLButtonElement>("neste");
+const nesteForklaring = krevEl("nesteForklaring");
 
 let personer: Person[] = [];
 let prosesser: Prosess[] = [];
@@ -114,6 +117,53 @@ function renderProsessOversikt(): void {
   }).join("");
 }
 
+function forklarNeste(oekt: Prosessoekt): string {
+  if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
+    return "Prosessøkten er avsluttet.";
+  }
+  if (oekt.stegIndex >= (oekt.totaltAntallSteg ?? 0) - 1) {
+    return "Dette er det siste steget.";
+  }
+  if (oekt.aktivtStegFullfort) {
+    return "Steget er fullført. Du kan gå videre.";
+  }
+  if (oekt.aktivtSteg?.type === "QUESTION") {
+    return "Lagre et gyldig svar før du går videre.";
+  }
+  if (oekt.aktivtSteg?.type === "CONSENT_REQUEST") {
+    return oekt.aktivtSamtykkeId
+      ? "Registrer svaret på samtykkeforespørselen før du går videre."
+      : "Opprett og svar på samtykkeforespørselen før du går videre.";
+  }
+  if (oekt.aktivtSteg?.type === "DATA_FETCH") {
+    return "Kjør datahentingen uten feil før du går videre.";
+  }
+  if (oekt.aktivtSteg?.type === "SJEKK") {
+    return "Kjør sjekken før du går videre.";
+  }
+  if (oekt.aktivtSteg?.type === "SUMMARY") {
+    return "Lag oppsummeringen før du går videre.";
+  }
+  return "Fullfør det aktive steget før du går videre.";
+}
+
+function updateNavigation(): void {
+  const oekt = aktivProsessoekt;
+  if (!oekt) {
+    forrigeKnapp.disabled = true;
+    nesteKnapp.disabled = true;
+    nesteForklaring.textContent = "Start en prosess for å se stegene.";
+    return;
+  }
+
+  const avsluttet = oekt.status === "AVVIST" || oekt.status === "FULLFORT";
+  forrigeKnapp.disabled = avsluttet || oekt.stegIndex <= 0;
+  nesteKnapp.disabled = avsluttet
+    || !oekt.aktivtStegFullfort
+    || oekt.stegIndex >= (oekt.totaltAntallSteg ?? 0) - 1;
+  nesteForklaring.textContent = forklarNeste(oekt);
+}
+
 function updateSessionView(oekt: Prosessoekt): void {
   aktivProsessoekt = oekt;
   aktivProsess = prosessFromId(oekt.prosessId);
@@ -122,6 +172,7 @@ function updateSessionView(oekt: Prosessoekt): void {
   oektsIdEl.textContent = oekt.oektsId;
   samtykkeIdEl.textContent = oekt.aktivtSamtykkeId || "ikke opprettet";
   renderProsessOversikt();
+  updateNavigation();
 }
 
 function renderAktivtSteg(): void {
@@ -315,8 +366,22 @@ async function runStegHandling(payload: Record<string, unknown>, statusmelding: 
     }
     renderAktivtSteg();
   } catch (error) {
-    setStatus(feilmelding(error));
-    visning.textContent = JSON.stringify({ feil: feilmelding(error) }, null, 2);
+    const handlingsfeil = feilmelding(error);
+    try {
+      const oppdatert = await getJson<Prosessoekt>(
+        `http://localhost:8080/api/prosessoekter/${aktivProsessoekt!.oektsId}`
+      );
+      updateSessionView(oppdatert);
+      renderAktivtSteg();
+      setStatus(handlingsfeil);
+      visning.textContent = JSON.stringify({ feil: handlingsfeil }, null, 2);
+    } catch (oppdateringsfeil) {
+      setStatus(`${handlingsfeil} Klarte heller ikke å oppdatere økten: ${feilmelding(oppdateringsfeil)}`);
+      visning.textContent = JSON.stringify({
+        feil: handlingsfeil,
+        oppdateringsfeil: feilmelding(oppdateringsfeil)
+      }, null, 2);
+    }
   }
 }
 
@@ -342,6 +407,10 @@ async function moveSteg(retning: number): Promise<void> {
     setStatus("Start en prosess først.");
     return;
   }
+  if (retning > 0 && nesteKnapp.disabled) {
+    setStatus(nesteForklaring.textContent || "Fullfør det aktive steget før du går videre.");
+    return;
+  }
   try {
     const endepunkt = retning < 0 ? "forrige" : "neste";
     const oekt = await postJson<Prosessoekt>(`http://localhost:8080/api/prosessoekter/${aktivProsessoekt.oektsId}/${endepunkt}`);
@@ -355,8 +424,8 @@ async function moveSteg(retning: number): Promise<void> {
 }
 
 krevEl("start").onclick = startProsess;
-krevEl("forrige").onclick = () => moveSteg(-1);
-krevEl("neste").onclick = () => moveSteg(1);
+forrigeKnapp.onclick = () => moveSteg(-1);
+nesteKnapp.onclick = () => moveSteg(1);
 krevEl("hentLogg").onclick = async () => {
   try {
     const data = await getJson<unknown>(`http://localhost:8080/api/revisjonslogg/${sporingsId}`);

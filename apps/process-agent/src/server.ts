@@ -32,7 +32,13 @@ type Agentsteg = {
   type: string;
   tittel?: string;
   tekst?: string;
-  felter?: { id: string; label: string; type?: string }[];
+  felter?: {
+    id: string;
+    label: string;
+    type?: string;
+    obligatorisk?: boolean;
+    alternativer?: (string | { verdi: string; label: string })[];
+  }[];
   [felt: string]: unknown;
 };
 
@@ -151,6 +157,9 @@ type Agentsesjon = {
   guidedInterviewCurrentKey: string | null;
   guidedInterviewStepId: string | null;
   guidedInterviewSessionStepId: string | null;
+  questionFieldQueue: NonNullable<Agentsteg["felter"]>;
+  questionFieldAnswers: Record<string, unknown>;
+  questionFieldCurrent: NonNullable<Agentsteg["felter"]>[number] | null;
 };
 
 const sessions = new Map<string, Agentsesjon>();
@@ -960,6 +969,44 @@ function findProcessStepById(state: Agentsesjon, stepId: string): Agentsteg | nu
   return steg.find((s) => s.id === stepId) || null;
 }
 
+function buildQuestionAnswer(state: Agentsesjon, stepId: string | null, answer: unknown): unknown {
+  if (!stepId || (typeof answer === "object" && answer !== null)) return answer;
+  const fields = findProcessStepById(state, stepId)?.felter || [];
+  if (fields.length <= 1) return answer;
+  const required = fields.filter((field) => field.obligatorisk);
+  const target = required.length <= 1 ? required[0] || fields[0] : null;
+  return target ? { [target.id]: answer } : answer;
+}
+
+function questionFieldPrompt(field: NonNullable<Agentsteg["felter"]>[number]): string {
+  const alternativer = (field.alternativer || []).map((alternativ) =>
+    typeof alternativ === "string" ? alternativ : alternativ.label
+  );
+  return alternativer.length > 0
+    ? `${field.label} Velg mellom: ${alternativer.join(", ")}.`
+    : field.label;
+}
+
+function normalizeQuestionFieldAnswer(
+  field: NonNullable<Agentsteg["felter"]>[number],
+  answer: string
+): { valid: true; value: string } | { valid: false } {
+  if (field.type !== "valg" || !field.alternativer?.length) {
+    return { valid: true, value: answer };
+  }
+  const folded = normalize(answer);
+  const match = field.alternativer.find((alternativ) => {
+    const value = typeof alternativ === "string" ? alternativ : alternativ.verdi;
+    const label = typeof alternativ === "string" ? alternativ : alternativ.label;
+    return normalize(value) === folded || normalize(label) === folded;
+  });
+  if (!match) return { valid: false };
+  return {
+    valid: true,
+    value: typeof match === "string" ? match : match.verdi
+  };
+}
+
 function findNextFreeTextQuestionStep(state: Agentsesjon, fromStepId: string | null): Agentsteg | null {
   const steg = state.processDefinition?.steg;
   if (!Array.isArray(steg)) return null;
@@ -1216,12 +1263,8 @@ async function startSelectedProcess(state: Agentsesjon, choice: Prosessvalg) {
   return intro.concat(await advanceAndPrompt(state));
 }
 
-async function tryNextStep(oektsId: string | null): Promise<void> {
-  try {
-    await invokeTool<Oektsvar>("next_step", { oektsId });
-  } catch {
-    // Ignore when already on last step.
-  }
+async function goNextStep(oektsId: string | null): Promise<void> {
+  await invokeTool<Oektsvar>("next_step", { oektsId });
 }
 
 async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
@@ -1255,7 +1298,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       if (step.tekst) {
         messages.push(step.tekst);
       }
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       continue;
     }
 
@@ -1271,7 +1314,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       } else {
         messages.push("Jeg har hentet opplysningene som trengs i dette steget.");
       }
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       continue;
     }
 
@@ -1284,7 +1327,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
         return messages;
       }
       messages.push(result?.resultat?.melding || "Sjekken er gjennomført.");
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       continue;
     }
 
@@ -1305,6 +1348,16 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
     if (step.type === "QUESTION") {
       state.awaiting = "question";
       state.awaitingStepId = step.id;
+      const requiredFields = (step.felter || []).filter((field) => field.obligatorisk);
+      if (requiredFields.length > 1) {
+        state.awaiting = "question_fields";
+        state.questionFieldCurrent = requiredFields[0];
+        state.questionFieldQueue = requiredFields.slice(1);
+        state.questionFieldAnswers = {};
+        if (step.tekst) messages.push(step.tekst);
+        messages.push(questionFieldPrompt(requiredFields[0]));
+        return messages;
+      }
 
       if (state.deferredAnswers[step.id]) {
         state.awaiting = "deferred_answer_confirm";
@@ -1355,8 +1408,8 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
  * alternativsettet og sier selv hvilke verdier som gjelder, så agenten skal ikke
  * tolke svaret om igjen - bare vise refusjonen og spørre på nytt.
  *
- * På grensen og ikke ved hvert kallsted: answer_question kalles fem steder, og en
- * fangst per sted er en fangst noen glemmer på det sjette.
+ * På grensen og ikke ved hvert kallsted: answer_question kalles flere steder, og en
+ * fangst per sted er en fangst noen glemmer på det neste.
  *
  * `state.awaiting` røres ikke, og det er ikke en forglemmelse: fangsten satte den
  * til "question", så et 409 fra samtykkesteget flyttet sesjonen bort fra samtykket
@@ -1453,6 +1506,34 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     return back
       ? [sidesvar.tekst, `Tilbake til der vi var: ${back}`]
       : [sidesvar.tekst];
+  }
+
+  if (state.awaiting === "question_fields") {
+    const current = state.questionFieldCurrent;
+    if (!current || !state.awaitingStepId) {
+      state.awaiting = "question";
+      return ["Jeg mistet hvilket felt vi var på. Kan du svare på spørsmålet på nytt?"];
+    }
+    const normalized = normalizeQuestionFieldAnswer(current, text);
+    if (!normalized.valid) {
+      return [`Jeg fikk ikke koblet svaret til et gyldig valg. ${questionFieldPrompt(current)}`];
+    }
+    state.questionFieldAnswers[current.id] = normalized.value;
+    const next = state.questionFieldQueue.shift();
+    if (next) {
+      state.questionFieldCurrent = next;
+      return [questionFieldPrompt(next)];
+    }
+
+    await invokeTool("answer_question", {
+      oektsId: state.oektsId,
+      stegId: state.awaitingStepId,
+      svar: state.questionFieldAnswers
+    });
+    state.questionFieldCurrent = null;
+    state.questionFieldAnswers = {};
+    await goNextStep(state.oektsId);
+    return ["Takk, jeg har lagret svarene dine."].concat(await advanceAndPrompt(state));
   }
 
   if (state.awaiting === "question") {
@@ -1569,9 +1650,9 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.awaitingStepId,
-      svar: normalizedAnswer.answer
+      svar: buildQuestionAnswer(state, state.awaitingStepId, normalizedAnswer.answer)
     });
-    await tryNextStep(state.oektsId);
+    await goNextStep(state.oektsId);
     const ack = normalizedAnswer.note || "Takk, jeg har lagret svaret ditt.";
     return [ack].concat(await advanceAndPrompt(state));
   }
@@ -1601,13 +1682,13 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: stepId,
-        svar: proposed
+        svar: buildQuestionAnswer(state, stepId, proposed)
       });
       delete state.deferredAnswers[stepId];
       state.pendingDeferredStepId = null;
       state.pendingValidatedAnswer = null;
       state.awaiting = "question";
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       return ["Flott, da bruker jeg svaret du ga tidligere."].concat(await advanceAndPrompt(state));
     }
 
@@ -1662,11 +1743,11 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: "velg-gate",
-        svar: nyGate
+        svar: buildQuestionAnswer(state, "velg-gate", nyGate)
       });
       state.latestMatrikkelGate = { adressenavn: nyGate };
 
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       const replies = [`Da bytter vi gate til ${nyGate}.`].concat(await advanceAndPrompt(state));
 
       // If we still ended up at the same step, keep normal question mode.
@@ -1715,12 +1796,12 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: state.awaitingStepId,
-        svar: proposed
+        svar: buildQuestionAnswer(state, state.awaitingStepId, proposed)
       });
       state.latestMatrikkelGate = { adressenavn: proposed };
       state.pendingValidatedAnswer = null;
       state.awaiting = "question";
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       return [`Flott, jeg bruker ${proposed}.`].concat(await advanceAndPrompt(state));
     }
 
@@ -1756,7 +1837,11 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.guidedInterviewSessionStepId || state.guidedInterviewStepId,
-      svar: composed
+      svar: buildQuestionAnswer(
+        state,
+        state.guidedInterviewSessionStepId || state.guidedInterviewStepId,
+        composed
+      )
     });
 
     state.awaiting = "question";
@@ -1766,7 +1851,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     state.guidedInterviewStepId = null;
     state.guidedInterviewSessionStepId = null;
 
-    await tryNextStep(state.oektsId);
+    await goNextStep(state.oektsId);
     return [
       `Takk. Jeg satte sammen denne beskrivelsen fra svarene dine:`,
       `«${composed}»`,
@@ -1788,7 +1873,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     });
 
     if (intent.intent === "summary_yes") {
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       return ["Flott. Da gar vi videre til innsending."].concat(await advanceAndPrompt(state));
     }
 
@@ -1822,13 +1907,13 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
 
     if (intent.intent === "consent_yes") {
       await invokeTool("consent_response", { oektsId: state.oektsId, approved: true });
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       return ["Takk. Samtykke er registrert."].concat(await advanceAndPrompt(state));
     }
 
     if (intent.intent === "consent_no") {
       await invokeTool("consent_response", { oektsId: state.oektsId, approved: false });
-      await tryNextStep(state.oektsId);
+      await goNextStep(state.oektsId);
       return ["Skjønner. Jeg har registrert at du ikke vil samtykke nå."].concat(await advanceAndPrompt(state));
     }
 
@@ -1893,7 +1978,10 @@ async function createAgentSession(body: { personId?: string }) {
     guidedInterviewAnswers: {},
     guidedInterviewCurrentKey: null,
     guidedInterviewStepId: null,
-    guidedInterviewSessionStepId: null
+    guidedInterviewSessionStepId: null,
+    questionFieldQueue: [],
+    questionFieldAnswers: {},
+    questionFieldCurrent: null
   };
 
   sessions.set(session.sessionId, session);
@@ -2001,4 +2089,3 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Process-agent kjører på http://localhost:${port}`);
 });
-

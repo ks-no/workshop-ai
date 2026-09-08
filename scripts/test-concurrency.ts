@@ -364,8 +364,8 @@ try {
   await rm(blockedPath, { recursive: true, force: true });
 
   /*
-   * Ten different people, so every write lands on a different økt - same-person
-   * concurrency is a different and accepted race, see lagreProsessoekt.
+   * Ten different people, so every write lands on a different økt. Separate checks
+   * below race one økt against itself and pin serialisation and completion guards.
    *
    * Picked from digdir-mock rather than hardcoded: person-002 is a child, and 65 of
    * the population cannot log in at all. A hardcoded person-NNN list breaks the day
@@ -438,6 +438,25 @@ try {
     atSteg1.length === 10,
     `${atSteg1.length} av 10 - de øvrige mistet endringen sin i en samtidig skriving`
   );
+
+  const sammeOekt = await Promise.all(
+    Array.from({ length: COUNT }, () =>
+      call(`/api/prosessoekter/${ids[0]}/forrige`, tokens[0], { method: "POST" })
+    )
+  );
+  check("bare ett samtidig kall kan endre samme økt",
+    sammeOekt.filter((svar) => svar.status === 200).length === 1,
+    sammeOekt.map((svar) => svar.status).join(","));
+  check("foreldede kall avvises i stedet for å overskrive økten",
+    sammeOekt.every((svar) => [200, 400, 409].includes(svar.status)),
+    sammeOekt.map((svar) => svar.status).join(","));
+  const sammeOektEtter = await call(`/api/prosessoekter/${ids[0]}`, tokens[0]);
+  check("det vinnende kallet flyttet økten nøyaktig ett steg",
+    sammeOektEtter.body?.stegIndex === 0, String(sammeOektEtter.body?.stegIndex));
+  const tilbakeTilKlar = await call(`/api/prosessoekter/${ids[0]}/neste`, tokens[0], { method: "POST" });
+  check("øktens startpunkt gjenopprettes før innsendingstesten",
+    tilbakeTilKlar.status === 200 && tilbakeTilKlar.body?.aktivtSteg?.id === "klar",
+    JSON.stringify(tilbakeTilKlar));
 
   // 3. The økt must belong to whoever created it, after all that racing.
   const wrongOwner = after.filter((oekt: any) => {

@@ -127,6 +127,12 @@ let satser: unknown = null;
 let sisteSamtykke: Samtykke | null = null;
 let ventendeOppfolging: string[] = [];
 const samtale: Samtalelinje[] = [];
+let ventendeFeltSvar: {
+  stegId: string;
+  felter: SpoersmaalsFelt[];
+  indeks: number;
+  svar: Record<string, unknown>;
+} | null = null;
 
 function summarizeResult(steg: ProsessSteg | null | undefined, result: Stegresultat | unknown[] | null | undefined): string {
   if (!result) {
@@ -538,7 +544,10 @@ function resumeFlyt(opprinneligTekst: string | null): void {
   const steg = oekt?.aktivtSteg;
   if (!steg) return;
   addMsg("system", `Sidespørsmål - flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
-  addMsg("assistant", promptForStep(steg));
+  const aktivtFelt = ventendeFeltSvar?.stegId === steg.id
+    ? ventendeFeltSvar.felter[ventendeFeltSvar.indeks]
+    : null;
+  addMsg("assistant", aktivtFelt?.label || promptForStep(steg));
   renderQuickActionsFor(steg, opprinneligTekst);
 }
 
@@ -583,6 +592,26 @@ function enesteValgfelt(steg: ProsessSteg | null | undefined): SpoersmaalsFelt |
   return felt.type === "valg" && (felt.alternativer || []).length > 0 ? felt : null;
 }
 
+function feltPrompt(felt: SpoersmaalsFelt): string {
+  const alternativer = (felt.alternativer || []).map(alternativLabel);
+  return alternativer.length > 0
+    ? `${felt.label}\nVelg mellom: ${alternativer.join(", ")}.`
+    : felt.label;
+}
+
+function normalizeFeltSvar(felt: SpoersmaalsFelt, tekst: string): string {
+  if (felt.type !== "valg" || !felt.alternativer?.length) return tekst;
+  const verdi = normalize(tekst);
+  const treff = felt.alternativer.find(
+    (alternativ) => normalize(alternativVerdi(alternativ)) === verdi
+      || normalize(alternativLabel(alternativ)) === verdi
+  );
+  if (!treff) {
+    throw new Error(`Velg ett av alternativene: ${felt.alternativer.map(alternativLabel).join(", ")}.`);
+  }
+  return alternativVerdi(treff);
+}
+
 function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
   const felter = steg?.felter || [];
   if (felter.length === 0) {
@@ -598,11 +627,11 @@ function buildSporsmaalsHjelp(steg: ProsessSteg | null | undefined): string {
   if (felter.length === 1) {
     return `Fortell gjerne litt om dette: ${felter[0].label}`;
   }
-  // Etikettene er ferdige spørsmål med sitt eget spørsmålstegn. Ble de føyd inn i
-  // en setning, kom de ut som «hva gjelder søknaden?, kan du …?.» - så de står
-  // som en liste og beholder store bokstaver.
-  const liste = felter.map((felt) => `- ${felt.label}`).join("\n");
-  return `Du kan gjerne svare på alt i én melding:\n${liste}`;
+  const obligatoriske = felter.filter((felt) => felt.obligatorisk);
+  if (obligatoriske.length > 1) {
+    return `Jeg spør om ett punkt om gangen. Først: ${feltPrompt(obligatoriske[0])}`;
+  }
+  return `Fortell gjerne litt om dette: ${feltPrompt(obligatoriske[0] || felter[0])}`;
 }
 
 function vent(ms: number): Promise<void> {
@@ -1034,10 +1063,33 @@ function normalize(text: string): string {
 // innbyggerens melding i loggen øverst, så en runde til dobler den.
 async function svarPaaSpoersmaal(steg: ProsessSteg, tekst: string): Promise<void> {
   if (!oekt) return;
+  const felter = steg.felter || [];
+  const obligatoriske = felter.filter((felt) => felt.obligatorisk);
+  let svar: unknown = tekst;
+
+  if (obligatoriske.length > 1) {
+    const innsamling = ventendeFeltSvar?.stegId === steg.id
+      ? ventendeFeltSvar
+      : { stegId: steg.id, felter: obligatoriske, indeks: 0, svar: {} };
+    const felt = innsamling.felter[innsamling.indeks];
+    innsamling.svar[felt.id] = normalizeFeltSvar(felt, tekst);
+    if (innsamling.indeks < innsamling.felter.length - 1) {
+      innsamling.indeks += 1;
+      ventendeFeltSvar = innsamling;
+      addMsg("assistant", `Takk. Neste: ${feltPrompt(innsamling.felter[innsamling.indeks])}`);
+      return;
+    }
+    svar = innsamling.svar;
+  } else if (felter.length > 1) {
+    const felt = obligatoriske[0] || felter[0];
+    svar = { [felt.id]: tekst };
+  }
+
   oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
     method: "POST",
-    body: JSON.stringify({ stegId: steg.id, svar: tekst })
+    body: JSON.stringify({ stegId: steg.id, svar })
   });
+  ventendeFeltSvar = null;
   addMsg("assistant", acknowledgeSvar(steg, tekst));
   updateSessionInfo();
   await goNext();
@@ -1160,6 +1212,7 @@ async function startChat(): Promise<void> {
     stopForsendelsespolling();
     sisteSamtykke = null;
     ventendeOppfolging = [];
+    ventendeFeltSvar = null;
     samtale.length = 0;
     oekt = await req<Prosessoekt>("/api/prosessoekter", {
       method: "POST",
@@ -1196,6 +1249,7 @@ krevEl("reset").onclick = () => {
   aktivProsess = null;
   sisteSamtykke = null;
   ventendeOppfolging = [];
+  ventendeFeltSvar = null;
   samtale.length = 0;
   chatEl.innerHTML = "";
   setQuickActions([]);
