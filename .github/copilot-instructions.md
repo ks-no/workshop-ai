@@ -26,8 +26,9 @@ pnpm test            # referential integrity across datasets
 pnpm test:kontrakt   # deterministic contract dump
 ```
 
-`pnpm test:agent` and the other `test:agent*` / `test:*-matrikkel` scripts need the
-stack up; `pnpm test:eval` needs a live model.
+Some integration scripts start isolated services; others need the stack up.
+See `AGENTS.md` under Developer workflows for the prerequisites.
+`pnpm test:eval` needs a live model.
 
 ## Components and ports
 
@@ -72,4 +73,3 @@ here; a second copy is how it went stale before.
   mechanics - setup and the hard rules. The one that bites: never
   load `felles.css` and the design system CSS on the same page, because `felles.css` has
   no `@layer` and unlayered rules beat every layer.
-

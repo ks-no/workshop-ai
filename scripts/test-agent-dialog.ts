@@ -238,6 +238,36 @@ try {
     });
   }
 
+  for (const message of [
+    "3 km til bussen og jeg klarer ikke å gå dit",
+    "2 barn som trenger hjelp til å delta på fotball",
+    "-2",
+    "2.5"
+  ]) {
+    await check(`tall først er ikke et menyvalg i AI-fallback: ${message}`, async () => {
+      const session = await create();
+      const reply = await say(session, message);
+      assert.equal(reply.selectedProcess, null, JSON.stringify(reply));
+      assert.equal(reply.awaiting, "process_choice");
+      assert.equal(reply.oektsId, null, "Et tilfeldig tall skal ikke starte en prosessøkt");
+      const fallback = await json(urls.ai, "/ai/velg-prosess", {
+        tekst: message,
+        prosesser: definition.prosesser.map(({ id, navn, beskrivelse }: any) => ({ id, navn, beskrivelse }))
+      });
+      assert.notEqual(fallback.intent, "match", JSON.stringify(fallback));
+      assert.notEqual(fallback.begrunnelse, "Heuristisk match via nummer");
+    });
+  }
+  await check("rent menyvalg virker også direkte mot AI-gateway", async () => {
+    const reply = await json(urls.ai, "/ai/velg-prosess", {
+      tekst: " 2 ",
+      prosesser: definition.prosesser.map(({ id, navn }: any) => ({ id, navn }))
+    });
+    assert.equal(reply.intent, "match");
+    assert.equal(reply.prosessId, "sfo-moderasjon");
+    assert.equal(reply.begrunnelse, "Heuristisk match via nummer");
+  });
+
   await check("egne svar og personvern går ikke til registeroppslag", async () => {
     const session = await create();
     const selected = await say(session, "stottekontakt-behov");

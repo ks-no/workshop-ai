@@ -1,7 +1,8 @@
 # Only the checks that need neither a running stack nor a language model.
 #
 # Deliberately excluded: pnpm test:eval (needs a live model - see evals/README.md)
-# and standalone test:agent / test:agent:nl / test:*-matrikkel scripts (need a stack).
+# Standalone test:agent / test:agent:nl need a stack. The matrikkel test prerequisites
+# differ by script; see AGENTS.md rather than assuming they all need a running stack.
 # test:agent:dialog starts isolated services with the mock and runs both agent scripts.
 name: CI
 
