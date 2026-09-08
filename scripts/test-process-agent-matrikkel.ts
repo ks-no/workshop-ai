@@ -4,8 +4,8 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { feilmelding } from "../apps/shared/errors.ts";
 
-const toolsPort = 19083;
-const agentPort = 19084;
+const toolsPort = Number(process.env.AGENT_MATRIKKEL_TOOLS_PORT) || 19083;
+const agentPort = Number(process.env.AGENT_MATRIKKEL_PORT) || 19084;
 
 const fakeSession = {
   oektsId: "oekt-1",
@@ -458,9 +458,10 @@ async function run() {
     assert(fakeSession.savedAnswers["velg-gate"] === "Nordnesveien", "Gate-bytte ble ikke lagret");
 
     // Now provide out-of-order free text while still at boliger-bekreft.
+    const expectedDraft = "Vi har høy fart og ønsker fartshumper.";
     const deferredDraft = await req(`/agent/sessions/${created.sessionId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ message: "Vi har høy fart og ønsker fartshumper." })
+      body: JSON.stringify({ message: expectedDraft })
     });
     assert(
       deferredDraft.replies.some((r: any) => r.includes("lagrer dette som utkast")),
@@ -481,10 +482,15 @@ async function run() {
       method: "POST",
       body: JSON.stringify({ message: "ja" })
     });
-    assert(fakeSession.savedAnswers.begrunnelse, "Utkast ble ikke brukt som svar på begrunnelse");
+    assert(fakeSession.savedAnswers.begrunnelse === expectedDraft, "Det siste utkastet ble ikke lagret uendret som begrunnelse");
     assert(
-      useDeferred.replies.some((r: any) => r.includes("bruker svaret du ga tidligere")) || useDeferred.replies.some((r: any) => r.includes("fullført")),
+      useDeferred.replies.includes("Flott, da bruker jeg svaret du ga tidligere."),
       `Manglet bekreftet bruk av utkast. Fikk: ${JSON.stringify(useDeferred.replies)}`
+    );
+    assert(useDeferred.awaiting === "process_end", "Siste spørsmålssteg uten SUBMIT skal avslutte dialogen uten innsending");
+    assert(
+      useDeferred.replies.some((r: any) => r.includes("ingen søknad er sendt inn")),
+      "Avsluttet utkast må ikke omtales som innsendt søknad"
     );
 
     // Fresh session: compact gate input with attached house number should still validate gate name.
@@ -517,7 +523,6 @@ run().catch((error) => {
   console.error(feilmelding(error));
   process.exitCode = 1;
 });
-
 
 
 

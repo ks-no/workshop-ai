@@ -7,7 +7,7 @@ import { docsHtml, routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
-import { adressekjerne, adresseSoek, matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
+import { adressekjerne, adresseSoek, buildEiendomKey, matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
 import type { Adresse } from "../../shared/adresse.ts";
 import type {
   FolkeregisterPerson,
@@ -249,7 +249,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "run_current_action",
-    description: "Run action for current DATA_FETCH, SJEKK, SUMMARY, or SUBMIT step.",
+    description: "Run action for the current DATA_FETCH, SJEKK, SUMMARY, or SUBMIT step.",
     inputSchema: {
       type: "object",
       required: ["oektsId"],
@@ -258,7 +258,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "next_step",
-    description: "Move process session to next step.",
+    description: "Move to the next step after the current step is complete. Does not run the step action.",
     inputSchema: {
       type: "object",
       required: ["oektsId"],
@@ -820,8 +820,7 @@ function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
 function pickExactEiendom(eiendommer: Matrikkeleiendom[], query: Adresse): Matrikkeleiendom | null {
   const matches = eiendommer.filter((eiendom) => matchesAdresseFields(query, eiendom));
   const unique = new Map(matches.map((eiendom) => [
-    JSON.stringify([eiendom.matrikkelId, eiendom.kommunenummer, eiendom.gnr, eiendom.bnr,
-      eiendom.festenummer, eiendom.undernummer, eiendom.postnummer]),
+    buildEiendomKey(eiendom),
     eiendom
   ]));
   if (unique.size > 1) {

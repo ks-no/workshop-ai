@@ -97,6 +97,9 @@ function createFakeGeonorgeServer() {
         if (geonorgeScenario === "ambiguous") {
           adresser.push({ ...base, kommunenummer: "0301", postnummer: "0150", poststed: "OSLO" });
         }
+        if (geonorgeScenario === "festenummer") {
+          adresser = [{ ...base, festenummer: 1 }, { ...base, festenummer: 2 }];
+        }
         if (geonorgeScenario === "paged") {
           adresser = url.searchParams.get("side") === "1"
             ? [{ ...base, kommunenummer: "0301", postnummer: "0150", poststed: "OSLO" }]
@@ -354,6 +357,10 @@ async function kjor() {
       const disambiguatedOwners = await invoke(port, "matrikkel_hent_eiere", { adresse: "Bokstavgata 10A, 0150 OSLO" });
       assert(disambiguatedOwners.matrikkelId === disambiguated.matrikkelId, "Eieroppslaget må velge samme entydige adresse");
       assert(geonorgeQueries.slice(queryStart).some((query) => query.includes("0150")), "Postnummeret skal sendes til Geonorge");
+      geonorgeScenario = "festenummer";
+      for (const name of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
+        await assertRejected(port, name, { adresse: "Bokstavgata 10A, 5003 Bergen" }, 409);
+      }
       geonorgeScenario = "missing";
       await assertRejected(port, "matrikkel_hent_eiendom", { adresse: "Bokstavgata 10A" }, 404);
       geonorgeScenario = "normal";

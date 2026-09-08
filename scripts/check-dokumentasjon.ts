@@ -79,7 +79,7 @@ const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
  */
 function ciChecks(): string[] {
   const yaml = readFileSync(".github/workflows/ci.yml", "utf8");
-  return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:]+)/gm)].map((m) => m[1]);
+  return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:-]+)/gm)].map((m) => m[1]);
 }
 
 const sources = {
@@ -393,7 +393,7 @@ for (const file of markdown) {
     if (!/(\bCI\b|ci\.yml)/i.test(line) || !/(kj(ø|oe)rer|\bruns\b)/i.test(line)) return;
     // The list usually wraps, so read the sentence, not the line.
     const paragraph = lines.slice(i, i + 6).join(" ").split(/(?<=\.)\s/)[0];
-    const mentioned = [...paragraph.matchAll(/`(?:pnpm )?((?:test:)?[\w:]+)`/g)]
+    const mentioned = [...paragraph.matchAll(/`(?:pnpm )?((?:test:)?[\w:-]+)`/g)]
       .map((m) => m[1])
       .filter((name) => name === "lint" || name === "test" || name.startsWith("test:"));
     // One name is a claim about that check ("test:sperrer, som kjører i CI") and is

@@ -1,7 +1,9 @@
 # Only the checks that need neither a running stack nor a language model.
 #
 # Deliberately excluded: pnpm test:eval (needs a live model - see evals/README.md)
-# and the test:agent* / test:*-matrikkel scripts (need the compose stack up).
+# Standalone test:agent / test:agent:nl need a stack. The matrikkel test prerequisites
+# differ by script; see AGENTS.md rather than assuming they all need a running stack.
+# test:agent:dialog starts isolated services with the mock and runs both agent scripts.
 name: CI
 
 on:
@@ -42,6 +44,11 @@ jobs:
       - name: Typesjekk
         run: pnpm lint
 
+      # Exact local intent matching used when ai-gateway is unavailable. These are
+      # pure functions because consent must fail closed even without a stack or model.
+      - name: Lokal svartolkning i chat
+        run: pnpm test:chat-intent
+
       # Referential integrity plus scenario and target-group coverage across the
       # datasets. Catches a dataset that has quietly lost a threshold case.
       - name: Valider syntetiske data
@@ -53,6 +60,11 @@ jobs:
       # unlike test:eval it can gate every PR.
       - name: Sperrer på frie spørsmål
         run: pnpm test:sperrer
+
+      # The deterministic traffic summary must preserve structured answers and
+      # distinguish an explicit no from an unknown answer without using a model.
+      - name: Oppsummering av fartsdempende tiltak
+        run: pnpm test:oppsummering
 
       # Address-protection masking as pure functions against the real seed. The
       # kontrakt dump below records the masked shape on the wire, but a dump can
@@ -115,12 +127,20 @@ jobs:
       - name: Samtidige prosessøkter
         run: pnpm test:concurrency
 
-      # The closed-økt guard in withSession (routes.ts). A replayed POST /handling
-      # on a FULLFORT økt used to run SUBMIT again and create a duplicate søknad
-      # plus a new Fiks task per call; the guard existed only in /neste. Backend +
-      # digdir on their own ports against a temp STATE_DIR; no model, no stack.
-      - name: Lukkede prosessøkter
+      # Step completion and the closed-økt guard in withSession (routes.ts).
+      # /neste cannot skip QUESTION, consent, reads, checks or summaries, and a
+      # replayed SUBMIT cannot create a duplicate søknad. Six services run on
+      # their own ports against a temp STATE_DIR, with the AI mock and no stack.
+      - name: Stegfullføring og lukkede prosessøkter
         run: pnpm test:replay
+
+      # Execute the actual browser modules with an in-memory DOM and transport.
+      # Pins retries after lost responses and read-only questions after rejection.
+      - name: Chatfeil, nye forsøk og avslag
+        run: pnpm test:chat
+
+      - name: Agentdialog og innsending
+        run: pnpm test:agent:dialog
 
       # Kravet om fnr og formaal manglet en gang på id-ruten i begge mockene, og
       # rettelsen pinnet ingenting. Ruter, parametere og eksempelverdier leses av

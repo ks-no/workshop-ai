@@ -7,6 +7,19 @@ export type Adresse = {
   poststed?: string;
 };
 
+export function buildEiendomKey(eiendom: {
+  matrikkelId?: unknown;
+  kommunenummer?: unknown;
+  gnr?: unknown;
+  bnr?: unknown;
+  festenummer?: unknown;
+  undernummer?: unknown;
+  postnummer?: unknown;
+}): string {
+  return JSON.stringify([eiendom.matrikkelId, eiendom.kommunenummer, eiendom.gnr, eiendom.bnr,
+    eiendom.festenummer, eiendom.undernummer, eiendom.postnummer]);
+}
+
 function normalize(text: string): string {
   return text.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
 }

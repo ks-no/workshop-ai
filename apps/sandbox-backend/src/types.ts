@@ -13,11 +13,13 @@
 // the same files off the same disk, so Person and Husstand belong to neither
 // service. Re-exported nowhere - a caller that needs Person imports it from there.
 import type { Husstand, MedFelter, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+import type { Inntekt } from "../../shared/inntekt.ts";
 import type {
   Anmerkningskategori,
   Attestformaal,
   Attesttype
 } from "../../shared/politiattest.ts";
+import type { Datakilde } from "../../shared/samtykke.ts";
 
 // --- process model --------------------------------------------------------
 
@@ -118,6 +120,14 @@ export type Prosessoekt = {
    * lesing synlig. På wire heter feltet fortsatt `resultater`.
    */
   resultaterRaa: Record<string, unknown>;
+  /**
+   * Samtykkekildene som gjaldt da hvert resultat ble lagret. En tom liste betyr
+   * kjent ubeskyttet; manglende metadata betyr ukjent og må behandles deretter.
+   * SUMMARY og SUBMIT kan bygge på flere kilder og lagrer hele unionen.
+   */
+  resultatKilder: Record<string, Datakilde[]>;
+  /** Satt når alle eldre resultater er vurdert mot definisjonen som gjaldt før endring. */
+  resultatKilderFrosset?: boolean;
   aktivtSamtykkeId: string | null;
   avvistMelding?: string;
   opprettet: string;
@@ -252,7 +262,7 @@ export type Prosesskatalog = {
 export type State = {
   personer: Person[];
   husstander: Husstand[];
-  inntekter: MedFelter[];
+  inntekter: Inntekt[];
   barnehageplasser: Plass[];
   sfoplasser: Plass[];
   soknader: MedFelter[];

@@ -6,7 +6,15 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
-import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "./types.ts";
+import { HttpError } from "./errors.ts";
+import { isDatakilde, type Datakilde } from "../../shared/samtykke.ts";
+import type {
+  Datasettnoekkel,
+  ProsessDefinisjon,
+  Prosesskatalog,
+  Prosessoekt,
+  State
+} from "./types.ts";
 
 // Which seed files are currently shadowed by a copy in state/.
 //
@@ -220,16 +228,115 @@ export function findProsess(tilstand: State, prosessId: string) {
 export function findProsessoekt(tilstand: State, oektsId: string) {
   const oekt = tilstand.prosessoekter.find((kandidat: any) => kandidat.oektsId === oektsId);
   if (!oekt) return null;
+  return normalizeProsessoekt(oekt);
+}
+
+export function normalizeProsessoekt(oekt: Prosessoekt): Prosessoekt {
   // Feltet het `resultater` før samtykkeporten ble strammet. state/ er gitignorert og
   // `./start.sh --reset` tømmer det, men `--reload` gjør ikke, og en økt som lå der
   // fra før ga «Intern feil i sandbox-backend» på neste handling - som ser ut som en
   // feil i sandkassen framfor en gammel fil. Kan slettes når ingen har en slik økt.
-  const raa = oekt as { resultaterRaa?: Record<string, unknown>; resultater?: Record<string, unknown> };
+  const raa = oekt as {
+    resultaterRaa?: Record<string, unknown>;
+    resultatKilder?: Record<string, unknown>;
+    resultater?: Record<string, unknown>;
+  };
   if (!raa.resultaterRaa) {
     raa.resultaterRaa = raa.resultater || {};
     delete raa.resultater;
   }
+  // En tom mappe er ikke det samme som ferdig migrert. Prosessoppdateringen fyller
+  // eldre treff før definisjonen endres og setter sitt eget frosset-flagg.
+  raa.resultatKilder ??= {};
   return oekt;
+}
+
+function readResultatKilder(
+  oekt: Prosessoekt,
+  stegId: string
+): Datakilde[] | null | undefined {
+  if (!Object.hasOwn(oekt.resultatKilder, stegId)) return undefined;
+  const kilder = (oekt.resultatKilder as Record<string, unknown>)[stegId];
+  if (!Array.isArray(kilder) || !kilder.every(
+    (kilde): kilde is Datakilde => typeof kilde === "string" && isDatakilde(kilde)
+  )) {
+    return null;
+  }
+  return kilder;
+}
+
+function mergeResultatKilder(
+  beholdt: Prosessoekt,
+  annen: Prosessoekt,
+  tillatNyereResultat = false
+): Record<string, Datakilde[]> {
+  const resultatKilder: Record<string, Datakilde[]> = {};
+  for (const stegId of Object.keys(beholdt.resultaterRaa)) {
+    const beholdtKilder = readResultatKilder(beholdt, stegId);
+    const annenHarResultat = Object.hasOwn(annen.resultaterRaa, stegId);
+    const annenKilder = annenHarResultat ? readResultatKilder(annen, stegId) : undefined;
+    const sammeResultat =
+      annenHarResultat
+      && JSON.stringify(beholdt.resultaterRaa[stegId]) === JSON.stringify(annen.resultaterRaa[stegId]);
+
+    // Ugyldig eller ferdig vurdert ukjent metadata er strengest og forblir ukjent.
+    // En ufrosset legacy-mangel kan fylles fra nøyaktig det samme resultatet.
+    const beholdtUkjent =
+      beholdtKilder === null
+      || (beholdtKilder === undefined && beholdt.resultatKilderFrosset);
+    const annenUkjent =
+      annenKilder === null
+      || (annenHarResultat && annenKilder === undefined && annen.resultatKilderFrosset);
+    if (beholdtUkjent || annenUkjent) continue;
+    if (beholdtKilder === undefined) {
+      if (sammeResultat && annenKilder !== undefined) {
+        resultatKilder[stegId] = [...annenKilder];
+      }
+      continue;
+    }
+    if (annenHarResultat && annenKilder === undefined) {
+      if (sammeResultat || tillatNyereResultat) {
+        resultatKilder[stegId] = [...beholdtKilder];
+      }
+      continue;
+    }
+
+    resultatKilder[stegId] = [
+      ...new Set([...(beholdtKilder || []), ...(annenKilder || [])])
+    ];
+  }
+  return resultatKilder;
+}
+
+export function mergeProsessoektForLagring(
+  lagret: Prosessoekt,
+  innkommende: Prosessoekt
+): Prosessoekt {
+  const normalisertLagret = normalizeProsessoekt(lagret);
+  const normalisertInnkommende = normalizeProsessoekt(innkommende);
+  return {
+    ...normalisertInnkommende,
+    resultatKilder: mergeResultatKilder(
+      normalisertInnkommende,
+      normalisertLagret,
+      true
+    ),
+    resultatKilderFrosset:
+      normalisertLagret.resultatKilderFrosset || normalisertInnkommende.resultatKilderFrosset
+  };
+}
+
+export function mergeFrossetProsessoekt(
+  lagret: Prosessoekt,
+  frosset: Prosessoekt
+): Prosessoekt {
+  const normalisertLagret = normalizeProsessoekt(lagret);
+  const normalisertFrosset = normalizeProsessoekt(frosset);
+  return {
+    ...normalisertLagret,
+    resultatKilder: mergeResultatKilder(normalisertLagret, normalisertFrosset),
+    resultatKilderFrosset: true
+  };
 }
 
 /**
@@ -239,14 +346,38 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
  *
- * Two writes to the *same* økt still resolve last-writer-wins. That is one person
- * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
+ * The request boundary in routes.ts serialises mutations of the same økt before
+ * they reach this merge. Keeping the queue here short still lets a SUMMARY call
+ * wait on the model without blocking writes for unrelated sessions.
+ * Source metadata is merged because a process update can freeze it while a slow
+ * handler is in flight.
  */
-export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
-  return updateJson("prosessoekter.json", [], (alle: { oektsId: string }[]) => {
+export function lagreProsessoekt(
+  oekt: Prosessoekt,
+  forventet?: { oppdatert: string }
+): Promise<void> {
+  return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
+    if (forventet && (i === -1 || alle[i].oppdatert !== forventet.oppdatert)) {
+      throw new HttpError(
+        "Prosessøkten ble endret av et annet kall. Hent økten på nytt og prøv igjen.",
+        409
+      );
+    }
     if (i === -1) alle.push(oekt);
-    else alle[i] = oekt;
+    else alle[i] = mergeProsessoektForLagring(alle[i], oekt);
+  });
+}
+
+export function mergeFrosneResultatKilder(frosne: Prosessoekt[]): Promise<void> {
+  const etterId = new Map(frosne.map((oekt) => [oekt.oektsId, oekt]));
+  return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
+    for (let i = 0; i < alle.length; i++) {
+      const oekt = alle[i];
+      const frosset = etterId.get(oekt.oektsId);
+      if (!frosset) continue;
+      alle[i] = mergeFrossetProsessoekt(oekt, frosset);
+    }
   });
 }
 

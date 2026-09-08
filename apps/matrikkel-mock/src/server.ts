@@ -10,7 +10,7 @@ import { createGunzip } from "node:zlib";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
-import { matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
+import { buildEiendomKey, matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
 import type { GeonorgeAdresse } from "../../shared/registerdata.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -904,7 +904,7 @@ async function findEiendommerViaLive(adresse: string): Promise<Partial<Eiendom>[
   try {
     const candidates = (await getLiveAdresser(adresse, null, true)).map(geonorgeAdresseTilEiendom);
     return [...new Map(candidates.map((candidate) => [
-      JSON.stringify([candidate.matrikkelId, candidate.postnummer, candidate.undernummer]), candidate
+      buildEiendomKey(candidate), candidate
     ])).values()];
   } catch (error) {
     utenLive(error, `eiendommer ${adresse}`);

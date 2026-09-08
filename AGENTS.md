@@ -115,7 +115,10 @@ chat, or that every service is a søknad.
   read earlier is the lost update that cost this repo a søknad, a prosess and a
   participant's step, in four separate places. A guard that has to be remembered is not
   a guard. `pnpm test:concurrency` pins it for `prosessoekter.json`, `soknader.json`
-  and `prosessdefinisjoner.json`, and `pnpm test:samtykke` for `samtykker.json`.
+  and `prosessdefinisjoner.json`, and   `pnpm test:samtykke` for `samtykker.json`.
+  Mutations of the same prosessøkt additionally compare `oppdatert` inside that
+  queue; a request holding an older snapshot gets 409 instead of restoring stale
+  answers or results. `pnpm test:concurrency` races that case directly.
   Two files stay outside the store and may: `state/ai-provider-override.json`
   (`ai-gateway`) and `state/digdir-nokkel.json` (`digdir-mock`) have exactly one writer
   each, in one service, so there is no second reader to lose an update to.
@@ -170,7 +173,15 @@ chat, or that every service is a søknad.
   `DATA_FETCH`, `CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT`. There is no `CONFIRMATION`.
 - Actual sequence in the flagship case `redusert-foreldrebetaling-barnehage`:
   `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
-- The engine is linear: `stegIndex` only counts up. No branching, no conditional jumps.
+- The forward path is linear: `/neste` increments `stegIndex` only after the active
+  step is complete. There is no branching or conditional jump, and `/neste` never
+  executes a step. `/forrige` is the explicit way back. `/svar` accepts only the
+  active `QUESTION`; when a changed answer is saved after moving back, every later
+  answer and result is deleted so stale data cannot complete those steps. Rerunning
+  an action also clears its previous result and all later evidence before the attempt.
+  Only one `/handling` may run per økt at a time, so concurrent SUBMIT calls cannot
+  duplicate the søknad before completion is saved. Other mutation routes return 409
+  while that action runs, so navigation cannot move the økt out from under it.
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable - never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.
@@ -620,6 +631,9 @@ pnpm test:parametere      # required query parameters per route, read off the sp
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
+pnpm test:agent:dialog     # starts isolated services with the AI mock, through actual submission
+pnpm test:tools-matrikkel  # starts tools-api, matrikkel-mock and a fake Geonorge service
+pnpm test:agent:matrikkel  # starts process-agent and a fake tools-api
 ```
 - After editing source files in `apps/`, restart the affected containers so Node picks up the changes:
 ```bash
@@ -658,18 +672,20 @@ pnpm test:agent
 pnpm test:agent:nl
 pnpm test:matrikkel-mock
 pnpm test:bergen-matrikkel
-pnpm test:tools-matrikkel
-pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
+  `test:oppsummering`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
-  `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
-  `test:revisjon`, `test:openapi`, `test:docs` and `test:kontrakt` on every PR
+  `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:kodeverk`,
+  `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
-  does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
-  (need the compose stack up) - run those locally.
+  does **not** run `test:eval` (needs a live model). `test:agent:dialog` starts its own
+  isolated services with the AI mock and runs `test:agent` and `test:agent:nl` through
+  actual submission. Running `test:agent` or `test:agent:nl` on its own needs the
+  stack. `test:tools-matrikkel` and `test:agent:matrikkel` also start their own
+  services; they need neither a running stack nor a model.
 - All eleven services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.

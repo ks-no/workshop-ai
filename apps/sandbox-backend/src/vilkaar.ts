@@ -36,7 +36,8 @@ export const AVSLAGSGRUNNER = [
   "mangler_erklaering",
   "utloept_erklaering",
   "for_kort_varighet",
-  "visus_over_grensen"
+  "visus_over_grensen",
+  "kollektivbehov_ikke_dokumentert"
 ] as const;
 export type Avslagsgrunn = (typeof AVSLAGSGRUNNER)[number];
 
@@ -325,6 +326,17 @@ const regelHandlers: Record<Regeltype, (k: RegelContext) => SjekkResultat> = {
         "visus_over_grensen",
         `Legeerklæringen oppgir visus ${visus ?? "ukjent"}. For å regnes som blind eller sterkt ` +
         `svaksynt må visus med korreksjon på begge øyne være ${visusgrense} eller lavere.`,
+        erklaering
+      );
+    }
+
+    // En diagnose eller kvotekategori dokumenterer ikke alene transportbehovet.
+    // Uklart eller motstridende grunnlag må avklares, ikke automatisk innvilges.
+    if (legeerklaering.kanNytteKollektiv !== false) {
+      return avslag(
+        "kollektivbehov_ikke_dokumentert",
+        "Legeerklæringen dokumenterer ikke at søkeren er ute av stand til å bruke " +
+        "kollektivtransport. Transportbehovet må avklares før TT-kort kan innvilges.",
         erklaering
       );
     }
