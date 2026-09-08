@@ -229,6 +229,10 @@ async function checkSvarformer() {
     erStegFullfort(byggSpoersmaalsoekt(false), enkelt, {}));
   check("§0 streng fullfører ikke flerfeltsspørsmål",
     !erStegFullfort(byggSpoersmaalsoekt("ja"), flere, {}));
+  for (const svar of [true, false, 1, ["ja", "forklaring"]]) {
+    check(`§0 ${JSON.stringify(svar)} erstatter ikke påkrevde navngitte felt`,
+      !erStegFullfort(byggSpoersmaalsoekt(svar), flere, {}));
+  }
   check("§0 vilkårlig objektnøkkel fullfører ikke flerfeltsspørsmål",
     !erStegFullfort(byggSpoersmaalsoekt({ annet: "ja" }), flere, {}));
   check("§0 alle obligatoriske felt fullfører flerfeltsspørsmål, også med false",
