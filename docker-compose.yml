@@ -11,7 +11,7 @@ x-helsesjekk: &helsesjekk
 # Ports are loopback-only unless BIND_HOST says otherwise - see .env.example.
 services:
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.33.3
     ports:
       - "${BIND_HOST:-127.0.0.1}:11434:11434"
     volumes:
@@ -23,7 +23,7 @@ services:
       retries: 12
 
   ollama-pull-selected:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.33.3
     profiles: ["pull"]
     depends_on:
       ollama:
@@ -40,7 +40,7 @@ services:
     restart: "no"
 
   ollama-pull-all:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.33.3
     depends_on:
       ollama:
         condition: service_healthy

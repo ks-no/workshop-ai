@@ -552,9 +552,25 @@ is the one place prose transliterates, and the file carries a `rem` saying why s
 - Keep changes scoped to one app unless cross-service change is required.
 - **A new package version must be at least seven days old before it enters the repo.**
   `minimumReleaseAge` in `pnpm-workspace.yaml` and `cooldown` in `.github/dependabot.yml`
-  enforce it. Dependabot security updates are exempt. Neither lever reaches a floating
-  reference - a `:latest` image tag, an action on `@main`, a `curl | sh` installer - and
-  the repo still has all three.
+  enforce it. Dependabot security updates are exempt, and that exemption is npm-only:
+  the `docker` and `docker-compose` ecosystems get version updates and no security
+  updates at all, so a CVE in an image waits out the full seven days like any other bump.
+- **Nothing floats. Every dependency carries a version a bot can bump.**
+  A floating reference does not merely block the bot, it negates the rule above:
+  `cooldown` delays a pull request, and `:latest` needs none, so the bytes change on the
+  next `docker compose pull` at zero days of age. The norm outside this repo is the same.
+  NIST SP 800-190 says to address images by immutable names that carry the version, and
+  OpenSSF Scorecard's `Pinned-Dependencies` scores a digest above a tag. Images here
+  stop at the tag: `sbom-images.yml` splits an image reference on its last colon, and a
+  digest contains one.
+  Four pins no bot reaches, each for a reason. `ks-no/github-actions-public/...@main`:
+  that repo has no tags, so a SHA pin would freeze it rather than follow it.
+  `node:24-alpine`, in `docker-compose.yml` and `apps/matrikkel-mock/Dockerfile`: a
+  moving tag inside the major, so Dependabot can only offer the next major, which
+  `.github/dependabot.yml` ignores. `pnpm` in `packageManager`: dependabot-core#4830 is
+  still open, so it drifts until someone moves it by hand. `VERSION` in
+  `scripts/hent-designsystem.ts`: deliberate while the design system is pre-1.0, and the
+  script says why. Do not add a fifth without saying why here.
 
 ## Frontend: the KS Digital design system
 - Components, their API and their accessibility requirements are documented at

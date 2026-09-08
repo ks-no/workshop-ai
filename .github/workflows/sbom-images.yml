@@ -62,12 +62,9 @@ jobs:
           echo "project=workshop-ai-${repo##*/}" >> "$GITHUB_OUTPUT"
           echo "version=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Installer syft
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - uses: anchore/sbom-action/download-syft@v0.24.2
+        with:
+          syft-version: v1.51.1
 
       - name: Lag CycloneDX-BOM
         env:
