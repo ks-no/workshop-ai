@@ -662,7 +662,7 @@ pnpm test:tools-matrikkel
 pnpm test:agent:matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
   `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
