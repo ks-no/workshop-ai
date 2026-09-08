@@ -676,7 +676,7 @@ pnpm test:agent:matrikkel
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
-  `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
+  `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:kodeverk`,
   `test:revisjon`, `test:openapi`, `test:docs` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts

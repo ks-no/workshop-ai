@@ -122,6 +122,11 @@ jobs:
       - name: Stegfullføring og lukkede prosessøkter
         run: pnpm test:replay
 
+      # Execute the actual browser modules with an in-memory DOM and transport.
+      # Pins retries after lost responses and read-only questions after rejection.
+      - name: Chatfeil, nye forsøk og avslag
+        run: pnpm test:chat
+
       # Kravet om fnr og formaal manglet en gang på id-ruten i begge mockene, og
       # rettelsen pinnet ingenting. Ruter, parametere og eksempelverdier leses av
       # spesifikasjonene. Tre tjenester på egne porter; ingen modell, ingen stack.

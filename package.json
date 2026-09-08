@@ -37,6 +37,7 @@
     "test:imports": "node scripts/test-imports.ts",
     "test:kodeverk": "node scripts/test-kodeverk.ts",
     "test:replay": "node scripts/test-prosessoekt-lukket.ts",
+    "test:chat": "node --experimental-vm-modules scripts/test-chat-recovery.ts",
     "test:parametere": "node scripts/test-paakrevde-parametere.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:docs": "node scripts/check-dokumentasjon.ts",
