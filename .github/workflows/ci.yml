@@ -42,6 +42,11 @@ jobs:
       - name: Typesjekk
         run: pnpm lint
 
+      # Exact local intent matching used when ai-gateway is unavailable. These are
+      # pure functions because consent must fail closed even without a stack or model.
+      - name: Lokal svartolkning i chat
+        run: pnpm test:chat-intent
+
       # Referential integrity plus scenario and target-group coverage across the
       # datasets. Catches a dataset that has quietly lost a threshold case.
       - name: Valider syntetiske data

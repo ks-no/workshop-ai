@@ -2,7 +2,12 @@
 // eget scope - to sider kan bruke samme navn på hver sin `backendBase` uten å
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
-export {};
+import {
+  normalizeBrukersvar,
+  parseSvarPrefiks,
+  skalSvareFramfor,
+  tolkLokaltSvar
+} from "./fallback-intent.ts";
 
 renderTopNav("/chat");
 
@@ -480,7 +485,7 @@ const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "
 const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
 
 function isSidesporsmaal(text: string, steg: ProsessSteg | null | undefined): boolean {
-  const lower = normalize(text);
+  const lower = normalizeBrukersvar(text);
   if (!lower) return false;
 
   // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
@@ -668,24 +673,6 @@ function readOekt(data: unknown): Prosessoekt {
   return value;
 }
 
-function isJaSvar(text: string): boolean {
-  const lower = normalize(text);
-  return ["ja", "japp", "yes", "klart", "greit", "okei", "ok", "gjerne", "ja takk", "send inn", "det går fint", "det er greit"].some((match) => lower.includes(match));
-}
-
-function isNeiSvar(text: string): boolean {
-  const lower = normalize(text);
-  return ["nei", "ikke", "stopp", "senere", "ikke nå", "nei takk"].some((match) => lower.includes(match));
-}
-
-// Tekst som bare betyr «gå videre». Sammenlignes mot rå input, så ordene står
-// både med og uten norske tegn.
-function erFortsettSignal(text: string): boolean {
-  const lower = normalize(text);
-  return isJaSvar(text)
-    || ["start", "fortsett", "neste", "klar", "kjør på", "kjor pa", "gå videre", "ga videre"].some((match) => lower.includes(match));
-}
-
 function enesteValgfelt(steg: ProsessSteg | null | undefined): SpoersmaalsFelt | null {
   const felter = steg?.felter || [];
   if (felter.length !== 1) return null;
@@ -702,10 +689,10 @@ function feltPrompt(felt: SpoersmaalsFelt): string {
 
 function normalizeFeltSvar(felt: SpoersmaalsFelt, tekst: string): string {
   if (felt.type !== "valg" || !felt.alternativer?.length) return tekst;
-  const verdi = normalize(tekst);
+  const verdi = normalizeBrukersvar(tekst);
   const treff = felt.alternativer.find(
-    (alternativ) => normalize(alternativVerdi(alternativ)) === verdi
-      || normalize(alternativLabel(alternativ)) === verdi
+    (alternativ) => normalizeBrukersvar(alternativVerdi(alternativ)) === verdi
+      || normalizeBrukersvar(alternativLabel(alternativ)) === verdi
   );
   if (!treff) {
     throw new Error(`Velg ett av alternativene: ${felt.alternativer.map(alternativLabel).join(", ")}.`);
@@ -767,10 +754,11 @@ async function interpretBrukersvar(
     }
     return data;
   } catch {
-    if (isJaSvar(text)) {
+    const fallbackIntent = tolkLokaltSvar(text);
+    if (fallbackIntent === "ja") {
       return { intent: intents.ja, confidence: 0.6, modell: "lokal-fallback" };
     }
-    if (isNeiSvar(text)) {
+    if (fallbackIntent === "nei") {
       return { intent: intents.nei, confidence: 0.6, modell: "lokal-fallback" };
     }
     return { intent: intents.ukjent, confidence: 0.1, modell: "lokal-fallback" };
@@ -1191,10 +1179,6 @@ function renderQuickActionsFor(steg: ProsessSteg | null | undefined, feilrutetTe
   setQuickActions(knapper);
 }
 
-function normalize(text: string): string {
-  return text.toLowerCase().trim();
-}
-
 // Egen funksjon framfor et nytt sendMessage-kall: sendMessage skriver
 // innbyggerens melding i loggen øverst, så en runde til dobler den.
 async function svarPaaSpoersmaal(steg: ProsessSteg, tekst: string): Promise<void> {
@@ -1272,12 +1256,12 @@ async function sendMessage(
 
   const steg = oekt.aktivtSteg;
   if (!steg) return;
-  const lower = normalize(text);
+  const prefiks = parseSvarPrefiks(text);
 
   // Eksplisitt rømningsvei begge veier: «svar:» tvinger teksten inn som
   // svar på steget, og knappen fra gjenopptaFlyt setter samme flagg.
-  const tvungetSvar = valg.hoppOverSporsmaalsruting || lower.startsWith("svar:");
-  const reellTekst = lower.startsWith("svar:") ? text.slice(4).trim() : text;
+  const tvungetSvar = valg.hoppOverSporsmaalsruting || prefiks.harSvarPrefiks;
+  const reellTekst = prefiks.tekst;
 
   if (!tvungetSvar && isSidesporsmaal(text, steg)) {
     await answerSidesporsmaal(text);
@@ -1299,7 +1283,7 @@ async function sendMessage(
       // Men var teksten mer enn et «gå videre», var den svaret på spørsmålet
       // som kommer. Da sendes den inn i stedet for å kastes.
       const nesteSteg = (aktivProsess?.steg || [])[oekt.stegIndex + 1];
-      const svarerFramfor = nesteSteg?.type === "QUESTION" && !erFortsettSignal(reellTekst);
+      const svarerFramfor = skalSvareFramfor(reellTekst, nesteSteg?.type === "QUESTION");
       await goNext({ tegnSteg: !svarerFramfor });
       const nyttSteg = oekt?.aktivtSteg;
       if (svarerFramfor && nyttSteg?.type === "QUESTION") {
