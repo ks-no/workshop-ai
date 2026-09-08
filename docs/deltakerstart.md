@@ -44,7 +44,7 @@ stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjons
 og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
 krever nedlasting av flere gigabyte.
 
-Suksess ser slik ut: skriptet skriver `✅ Ready` (med `--mock` følger en advarsel om
+Suksess ser slik ut: skriptet skriver `✅ Klar` (med `--mock` følger en advarsel om
 at KI-svarene er maltekst - det er som forventet) - åpne da <http://localhost:3001>,
 der alle tjenestene i tabellen skal vise grønt («oppe»).
 
@@ -74,7 +74,7 @@ det den siden du går tilbake til.
 | <http://localhost:3000> | Prosessbygger - lag eller endre en flyt |
 | <http://localhost:3001/ds-eksempel> | Designsystem-mal. Trenger du bare hvis du lager din egen frontend - se [`docs/designsystem.md`](designsystem.md) |
 
-De øvrige tjenestene (`:8080`–`:8087`) er API-er du kan bygge mot. Du trenger ikke åpne
+De øvrige tjenestene (`:8080`–`:8088`) er API-er du kan bygge mot. Du trenger ikke åpne
 noen av dem for å se sandkassen virke - og skal du bygge mot dem, er API-utforskeren
 raskere enn å lese spesifikasjonene selv.
 
@@ -213,8 +213,12 @@ Disse rutene trenger ingenting: `/helse`, `/docs`, `/openapi.yaml`,
 `GET /api/katalog/ressurser` sier selv hvilken tilgang og hvilket samtykke hver
 *dataressurs* krever, så du kan lese det ut av API-et.
 
-**Token gjelder bare `sandbox-backend` (`:8080`) og `fiks-simulator` (`:8081`).**
-De er de eneste som håndhever hjemmel. `ai-gateway` (`:8082`), `tools-api`
+**Fire API-er håndhever token på beskyttede ruter.** `sandbox-backend` (`:8080`)
+godtar ID-porten eller Maskinporten etter ruten. `fiks-simulator` (`:8081`),
+`pasientjournal-mock` (`:8087`) og `politiattest-mock` (`:8088`) krever
+Maskinporten med audience og scope for tjenesten; et innbyggertoken er ikke nok.
+Se [API-oversikten](api-oversikt.md) for spesifikasjonene.
+`ai-gateway` (`:8082`), `tools-api`
 (`:8083`), `process-agent` (`:8084`) og `matrikkel-mock` (`:8085`) svarer uten
 `Authorization`. Får du 401 fra en av de fire, er det ikke hjemmelslaget - se etter noe
 annet.
@@ -250,7 +254,8 @@ validering har vært innom. Dette er raskeste vei til å forstå et rart KI-svar
 docker compose ps
 ```
 
-Alle skal stå som `healthy`.
+De elleve Node-tjenestene skal stå som `healthy`. De to valgfrie MCP-containerne
+har ingen helsesjekk; Ollama avhenger av plattform og oppstartsvalg.
 
 Fant du ikke feilen med disse tre? **[`docs/feilsoking.md`](feilsoking.md) har resten**,
 ett symptom per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på

@@ -7,6 +7,8 @@ import { docsHtml, routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
+import { adressekjerne, matchesAdresse, parseAdresse } from "./adresse.ts";
+import type { Adresse } from "./adresse.ts";
 import type {
   FolkeregisterPerson,
   GeonorgeAdresse,
@@ -246,7 +248,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "run_current_action",
-    description: "Run action for current DATA_FETCH, SUMMARY, or SUBMIT step.",
+    description: "Run action for current DATA_FETCH, SJEKK, SUMMARY, or SUBMIT step.",
     inputSchema: {
       type: "object",
       required: ["oektsId"],
@@ -372,7 +374,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "matrikkel_hent_eiendom",
-    description: "Fetch one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text such as 'Storgata 5'. In live/hybrid mode, exact address lookups can use Geonorge.",
+    description: "Fetch one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text such as 'Storgata 5, 5003 Bergen'. Include postnummer to distinguish identical addresses. In live/hybrid mode, exact address lookups can use Geonorge.",
     inputSchema: {
       type: "object",
       properties: {
@@ -385,7 +387,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "matrikkel_hent_eiere",
-    description: "Get owners for one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text. Live public address sources may return no owner information.",
+    description: "Get owners for one property from matrikkel by matrikkelId, by gnr+bnr, or by exact address text. Include postnummer to distinguish identical addresses. Live public address sources may return no owner information.",
     inputSchema: {
       type: "object",
       properties: {
@@ -764,21 +766,13 @@ function geonorgeAdresseTekst(adresse: GeonorgeAdresse): string {
   return [navn, nummer ? `${nummer}${bokstav}` : ""].filter(Boolean).join(" ").trim();
 }
 
-function normalizeAdresseText(verdi: unknown): string {
-  return normalize(verdi).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function buildAdressekjerne(verdi: unknown): string {
-  const tekst = normalizeAdresseText(verdi)
-    .replace(/\b(norge|norway)\b/gu, " ")
-    .replace(/\b\d{4}\s+[\p{L}\s-]+$/u, " ")
-    .replace(/\b[\p{L}\s-]+\s+\d{4}$/u, " ")
-    .replace(/\b[\p{L}\s-]+$/u, (match) => (/\d/.test(match) ? match : " "))
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const treff = tekst.match(/([\p{L}][\p{L}\s.-]*?(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
-  return treff?.[1] ? normalizeAdresseText(treff[1]) : tekst;
+function matchesGeonorgeAdresse(query: Adresse, adresse: GeonorgeAdresse): boolean {
+  if (!adresse || typeof adresse.adressenavn !== "string"
+    || !Number.isInteger(adresse.nummer) || Number(adresse.nummer) <= 0
+    || (adresse.bokstav != null && typeof adresse.bokstav !== "string")) return false;
+  const structured = `${adresse.adressenavn} ${adresse.nummer}${adresse.bokstav || ""}`;
+  return matchesAdresse(query, structured, adresse.postnummer, adresse.poststed)
+    && matchesAdresse(query, geonorgeAdresseTekst(adresse), adresse.postnummer, adresse.poststed);
 }
 
 function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
@@ -824,22 +818,21 @@ function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
   };
 }
 
-function pickBestLiveAdresse(adresser: GeonorgeAdresse[], query: string): GeonorgeAdresse | null {
-  if (!Array.isArray(adresser) || !adresser.length) return null;
-  const soek = normalizeAdresseText(query);
-  const searchCore = buildAdressekjerne(query);
-  const eksakt = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)) === soek);
-  if (eksakt) return eksakt;
-  const eksaktKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)) === searchCore);
-  if (eksaktKjerne) return eksaktKjerne;
-  const starterMed = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)).startsWith(soek));
-  if (starterMed) return starterMed;
-  const starterMedKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)).startsWith(searchCore));
-  if (starterMedKjerne) return starterMedKjerne;
-  const inneholder = adresser.find((adresse) => normalizeAdresseText(geonorgeAdresseTekst(adresse)).includes(soek));
-  if (inneholder) return inneholder;
-  const inneholderKjerne = adresser.find((adresse) => buildAdressekjerne(geonorgeAdresseTekst(adresse)).includes(searchCore));
-  return inneholderKjerne || adresser[0] || null;
+function pickExactEiendom(eiendommer: Matrikkeleiendom[], query: Adresse): Matrikkeleiendom | null {
+  const matches = eiendommer.filter((eiendom) =>
+    matchesAdresse(query, eiendom.adresse, eiendom.postnummer, eiendom.poststed)
+    && typeof eiendom.adressenavn === "string" && Number.isInteger(eiendom.husnummer)
+    && matchesAdresse(query, `${eiendom.adressenavn} ${eiendom.husnummer}${eiendom.husbokstav || ""}`,
+      eiendom.postnummer, eiendom.poststed));
+  const unique = new Map(matches.map((eiendom) => [
+    JSON.stringify([eiendom.matrikkelId, eiendom.kommunenummer, eiendom.gnr, eiendom.bnr,
+      eiendom.festenummer, eiendom.undernummer, eiendom.postnummer]),
+    eiendom
+  ]));
+  if (unique.size > 1) {
+    throw clientError(`Adressen ${adressekjerne(query)} er ikke entydig. Oppgi postnummer eller matrikkelId.`, 409);
+  }
+  return unique.values().next().value || null;
 }
 
 function paginateList<T>(liste: T[], args: Verktoyargumenter = {}) {
@@ -887,32 +880,51 @@ async function findVegerLive(args: Verktoyargumenter = {}): Promise<Gatetreff[]>
   return paginateList(liste, { offset, limit });
 }
 
-async function findEiendomLive(args: Verktoyargumenter = {}): Promise<Matrikkeleiendom | null> {
-  const adresse = String(args.adresse || "").trim();
-  if (!adresse) return null;
+async function findEiendomLive(adresse: string, query: Adresse): Promise<Matrikkeleiendom | null> {
+  const searchTerms = new Set([adresse, adressekjerne(query)]);
 
-  const adresseKjerne = buildAdressekjerne(adresse);
-  const searchTerms = new Set([
-    adresse,
-    adresseKjerne,
-    adresseKjerne.replace(/\s*,\s*/g, " ").trim()
-  ].filter(Boolean));
-
-  const kandidater = [];
+  const kandidater: GeonorgeAdresse[] = [];
   for (const term of searchTerms) {
     for (const variant of geonorgeQueryVariants(term)) {
-    const params = new URLSearchParams({
-      sok: variant,
-      treffPerSide: "20",
-      side: "0"
-    });
-    const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`) as { adresser?: GeonorgeAdresse[] };
-    kandidater.push(...(Array.isArray(data?.adresser) ? data.adresser : []));
+      const params = new URLSearchParams({ sok: variant, treffPerSide: "1000", side: "0" });
+      const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`) as {
+        adresser?: GeonorgeAdresse[];
+        metadata?: { totaltAntallTreff?: number };
+      };
+      if ((data.metadata?.totaltAntallTreff || 0) > 1000) {
+        throw clientError("Adressesøket har for mange treff. Oppgi postnummer eller matrikkelId.", 409);
+      }
+      kandidater.push(...(Array.isArray(data?.adresser) ? data.adresser : []));
     }
   }
 
-  const adresseTreff = pickBestLiveAdresse(kandidater, adresse);
-  return adresseTreff ? geonorgeAdresseTilEiendom(adresseTreff) : null;
+  return pickExactEiendom(kandidater.filter((adresse) =>
+    matchesGeonorgeAdresse(query, adresse)).map(geonorgeAdresseTilEiendom), query);
+}
+
+async function findEiendomMock(query: Adresse): Promise<Matrikkeleiendom> {
+  const params = new URLSearchParams({ adresse: adressekjerne(query), limit: "5000" });
+  const kandidater: Matrikkeleiendom[] = [];
+  for (let offset = 0; ; ) {
+    params.set("offset", String(offset));
+    const page = await matrikkel<{ items: Matrikkeleiendom[]; total: number }>(
+      `/mock/matrikkel/eiendommer?${params}`);
+    kandidater.push(...page.items);
+    offset += page.items.length;
+    if (offset >= page.total || !page.items.length) break;
+  }
+  const treff = pickExactEiendom(kandidater, query);
+  if (!treff) throw clientError(`Fant ikke adressen ${adressekjerne(query)}.`, 404);
+
+  // The list omits owners; only read them after resolving one exact property.
+  const eiendom = await matrikkel<Matrikkeleiendom>(treff.syntetisk === false
+    ? `/mock/matrikkel/eiendom-oppslag?adresse=${argSti(treff.adresse)}`
+    : `/mock/matrikkel/eiendom/${argSti(treff.matrikkelId)}`);
+  if (!pickExactEiendom([eiendom], query)
+    || eiendom.matrikkelId !== treff.matrikkelId) {
+    throw clientError(`Fant ikke et entydig oppslag for adressen ${adressekjerne(query)}.`, 409);
+  }
+  return eiendom;
 }
 
 async function findVegerMock(args: Verktoyargumenter = {}): Promise<Gatetreff[]> {
@@ -1162,18 +1174,22 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
   }
 
   if (name === "matrikkel_hent_eiendom") {
-    const kanBrukeLiveAdresse = (matrikkelMode === "live" || matrikkelMode === "hybrid") && args.adresse;
+    const query = parseAdresse(args.adresse);
+    if (args.adresse !== undefined && !query) {
+      throw clientError("Oppgi en adresse med gatenavn, husnummer og eventuell husbokstav.");
+    }
+    const kanBrukeLiveAdresse = (matrikkelMode === "live" || matrikkelMode === "hybrid") && query;
     if (kanBrukeLiveAdresse) {
       try {
-        const liveEiendom = await findEiendomLive(args);
+        const liveEiendom = await findEiendomLive(String(args.adresse), query!);
         if (liveEiendom || matrikkelMode === "live") {
           if (!liveEiendom) {
-            throw new Error(`Fant ikke adressen ${args.adresse} i offentlig adressekilde.`);
+            throw clientError(`Fant ikke adressen ${args.adresse} i offentlig adressekilde.`, 404);
           }
           return liveEiendom;
         }
       } catch (error) {
-        if (matrikkelMode === "live") {
+        if (matrikkelMode === "live" || error instanceof ToolFeil) {
           throw error;
         }
       }
@@ -1182,8 +1198,8 @@ async function invokeTool(name: string | undefined, args: Verktoyargumenter = {}
     if (args.matrikkelId) {
       return matrikkel(`/mock/matrikkel/eiendom/${argSti(args.matrikkelId)}`);
     }
-    if (args.adresse) {
-      return matrikkel(`/mock/matrikkel/eiendom-oppslag?adresse=${argSti(args.adresse)}`);
+    if (query) {
+      return findEiendomMock(query);
     }
     if (Number.isInteger(args.gnr) && Number.isInteger(args.bnr)) {
       const eiendommer = await matrikkel<Matrikkeleiendom[]>("/mock/matrikkel/eiendommer");
@@ -1437,5 +1453,3 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Tools-api kjører på http://localhost:${port}`);
 });
-
-

@@ -745,6 +745,24 @@ for (const file of markdown) {
   });
 }
 
+// --- executable cookbook examples -----------------------------------------
+
+const cookbook = readFileSync("examples/curl/README.md", "utf8");
+const healthLoop = cookbook.match(/for p in ([\d ]+); do\n[\s\S]*?\/helse"[\s\S]*?\ndone/);
+const apiPorts = (readJson("apps/shared/tjenester.json") as { port: number; spesifikasjon: boolean }[])
+  .filter((service) => service.spesifikasjon).map((service) => service.port).sort();
+const documentedPorts = healthLoop?.[1].trim().split(/\s+/).map(Number).sort();
+if (JSON.stringify(documentedPorts) !== JSON.stringify(apiPorts)) {
+  failures.push("examples/curl/README.md: helsesjekken må prøve alle API-portene i apps/shared/tjenester.json.");
+}
+for (const file of ["docs/deltakerstart.md", "examples/curl/README.md"]) {
+  const text = readFileSync(file, "utf8");
+  const headers = [...text.matchAll(/Authorization: ([^"\n]+)/g)].map((match) => match[1]);
+  if (!headers.length || headers.some((header) => !/^Bearer \$TOKEN(?:_M|_022)?$/.test(header))) {
+    failures.push(`${file}: curl-eksemplene må sende Bearer-tokenet fra token.ts, ikke en plassholder.`);
+  }
+}
+
 // --- report ---------------------------------------------------------------
 
 if (process.argv.includes("--innhold")) {

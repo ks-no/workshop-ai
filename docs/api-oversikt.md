@@ -39,6 +39,12 @@ API-utforskeren begge leser. `pnpm test:openapi` krever at den er enig med seg s
 Alle ni svarer også på `GET /helse`. Det finnes ingen `/health` - den var et alias som
 gjorde at hver tjeneste sto oppført to ganger i utforskeren.
 
+Beskyttede ruter i `sandbox-backend` godtar ID-porten eller Maskinporten etter
+tilgangsbandet. `fiks-simulator`, `pasientjournal-mock` og `politiattest-mock` krever
+Maskinporten med tjenestens audience og scope, ikke innbyggerens ID-porten-token.
+Spesifikasjonenes `security` og API-utforskeren viser hva den enkelte ruten krever.
+Helsesjekkene er åpne.
+
 ## Sandbox Backend: ressurskatalogen
 
 Ressursene under `/api/personer/{personId}/…`, `/api/husstander/…`,
@@ -86,7 +92,7 @@ den som leser uten å kjøre stacken.
 | `get_session` | Hent øktstate |
 | `answer_question` | Lagre svar på spørsmålssteg |
 | `consent_response` | Opprett og besvare samtykkesteg |
-| `run_current_action` | Utfør DATA_FETCH, SUMMARY eller SUBMIT |
+| `run_current_action` | Utfør DATA_FETCH, SJEKK, SUMMARY eller SUBMIT |
 | `next_step` / `previous_step` | Naviger i steg |
 | `interpret_reply` | Tolk brukermelding til intent via AI |
 | `get_household_income` | Hent inntektsgrunnlag |
@@ -95,7 +101,7 @@ den som leser uten å kjøre stacken.
 | `match_process_choice` | Match fritekst til prosess via AI |
 | `get_audit_log` | Hent revisjonshendelser |
 | `matrikkel_finn_veger` | Søk etter gater i matrikkelen |
-| `matrikkel_hent_eiendom` | Hent matrikkelenhet via id eller gnr+bnr |
+| `matrikkel_hent_eiendom` | Hent matrikkelenhet via id, gnr+bnr eller eksakt adresse |
 | `matrikkel_hent_eiere` | Hent eiere for en matrikkelenhet |
 | `suggest_step_tools` | Dynamisk verktøyoppdagelse for et prosessteg |
 | `answer_citizen_question` | Fritt spørsmål fra innbygger midt i en flyt. Henter satser selv og kaller `/ai/sporsmaal` |
@@ -124,7 +130,7 @@ REST-hjelpeendepunktene står i `openapi/matrikkel-mock.yaml`.
 
 **Vil du se en hel flyt, kall for kall?**
 [`examples/curl/README.md`](../examples/curl/README.md) har den som `curl`, og hvert kall
-i filen kjøres av en test, så et eksempel som ikke virker er en reell feil.
+i filen kan kjøres med `pnpm test:kokebok` mot en startet sandkasse.
 
 **Får du `401` eller `403`?**
 [`docs/deltakerstart.md`](deltakerstart.md#4-ditt-første-eget-kall) forklarer hvilken av

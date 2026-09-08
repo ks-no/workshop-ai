@@ -9,8 +9,9 @@ Det utforskeren *ikke* kan uttrykke er en rekkefølge - sju kall der hvert bygge
 forrige. Det er det denne filen er til. Foretrekker du Postman framfor curl, importerer
 den spesifikasjonene i `openapi/` direkte - se `examples/postman/README.md`.
 
-Alle kall er hentet fra `scripts/kontrakt-smoke.ts`, som kjører i CI. Virker et kall
-ikke, er det en reell feil.
+`pnpm test:kokebok` kjører bash-blokkene i denne filen mot en startet sandkasse.
+Den testen kjøres lokalt, ikke i CI. `scripts/kontrakt-smoke.ts` dekker
+prosessflyten separat i CI.
 
 ## 1. Token, én gang
 
@@ -41,17 +42,22 @@ export TOKEN_M=$(node scripts/token.ts --maskinporten ks:innbyggerdialog:les --r
 Åpne ruter (`/helse`, `/docs`, `/api/prosesser`, `/api/katalog/*`, `/api/regler/satser`)
 trenger ingenting.
 
+`sandbox-backend` godtar innbygger- eller maskintoken etter ruten. Beskyttede
+ruter i `fiks-simulator`, `pasientjournal-mock` og `politiattest-mock` krever
+Maskinporten med eget audience og scope, ikke `$TOKEN` over.
+Bruk API-utforskeren for et kall til disse tjenestene.
+
 ## 2. Er sandkassen i live?
 
 ```bash
-for p in 8080 8081 8082 8083 8084 8085 8086; do
+for p in 8080 8081 8082 8083 8084 8085 8086 8087 8088; do
   printf "%s " $p
   curl -s -o /dev/null -w "%{http_code}\n" --max-time 2 "http://localhost:$p/helse"
 done
 ```
 
-Sju svar, alle `200`. **`8086` er `digdir-mock`**, som utsteder tokener - er den nede,
-svarer hvert autentisert kall `401` mens `docker compose ps` ser frisk ut.
+Ni svar, alle `200`. **`8086` er `digdir-mock`**, som utsteder tokener. Er den nede,
+kan du ikke hente nye tokener, selv om de andre tjenestene er friske.
 
 `8082` svarer alltid `200` selv om modellen er nede. Les `modellNaaBar` i kroppen, ikke
 statuskoden.

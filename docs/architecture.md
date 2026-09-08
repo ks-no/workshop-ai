@@ -28,7 +28,7 @@ blokkere hverandre.
 3. Logg all datatilgang, som standard og ikke som tilvalg
 4. Håndhev policyer i kode, og dokumenter dem der de håndheves
 5. La KI formulere - aldri beregne eller avgjøre
-6. Hold lokal kjøring enkel: `docker compose up` skal være nok
+6. Hold lokal kjøring enkel: `./start.sh --mock` starter uten språkmodell
 7. Hold strukturen åpen for utvidelse uten å endre kjernen
 8. Velg det som lærer bort mest, foran det som ligner mest på produksjon
 
@@ -115,10 +115,12 @@ flowchart LR
   SB -->|"bak samtykkeporten"| PA
   DM -.->|"token"| SB
   DM -.->|"token"| FS
+  DM -.->|"Maskinporten"| PJ
+  DM -.->|"Maskinporten"| PA
 ```
 
 Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
-en flyt: den utsteder tokenet `sandbox-backend` og `fiks-simulator` krever.
+en flyt: den utsteder tokenene de fire beskyttede API-ene krever.
 
 
 ## Dynamisk verktøyoppdagelse i agenten
@@ -182,9 +184,10 @@ lukkes før hackathonet.
 **Agent-sesjoner ligger i minnet** i `process-agent`, uten TTL eller opprydding.
 De forsvinner ved omstart.
 
-**Autentisering går gjennom `digdir-mock`.** Både sandbox-backend og
-fiks-simulator krever token: ID-porten for en innbygger, Maskinporten for en
-maskin, med audience per tjeneste. `personId` tas ikke lenger fra requesten på
+**Autentisering går gjennom `digdir-mock`.** `sandbox-backend` godtar ID-porten
+for en innbygger eller Maskinporten for en maskin, avhengig av ruten.
+`fiks-simulator`, `pasientjournal-mock` og `politiattest-mock` krever Maskinporten,
+med audience og scope per tjeneste. `personId` tas ikke lenger fra requesten på
 tro og love - tokenets `pid` må slå opp til den personen forespørselen gjelder.
 Utstederen er en etterlikning, og klientassertionen verifiseres ikke, så
 identitetslaget er ekte i form og syntetisk i tillit.
