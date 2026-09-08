@@ -28,8 +28,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
-import { frysResultatKilder, resultaterNaa } from "../apps/sandbox-backend/src/prosess.ts";
+import {
+  frysResultatKilder,
+  resultaterNaa,
+  runStegHandling
+} from "../apps/sandbox-backend/src/prosess.ts";
+import type { Caller } from "../apps/sandbox-backend/src/autentisering.ts";
+import { errorBody, statusFor } from "../apps/sandbox-backend/src/errors.ts";
 import { normalizeProsessoekt } from "../apps/sandbox-backend/src/state.ts";
+import type { ProsessDefinisjon, Prosessoekt } from "../apps/sandbox-backend/src/types.ts";
 import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,6 +58,15 @@ function check(navn: string, betingelse: unknown, detalj = ""): void {
     return;
   }
   feil.push(`${navn}${detalj ? ` - ${detalj}` : ""}`);
+}
+
+async function captureError(fn: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await fn();
+    return null;
+  } catch (error) {
+    return error;
+  }
 }
 
 // --- process startup, same shape as kontrakt-smoke -------------------------
@@ -476,6 +492,11 @@ async function flytenStopperNaarGrunnlagetErTrukket() {
     oppsummering.status === 403,
     `status ${oppsummering.status}: ${JSON.stringify(oppsummering.kropp)}`
   );
+  check(
+    "403-svaret forklarer at samtykket er trukket eller utløpt",
+    String(oppsummering.kropp?.feil).includes("trukket eller utløpt"),
+    JSON.stringify(oppsummering.kropp)
+  );
   const soknader = await kall(backendUrl, "/api/personer/person-006/soknader", token);
   const antall = (soknader.kropp?.soknader || soknader.kropp || []).length;
   check("og ingen søknad ble lagret", antall === 0, JSON.stringify(soknader.kropp));
@@ -518,11 +539,9 @@ async function oppsummeringenGatesAvKildeneSine() {
     aktivtSamtykkeId: "samtykke-test", resultaterRaa,
     opprettet: "2026-08-01T00:00:00.000Z", oppdatert: "2026-08-01T00:00:00.000Z"
   } as any;
-  const kaller = { type: "innbygger", id: "12818800078" } as any;
-
   const med = resultaterNaa(
     { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
-    oekt, prosess, kaller
+    oekt, prosess
   );
   check("oppsummeringen står så lenge kildene er samtykket",
     med.resultater.oppsummering !== undefined, JSON.stringify(Object.keys(med.resultater)));
@@ -533,14 +552,13 @@ async function oppsummeringenGatesAvKildeneSine() {
   check("eldre økt holder tilbake resultat uten metadata og matchende steg",
     med.resultater["historisk-ukjent"] === undefined, JSON.stringify(Object.keys(med.resultater)));
 
-  const migrertOekt = structuredClone(oekt);
+  const migrertOekt = normalizeProsessoekt(structuredClone(oekt));
   check(
     "eldre økt fryser kildene før prosessdefinisjonen endres",
     frysResultatKilder(
       { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
       migrertOekt,
-      prosess,
-      kaller
+      prosess
     ),
     JSON.stringify(migrertOekt.resultatKilder)
   );
@@ -559,8 +577,7 @@ async function oppsummeringenGatesAvKildeneSine() {
       husstander: []
     } as any,
     migrertOekt,
-    endretProsess,
-    kaller
+    endretProsess
   );
   check(
     "endret steg kan ikke omklassifisere eldre beskyttet resultat",
@@ -593,8 +610,7 @@ async function oppsummeringenGatesAvKildeneSine() {
       husstander: []
     } as any,
     oekt,
-    duplikatProsess,
-    kaller
+    duplikatProsess
   );
   check(
     "duplikate steg-id-er kan ikke klassifisere eldre resultat som ubeskyttet",
@@ -611,8 +627,7 @@ async function oppsummeringenGatesAvKildeneSine() {
   frysResultatKilder(
     { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
     normalisertEldste,
-    prosess,
-    kaller
+    prosess
   );
   check(
     "eldste resultater-felt migreres før kildene fryses",
@@ -627,7 +642,7 @@ async function oppsummeringenGatesAvKildeneSine() {
   ] as const) {
     const uten = resultaterNaa(
       { samtykker: [rad], satser, personer: [], husstander: [] } as any,
-      oekt, prosess, kaller
+      oekt, prosess
     );
     check(`oppsummeringen er ute når samtykket er ${navn}`,
       uten.resultater.oppsummering === undefined, JSON.stringify(Object.keys(uten.resultater)));
@@ -636,6 +651,88 @@ async function oppsummeringenGatesAvKildeneSine() {
     check(`eldre ubeskyttet resultat står når samtykket er ${navn}`,
       uten.resultater["hent-husstand"] !== undefined, JSON.stringify(Object.keys(uten.resultater)));
   }
+}
+
+async function kildefeilHarPresiseSvar() {
+  const kaller: Caller = {
+    type: "system",
+    clientId: "test-revisjonsspor",
+    scope: ["ks:innbyggerdialog:les"],
+    consumer: null
+  };
+  const basisOekt: Prosessoekt = {
+    oektsId: "oekt-kildefeil",
+    personId: "person-001",
+    prosessId: "prosess-kildefeil",
+    sporingsId: "flyt-kildefeil",
+    status: "AKTIV",
+    stegIndex: 0,
+    svar: {},
+    resultaterRaa: {},
+    resultatKilder: {},
+    resultatKilderFrosset: true,
+    aktivtSamtykkeId: null,
+    opprettet: "2026-08-01T00:00:00.000Z",
+    oppdatert: "2026-08-01T00:00:00.000Z"
+  };
+  const tilstand = {
+    samtykker: [],
+    satser: {},
+    personer: [],
+    husstander: []
+  } as any;
+
+  const ukjentRessurs: ProsessDefinisjon = {
+    id: "prosess-kildefeil",
+    navn: "Prosess med ukjent ressurs",
+    redigering: {},
+    steg: [{
+      id: "hent-ukjent",
+      type: "DATA_FETCH",
+      tittel: "Henter ukjent ressurs",
+      api: { method: "GET", url: "/api/finnes-ikke" }
+    }]
+  };
+  const definisjonsfeil = await captureError(() =>
+    runStegHandling(tilstand, structuredClone(basisOekt), ukjentRessurs, {}, kaller)
+  );
+  const definisjonsfeilSvar = errorBody(definisjonsfeil);
+  check(
+    "ukjent katalogressurs gir konflikt, ikke intern feil",
+    statusFor(definisjonsfeil) === 409,
+    `${statusFor(definisjonsfeil)}: ${JSON.stringify(definisjonsfeilSvar)}`
+  );
+  check(
+    "konfliktsvaret peker deltakeren til prosessbyggeren",
+    String(definisjonsfeilSvar.feil).includes("Rett steget i prosessbyggeren"),
+    JSON.stringify(definisjonsfeilSvar)
+  );
+
+  const ukjentHistorikk = {
+    ...structuredClone(basisOekt),
+    resultaterRaa: { "historisk-ukjent": { beregningsbeloep: 485000 } }
+  };
+  const oppsummeringsprosess: ProsessDefinisjon = {
+    id: "prosess-kildefeil",
+    navn: "Prosess med eldre resultat",
+    redigering: {},
+    steg: [{ id: "oppsummering", type: "SUMMARY", tittel: "Oppsummering" }]
+  };
+  const historikkfeil = await captureError(() =>
+    runStegHandling(tilstand, ukjentHistorikk, oppsummeringsprosess, {}, kaller)
+  );
+  const historikkfeilSvar = errorBody(historikkfeil);
+  check(
+    "ukjent historisk kildelinje gir 403",
+    statusFor(historikkfeil) === 403,
+    `${statusFor(historikkfeil)}: ${JSON.stringify(historikkfeilSvar)}`
+  );
+  check(
+    "403-svaret skiller ukjent kildelinje fra trukket samtykke",
+    String(historikkfeilSvar.feil).includes("Kildene til eldre resultater kan ikke fastslås")
+      && !String(historikkfeilSvar.feil).includes("trukket eller utløpt"),
+    JSON.stringify(historikkfeilSvar)
+  );
 }
 
 // --- run ---------------------------------------------------------------------
@@ -684,6 +781,7 @@ async function run() {
     await trukketSamtykkeTommerOekten(stateDir);
     await flytenStopperNaarGrunnlagetErTrukket();
     await oppsummeringenGatesAvKildeneSine();
+    await kildefeilHarPresiseSvar();
   } finally {
     for (const tjeneste of tjenester) {
       tjeneste.kill("SIGTERM");

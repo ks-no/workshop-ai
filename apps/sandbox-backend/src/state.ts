@@ -6,6 +6,7 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
+import { isDatakilde, type Datakilde } from "../../shared/samtykke.ts";
 import type {
   Datasettnoekkel,
   ProsessDefinisjon,
@@ -249,6 +250,94 @@ export function normalizeProsessoekt(oekt: Prosessoekt): Prosessoekt {
   return oekt;
 }
 
+function readResultatKilder(
+  oekt: Prosessoekt,
+  stegId: string
+): Datakilde[] | null | undefined {
+  if (!Object.hasOwn(oekt.resultatKilder, stegId)) return undefined;
+  const kilder = (oekt.resultatKilder as Record<string, unknown>)[stegId];
+  if (!Array.isArray(kilder) || !kilder.every(
+    (kilde): kilde is Datakilde => typeof kilde === "string" && isDatakilde(kilde)
+  )) {
+    return null;
+  }
+  return kilder;
+}
+
+function mergeResultatKilder(
+  beholdt: Prosessoekt,
+  annen: Prosessoekt,
+  tillatNyereResultat = false
+): Record<string, Datakilde[]> {
+  const resultatKilder: Record<string, Datakilde[]> = {};
+  for (const stegId of Object.keys(beholdt.resultaterRaa)) {
+    const beholdtKilder = readResultatKilder(beholdt, stegId);
+    const annenHarResultat = Object.hasOwn(annen.resultaterRaa, stegId);
+    const annenKilder = annenHarResultat ? readResultatKilder(annen, stegId) : undefined;
+    const sammeResultat =
+      annenHarResultat
+      && JSON.stringify(beholdt.resultaterRaa[stegId]) === JSON.stringify(annen.resultaterRaa[stegId]);
+
+    // Ugyldig eller ferdig vurdert ukjent metadata er strengest og forblir ukjent.
+    // En ufrosset legacy-mangel kan fylles fra nøyaktig det samme resultatet.
+    const beholdtUkjent =
+      beholdtKilder === null
+      || (beholdtKilder === undefined && beholdt.resultatKilderFrosset);
+    const annenUkjent =
+      annenKilder === null
+      || (annenHarResultat && annenKilder === undefined && annen.resultatKilderFrosset);
+    if (beholdtUkjent || annenUkjent) continue;
+    if (beholdtKilder === undefined) {
+      if (sammeResultat && annenKilder !== undefined) {
+        resultatKilder[stegId] = [...annenKilder];
+      }
+      continue;
+    }
+    if (annenHarResultat && annenKilder === undefined) {
+      if (sammeResultat || tillatNyereResultat) {
+        resultatKilder[stegId] = [...beholdtKilder];
+      }
+      continue;
+    }
+
+    resultatKilder[stegId] = [
+      ...new Set([...(beholdtKilder || []), ...(annenKilder || [])])
+    ];
+  }
+  return resultatKilder;
+}
+
+export function mergeProsessoektForLagring(
+  lagret: Prosessoekt,
+  innkommende: Prosessoekt
+): Prosessoekt {
+  const normalisertLagret = normalizeProsessoekt(lagret);
+  const normalisertInnkommende = normalizeProsessoekt(innkommende);
+  return {
+    ...normalisertInnkommende,
+    resultatKilder: mergeResultatKilder(
+      normalisertInnkommende,
+      normalisertLagret,
+      true
+    ),
+    resultatKilderFrosset:
+      normalisertLagret.resultatKilderFrosset || normalisertInnkommende.resultatKilderFrosset
+  };
+}
+
+export function mergeFrossetProsessoekt(
+  lagret: Prosessoekt,
+  frosset: Prosessoekt
+): Prosessoekt {
+  const normalisertLagret = normalizeProsessoekt(lagret);
+  const normalisertFrosset = normalizeProsessoekt(frosset);
+  return {
+    ...normalisertLagret,
+    resultatKilder: mergeResultatKilder(normalisertLagret, normalisertFrosset),
+    resultatKilderFrosset: true
+  };
+}
+
 /**
  * Write one prosessoekt back, into data read fresh inside the queue.
  *
@@ -263,24 +352,20 @@ export function lagreProsessoekt(oekt: Prosessoekt): Promise<void> {
   return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
     if (i === -1) alle.push(oekt);
-    else {
-      // A process update can freeze legacy metadata while a slow SUMMARY request
-      // is in flight. Keep that migration when the request writes its older copy.
-      alle[i] = {
-        ...oekt,
-        resultatKilder: {
-          ...(alle[i].resultatKilder || {}),
-          ...(oekt.resultatKilder || {})
-        },
-        resultatKilderFrosset:
-          alle[i].resultatKilderFrosset || oekt.resultatKilderFrosset
-      };
-    }
+    else alle[i] = mergeProsessoektForLagring(alle[i], oekt);
   });
 }
 
-export function updateProsessoekter<T>(change: (oekter: Prosessoekt[]) => T): Promise<T> {
-  return updateJson("prosessoekter.json", [], change);
+export function mergeFrosneResultatKilder(frosne: Prosessoekt[]): Promise<void> {
+  const etterId = new Map(frosne.map((oekt) => [oekt.oektsId, oekt]));
+  return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
+    for (let i = 0; i < alle.length; i++) {
+      const oekt = alle[i];
+      const frosset = etterId.get(oekt.oektsId);
+      if (!frosset) continue;
+      alle[i] = mergeFrossetProsessoekt(oekt, frosset);
+    }
+  });
 }
 
 export function getHusstandForPerson(tilstand: State, personId: string) {

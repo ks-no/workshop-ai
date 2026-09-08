@@ -44,8 +44,8 @@ import {
   findProsessIKatalog,
   findProsessoekt,
   getProsesserForVisning,
+  mergeFrosneResultatKilder,
   updateProsesskatalog,
-  updateProsessoekter,
   lagreProsessoekt,
   readState,
   normalizeProsess,
@@ -192,9 +192,7 @@ async function withSession(
   if (!prosess) {
     throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
   }
-  if (frysResultatKilder(tilstand, session, prosess, kaller)) {
-    await lagreProsessoekt(session);
-  }
+  frysResultatKilder(tilstand, session, prosess);
   const resultat = await fn(session, prosess);
   if (!lesing) {
     session.oppdatert = new Date().toISOString();
@@ -202,7 +200,7 @@ async function withSession(
   }
   // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
   // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
-  const { resultater, gjenlest } = resultaterNaa(tilstand, session, prosess, kaller);
+  const { resultater, gjenlest } = resultaterNaa(tilstand, session, prosess);
   await loggGjenleste(tilstand, session, gjenlest, kaller);
   const oektSvar = buildProsessoektRespons(session, prosess, resultater);
   jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
@@ -408,25 +406,24 @@ const ruter: Rute[] = [
     metode: "PUT",
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
-    handter: async ({ request, response, parametere, tilstand, kaller }) => {
+    handter: async ({ request, response, parametere, tilstand }) => {
       const body = await readBodyOnce(request);
       const eksisterendeProsess = findProsess(tilstand, parametere.prosessId);
       if (eksisterendeProsess) {
         // Eldre økter har ikke kildemetadata. Frys dem mot definisjonen som fortsatt
         // gjelder før prosessbyggeren erstatter den, så samme steg-id ikke kan gi
         // resultatet en svakere klassifisering etterpå.
-        await updateProsessoekter((oekter) => {
-          for (const oekt of oekter.filter(
-            (kandidat) => kandidat.prosessId === parametere.prosessId
-          )) {
-            frysResultatKilder(
-              tilstand,
-              normalizeProsessoekt(oekt),
-              eksisterendeProsess,
-              kaller
-            );
+        const frosne: Prosessoekt[] = [];
+        for (const oekt of tilstand.prosessoekter) {
+          if (oekt.prosessId !== parametere.prosessId) continue;
+          const kopi = normalizeProsessoekt(structuredClone(oekt));
+          if (frysResultatKilder(tilstand, kopi, eksisterendeProsess)) {
+            frosne.push(kopi);
           }
-        });
+        }
+        if (frosne.length > 0) {
+          await mergeFrosneResultatKilder(frosne);
+        }
       }
       // Lookup, merge and write all happen against the same fresh read: the
       // prosessbygger sends the whole prosess, so a merge onto a stale copy
@@ -523,8 +520,7 @@ const ruter: Rute[] = [
     metode: "GET",
     sti: "/api/prosessoekter/:oektsId",
     finnPersonId: eierAvOekt,
-    // A read: closed økter stay readable, and oppdatert is not stamped. A legacy
-    // økt can still be saved once to pin result metadata before definitions change.
+    // A read: closed økter stay readable, and nothing is stamped or saved.
     handter: (kontekst) =>
       withSession(kontekst, { lesing: true }, () => {})
   },
