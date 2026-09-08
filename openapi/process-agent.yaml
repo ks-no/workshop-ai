@@ -293,6 +293,9 @@ components:
             Svar til innbyggeren. Adresseoppslag beholder oppgitt postnummer og
             poststed. Ugyldige eller tvetydige oppslag forklares uten å flytte
             prosessteget; en 409 fra verktøyet omtales ikke som en ukjent adresse.
+            Agenten beholder det ventende oppslaget til adressen er avklart eller
+            innbyggeren skriver «avbryt oppslaget». Postnummer i neste melding
+            brukes til oppslaget, ikke som svar på søknadsspørsmålet.
           items:
             type: string
         awaiting:

@@ -47,6 +47,10 @@ Et vanlig svar som «hjelp med personlig hygiene» er ikke et søk etter en pers
 Ved adresseoppslag beholdes postnummer og poststed, for eksempel i «Hvem eier
 Storgata 5, 5003 Bergen?». Et tvetydig treff ber om presisering i stedet for å
 bli omtalt som en adresse som ikke finnes.
+Agenten husker hvilket adresseoppslag som må avklares. Et påfølgende «5003» hører
+derfor til oppslaget, ikke til søknaden. Et nytt fullstendig adressespørsmål erstatter
+oppslaget; andre gjenkjente sidespørsmål lar avklaringen vente. «Avbryt oppslaget»
+går tilbake til det opprinnelige feltet uten å lagre meldingen som et svar.
 
 ## Endepunkter
 

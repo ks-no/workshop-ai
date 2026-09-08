@@ -223,6 +223,104 @@ try {
     });
   }
 
+  for (const tool of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
+    await check(`postnummer avklarer samme eieroppslag etter 409 fra ${tool}`, async () => {
+      const session = await create();
+      await say(session, "stottekontakt-behov");
+      const before = await oekt(session);
+      addressProbe = { status: 409, tool };
+      try {
+        includes(await say(session, "Hvem eier Storgata5?"), "ikke entydig");
+        addressCalls.length = 0;
+        includes(await say(session, "ja"), "Vi avklarer fortsatt adresseoppslaget");
+        includes(await say(session, "50"), "fire siffer");
+        includes(await say(session, "Hvem ser mine personopplysninger?"), "Vi avklarer fortsatt adresseoppslaget");
+        assert.equal(addressCalls.length, 0, "Uklare svar og sidespørsmål skal ikke gi nye adressekall");
+        assert.deepEqual((await oekt(session)).svar, before.svar);
+        addressProbe = { status: 200 };
+        const resolved = await say(session, "5003");
+        includes(resolved, "Storgata 5, 5003 er registrert med eier");
+        includes(resolved, "Beskriv behovet ditt");
+        assert.deepEqual(addressCalls, [
+          { name: "matrikkel_hent_eiendom", arguments: { adresse: "Storgata 5, 5003" } },
+          { name: "matrikkel_hent_eiere", arguments: { adresse: "Storgata 5, 5003" } }
+        ]);
+        assert.deepEqual((await oekt(session)).svar, before.svar, "Postnummeret er ikke et søknadssvar");
+        await say(session, "Jeg trenger hjelp til sosiale aktiviteter");
+        await say(session, "ja");
+        assert.deepEqual((await oekt(session)).svar.situasjon,
+          { beskrivelse: "Jeg trenger hjelp til sosiale aktiviteter", onskerKontakt: "ja" });
+      } finally { addressProbe = null; }
+    });
+  }
+
+  await check("adresseavklaring bevarer allerede innsamlede felt", async () => {
+    const session = await create();
+    await say(session, "stottekontakt-behov");
+    await say(session, "Jeg trenger følge til aktiviteter");
+    addressProbe = { status: 409 };
+    try {
+      await say(session, "Hvem eier Storgata 5?");
+      addressProbe = { status: 200 };
+      includes(await say(session, "5003 Bergen"), "Ønsker du at kommunen kontakter deg?");
+      assert.equal((await oekt(session)).svar.situasjon, undefined);
+      await say(session, "ja");
+      assert.deepEqual((await oekt(session)).svar.situasjon,
+        { beskrivelse: "Jeg trenger følge til aktiviteter", onskerKontakt: "ja" });
+    } finally { addressProbe = null; }
+  });
+
+  await check("avbryt avslutter oppslaget uten å svare på søknaden", async () => {
+    const session = await create();
+    await say(session, "stottekontakt-behov");
+    addressProbe = { status: 409 };
+    try {
+      await say(session, "Hvem eier Storgata 5?");
+      addressCalls.length = 0;
+      includes(await say(session, "avbryt oppslaget"), "Ingenting er lagret som søknadssvar");
+      assert.equal((await oekt(session)).svar.situasjon, undefined);
+      await say(session, "Jeg trenger hjelp til å møte andre");
+      await say(session, "nei");
+      assert.deepEqual((await oekt(session)).svar.situasjon,
+        { beskrivelse: "Jeg trenger hjelp til å møte andre", onskerKontakt: "nei" });
+      assert.equal(addressCalls.length, 0);
+    } finally { addressProbe = null; }
+  });
+
+  await check("nytt adressespørsmål erstatter adresse og oppslagstype", async () => {
+    const session = await create();
+    await say(session, "stottekontakt-behov");
+    addressProbe = { status: 409 };
+    try {
+      await say(session, "Hvem eier Storgata 5?");
+      addressCalls.length = 0;
+      addressProbe = { status: 200 };
+      const reply = await say(session, "Finnes Storgata 10 A, 9008 Tromsø?");
+      includes(reply, "Storgata 10 A, 9008 Tromsø finnes i matrikkelen");
+      assert.deepEqual(addressCalls, [
+        { name: "matrikkel_hent_eiendom", arguments: { adresse: "Storgata 10 A, 9008 Tromsø" } }
+      ]);
+      assert.equal((await oekt(session)).svar.situasjon, undefined);
+      includes(reply, "Beskriv behovet ditt");
+    } finally { addressProbe = null; }
+  });
+
+  await check("nytt postnummer erstatter gammel presisering ved gjentatt 409", async () => {
+    const session = await create();
+    await say(session, "stottekontakt-behov");
+    addressProbe = { status: 409 };
+    try {
+      await say(session, "Hvem eier Storgata 5, 5003 Bergen?");
+      includes(await say(session, "9008 Tromsø"), "ikke entydig");
+      addressCalls.length = 0;
+      addressProbe = { status: 200 };
+      await say(session, "5003 Bergen");
+      assert.deepEqual(addressCalls.map((call) => call.arguments.adresse),
+        ["Storgata 5, 5003 Bergen", "Storgata 5, 5003 Bergen"]);
+      assert.equal((await oekt(session)).svar.situasjon, undefined);
+    } finally { addressProbe = null; }
+  });
+
   for (const [message, expected] of [
     ["Jeg trenger TT-kort fordi jeg har 3 km til bussen", "tt-kort"],
     ["Jeg vil søke fritidskort til barnet i 5. klasse", "fritidskort-stotte"],

@@ -151,6 +151,7 @@ type Agentsesjon = {
   pendingValidatedAnswer: unknown;
   pendingDeferredStepId: string | null;
   pendingGateSwitch: Record<string, unknown> | null;
+  pendingAdresseLookup: { adresse: string; wantsOwners: boolean } | null;
   deferredAnswers: Record<string, unknown>;
   guidedInterviewQueue: { key: string; question: string }[];
   guidedInterviewAnswers: Record<string, string>;
@@ -636,8 +637,8 @@ function extractPossibleAdresseMention(text: string): string | null {
     .replace(/^(?:adressen|eiendommen)\s+/iu, "")
     .trim();
   // Locality distinguishes identical street/number pairs; never discard it.
-  const address = value.match(/^([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+(?:\s*[\p{L}])?(?:(?:,\s*|\s+)\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?)?)$/iu);
-  return address?.[1].replace(/\s+/g, " ").trim() || null;
+  const address = value.match(/^([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen))\s*(\d+(?:\s*[\p{L}])?)((?:(?:,\s*|\s+)\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?)?)$/iu);
+  return address ? `${address[1].trim()} ${address[2]}${address[3]}`.replace(/\s+/g, " ").trim() : null;
 }
 
 function extractPossibleOrgnr(text: string): string | null {
@@ -815,16 +816,24 @@ async function maybeAnswerBrregQuestion(text: string): Promise<string | null> {
   }
 }
 
-async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string | null> {
+async function maybeAnswerPreciseMatrikkelQuestion(state: Agentsesjon, text: string): Promise<string | null> {
   if (!text.includes("?")) return null;
   const lower = normalize(text);
   const adresse = extractPossibleAdresseMention(text);
   if (!adresse) return null;
+  return answerPreciseMatrikkelLookup(state, adresse,
+    lower.includes("hvem eier") || lower.includes("kven eig") || lower.includes("eier"));
+}
 
+const adresseClarificationPrompt = "Skriv postnummeret med fire siffer, eventuelt poststed, eller hele adressen. Skriv «avbryt oppslaget» for å fortsette med søknaden.";
+
+async function answerPreciseMatrikkelLookup(state: Agentsesjon, adresse: string, wantsOwners: boolean): Promise<string> {
+  const wasPending = Boolean(state.pendingAdresseLookup);
   try {
     const eiendom = await invokeTool<Matrikkeltreff>("matrikkel_hent_eiendom", { adresse });
-    if (lower.includes("hvem eier") || lower.includes("kven eig") || lower.includes("eier")) {
+    if (wantsOwners) {
       const eiere = await invokeTool<Matrikkeltreff>("matrikkel_hent_eiere", { adresse });
+      state.pendingAdresseLookup = null;
       if (!eiere.eiere?.length) {
         if (eiere.syntetisk === false) {
           return `Jeg finner eiendommen ${eiendom.adresse}, men den offentlige adressekilden inneholder ikke eierinformasjon.`;
@@ -834,14 +843,57 @@ async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string
       return `${eiendom.adresse} er registrert med eier${eiere.eiere.length > 1 ? "e" : ""}: ${eiere.eiere.join(", ")}.`;
     }
 
+    state.pendingAdresseLookup = null;
     return `Ja, ${eiendom.adresse} finnes i matrikkelen. Den har gnr ${eiendom.gnr} og bnr ${eiendom.bnr}.`;
   } catch (error) {
+    const needsClarification = error instanceof Verktoyfeil && (error.status === 400 || error.status === 409);
+    if (wasPending || needsClarification) state.pendingAdresseLookup = { adresse, wantsOwners };
+    const reminder = state.pendingAdresseLookup ? `\n${adresseClarificationPrompt}` : "";
     if (error instanceof Verktoyfeil) {
-      if (error.status === 400 || error.status === 409) return error.message;
-      if (error.status === 404) return `Jeg fant ikke adressen ${adresse} i matrikkelen.`;
+      if (needsClarification) return `${error.message}${reminder}`;
+      if (error.status === 404) return `Jeg fant ikke adressen ${adresse} i matrikkelen.${reminder}`;
     }
-    return "Jeg kunne ikke slå opp adressen akkurat nå. Prøv igjen om litt.";
+    return `Jeg kunne ikke slå opp adressen akkurat nå. Prøv igjen om litt.${reminder}`;
   }
+}
+
+function resumeQuestionPrompt(state: Agentsesjon): string {
+  const step = state.lastSession?.aktivtSteg;
+  const prompt = state.questionFieldCurrent
+    ? questionFieldPrompt(state.questionFieldCurrent)
+    : step?.tekst || step?.tittel || "Fortsett med dialogen når du er klar.";
+  return `Tilbake til der vi var: ${prompt}`;
+}
+
+async function handleAdresseClarification(state: Agentsesjon, text: string): Promise<string[]> {
+  const pending = state.pendingAdresseLookup!;
+  if (["avbryt", "avbryt oppslaget", "tilbake til søknaden", "tilbake til soknaden"].includes(normalize(text))) {
+    state.pendingAdresseLookup = null;
+    return ["Adresseoppslaget er avbrutt. Ingenting er lagret som søknadssvar.", resumeQuestionPrompt(state)];
+  }
+
+  // A new complete address question replaces the lookup, not the application.
+  const newQuestion = await maybeAnswerPreciseMatrikkelQuestion(state, text);
+  if (newQuestion) {
+    return state.pendingAdresseLookup ? [newQuestion] : [newQuestion, resumeQuestionPrompt(state)];
+  }
+
+  const postcode = text.trim().replace(/[?.!]+$/u, "").match(/^\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?$/u)?.[0];
+  const baseAddress = pending.adresse.replace(/((?:gata|gate|veien|vegen)\s+\d+(?:\s*\p{L})?)(?:,\s*|\s+)\d{4}(?:\s+.*)?$/iu, "$1");
+  const address = postcode ? `${baseAddress}, ${postcode}` : extractPossibleAdresseMention(text);
+  if (address) {
+    const reply = await answerPreciseMatrikkelLookup(state, address, pending.wantsOwners);
+    return state.pendingAdresseLookup ? [reply] : [reply, resumeQuestionPrompt(state)];
+  }
+
+  if (looksLikeCitizenQuestion(text)) {
+    const answer = maybeAnswerProcessMetaQuestion(state, text)
+      || await maybeAnswerBrregQuestion(text)
+      || await maybeAnswerFolkeregisterQuestion(text)
+      || (await maybeAnswerCitizenQuestion(state, text))?.tekst;
+    if (answer) return [answer, `Vi avklarer fortsatt adresseoppslaget. ${adresseClarificationPrompt}`];
+  }
+  return [`Vi avklarer fortsatt adresseoppslaget. ${adresseClarificationPrompt}`];
 }
 
 function isRegisterLookup(text: string, register: string): boolean {
@@ -1517,12 +1569,14 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     return ["Jeg fant ikke den prosessen. Skriv nummer, navn, eller id fra listen."];
   }
 
+  if (state.pendingAdresseLookup) return handleAdresseClarification(state, text);
+
   const metaSvar = maybeAnswerProcessMetaQuestion(state, text);
   if (metaSvar) {
     return [metaSvar];
   }
 
-  const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(text);
+  const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(state, text);
   if (presisMatrikkelSvar) {
     return [presisMatrikkelSvar];
   }
@@ -2031,6 +2085,7 @@ async function createAgentSession(body: { personId?: string }) {
     pendingValidatedAnswer: null,
     pendingDeferredStepId: null,
     pendingGateSwitch: null,
+    pendingAdresseLookup: null,
     deferredAnswers: {},
     guidedInterviewQueue: [],
     guidedInterviewAnswers: {},
