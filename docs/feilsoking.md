@@ -21,6 +21,7 @@ om modellen er koblet på. De tre raskeste sjekkene står i
 | [Container som ikke blir healthy](#container-som-ikke-blir-healthy) | `docker compose ps` viser noe annet enn `healthy` |
 | [«Cannot find module» i en container](#cannot-find-module-i-en-container) | En tjeneste krasjer ved oppstart |
 | [Windows-oppstart](#windows-oppstart) | `./start.sh` eller `start.bat` oppfører seg rart på Windows |
+| [Kodeendringer slår ikke gjennom](#kodeendringer-slår-ikke-gjennom) | Tjenesten kjører fortsatt gammel kode eller konfigurasjon |
 | [Nullstille](#nullstille) | Du vil bare begynne på nytt |
 | [Neste steg](#neste-steg) | Du fant ikke symptomet her |
 
@@ -49,8 +50,11 @@ Svarer ikke `:8086`, start den: `docker compose up -d digdir-mock`.
 
 > [!IMPORTANT]
 > Får du `403` i stedet, er du forbi autentiseringen - da er det hjemmelslaget som virker,
-> ikke en feil. Og bare `sandbox-backend` (`:8080`) og `fiks-simulator` (`:8081`)
-> håndhever hjemmel - en `401` fra `:8082`–`:8085` er noe annet. Se
+> ikke en feil i seg selv. Tokenkontroll gjelder `sandbox-backend` (`:8080`),
+> `fiks-simulator` (`:8081`), `pasientjournal-mock` (`:8087`) og
+> `politiattest-mock` (`:8088`). Journal- og politiattestmocken krever maskintoken med
+> riktig scope; backend og Fiks kontrollerer også hjemmel. En `401` fra
+> `:8082`–`:8085` er noe annet. Se
 > [`docs/deltakerstart.md`](deltakerstart.md) §4 og
 > [`examples/curl/README.md`](../examples/curl/README.md) §3.
 
@@ -65,12 +69,15 @@ En ren omstart utløser ikke dette - nøkkelen overlever restart nettopp for at 
 skal forbli gyldige. `./start.sh --reset` starter alt på nytt og treffer det heller
 ikke.
 
-**Løsning:** Restart tjenestene som cacher:
+**Løsning:** Gjenskap alle Node-containerne, også tokenutstederen og leserne av
+signeringsnøkkelen. Behold mock-modus hvis det var den du brukte:
 
 ```bash
-docker compose restart tools-api process-agent sandbox-backend fiks-simulator
+./start.sh --mock --reload
+export TOKEN=$(node scripts/token.ts --innbygger person-001)
 ```
 
+Bruk `./start.sh --reload` med modell. Hent nytt token i egne klienter også.
 Nullstilling den trygge veien: se «Nullstille» nederst i denne filen.
 
 ## «fetch failed» på matrikkel-oppslag
@@ -96,7 +103,7 @@ på nett. Se «Manuell oppstart» i [`README.md`](../README.md) for hele tjenest
 ## Maltekst du ikke ba om
 
 **Symptom:** KI-svarene er maltekst selv om du startet med modell - eller motsatt: en
-modell svarer selv om du startet med `--mock`.
+oppstart med `--mock` stopper fordi admin-valget overstyrer den.
 
 **Årsak:** To muligheter, i denne rekkefølgen:
 
@@ -138,7 +145,8 @@ mindre modell med `./start.sh -m qwen2.5:0.5b`.
 verre.
 
 **Løsning:** `./start.sh --mock` er redningen: alt annet enn KI-teksten er ekte, og
-ingenting lastes ned. Andre utveier:
+ingen modell eller Ollama-image lastes ned. Docker kan fortsatt måtte hente
+Node-imaget første gang. Andre utveier:
 
 - Velg en liten modell: `./start.sh -m qwen2.5:0.5b`.
 - Forhåndslast alle anbefalte modeller mens nettet er godt:
@@ -153,7 +161,7 @@ Se «Hvordan starte den» i [`README.md`](../README.md) for modellvalget og tids
 in use».
 
 **Årsak:** Noe annet lytter på en av portene sandkassen bruker: `3000`, `3001`,
-`8080`–`8087`, og `11434` når Ollama kjører i container (Linux/WSL). Ofte er det en
+`8080`–`8088`, og `11434` når Ollama kjører i container (Linux/WSL). Ofte er det en
 gammel kjøring av sandkassen selv, eller en annen utviklingsserver på `3000`/`3001`.
 
 **Løsning:** Stopp en gammel kjøring først:
@@ -215,6 +223,22 @@ uten språkmodell. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp 
 filsystemhendelser når ikke gjennom Docker Desktops volummontering fra
 Windows-filsystemet. Detaljene står i «På Windows» i [`README.md`](../README.md).
 
+## Kodeendringer slår ikke gjennom
+
+Vanlige kildeendringer plukkes opp av watcheren. På Windows må `pnpm install`
+være kjørt for at polling skal virke; den følger hele `apps/`, inkludert felles kode
+og tokenklienten, og `data/`. Uten nodemon varsler loggen om at polling mangler.
+
+Ved Compose-endringer, eller dersom watcheren ikke oppdager en lagring:
+
+```bash
+./start.sh --mock --reload     # eller --reload uten --mock med modell
+```
+
+I cmd: `start.bat --reload`. Dette bruker `--force-recreate`, så også en container
+med uendret konfigurasjon får en ny prosess. `state/` og signeringsnøkkelen beholdes;
+agentøkter som bare lå i minnet blir borte. Ollama på macOS røres ikke.
+
 ## Nullstille
 
 **Symptom:** Gamle demokjøringer henger igjen, eller tilstanden er blitt rar og du
@@ -235,8 +259,16 @@ alt på vanlig måte, *inkludert modellnedlasting*. Ta derfor med `--mock` hvis 
 kjørte med `--mock`, ellers begynner den å laste ned flere gigabyte. Se «Valg» i
 [`README.md`](../README.md).
 
-Nullstillingen fjerner også admin-valget (`state/ai-provider-override.json`) og
-KI-sporet (`state/ai-trace.jsonl`).
+Nullstillingen stopper alle Node-tjenestene før den leser sikkerhetskopien, og
+gjenskaper containerne etter sletting. Den fjerner også admin-valget
+(`state/ai-provider-override.json`), KI-sporet (`state/ai-trace.jsonl`) og
+signeringsnøkkelen fra `state/`, og tømmer minnebufferne. Hent et nytt token etterpå.
+Sikkerhetskopien i `_backup/` inneholder ikke signeringsnøkkelen. Feiler stopp eller
+kopiering, slettes ikke `state/`, og skriptet melder feil. Ved feil etter sletting
+ligger sikkerhetskopien fortsatt der; rett feilen og start igjen.
+
+Stopp egne skrivende tjenester utenfor Compose før nullstilling. På Windows gjør
+`start.bat --reset` det samme for Compose-tjenestene, alltid uten modell.
 
 ---
 

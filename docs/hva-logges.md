@@ -102,16 +102,23 @@ den kunne hvilken som helst nettside i nettleseren din lese den.
 - **Å trekke et samtykke fjerner ingen rader,** men porten sitter på lesetidspunktet
   og ikke på hentetidspunktet, så dataene slutter å bli servert. Selve hendelsen om at
   samtykket ble trukket blir stående, og det er meningen.
-- **Den eneste slettingen er `./start.sh --reset`.** Den fjerner hele `state/`, og
-  tjenestene seeder seg selv fra `data/` neste gang de starter. Den rullerer også
-  signeringsnøkkelen, så tokener noen har limt inn et sted slutter å virke.
-- **`--reset` tar en kopi først,** til `_backup/<tidspunkt>-utc/`, slik at KI-sporet
-  ikke går tapt bare fordi noen ryddet opp.
+- **`./start.sh --reset` stopper først alle Node-tjenestene i Compose.** Deretter
+  sikkerhetskopierer den, fjerner hele `state/` og gjenskaper containerne fra
+  `data/`. Lagret KI-valg og økter i minnet nullstilles også. Signeringsnøkkelen
+  rulleres, så tokener noen har limt inn et sted slutter å virke. På Windows gjør
+  `start.bat --reset` det samme, uten modell.
+- **`--reset` tar en kopi først,** i en ny katalog under `_backup/`, slik at KI-sporet
+  ikke går tapt bare fordi noen ryddet opp. Signeringsnøkkelen kopieres ikke.
+  Feiler stopp eller kopiering, slettes ikke `state/`. Ollama og nedlastede modeller
+  beholdes. Ta med `--mock` på `start.sh` hvis du ikke vil klargjøre en modell.
   [`_backup/README.md`](../_backup/README.md) forklarer katalogen.
 - **`./start.sh --reload` og `docker compose down` sletter ingenting.** `state/` ligger
   på din egen maskin gjennom bind-mounten, ikke inne i containerne.
-- Vil du bare bli kvitt én fil, kan du slette den for hånd. Leserne faller tilbake til
-  `data/` når filen mangler - se
+- Vil du bare bli kvitt én fil, stopp først tjenestene som skriver til `state/`,
+  også eventuelle prosesser du har startet utenfor Compose. Slett filen og
+  gjenskap Node-containerne med `./start.sh --mock --reload` (uten `--mock` med
+  modell). Filbaserte lesere faller tilbake til `data/` når filen mangler; buffere
+  i minnet tømmes først ved omstart. Se
   [`docs/syntetiske-data.md`](syntetiske-data.md) om hvordan `state/` skygger for
   `data/`, og [`docs/feilsoking.md`](feilsoking.md) om tokenene som slutter å virke.
 - **Ingen rotasjon, ingen oppbevaringsgrense, ingen størrelsesgrense.** Begge loggene

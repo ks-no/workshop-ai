@@ -220,12 +220,12 @@ To ting å huske:
 > «Kopier en eksisterende» gjelder oppsettet, ikke hva tjenesten skal gjøre. Er det
 > ikke avgjort, se `.claude/skills/nytt-bruksomraade/SKILL.md` først.
 
-Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
+Disse oppføringene må følge tjenesten:
 
 1. `apps/<navn>/` med en `package.json` på sju linjer - kopier en eksisterende
 2. `apps/<navn>/src/server.ts` - `createServer` fra `node:http`, ingen rammeverk.
    `apps/process-builder/src/server.ts` er den minste å kopiere fra
-3. Svar på `GET /helse`
+3. Svar på `GET /helse` med blant annet `tjeneste`, slik de andre tjenestene gjør
 4. En blokk i `docker-compose.yml` - kopier en eksisterende, inkludert `healthcheck`
 5. En linje i `apps/shared/tjenester.json`, ellers står den ikke i oversikten
 6. `openapi/<navn>.yaml`, ellers feiler `pnpm test:openapi`
@@ -233,6 +233,16 @@ Sju steg, og de tre siste er de som gjør at CI feiler hvis du glemmer dem:
    sjekkes mot `tjenester.json`, så uten den feiler `pnpm test:openapi` med «Star i
    registeret, men ikke i listen her» - en melding som ikke sier hvilken fil du skal
    åpne. Det er her folk står fast
+8. Legg tjenesten i `NODE_SERVICES` og porten i `SERVICE_PORTS` i `start.sh`, og i
+   `SERVICES` og `SERVICE_PORTS` i `start.bat`. Compose alene er ikke nok: macOS og
+   mock-modus starter bare de navngitte tjenestene med `--no-deps`. Listene brukes
+   også ved stopp før nullstilling, gjenskaping og helsesjekk
+
+Bruk `scripts/dev.sh` som Compose-kommando, slik de andre tjenestene gjør. På
+Windows overvåker polling alle `apps/` og `data/`, slik at endringer i felles kode
+og tokenklienten også starter tjenesten om igjen. Ikke overvåk `state/`: da ville
+hver loggskriving utløst en omstart. `pnpm test:startup` kontrollerer oppstartslistene
+mot Compose og prøver livssyklusen med falske Docker-kommandoer, uten å røre stacken.
 
 Repoet legger ikke til avhengigheter og har ikke noe byggesteg. Node type-stripper
 `.ts`-filer selv, så `node src/server.ts` kjører direkte - også nettleserkoden, som

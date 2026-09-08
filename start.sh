@@ -50,8 +50,8 @@ Valg:
   -m, --model MODELL Bruk en bestemt Ollama-modell i stedet for den automatiske
   -y, --yes          Ikke spør før Ollama installeres eller en modell lastes ned
       --mock         Kjør uten språkmodell (KI-svarene blir maler)
-      --reset        Ta en kopi av state/ til _backup/, tøm den, og start fra seed-dataene
-      --reload       Start Node-tjenestene på nytt for å ta inn kodeendringer, og avslutt
+      --reset        Stopp Node-tjenestene, sikkerhetskopier og tøm state/, og gjenskap dem
+      --reload       Gjenskap Node-containerne med dagens konfigurasjon, og avslutt
   -d, --down         Stopp og fjern alle containere
   -h, --help         Vis denne hjelpen
 
@@ -83,7 +83,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" ]] || fail "--model trenger en verdi"; shift 2 ;;
+    -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" && "$MODEL" != -* ]] || fail "--model trenger en verdi"; shift 2 ;;
     -y|--yes)   ASSUME_YES=true; shift ;;
     --mock)     MOCK=true; shift ;;
     --reset)    RESET=true; shift ;;
@@ -94,9 +94,16 @@ while [[ $# -gt 0 ]]; do
       # Kept so older commands do not break. Both are automatic now.
       warn "$1 trengs ikke lenger - GPU og modellnedlasting oppdages automatisk"
       shift ;;
-    *) printf 'Unknown option: %s\n\n' "$1" >&2; usage; exit 1 ;;
+    *) printf 'Ukjent valg: %s\n\n' "$1" >&2; usage; exit 1 ;;
   esac
 done
+
+if { $RESET && $RELOAD; } || { $DOWN && { $RESET || $RELOAD; }; }; then
+  fail "--reset, --reload og --down kan ikke kombineres."
+fi
+if [[ -n "$MODEL" ]] && { $MOCK || $RELOAD || $DOWN; }; then
+  fail "--model brukes bare ved oppstart med modell."
+fi
 
 # --- 2. Platform and model --------------------------------------------------
 
@@ -226,6 +233,8 @@ preflight() {
     fi
     fail "Docker er installert, men kjører ikke. Start Docker og prøv igjen."
   fi
+  docker compose version >/dev/null || fail "Docker Compose v2 mangler."
+  docker compose "${COMPOSE_FILES[@]}" config --quiet || fail "Compose-konfigurasjonen er ugyldig."
 
   local conflicts=()
   local p
@@ -259,21 +268,40 @@ ensure_env() {
   info "opprettet .env som peker på ${base_url}"
 }
 
-# state/ai-trace.jsonl is the only record of the model calls, and --reset deletes it.
-# The signing key is skipped: it must never reach a directory that may get committed.
+# Called only after all Node writers have stopped. Include hidden files and
+# directories too; the signing key must never reach a committable directory.
 backup_state() {
   local filer=()
-  for fil in state/*; do
-    [[ -f "$fil" ]] || continue
+  local fil
+  for fil in state/* state/.[!.]* state/..?*; do
+    [[ -e "$fil" || -L "$fil" ]] || continue
     [[ "${fil##*/}" == digdir-nokkel.json ]] && continue
     filer+=("$fil")
   done
   (( ${#filer[@]} )) || return 0
 
-  local maal="_backup/$(date -u +%Y%m%d-%H%M%S)-utc"
-  mkdir -p "$maal"
-  cp "${filer[@]}" "$maal/"
+  local stamp maal nummer=0
+  stamp="$(date -u +%Y%m%d-%H%M%S)"
+  maal="_backup/${stamp}-utc"
+  while [[ -e "$maal" || -L "$maal" ]]; do
+    nummer=$(( nummer + 1 ))
+    maal="_backup/${stamp}-${nummer}-utc"
+  done
+  mkdir -p _backup
+  mkdir "$maal"
+  cp -R "${filer[@]}" "$maal/" || fail "Sikkerhetskopiering feilet. state/ er ikke slettet; tjenestene er stoppet."
   info "tok vare på ${#filer[@]} filer i $maal/"
+}
+
+reset_state() {
+  [[ ! -L state ]] || fail "state/ er en symbolsk lenke. Avbryter uten å slette."
+  [[ ! -e state || -d state ]] || fail "state/ er ikke en mappe. Avbryter uten å slette."
+  step "🛑 Stopper alle Node-tjenester før nullstilling"
+  docker compose "${COMPOSE_FILES[@]}" stop "${NODE_SERVICES[@]}" \
+    || fail "Kunne ikke stoppe tjenestene. state/ er ikke slettet."
+  backup_state
+  rm -rf -- state || fail "Kunne ikke tømme state/. Tjenestene er fortsatt stoppet."
+  info "kjøretilstanden er tømt - starter fra seed-dataene"
 }
 
 confirm() {
@@ -353,6 +381,8 @@ ensure_model() {
 # --- 6. Services ------------------------------------------------------------
 
 start_services() {
+  local args=(up -d)
+  if $RESET || $RELOAD; then args+=(--force-recreate); fi
   if [[ "$PROFILE" == "macos-native" ]] || $MOCK; then
     # --no-deps because ai-gateway depends_on the ollama container, which we
     # deliberately do not use here: on macOS Ollama runs natively on the host,
@@ -360,7 +390,10 @@ start_services() {
     # what keeps the 4 GB ollama image from being pulled - it has no profile, so
     # a bare "up -d" would start it even under --mock, on exactly the bad
     # connection that flag exists for.
-    docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
+    docker compose "${COMPOSE_FILES[@]}" "${args[@]}" --no-deps "${NODE_SERVICES[@]}"
+  elif $RESET || $RELOAD; then
+    # Name only the Node services so --force-recreate never restarts Ollama.
+    docker compose "${COMPOSE_FILES[@]}" "${args[@]}" "${NODE_SERVICES[@]}"
   else
     docker compose "${COMPOSE_FILES[@]}" up -d
   fi
@@ -375,10 +408,10 @@ services_healthy() {
 }
 
 # "docker compose up -d" returns once containers are created, not once the
-# HTTP servers accept connections. Only the ollama service has a healthcheck
-# in docker-compose.yml, so we poll the Node services ourselves.
+# HTTP servers accept connections. --no-deps also skips dependency health waits,
+# so we poll the Node services ourselves on every platform.
 wait_for_services() {
-  wait_for services_healthy 90 "Services did not become healthy within 90s. Check: docker compose logs"
+  wait_for services_healthy 90 "Tjenestene svarte ikke innen 90 sekunder. Se: docker compose logs"
 }
 
 # --- 7. Verify the model is really wired up ---------------------------------
@@ -393,6 +426,12 @@ json_field() { # json_field FIELD <<<JSON  -> the string value, unquoted
 # hardcode "Ollama is NOT connected" even when the active provider was Bedrock.
 active_provider() {
   curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider
+}
+
+verify_mock() {
+  [[ "$(active_provider)" == mock ]] || fail "--mock ble overstyrt av et lagret admin-valg, eller KI-statusen kunne ikke leses.
+   Velg mock på http://localhost:8082/admin og prøv igjen.
+   Vil du nullstille hele kjøringen, bruk ./start.sh --mock --reset."
 }
 
 # A real call, not just /helse: /helse's bedrock/openrouter/telenor-ai-factory check only
@@ -448,15 +487,10 @@ if $RELOAD; then
   if $MOCK; then
     export AI_PROVIDER=mock
   fi
-  # Use the same up-path as start_services so platform differences are respected.
-  # "up -d" recreates a container when its config (e.g. command:) has changed;
-  # plain "restart" reuses the old container and never picks up compose changes.
-  if [[ "$PROFILE" == "macos-native" ]] || $MOCK; then
-    docker compose "${COMPOSE_FILES[@]}" up -d --no-deps "${NODE_SERVICES[@]}"
-  else
-    docker compose "${COMPOSE_FILES[@]}" up -d "${NODE_SERVICES[@]}"
-  fi
+  preflight
+  start_services
   wait_for_services
+  if $MOCK; then verify_mock; fi
   info "alle ${#NODE_SERVICES[@]} tjenestene er lastet på nytt"
   printf '\n✅ Klar - kodeendringene er i drift.\n\n'
   exit 0
@@ -478,14 +512,6 @@ step "🔎 Sjekker forutsetninger"
 preflight
 ensure_env
 
-if $RESET; then
-  backup_state
-  # Services seed themselves from data/ whenever a state file is missing,
-  # so removing the directory is all it takes.
-  rm -rf state
-  info "kjøretilstanden er tømt - starter fra seed-dataene"
-fi
-
 if ! $MOCK; then
   step "🦙 Klargjør språkmodellen"
   case "$PROFILE" in
@@ -495,9 +521,13 @@ if ! $MOCK; then
   ensure_model
 fi
 
+# Do downloads and configuration checks before stopping writers or clearing data.
+if $RESET; then reset_state; fi
+
 step "📦 Starter tjenestene"
 start_services
 wait_for_services
+if $MOCK; then verify_mock; fi
 info "alle ${#NODE_SERVICES[@]} tjenestene svarer"
 
 LLM_OK=false

@@ -1,5 +1,7 @@
 @echo off
 setlocal
+cd /d "%~dp0"
+if errorlevel 1 exit /b 1
 
 rem One-command start for workshop-ai on Windows, without Git Bash or WSL.
 rem
@@ -17,7 +19,7 @@ rem written without ae/oe/aa. Do not "fix" the spelling here.
 set RELOAD=0
 set DOWN=0
 set RESET=0
-set NO_CURL=0
+set RECREATE=
 
 rem The eleven Node services. Naming them explicitly keeps the ~4 GB ollama image
 rem out of the pull: it has no compose profile, so a bare "up -d" would start it
@@ -26,10 +28,10 @@ set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent m
 set SERVICE_PORTS=3000 3001 8080 8081 8082 8083 8084 8085 8086 8087 8088
 
 :parse_args
-if "%~1"=="--reload" (set RELOAD=1 & shift & goto parse_args)
-if "%~1"=="--reset"  (set RESET=1  & shift & goto parse_args)
-if "%~1"=="-d"       (set DOWN=1   & shift & goto parse_args)
-if "%~1"=="--down"   (set DOWN=1   & shift & goto parse_args)
+if "%~1"=="--reload" (set "RELOAD=1" & shift & goto parse_args)
+if "%~1"=="--reset"  (set "RESET=1"  & shift & goto parse_args)
+if "%~1"=="-d"       (set "DOWN=1"   & shift & goto parse_args)
+if "%~1"=="--down"   (set "DOWN=1"   & shift & goto parse_args)
 rem --mock is accepted and does nothing. This file has no other mode, and a
 rem participant copying a command out of the README should not hit an error.
 if "%~1"=="--mock"   (shift & goto parse_args)
@@ -39,18 +41,15 @@ if "%~1"=="-m"       goto model_flag
 if "%~1"=="--model"  goto model_flag
 if not "%~1"=="" goto unknown_option
 
+if %RESET%==1 if %RELOAD%==1 goto conflicting_flags
+if %DOWN%==1 if %RESET%==1 goto conflicting_flags
+if %DOWN%==1 if %RELOAD%==1 goto conflicting_flags
+
 echo.
 echo ========================================
 echo workshop-ai
 echo ========================================
 echo.
-
-rem curl.exe ships with Windows 10 1803 and later. Every Node service answers
-rem /helse with a "tjeneste" field, which is what tells our own containers apart
-rem from an unrelated process on the same port - without curl neither the port
-rem check nor the health wait can do that, so both degrade instead of lying.
-where curl >nul 2>&1
-if errorlevel 1 set NO_CURL=1
 
 where docker >nul 2>&1
 if errorlevel 1 goto no_docker
@@ -59,6 +58,14 @@ docker info >nul 2>&1
 if errorlevel 1 goto docker_not_running
 
 if %DOWN%==1 goto do_down
+
+rem Without curl we cannot verify startup, so do not claim that it succeeded.
+where curl >nul 2>&1
+if errorlevel 1 goto no_curl
+docker compose version >nul
+if errorlevel 1 goto compose_failed
+docker compose config --quiet
+if errorlevel 1 goto compose_failed
 
 rem This script never pulls a language model, so anything other than mock would
 rem leave the gateway reaching for a model that is not there - every AI reply
@@ -82,26 +89,29 @@ rem "up -d" recreates each container from the current environment, so setting
 rem them later would let a reload silently swap working template text for
 rem AI_PROVIDER=ollama out of .env and turn polling back off - and the first code
 rem change a participant makes would turn into "the model is not connected".
-if %RELOAD%==1 goto do_reload
-
 echo Sjekker forutsetninger ...
 call :check_ports
 if not "%CONFLICTS%"=="" goto port_conflict
 
 call :ensure_env
-if "%ENV_OK%"=="0" goto no_env_example
+if errorlevel 1 goto env_failed
+
+if %RELOAD%==1 goto do_reload
 
 if %RESET%==1 call :reset_state
+if errorlevel 1 goto reset_failed
 
 echo.
 echo Starter tjenestene ...
-docker compose up -d --no-deps %SERVICES%
+docker compose up -d %RECREATE% --no-deps %SERVICES%
 if errorlevel 1 goto compose_failed
 
 echo.
 echo Venter til tjenestene svarer ...
 call :wait_for_services
 if "%WAIT_OK%"=="0" goto not_healthy
+call :verify_mock
+if errorlevel 1 goto mock_failed
 
 echo.
 echo ==========================
@@ -144,18 +154,20 @@ rem --- Branches that end the script -------------------------------------------
 :do_down
 echo Stopper workshop-ai ...
 docker compose down -t 0
+if errorlevel 1 goto compose_failed
 echo.
 echo Stoppet.
 exit /b 0
 
 :do_reload
 echo Starter Node-tjenestene om igjen ...
-rem "up -d" recreates a container when its config has changed; plain "restart"
-rem reuses the old one and never picks up a compose change.
-docker compose up -d --no-deps %SERVICES%
+rem Force a fresh process even when the container configuration is unchanged.
+docker compose up -d --force-recreate --no-deps %SERVICES%
 if errorlevel 1 goto compose_failed
 call :wait_for_services
 if "%WAIT_OK%"=="0" goto not_healthy
+call :verify_mock
+if errorlevel 1 goto mock_failed
 echo.
 echo Klar - kodeendringene er i drift.
 exit /b 0
@@ -196,10 +208,30 @@ echo   Stopp det som lytter der, og start dette skriptet en gang til.
 pause
 exit /b 1
 
-:no_env_example
+:env_failed
 echo.
-echo   .env.example mangler i repoet.
+echo   Kunne ikke opprette .env. Kontroller .env.example og skrivetilgang.
 pause
+exit /b 1
+
+:conflicting_flags
+echo --reset, --reload og --down kan ikke kombineres.
+exit /b 1
+
+:no_curl
+echo curl mangler. Installer curl for aa kunne sjekke oppstarten.
+exit /b 1
+
+:reset_failed
+echo Nullstillingen feilet. Tjenestene blir ikke startet automatisk.
+echo Ved stopp- eller kopieringsfeil er state/ ikke slettet.
+echo Rett feilen og start skriptet igjen.
+exit /b 1
+
+:mock_failed
+echo --mock ble overstyrt av et lagret admin-valg, eller KI-statusen kunne ikke leses.
+echo Velg mock paa http://localhost:8082/admin og start igjen.
+echo Vil du nullstille hele kjoringen, bruk start.bat --reset.
 exit /b 1
 
 :compose_failed
@@ -224,8 +256,8 @@ echo Starter sandkassen i Docker, uten Git Bash eller WSL. Denne filen starter
 echo alltid uten modell, og da er KI-svarene maltekst.
 echo.
 echo Valg:
-echo   --reset     Kopier state/ til _backup/, slett den, start fra seed-dataene
-echo   --reload    Start Node-tjenestene om igjen slik at kodeendringer tas inn
+echo   --reset     Stopp Node-tjenestene, kopier og slett state/, gjenskap dem
+echo   --reload    Gjenskap Node-containerne med dagens konfigurasjon
 echo   --mock      Uten effekt: denne filen starter alltid uten modell
 echo   -d, --down  Stopp og fjern alle containere
 echo   -h, --help  Vis denne hjelpen
@@ -235,45 +267,45 @@ echo Det skriptet finner maskinvaren din og laster ned en modell som passer.
 goto :eof
 
 :ensure_env
-set ENV_OK=1
 if exist .env (
     echo   .env finnes allerede og blir ikke endret.
-    goto :eof
+    exit /b 0
 )
-if not exist .env.example (
-    set ENV_OK=0
-    goto :eof
-)
+if not exist .env.example exit /b 1
 rem Unlike start.sh this copies .env.example verbatim. The two lines that script
 rem rewrites both point at Ollama, and there is no Ollama here to point at.
 copy .env.example .env >nul
+if errorlevel 1 exit /b 1
 echo   opprettet .env fra .env.example
-goto :eof
+exit /b 0
 
 :reset_state
-rem Services seed themselves from data/ whenever a state file is missing, so
-rem removing the directory is all it takes.
+rem Quiesce every writer before reading the backup, then discard cached state.
+docker compose stop %SERVICES%
+if errorlevel 1 exit /b 1
 if exist state (
   call :backup_state
+  if errorlevel 1 exit /b 1
   rmdir /s /q state
+  if errorlevel 1 exit /b 1
+  if exist state exit /b 1
 )
+set RECREATE=--force-recreate
 echo   state/ er slettet - tjenestene starter fra seed-dataene.
-goto :eof
+exit /b 0
 
 rem Mirrors backup_state in start.sh; keep the two in step.
-rem PowerShell only because cmd has no locale-independent UTC clock: %DATE% is
-rem formatted per locale and wmic was removed from Windows in 2026.
+rem PowerShell supplies a locale-independent clock, unique names and terminating
+rem copy errors. Include hidden files and directories, never the signing key.
 :backup_state
-set STAMP=
-for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "(Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')"`) do set STAMP=%%T
-if "%STAMP%"=="" set STAMP=ukjent-tidspunkt
-mkdir "_backup\%STAMP%-utc" 2>nul
-rem Not xcopy-then-delete: that writes the signing key to disk before removing it.
-for %%F in (state\*) do (
-  if /i not "%%~nxF"=="digdir-nokkel.json" copy "%%F" "_backup\%STAMP%-utc\" >nul
-)
-echo   tok vare paa state/ i _backup\%STAMP%-utc\
-goto :eof
+powershell -NoProfile -Command "$ErrorActionPreference = 'Stop'; if ((Get-Item -LiteralPath state -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'state/ er en lenke. Avbryter uten aa slette.' }; $files = @(Get-ChildItem -LiteralPath state -Force | Where-Object { $_.Name -ine 'digdir-nokkel.json' }); if ($files.Count -eq 0) { exit 0 }; $target = Join-Path '_backup' ((Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N') + '-utc'); New-Item -ItemType Directory -Path $target | Out-Null; foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination $target -Recurse -Force }; Write-Output ('tok vare paa state/ i ' + $target)"
+if errorlevel 1 exit /b 1
+exit /b 0
+
+:verify_mock
+curl -fsS -m 5 http://localhost:8082/helse | findstr /r /c:"\"provider\": *\"mock\"" >nul
+if errorlevel 1 exit /b 1
+exit /b 0
 
 :check_ports
 set CONFLICTS=
@@ -290,13 +322,6 @@ goto :eof
 
 :port_is_ours
 set IS_OURS=0
-rem Without curl there is no way to tell our own container from something else,
-rem so a stack that is already up gets the benefit of the doubt rather than a
-rem refusal to start.
-if "%NO_CURL%"=="1" (
-    set IS_OURS=1
-    goto :eof
-)
 curl -fsS -m 2 http://localhost:%1/helse 2>nul | findstr "tjeneste" >nul 2>&1
 if errorlevel 1 goto :eof
 set IS_OURS=1
@@ -306,12 +331,6 @@ rem "docker compose up -d" returns once the containers are created, not once the
 rem HTTP servers accept connections, so poll /helse rather than guess at a wait.
 :wait_for_services
 set WAIT_OK=0
-if "%NO_CURL%"=="1" (
-    echo   curl mangler, og da kan ikke oppstarten sjekkes. Venter 25 sekunder.
-    timeout /t 25 /nobreak >nul
-    set WAIT_OK=1
-    goto :eof
-)
 set WAITED=0
 :wait_loop
 call :all_healthy
