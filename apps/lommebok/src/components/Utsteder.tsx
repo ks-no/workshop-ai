@@ -377,6 +377,18 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                   {kopiert ? "Kopiert!" : "Kopier lenke"}
                 </button>
               </div>
+
+              <div style={{ marginTop: "1rem", fontSize: "0.85rem", color: "#64748b" }}>
+                📱 Har du ikke installert lommebok på telefonen?{" "}
+                <a
+                  href="https://testflight.apple.com/join/2FKCUj1J"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#2563eb", textDecoration: "underline" }}
+                >
+                  Last ned testversjonen via Apple TestFlight
+                </a>
+              </div>
             </div>
           </div>
         </div>

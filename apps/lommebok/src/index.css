@@ -547,6 +547,62 @@ body {
   border: 1px solid #b8d5ff;
 }
 
+/* TestFlight info banner */
+.testflight-banner {
+  background: linear-gradient(135deg, #0d2b45 0%, #154360 100%);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(13, 43, 69, 0.15);
+}
+
+.testflight-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.testflight-banner-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.testflight-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.testflight-banner-desc {
+  font-size: 13px;
+  color: #d5e8f7;
+}
+
+.testflight-btn {
+  background: #ffffff;
+  color: #0d2b45;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.testflight-btn:hover {
+  background: #eef6fb;
+  transform: translateY(-1px);
+}
+
 /* Utviklerpanel */
 .dev-panel {
   background: #17232f;
