@@ -7,8 +7,8 @@ import { docsHtml, routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
-import { adressekjerne, matchesAdresse, parseAdresse } from "./adresse.ts";
-import type { Adresse } from "./adresse.ts";
+import { adressekjerne, adresseSoek, matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
+import type { Adresse } from "../../shared/adresse.ts";
 import type {
   FolkeregisterPerson,
   GeonorgeAdresse,
@@ -123,6 +123,7 @@ type Matrikkeleiendom = {
   undernummer?: number | null;
   adressekode?: number;
   adresse?: string;
+  adressetilleggsnavn?: string;
   husnummer?: number;
   husbokstav?: string | null;
   bruksenhetstype?: string;
@@ -767,12 +768,9 @@ function geonorgeAdresseTekst(adresse: GeonorgeAdresse): string {
 }
 
 function matchesGeonorgeAdresse(query: Adresse, adresse: GeonorgeAdresse): boolean {
-  if (!adresse || typeof adresse.adressenavn !== "string"
-    || !Number.isInteger(adresse.nummer) || Number(adresse.nummer) <= 0
-    || (adresse.bokstav != null && typeof adresse.bokstav !== "string")) return false;
-  const structured = `${adresse.adressenavn} ${adresse.nummer}${adresse.bokstav || ""}`;
-  return matchesAdresse(query, structured, adresse.postnummer, adresse.poststed)
-    && matchesAdresse(query, geonorgeAdresseTekst(adresse), adresse.postnummer, adresse.poststed);
+  return adresse != null && matchesAdresseFields(query, {
+    ...adresse, husnummer: adresse.nummer, husbokstav: adresse.bokstav, adresse: adresse.adressetekst
+  });
 }
 
 function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
@@ -793,6 +791,7 @@ function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
     undernummer,
     adressekode,
     adresse: adressetekst,
+    adressetilleggsnavn: adresse.adressetilleggsnavn,
     husnummer,
     husbokstav,
     bruksenhetstype: "ukjent",
@@ -819,11 +818,7 @@ function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Matrikkeleiendom {
 }
 
 function pickExactEiendom(eiendommer: Matrikkeleiendom[], query: Adresse): Matrikkeleiendom | null {
-  const matches = eiendommer.filter((eiendom) =>
-    matchesAdresse(query, eiendom.adresse, eiendom.postnummer, eiendom.poststed)
-    && typeof eiendom.adressenavn === "string" && Number.isInteger(eiendom.husnummer)
-    && matchesAdresse(query, `${eiendom.adressenavn} ${eiendom.husnummer}${eiendom.husbokstav || ""}`,
-      eiendom.postnummer, eiendom.poststed));
+  const matches = eiendommer.filter((eiendom) => matchesAdresseFields(query, eiendom));
   const unique = new Map(matches.map((eiendom) => [
     JSON.stringify([eiendom.matrikkelId, eiendom.kommunenummer, eiendom.gnr, eiendom.bnr,
       eiendom.festenummer, eiendom.undernummer, eiendom.postnummer]),
@@ -903,7 +898,7 @@ async function findEiendomLive(adresse: string, query: Adresse): Promise<Matrikk
 }
 
 async function findEiendomMock(query: Adresse): Promise<Matrikkeleiendom> {
-  const params = new URLSearchParams({ adresse: adressekjerne(query), limit: "5000" });
+  const params = new URLSearchParams({ adresse: adresseSoek(query), limit: "5000" });
   const kandidater: Matrikkeleiendom[] = [];
   for (let offset = 0; ; ) {
     params.set("offset", String(offset));
@@ -915,11 +910,11 @@ async function findEiendomMock(query: Adresse): Promise<Matrikkeleiendom> {
   }
   const treff = pickExactEiendom(kandidater, query);
   if (!treff) throw clientError(`Fant ikke adressen ${adressekjerne(query)}.`, 404);
+  if (treff.syntetisk === false) return { ...treff, eiere: [] };
 
   // The list omits owners; only read them after resolving one exact property.
-  const eiendom = await matrikkel<Matrikkeleiendom>(treff.syntetisk === false
-    ? `/mock/matrikkel/eiendom-oppslag?adresse=${argSti(treff.adresse)}`
-    : `/mock/matrikkel/eiendom/${argSti(treff.matrikkelId)}`);
+  const eiendom = await matrikkel<Matrikkeleiendom>(
+    `/mock/matrikkel/eiendom/${argSti(treff.matrikkelId)}`);
   if (!pickExactEiendom([eiendom], query)
     || eiendom.matrikkelId !== treff.matrikkelId) {
     throw clientError(`Fant ikke et entydig oppslag for adressen ${adressekjerne(query)}.`, 409);

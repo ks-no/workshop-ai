@@ -50,10 +50,15 @@ ulike eiendommer gir 409. `hybrid` faller ikke tilbake fra et tvetydig live-tref
 Verken eiendom eller eiere returneres når adressen ikke stemmer.
 `Storgata 5` finnes både i Bergen og Tromsø i seeden; eksemplet under bruker
 postnummer for å velge Bergen.
+Adressetillegg som `Aardal` i `Aardal, Haugsbygda 98` behandles separat:
+også `Haugsbygda 98` finner eiendommen. Gatenavn, husnummer og husbokstav må
+fortsatt stemme, og oppgitt postnummer beholdes helt fram til adressekilden.
+Ved live-fallback fra mocken vurderes alle kandidatene, ikke ett forhåndsvalgt treff.
 
 `pnpm test:tools-matrikkel` starter sine egne tjenester og en lokal Geonorge-etterlikning.
 Testen trenger verken Compose, språkmodell eller eksternt nett. Sett
 `TOOLS_MATRIKKEL_TEST_PORT_BASE` hvis standardportene er opptatt.
+Den prøver også begge adresseformene for alle adressetillegg i den fulle seeden.
 
 ## Eksempel
 

@@ -119,6 +119,8 @@ paths:
       description: |
         Adresseoppslag krever gatenavn, husnummer og eventuell husbokstav.
         Postnummer og poststed kan legges til for å skille like adresser.
+        Et adressetilleggsnavn kan stå foran gatenavnet med komma, for eksempel
+        "Aardal, Haugsbygda 98". Tillegget behandles separat fra gatenavnet.
         Et prefiks eller et vilkårlig søkeresultat brukes aldri som eksakt treff.
       requestBody:
         required: true
@@ -441,6 +443,8 @@ components:
         adressekode:
           type: integer
         adresse:
+          type: string
+        adressetilleggsnavn:
           type: string
         husnummer:
           type: integer

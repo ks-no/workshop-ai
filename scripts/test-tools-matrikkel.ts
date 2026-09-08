@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 import { feilmelding } from "../apps/shared/errors.ts";
-import { adressekjerne, matchesAdresse, parseAdresse } from "../apps/tools-api/src/adresse.ts";
+import { adressekjerne, adresseSoek, matchesAdresse, matchesAdresseFields, parseAdresse } from "../apps/shared/adresse.ts";
 import type { GeonorgeAdresse } from "../apps/shared/registerdata.ts";
 
 const portBase = Number(process.env.TOOLS_MATRIKKEL_TEST_PORT_BASE || 18080);
@@ -10,9 +11,23 @@ const toolsMockPort = portBase + 3;
 const toolsLivePort = portBase + 4;
 const toolsHybridPort = portBase + 7;
 const geonorgePort = portBase + 6;
+const matrikkelSeedPort = portBase + 8;
+const toolsSeedPort = portBase + 9;
 const geonorgeBaseUrl = `http://127.0.0.1:${geonorgePort}`;
 let geonorgeScenario = "normal";
 let geonorgeRequests = 0;
+const geonorgeQueries: string[] = [];
+const seedGater = JSON.parse(readFileSync("data/matrikkel.json", "utf8")).gater as {
+  adressenavn: string; postnummer: string; poststed: string;
+  eiendommer: {
+    matrikkelId: string; adresse: string; husnummer: number; husbokstav: string | null;
+    adressetilleggsnavn?: string; postnummer?: string; poststed?: string;
+  }[];
+}[];
+const seedEiendommer = seedGater.flatMap((gate) => gate.eiendommer.map((eiendom) => ({
+  ...eiendom, adressenavn: gate.adressenavn,
+  postnummer: eiendom.postnummer || gate.postnummer, poststed: eiendom.poststed || gate.poststed
+})));
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -55,6 +70,19 @@ function createFakeGeonorgeServer() {
     if (request.method === "GET" && url.pathname === "/sok") {
       geonorgeRequests += 1;
       const sok = normalize(url.searchParams.get("sok"));
+      geonorgeQueries.push(url.searchParams.get("sok") || "");
+      if (sok.includes("haugsbygda")) {
+        json(response, 200, {
+          metadata: { totaltAntallTreff: 1 },
+          adresser: [{
+            adressenavn: "Haugsbygda", nummer: 98, bokstav: "", adressetekst: "Aardal, Haugsbygda 98",
+            adressetilleggsnavn: "Aardal", postnummer: "6082", poststed: "GURSKEN",
+            kommunenummer: "1514", kommunenavn: "SANDE", adressekode: 14029,
+            gardsnummer: 1, bruksnummer: 98
+          }]
+        });
+        return;
+      }
       const base = {
         adressenavn: "Bokstavgata", adressetekst: "Bokstavgata 10A",
         nummer: 10, bokstav: "A", adressekode: 42, kommunenummer: "4601",
@@ -62,12 +90,19 @@ function createFakeGeonorgeServer() {
         postnummer: "5003", poststed: "BERGEN"
       };
       if (sok.includes("bokstavgata")) {
-        const adresser: GeonorgeAdresse[] = geonorgeScenario === "missing"
+        let adresser: GeonorgeAdresse[] = geonorgeScenario === "missing"
           ? [{ adressenavn: "Bokstavgata" }, { nummer: 10, bokstav: "A" },
             { adressetekst: "Bokstavgata 10A" }, { ...base, nummer: 11 }]
           : [base, { ...base, adressetekst: "Bokstavgata 10B", bokstav: "B", bruksnummer: 43 }];
         if (geonorgeScenario === "ambiguous") {
           adresser.push({ ...base, kommunenummer: "0301", postnummer: "0150", poststed: "OSLO" });
+        }
+        if (geonorgeScenario === "paged") {
+          adresser = url.searchParams.get("side") === "1"
+            ? [{ ...base, kommunenummer: "0301", postnummer: "0150", poststed: "OSLO" }]
+            : Array.from({ length: 1000 }, () => base);
+          json(response, 200, { metadata: { totaltAntallTreff: 1001 }, adresser });
+          return;
         }
         json(response, 200, { metadata: { totaltAntallTreff: adresser.length }, adresser });
         return;
@@ -169,6 +204,18 @@ function testAdresse() {
   assert(parseAdresse("7.\tjuni  gate 5")?.adressenavn === "7. juni gate", "Mellomrom i gatenavnet normaliseres");
   const query = parseAdresse("Bønesheien 10, 5154 BØNES")!;
   assert(!matchesAdresse(query, "Bønesheien 10", "5003", "BERGEN"), "Postnummer og poststed må ikke ignoreres");
+  for (const eiendom of seedEiendommer) {
+    const full = parseAdresse(eiendom.adresse);
+    assert(full, `Seed-adressen kunne ikke leses: ${eiendom.adresse}`);
+    assert(matchesAdresseFields(full!, eiendom), `Adressefelt og visning stemmer ikke: ${eiendom.adresse}`);
+    const core = parseAdresse(`${eiendom.adressenavn} ${eiendom.husnummer}${eiendom.husbokstav || ""}`)!;
+    assert(matchesAdresseFields(core, eiendom), `Adressetillegg må ikke skjule grunndata: ${eiendom.adresse}`);
+  }
+  const supplemented = parseAdresse("Aardal, Haugsbygda 98, 6082 Gursken")!;
+  assert(supplemented.adressenavn === "Haugsbygda" && supplemented.adressetilleggsnavn === "Aardal",
+    "Adressetillegget skal være separat fra gatenavnet");
+  assert(adresseSoek(supplemented) === "Aardal, Haugsbygda 98, 6082 Gursken",
+    "Søk må beholde adressetillegg og poststed");
 }
 
 function startTools(port: number, extraEnv: Record<string, string> = {}) {
@@ -196,10 +243,21 @@ async function kjor() {
     },
     stdio: "inherit"
   });
+  const matrikkelSeed = spawn("node", ["apps/matrikkel-mock/src/server.ts"], {
+    env: {
+      ...process.env, PORT: String(matrikkelSeedPort),
+      MATRIKKEL_DATA_FILE: "data/matrikkel.json",
+      GEONORGE_ADRESSE_API_BASE_URL: geonorgeBaseUrl
+    },
+    stdio: "inherit"
+  });
   const geonorge = createFakeGeonorgeServer();
   await new Promise<void>((resolve) => { geonorge.listen(geonorgePort, () => resolve()); });
 
   const toolsMock = startTools(toolsMockPort, { MATRIKKEL_MODE: "mock" });
+  const toolsSeed = startTools(toolsSeedPort, {
+    MATRIKKEL_MODE: "mock", MATRIKKEL_BASE_URL: `http://127.0.0.1:${matrikkelSeedPort}`
+  });
   const toolsLive = startTools(toolsLivePort, {
     MATRIKKEL_MODE: "live",
     GEONORGE_ADRESSE_API_BASE_URL: `http://127.0.0.1:${geonorgePort}`
@@ -214,6 +272,8 @@ async function kjor() {
     await waitFor(`http://127.0.0.1:${toolsMockPort}/helse`);
     await waitFor(`http://127.0.0.1:${toolsLivePort}/helse`);
     await waitFor(`http://127.0.0.1:${toolsHybridPort}/helse`);
+    await waitFor(`http://127.0.0.1:${matrikkelSeedPort}/helse`);
+    await waitFor(`http://127.0.0.1:${toolsSeedPort}/helse`);
 
     const gate = await invoke(toolsMockPort, "matrikkel_finn_veger", { gate: "Storgata" });
     assert(gate.adressenavn === "Storgata", "matrikkel_finn_veger returnerte ikke Storgata");
@@ -280,7 +340,7 @@ async function kjor() {
       }
       await assertRejected(port, "matrikkel_hent_eiendom", { adresse: "Storgata 5, 9999 OSLO" }, 404);
     }
-    for (const port of [toolsLivePort, toolsHybridPort]) {
+    for (const port of [toolsMockPort, toolsLivePort, toolsHybridPort]) {
       const letter = await invoke(port, "matrikkel_hent_eiendom", { adresse: "bokstavgata 10 b, 5003 Bergen" });
       assert(letter.husbokstav === "B" && letter.bnr === 43, "Husbokstav B må ikke treffe A");
       await assertRejected(port, "matrikkel_hent_eiere", { adresse: "Bokstavgata 10" }, 404);
@@ -288,15 +348,52 @@ async function kjor() {
       for (const name of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
         await assertRejected(port, name, { adresse: "Bokstavgata 10A" }, 409);
       }
+      const queryStart = geonorgeQueries.length;
       const disambiguated = await invoke(port, "matrikkel_hent_eiendom", { adresse: "Bokstavgata 10A, 0150 OSLO" });
       assert(disambiguated.kommunenummer === "0301", "Postnummer skal skille ellers like adresser");
+      const disambiguatedOwners = await invoke(port, "matrikkel_hent_eiere", { adresse: "Bokstavgata 10A, 0150 OSLO" });
+      assert(disambiguatedOwners.matrikkelId === disambiguated.matrikkelId, "Eieroppslaget må velge samme entydige adresse");
+      assert(geonorgeQueries.slice(queryStart).some((query) => query.includes("0150")), "Postnummeret skal sendes til Geonorge");
       geonorgeScenario = "missing";
       await assertRejected(port, "matrikkel_hent_eiendom", { adresse: "Bokstavgata 10A" }, 404);
       geonorgeScenario = "normal";
+      for (const name of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
+        for (const adresse of ["Aardal, Haugsbygda 98", "Haugsbygda 98", "Aardal, Haugsbygda 98, 6082 Gursken"]) {
+          const property = await invoke(port, name, { adresse });
+          assert(property.adresse === "Aardal, Haugsbygda 98", "Adressetillegg må ikke gi feil hus eller falskt 404");
+        }
+        for (const adresse of ["Haugsbygda 9", "Haugsbygda 98A", "Annet navn, Haugsbygda 98", "Haugsbygda 98, 0150 OSLO"]) {
+          await assertRejected(port, name, { adresse }, 404);
+        }
+      }
     }
 
+    geonorgeScenario = "paged";
+    for (const name of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
+      await assertRejected(toolsMockPort, name, { adresse: "Bokstavgata 10A" }, 409);
+      const result = await invoke(toolsMockPort, name, { adresse: "Bokstavgata 10A, 0150 OSLO" });
+      assert(result.matrikkelId.includes("0301"), "Mockens live-fallback må også lese neste side");
+    }
+    const listResponse = await fetch(`http://127.0.0.1:${matrikkelPort}/mock/matrikkel/eiendommer?adresse=Bokstavgata%2010A&limit=1`);
+    const list = await listResponse.json() as { total: number; items: unknown[] };
+    assert(listResponse.ok && list.total === 2 && list.items.length === 1,
+      "Kandidatlisten skal beholde begge adressene og fjerne duplikate kildetreff før paginering");
+    geonorgeScenario = "normal";
+
+    const supplementedSeed = seedEiendommer.filter((eiendom) => eiendom.adressetilleggsnavn);
+    assert(supplementedSeed.length > 0, "Seeden må dekke adressetillegg");
+    for (const eiendom of supplementedSeed) {
+      for (const name of ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"]) {
+        for (const adresse of [eiendom.adresse, `${eiendom.adressenavn} ${eiendom.husnummer}${eiendom.husbokstav || ""}`]) {
+          const result = await invoke(toolsSeedPort, name, { adresse: `${adresse}, ${eiendom.postnummer} ${eiendom.poststed}` });
+          assert(result.matrikkelId === eiendom.matrikkelId, `Feil eiendom for seed-adresse ${adresse}`);
+        }
+      }
+    }
     console.log("test:tools-matrikkel OK");
   } finally {
+    toolsSeed.kill("SIGTERM");
+    matrikkelSeed.kill("SIGTERM");
     toolsHybrid.kill("SIGTERM");
     toolsLive.kill("SIGTERM");
     toolsMock.kill("SIGTERM");

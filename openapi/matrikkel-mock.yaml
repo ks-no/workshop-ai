@@ -202,6 +202,11 @@ paths:
         - in: query
           name: adresse
           required: false
+          description: >
+            En full adresse sammenlignes med gatenavn, husnummer og husbokstav.
+            Postnummer, poststed og adressetilleggsnavn kan tas med.
+            Listen beholder alle eksakte kandidater, også ved live-fallback;
+            den velger ikke første eiendom når adressen finnes flere steder.
           schema:
             type: string
         - in: query
@@ -237,6 +242,9 @@ paths:
         og finnes på /mock/matrikkel/eiendom/{matrikkelId}; å hente eierlistene for
         alle 227 eiendommene i en gate er bulkuttrekk. Eierforholdet kommer fra
         data/eierforhold.json, ikke fra matrikkelen - hjemmel ligger i grunnboken.
+        Ved et fullstendig adresseoppslag følger live-fallback alle resultatsidene
+        før listen pagineres. Adressetillegg i visningsteksten erstatter ikke
+        gatenavn, husnummer og husbokstav i det strukturerte adressegrunnlaget.
       responses:
         "200":
           description: >
@@ -281,4 +289,3 @@ paths:
             text/html:
               schema:
                 type: string
-
