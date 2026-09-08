@@ -60,7 +60,7 @@ function check(name: string, condition: unknown, detail = "") {
 }
 
 function oektMedKilder(
-  resultatKilder: Record<string, string[]>,
+  resultatKilder: Record<string, string[]> | null,
   frosset = true,
   verdi = 1
 ) {
@@ -246,6 +246,17 @@ try {
     "en foreldet prosessfrysing kan ikke svekke metadata som alt er frosset",
     JSON.stringify(samtidigFrosset.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
     JSON.stringify(samtidigFrosset.resultatKilder)
+  );
+
+  const nullMetadataFrosset = mergeFrossetProsessoekt(
+    oektMedKilder(null, false),
+    oektMedKilder(null, true)
+  );
+  check(
+    "eksplisitt null fryses som ukjent metadata i lagringen",
+    !Object.hasOwn(nullMetadataFrosset.resultatKilder, "resultat")
+      && nullMetadataFrosset.resultatKilderFrosset,
+    JSON.stringify(nullMetadataFrosset)
   );
 
   const nyttLegacyResultat = mergeProsessoektForLagring(
