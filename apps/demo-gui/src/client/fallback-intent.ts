@@ -13,6 +13,10 @@ const JA_SVAR = new Set([
   "gjerne",
   "ja takk",
   "ja gjerne",
+  "ja da",
+  "jada",
+  "javisst",
+  "ja det stemmer",
   "send inn",
   "ja send inn",
   "det går fint",
@@ -38,7 +42,7 @@ const NEI_SVAR = new Set([
   "det går ikke fint"
 ]);
 
-const FORTSETT_SIGNALLER = new Set([
+const FORTSETT_KJERNER = [
   ...JA_SVAR,
   "start",
   "fortsett",
@@ -48,12 +52,28 @@ const FORTSETT_SIGNALLER = new Set([
   "kjor pa",
   "gå videre",
   "ga videre"
+].map((uttrykk) => uttrykk.split(" "));
+
+const FORTSETT_TILLEGG = new Set([
+  "ja",
+  "jada",
+  "japp",
+  "javisst",
+  "yes",
+  "takk",
+  "da",
+  "nå",
+  "na",
+  "gjerne",
+  "klart",
+  "greit",
+  "okei",
+  "ok"
 ]);
 
 export function normalizeBrukersvar(text: string): string {
   return text
     .toLowerCase()
-    .replace(/ /g, " ")
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -73,10 +93,28 @@ export function tolkLokaltSvar(text: string): LokalSvarintensjon {
   const erJa = JA_SVAR.has(normalisert);
   const erNei = NEI_SVAR.has(normalisert);
 
-  if (erJa === erNei) return "ukjent";
-  return erJa ? "ja" : "nei";
+  if (erJa && erNei) return "ukjent";
+  if (erJa) return "ja";
+  if (erNei) return "nei";
+  return "ukjent";
 }
 
-export function erEksaktFortsettSignal(text: string): boolean {
-  return FORTSETT_SIGNALLER.has(normalizeBrukersvar(text));
+function matcherFortsettKjerne(ord: string[], kjerne: string[]): boolean {
+  for (let start = 0; start <= ord.length - kjerne.length; start += 1) {
+    const matcher = kjerne.every((del, forskyvning) => ord[start + forskyvning] === del);
+    if (!matcher) continue;
+
+    const tillegg = [...ord.slice(0, start), ...ord.slice(start + kjerne.length)];
+    if (tillegg.every((del) => FORTSETT_TILLEGG.has(del))) return true;
+  }
+  return false;
+}
+
+export function erFortsettSignal(text: string): boolean {
+  const ord = normalizeBrukersvar(text).split(" ").filter(Boolean);
+  return FORTSETT_KJERNER.some((kjerne) => matcherFortsettKjerne(ord, kjerne));
+}
+
+export function skalSvareFramfor(text: string, nesteStegErSporsmaal: boolean): boolean {
+  return nesteStegErSporsmaal && !erFortsettSignal(text);
 }

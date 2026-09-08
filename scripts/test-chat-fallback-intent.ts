@@ -1,7 +1,8 @@
 import {
-  erEksaktFortsettSignal,
+  erFortsettSignal,
   normalizeBrukersvar,
   parseSvarPrefiks,
+  skalSvareFramfor,
   tolkLokaltSvar
 } from "../apps/demo-gui/src/client/fallback-intent.ts";
 
@@ -36,6 +37,10 @@ for (const tekst of [
   "gjerne",
   "ja takk",
   "ja, gjerne",
+  "ja da",
+  "jada",
+  "javisst",
+  "ja, det stemmer",
   "send inn",
   "Ja, send inn!",
   "det går fint",
@@ -63,18 +68,39 @@ for (const tekst of ["ikke greit", "ikke ok"]) {
   check(`nektet ja-uttrykk blir nei: «${tekst}»`, tolkLokaltSvar(tekst) === "nei");
 }
 
-for (const tekst of ["ja, men nei", "greit, men ikke", "kanskje"]) {
+for (const tekst of ["ja, men nei", "greit, men ikke", "kanskje", "jo"]) {
   check(`tvetydig svar blir ukjent: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
 }
 
-for (const tekst of ["Janaflaten 10", "Jeg bor ved Jokerveien 7"]) {
-  check(`svar med kort ja-token blir ukjent: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
-  check(`svar med kort ja-token er ikke fortsettelse: «${tekst}»`, !erEksaktFortsettSignal(tekst));
+for (const tekst of ["gå videre nå", "ja, kjør på", "fortsett takk"]) {
+  check(`fortsettelse er ikke samtykke: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
 }
 
-for (const tekst of ["ja", "fortsett", "kjør på", "kjor pa", "gå videre", "ga videre"]) {
-  check(`eksplisitt fortsettelse: «${tekst}»`, erEksaktFortsettSignal(tekst));
+const prefetchedSvar = ["Janaflaten 10", "Nikkelveien", "Jeg bor ved Jokerveien 7"];
+for (const tekst of prefetchedSvar) {
+  check(`svar med kort ja-token blir ukjent: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
+  check(`svar med kort ja-token er ikke fortsettelse: «${tekst}»`, !erFortsettSignal(tekst));
+  check(`svar med kort ja-token sendes til neste steg: «${tekst}»`, skalSvareFramfor(tekst, true));
 }
+
+const fortsettSvar = [
+  "ja",
+  "fortsett",
+  "kjør på",
+  "kjor pa",
+  "gå videre",
+  "ga videre",
+  "gå videre nå",
+  "ja, kjør på",
+  "ja da",
+  "fortsett takk"
+];
+for (const tekst of fortsettSvar) {
+  check(`eksplisitt fortsettelse: «${tekst}»`, erFortsettSignal(tekst));
+  check(`fortsettelse lagres ikke som neste svar: «${tekst}»`, !skalSvareFramfor(tekst, true));
+}
+
+check("INFO uten neste spørsmål lagrer ikke svar", !skalSvareFramfor("Janaflaten 10", false));
 
 if (feil.length > 0) {
   console.error(`Chat-fallback: ${feil.length} av ${bestatt + feil.length} sjekker feilet:`);

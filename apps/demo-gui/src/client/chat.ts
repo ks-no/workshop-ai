@@ -3,9 +3,9 @@
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 import {
-  erEksaktFortsettSignal,
   normalizeBrukersvar,
   parseSvarPrefiks,
+  skalSvareFramfor,
   tolkLokaltSvar
 } from "./fallback-intent.ts";
 
@@ -1071,7 +1071,7 @@ async function sendMessage(
       // Men var teksten mer enn et «gå videre», var den svaret på spørsmålet
       // som kommer. Da sendes den inn i stedet for å kastes.
       const nesteSteg = (aktivProsess?.steg || [])[oekt.stegIndex + 1];
-      const svarerFramfor = nesteSteg?.type === "QUESTION" && !erEksaktFortsettSignal(reellTekst);
+      const svarerFramfor = skalSvareFramfor(reellTekst, nesteSteg?.type === "QUESTION");
       await goNext({ tegnSteg: !svarerFramfor });
       const nyttSteg = oekt?.aktivtSteg;
       if (svarerFramfor && nyttSteg?.type === "QUESTION") {
