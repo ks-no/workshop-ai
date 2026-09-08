@@ -618,6 +618,98 @@ async function oppsummeringenGatesAvKildeneSine() {
     JSON.stringify(Object.keys(duplikatResultat.resultater))
   );
 
+  const typoOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      "hent-inntekt": resultaterRaa["hent-inntekt"]
+    }
+  });
+  const typoProsess = {
+    ...prosess,
+    steg: [{
+      id: "hent-inntekt",
+      type: "DATA_FETC",
+      tittel: "Feilstavet inntektshenting"
+    }]
+  } as any;
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    typoOekt,
+    typoProsess
+  );
+  const etterTyporetting = resultaterNaa(
+    {
+      samtykker: [{ ...samtykke, status: "TRUKKET" }],
+      satser,
+      personer: [],
+      husstander: []
+    } as any,
+    typoOekt,
+    prosess
+  );
+  check(
+    "ukjent stegtype fryses ikke som ubeskyttet før typo rettes",
+    !Object.hasOwn(typoOekt.resultatKilder, "hent-inntekt"),
+    JSON.stringify(typoOekt.resultatKilder)
+  );
+  check(
+    "inntekten forblir skjult etter at DATA_FETC rettes til DATA_FETCH",
+    etterTyporetting.resultater["hent-inntekt"] === undefined,
+    JSON.stringify(etterTyporetting.resultater)
+  );
+
+  const malformedOekt = normalizeProsessoekt({
+    ...structuredClone(oekt),
+    resultaterRaa: {
+      "hent-inntekt": resultaterRaa["hent-inntekt"],
+      oppsummering: resultaterRaa.oppsummering,
+      "send-inn": resultaterRaa["send-inn"]
+    }
+  });
+  const malformedProsess = {
+    ...prosess,
+    steg: [
+      {
+        id: "hent-inntekt",
+        type: "DATA_FETCH",
+        tittel: "Inntektshenting uten API"
+      },
+      { id: "oppsummering", type: "SUMMARY", tittel: "Oppsummering" },
+      { id: "send-inn", type: "SUBMIT", tittel: "Send inn" }
+    ]
+  } as any;
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    malformedOekt,
+    malformedProsess
+  );
+  const etterApiRetting = resultaterNaa(
+    {
+      samtykker: [{ ...samtykke, status: "TRUKKET" }],
+      satser,
+      personer: [],
+      husstander: []
+    } as any,
+    malformedOekt,
+    prosess
+  );
+  check(
+    "malformet DATA_FETCH fryser ikke SUMMARY eller SUBMIT som ubeskyttet",
+    !Object.hasOwn(malformedOekt.resultatKilder, "oppsummering")
+      && !Object.hasOwn(malformedOekt.resultatKilder, "send-inn"),
+    JSON.stringify(malformedOekt.resultatKilder)
+  );
+  check(
+    "SUMMARY forblir skjult etter at manglende API rettes",
+    etterApiRetting.resultater.oppsummering === undefined,
+    JSON.stringify(etterApiRetting.resultater)
+  );
+  check(
+    "SUBMIT forblir skjult etter at manglende API rettes",
+    etterApiRetting.resultater["send-inn"] === undefined,
+    JSON.stringify(etterApiRetting.resultater)
+  );
+
   const eldsteOekt = {
     ...structuredClone(oekt),
     resultater: structuredClone(resultaterRaa)

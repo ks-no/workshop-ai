@@ -141,12 +141,21 @@ function finnSamtykkekildeForSteg(
   kaller: Caller
 ): Samtykkekildeoppslag {
   if (!steg) return { status: "ukjent" };
-  const kreverKatalog = steg.type === "DATA_FETCH" || steg.type === "SJEKK";
-  if (!erKatalogsteg(steg)) {
-    return kreverKatalog
-      ? { status: "ukjent" }
-      : { status: "kjent", kilde: null };
+  const stegtype: unknown = (steg as { type?: unknown }).type;
+  switch (stegtype) {
+    case "INFO":
+    case "QUESTION":
+    case "CONSENT_REQUEST":
+    case "SUMMARY":
+    case "SUBMIT":
+      return { status: "kjent", kilde: null };
+    case "DATA_FETCH":
+    case "SJEKK":
+      break;
+    default:
+      return { status: "ukjent" };
   }
+  if (!erKatalogsteg(steg)) return { status: "ukjent" };
   const url = new URL(`http://localhost${replaceParametere(steg.api.url, oekt)}`);
   const treff = findRessurs(steg.api.method || "GET", url.pathname);
   if (!treff) return { status: "ukjent" };
@@ -177,7 +186,8 @@ function legacyKilderForAvledetResultat(
   if (!prosess) return null;
   const kilder = new Set<Datakilde>();
   for (const steg of prosess?.steg || []) {
-    if (!erKatalogsteg(steg)) continue;
+    if (!Object.hasOwn(oekt.resultaterRaa, steg.id)) continue;
+    if (steg.type === "SUMMARY" || steg.type === "SUBMIT") continue;
     const oppslag = finnSamtykkekildeForSteg(tilstand, oekt, steg, legacyKildekaller);
     if (oppslag.status === "ukjent") return null;
     if (oppslag.kilde) kilder.add(oppslag.kilde);
