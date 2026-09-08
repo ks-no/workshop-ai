@@ -46,7 +46,7 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 const fiksUrl = `http://127.0.0.1:${fiksPort}`;
 const aiUrl = `http://127.0.0.1:${aiPort}`;
 
-const PROSESS = "redusert-foreldrebetaling-barnehage";
+const PROSESS = "samtidighet-flyt";
 const COUNT = 10;
 
 let passed = 0;
@@ -200,6 +200,25 @@ try {
   const warmup = await call(`/api/personer/${PERSON_IDS[0]}`, tokens[0]);
   check("oppvarmingskallet er autorisert", warmup.status === 200, String(warmup.status));
 
+  // Concurrency is independent of eligibility. Use a valid small process rather
+  // than skipping the required samtykke/data steps of a published case.
+  const fixture = await call("/api/prosesser", tokens[0], {
+    method: "POST",
+    body: {
+      id: PROSESS,
+      navn: "Samtidighetstest",
+      steg: [
+        { id: "intro", type: "INFO" },
+        { id: "klar", type: "INFO" },
+        { id: "oppsummering", type: "SUMMARY" },
+        { id: "send-inn", type: "SUBMIT" }
+      ]
+    }
+  });
+  if (fixture.status !== 201) {
+    throw new Error(`Kunne ikke opprette testprosessen: ${JSON.stringify(fixture)}`);
+  }
+
   // 1. Ten økter, created concurrently. Each POST appends one row.
   const created = await Promise.all(
     PERSON_IDS.map((personId: any, i: any) =>
@@ -248,10 +267,10 @@ try {
    * before the controlled model response is released.
    */
   const summaryId = ids[3];
-  for (let steg = 1; steg < 5; steg++) {
-    const flyttet = await call(`/api/prosessoekter/${summaryId}/neste`, tokens[3], { method: "POST" });
-    check(`modelløkten går til steg ${steg + 1}`, flyttet.status === 200, String(flyttet.status));
-  }
+  const toSummary = await call(`/api/prosessoekter/${summaryId}/neste`, tokens[3], { method: "POST" });
+  check("modelløkten går fra INFO til SUMMARY",
+    toSummary.status === 200 && toSummary.body?.aktivtSteg?.type === "SUMMARY",
+    JSON.stringify(toSummary));
   const summaryCall = call(
     `/api/prosessoekter/${summaryId}/handling`,
     tokens[3],
@@ -283,8 +302,7 @@ try {
    * all - push onto the request's own array, then write the whole thing.
    *
    * POST /api/soknader rather than driving ten flows to their SUBMIT step: it is
-   * the same createSoknad, and it takes seconds instead of needing samtykke, a
-   * beregning and the model. The Fiks task it tries to create afterwards fails on
+   * the same createSoknad, without requiring the model. The Fiks task it tries to create afterwards fails on
    * an unreachable FIKS_BASE_URL and comes back as `advarsel`, which is expected
    * here and not what is under test.
    */
@@ -313,16 +331,21 @@ try {
   await waitForHealth(fiksUrl);
 
   const submitIds = ids.slice(0, 3);
-  for (let steg = 1; steg < 6; steg++) {
-    const flyttet = await Promise.all(
-      submitIds.map((id: string, i: number) =>
-        call(`/api/prosessoekter/${id}/neste`, tokens[i], { method: "POST" })
-      )
-    );
-    check(`tre økter går samtidig til steg ${steg + 1}`,
-      flyttet.every((svar) => svar.status === 200),
-      flyttet.map((svar) => svar.status).join(","));
-  }
+  const prepared = await Promise.all(submitIds.map(async (id: string, i: number) => {
+    const route = `/api/prosessoekter/${id}`;
+    const next = await call(`${route}/neste`, tokens[i], { method: "POST" });
+    if (next.status !== 200 || next.body?.aktivtSteg?.type !== "SUMMARY") {
+      throw new Error(`Økten nådde ikke SUMMARY: ${JSON.stringify(next)}`);
+    }
+    const summary = await call(`${route}/handling`, tokens[i], { method: "POST", body: {} });
+    if (summary.status !== 200 || !summary.body?.resultat?.tekst) {
+      throw new Error(`SUMMARY ble ikke fullført: ${JSON.stringify(summary)}`);
+    }
+    return call(`${route}/neste`, tokens[i], { method: "POST" });
+  }));
+  check("tre økter når SUBMIT etter fullført SUMMARY",
+    prepared.every((svar) => svar.status === 200 && svar.body?.aktivtSteg?.type === "SUBMIT"),
+    prepared.map((svar) => svar.status).join(","));
 
   const sporingsId = created[0].body.sporingsId;
   const samtidigeSubmit = await Promise.all(
