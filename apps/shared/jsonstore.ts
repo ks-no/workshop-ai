@@ -1,12 +1,18 @@
 /**
  * State I/O for every service that writes under `state/`: read with a seed
- * fallback, and write through one queue.
+ * fallback, and write atomically through one queue.
  *
  * The state-before-seed lookup is deliberate: it is what lets a team override a
  * seed file by dropping a copy in `state/` without editing the repo.
+ *
+ * Atomic replacement prevents concurrent readers from seeing a partial document.
+ * It is not crash durability: files and directories are not fsynced, and a process
+ * killed before cleanup may leave its temporary file. The queue is process-local,
+ * so writers in different processes can still lose each other's updates.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -45,13 +51,37 @@ export async function readJson(fileName: string, fallback?: unknown): Promise<an
  * mistake a caller can make.
  */
 async function writeJson(fileName: string, data: unknown) {
-  await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, fileName), JSON.stringify(data, null, 2) + "\n");
+  const targetPath = path.join(stateDir, fileName);
+  const targetDir = path.dirname(targetPath);
+  // Keeping both paths in one directory makes the final rename atomic.
+  const temporaryPath = path.join(
+    targetDir,
+    `.${path.basename(targetPath)}.${process.pid}.${randomUUID()}.tmp`
+  );
+
+  await mkdir(targetDir, { recursive: true });
+  let ownsTemporaryFile = false;
+  try {
+    const temporaryFile = await open(temporaryPath, "wx");
+    ownsTemporaryFile = true;
+    try {
+      await temporaryFile.writeFile(JSON.stringify(data, null, 2) + "\n", "utf8");
+    } finally {
+      await temporaryFile.close();
+    }
+    await rename(temporaryPath, targetPath);
+    ownsTemporaryFile = false;
+  } finally {
+    if (ownsTemporaryFile) {
+      await rm(temporaryPath, { force: true });
+    }
+  }
 }
 
-// One queue for every file, not one per file. Serialising a little more than
-// strictly necessary costs nothing at sandbox scale, and it means a change that
-// later spans two files cannot interleave with another.
+// One process-local queue for every file, not one per file. Serialising a little
+// more than strictly necessary costs nothing at sandbox scale, and it means a
+// change that later spans two files cannot interleave with another in this process.
+// It does not lock writers in other services or Node processes.
 let writeQueue: Promise<unknown> = Promise.resolve();
 
 /**

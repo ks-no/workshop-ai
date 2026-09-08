@@ -28,7 +28,7 @@
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,6 +43,9 @@ const digdirUrl = `http://127.0.0.1:${digdirPort}`;
 
 const PROSESS = "redusert-foreldrebetaling-barnehage";
 const COUNT = 10;
+const ATOMIC_WRITE_COUNT = 12;
+const ATOMIC_READER_COUNT = 8;
+const ATOMIC_PAYLOAD_BYTES = 8 * 1024 * 1024;
 
 let passed = 0;
 const failures: string[] = [];
@@ -110,6 +113,7 @@ await requireFreePort(backendPort);
 await requireFreePort(digdirPort);
 
 const stateDir = await mkdtemp(path.join(tmpdir(), "concurrency-"));
+process.env.STATE_DIR = stateDir;
 const oektFile = path.join(stateDir, "prosessoekter.json");
 const soknadFile = path.join(stateDir, "soknader.json");
 const prosessFile = path.join(stateDir, "prosessdefinisjoner.json");
@@ -132,6 +136,109 @@ const services = [
 
 try {
   await Promise.all([waitForHealth(digdirUrl), waitForHealth(backendUrl)]);
+
+  /*
+   * A write must become visible in one step. The old writeFile(target) implementation
+   * truncated the live file before filling it, so readJson could parse an empty or
+   * partial document. Large repeated replacements keep readers in that window without
+   * relying on timing hooks in the implementation.
+   */
+  const {
+    readJson,
+    stateDir: jsonStoreStateDir,
+    updateJson
+  } = await import("../apps/shared/jsonstore.ts");
+  const usesTemporaryStateDir = jsonStoreStateDir === stateDir;
+  check(
+    "testforutsetning: jsonstore bruker testens midlertidige state-mappe",
+    usesTemporaryStateDir,
+    `${jsonStoreStateDir} er ikke ${stateDir}`
+  );
+  if (!usesTemporaryStateDir) {
+    throw new Error("Avbryter før skriving fordi jsonstore peker utenfor testmappen.");
+  }
+
+  const atomicFileName = "atomic-lesing.json";
+  const payload = "x".repeat(ATOMIC_PAYLOAD_BYTES);
+  await updateJson(atomicFileName, {}, (_current, replace) => {
+    replace({ generation: 0, payload });
+  });
+
+  let keepReading = true;
+  let readFailureCount = 0;
+  const readFailureExamples: string[] = [];
+  const readAttempts = Array.from({ length: ATOMIC_READER_COUNT }, () => 0);
+  const readers = Array.from({ length: ATOMIC_READER_COUNT }, async (_unused, readerIndex) => {
+    while (keepReading) {
+      readAttempts[readerIndex] += 1;
+      try {
+        const value = await readJson(atomicFileName);
+        if (
+          typeof value?.generation !== "number"
+          || typeof value?.payload !== "string"
+          || value.payload.length !== ATOMIC_PAYLOAD_BYTES
+        ) {
+          readFailureCount += 1;
+          if (readFailureExamples.length < 3) {
+            readFailureExamples.push(`ugyldig innhold etter generasjon ${String(value?.generation)}`);
+          }
+        }
+      } catch (error) {
+        readFailureCount += 1;
+        if (readFailureExamples.length < 3) {
+          readFailureExamples.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+    }
+  });
+
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  try {
+    for (let generation = 1; generation <= ATOMIC_WRITE_COUNT; generation += 1) {
+      await updateJson(atomicFileName, {}, (_current, replace) => {
+        replace({ generation, payload });
+      });
+    }
+  } finally {
+    keepReading = false;
+  }
+  await Promise.all(readers);
+
+  check(
+    "testforutsetning: hver leser forsøkte minst én lesing",
+    readAttempts.every((count) => count > 0),
+    readAttempts.join(",")
+  );
+  check(
+    "regresjon: samtidige lesere så bare komplette JSON-dokumenter",
+    readFailureCount === 0,
+    `${readFailureCount} feil: ${readFailureExamples.join("; ")}`
+  );
+
+  /*
+   * These checks cover the atomic writer's failure path. They support the
+   * regression above, but do not reproduce the old defect: a direct writer had no
+   * temporary file to clean up.
+   */
+  const blockedFileName = "atomic-blokkert.json";
+  const blockedPath = path.join(stateDir, blockedFileName);
+  let blockedWriteFailed = false;
+  try {
+    await updateJson(blockedFileName, {}, async (_current, replace) => {
+      await mkdir(blockedPath);
+      replace({ skalIkkeSkrives: true });
+    });
+  } catch {
+    blockedWriteFailed = true;
+  }
+  check("testforutsetning: den tvungne atomiske erstatningen feilet", blockedWriteFailed);
+  const temporaryFiles = (await readdir(stateDir)).filter((entry) => entry.endsWith(".tmp"));
+  check(
+    "feilhåndtering: en mislykket atomisk erstatning rydder den midlertidige filen",
+    temporaryFiles.length === 0,
+    temporaryFiles.join(",")
+  );
+  await rm(blockedPath, { recursive: true, force: true });
 
   /*
    * Ten different people, so every write lands on a different økt - same-person
