@@ -179,11 +179,15 @@ paths:
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
         `resultater` er samtykkegatet på tidspunktet for lesing, ikke for
-        hentingen. Er samtykket trukket eller utløpt siden steget kjørte,
-        mangler nøkkelen - både for DATA_FETCH-steget og for SJEKK-steget som
-        bærer den samme opplysningen i grunnlaget sitt. Et resultat som ikke
-        krever samtykke står. Det samme gjelder svaret fra `/svar`,
-        `/handling`, `/neste` og `/forrige`.
+        hentingen. Kildene lagres internt sammen med resultatet, så porten
+        påvirkes ikke av at prosessdefinisjonen senere endres. Er samtykket
+        trukket eller utløpt siden steget kjørte, mangler nøkkelen - både for
+        DATA_FETCH-steget og for SJEKK-steget som bærer den samme opplysningen
+        i grunnlaget sitt. Et resultat som er kjent ubeskyttet står. Et eldre
+        resultat uten en entydig, løsbar kilde holdes tilbake. SUMMARY og SUBMIT
+        svarer da 403 med beskjed om at prosessen må startes på nytt, mens et
+        trukket eller utløpt samtykke gir beskjed om å samtykke på nytt. Det
+        samme gjelder svaret fra `/svar`, `/handling`, `/neste` og `/forrige`.
 
         Hver lesing som faktisk serverer en samtykkegatet kilde gir en
         `DATA_LES` i revisjonsloggen, én rad per kilde per økt.
@@ -243,12 +247,35 @@ paths:
       responses:
         "200":
           description: Handling utført
+        "400":
+          description: >
+            Handlingen kan ikke utføres på det aktive steget, eller prosessøkten
+            er allerede avsluttet. Når flere samtidige SUBMIT-kall gjelder samme
+            økt, utføres det første. De senere kallene svarer stabilt med
+            `Prosessøkten er avsluttet og kan ikke fortsette.` uten nye
+            sideeffekter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          description: >
+            SUMMARY eller SUBMIT mangler et gyldig samtykkegrunnlag. Meldingen
+            skiller mellom trukket eller utløpt samtykke og eldre resultater der
+            kilden ikke kan fastslås.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
         "409":
           description: >
-            En annen steghandling pågår, prosessøkten ble endret av et annet kall,
-            eller samtykkesteget ble avvist av fiks-simulator fordi forespørselen
-            alt er besvart eller trukket. For samtykke er status og melding
-            tjenestens egne.
+            Navigasjon eller svar forsøkes mens en steghandling pågår, eller økten
+            ble endret av et annet kall.
+            Samtykkesteget: fiks-simulator avviste svaret, typisk fordi
+            forespørselen alt er besvart eller trukket. Status og melding er
+            samtykketjenestens egne, ikke omskrevet. DATA_FETCH og SJEKK svarer
+            også 409 hvis stegets API ikke finnes i ressurskatalogen, med beskjed
+            om å rette prosessdefinisjonen.
           content:
             application/json:
               schema:
