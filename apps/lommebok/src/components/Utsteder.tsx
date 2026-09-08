@@ -17,6 +17,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
   // Resultat etter utstedelse
+  const [issuerUrl, setIssuerUrl] = useState<string>("https://utsteder.eidas2sandkasse.dev");
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
   const [utstedtData, setUtstedtData] = useState<any | null>(null);
   const [kopiert, setKopiert] = useState<boolean>(false);
@@ -81,11 +82,12 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const handleUtsted = () => {
     if (!valgtPerson) return;
 
+    const baseIssuer = issuerUrl.replace(/\/$/, "");
     const transactionId = `tx-issue-${Date.now()}`;
     const preAuthCode = `code-${Math.random().toString(36).substring(2, 10)}`;
 
     const credentialOffer = {
-      credential_issuer: "http://localhost:9240",
+      credential_issuer: baseIssuer,
       credential_configuration_ids: [valgtBevis.credentialConfigurationId],
       grants: {
         "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
@@ -109,7 +111,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
     // Bygg API-kalltrace og curl for deltakere
     const requestBody = {
-      credential_issuer: "http://localhost:9240",
+      credential_issuer: baseIssuer,
       credential_configuration_id: valgtBevis.credentialConfigurationId,
       subject: {
         identifier: valgtPerson.syntetiskFodselsnummer
@@ -117,7 +119,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
       credential_data: eksempelData
     };
 
-    const curl = `curl -X POST "http://localhost:9240/api/v1/credential/issuance-transaction" \\
+    const curl = `curl -X POST "${baseIssuer}/api/v1/credential/issuance-transaction" \\
   -H "Content-Type: application/json" \\
   -H "X-API-KEY: KS-HACKATHON" \\
   -d '${JSON.stringify(requestBody, null, 2)}'`;
@@ -127,7 +129,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
       tittel: `Utsted: ${valgtBevis.tittel}`,
       tidspunkt: new Date().toLocaleTimeString("nb-NO"),
       metode: "POST",
-      url: "http://localhost:9240/api/v1/credential/issuance-transaction",
+      url: `${baseIssuer}/api/v1/credential/issuance-transaction`,
       headers: {
         "Content-Type": "application/json",
         "X-API-KEY": "KS-HACKATHON"
@@ -257,6 +259,26 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
             <pre className="json-preview">{JSON.stringify(eksempelData, null, 2)}</pre>
           </div>
         )}
+
+        <div className="form-row" style={{ marginTop: "1rem" }}>
+          <div className="form-group flex-1">
+            <label htmlFor="issuerUrlInput">Issuer Server URL (må være HTTPS for mobil-lommebok):</label>
+            <input
+              id="issuerUrlInput"
+              type="text"
+              className="text-input"
+              value={issuerUrl}
+              onChange={(e) => {
+                setIssuerUrl(e.target.value);
+                setUtstedtOfferUri(null);
+              }}
+              placeholder="https://utsteder.eidas2sandkasse.dev"
+            />
+            <small style={{ color: "#666", display: "block", marginTop: "0.25rem" }}>
+              Standard: <code>https://utsteder.eidas2sandkasse.dev</code> (EUDI-lommebøker på mobil krever gyldig HTTPS).
+            </small>
+          </div>
+        </div>
 
         <div className="action-row">
           <button
