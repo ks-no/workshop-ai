@@ -3,6 +3,7 @@
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 import {
+  isSidesporsmaal,
   normalizeBrukersvar,
   parseSvarPrefiks,
   skalSvareFramfor,
@@ -411,29 +412,6 @@ function valgtPerson(): string {
  * feilaktig ble lest som spørsmål koster én tur - mens et spørsmål som
  * ble lagret som svar er stille og ugjenkallelig.
  */
-
-const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "kan jeg", "må jeg", "ma jeg", "får jeg", "far jeg", "hvilke", "hvilken"];
-
-// Lukket liste. Brukes bare på QUESTION-steg, der terskelen må være høy.
-const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
-
-function isSidesporsmaal(text: string, steg: ProsessSteg | null | undefined): boolean {
-  const lower = normalizeBrukersvar(text);
-  if (!lower) return false;
-
-  // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
-  // er et svar med et spørreord midt inni.
-  const startsWithSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
-  const hasQuestionMark = text.includes("?");
-
-  // På QUESTION bærer teksten en verdi vi mister ved feilruting, så her
-  // kreves alle tre. Ellers kan innbygger uansett bare si ja eller nei.
-  if (steg?.type === "QUESTION") {
-    return startsWithSporreord && hasQuestionMark && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
-  }
-
-  return startsWithSporreord || hasQuestionMark;
-}
 
 /*
  * Flyt-blokken er ikke pynt. Uten den leste modellen stegnavnet «Send
@@ -1109,7 +1087,7 @@ async function sendMessage(
   const tvungetSvar = valg.hoppOverSporsmaalsruting || prefiks.harSvarPrefiks;
   const reellTekst = prefiks.tekst;
 
-  if (!tvungetSvar && isSidesporsmaal(text, steg)) {
+  if (!tvungetSvar && isSidesporsmaal(text, steg?.type)) {
     await answerSidesporsmaal(text);
     return;
   }

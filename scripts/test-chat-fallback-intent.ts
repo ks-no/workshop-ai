@@ -1,5 +1,6 @@
 import {
   erFortsettSignal,
+  isSidesporsmaal,
   normalizeBrukersvar,
   parseSvarPrefiks,
   skalSvareFramfor,
@@ -76,7 +77,13 @@ for (const tekst of ["gå videre nå", "ja, kjør på", "fortsett takk"]) {
   check(`fortsettelse er ikke samtykke: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
 }
 
-const prefetchedSvar = ["Janaflaten 10", "Nikkelveien", "Jeg bor ved Jokerveien 7"];
+const prefetchedSvar = [
+  "Janaflaten 10",
+  "Nikkelveien",
+  "Jeg bor ved Jokerveien 7",
+  "Jeg vil fortsette med Janaflaten 10",
+  "Jeg er klar over at adressen er Janaflaten 10"
+];
 for (const tekst of prefetchedSvar) {
   check(`svar med kort ja-token blir ukjent: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
   check(`svar med kort ja-token er ikke fortsettelse: «${tekst}»`, !erFortsettSignal(tekst));
@@ -93,7 +100,13 @@ const fortsettSvar = [
   "gå videre nå",
   "ja, kjør på",
   "ja da",
-  "fortsett takk"
+  "fortsett takk",
+  "jeg er klar",
+  "la oss fortsette",
+  "jeg vil gå videre",
+  "ok, la oss starte",
+  "neste steg takk",
+  "jeg er klar til å starte"
 ];
 for (const tekst of fortsettSvar) {
   check(`eksplisitt fortsettelse: «${tekst}»`, erFortsettSignal(tekst));
@@ -101,6 +114,13 @@ for (const tekst of fortsettSvar) {
 }
 
 check("INFO uten neste spørsmål lagrer ikke svar", !skalSvareFramfor("Janaflaten 10", false));
+check("spørsmålstegn alene er et sidespørsmål på INFO", isSidesporsmaal("?", "INFO"));
+check("spørsmålstegn alene lagres ikke som neste svar", !skalSvareFramfor("?", true));
+check("punktum alene er ikke et sidespørsmål", !isSidesporsmaal(".", "INFO"));
+check("spørsmål om samtykke på QUESTION rutes til sidespørsmål",
+  isSidesporsmaal("Hvorfor trenger dere samtykke?", "QUESTION"));
+check("spørsmål uten kjent tema på QUESTION beholdes som svar",
+  !isSidesporsmaal("Hvor skal jeg møte?", "QUESTION"));
 
 if (feil.length > 0) {
   console.error(`Chat-fallback: ${feil.length} av ${bestatt + feil.length} sjekker feilet:`);
