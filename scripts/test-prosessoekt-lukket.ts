@@ -675,6 +675,54 @@ try {
     sendt.status === 200 && sendt.body?.awaiting === null,
     `${sendt.status} ${String(sendt.body?.awaiting)}`);
 
+  // Two independent consent sources must keep the request being answered even
+  // though executing it invalidates a later CONSENT_REQUEST.
+  async function checkHandling(name: string, id: string, token: string, body: unknown = {}) {
+    const svar = await call(`/api/prosessoekter/${id}/handling`, token, { method: "POST", body });
+    check(name, svar.status === 200, JSON.stringify(svar));
+    return svar;
+  }
+  const toSamtykker = await call("/api/prosesser", tokenA, {
+    method: "POST",
+    body: {
+      id: "to-samtykker",
+      navn: "To samtykker",
+      steg: [
+        { id: "kontakt-samtykke", type: "CONSENT_REQUEST", formaal: "Kontakte søkeren", dataKilder: ["kontaktinfo"] },
+        { id: "kontakt", type: "DATA_FETCH", api: { method: "GET", url: "/api/personer/{personId}/kontaktinfo" } },
+        { id: "inntekt-samtykke", type: "CONSENT_REQUEST", formaal: "Vurdere inntekten", dataKilder: ["inntekt"] },
+        { id: "inntekt", type: "DATA_FETCH", api: { method: "GET", url: "/api/personer/{personId}/inntekt" } },
+        { id: "oppsummering", type: "SUMMARY" },
+        { id: "send-inn", type: "SUBMIT" }
+      ]
+    }
+  });
+  check("to-samtykker: testprosessen opprettes", toSamtykker.status === 201);
+  const dobbelOekt = await call("/api/prosessoekter", tokenA, {
+    method: "POST", body: { personId: "person-001", prosessId: "to-samtykker" }
+  });
+  const dobbelId = dobbelOekt.body?.oektsId;
+  for (const [samtykkeSteg, dataSteg] of [["kontakt-samtykke", "kontakt"], ["inntekt-samtykke", "inntekt"]]) {
+    const foresporsel = await checkHandling(`to-samtykker: ${samtykkeSteg} opprettes`, dobbelId, tokenA, {
+      handling: "opprett-samtykke"
+    });
+    check(`to-samtykker: ${samtykkeSteg} har aktiv forespørsel`,
+      Boolean(foresporsel.body?.oekt?.aktivtSamtykkeId));
+    await checkHandling(`to-samtykker: ${samtykkeSteg} besvares`, dobbelId, tokenA, {
+      handling: "samtykkesvar", status: "SAMTYKKET"
+    });
+    await checkNeste(`to-samtykker: ${samtykkeSteg}`, dobbelId, tokenA, dataSteg);
+    await checkHandling(`to-samtykker: ${dataSteg} hentes`, dobbelId, tokenA);
+    await checkNeste(`to-samtykker: ${dataSteg}`, dobbelId, tokenA,
+      dataSteg === "kontakt" ? "inntekt-samtykke" : "oppsummering");
+  }
+  const dobbelOppsummering = await checkHandling("to-samtykker: SUMMARY", dobbelId, tokenA);
+  check("to-samtykker: begge datakilder beholdes i oppsummeringsgrunnlaget",
+    ["kontakt", "inntekt"].every((id) => id in (dobbelOppsummering.body?.oekt?.resultater || {})));
+  await checkNeste("to-samtykker: SUMMARY", dobbelId, tokenA, "send-inn");
+  const dobbelSendt = await checkHandling("to-samtykker: SUBMIT", dobbelId, tokenA);
+  check("to-samtykker: økten fullføres", dobbelSendt.body?.oekt?.status === "FULLFORT");
+
   // §6: one 404 message, not five. Every økt route answers an unknown id with
   // the same status and the same feil - the drift the wrapper exists to end.
   const ukjent = "oekt-0000000000000-finnes";
