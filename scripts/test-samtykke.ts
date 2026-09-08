@@ -177,6 +177,12 @@ const expiredRow = {
   opprettet: "2026-08-10T10:00:00.000Z",
   utloper: iTida(-1)
 };
+const deniedRow = {
+  ...gyldigRad,
+  samtykkeId: "samtykke-nektet",
+  status: "IKKE_SAMTYKKET",
+  opprettet: "2026-08-11T10:00:00.000Z"
+};
 
 check(
   "et gyldig samtykke hjemler lesning",
@@ -194,10 +200,19 @@ check(
   hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", undefined, TEST_NOW)
     ?.samtykkeId === "samtykke-gyldig"
 );
-// An expired consent must not win by being asked for by id either.
 check(
-  "et utløpt samtykke velges ikke selv om økten foretrekker det",
+  "et foretrukket utløpt samtykke faller ikke tilbake til et eldre samtykke",
   hasGyldigSamtykke({ samtykker: [gyldigRad, expiredRow] }, "person-001", "inntekt", "samtykke-utloept", TEST_NOW)
+    === null
+);
+check(
+  "et foretrukket avslag faller ikke tilbake til et eldre samtykke",
+  hasGyldigSamtykke({ samtykker: [gyldigRad, deniedRow] }, "person-001", "inntekt", "samtykke-nektet", TEST_NOW)
+    === null
+);
+check(
+  "et foretrukket gyldig samtykke brukes selv om en nyere forespørsel er avslått",
+  hasGyldigSamtykke({ samtykker: [gyldigRad, deniedRow] }, "person-001", "inntekt", "samtykke-gyldig", TEST_NOW)
     ?.samtykkeId === "samtykke-gyldig"
 );
 check(

@@ -484,10 +484,35 @@ try {
   check("§2 ny samtykkeforespørsel opprettes", nyttSamtykkeB.status === 200, String(nyttSamtykkeB.status));
   const nyttSamtykkesvarB = await call(`/api/prosessoekter/${idB}/handling`, tokenB, {
     method: "POST",
+    body: { handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }
+  });
+  check("§2 nytt avslag på samtykke registreres",
+    nyttSamtykkesvarB.status === 200, String(nyttSamtykkesvarB.status));
+  await checkNeste("§2 nytt CONSENT_REQUEST", idB, tokenB, "hent-kontaktinfo");
+  const nektetKontaktinfo = await call(`/api/prosessoekter/${idB}/handling`, tokenB, { method: "POST", body: {} });
+  check("§2 ny eksplisitt nektelse blokkerer gammelt samtykke",
+    nektetKontaktinfo.status === 403, String(nektetKontaktinfo.status));
+  const etterNektetKontaktinfo = await call(`/api/prosessoekter/${idB}`, tokenB);
+  check("§2 nektet DATA_FETCH lagrer ikke resultat",
+    !("hent-kontaktinfo" in (etterNektetKontaktinfo.body?.resultater || {})),
+    JSON.stringify(Object.keys(etterNektetKontaktinfo.body?.resultater || {})));
+
+  const tilbakeTilSamtykke = await call(`/api/prosessoekter/${idB}/forrige`, tokenB, { method: "POST" });
+  check("§2 kan gå tilbake og gi et nytt samtykke",
+    tilbakeTilSamtykke.body?.aktivtSteg?.id === "forklar-data",
+    String(tilbakeTilSamtykke.body?.aktivtSteg?.id));
+  const tredjeSamtykkeB = await call(`/api/prosessoekter/${idB}/handling`, tokenB, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  check("§2 tredje samtykkeforespørsel opprettes", tredjeSamtykkeB.status === 200, String(tredjeSamtykkeB.status));
+  const tredjeSamtykkesvarB = await call(`/api/prosessoekter/${idB}/handling`, tokenB, {
+    method: "POST",
     body: { handling: "samtykkesvar", status: "SAMTYKKET" }
   });
-  check("§2 nytt samtykke registreres", nyttSamtykkesvarB.status === 200, String(nyttSamtykkesvarB.status));
-  await checkNeste("§2 nytt CONSENT_REQUEST", idB, tokenB, "hent-kontaktinfo");
+  check("§2 nytt aktivt samtykke kan gis",
+    tredjeSamtykkesvarB.status === 200, String(tredjeSamtykkesvarB.status));
+  await checkNeste("§2 tredje CONSENT_REQUEST", idB, tokenB, "hent-kontaktinfo");
   const nyKontaktinfo = await call(`/api/prosessoekter/${idB}/handling`, tokenB, { method: "POST", body: {} });
   check("§2 DATA_FETCH kjøres på nytt", nyKontaktinfo.status === 200, String(nyKontaktinfo.status));
   await checkNeste("§2 ny DATA_FETCH", idB, tokenB, "sjekk-tilbud");
