@@ -150,12 +150,6 @@ async function run() {
     // Deliberately no assertion on a specific property count: the summary reports
     // whatever data/matrikkel.json holds, and a count phrased off one seed state
     // ("mer enn 20 boliger") pins the data, not the behaviour.
-    //
-    // KNOWN GAP, deliberately not asserted here: the summary reports the register's
-    // count and drops the citizen's own answer to boliger-bekreft entirely. That
-    // step exists because "Matrikkelen kan være ufullstendig", so ignoring the
-    // answer defeats its purpose. It is a grounding problem in the SUMMARY step, not
-    // a data problem, and it needs its own fix.
     const oppsummeringstekst = a4.replies.join(" ").toLowerCase();
     assert(oppsummeringstekst.includes("storgata"), "Expected summary to name the street");
     assert(
@@ -196,7 +190,6 @@ run().catch((error) => {
   console.error("Natural-language test failed:", feilmelding(error));
   process.exit(1);
 });
-
 
 
 
