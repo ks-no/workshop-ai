@@ -24,6 +24,7 @@
     "build": "echo \"Ingen build kreves - Node type-stripper .ts ved innlasting\"",
     "test": "node scripts/valider-data.ts",
     "test:kontrakt": "node scripts/kontrakt-smoke.ts",
+    "test:chat-intent": "node scripts/test-chat-fallback-intent.ts",
     "test:sperrer": "node scripts/test-sporsmaalsperrer.ts",
     "test:skjerming": "node scripts/test-skjerming.ts",
     "test:vilkaar": "node scripts/test-vilkaar.ts",
