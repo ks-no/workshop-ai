@@ -93,9 +93,13 @@ export function buildTestpersondok(
   linjer.push(`| Med registrert eiendom | ${personer.filter((p: any) => eierPersonIder.has(p.personId)).length} |`);
   linjer.push("");
   linjer.push(
-    "Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato - samme " +
-    "referansedato som reglene bruker, så en testperson gir samme utfall uansett " +
-    "når demoen kjøres."
+    `Aldrene er regnet ved \`satser.gjelderFra\` (${referansedato}), ikke ved dagens dato. ` +
+    "Samme fryste dato brukes når reglene vurderer gyldigheten til legeerklæringer " +
+    "og alderen på politiattester. Et dokument som er utløpt på workshopdagen " +
+    "8. september 2026 kan derfor fortsatt godtas i demoen. Dette er en " +
+    "testforenkling, ikke en vurdering av gyldigheten i dag. Samtykker og token " +
+    "utløper derimot etter den løpende klokken. Se " +
+    "[referansedatoen](syntetiske-data.md#fryst-referansedato)."
   );
   linjer.push("");
   linjer.push("### Personstatus");

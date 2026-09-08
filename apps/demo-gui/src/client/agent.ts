@@ -19,6 +19,7 @@ type AgentSvar = {
   grunnlag?: Grunnlag;
   awaiting?: string | null;
   selectedProcess?: { navn?: string };
+  oektsId?: string | null;
   feil?: string;
   detalj?: string;
 };
@@ -46,21 +47,51 @@ async function agentReq(
     ...options
   });
   // Ukontrollert JSON fra tråden; AgentSvar navngir formen vi regner med.
-  const data = (await res.json()) as AgentSvar;
+  const data = (await res.json()) as AgentSvar | null;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Agenten svarte uten en gyldig sesjon.");
+  }
   if (!res.ok) {
     throw new Error(data.feil || data.detalj || `Feil ${res.status}`);
+  }
+  if (typeof data.sessionId !== "string"
+    || (path !== "/agent/sessions" && !(data.awaiting === null || typeof data.awaiting === "string"))
+    || (path !== "/agent/sessions" && !Array.isArray(data.replies))
+    || (path === "/agent/sessions" && typeof data.message !== "string")
+    || (data.replies !== undefined
+      && (!Array.isArray(data.replies) || data.replies.some((reply) => typeof reply !== "string")))) {
+    throw new Error("Agenten svarte uten en gyldig sesjon.");
   }
   return data;
 }
 
-function updateSessionInfo(data: AgentSvar | null): void {
+function updateSessionInfo(data: AgentSvar | null, status?: string): void {
   if (!data || !sessionId) {
     sessionInfoEl.textContent = "Ingen aktiv agent-sesjon.";
     return;
   }
   const proc = data.selectedProcess?.navn || "–";
-  const state = data.awaiting || "fullført";
-  sessionInfoEl.textContent = `Sesjon: ${sessionId} | Prosess: ${proc} | Venter: ${state}`;
+  const dialogueEnded = data.awaiting === "process_end";
+  const state = dialogueEnded ? "dialog avsluttet uten innsending" : data.awaiting || status || "ukjent status";
+  const label = dialogueEnded || data.awaiting === null ? "Status" : "Venter";
+  sessionInfoEl.textContent = `Sesjon: ${sessionId} | Prosess: ${proc} | ${label}: ${state}`;
+}
+
+async function readTerminalStatus(data: AgentSvar): Promise<string | undefined> {
+  if (data.awaiting !== null) return;
+  if (!data.oektsId) return "ukjent status";
+  try {
+    const res = await fetch(`${backendBase}/api/prosessoekter/${encodeURIComponent(data.oektsId)}`, { headers: withToken() });
+    const oekt = (await res.json()) as { status?: string } | null;
+    if (!res.ok) throw new Error(`Feil ${res.status}`);
+    if (oekt?.status === "FULLFORT") return "fullført";
+    if (oekt?.status === "AVVIST") return "avvist";
+    if (oekt?.status === "AKTIV") return "pågår";
+    throw new Error("Backend svarte uten en gyldig prosesstatus.");
+  } catch (error) {
+    addMsg("error", `Kunne ikke hente prosesstatus: ${feilmelding(error)}`);
+    return "ukjent status";
+  }
 }
 
 // ── init ─────────────────────────────────────────────────────────────────
@@ -90,7 +121,7 @@ async function startSession(): Promise<void> {
     removeTyping();
 
     sessionId = created.sessionId ?? null;
-    updateSessionInfo(created);
+    updateSessionInfo(created, "velg prosess");
     addMsg("system", `Sesjon startet for ${personEl.options[personEl.selectedIndex]?.text || personEl.value}`);
     addMsg("assistant", created.message ?? "");
   } catch (error) {
@@ -123,7 +154,8 @@ async function sendMessage(): Promise<void> {
     });
 
     removeTyping();
-    updateSessionInfo(data);
+    const status = await readTerminalStatus(data);
+    updateSessionInfo(data, status);
 
     for (const reply of data.replies || []) {
       addMsg("assistant", reply);
@@ -133,8 +165,14 @@ async function sendMessage(): Promise<void> {
       addGrunnlagsfot(data.grunnlag);
     }
 
-    if (!data.awaiting) {
+    if (status === "fullført") {
       addMsg("system", "Prosessen er fullført.");
+    } else if (status === "avvist") {
+      addMsg("system", "Søknaden er avvist. Du kan spørre om avslaget.");
+    } else if (data.awaiting === "process_end") {
+      addMsg("system", "Dialogen er avsluttet uten innsending. Du kan starte en ny sesjon.");
+    } else if (data.awaiting === null) {
+      addMsg("system", "Prosessen er ikke bekreftet fullført.");
     }
   } catch (error) {
     removeTyping();

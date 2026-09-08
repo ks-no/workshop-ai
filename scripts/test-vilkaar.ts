@@ -39,6 +39,9 @@ import type { Legeerklaering } from "../apps/shared/legeerklaering.ts";
 import { maanederEtter, norskKalenderaar } from "../apps/shared/alder.ts";
 import { byggAttestbevis } from "../apps/shared/politiattest.ts";
 import type { Politiattest } from "../apps/shared/politiattest.ts";
+import { sisteInntektsaar } from "../apps/shared/inntekt.ts";
+import type { Inntekt } from "../apps/shared/inntekt.ts";
+import { validateHusstandsgrunnlag } from "./inntektsgrunnlag.ts";
 
 let bestatt = 0;
 const feil: string[] = [];
@@ -325,12 +328,12 @@ function erklaeringMed(overstyr: Partial<Legeerklaering> = {}): Legeerklaering {
   };
 }
 
-function vurderTt(erklaering: Legeerklaering | null, person: Record<string, any> = {}) {
+function vurderTt(erklaering: Legeerklaering | null, person: Record<string, any> = {}, referansedato = GJELDER_FRA) {
   return evaluateVilkaar("TRANSPORTBEHOV", {
     tilstand: medHusstand(tilstandMed({ person })) as any,
     personId: "p-voksen",
     ordning: ORDNING_TT as any,
-    satser,
+    satser: { ...satser, gjelderFra: referansedato },
     grunnlag: null,
     legeerklaering: erklaering,
     politiattest: null,
@@ -340,6 +343,30 @@ function vurderTt(erklaering: Legeerklaering | null, person: Record<string, any>
 }
 
 check("TT-kort innvilges med gyldig erklæring", vurderTt(erklaeringMed()).godkjent === true);
+check("TT-kort krever dokumentert fødselsdato",
+  vurderTt(erklaeringMed(), { foedselsdato: undefined }).grunnlag?.avslagsgrunn === "mangler_foedselsdato");
+const kanReiseKollektivt = vurderTt(erklaeringMed({ kanNytteKollektiv: true }));
+check("TT-kort innvilges ikke når legen sier at søkeren kan reise kollektivt",
+  kanReiseKollektivt.godkjent === false &&
+  kanReiseKollektivt.grunnlag?.avslagsgrunn === "kollektivbehov_ikke_dokumentert");
+check("TT-kort forklarer at transportbehovet må avklares",
+  kanReiseKollektivt.melding.includes("Transportbehovet må avklares"));
+check("manglende svar om kollektivtransport blir ikke automatisk et nei",
+  vurderTt(erklaeringMed({ kanNytteKollektiv: undefined })).godkjent === false);
+check("visusgrensen beholder prioritet når søkeren også kan reise kollektivt",
+  vurderTt(erklaeringMed({
+    kanNytteKollektiv: true,
+    funksjonsnedsetting: "blind-eller-sterkt-svaksynt",
+    funn: { visus: 0.5, mmsScore: null, fev1Prosent: null }
+  })).grunnlag?.avslagsgrunn === "visus_over_grensen");
+const utloeptFoerWorkshop = erklaeringMed({ utstedt: "2026-02-16", gyldigTil: "2026-08-16" });
+check("erklæring som utløper før workshopdagen godtas ved den fryste datoen",
+  vurderTt(utloeptFoerWorkshop).godkjent === true);
+check("samme erklæring ville vært utløpt ved workshopdatoen",
+  vurderTt(utloeptFoerWorkshop, {}, "2026-09-08").grunnlag?.avslagsgrunn === "utloept_erklaering");
+check("aldersgrensen vurderes også ved den fryste datoen",
+  vurderTt(erklaeringMed(), { foedselsdato: "2016-08-15" }).grunnlag?.avslagsgrunn === "for_ung" &&
+  vurderTt(erklaeringMed(), { foedselsdato: "2016-08-15" }, "2026-09-08").godkjent === true);
 check(
   "TT-kort avslås når søkeren er under aldersgrensen",
   vurderTt(erklaeringMed(), { foedselsdato: "2020-01-10" }).godkjent === false
@@ -493,12 +520,12 @@ function attestMed(overstyr: Partial<Politiattest> = {}): Politiattest {
 // hvert utfall og bygges én gang.
 const VANDELSTILSTAND = medHusstand(tilstandMed()) as any;
 
-function vurderVandel(attest: Politiattest | null, ordning: any = ORDNING_VANDEL_BARNEHAGE) {
+function vurderVandel(attest: Politiattest | null, ordning: any = ORDNING_VANDEL_BARNEHAGE, referansedato = GJELDER_FRA) {
   return evaluateVilkaar("VANDELSKONTROLL", {
     tilstand: VANDELSTILSTAND,
     personId: "p-voksen",
     ordning: ordning as any,
-    satser,
+    satser: { ...satser, gjelderFra: referansedato },
     grunnlag: null,
     legeerklaering: null,
     politiattest: attest,
@@ -511,6 +538,12 @@ function vurderVandel(attest: Politiattest | null, ordning: any = ORDNING_VANDEL
 // SLIPPER_GJENNOM, så de to kan ikke gå fra hverandre. Tabellen under er stedet
 // den koblingen sjekkes, framfor ved hvert utfall.
 const utenMerknad = vurderVandel(attestMed());
+const attestFoerWorkshop = attestMed({ utstedt: "2026-05-16" });
+check("politiattest som er for gammel på workshopdagen godtas ved den fryste datoen",
+  vurderVandel(attestFoerWorkshop).godkjent === true);
+check("samme politiattest ville vært for gammel ved workshopdatoen",
+  vurderVandel(attestFoerWorkshop, ORDNING_VANDEL_BARNEHAGE, "2026-09-08")
+    .grunnlag?.vandelsutfall === "attest_for_gammel");
 check("attest uten merknad godkjennes", utenMerknad.grunnlag?.vandelsutfall === "godkjent");
 check("uten attest navngis grenen",
   vurderVandel(null).grunnlag?.vandelsutfall === "mangler_attest");
@@ -624,6 +657,48 @@ for (const svar of [utelukket, tilSkjonn]) {
     !somTekst.includes("seksuallovbrudd") && !somTekst.includes("straffeloven"));
 }
 check("grunnlaget teller anmerkningene", tilSkjonn.grunnlag?.antallAnmerkninger === 1);
+
+// --- Felles inntektsår, samme grunnlag i validator og Fiks -----------------
+function inntektsrad(identifikator: string, inntektsaar: number, beloep: number): Inntekt {
+  return {
+    identifikator, inntektsaar, stadie: "OPPGJOER",
+    poster: [
+      { tekniskNavn: "loenn", visningstekst: "Lønn", beloep, medregnes: true },
+      { tekniskNavn: "barnetrygd", visningstekst: "Barnetrygd", beloep: 12648, medregnes: false }
+    ]
+  };
+}
+const INNTEKTER = [
+  { ...inntektsrad("foresatt-1", 2025, 300000), stadie: "UTKAST" },
+  inntektsrad("foresatt-2", 2025, 200000)
+];
+const IDENTER = ["foresatt-1", "foresatt-2"];
+check("utkast og oppgjør for samme år summeres uten barnetrygd",
+  validateHusstandsgrunnlag(INNTEKTER, IDENTER, "h-test") === 500000);
+check("historiske rader endrer ikke det nyeste årsgrunnlaget",
+  validateHusstandsgrunnlag([...INNTEKTER, inntektsrad("foresatt-1", 2024, 900000)], IDENTER, "h-test") === 500000);
+check("året velges bare fra de foresatte i den aktuelle husstanden",
+  sisteInntektsaar([...INNTEKTER, inntektsrad("en-annen", 2026, 900000)], IDENTER) === 2025);
+for (const [navn, rader] of [
+  ["blandede nyeste inntektsår", [{ ...INNTEKTER[0], inntektsaar: 2026 }, INNTEKTER[1]]],
+  ["blandede år selv om begge også har et eldre felles år", [...INNTEKTER, inntektsrad("foresatt-1", 2026, 900000)]],
+  ["en foresatt helt uten inntektsdata", [INNTEKTER[0]]]
+] as const) {
+  let melding = "";
+  try {
+    validateHusstandsgrunnlag([...rader], IDENTER, "h-test");
+  } catch (error) {
+    melding = feilmelding(error);
+  }
+  check(`validatoren feiler på ${navn}, ikke med en delsum`,
+    melding.includes("h-test: mangler inntektsopplysninger") && melding.includes("samme inntektsår"));
+}
+check("husstanden helt uten data gir null, ikke null kroner eller et avslag",
+  validateHusstandsgrunnlag([], IDENTER, "h-test") === null);
+check("et dokumentert nullgrunnlag er forskjellig fra manglende data",
+  validateHusstandsgrunnlag([inntektsrad("foresatt-1", 2025, 0)], ["foresatt-1"], "h-test") === 0);
+check("året uten data følger norsk nyttår",
+  sisteInntektsaar([], IDENTER, Date.parse("2025-12-31T23:00:00Z")) === 2025);
 
 // --- the import direction -------------------------------------------------
 //

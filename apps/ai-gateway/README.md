@@ -45,6 +45,13 @@ curl -s -X POST http://localhost:8082/ai/sporsmaal \
        \"satser\":$(curl -s http://localhost:8080/api/regler/satser)}}"
 ```
 
+**Malteksten for fartsdempende tiltak** testes med `pnpm test:oppsummering`, uten modell
+eller kjørende tjenester. Testen dekker både skjemasvar og fritekst: boligsvaret må
+være en kjent, fullstendig ja- eller nei-formulering, ellers står det som uavklart.
+Et innledende ja eller nei er ikke nok hvis resten av svaret er ukjent. Begrunnelse og ønsket
+tiltak bevares. `pnpm test:kontrakt` kontrollerer også oppsummeringen i det lagrede
+søknadsdokumentet.
+
 ## Sperrene på `/ai/sporsmaal`
 
 Dette er det eneste endepunktet der en innbygger skriver fritekst og får fritekst

@@ -125,6 +125,11 @@ export function invalidateStegOgSenere(
   const stegIndex = prosess.steg.findIndex((kandidat) => kandidat.id === steg.id);
   if (stegIndex < 0) return false;
 
+  const aktivtResultat = oekt.resultaterRaa[steg.id];
+  const svarerPaaAktivtSamtykke = steg.type === "CONSENT_REQUEST"
+    && typeof aktivtResultat === "object" && aktivtResultat !== null
+    && "samtykkeId" in aktivtResultat
+    && aktivtResultat.samtykkeId === oekt.aktivtSamtykkeId;
   let endret = false;
   for (const kandidat of prosess.steg.slice(stegIndex)) {
     if (hasOwn(oekt.resultaterRaa, kandidat.id)) {
@@ -139,7 +144,8 @@ export function invalidateStegOgSenere(
       endret = true;
     }
   }
-  if (senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
+  if (!svarerPaaAktivtSamtykke
+    && senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
     oekt.aktivtSamtykkeId = null;
     endret = true;
   }
@@ -240,17 +246,30 @@ function finnSamtykkekildeForSteg(
   return { status: "kjent", kilde };
 }
 
-// Eldre økter har ingen lagrede kilder for avledede steg. Så lenge definisjonen
-// fortsatt kjenner stegene, gir katalogen samme konservative kildeunion som før.
+// Eldre økter har ingen lagrede kilder for avledede steg. Hvert lagret resultat
+// må derfor enten ha kjent metadata eller fortsatt kunne knyttes entydig til et
+// steg. En fjernet produsent gjør hele det avledede resultatet uløselig.
 function legacyKilderForAvledetResultat(
   tilstand: State,
   oekt: Prosessoekt,
-  prosess: ProsessDefinisjon | null
+  prosess: ProsessDefinisjon | null,
+  avledetStegId: string
 ): Datakilde[] | null {
   if (!prosess) return null;
   const kilder = new Set<Datakilde>();
-  for (const steg of prosess?.steg || []) {
-    if (!Object.hasOwn(oekt.resultaterRaa, steg.id)) continue;
+  for (const stegId of Object.keys(oekt.resultaterRaa || {})) {
+    if (stegId === avledetStegId) continue;
+
+    const lagredeKilder = lagredeKilderForResultat(oekt, stegId);
+    if (lagredeKilder === null) return null;
+    if (lagredeKilder !== undefined) {
+      for (const kilde of lagredeKilder) kilder.add(kilde);
+      continue;
+    }
+
+    const stegtreff = prosess.steg.filter((kandidat) => kandidat.id === stegId);
+    if (stegtreff.length !== 1) return null;
+    const [steg] = stegtreff;
     if (steg.type === "SUMMARY" || steg.type === "SUBMIT") continue;
     const oppslag = finnSamtykkekildeForSteg(tilstand, oekt, steg, legacyKildekaller);
     if (oppslag.status === "ukjent") return null;
@@ -287,7 +306,7 @@ function kilderForResultat(
   if (stegtreff.length !== 1) return null;
   const [steg] = stegtreff;
   if (steg.type === "SUMMARY" || steg.type === "SUBMIT") {
-    return legacyKilderForAvledetResultat(tilstand, oekt, prosess);
+    return legacyKilderForAvledetResultat(tilstand, oekt, prosess, stegId);
   }
   const oppslag = finnSamtykkekildeForSteg(tilstand, oekt, steg, legacyKildekaller);
   if (oppslag.status === "ukjent") return null;

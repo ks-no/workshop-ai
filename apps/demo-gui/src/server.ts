@@ -36,6 +36,7 @@ const KLIENTFILER: Record<string, string> = {
   "dashboard.ts": KLIENTSKRIPT,
   "stegvis.ts": KLIENTSKRIPT,
   "chat.ts": KLIENTSKRIPT,
+  "fallback-intent.ts": KLIENTSKRIPT,
   "agent.ts": KLIENTSKRIPT,
   "utforsker.ts": KLIENTSKRIPT,
   "ds-eksempel.ts": KLIENTSKRIPT,

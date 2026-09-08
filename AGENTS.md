@@ -674,10 +674,11 @@ pnpm test:matrikkel-mock
 pnpm test:bergen-matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
-- CI (`.github/workflows/ci.yml`) runs `lint`, `test`, `test:sperrer`,
+- CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
+  `test:oppsummering`,
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
-  `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
+  `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:kodeverk`,
   `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
   does **not** run `test:eval` (needs a live model). `test:agent:dialog` starts its own

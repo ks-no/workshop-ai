@@ -11,6 +11,8 @@
 import type { Husstand, Krr, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
 import type { FolkeregisterPerson } from "../../shared/registerdata.ts";
 import type { Forsendelse } from "./forsendelse.ts";
+import type { Inntekt } from "../../shared/inntekt.ts";
+export type { Inntekt, Inntektspost } from "../../shared/inntekt.ts";
 // Same split as sandbox-backend, and the same two paths, because it is the same
 // module: data/ is seed and stays untouched, state/ holds everything written at
 // runtime and is gitignored. server.ts imports `updateJson` from there directly.
@@ -24,31 +26,12 @@ import { readJson } from "../../shared/jsonstore.ts";
  */
 /*
  * Datasettene denne tjenesten leser. Person, Husstand, Samtykke og Plass er
- * sandbox-backend sine - samme filer på disk, så samme typer. Inntekt, Oppgave
+ * delt med sandbox-backend - samme filer på disk, så samme typer. Oppgave
  * og Melding finnes bare her.
  *
  * readJson gir `any`, som er riktig for en generisk JSON-leser. Typene settes
  * her, der filnavnet er kjent, slik at kallstedene ikke arver den any-en.
  */
-export type Inntektspost = {
-  tekniskNavn: string;
-  visningstekst: string;
-  beloep: number;
-  kilde?: string;
-  medregnes?: boolean;
-  infotekst?: string;
-  referanse?: string;
-};
-
-export type Inntekt = {
-  personId: string;
-  identifikator: string;
-  inntektsaar: number;
-  stadie?: string;
-  skatteoppgjoersdato?: string;
-  poster: Inntektspost[];
-};
-
 export type Historikklinje = { tidspunkt: string; status: string };
 
 export type Oppgave = {
