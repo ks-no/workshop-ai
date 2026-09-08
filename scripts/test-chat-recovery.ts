@@ -425,6 +425,21 @@ for (const status of ["AVVIST", "FULLFORT", "AKTIV", "ukjent", "feil"]) {
   });
 }
 
+await test("Agentens process_end avslutter dialogen uten å påstå innsending", async () => {
+  const ui = await client("agent", (call) => call.path === "/agent/sessions"
+    ? json({ sessionId: "agent-test", message: "Velg prosess." })
+    : json({ sessionId: "agent-test", awaiting: "process_end", replies: ["Ingen flere steg."], oektsId: "oekt-test" }));
+  await ui.click("start");
+  await ui.send("Fortsett");
+  assert.ok(ui.element("sessionInfo").textContent.includes("Status: dialog avsluttet uten innsending"));
+  assert.ok(ui.messages.some((message) => message.text.includes("Du kan starte en ny sesjon.")));
+  assert.ok(!ui.messages.some((message) => message.text === "Prosessen er fullført."));
+  assert.equal(ui.calls.filter((call) => call.path.startsWith("/api/prosessoekter")).length, 0);
+  assert.equal(ui.element("start").disabled, false);
+  await ui.click("reset");
+  assert.equal(ui.element("sessionInfo").textContent, "Ingen aktiv agent-sesjon.");
+});
+
 for (const data of [null, {}, { sessionId: "agent-test", replies: [] }, { sessionId: "agent-test", awaiting: null, replies: [1] }]) {
   await test(`Ugyldig agentsvar: ${JSON.stringify(data)}`, async () => {
     const ui = await client("agent", (call) => call.path === "/agent/sessions"

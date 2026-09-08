@@ -71,8 +71,10 @@ function updateSessionInfo(data: AgentSvar | null, status?: string): void {
     return;
   }
   const proc = data.selectedProcess?.navn || "–";
-  const state = data.awaiting || status || "ukjent status";
-  sessionInfoEl.textContent = `Sesjon: ${sessionId} | Prosess: ${proc} | Venter: ${state}`;
+  const dialogueEnded = data.awaiting === "process_end";
+  const state = dialogueEnded ? "dialog avsluttet uten innsending" : data.awaiting || status || "ukjent status";
+  const label = dialogueEnded || data.awaiting === null ? "Status" : "Venter";
+  sessionInfoEl.textContent = `Sesjon: ${sessionId} | Prosess: ${proc} | ${label}: ${state}`;
 }
 
 async function readTerminalStatus(data: AgentSvar): Promise<string | undefined> {
@@ -167,6 +169,8 @@ async function sendMessage(): Promise<void> {
       addMsg("system", "Prosessen er fullført.");
     } else if (status === "avvist") {
       addMsg("system", "Søknaden er avvist. Du kan spørre om avslaget.");
+    } else if (data.awaiting === "process_end") {
+      addMsg("system", "Dialogen er avsluttet uten innsending. Du kan starte en ny sesjon.");
     } else if (data.awaiting === null) {
       addMsg("system", "Prosessen er ikke bekreftet fullført.");
     }
