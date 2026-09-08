@@ -154,6 +154,33 @@ function getSporingsId(url: URL) {
 
 // --- the økt contract, in one place ----------------------------------------
 
+/*
+ * Mutations of one økt run in arrival order, while different økter remain
+ * independent. The tail promises contain no handler work themselves, so they
+ * always resolve and one failed request cannot wedge the next one.
+ */
+const sessionTails = new Map<string, Promise<void>>();
+
+async function runForSession<T>(oektsId: string, fn: () => Promise<T>): Promise<T> {
+  const previous = sessionTails.get(oektsId) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => current);
+  sessionTails.set(oektsId, tail);
+
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (sessionTails.get(oektsId) === tail) {
+      sessionTails.delete(oektsId);
+    }
+  }
+}
+
 /**
  * Every route on one prosessoekt goes through here: lookup, 404, 409,
  * oppdatert-stamp and save have one owner, so one drift surface.
@@ -174,32 +201,44 @@ function getSporingsId(url: URL) {
 async function withSession(
   { response, parametere, tilstand, kaller }: Pick<Kontekst, "response" | "parametere" | "tilstand" | "kaller">,
   { lesing = false }: { lesing?: boolean },
-  fn: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<unknown> | unknown
+  fn: (session: Prosessoekt, prosess: ProsessDefinisjon, currentState: State) => Promise<unknown> | unknown
 ) {
-  const session = findProsessoekt(tilstand, parametere.oektsId);
-  if (!session) {
-    throw new HttpError("Fant ikke prosessøkt.", 404);
+  const execute = async (currentState: State) => {
+    const session = findProsessoekt(currentState, parametere.oektsId);
+    if (!session) {
+      throw new HttpError("Fant ikke prosessøkt.", 404);
+    }
+    if (!lesing && (session.status === "AVVIST" || session.status === "FULLFORT")) {
+      throw new HttpError("Prosessøkten er avsluttet og kan ikke fortsette.", 400);
+    }
+    // The prosessbygger can delete a published process while an økt is mid-flow,
+    // and then the økt points at nothing. 409 says what actually happened.
+    const prosess = findProsess(currentState, session.prosessId);
+    if (!prosess) {
+      throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
+    }
+    const resultat = await fn(session, prosess, currentState);
+    if (!lesing) {
+      session.oppdatert = new Date().toISOString();
+      await lagreProsessoekt(session);
+    }
+    // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
+    // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
+    const { resultater, gjenlest } = resultaterNaa(currentState, session, prosess, kaller);
+    await loggGjenleste(currentState, session, gjenlest, kaller);
+    const oektSvar = buildProsessoektRespons(session, prosess, resultater);
+    jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
+  };
+
+  if (lesing) {
+    return execute(tilstand);
   }
-  if (!lesing && (session.status === "AVVIST" || session.status === "FULLFORT")) {
-    throw new HttpError("Prosessøkten er avsluttet og kan ikke fortsette.", 400);
-  }
-  // The prosessbygger can delete a published process while an økt is mid-flow,
-  // and then the økt points at nothing. 409 says what actually happened.
-  const prosess = findProsess(tilstand, session.prosessId);
-  if (!prosess) {
-    throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
-  }
-  const resultat = await fn(session, prosess);
-  if (!lesing) {
-    session.oppdatert = new Date().toISOString();
-    await lagreProsessoekt(session);
-  }
-  // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
-  // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
-  const { resultater, gjenlest } = resultaterNaa(tilstand, session, prosess, kaller);
-  await loggGjenleste(tilstand, session, gjenlest, kaller);
-  const oektSvar = buildProsessoektRespons(session, prosess, resultater);
-  jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
+
+  return runForSession(parametere.oektsId, async () => {
+    // Every request loaded state before authorisation. Read it again only after
+    // this økt's previous mutation has saved, or the status check is still stale.
+    return execute(await readState());
+  });
 }
 
 /*
@@ -528,9 +567,9 @@ const ruter: Rute[] = [
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/handling",
     finnPersonId: eierAvOekt,
-    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess) => {
+    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess, currentState) => {
       const body = await readBodyOnce(kontekst.request);
-      return runStegHandling(kontekst.tilstand, session, prosess, body, kontekst.kaller);
+      return runStegHandling(currentState, session, prosess, body, kontekst.kaller);
     })
   },
   {

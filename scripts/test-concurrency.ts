@@ -19,8 +19,9 @@
  * apps/shared/jsonstore.ts. kontrakt-smoke.ts runs strictly sequentially, so
  * it can never see any of this.
  *
- * Backend and digdir-mock on their own ports against a fresh STATE_DIR, so this
- * runs alongside a docker stack without touching it. Needs no model.
+ * Backend, fiks-simulator, digdir-mock and a controlled AI stub run on their own
+ * ports against a fresh STATE_DIR, so this runs alongside a docker stack without
+ * touching it. Needs no model.
  *
  * Usage:
  *   node scripts/test-concurrency.ts
@@ -38,8 +39,12 @@ import { feilkode } from "../apps/shared/errors.ts";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.CONCURRENCY_BACKEND_PORT) || 18092;
 const digdirPort = Number(process.env.CONCURRENCY_DIGDIR_PORT) || 18093;
+const fiksPort = Number(process.env.CONCURRENCY_FIKS_PORT) || 18096;
+const aiPort = Number(process.env.CONCURRENCY_AI_PORT) || 18097;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
+const fiksUrl = `http://127.0.0.1:${fiksPort}`;
+const aiUrl = `http://127.0.0.1:${aiPort}`;
 
 const PROSESS = "redusert-foreldrebetaling-barnehage";
 const COUNT = 10;
@@ -106,22 +111,62 @@ async function call(routePath: string, token: string, options: Kallvalg = {}) {
   return { status: response.status, body };
 }
 
+async function readRows(filePath: string) {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8")) as any[];
+  } catch (error) {
+    if (feilkode(error) === "ENOENT") return [];
+    throw error;
+  }
+}
+
 await requireFreePort(backendPort);
 await requireFreePort(digdirPort);
+await requireFreePort(fiksPort);
+await requireFreePort(aiPort);
+
+let markSummaryStarted!: () => void;
+const summaryStarted = new Promise<void>((resolve) => {
+  markSummaryStarted = resolve;
+});
+let releaseSummary!: () => void;
+const summaryRelease = new Promise<void>((resolve) => {
+  releaseSummary = resolve;
+});
+const aiServer = createServer(async (request, response) => {
+  if (request.method === "GET" && request.url === "/helse") {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+  if (request.method === "POST" && request.url === "/ai/oppsummering") {
+    request.resume();
+    markSummaryStarted();
+    await summaryRelease;
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ tekst: "Kontrollert oppsummering." }));
+    return;
+  }
+  response.writeHead(404, { "Content-Type": "application/json" });
+  response.end(JSON.stringify({ feil: "Fant ikke endepunkt." }));
+});
+await new Promise<void>((resolve) => aiServer.listen(aiPort, "127.0.0.1", resolve));
 
 const stateDir = await mkdtemp(path.join(tmpdir(), "concurrency-"));
 const oektFile = path.join(stateDir, "prosessoekter.json");
 const soknadFile = path.join(stateDir, "soknader.json");
 const prosessFile = path.join(stateDir, "prosessdefinisjoner.json");
+const oppgaveFile = path.join(stateDir, "oppgaver.json");
+const forsendelseFile = path.join(stateDir, "forsendelser.json");
+const revisjonFile = path.join(stateDir, "revisjonslogg.json");
 const env = {
   STATE_DIR: stateDir,
   BACKEND_BASE_URL: backendUrl,
   DIGDIR_BASE_URL: digdirUrl,
   DIGDIR_ISSUER: digdirUrl,
-  // No fiks, no ai, no matrikkel: this test never advances past the INFO step, so
-  // nothing calls them. Unreachable addresses beat hanging ones.
-  FIKS_BASE_URL: "http://127.0.0.1:1",
-  AI_BASE_URL: "http://127.0.0.1:1",
+  FIKS_BASE_URL: fiksUrl,
+  AI_BASE_URL: aiUrl,
+  // Matrikkel is never called. An unreachable address beats a hanging one.
   MATRIKKEL_BASE_URL: "http://127.0.0.1:1"
 };
 
@@ -198,7 +243,43 @@ try {
   check("ingen økt byttet eier under kappløpet", wrongOwner.length === 0, String(wrongOwner.length));
 
   /*
-   * 4. soknader.json. This is what a SUBMIT step writes, and it had no queue at
+   * 4. A long model call holds only its own session boundary. If the boundary or
+   * the JSON write queue were global, the other session could not save /neste
+   * before the controlled model response is released.
+   */
+  const summaryId = ids[3];
+  for (let steg = 1; steg < 5; steg++) {
+    const flyttet = await call(`/api/prosessoekter/${summaryId}/neste`, tokens[3], { method: "POST" });
+    check(`modelløkten går til steg ${steg + 1}`, flyttet.status === 200, String(flyttet.status));
+  }
+  const summaryCall = call(
+    `/api/prosessoekter/${summaryId}/handling`,
+    tokens[3],
+    { method: "POST", body: {} }
+  );
+  await Promise.race([
+    summaryStarted,
+    new Promise<never>((unused, reject) =>
+      setTimeout(() => reject(new Error("SUMMARY nådde ikke den kontrollerte KI-tjenesten.")), 2000)
+    )
+  ]);
+
+  const unrelatedCall = call(`/api/prosessoekter/${ids[4]}/neste`, tokens[4], { method: "POST" });
+  const unrelatedBeforeRelease = await Promise.race([
+    unrelatedCall.then((svar) => ({ ferdig: true as const, svar })),
+    new Promise<{ ferdig: false }>((resolve) => setTimeout(() => resolve({ ferdig: false }), 1000))
+  ]);
+  check("en annen økt lagres mens SUMMARY venter på modellen",
+    unrelatedBeforeRelease.ferdig && unrelatedBeforeRelease.svar.status === 200,
+    unrelatedBeforeRelease.ferdig ? String(unrelatedBeforeRelease.svar.status) : "tidsavbrudd");
+
+  releaseSummary();
+  const summarySvar = await summaryCall;
+  check("SUMMARY fullføres etter at modellen slippes", summarySvar.status === 200, String(summarySvar.status));
+  await unrelatedCall;
+
+  /*
+   * 5. soknader.json. This is what a SUBMIT step writes, and it had no queue at
    * all - push onto the request's own array, then write the whole thing.
    *
    * POST /api/soknader rather than driving ten flows to their SUBMIT step: it is
@@ -224,7 +305,89 @@ try {
     `${soknadIds.filter((id: any) => !soknaderOnDisk.some((s: any) => s.soknadId === id)).length} forsvant`);
 
   /*
-   * 5. prosessdefinisjoner.json, created. Same missing queue, and this is the
+   * 6. Five SUBMIT calls against one økt must cross one boundary around the
+   * status check, downstream side effects and the FULLFORT transition. Exactly
+   * one call succeeds; the rest see the saved closed status.
+   */
+  services.push(start("fiks", "apps/fiks-simulator/src/server.ts", { ...env, PORT: String(fiksPort) }));
+  await waitForHealth(fiksUrl);
+
+  const submitIds = ids.slice(0, 3);
+  for (let steg = 1; steg < 6; steg++) {
+    const flyttet = await Promise.all(
+      submitIds.map((id: string, i: number) =>
+        call(`/api/prosessoekter/${id}/neste`, tokens[i], { method: "POST" })
+      )
+    );
+    check(`tre økter går samtidig til steg ${steg + 1}`,
+      flyttet.every((svar) => svar.status === 200),
+      flyttet.map((svar) => svar.status).join(","));
+  }
+
+  const sporingsId = created[0].body.sporingsId;
+  const samtidigeSubmit = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      call(`/api/prosessoekter/${submitIds[0]}/handling`, tokens[0], { method: "POST", body: {} })
+    )
+  );
+  const vellykkedeSubmit = samtidigeSubmit.filter((svar) => svar.status === 200);
+  const avvisteSubmit = samtidigeSubmit.filter((svar) => svar.status === 400);
+  check("nøyaktig ett av fem samtidige SUBMIT-kall gir 200",
+    vellykkedeSubmit.length === 1,
+    samtidigeSubmit.map((svar) => svar.status).join(","));
+  check("de fire senere SUBMIT-kallene gir den dokumenterte 400-feilen",
+    avvisteSubmit.length === 4 &&
+      avvisteSubmit.every((svar) => svar.body?.feil === "Prosessøkten er avsluttet og kan ikke fortsette."),
+    JSON.stringify(avvisteSubmit.map((svar) => svar.body)));
+
+  const submitSoknader = (await readRows(soknadFile)).filter((soknad) => soknad.sporingsId === sporingsId);
+  const submitSoknadIds = new Set(submitSoknader.map((soknad) => soknad.soknadId));
+  const submitOppgaver = (await readRows(oppgaveFile)).filter((oppgave) => oppgave.sporingsId === sporingsId);
+  const submitForsendelser = (await readRows(forsendelseFile))
+    .filter((forsendelse) => submitSoknadIds.has(forsendelse.eksternReferanse));
+  const alleRevisjoner = await readRows(revisjonFile);
+  const submitRevisjoner = alleRevisjoner.filter((rad) => rad.sporingsId === sporingsId);
+  check("fem samtidige SUBMIT-kall lagrer én søknad", submitSoknader.length === 1, String(submitSoknader.length));
+  check("fem samtidige SUBMIT-kall oppretter én Fiks-oppgave", submitOppgaver.length === 1, String(submitOppgaver.length));
+  check("fem samtidige SUBMIT-kall sender én forsendelse", submitForsendelser.length === 1, String(submitForsendelser.length));
+  for (const handling of ["SOKNAD_SENDT_INN", "OPPGAVE_OPPRETTET"]) {
+    const antall = submitRevisjoner.filter((rad) => rad.handling === handling).length;
+    check(`fem samtidige SUBMIT-kall gir én ${handling}`, antall === 1, String(antall));
+  }
+  const submitForsendelseIds = new Set(submitForsendelser.map((forsendelse) => forsendelse.id));
+  const senderevisjoner = alleRevisjoner.filter((rad) =>
+    rad.handling === "FORSENDELSE_SENDT" && submitForsendelseIds.has(rad.grunnlag?.id)
+  );
+  check("fem samtidige SUBMIT-kall gir én FORSENDELSE_SENDT", senderevisjoner.length === 1,
+    String(senderevisjoner.length));
+  const submitOekt = (await readRows(oektFile)).find((oekt) => oekt.oektsId === submitIds[0]);
+  check("SUBMIT-økten lagres som FULLFORT", submitOekt?.status === "FULLFORT", String(submitOekt?.status));
+
+  const senereSubmit = await call(
+    `/api/prosessoekter/${submitIds[0]}/handling`,
+    tokens[0],
+    { method: "POST", body: {} }
+  );
+  check("et senere SUBMIT-kall får samme stabile 400-feil",
+    senereSubmit.status === 400 &&
+      senereSubmit.body?.feil === "Prosessøkten er avsluttet og kan ikke fortsette.",
+    JSON.stringify(senereSubmit));
+
+  const ulikeSubmit = await Promise.all(
+    submitIds.slice(1).map((id: string, i: number) =>
+      call(`/api/prosessoekter/${id}/handling`, tokens[i + 1], { method: "POST", body: {} })
+    )
+  );
+  check("SUBMIT på to forskjellige økter kan lykkes samtidig",
+    ulikeSubmit.every((svar) => svar.status === 200),
+    ulikeSubmit.map((svar) => svar.status).join(","));
+  const ulikeSporingsIder = new Set(created.slice(1, 3).map((svar) => svar.body.sporingsId));
+  const ulikeSoknader = (await readRows(soknadFile))
+    .filter((soknad) => ulikeSporingsIder.has(soknad.sporingsId));
+  check("begge forskjellige økter lagrer hver sin søknad", ulikeSoknader.length === 2, String(ulikeSoknader.length));
+
+  /*
+   * 7. prosessdefinisjoner.json, created. Same missing queue, and this is the
    * file the prosessbygger saves to - the one a team edits live during the
    * workshop while someone else is demoing.
    *
@@ -261,7 +424,7 @@ try {
     JSON.stringify({ formatVersion: katalog.formatVersion, beskrivelse: katalog.beskrivelse }));
 
   /*
-   * 6. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
+   * 8. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
    * prosessbygger actually calls, and it sends the whole prosess - so a merge
    * onto a stale copy of the katalog undoes whatever the other save added.
    */
@@ -283,7 +446,11 @@ try {
     etterPut.prosesser.length === foerProsesser.length + COUNT,
     String(etterPut.prosesser.length));
 } finally {
+  releaseSummary();
   for (const service of services) service.kill("SIGTERM");
+  await new Promise<void>((resolve, reject) => {
+    aiServer.close((error) => error ? reject(error) : resolve());
+  });
   await rm(stateDir, { recursive: true, force: true });
 }
 

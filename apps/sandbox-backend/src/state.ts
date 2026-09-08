@@ -239,8 +239,9 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
  *
- * Two writes to the *same* økt still resolve last-writer-wins. That is one person
- * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
+ * The request boundary in routes.ts serialises mutations of the same økt before
+ * they reach this merge. Keeping the queue here short still lets a SUMMARY call
+ * wait on the model without blocking writes for unrelated sessions.
  */
 export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
   return updateJson("prosessoekter.json", [], (alle: { oektsId: string }[]) => {
