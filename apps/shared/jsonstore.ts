@@ -4,6 +4,11 @@
  *
  * The state-before-seed lookup is deliberate: it is what lets a team override a
  * seed file by dropping a copy in `state/` without editing the repo.
+ *
+ * Atomic replacement prevents concurrent readers from seeing a partial document.
+ * It is not crash durability: files and directories are not fsynced, and a process
+ * killed before cleanup may leave its temporary file. The queue is process-local,
+ * so writers in different processes can still lose each other's updates.
  */
 
 import { randomUUID } from "node:crypto";
@@ -73,9 +78,10 @@ async function writeJson(fileName: string, data: unknown) {
   }
 }
 
-// One queue for every file, not one per file. Serialising a little more than
-// strictly necessary costs nothing at sandbox scale, and it means a change that
-// later spans two files cannot interleave with another.
+// One process-local queue for every file, not one per file. Serialising a little
+// more than strictly necessary costs nothing at sandbox scale, and it means a
+// change that later spans two files cannot interleave with another in this process.
+// It does not lock writers in other services or Node processes.
 let writeQueue: Promise<unknown> = Promise.resolve();
 
 /**

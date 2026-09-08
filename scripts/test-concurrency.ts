@@ -113,6 +113,7 @@ await requireFreePort(backendPort);
 await requireFreePort(digdirPort);
 
 const stateDir = await mkdtemp(path.join(tmpdir(), "concurrency-"));
+process.env.STATE_DIR = stateDir;
 const oektFile = path.join(stateDir, "prosessoekter.json");
 const soknadFile = path.join(stateDir, "soknader.json");
 const prosessFile = path.join(stateDir, "prosessdefinisjoner.json");
@@ -142,8 +143,21 @@ try {
    * partial document. Large repeated replacements keep readers in that window without
    * relying on timing hooks in the implementation.
    */
-  process.env.STATE_DIR = stateDir;
-  const { readJson, updateJson } = await import("../apps/shared/jsonstore.ts");
+  const {
+    readJson,
+    stateDir: jsonStoreStateDir,
+    updateJson
+  } = await import("../apps/shared/jsonstore.ts");
+  const usesTemporaryStateDir = jsonStoreStateDir === stateDir;
+  check(
+    "testforutsetning: jsonstore bruker testens midlertidige state-mappe",
+    usesTemporaryStateDir,
+    `${jsonStoreStateDir} er ikke ${stateDir}`
+  );
+  if (!usesTemporaryStateDir) {
+    throw new Error("Avbryter før skriving fordi jsonstore peker utenfor testmappen.");
+  }
+
   const atomicFileName = "atomic-lesing.json";
   const payload = "x".repeat(ATOMIC_PAYLOAD_BYTES);
   await updateJson(atomicFileName, {}, (_current, replace) => {
@@ -151,14 +165,14 @@ try {
   });
 
   let keepReading = true;
-  let readCount = 0;
   let readFailureCount = 0;
   const readFailureExamples: string[] = [];
-  const readers = Array.from({ length: ATOMIC_READER_COUNT }, async () => {
+  const readAttempts = Array.from({ length: ATOMIC_READER_COUNT }, () => 0);
+  const readers = Array.from({ length: ATOMIC_READER_COUNT }, async (_unused, readerIndex) => {
     while (keepReading) {
+      readAttempts[readerIndex] += 1;
       try {
         const value = await readJson(atomicFileName);
-        readCount += 1;
         if (
           typeof value?.generation !== "number"
           || typeof value?.payload !== "string"
@@ -191,16 +205,21 @@ try {
   await Promise.all(readers);
 
   check(
-    "leserne var aktive mens store dokumenter ble skrevet",
-    readCount >= ATOMIC_READER_COUNT,
-    `${readCount} vellykkede lesinger`
+    "testforutsetning: hver leser forsøkte minst én lesing",
+    readAttempts.every((count) => count > 0),
+    readAttempts.join(",")
   );
   check(
-    "samtidige lesere så bare komplette JSON-dokumenter",
+    "regresjon: samtidige lesere så bare komplette JSON-dokumenter",
     readFailureCount === 0,
     `${readFailureCount} feil: ${readFailureExamples.join("; ")}`
   );
 
+  /*
+   * These checks cover the atomic writer's failure path. They support the
+   * regression above, but do not reproduce the old defect: a direct writer had no
+   * temporary file to clean up.
+   */
   const blockedFileName = "atomic-blokkert.json";
   const blockedPath = path.join(stateDir, blockedFileName);
   let blockedWriteFailed = false;
@@ -212,10 +231,10 @@ try {
   } catch {
     blockedWriteFailed = true;
   }
-  check("en mislykket atomisk erstatning gir feil", blockedWriteFailed);
+  check("testforutsetning: den tvungne atomiske erstatningen feilet", blockedWriteFailed);
   const temporaryFiles = (await readdir(stateDir)).filter((entry) => entry.endsWith(".tmp"));
   check(
-    "en mislykket atomisk erstatning rydder den midlertidige filen",
+    "feilhåndtering: en mislykket atomisk erstatning rydder den midlertidige filen",
     temporaryFiles.length === 0,
     temporaryFiles.join(",")
   );
