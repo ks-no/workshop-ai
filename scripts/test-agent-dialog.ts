@@ -18,11 +18,12 @@ const services = [
 const ports = Object.fromEntries(services.map(([name, , port]) =>
   [name, Number(process.env[`AGENT_DIALOG_${name.toUpperCase()}_PORT`] || port)]));
 const urls = Object.fromEntries(services.map(([name]) => [name, `http://127.0.0.1:${ports[name]}`]));
+const toolProbePort = Number(process.env.AGENT_DIALOG_TOOL_PROBE_PORT || 21209);
 const children: ChildProcess[] = [];
 let passed = 0;
 
 // Every port and directory belongs to this run; no existing stack or provider is used.
-for (const port of Object.values(ports)) {
+for (const port of [...Object.values(ports), toolProbePort]) {
   await new Promise<void>((resolve, reject) => {
     const probe = createServer();
     probe.once("error", reject);
@@ -41,6 +42,37 @@ const env = {
   ...Object.fromEntries(Object.entries(urls).map(([name, url]) => [`${name.toUpperCase()}_BASE_URL`, url]))
 };
 Object.assign(process.env, env);
+
+let addressProbe: { status: number; tool?: string } | null = null;
+const addressCalls: { name: string; arguments: { adresse: string } }[] = [];
+const toolProbe = createServer(async (request, response) => {
+  try {
+    let body = "";
+    for await (const chunk of request) body += chunk;
+    const call = JSON.parse(body);
+    response.setHeader("Content-Type", "application/json");
+    if (addressProbe && ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"].includes(call.name)) {
+      addressCalls.push(call);
+      const status = !addressProbe.tool || addressProbe.tool === call.name ? addressProbe.status : 200;
+      response.statusCode = status;
+      const feil = status === 409
+        ? `Adressen ${call.arguments.adresse} er ikke entydig. Oppgi postnummer eller matrikkelId.`
+        : status === 400 ? "Oppgi gatenavn og husnummer." : "Oppslaget feilet.";
+      response.end(JSON.stringify(status === 200
+        ? { ok: true, result: { adresse: call.arguments.adresse, gnr: 165, bnr: 3, eiere: ["Syntetisk eier"] } }
+        : { ok: false, feil }));
+      return;
+    }
+    const upstream = await fetch(`${urls.tools}/verktoy/invoke`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body
+    });
+    response.statusCode = upstream.status;
+    response.end(await upstream.text());
+  } catch {
+    response.statusCode = 502;
+    response.end(JSON.stringify({ ok: false, feil: "Testens verktøyproxy feilet." }));
+  }
+});
 
 async function json(base: string, route: string, body?: unknown): Promise<any> {
   const response = await fetch(`${base}${route}`, {
@@ -86,6 +118,10 @@ async function runScript(script: string) {
 }
 
 try {
+  await new Promise<void>((resolve, reject) => {
+    toolProbe.once("error", reject);
+    toolProbe.listen(toolProbePort, "127.0.0.1", () => resolve());
+  });
   const definition = JSON.parse(await readFile(path.join(root, "data/prosessdefinisjoner.json"), "utf8"));
   const custom = (id: string, steg: unknown[]) => ({
     id, navn: id, versjon: "1.0.0", redigering: { status: "publisert" }, steg
@@ -113,7 +149,10 @@ try {
   }
   for (const [name, app] of services) {
     const child = spawn(process.execPath, [`apps/${app}/src/server.ts`], {
-      cwd: root, env: { ...process.env, ...env, PORT: String(ports[name]) },
+      cwd: root, env: {
+        ...process.env, ...env, PORT: String(ports[name]),
+        ...(name === "agent" ? { TOOLS_BASE_URL: `http://127.0.0.1:${toolProbePort}` } : {})
+      },
       stdio: ["ignore", "pipe", "pipe"]
     });
     children.push(child);
@@ -137,6 +176,52 @@ try {
     const health = await json(urls.ai, "/helse");
     assert.equal(health.provider, "mock");
   });
+
+  for (const [message, address] of [
+    ["Hvem eier Storgata 5, 5003 Bergen?", "Storgata 5, 5003 Bergen"],
+    ["Hvem eier Storgata 5 9008 Tromsø?", "Storgata 5 9008 Tromsø"],
+    ["Finnes adressen Storgata 5, 5003?", "Storgata 5, 5003"],
+    ["Finnes Storgata 10 A, 5003 Bergen?", "Storgata 10 A, 5003 Bergen"],
+    ["Kan du sjekke Kong Oscars gate 5, 5017 Bergen i matrikkelen?", "Kong Oscars gate 5, 5017 Bergen"]
+  ]) {
+    await check(`adresse beholder presiseringen: ${address}`, async () => {
+      const session = await create();
+      await say(session, "stottekontakt-behov");
+      const before = await oekt(session);
+      addressCalls.length = 0;
+      addressProbe = { status: 200 };
+      try {
+        const reply = await say(session, message);
+        includes(reply, address);
+        const names = message.startsWith("Hvem eier")
+          ? ["matrikkel_hent_eiendom", "matrikkel_hent_eiere"] : ["matrikkel_hent_eiendom"];
+        assert.deepEqual(addressCalls, names.map((name) => ({ name, arguments: { adresse: address } })));
+        const after = await oekt(session);
+        assert.equal(after.stegIndex, before.stegIndex);
+        assert.deepEqual(after.svar, before.svar);
+        assert.equal(reply.awaiting, "question_fields");
+      } finally { addressProbe = null; }
+    });
+  }
+  for (const [status, tool, expected] of [
+    [400, "matrikkel_hent_eiendom", "Oppgi gatenavn og husnummer."],
+    [404, "matrikkel_hent_eiendom", "Jeg fant ikke adressen Storgata 5"],
+    [409, "matrikkel_hent_eiendom", "ikke entydig. Oppgi postnummer eller matrikkelId."],
+    [409, "matrikkel_hent_eiere", "ikke entydig. Oppgi postnummer eller matrikkelId."],
+    [502, "matrikkel_hent_eiendom", "Jeg kunne ikke slå opp adressen akkurat nå."]
+  ] as const) {
+    await check(`adressefeil forklares uten falskt fravær: ${status} ${tool}`, async () => {
+      const session = await create();
+      await say(session, "stottekontakt-behov");
+      addressProbe = { status, tool };
+      try {
+        const reply = await say(session, "Hvem eier Storgata 5?");
+        includes(reply, expected);
+        assert.equal(reply.awaiting, "question_fields");
+        assert.equal((await oekt(session)).svar.situasjon, undefined);
+      } finally { addressProbe = null; }
+    });
+  }
 
   for (const [message, expected] of [
     ["Jeg trenger TT-kort fordi jeg har 3 km til bussen", "tt-kort"],
@@ -305,5 +390,7 @@ try {
     child.once("exit", () => resolve());
     child.kill("SIGTERM");
   })));
+  toolProbe.closeAllConnections();
+  await new Promise<void>((resolve) => toolProbe.close(() => resolve()));
   await rm(stateDir, { recursive: true, force: true });
 }

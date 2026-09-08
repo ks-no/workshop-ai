@@ -629,16 +629,15 @@ function gateSearchText(input: unknown): string {
 }
 
 function extractPossibleAdresseMention(text: string): string | null {
-  const value = String(text || "").trim();
-  if (!value) return null;
-  const direkte = value.match(/\b([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)\b/iu);
-  if (direkte?.[1]) {
-    return direkte[1].replace(/\s+/g, " ").trim();
-  }
-
-  const lookup = extractLookupCandidate(value);
-  const medNummer = lookup.match(/([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
-  return medNummer?.[1]?.replace(/\s+/g, " ").trim() || null;
+  const value = String(text || "").trim()
+    .replace(/[?!.]+$/u, "")
+    .replace(/\s+i matrikkelen$/iu, "")
+    .replace(/^(?:hvem eier|kven eig|hvem er eier av|hva vet du om|finnes(?: det)?|er det|(?:kan du )?(?:finne|finn|sjekke|sjekk|slå opp|sla opp))\s+/iu, "")
+    .replace(/^(?:adressen|eiendommen)\s+/iu, "")
+    .trim();
+  // Locality distinguishes identical street/number pairs; never discard it.
+  const address = value.match(/^([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+(?:\s*[\p{L}])?(?:(?:,\s*|\s+)\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?)?)$/iu);
+  return address?.[1].replace(/\s+/g, " ").trim() || null;
 }
 
 function extractPossibleOrgnr(text: string): string | null {
@@ -836,8 +835,12 @@ async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string
     }
 
     return `Ja, ${eiendom.adresse} finnes i matrikkelen. Den har gnr ${eiendom.gnr} og bnr ${eiendom.bnr}.`;
-  } catch {
-    return `Jeg fant ikke adressen ${adresse} i matrikkelen.`;
+  } catch (error) {
+    if (error instanceof Verktoyfeil) {
+      if (error.status === 400 || error.status === 409) return error.message;
+      if (error.status === 404) return `Jeg fant ikke adressen ${adresse} i matrikkelen.`;
+    }
+    return "Jeg kunne ikke slå opp adressen akkurat nå. Prøv igjen om litt.";
   }
 }
 

@@ -289,6 +289,10 @@ components:
           type: string
         replies:
           type: array
+          description: >
+            Svar til innbyggeren. Adresseoppslag beholder oppgitt postnummer og
+            poststed. Ugyldige eller tvetydige oppslag forklares uten å flytte
+            prosessteget; en 409 fra verktøyet omtales ikke som en ukjent adresse.
           items:
             type: string
         awaiting:

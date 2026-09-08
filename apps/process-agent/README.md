@@ -44,6 +44,9 @@ Motorøkten forblir åpen: bare `SUBMIT` fullfører en søknad.
 
 Gjenkjente spørsmål om tjenesten og uttrykkelige registeroppslag setter dialogen på pause.
 Et vanlig svar som «hjelp med personlig hygiene» er ikke et søk etter en person.
+Ved adresseoppslag beholdes postnummer og poststed, for eksempel i «Hvem eier
+Storgata 5, 5003 Bergen?». Et tvetydig treff ber om presisering i stedet for å
+bli omtalt som en adresse som ikke finnes.
 
 ## Endepunkter
 
@@ -57,8 +60,10 @@ Et vanlig svar som «hjelp med personlig hygiene» er ikke et søk etter en pers
 `pnpm test:agent:dialog` starter egne tjenester med AI-mock og midlertidig tilstand
 under `state/`, og rydder opp etter seg. Testen trenger ikke Docker eller en modell,
 kjører i CI og dekker alle demoprosessene helt til innsending, inkludert retting.
-Standardportene er 21200 til 21208. De kan overstyres med
+Standardportene er 21200 til 21209. De kan overstyres med
 `AGENT_DIALOG_<TJENESTE>_PORT`, for eksempel `AGENT_DIALOG_AGENT_PORT`.
+`AGENT_DIALOG_TOOL_PROBE_PORT` styrer HTTP-proxyen som prøver adresseargumenter
+og feilsvar; de øvrige testkallene går videre til de ekte sandkassetjenestene.
 
 `pnpm test:agent` og `pnpm test:agent:nl` trenger kjørende tjenester. Sett
 `AGENT_BASE_URL`, `BACKEND_BASE_URL` og `DIGDIR_BASE_URL` hvis de bruker andre porter
