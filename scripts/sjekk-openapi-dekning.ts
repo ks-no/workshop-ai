@@ -720,6 +720,18 @@ for (const tjeneste of tjenester) {
 
   // 7. Kodeverk spesifikasjonen gjentar.
   const tekst = await readFile(path.join(repoRoot, tjeneste.spesifikasjon), "utf8");
+  if (tjeneste.navn === "tools-api") {
+    const response = skjemablokk(tekst, "InvokeToolResponse");
+    // All specialised object results also match the unrestricted object branch.
+    // oneOf therefore rejects successful responses; pin the overlapping union.
+    if (!response || !/^ {10}anyOf:\s*$/m.test(response)
+      || /^ {10}oneOf:\s*$/m.test(response)
+      || !response.includes('$ref: "#/components/schemas/MatrikkelEiendom"')
+      || !response.includes('$ref: "#/components/schemas/ListProcessesResult"')
+      || !/^ {14}additionalProperties: true$/m.test(response)) {
+      feil.push(`${tjeneste.spesifikasjon}: InvokeToolResponse.result må tillate overlappende objektsvar med anyOf.`);
+    }
+  }
   for (const kodeverk of tjeneste.kodeverk || []) {
     const dokumentert = readEnum(tekst, kodeverk.skjema);
     const ikode = [...(await kodeverk.verdier())];

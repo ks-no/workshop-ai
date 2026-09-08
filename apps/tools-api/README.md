@@ -42,6 +42,24 @@ det. Derfor feiler `pnpm test:docs` nå ethvert dokument som navngir minst ti av
 I `live`/`hybrid` brukes Geonorge også for eksakte adresseoppslag i `matrikkel_hent_eiendom`.
 `matrikkel_hent_eiere` kan da returnere tom eierliste med en forklarende `merknad`, siden den offentlige adressekilden ikke inneholder eierinformasjon.
 
+Adresseoppslag sammenligner gatenavn, husnummer og husbokstav nøyaktig, uten hensyn
+til store bokstaver eller ekstra mellomrom. `Bønesheien 1` er ikke `Bønesheien 10`,
+og `10A` er ikke `10B`. Postnummer og poststed kan legges til etter husnummeret.
+Manglende eller ugyldig adresse gir 400, ingen eksakt eiendom gir 404, og flere
+ulike eiendommer gir 409. `hybrid` faller ikke tilbake fra et tvetydig live-treff.
+Verken eiendom eller eiere returneres når adressen ikke stemmer.
+`Storgata 5` finnes både i Bergen og Tromsø i seeden; eksemplet under bruker
+postnummer for å velge Bergen.
+Adressetillegg som `Aardal` i `Aardal, Haugsbygda 98` behandles separat:
+også `Haugsbygda 98` finner eiendommen. Gatenavn, husnummer og husbokstav må
+fortsatt stemme, og oppgitt postnummer beholdes helt fram til adressekilden.
+Ved live-fallback fra mocken vurderes alle kandidatene, ikke ett forhåndsvalgt treff.
+
+`pnpm test:tools-matrikkel` starter sine egne tjenester og en lokal Geonorge-etterlikning.
+Testen trenger verken Compose, språkmodell eller eksternt nett. Sett
+`TOOLS_MATRIKKEL_TEST_PORT_BASE` hvis standardportene er opptatt.
+Den prøver også begge adresseformene for alle adressetillegg i den fulle seeden.
+
 ## Eksempel
 
 ```bash
@@ -89,8 +107,7 @@ curl -s -X POST http://localhost:8083/verktoy/invoke \
   -d '{
     "name": "matrikkel_hent_eiendom",
     "arguments": {
-      "adresse": "Storgata 5"
+      "adresse": "Storgata 5, 5003 Bergen"
     }
   }'
 ```
-

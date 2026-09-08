@@ -32,7 +32,13 @@ type Agentsteg = {
   type: string;
   tittel?: string;
   tekst?: string;
-  felter?: { id: string; label: string; type?: string }[];
+  felter?: {
+    id: string;
+    label: string;
+    type?: string;
+    obligatorisk?: boolean;
+    alternativer?: (string | { verdi: string; label: string })[];
+  }[];
   [felt: string]: unknown;
 };
 
@@ -145,12 +151,16 @@ type Agentsesjon = {
   pendingValidatedAnswer: unknown;
   pendingDeferredStepId: string | null;
   pendingGateSwitch: Record<string, unknown> | null;
+  pendingAdresseLookup: { adresse: string; wantsOwners: boolean } | null;
   deferredAnswers: Record<string, unknown>;
   guidedInterviewQueue: { key: string; question: string }[];
   guidedInterviewAnswers: Record<string, string>;
   guidedInterviewCurrentKey: string | null;
   guidedInterviewStepId: string | null;
   guidedInterviewSessionStepId: string | null;
+  questionFieldQueue: NonNullable<Agentsteg["felter"]>;
+  questionFieldAnswers: Record<string, unknown>;
+  questionFieldCurrent: NonNullable<Agentsteg["felter"]>[number] | null;
 };
 
 const sessions = new Map<string, Agentsesjon>();
@@ -264,34 +274,21 @@ function parseChoiceIndex(text: string, max: number): number | null {
 
   const ordinalMap: Record<string, number> = {
     forste: 1,
+    første: 1,
     andre: 2,
     tredje: 3,
     fjerde: 4,
-    femte: 5
+    femte: 5,
+    sjette: 6,
+    sjuende: 7,
+    syvende: 7
   };
 
-  if (/^\d+$/.test(value)) {
-    const parsed = Number.parseInt(value, 10);
-    return parsed >= 1 && parsed <= max ? parsed : null;
-  }
-
-  const tokens = value.split(/\s+/);
-  for (const token of tokens) {
-    if (/^\d+$/.test(token)) {
-      const parsed = Number.parseInt(token, 10);
-      if (parsed >= 1 && parsed <= max) {
-        return parsed;
-      }
-    }
-    if (ordinalMap[token] !== undefined) {
-      const parsed = ordinalMap[token];
-      if (parsed <= max) {
-        return parsed;
-      }
-    }
-  }
-
-  return null;
+  // A menu choice is a whole reply, not a number buried in the citizen's need.
+  const choice = value.match(/^(?:(?:jeg|eg) (?:velger|tar|vil ha) )?(?:(?:den|nummer|nr|alternativ|valg|prosess) )?(\d+|\p{L}+)$/u);
+  if (!choice) return null;
+  const parsed = ordinalMap[choice[1]] ?? Number(choice[1]);
+  return parsed >= 1 && parsed <= max ? parsed : null;
 }
 
 function listProcessesPrompt(processes: Prosessvalg[]): string {
@@ -350,6 +347,14 @@ function parseProcessChoice(text: string, processes: Prosessvalg[]): Prosessvalg
 
   const userTokens = tokenizeForProcessChoice(value);
   if (userTokens.length > 0) {
+    const candidates = processes.map((process) => ({
+      process, tokens: tokenizeForProcessChoice(`${process.navn || ""} ${process.id || ""}`)
+    }));
+    const distinctive = candidates.filter((candidate) => candidate.tokens.some((token) =>
+      token.length >= 5 && userTokens.includes(token)
+      && !candidates.some((other) => other !== candidate && other.tokens.includes(token))
+    ));
+    if (distinctive.length === 1) return distinctive[0].process;
     let bestMatch = null;
     let bestScore = 0;
 
@@ -426,7 +431,32 @@ function normalizeQuestionAnswer(stepId: string | null, text: string): Svartolkn
 
   if (stepId === "boliger-bekreft") {
     const lower = normalize(value);
-    const number = parseNumberFromText(value);
+    const bound = lower.match(/\b(mer enn|flere enn|over|minst|mindre enn|faerre enn|færre enn|under|maks|maksimalt|høyst|hoyst|hoyest)\s*(\d+)\b/);
+    let number = parseNumberFromText(value);
+    if (bound) {
+      const threshold = Number(bound[2]);
+      const lowerBound = ["mer enn", "flere enn", "over", "minst"].includes(bound[1]);
+      const inclusive = ["minst", "maks", "maksimalt", "høyst", "hoyst", "hoyest"].includes(bound[1]);
+      const limit = threshold + (inclusive ? 0 : lowerBound ? 1 : -1);
+      if ((lowerBound && limit <= 20) || (!lowerBound && limit > 20)) {
+        return {
+          answer: null, inferred: false, valid: false,
+          retryMessage: "Det sier ikke sikkert om det er mer enn 20 boliger. Er det minst 21 boliger? Svar ja eller nei, eller oppgi det nøyaktige antallet."
+        };
+      }
+      number = limit;
+    } else if (/\b(ikke|omtrent|cirka|ca|rundt|mellom)\b/.test(lower) || /\d+\s*-\s*\d+/.test(lower)) {
+      return {
+        answer: null, inferred: false, valid: false,
+        retryMessage: "Er det mer enn 20 boliger? Svar ja eller nei, eller oppgi det nøyaktige antallet."
+      };
+    }
+    if (bound && /\bikke\b/.test(lower)) {
+      return {
+        answer: null, inferred: false, valid: false,
+        retryMessage: "Er det mer enn 20 boliger? Svar ja eller nei, eller oppgi det nøyaktige antallet."
+      };
+    }
 
     if (number !== null) {
       return {
@@ -437,26 +467,6 @@ function normalizeQuestionAnswer(stepId: string | null, text: string): Svartolkn
         note: number > 20
           ? "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
           : "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
-      };
-    }
-
-    if (/(flere enn|mer enn|over)\s*20/.test(lower)) {
-      return {
-        answer: "ja",
-        inferred: true,
-        valid: true,
-        retryMessage: null,
-        note: "Takk, jeg tolker dette som at gaten har mer enn 20 boliger."
-      };
-    }
-
-    if (/(mindre enn|under)\s*20/.test(lower)) {
-      return {
-        answer: "nei",
-        inferred: true,
-        valid: true,
-        retryMessage: null,
-        note: "Takk, jeg tolker dette som at gaten ikke har mer enn 20 boliger."
       };
     }
 
@@ -620,16 +630,15 @@ function gateSearchText(input: unknown): string {
 }
 
 function extractPossibleAdresseMention(text: string): string | null {
-  const value = String(text || "").trim();
-  if (!value) return null;
-  const direkte = value.match(/\b([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)\b/iu);
-  if (direkte?.[1]) {
-    return direkte[1].replace(/\s+/g, " ").trim();
-  }
-
-  const lookup = extractLookupCandidate(value);
-  const medNummer = lookup.match(/([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen)\s+\d+[\p{L}]?)/iu);
-  return medNummer?.[1]?.replace(/\s+/g, " ").trim() || null;
+  const value = String(text || "").trim()
+    .replace(/[?!.]+$/u, "")
+    .replace(/\s+i matrikkelen$/iu, "")
+    .replace(/^(?:hvem eier|kven eig|hvem er eier av|hva vet du om|finnes(?: det)?|er det|(?:kan du )?(?:finne|finn|sjekke|sjekk|slå opp|sla opp))\s+/iu, "")
+    .replace(/^(?:adressen|eiendommen)\s+/iu, "")
+    .trim();
+  // Locality distinguishes identical street/number pairs; never discard it.
+  const address = value.match(/^([\p{L}][\p{L}\s.-]*(?:gata|gate|veien|vegen))\s*(\d+(?:\s*[\p{L}])?)((?:(?:,\s*|\s+)\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?)?)$/iu);
+  return address ? `${address[1].trim()} ${address[2]}${address[3]}`.replace(/\s+/g, " ").trim() : null;
 }
 
 function extractPossibleOrgnr(text: string): string | null {
@@ -713,16 +722,9 @@ function extractFolkeregisterQuery(text: string) {
 
 async function maybeAnswerFolkeregisterQuestion(text: string): Promise<string | null> {
   const lower = normalize(text);
-  const mentionsPerson = [
-    "folkeregister",
-    "person",
-    "fodselsnummer",
-    "fnr",
-    "bosatt",
-    "registrert",
-    "hvem bor"
-  ].some((term) => lower.includes(term));
+  const mentionsPerson = /\b(folkeregister(?:et)?|person(?:en|er)?|fodselsnummer|fødselsnummer|fnr|bosatt|registrert|hvem bor)\b/.test(lower);
   if (!mentionsPerson) return null;
+  if (!isRegisterLookup(lower, "folkeregister")) return null;
 
   // 11-digit fnr takes priority
   const fnr = extractPossibleFnr(text);
@@ -778,6 +780,7 @@ async function maybeAnswerBrregQuestion(text: string): Promise<string | null> {
     "firma"
   ].some((term) => lower.includes(term));
   if (!mentionsBrreg) return null;
+  if (!isRegisterLookup(lower, "brreg")) return null;
 
   const organisasjonsnummer = extractPossibleOrgnr(text);
   if (organisasjonsnummer) {
@@ -813,16 +816,24 @@ async function maybeAnswerBrregQuestion(text: string): Promise<string | null> {
   }
 }
 
-async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string | null> {
+async function maybeAnswerPreciseMatrikkelQuestion(state: Agentsesjon, text: string): Promise<string | null> {
   if (!text.includes("?")) return null;
   const lower = normalize(text);
   const adresse = extractPossibleAdresseMention(text);
   if (!adresse) return null;
+  return answerPreciseMatrikkelLookup(state, adresse,
+    lower.includes("hvem eier") || lower.includes("kven eig") || lower.includes("eier"));
+}
 
+const adresseClarificationPrompt = "Skriv postnummeret med fire siffer, eventuelt poststed, eller hele adressen. Skriv «avbryt oppslaget» for å fortsette med søknaden.";
+
+async function answerPreciseMatrikkelLookup(state: Agentsesjon, adresse: string, wantsOwners: boolean): Promise<string> {
+  const wasPending = Boolean(state.pendingAdresseLookup);
   try {
     const eiendom = await invokeTool<Matrikkeltreff>("matrikkel_hent_eiendom", { adresse });
-    if (lower.includes("hvem eier") || lower.includes("kven eig") || lower.includes("eier")) {
+    if (wantsOwners) {
       const eiere = await invokeTool<Matrikkeltreff>("matrikkel_hent_eiere", { adresse });
+      state.pendingAdresseLookup = null;
       if (!eiere.eiere?.length) {
         if (eiere.syntetisk === false) {
           return `Jeg finner eiendommen ${eiendom.adresse}, men den offentlige adressekilden inneholder ikke eierinformasjon.`;
@@ -832,26 +843,90 @@ async function maybeAnswerPreciseMatrikkelQuestion(text: string): Promise<string
       return `${eiendom.adresse} er registrert med eier${eiere.eiere.length > 1 ? "e" : ""}: ${eiere.eiere.join(", ")}.`;
     }
 
+    state.pendingAdresseLookup = null;
     return `Ja, ${eiendom.adresse} finnes i matrikkelen. Den har gnr ${eiendom.gnr} og bnr ${eiendom.bnr}.`;
-  } catch {
-    return `Jeg fant ikke adressen ${adresse} i matrikkelen.`;
+  } catch (error) {
+    const needsClarification = error instanceof Verktoyfeil && (error.status === 400 || error.status === 409);
+    if (wasPending || needsClarification) state.pendingAdresseLookup = { adresse, wantsOwners };
+    const reminder = state.pendingAdresseLookup ? `\n${adresseClarificationPrompt}` : "";
+    if (error instanceof Verktoyfeil) {
+      if (needsClarification) return `${error.message}${reminder}`;
+      if (error.status === 404) return `Jeg fant ikke adressen ${adresse} i matrikkelen.${reminder}`;
+    }
+    return `Jeg kunne ikke slå opp adressen akkurat nå. Prøv igjen om litt.${reminder}`;
   }
 }
 
-// Dynamisk verktøyoppdagelse via suggest_step_tools
+function resumeQuestionPrompt(state: Agentsesjon): string {
+  const step = state.lastSession?.aktivtSteg;
+  const prompt = state.questionFieldCurrent
+    ? questionFieldPrompt(state.questionFieldCurrent)
+    : step?.tekst || step?.tittel || "Fortsett med dialogen når du er klar.";
+  return `Tilbake til der vi var: ${prompt}`;
+}
+
+async function handleAdresseClarification(state: Agentsesjon, text: string): Promise<string[]> {
+  const pending = state.pendingAdresseLookup!;
+  if (["avbryt", "avbryt oppslaget", "tilbake til søknaden", "tilbake til soknaden"].includes(normalize(text))) {
+    state.pendingAdresseLookup = null;
+    return ["Adresseoppslaget er avbrutt. Ingenting er lagret som søknadssvar.", resumeQuestionPrompt(state)];
+  }
+
+  // A new complete address question replaces the lookup, not the application.
+  const newQuestion = await maybeAnswerPreciseMatrikkelQuestion(state, text);
+  if (newQuestion) {
+    return state.pendingAdresseLookup ? [newQuestion] : [newQuestion, resumeQuestionPrompt(state)];
+  }
+
+  const postcode = text.trim().replace(/[?.!]+$/u, "").match(/^\d{4}(?:\s+[\p{L}][\p{L}\s.-]*)?$/u)?.[0];
+  const baseAddress = pending.adresse.replace(/((?:gata|gate|veien|vegen)\s+\d+(?:\s*\p{L})?)(?:,\s*|\s+)\d{4}(?:\s+.*)?$/iu, "$1");
+  const address = postcode ? `${baseAddress}, ${postcode}` : extractPossibleAdresseMention(text);
+  if (address) {
+    const reply = await answerPreciseMatrikkelLookup(state, address, pending.wantsOwners);
+    return state.pendingAdresseLookup ? [reply] : [reply, resumeQuestionPrompt(state)];
+  }
+
+  if (looksLikeCitizenQuestion(text)) {
+    const answer = maybeAnswerProcessMetaQuestion(state, text)
+      || await maybeAnswerBrregQuestion(text)
+      || await maybeAnswerFolkeregisterQuestion(text)
+      || (await maybeAnswerCitizenQuestion(state, text))?.tekst;
+    if (answer) return [answer, `Vi avklarer fortsatt adresseoppslaget. ${adresseClarificationPrompt}`];
+  }
+  return [`Vi avklarer fortsatt adresseoppslaget. ${adresseClarificationPrompt}`];
+}
+
+function isRegisterLookup(text: string, register: string): boolean {
+  return /^(?:(?:kan|vil) du )?(?:finn|sok(?: opp)?|søk(?: opp)?|sla opp|slå opp|sjekk)\b/.test(text)
+    || /^(?:hvem er|hva vet du om|hvem bor|hvor bor)\b/.test(text)
+    || text.startsWith(`${register} `)
+    || (register === "folkeregister" && text.startsWith("folkeregisteret "))
+    || (register === "brreg" && text.startsWith("enhetsregisteret "));
+}
+
+// Discovery cannot supply the argument mapping and result interpretation a tool needs.
+function unsupportedToolHint(name: string): string {
+  return `Verktøyforslaget «${name}» kan ikke brukes automatisk på dette spørsmålet. Svaret blir ikke kontrollert med dette verktøyet. Prosessforfatteren må legge til støtte for argumenter og svarform i process-agent, eller bruke et DATA_FETCH-steg.`;
+}
 
 async function discoverStepTools(step: Agentsteg | null | undefined) {
-  if (!step || step.type !== "QUESTION") return { kontekst: [], validering: [] };
+  if (!step || step.type !== "QUESTION") return { kontekst: [], validering: [], warnings: [] };
   try {
     const result = await invokeTool<{ verktoy?: Verktoyforslag[] }>("suggest_step_tools", {
       steg: { id: step.id, tittel: step.tittel, tekst: step.tekst, felter: step.felter || [] }
     });
     const verktoy = Array.isArray(result?.verktoy) ? result.verktoy : [];
-    const kontekst = verktoy.filter((v) => v.bruk === "kontekst" || v.bruk === "kontekst_og_validering");
-    const validering = verktoy.filter((v) => v.bruk === "validering" || v.bruk === "kontekst_og_validering");
-    return { kontekst, validering };
+    const fields = step.felter || [];
+    const supported = (v: Verktoyforslag) => v.name === "matrikkel_finn_veger"
+      && fields.length <= 1 && (!fields[0]?.type || fields[0].type === "tekst")
+      && ["kontekst", "validering", "kontekst_og_validering"].includes(v.bruk || "");
+    const usable = verktoy.filter(supported);
+    const warnings = verktoy.filter((v) => !supported(v)).map((v) => unsupportedToolHint(v.name || "ukjent"));
+    const kontekst = usable.filter((v) => v.bruk === "kontekst" || v.bruk === "kontekst_og_validering");
+    const validering = usable.filter((v) => v.bruk === "validering" || v.bruk === "kontekst_og_validering");
+    return { kontekst, validering, warnings };
   } catch {
-    return { kontekst: [], validering: [] };
+    return { kontekst: [], validering: [], warnings: ["Verktøyoppdagelsen er utilgjengelig. Svaret blir ikke kontrollert med foreslåtte verktøy."] };
   }
 }
 
@@ -960,6 +1035,51 @@ function findProcessStepById(state: Agentsesjon, stepId: string): Agentsteg | nu
   return steg.find((s) => s.id === stepId) || null;
 }
 
+function buildQuestionAnswer(state: Agentsesjon, stepId: string | null, answer: unknown): unknown {
+  if (!stepId || (typeof answer === "object" && answer !== null)) return answer;
+  const fields = findProcessStepById(state, stepId)?.felter || [];
+  if (fields.length <= 1) return answer;
+  const required = fields.filter((field) => field.obligatorisk);
+  const target = required.length <= 1 ? required[0] || fields[0] : null;
+  return target ? { [target.id]: answer } : answer;
+}
+
+function questionFieldPrompt(field: NonNullable<Agentsteg["felter"]>[number]): string {
+  if (field.type === "ja-nei") return `${field.label} Svar ja eller nei.`;
+  const alternativer = (field.alternativer || []).map((alternativ) =>
+    typeof alternativ === "string" ? alternativ : alternativ.label
+  );
+  return alternativer.length > 0
+    ? `${field.label} Velg mellom: ${alternativer.join(", ")}.`
+    : field.label;
+}
+
+function normalizeQuestionFieldAnswer(
+  field: NonNullable<Agentsteg["felter"]>[number],
+  answer: string
+): { valid: true; value: string } | { valid: false } {
+  if (field.type === "ja-nei") {
+    const folded = normalize(answer);
+    if (["ja", "japp", "yes"].includes(folded)) return { valid: true, value: "ja" };
+    if (["nei", "no"].includes(folded)) return { valid: true, value: "nei" };
+    return { valid: false };
+  }
+  if (field.type !== "valg" || !field.alternativer?.length) {
+    return { valid: true, value: answer };
+  }
+  const folded = normalize(answer);
+  const match = field.alternativer.find((alternativ) => {
+    const value = typeof alternativ === "string" ? alternativ : alternativ.verdi;
+    const label = typeof alternativ === "string" ? alternativ : alternativ.label;
+    return normalize(value) === folded || normalize(label) === folded;
+  });
+  if (!match) return { valid: false };
+  return {
+    valid: true,
+    value: typeof match === "string" ? match : match.verdi
+  };
+}
+
 function findNextFreeTextQuestionStep(state: Agentsesjon, fromStepId: string | null): Agentsteg | null {
   const steg = state.processDefinition?.steg;
   if (!Array.isArray(steg)) return null;
@@ -1058,7 +1178,8 @@ async function maybeAnswerCitizenQuestion(state: Agentsesjon, text: string): Pro
   // treating it as a side question, so the bar is higher there. Everywhere else
   // they can only say yes, no or nothing, and a stray reply is already a dead
   // end today.
-  if (!looksLikeCitizenQuestion(text, state.awaiting === "question")) return null;
+  const collectingAnswer = ["question", "question_fields", "guided_interview"].includes(state.awaiting || "");
+  if (!looksLikeCitizenQuestion(text, collectingAnswer)) return null;
 
   try {
     const svar = await invokeTool<Sidesvar>("answer_citizen_question", {
@@ -1216,12 +1337,13 @@ async function startSelectedProcess(state: Agentsesjon, choice: Prosessvalg) {
   return intro.concat(await advanceAndPrompt(state));
 }
 
-async function tryNextStep(oektsId: string | null): Promise<void> {
-  try {
-    await invokeTool<Oektsvar>("next_step", { oektsId });
-  } catch {
-    // Ignore when already on last step.
+async function goNextStep(state: Agentsesjon): Promise<void> {
+  const total = state.lastSession?.totaltAntallSteg ?? state.processDefinition?.steg?.length;
+  if (total && state.lastSession?.stegIndex === total - 1) {
+    state.awaiting = "process_end";
+    return;
   }
+  await invokeTool<Oektsvar>("next_step", { oektsId: state.oektsId });
 }
 
 async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
@@ -1244,6 +1366,11 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       return messages;
     }
 
+    if (state.awaiting === "process_end") {
+      messages.push("Siste steg er gjennomført. Prosessdefinisjonen har ingen flere steg, og ingen søknad er sendt inn. Prosessforfatteren må legge til et SUBMIT-steg hvis noe skal sendes inn.");
+      return messages;
+    }
+
     const step = session.aktivtSteg;
     if (!step) {
       state.awaiting = null;
@@ -1255,7 +1382,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       if (step.tekst) {
         messages.push(step.tekst);
       }
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       continue;
     }
 
@@ -1271,7 +1398,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
       } else {
         messages.push("Jeg har hentet opplysningene som trengs i dette steget.");
       }
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       continue;
     }
 
@@ -1284,7 +1411,7 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
         return messages;
       }
       messages.push(result?.resultat?.melding || "Sjekken er gjennomført.");
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       continue;
     }
 
@@ -1298,13 +1425,26 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
         messages.push("Jeg har laget en oppsummering av informasjonen.");
       }
       state.awaiting = "summary_confirm";
-      messages.push("Er du enig i oppsummeringen? Svar ja for a ga videre til innsending, eller nei for a endre beskrivelsen.");
+      messages.push("Er du enig i oppsummeringen? Svar ja for å gå videre, eller nei hvis noe må endres.");
       return messages;
     }
 
     if (step.type === "QUESTION") {
       state.awaiting = "question";
       state.awaitingStepId = step.id;
+      const { kontekst, validering, warnings } = await discoverStepTools(step);
+      state.awaitingValideringTools = validering.map((v) => v.name).filter((n): n is string => Boolean(n));
+      messages.push(...warnings);
+      const requiredFields = (step.felter || []).filter((field) => field.obligatorisk);
+      if (requiredFields.length > 1) {
+        state.awaiting = "question_fields";
+        state.questionFieldCurrent = requiredFields[0];
+        state.questionFieldQueue = requiredFields.slice(1);
+        state.questionFieldAnswers = {};
+        if (step.tekst) messages.push(step.tekst);
+        messages.push(questionFieldPrompt(requiredFields[0]));
+        return messages;
+      }
 
       if (state.deferredAnswers[step.id]) {
         state.awaiting = "deferred_answer_confirm";
@@ -1316,9 +1456,9 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
 
       const prompt = step.tekst || step.tittel || "Kan du svare på et spørsmål?";
       messages.push(prompt);
+      const field = requiredFields[0] || step.felter?.[0];
+      if (field) messages.push(questionFieldPrompt(field));
 
-      const { kontekst, validering } = await discoverStepTools(step);
-      state.awaitingValideringTools = validering.map((v) => v.name).filter((n): n is string => Boolean(n));
       for (const v of kontekst) {
         const hint = await runKontekstTool(v.name ?? "", null);
         if (hint) messages.push(hint);
@@ -1329,6 +1469,11 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
 
     if (step.type === "CONSENT_REQUEST") {
       state.awaiting = "consent";
+      if (session.resultater?.[step.id]?.status === "SAMTYKKET") {
+        messages.push("Samtykket er allerede registrert. Tilgangen kontrolleres på nytt når opplysningene hentes.");
+        await goNextStep(state);
+        continue;
+      }
       const datakilder = (step.dataKilder as string[] | undefined || []).join(", ") || "nødvendige opplysninger";
       const formaal = String(step.formaal || "behandle saken");
       // Bare første bokstav ned: formålet er forfatterens tekst og kan inneholde
@@ -1355,8 +1500,8 @@ async function advanceAndPrompt(state: Agentsesjon): Promise<string[]> {
  * alternativsettet og sier selv hvilke verdier som gjelder, så agenten skal ikke
  * tolke svaret om igjen - bare vise refusjonen og spørre på nytt.
  *
- * På grensen og ikke ved hvert kallsted: answer_question kalles fem steder, og en
- * fangst per sted er en fangst noen glemmer på det sjette.
+ * På grensen og ikke ved hvert kallsted: answer_question kalles flere steder, og en
+ * fangst per sted er en fangst noen glemmer på det neste.
  *
  * `state.awaiting` røres ikke, og det er ikke en forglemmelse: fangsten satte den
  * til "question", så et 409 fra samtykkesteget flyttet sesjonen bort fra samtykket
@@ -1424,12 +1569,14 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     return ["Jeg fant ikke den prosessen. Skriv nummer, navn, eller id fra listen."];
   }
 
+  if (state.pendingAdresseLookup) return handleAdresseClarification(state, text);
+
   const metaSvar = maybeAnswerProcessMetaQuestion(state, text);
   if (metaSvar) {
     return [metaSvar];
   }
 
-  const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(text);
+  const presisMatrikkelSvar = await maybeAnswerPreciseMatrikkelQuestion(state, text);
   if (presisMatrikkelSvar) {
     return [presisMatrikkelSvar];
   }
@@ -1449,10 +1596,38 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
   const sidesvar = await maybeAnswerCitizenQuestion(state, text);
   if (sidesvar) {
     const step = state.lastSession?.aktivtSteg;
-    const back = step?.tekst || step?.tittel;
+    const back = state.questionFieldCurrent ? questionFieldPrompt(state.questionFieldCurrent) : step?.tekst || step?.tittel;
     return back
       ? [sidesvar.tekst, `Tilbake til der vi var: ${back}`]
       : [sidesvar.tekst];
+  }
+
+  if (state.awaiting === "question_fields") {
+    const current = state.questionFieldCurrent;
+    if (!current || !state.awaitingStepId) {
+      state.awaiting = "question";
+      return ["Jeg mistet hvilket felt vi var på. Kan du svare på spørsmålet på nytt?"];
+    }
+    const normalized = normalizeQuestionFieldAnswer(current, text);
+    if (!normalized.valid) {
+      return [`Jeg fikk ikke koblet svaret til et gyldig valg. ${questionFieldPrompt(current)}`];
+    }
+    state.questionFieldAnswers[current.id] = normalized.value;
+    const next = state.questionFieldQueue.shift();
+    if (next) {
+      state.questionFieldCurrent = next;
+      return [questionFieldPrompt(next)];
+    }
+
+    await invokeTool("answer_question", {
+      oektsId: state.oektsId,
+      stegId: state.awaitingStepId,
+      svar: state.questionFieldAnswers
+    });
+    state.questionFieldCurrent = null;
+    state.questionFieldAnswers = {};
+    await goNextStep(state);
+    return ["Takk, jeg har lagret svarene dine."].concat(await advanceAndPrompt(state));
   }
 
   if (state.awaiting === "question") {
@@ -1461,7 +1636,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     const valideringsToolName = state.awaitingValideringTools || [];
     const likelyGateStep = isLikelyGateQuestionStep(step);
 
-    if (activeQuestionId !== "velg-gate") {
+    if (activeQuestionId !== "velg-gate" && findProcessStepById(state, "velg-gate")) {
       const gateMention = extractPossibleGateMention(text);
       if (gateMention) {
         const gateResult = await runValideringTool("matrikkel_finn_veger", gateMention);
@@ -1532,11 +1707,21 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
 
     let normalizedAnswer = normalizeQuestionAnswer(activeQuestionId, text);
     if (!normalizedAnswer.valid) {
+      if (activeQuestionId === "boliger-bekreft" && /\d/.test(text)) {
+        return [normalizedAnswer.retryMessage || "Er det mer enn 20 boliger?"];
+      }
       const deferred = maybeCaptureDeferredAnswer(state, activeQuestionId, text);
       if (deferred) {
         return [deferred.message, normalizedAnswer.retryMessage || "Før vi går videre trenger jeg svar på spørsmålet i dette steget."];
       }
       return [normalizedAnswer.retryMessage || "Jeg fikk ikke tolket svaret. Kan du prøve igjen?"];
+    }
+    const fields = step?.felter || [];
+    const field = fields.find((f) => f.obligatorisk) || fields[0];
+    if (field && normalizedAnswer.answer !== null) {
+      const fieldAnswer = normalizeQuestionFieldAnswer(field, normalizedAnswer.answer);
+      if (!fieldAnswer.valid) return [`Jeg fikk ikke koblet svaret til et gyldig valg. ${questionFieldPrompt(field)}`];
+      normalizedAnswer.answer = fieldAnswer.value;
     }
 
     // Run dynamic validation tools discovered when the step was entered.
@@ -1569,9 +1754,9 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.awaitingStepId,
-      svar: normalizedAnswer.answer
+      svar: buildQuestionAnswer(state, state.awaitingStepId, normalizedAnswer.answer)
     });
-    await tryNextStep(state.oektsId);
+    await goNextStep(state);
     const ack = normalizedAnswer.note || "Takk, jeg har lagret svaret ditt.";
     return [ack].concat(await advanceAndPrompt(state));
   }
@@ -1601,13 +1786,13 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: stepId,
-        svar: proposed
+        svar: buildQuestionAnswer(state, stepId, proposed)
       });
       delete state.deferredAnswers[stepId];
       state.pendingDeferredStepId = null;
       state.pendingValidatedAnswer = null;
       state.awaiting = "question";
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       return ["Flott, da bruker jeg svaret du ga tidligere."].concat(await advanceAndPrompt(state));
     }
 
@@ -1662,11 +1847,11 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: "velg-gate",
-        svar: nyGate
+        svar: buildQuestionAnswer(state, "velg-gate", nyGate)
       });
       state.latestMatrikkelGate = { adressenavn: nyGate };
 
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       const replies = [`Da bytter vi gate til ${nyGate}.`].concat(await advanceAndPrompt(state));
 
       // If we still ended up at the same step, keep normal question mode.
@@ -1715,12 +1900,12 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
       await invokeTool("answer_question", {
         oektsId: state.oektsId,
         stegId: state.awaitingStepId,
-        svar: proposed
+        svar: buildQuestionAnswer(state, state.awaitingStepId, proposed)
       });
       state.latestMatrikkelGate = { adressenavn: proposed };
       state.pendingValidatedAnswer = null;
       state.awaiting = "question";
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       return [`Flott, jeg bruker ${proposed}.`].concat(await advanceAndPrompt(state));
     }
 
@@ -1756,7 +1941,11 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     await invokeTool("answer_question", {
       oektsId: state.oektsId,
       stegId: state.guidedInterviewSessionStepId || state.guidedInterviewStepId,
-      svar: composed
+      svar: buildQuestionAnswer(
+        state,
+        state.guidedInterviewSessionStepId || state.guidedInterviewStepId,
+        composed
+      )
     });
 
     state.awaiting = "question";
@@ -1766,7 +1955,7 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     state.guidedInterviewStepId = null;
     state.guidedInterviewSessionStepId = null;
 
-    await tryNextStep(state.oektsId);
+    await goNextStep(state);
     return [
       `Takk. Jeg satte sammen denne beskrivelsen fra svarene dine:`,
       `«${composed}»`,
@@ -1788,19 +1977,27 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
     });
 
     if (intent.intent === "summary_yes") {
-      await tryNextStep(state.oektsId);
-      return ["Flott. Da gar vi videre til innsending."].concat(await advanceAndPrompt(state));
+      await goNextStep(state);
+      return ["Flott. Da går vi videre."].concat(await advanceAndPrompt(state));
     }
 
     if (intent.intent === "summary_no") {
-      await invokeTool<Oektsvar>("previous_step", { oektsId: state.oektsId });
-      // `awaiting` nulles ikke her. advanceAndPrompt setter den for hver stegtype,
-      // og kaster den et 4xx, er «der innbyggeren sto» det riktige svaret - ikke
-      // null, som klienten leser som at prosessen er fullført (agent.ts:136).
+      const steps = state.processDefinition?.steg || [];
+      const index = state.lastSession?.stegIndex ?? 0;
+      const editable = steps.slice(0, index).findLast((s) => s.type === "QUESTION");
+      if (!editable) {
+        return ["Søknaden er ikke sendt inn. Denne prosessen har ingen spørsmål med egne svar å endre. Hvis registeropplysningene er feil, må de rettes hos kilden før du starter på nytt. Vi blir stående her; svar ja bare hvis oppsummeringen likevel stemmer."];
+      }
+      if (!await moveSessionToStepId(state, editable.id)) {
+        return ["Jeg klarte ikke å gå tilbake til spørsmålet. Søknaden er ikke sendt inn."];
+      }
+      state.latestSummary = null;
       state.awaitingStepId = null;
+      state.pendingValidatedAnswer = null;
+      state.pendingDeferredStepId = null;
+      delete state.deferredAnswers[editable.id];
       return [
-        "Skjonner. Da gar vi tilbake sa du kan forbedre beskrivelsen av trafikkproblemet.",
-        "Skriv gjerne problemet sa konkret som mulig, og hva slags tiltak du onsker."
+        `Skjønner. Da går vi tilbake til «${editable.tittel || editable.id}» så du kan rette svaret. Opplysninger og sjekker etter spørsmålet kjøres på nytt.`
       ].concat(await advanceAndPrompt(state));
     }
 
@@ -1822,13 +2019,13 @@ async function handleMessage(state: Agentsesjon, message: string): Promise<strin
 
     if (intent.intent === "consent_yes") {
       await invokeTool("consent_response", { oektsId: state.oektsId, approved: true });
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       return ["Takk. Samtykke er registrert."].concat(await advanceAndPrompt(state));
     }
 
     if (intent.intent === "consent_no") {
       await invokeTool("consent_response", { oektsId: state.oektsId, approved: false });
-      await tryNextStep(state.oektsId);
+      await goNextStep(state);
       return ["Skjønner. Jeg har registrert at du ikke vil samtykke nå."].concat(await advanceAndPrompt(state));
     }
 
@@ -1888,12 +2085,16 @@ async function createAgentSession(body: { personId?: string }) {
     pendingValidatedAnswer: null,
     pendingDeferredStepId: null,
     pendingGateSwitch: null,
+    pendingAdresseLookup: null,
     deferredAnswers: {},
     guidedInterviewQueue: [],
     guidedInterviewAnswers: {},
     guidedInterviewCurrentKey: null,
     guidedInterviewStepId: null,
-    guidedInterviewSessionStepId: null
+    guidedInterviewSessionStepId: null,
+    questionFieldQueue: [],
+    questionFieldAnswers: {},
+    questionFieldCurrent: null
   };
 
   sessions.set(session.sessionId, session);
@@ -2001,4 +2202,3 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Process-agent kjører på http://localhost:${port}`);
 });
-

@@ -31,6 +31,10 @@ node apps/matrikkel-mock/src/server.ts
 I `docker compose` leser `matrikkel-mock` standardfilen `data/matrikkel.json`. `data/matrikkel.seed.json` er beholdt som liten fixture for mockens egne tester.
 
 Ved store datamengder kan du bruke `limit` og `offset` på `GET /mock/matrikkel/gater` og `GET /mock/matrikkel/eiendommer`.
+Et fullstendig `adresse`-søk på eiendomslisten beholder alle eksakte kandidater,
+også fra Geonorge når seeden ikke har treff. Postnummer og poststed avgrenser søket;
+adressetillegg som `Aardal` i `Aardal, Haugsbygda 98` er ikke en del av gatenavnet.
+Live-fallback leser alle resultatsidene før listen pagineres.
 
 Sjekk aktiv datakilde i en kjørende mock:
 
@@ -114,4 +118,3 @@ curl -s -X POST http://localhost:8085/geointegrasjon/matrikkel/wsapi/v1/BasisSer
   </soapenv:Body>
 </soapenv:Envelope>'
 ```
-

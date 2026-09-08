@@ -19,8 +19,9 @@
  * apps/shared/jsonstore.ts. kontrakt-smoke.ts runs strictly sequentially, so
  * it can never see any of this.
  *
- * Backend and digdir-mock on their own ports against a fresh STATE_DIR, so this
- * runs alongside a docker stack without touching it. Needs no model.
+ * Backend, fiks-simulator, digdir-mock and a controlled AI stub run on their own
+ * ports against a fresh STATE_DIR, so this runs alongside a docker stack without
+ * touching it. Needs no model.
  *
  * Usage:
  *   node scripts/test-concurrency.ts
@@ -28,7 +29,7 @@
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,17 +39,46 @@ import { feilkode } from "../apps/shared/errors.ts";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const backendPort = Number(process.env.CONCURRENCY_BACKEND_PORT) || 18092;
 const digdirPort = Number(process.env.CONCURRENCY_DIGDIR_PORT) || 18093;
+const fiksPort = Number(process.env.CONCURRENCY_FIKS_PORT) || 18096;
+const aiPort = Number(process.env.CONCURRENCY_AI_PORT) || 18097;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const digdirUrl = `http://127.0.0.1:${digdirPort}`;
+const fiksUrl = `http://127.0.0.1:${fiksPort}`;
+const aiUrl = `http://127.0.0.1:${aiPort}`;
 
-const PROSESS = "redusert-foreldrebetaling-barnehage";
+const PROSESS = "samtidighet-flyt";
 const COUNT = 10;
+const ATOMIC_WRITE_COUNT = 12;
+const ATOMIC_READER_COUNT = 8;
+const ATOMIC_PAYLOAD_BYTES = 8 * 1024 * 1024;
 
 let passed = 0;
 const failures: string[] = [];
 function check(name: string, condition: unknown, detail = "") {
   if (condition) { passed += 1; return; }
   failures.push(`${name}${detail ? ` - ${detail}` : ""}`);
+}
+
+function oektMedKilder(
+  resultatKilder: Record<string, string[]>,
+  frosset = true,
+  verdi = 1
+) {
+  return {
+    oektsId: "oekt-fletting",
+    prosessId: PROSESS,
+    personId: "person-001",
+    sporingsId: "flyt-fletting",
+    status: "AKTIV",
+    stegIndex: 1,
+    svar: {},
+    resultaterRaa: { resultat: { verdi } },
+    resultatKilder,
+    resultatKilderFrosset: frosset,
+    aktivtSamtykkeId: "samtykke-fletting",
+    opprettet: "2026-09-01T00:00:00.000Z",
+    oppdatert: "2026-09-01T00:00:00.000Z"
+  } as any;
 }
 
 function start(name: string, relativePath: string, env: any) {
@@ -106,22 +136,63 @@ async function call(routePath: string, token: string, options: Kallvalg = {}) {
   return { status: response.status, body };
 }
 
+async function readRows(filePath: string) {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8")) as any[];
+  } catch (error) {
+    if (feilkode(error) === "ENOENT") return [];
+    throw error;
+  }
+}
+
 await requireFreePort(backendPort);
 await requireFreePort(digdirPort);
+await requireFreePort(fiksPort);
+await requireFreePort(aiPort);
+
+let markSummaryStarted!: () => void;
+const summaryStarted = new Promise<void>((resolve) => {
+  markSummaryStarted = resolve;
+});
+let releaseSummary!: () => void;
+const summaryRelease = new Promise<void>((resolve) => {
+  releaseSummary = resolve;
+});
+const aiServer = createServer(async (request, response) => {
+  if (request.method === "GET" && request.url === "/helse") {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+  if (request.method === "POST" && request.url === "/ai/oppsummering") {
+    request.resume();
+    markSummaryStarted();
+    await summaryRelease;
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ tekst: "Kontrollert oppsummering." }));
+    return;
+  }
+  response.writeHead(404, { "Content-Type": "application/json" });
+  response.end(JSON.stringify({ feil: "Fant ikke endepunkt." }));
+});
+await new Promise<void>((resolve) => aiServer.listen(aiPort, "127.0.0.1", resolve));
 
 const stateDir = await mkdtemp(path.join(tmpdir(), "concurrency-"));
+process.env.STATE_DIR = stateDir;
 const oektFile = path.join(stateDir, "prosessoekter.json");
 const soknadFile = path.join(stateDir, "soknader.json");
 const prosessFile = path.join(stateDir, "prosessdefinisjoner.json");
+const oppgaveFile = path.join(stateDir, "oppgaver.json");
+const forsendelseFile = path.join(stateDir, "forsendelser.json");
+const revisjonFile = path.join(stateDir, "revisjonslogg.json");
 const env = {
   STATE_DIR: stateDir,
   BACKEND_BASE_URL: backendUrl,
   DIGDIR_BASE_URL: digdirUrl,
   DIGDIR_ISSUER: digdirUrl,
-  // No fiks, no ai, no matrikkel: this test never advances past the INFO step, so
-  // nothing calls them. Unreachable addresses beat hanging ones.
-  FIKS_BASE_URL: "http://127.0.0.1:1",
-  AI_BASE_URL: "http://127.0.0.1:1",
+  FIKS_BASE_URL: fiksUrl,
+  AI_BASE_URL: aiUrl,
+  // Matrikkel is never called. An unreachable address beats a hanging one.
   MATRIKKEL_BASE_URL: "http://127.0.0.1:1"
 };
 
@@ -131,11 +202,170 @@ const services = [
 ];
 
 try {
+  // state.ts imports jsonstore, so load it only after STATE_DIR names this test's
+  // directory. An eager import would make the atomic-write test touch real state.
+  const { mergeFrossetProsessoekt, mergeProsessoektForLagring } =
+    await import("../apps/sandbox-backend/src/state.ts");
+  const strengFletting = mergeProsessoektForLagring(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "en gammel forespørsel kan ikke svekke en frosset kilde",
+    JSON.stringify(strengFletting.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(strengFletting.resultatKilder)
+  );
+
+  const kildeunion = mergeProsessoektForLagring(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: ["politiattest"] })
+  );
+  check(
+    "samtidige kjente kilder flettes til den strengeste unionen",
+    JSON.stringify(kildeunion.resultatKilder.resultat?.sort())
+      === JSON.stringify(["inntekt", "politiattest"]),
+    JSON.stringify(kildeunion.resultatKilder)
+  );
+
+  const ukjentVinner = mergeProsessoektForLagring(
+    oektMedKilder({}),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "ukjent frosset kilde kan ikke omklassifiseres som ubeskyttet",
+    !Object.hasOwn(ukjentVinner.resultatKilder, "resultat")
+      && ukjentVinner.resultatKilderFrosset,
+    JSON.stringify(ukjentVinner.resultatKilder)
+  );
+
+  const samtidigFrosset = mergeFrossetProsessoekt(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "en foreldet prosessfrysing kan ikke svekke metadata som alt er frosset",
+    JSON.stringify(samtidigFrosset.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(samtidigFrosset.resultatKilder)
+  );
+
+  const nyttLegacyResultat = mergeProsessoektForLagring(
+    oektMedKilder({}, false, 1),
+    oektMedKilder({ resultat: ["inntekt"] }, true, 2)
+  );
+  check(
+    "ny kjøring av et legacy-steg beholder den nye kilden",
+    JSON.stringify(nyttLegacyResultat.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(nyttLegacyResultat.resultatKilder)
+  );
+
   await Promise.all([waitForHealth(digdirUrl), waitForHealth(backendUrl)]);
 
   /*
-   * Ten different people, so every write lands on a different økt - same-person
-   * concurrency is a different and accepted race, see lagreProsessoekt.
+   * A write must become visible in one step. The old writeFile(target) implementation
+   * truncated the live file before filling it, so readJson could parse an empty or
+   * partial document. Large repeated replacements keep readers in that window without
+   * relying on timing hooks in the implementation.
+   */
+  const {
+    readJson,
+    stateDir: jsonStoreStateDir,
+    updateJson
+  } = await import("../apps/shared/jsonstore.ts");
+  const usesTemporaryStateDir = jsonStoreStateDir === stateDir;
+  check(
+    "testforutsetning: jsonstore bruker testens midlertidige state-mappe",
+    usesTemporaryStateDir,
+    `${jsonStoreStateDir} er ikke ${stateDir}`
+  );
+  if (!usesTemporaryStateDir) {
+    throw new Error("Avbryter før skriving fordi jsonstore peker utenfor testmappen.");
+  }
+
+  const atomicFileName = "atomic-lesing.json";
+  const payload = "x".repeat(ATOMIC_PAYLOAD_BYTES);
+  await updateJson(atomicFileName, {}, (_current, replace) => {
+    replace({ generation: 0, payload });
+  });
+
+  let keepReading = true;
+  let readFailureCount = 0;
+  const readFailureExamples: string[] = [];
+  const readAttempts = Array.from({ length: ATOMIC_READER_COUNT }, () => 0);
+  const readers = Array.from({ length: ATOMIC_READER_COUNT }, async (_unused, readerIndex) => {
+    while (keepReading) {
+      readAttempts[readerIndex] += 1;
+      try {
+        const value = await readJson(atomicFileName);
+        if (
+          typeof value?.generation !== "number"
+          || typeof value?.payload !== "string"
+          || value.payload.length !== ATOMIC_PAYLOAD_BYTES
+        ) {
+          readFailureCount += 1;
+          if (readFailureExamples.length < 3) {
+            readFailureExamples.push(`ugyldig innhold etter generasjon ${String(value?.generation)}`);
+          }
+        }
+      } catch (error) {
+        readFailureCount += 1;
+        if (readFailureExamples.length < 3) {
+          readFailureExamples.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+    }
+  });
+
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  try {
+    for (let generation = 1; generation <= ATOMIC_WRITE_COUNT; generation += 1) {
+      await updateJson(atomicFileName, {}, (_current, replace) => {
+        replace({ generation, payload });
+      });
+    }
+  } finally {
+    keepReading = false;
+  }
+  await Promise.all(readers);
+
+  check(
+    "testforutsetning: hver leser forsøkte minst én lesing",
+    readAttempts.every((count) => count > 0),
+    readAttempts.join(",")
+  );
+  check(
+    "regresjon: samtidige lesere så bare komplette JSON-dokumenter",
+    readFailureCount === 0,
+    `${readFailureCount} feil: ${readFailureExamples.join("; ")}`
+  );
+
+  /*
+   * These checks cover the atomic writer's failure path. They support the
+   * regression above, but do not reproduce the old defect: a direct writer had no
+   * temporary file to clean up.
+   */
+  const blockedFileName = "atomic-blokkert.json";
+  const blockedPath = path.join(stateDir, blockedFileName);
+  let blockedWriteFailed = false;
+  try {
+    await updateJson(blockedFileName, {}, async (_current, replace) => {
+      await mkdir(blockedPath);
+      replace({ skalIkkeSkrives: true });
+    });
+  } catch {
+    blockedWriteFailed = true;
+  }
+  check("testforutsetning: den tvungne atomiske erstatningen feilet", blockedWriteFailed);
+  const temporaryFiles = (await readdir(stateDir)).filter((entry) => entry.endsWith(".tmp"));
+  check(
+    "feilhåndtering: en mislykket atomisk erstatning rydder den midlertidige filen",
+    temporaryFiles.length === 0,
+    temporaryFiles.join(",")
+  );
+  await rm(blockedPath, { recursive: true, force: true });
+
+  /*
+   * Ten different people, so every write lands on a different økt. Separate checks
+   * below race one økt against itself and pin serialisation and completion guards.
    *
    * Picked from digdir-mock rather than hardcoded: person-002 is a child, and 65 of
    * the population cannot log in at all. A hardcoded person-NNN list breaks the day
@@ -154,6 +384,25 @@ try {
   // before ten arrive at once.
   const warmup = await call(`/api/personer/${PERSON_IDS[0]}`, tokens[0]);
   check("oppvarmingskallet er autorisert", warmup.status === 200, String(warmup.status));
+
+  // Concurrency is independent of eligibility. Use a valid small process rather
+  // than skipping the required samtykke/data steps of a published case.
+  const fixture = await call("/api/prosesser", tokens[0], {
+    method: "POST",
+    body: {
+      id: PROSESS,
+      navn: "Samtidighetstest",
+      steg: [
+        { id: "intro", type: "INFO" },
+        { id: "klar", type: "INFO" },
+        { id: "oppsummering", type: "SUMMARY" },
+        { id: "send-inn", type: "SUBMIT" }
+      ]
+    }
+  });
+  if (fixture.status !== 201) {
+    throw new Error(`Kunne ikke opprette testprosessen: ${JSON.stringify(fixture)}`);
+  }
 
   // 1. Ten økter, created concurrently. Each POST appends one row.
   const created = await Promise.all(
@@ -190,6 +439,25 @@ try {
     `${atSteg1.length} av 10 - de øvrige mistet endringen sin i en samtidig skriving`
   );
 
+  const sammeOekt = await Promise.all(
+    Array.from({ length: COUNT }, () =>
+      call(`/api/prosessoekter/${ids[0]}/forrige`, tokens[0], { method: "POST" })
+    )
+  );
+  check("bare ett samtidig kall kan endre samme økt",
+    sammeOekt.filter((svar) => svar.status === 200).length === 1,
+    sammeOekt.map((svar) => svar.status).join(","));
+  check("foreldede kall avvises i stedet for å overskrive økten",
+    sammeOekt.every((svar) => [200, 400, 409].includes(svar.status)),
+    sammeOekt.map((svar) => svar.status).join(","));
+  const sammeOektEtter = await call(`/api/prosessoekter/${ids[0]}`, tokens[0]);
+  check("det vinnende kallet flyttet økten nøyaktig ett steg",
+    sammeOektEtter.body?.stegIndex === 0, String(sammeOektEtter.body?.stegIndex));
+  const tilbakeTilKlar = await call(`/api/prosessoekter/${ids[0]}/neste`, tokens[0], { method: "POST" });
+  check("øktens startpunkt gjenopprettes før innsendingstesten",
+    tilbakeTilKlar.status === 200 && tilbakeTilKlar.body?.aktivtSteg?.id === "klar",
+    JSON.stringify(tilbakeTilKlar));
+
   // 3. The økt must belong to whoever created it, after all that racing.
   const wrongOwner = after.filter((oekt: any) => {
     const expected = created.find((s: any) => s.body?.oektsId === oekt.oektsId);
@@ -198,12 +466,47 @@ try {
   check("ingen økt byttet eier under kappløpet", wrongOwner.length === 0, String(wrongOwner.length));
 
   /*
-   * 4. soknader.json. This is what a SUBMIT step writes, and it had no queue at
+   * 4. A long model call holds only its own session boundary. If the boundary or
+   * the JSON write queue were global, the other session could not save /neste
+   * before the controlled model response is released.
+   */
+  const summaryId = ids[3];
+  const toSummary = await call(`/api/prosessoekter/${summaryId}/neste`, tokens[3], { method: "POST" });
+  check("modelløkten går fra INFO til SUMMARY",
+    toSummary.status === 200 && toSummary.body?.aktivtSteg?.type === "SUMMARY",
+    JSON.stringify(toSummary));
+  const summaryCall = call(
+    `/api/prosessoekter/${summaryId}/handling`,
+    tokens[3],
+    { method: "POST", body: {} }
+  );
+  await Promise.race([
+    summaryStarted,
+    new Promise<never>((unused, reject) =>
+      setTimeout(() => reject(new Error("SUMMARY nådde ikke den kontrollerte KI-tjenesten.")), 2000)
+    )
+  ]);
+
+  const unrelatedCall = call(`/api/prosessoekter/${ids[4]}/neste`, tokens[4], { method: "POST" });
+  const unrelatedBeforeRelease = await Promise.race([
+    unrelatedCall.then((svar) => ({ ferdig: true as const, svar })),
+    new Promise<{ ferdig: false }>((resolve) => setTimeout(() => resolve({ ferdig: false }), 1000))
+  ]);
+  check("en annen økt lagres mens SUMMARY venter på modellen",
+    unrelatedBeforeRelease.ferdig && unrelatedBeforeRelease.svar.status === 200,
+    unrelatedBeforeRelease.ferdig ? String(unrelatedBeforeRelease.svar.status) : "tidsavbrudd");
+
+  releaseSummary();
+  const summarySvar = await summaryCall;
+  check("SUMMARY fullføres etter at modellen slippes", summarySvar.status === 200, String(summarySvar.status));
+  await unrelatedCall;
+
+  /*
+   * 5. soknader.json. This is what a SUBMIT step writes, and it had no queue at
    * all - push onto the request's own array, then write the whole thing.
    *
    * POST /api/soknader rather than driving ten flows to their SUBMIT step: it is
-   * the same createSoknad, and it takes seconds instead of needing samtykke, a
-   * beregning and the model. The Fiks task it tries to create afterwards fails on
+   * the same createSoknad, without requiring the model. The Fiks task it tries to create afterwards fails on
    * an unreachable FIKS_BASE_URL and comes back as `advarsel`, which is expected
    * here and not what is under test.
    */
@@ -224,7 +527,94 @@ try {
     `${soknadIds.filter((id: any) => !soknaderOnDisk.some((s: any) => s.soknadId === id)).length} forsvant`);
 
   /*
-   * 5. prosessdefinisjoner.json, created. Same missing queue, and this is the
+   * 6. Five SUBMIT calls against one økt must cross one boundary around the
+   * status check, downstream side effects and the FULLFORT transition. Exactly
+   * one call succeeds; the rest see the saved closed status.
+   */
+  services.push(start("fiks", "apps/fiks-simulator/src/server.ts", { ...env, PORT: String(fiksPort) }));
+  await waitForHealth(fiksUrl);
+
+  const submitIds = ids.slice(0, 3);
+  const prepared = await Promise.all(submitIds.map(async (id: string, i: number) => {
+    const route = `/api/prosessoekter/${id}`;
+    const next = await call(`${route}/neste`, tokens[i], { method: "POST" });
+    if (next.status !== 200 || next.body?.aktivtSteg?.type !== "SUMMARY") {
+      throw new Error(`Økten nådde ikke SUMMARY: ${JSON.stringify(next)}`);
+    }
+    const summary = await call(`${route}/handling`, tokens[i], { method: "POST", body: {} });
+    if (summary.status !== 200 || !summary.body?.resultat?.tekst) {
+      throw new Error(`SUMMARY ble ikke fullført: ${JSON.stringify(summary)}`);
+    }
+    return call(`${route}/neste`, tokens[i], { method: "POST" });
+  }));
+  check("tre økter når SUBMIT etter fullført SUMMARY",
+    prepared.every((svar) => svar.status === 200 && svar.body?.aktivtSteg?.type === "SUBMIT"),
+    prepared.map((svar) => svar.status).join(","));
+
+  const sporingsId = created[0].body.sporingsId;
+  const samtidigeSubmit = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      call(`/api/prosessoekter/${submitIds[0]}/handling`, tokens[0], { method: "POST", body: {} })
+    )
+  );
+  const vellykkedeSubmit = samtidigeSubmit.filter((svar) => svar.status === 200);
+  const avvisteSubmit = samtidigeSubmit.filter((svar) => svar.status === 400);
+  check("nøyaktig ett av fem samtidige SUBMIT-kall gir 200",
+    vellykkedeSubmit.length === 1,
+    samtidigeSubmit.map((svar) => svar.status).join(","));
+  check("de fire senere SUBMIT-kallene gir den dokumenterte 400-feilen",
+    avvisteSubmit.length === 4 &&
+      avvisteSubmit.every((svar) => svar.body?.feil === "Prosessøkten er avsluttet og kan ikke fortsette."),
+    JSON.stringify(avvisteSubmit.map((svar) => svar.body)));
+
+  const submitSoknader = (await readRows(soknadFile)).filter((soknad) => soknad.sporingsId === sporingsId);
+  const submitSoknadIds = new Set(submitSoknader.map((soknad) => soknad.soknadId));
+  const submitOppgaver = (await readRows(oppgaveFile)).filter((oppgave) => oppgave.sporingsId === sporingsId);
+  const submitForsendelser = (await readRows(forsendelseFile))
+    .filter((forsendelse) => submitSoknadIds.has(forsendelse.eksternReferanse));
+  const alleRevisjoner = await readRows(revisjonFile);
+  const submitRevisjoner = alleRevisjoner.filter((rad) => rad.sporingsId === sporingsId);
+  check("fem samtidige SUBMIT-kall lagrer én søknad", submitSoknader.length === 1, String(submitSoknader.length));
+  check("fem samtidige SUBMIT-kall oppretter én Fiks-oppgave", submitOppgaver.length === 1, String(submitOppgaver.length));
+  check("fem samtidige SUBMIT-kall sender én forsendelse", submitForsendelser.length === 1, String(submitForsendelser.length));
+  for (const handling of ["SOKNAD_SENDT_INN", "OPPGAVE_OPPRETTET"]) {
+    const antall = submitRevisjoner.filter((rad) => rad.handling === handling).length;
+    check(`fem samtidige SUBMIT-kall gir én ${handling}`, antall === 1, String(antall));
+  }
+  const submitForsendelseIds = new Set(submitForsendelser.map((forsendelse) => forsendelse.id));
+  const senderevisjoner = alleRevisjoner.filter((rad) =>
+    rad.handling === "FORSENDELSE_SENDT" && submitForsendelseIds.has(rad.grunnlag?.id)
+  );
+  check("fem samtidige SUBMIT-kall gir én FORSENDELSE_SENDT", senderevisjoner.length === 1,
+    String(senderevisjoner.length));
+  const submitOekt = (await readRows(oektFile)).find((oekt) => oekt.oektsId === submitIds[0]);
+  check("SUBMIT-økten lagres som FULLFORT", submitOekt?.status === "FULLFORT", String(submitOekt?.status));
+
+  const senereSubmit = await call(
+    `/api/prosessoekter/${submitIds[0]}/handling`,
+    tokens[0],
+    { method: "POST", body: {} }
+  );
+  check("et senere SUBMIT-kall får samme stabile 400-feil",
+    senereSubmit.status === 400 &&
+      senereSubmit.body?.feil === "Prosessøkten er avsluttet og kan ikke fortsette.",
+    JSON.stringify(senereSubmit));
+
+  const ulikeSubmit = await Promise.all(
+    submitIds.slice(1).map((id: string, i: number) =>
+      call(`/api/prosessoekter/${id}/handling`, tokens[i + 1], { method: "POST", body: {} })
+    )
+  );
+  check("SUBMIT på to forskjellige økter kan lykkes samtidig",
+    ulikeSubmit.every((svar) => svar.status === 200),
+    ulikeSubmit.map((svar) => svar.status).join(","));
+  const ulikeSporingsIder = new Set(created.slice(1, 3).map((svar) => svar.body.sporingsId));
+  const ulikeSoknader = (await readRows(soknadFile))
+    .filter((soknad) => ulikeSporingsIder.has(soknad.sporingsId));
+  check("begge forskjellige økter lagrer hver sin søknad", ulikeSoknader.length === 2, String(ulikeSoknader.length));
+
+  /*
+   * 7. prosessdefinisjoner.json, created. Same missing queue, and this is the
    * file the prosessbygger saves to - the one a team edits live during the
    * workshop while someone else is demoing.
    *
@@ -261,7 +651,7 @@ try {
     JSON.stringify({ formatVersion: katalog.formatVersion, beskrivelse: katalog.beskrivelse }));
 
   /*
-   * 6. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
+   * 8. prosessdefinisjoner.json, updated. PUT is what «Lagre» in the
    * prosessbygger actually calls, and it sends the whole prosess - so a merge
    * onto a stale copy of the katalog undoes whatever the other save added.
    */
@@ -283,7 +673,11 @@ try {
     etterPut.prosesser.length === foerProsesser.length + COUNT,
     String(etterPut.prosesser.length));
 } finally {
+  releaseSummary();
   for (const service of services) service.kill("SIGTERM");
+  await new Promise<void>((resolve, reject) => {
+    aiServer.close((error) => error ? reject(error) : resolve());
+  });
   await rm(stateDir, { recursive: true, force: true });
 }
 

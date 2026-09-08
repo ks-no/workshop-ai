@@ -27,7 +27,7 @@ Hele befolkningen i sandkassen, generert fra `data/personer.json`. `pnpm test` f
 | Med inntektsopplysninger | 280 |
 | Med registrert eiendom | 219 |
 
-Aldrene er regnet ved `satser.gjelderFra`, ikke ved dagens dato - samme referansedato som reglene bruker, så en testperson gir samme utfall uansett når demoen kjøres.
+Aldrene er regnet ved `satser.gjelderFra` (2026-08-01), ikke ved dagens dato. Samme fryste dato brukes når reglene vurderer gyldigheten til legeerklæringer og alderen på politiattester. Et dokument som er utløpt på workshopdagen 8. september 2026 kan derfor fortsatt godtas i demoen. Dette er en testforenkling, ikke en vurdering av gyldigheten i dag. Samtykker og token utløper derimot etter den løpende klokken. Se [referansedatoen](syntetiske-data.md#fryst-referansedato).
 
 ### Personstatus
 

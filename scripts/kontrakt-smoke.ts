@@ -21,11 +21,12 @@
 //
 // Runs on its own ports against its own STATE_DIR, so it can run alongside docker
 // compose without touching the shared runtime state in state/.
-// ai-gateway is started too, so stottekontaktflyt's innvilget case can reach
+// ai-gateway is started too, so stottekontakt and fartsdemping can reach
 // SUMMARY and SUBMIT. It runs with no AI_PROVIDER set, so /ai/oppsummering
 // answers with the deterministic mock template - no network call, no flakiness.
 
 import { spawn } from "node:child_process";
+import assert from "node:assert/strict";
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
 import { FOLKEREGISTERROLLER } from "../apps/fiks-simulator/src/folkeregister.ts";
 import { createServer } from "node:http";
@@ -360,7 +361,7 @@ async function foreldrebetalingsflyt(
 // Fritidskort is the only ordning outside barnehage and SFO, and the only one that
 // scopes by the child's age rather than by school year. Two people, so the dump
 // carries both outcomes: person-028 is under the threshold, person-008 over it.
-async function fritidskortflyt(personId: string, merkelapp: string) {
+async function fritidskortflyt(personId: string, merkelapp: string, forventetGrunnlag?: number) {
   const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "fritidskort-stotte" }
@@ -387,6 +388,41 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
   await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
   await call(`${merkelapp}-fritid`, `/api/personer/${personId}/fritid`);
+  if (forventetGrunnlag !== undefined) {
+    const inntekt = await call(`${merkelapp}-grunnlag`, `/api/personer/${personId}/inntekt`);
+    const sjekk = await call(`${merkelapp}-vedtak`, `/api/regler/sjekk/ordning?personId=${personId}&ordning=fritidskort-stotte`);
+    // Et avslag alene skjulte at Fiks manglet ektefellens år. Både grunnlaget
+    // og fraværet av feil må stemme før utfallet kan kalles et inntektsavslag.
+    if (inntekt.feilmeldinger?.length !== 0 ||
+        inntekt.inntektsaar !== 2025 ||
+        inntekt.beregningsbeloep !== forventetGrunnlag ||
+        sjekk.godkjent !== false ||
+        sjekk.grunnlag?.feilkode ||
+        sjekk.grunnlag?.beregningsbeloep !== forventetGrunnlag) {
+      throw new Error(`${personId}: forventet et inntektsavslag på ${forventetGrunnlag}, ikke manglende data.`);
+    }
+  }
+}
+
+async function manglendeInntektsaar(stateDir: string) {
+  const personer = JSON.parse(await readFile(path.join(repoRoot, "data/personer.json"), "utf8"));
+  const inntekter = JSON.parse(await readFile(path.join(repoRoot, "data/inntekter.json"), "utf8"));
+  const fnr = personer.find((p: any) => p.personId === "person-058").syntetiskFodselsnummer;
+  // Bare den ene foresattes rad flyttes. Et felles historisk år må ikke velges
+  // i stillhet, og en delsum må ikke presenteres som hele husstandsinntekten.
+  const blandet = inntekter.map((rad: any) =>
+    rad.identifikator === fnr ? { ...rad, inntektsaar: 2026 } : rad);
+  const stateFile = path.join(stateDir, "inntekter.json");
+  await writeFile(stateFile, JSON.stringify(blandet));
+  try {
+    const svar = await call("blandede-aar-feil", "/api/regler/sjekk/ordning?personId=person-058&ordning=fritidskort-stotte");
+    if (svar.godkjent !== false || svar.grunnlag?.feilkode !== "INGEN_SKATTEOPPGJOER_FUNNET" ||
+        !svar.melding?.includes("2026") || svar.grunnlag?.beregningsbeloep !== undefined) {
+      throw new Error("Blandede inntektsår må gi en uttrykkelig datafeil, ikke et beregnet inntektsavslag.");
+    }
+  } finally {
+    await rm(stateFile);
+  }
 }
 
 // Støttekontakt is the only ordning assessed on need rather than money, and the
@@ -433,8 +469,7 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
 
   if (!tilSubmit) return;
 
-  // The only flow in this script reaching SUMMARY and SUBMIT - everything else
-  // deliberately stops earlier. Pins the soknadsdokument field alongside the
+  // Pins the soknadsdokument field alongside the
   // deterministic mock oppsummeringstekst it embeds, and the SvarUt kvittering
   // the same step sends.
   await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
@@ -456,11 +491,11 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
   await call(`${merkelapp}-forsendelse`, `/api/soknader/${soknadId}/forsendelse`, { somPerson: personId });
 }
 
-// The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
-// without answering it. The samtykke gate lives in the resource catalogue, not in
-// the step, so the 403 has to reach the caller through POST /handling unchanged -
-// that relay is what this pins, and the direct-route 403 in kontaktinfoOppslag
-// cannot say anything about it.
+// The other half of the flow above: a citizen who answers no to the
+// CONSENT_REQUEST. The decision completes the consent step, but grants no access.
+// The samtykke gate lives in the resource catalogue, so the 403 has to reach the
+// caller through POST /handling unchanged - that relay is what this pins, and the
+// direct-route 403 in kontaktinfoOppslag cannot say anything about it.
 //
 // person-022 is used nowhere else in this script, so no other flow can leave a
 // kontaktinfo samtykke behind and quietly turn this 403 into a 200.
@@ -471,11 +506,24 @@ async function stottekontaktUtenSamtykke(merkelapp: string) {
   });
   const id = oekt.oektsId;
 
-  // Straight to hent-kontaktinfo: /neste only moves stegIndex, so the samtykke
-  // step is passed over rather than run.
-  for (const nummer of [1, 2, 3]) {
-    await call(`${merkelapp}-neste-${nummer}`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  }
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-situasjon`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: {
+      stegId: "situasjon",
+      svar: { beskrivelse: "Vil ikke dele kontaktopplysninger", onskerKontakt: "nei" }
+    }
+  });
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }
+  });
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   // A refused step leaves the økt open - withSession saves nothing when the
   // handler throws - so the citizen can go back and consent.
@@ -501,6 +549,57 @@ async function fartsdempingsflyt(gate: string, merkelapp: string) {
   await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-sjekk-eier`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
+  return id;
+}
+
+async function fartsdempingsdokument(stateDir: string) {
+  const trafikkproblem = "Høy fart ved skoleveien.";
+  const oensketTiltak = "Fartshumper";
+  for (const [navn, bekreftelse, boligsetning] of [
+    ["skjema-ja", { merEnn20Boliger: "Ja" }, "Søker opplyser at gaten har mer enn 20 boliger."],
+    ["fritekst-nei", "Nei, det er ikke riktig", "Søker opplyser at gaten ikke har mer enn 20 boliger."],
+    ["skjema-ukjent", { merEnn20Boliger: "Vet ikke" }, "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["usikkert-ja", "Ja, kanskje, jeg vet ikke sikkert.", "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["usikkert-nei", "Nei, jeg vet ikke om det er mer enn20 boliger.", "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["motsigende-ja", "Ja, det er ikke mer enn20 boliger.", "Det er ikke avklart om gaten har mer enn 20 boliger."]
+  ] as const) {
+    const merkelapp = `fartsdemping-${navn}`;
+    const id = await fartsdempingsflyt("Storgata", merkelapp);
+    await call(`${merkelapp}-neste-4`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+    await call(`${merkelapp}-svar-boliger`, `/api/prosessoekter/${id}/svar`, {
+      method: "POST", body: { stegId: "boliger-bekreft", svar: bekreftelse }
+    });
+    await call(`${merkelapp}-neste-5`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+    await call(`${merkelapp}-svar-begrunnelse`, `/api/prosessoekter/${id}/svar`, {
+      method: "POST", body: { stegId: "begrunnelse", svar: { trafikkproblem, oensketTiltak } }
+    });
+    await call(`${merkelapp}-neste-6`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+    const oppsummering = await call(`${merkelapp}-oppsummering`, `/api/prosessoekter/${id}/handling`, {
+      method: "POST", body: {}
+    });
+    await call(`${merkelapp}-neste-7`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+    const innsending = await call(`${merkelapp}-send-inn`, `/api/prosessoekter/${id}/handling`, {
+      method: "POST", body: {}
+    });
+    const soknadId = innsending.resultat?.soknadId;
+    assert.equal(typeof soknadId, "string", `${merkelapp}: søknaden ble ikke sendt inn`);
+    const soknad = await call(`${merkelapp}-soknad`, `/api/soknader/${soknadId}`, { somPerson: "person-001" });
+    const lagret = JSON.parse(await readFile(path.join(stateDir, "soknader.json"), "utf8")) as {
+      soknadId: string; soknadsdokument?: string
+    }[];
+    const dokument = lagret.find((rad) => rad.soknadId === soknadId)?.soknadsdokument;
+    assert.equal(typeof dokument, "string", `${merkelapp}: søknadsdokumentet mangler på disk`);
+    assert.equal(dokument, soknad.soknadsdokument, `${merkelapp}: dokumentet på disk og over HTTP er ulikt`);
+    assert.ok(dokument?.includes(`Oppsummering:\n${oppsummering.resultat?.tekst}`),
+      `${merkelapp}: oppsummeringen mangler i dokumentet`);
+    for (const tekst of [oppsummering.resultat?.tekst, dokument?.split("Oppsummering:\n")[1]]) {
+      assert.equal(typeof tekst, "string", `${merkelapp}: oppsummeringen mangler`);
+      assert.ok(tekst.includes(boligsetning), `${merkelapp}: feil boligbekreftelse: ${tekst}`);
+      assert.ok(tekst.includes(`Begrunnelse fra søker: ${trafikkproblem}`), `${merkelapp}: trafikkproblemet mangler`);
+      assert.ok(tekst.includes(`Ønsket tiltak: ${oensketTiltak}`), `${merkelapp}: ønsket tiltak mangler`);
+      assert.ok(!tekst.includes("[object Object]"), `${merkelapp}: skjemasvar ble objekttekst`);
+    }
+  }
 }
 
 async function soknadOgRevisjon() {
@@ -988,6 +1087,15 @@ async function run() {
     });
     await fritidskortflyt("person-028", "fritidskort-innvilget");
     await fritidskortflyt("person-008", "fritidskort-avslag");
+    for (const [personId, grunnlag] of [
+      ["person-058", 1060000],
+      ["person-096", 969000],
+      ["person-233", 1210000],
+      ["person-348", 1560000]
+    ] as const) {
+      await fritidskortflyt(personId, `fritidskort-utkast-${personId}`, grunnlag);
+    }
+    await manglendeInntektsaar(stateDir);
     await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
     // person-218 has kode 7 and is reservert in KRR: no digital channel, and
@@ -1024,6 +1132,7 @@ async function run() {
     await vandelsflyt("person-207", "stottekontakt", "vandel-mangler-attest");
     await fartsdempingsflyt("Storgata", "fartsdemping-eier");
     await fartsdempingsflyt("Fjøsangerveien", "fartsdemping-ikke-eier");
+    await fartsdempingsdokument(stateDir);
     await soknadOgRevisjon();
     await krrOppslag();
     await folkeregisterOppslag();

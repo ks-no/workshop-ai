@@ -416,9 +416,10 @@ datasettene i `evals/`, med terskel per datasett og exit≠0 under. Den krever e
 kjørende modell og nekter å score maltekst. Ta en baseline før du endrer, og
 sammenlign etterpå - se `evals/README.md`.
 
-Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl`,
-`test:matrikkel-mock`, `test:tools-matrikkel`, `test:agent:matrikkel`,
-`test:bergen-matrikkel`.
+Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl` og
+`test:bergen-matrikkel`. `test:agent:dialog` starter egne tjenester med KI-mock
+og kjører de to agenttestene helt til lagret søknad. `test:matrikkel-mock`,
+`test:tools-matrikkel` og `test:agent:matrikkel` starter også sine egne tjenester.
 
 Bulk-smoketesten mot matrikkel-mocken sampler 40 gater og 25 adresser fra
 seed-datasettet:
