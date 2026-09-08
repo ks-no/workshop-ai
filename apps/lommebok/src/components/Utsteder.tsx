@@ -16,9 +16,13 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [lasterPersoner, setLasterPersoner] = useState<boolean>(true);
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
+  // Status for utstedelsesprosess
+  const [lasterUtstedelse, setLasterUtstedelse] = useState<boolean>(false);
+  const [utstederStatus, setUtstederStatus] = useState<string | null>(null);
+
   // Resultat etter utstedelse
   const [issuerUrl, setIssuerUrl] = useState<string>(
-    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/pid"
+    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
   );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
   const [utstedtData, setUtstedtData] = useState<any | null>(null);
@@ -57,7 +61,6 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
     } else {
       setValgtPerson(null);
     }
-    // Nullstill tidligere utstedelse ved endring
     setUtstedtOfferUri(null);
   };
 
@@ -80,70 +83,87 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const valgtBevis = CREDENTIAL_DEFINITIONS[valgtBevisId];
   const eksempelData = valgtPerson ? valgtBevis.lagEksempelData(valgtPerson) : null;
 
-  // Utsted bevis-funksjon
-  const handleUtsted = () => {
+  // Utsted bevis-funksjon: kaller /api/utsted som oppretter reell pre-authorization i testmiljøet
+  const handleUtsted = async () => {
     if (!valgtPerson) return;
+    setLasterUtstedelse(true);
+    setFeilmelding(null);
+    setUtstederStatus("Oppretter gyldig issuance transaction i testmiljøet...");
 
-    const baseIssuer = issuerUrl.replace(/\/$/, "");
-    const transactionId = `tx-issue-${Date.now()}`;
-    const preAuthCode = `code-${Math.random().toString(36).substring(2, 10)}`;
+    try {
+      const res = await fetch("/api/utsted", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          credentialConfigurationId: valgtBevis.credentialConfigurationId,
+          personIdentifier: valgtPerson.syntetiskFodselsnummer,
+          credentialIssuer: issuerUrl,
+          credentialData: eksempelData
+        })
+      });
 
-    const credentialOffer = {
-      credential_issuer: baseIssuer,
-      credential_configuration_ids: [valgtBevis.credentialConfigurationId],
-      grants: {
-        "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-          "pre-authorized_code": preAuthCode,
-          user_pin_required: false
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.detaljer || data.error || `HTTP ${res.status}`);
       }
-    };
 
-    const offerEncoded = encodeURIComponent(JSON.stringify(credentialOffer));
-    const offerUri = `openid-credential-offer://?credential_offer=${offerEncoded}`;
+      setUtstedtOfferUri(data.credentialOfferUri);
+      setUtstedtData({
+        transactionId: data.issuanceTransactionId,
+        bevisType: valgtBevis.tittel,
+        mottaker: `${valgtPerson.visningsnavn} (${valgtPerson.syntetiskFodselsnummer})`,
+        claims: eksempelData,
+        credentialOffer: data.credentialOffer,
+        preAuthorizedCode: data.preAuthorizedCode,
+        txCode: data.txCode,
+        qrCodeDataUri: data.qrCodeDataUri,
+        statusEndpoint: data.statusEndpoint
+      });
 
-    setUtstedtOfferUri(offerUri);
-    setUtstedtData({
-      transactionId,
-      bevisType: valgtBevis.tittel,
-      mottaker: `${valgtPerson.visningsnavn} (${valgtPerson.syntetiskFodselsnummer})`,
-      claims: eksempelData,
-      credentialOffer
-    });
-
-    // Bygg API-kalltrace og curl for deltakere
-    const requestBody = {
-      credential_issuer: baseIssuer,
-      credential_configuration_id: valgtBevis.credentialConfigurationId,
-      subject: {
-        identifier: valgtPerson.syntetiskFodselsnummer
-      },
-      credential_data: eksempelData
-    };
-
-    const curl = `curl -X POST "${baseIssuer}/api/v1/credential/issuance-transaction" \\
+      const baseIssuer = issuerUrl.replace(/\/$/, "");
+      const curl = `curl -X POST "${baseIssuer}/api/v1/credential/issuance-transaction" \\
   -H "Content-Type: application/json" \\
   -H "X-API-KEY: KS-HACKATHON" \\
-  -d '${JSON.stringify(requestBody, null, 2)}'`;
+  -d '${JSON.stringify({
+    credential_issuer: baseIssuer,
+    credential_configuration_id: valgtBevis.credentialConfigurationId,
+    subject: { identifier: valgtPerson.syntetiskFodselsnummer },
+    credential_data: eksempelData
+  }, null, 2)}'`;
 
-    onLogApiCall({
-      id: transactionId,
-      tittel: `Utsted: ${valgtBevis.tittel}`,
-      tidspunkt: new Date().toLocaleTimeString("nb-NO"),
-      metode: "POST",
-      url: `${baseIssuer}/api/v1/credential/issuance-transaction`,
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-KEY": "KS-HACKATHON"
-      },
-      requestBody,
-      responseStatus: 202,
-      responseBody: {
-        issuance_transaction_id: transactionId,
-        credential_offer: credentialOffer
-      },
-      curl
-    });
+      onLogApiCall({
+        id: data.issuanceTransactionId,
+        tittel: `Utsted (Pre-auth): ${valgtBevis.tittel}`,
+        tidspunkt: new Date().toLocaleTimeString("nb-NO"),
+        metode: "POST",
+        url: `${baseIssuer}/api/v1/credential/issuance-transaction`,
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": "KS-HACKATHON"
+        },
+        requestBody: {
+          credential_issuer: baseIssuer,
+          credential_configuration_id: valgtBevis.credentialConfigurationId,
+          subject: { identifier: valgtPerson.syntetiskFodselsnummer },
+          credential_data: eksempelData
+        },
+        responseStatus: 200,
+        responseBody: {
+          issuance_transaction_id: data.issuanceTransactionId,
+          pre_authorized_code: data.preAuthorizedCode,
+          credential_offer: data.credentialOffer
+        },
+        curl
+      });
+    } catch (err: any) {
+      console.error("Feil ved utstedelse:", err);
+      setFeilmelding(`Kunne ikke opprette utstedelse i testmiljøet: ${err.message}`);
+    } finally {
+      setLasterUtstedelse(false);
+      setUtstederStatus(null);
+    }
   };
 
   const kopierLenke = () => {
@@ -277,10 +297,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 setIssuerUrl(e.target.value);
                 setUtstedtOfferUri(null);
               }}
-              placeholder="https://utsteder.test.eidas2sandkasse.net/pid"
+              placeholder="https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
             />
             <small style={{ color: "#666", display: "block", marginTop: "0.25rem" }}>
-              Standard i testmiljøet: <code>https://utsteder.test.eidas2sandkasse.net/pid</code> (for PID) eller <code>https://utsteder.test.eidas2sandkasse.net/bevisgenerator</code> (for øvrige bevis).
+              Standard i testmiljøet: <code>https://utsteder.test.eidas2sandkasse.net/bevisgenerator</code>.
             </small>
           </div>
         </div>
@@ -290,9 +310,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
             type="button"
             className="btn btn-primary"
             onClick={handleUtsted}
-            disabled={!valgtPerson || lasterPersoner}
+            disabled={!valgtPerson || lasterPersoner || lasterUtstedelse}
           >
-            Utsted bevis til lommebok
+            {lasterUtstedelse ? (utstederStatus || "Oppretter utstedelse...") : "Utsted bevis til lommebok"}
           </button>
         </div>
       </div>
@@ -301,17 +321,31 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         <div className="card result-card">
           <h2>3. Skann QR-kode med lommeboken</h2>
           <p className="description">
-            QR-koden er klar fra utsteder-tjenesten. Åpne din EUDI Wallet / digitale lommebok og skann koden for å motta beviset:
+            QR-koden er registrert hos testmiljøets autorisasjonsserver med en gyldig <code>pre-authorized_code</code>. Åpne din EUDI Wallet / digitale lommebok og skann koden for å motta beviset:
           </p>
+
+          {utstedtData.txCode && (
+            <div className="alert alert-info" style={{ marginBottom: "1rem" }}>
+              ℹ️ <strong>PIN/SMS-kode:</strong> Hvis lommeboken ber om en 4-sifret kode, tast inn en vilkårlig 4-sifret kode (f.eks. <code>1234</code>) ettersom testmiljøet godtar alle koder.
+            </div>
+          )}
 
           <div className="qr-container">
             <div className="qr-box">
-              <QRCodeSVG
-                value={utstedtOfferUri}
-                size={240}
-                level="M"
-                includeMargin={true}
-              />
+              {utstedtData.qrCodeDataUri ? (
+                <img
+                  src={utstedtData.qrCodeDataUri}
+                  alt="QR-kode for bevis"
+                  style={{ width: 240, height: 240, display: "block" }}
+                />
+              ) : (
+                <QRCodeSVG
+                  value={utstedtOfferUri}
+                  size={240}
+                  level="M"
+                  includeMargin={true}
+                />
+              )}
             </div>
             <div className="qr-details">
               <div className="detail-line">
@@ -325,6 +359,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
               <div className="detail-line">
                 <span className="detail-label">Transaksjon:</span>
                 <code>{utstedtData.transactionId}</code>
+              </div>
+              <div className="detail-line">
+                <span className="detail-label">Pre-auth kode:</span>
+                <code style={{ wordBreak: "break-all" }}>{utstedtData.preAuthorizedCode || "Aktiv"}</code>
               </div>
               <div className="detail-line">
                 <span className="detail-label">Protokoll:</span>
