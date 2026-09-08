@@ -15,7 +15,9 @@
  *      samtykkets formaal og grunnlag.
  *   3. Motor-stien (fartsdempende-tiltak) logger SJEKK_OK uten DATA_LES for
  *      sjekk-ressursen - og DATA_FETCH-steget logger fortsatt sin.
- *   4. Et trukket samtykke tar inntekten ut av økten, og gjenlesingen logges.
+ *   4. Et trukket samtykke tar inntekten ut av økten, også etter at prosessen endres.
+ *   5. Eldre økter uten kildemetadata bruker kjente steg, men ukjente resultater
+ *      holdes tilbake.
  */
 
 import { spawn } from "node:child_process";
@@ -26,7 +28,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getInnbyggerToken, getMaskinportenToken } from "../apps/digdir-mock/src/client.ts";
-import { resultaterNaa } from "../apps/sandbox-backend/src/prosess.ts";
+import { frysResultatKilder, resultaterNaa } from "../apps/sandbox-backend/src/prosess.ts";
+import { normalizeProsessoekt } from "../apps/sandbox-backend/src/state.ts";
 import { feilkode, feilmelding } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -235,10 +238,18 @@ async function motorFartsdemping(token: string) {
  * av svaret - både DATA_FETCH-resultatet og vilkårsgrunnlaget, som bærer det samme
  * beløpet - og gjenlesingen skal ha en rad, slik en direkte lesing har.
  */
-async function trukketSamtykkeTommerOekten() {
+async function trukketSamtykkeTommerOekten(stateDir: string) {
   // En annen person enn de tre foran: person-001 har alt et gyldig inntektssamtykke
   // fra §2, og da er det riktige svaret at inntekten blir stående.
   const token = await innbyggerAuth("person-003");
+  const prosessSvar = await kall(
+    backendUrl,
+    "/api/prosesser/redusert-foreldrebetaling-barnehage",
+    ""
+  );
+  check("prosessdefinisjonen kan leses før endringstesten",
+    prosessSvar.status === 200, `status ${prosessSvar.status}`);
+  const opprinneligProsess = prosessSvar.kropp;
   const opprettet = await kall(backendUrl, "/api/prosessoekter", token, {
     method: "POST",
     body: { personId: "person-003", prosessId: "redusert-foreldrebetaling-barnehage" }
@@ -266,6 +277,26 @@ async function trukketSamtykkeTommerOekten() {
   await kall(backendUrl, `/api/prosessoekter/${id}/neste`, token, { method: "POST" });
   const inntekt = await kall(backendUrl, `/api/prosessoekter/${id}/handling`, token, { method: "POST", body: {} });
   check("inntektssteget svarer 200", inntekt.status === 200, `status ${inntekt.status}`);
+  check(
+    "intern kildemetadata blir ikke eksponert i øktsvaret",
+    !("resultatKilder" in (inntekt.kropp?.oekt || {}))
+      && !("resultatKilderFrosset" in (inntekt.kropp?.oekt || {})),
+    JSON.stringify(Object.keys(inntekt.kropp?.oekt || {}))
+  );
+  const lagredeOekter = JSON.parse(
+    await readFile(path.join(stateDir, "prosessoekter.json"), "utf8")
+  );
+  const lagretOekt = lagredeOekter.find((kandidat: any) => kandidat.oektsId === id);
+  check(
+    "inntektsresultatet lagrer kilden som gjaldt da det ble hentet",
+    JSON.stringify(lagretOekt?.resultatKilder?.["hent-inntekt"]) === JSON.stringify(["inntekt"]),
+    JSON.stringify(lagretOekt?.resultatKilder)
+  );
+  check(
+    "kjent ubeskyttet resultat lagres med tom kildeliste",
+    JSON.stringify(lagretOekt?.resultatKilder?.["hent-husstand"]) === JSON.stringify([]),
+    JSON.stringify(lagretOekt?.resultatKilder)
+  );
 
   const foer = await kall(backendUrl, `/api/prosessoekter/${id}`, token);
   check(
@@ -330,6 +361,62 @@ async function trukketSamtykkeTommerOekten() {
     JSON.stringify(etter.kropp?.resultater?.["sjekk-rett"]?.grunnlag)
   );
 
+  const husstandSteg = opprinneligProsess.steg.find((steg: any) => steg.id === "hent-husstand");
+  const endretProsess = {
+    ...opprinneligProsess,
+    steg: opprinneligProsess.steg.map((steg: any) =>
+      steg.id === "hent-inntekt" ? { ...husstandSteg, id: "hent-inntekt" } : steg
+    )
+  };
+  const endret = await kall(
+    backendUrl,
+    "/api/prosesser/redusert-foreldrebetaling-barnehage",
+    "",
+    { method: "PUT", body: endretProsess }
+  );
+  check("det beskyttede steget kan endres i prosessbyggeren",
+    endret.status === 200, `status ${endret.status}`);
+  const etterEndring = await kall(backendUrl, `/api/prosessoekter/${id}`, token);
+  check(
+    "lagret inntekt forblir beskyttet når steget endres til en ubeskyttet kilde",
+    etterEndring.kropp?.resultater?.["hent-inntekt"] === undefined,
+    JSON.stringify(etterEndring.kropp?.resultater)
+  );
+
+  const fjernetProsess = {
+    ...opprinneligProsess,
+    steg: opprinneligProsess.steg.filter(
+      (steg: any) => steg.id !== "hent-inntekt" && steg.id !== "hent-husstand"
+    )
+  };
+  const fjernet = await kall(
+    backendUrl,
+    "/api/prosesser/redusert-foreldrebetaling-barnehage",
+    "",
+    { method: "PUT", body: fjernetProsess }
+  );
+  check("resultatstegene kan fjernes i prosessbyggeren",
+    fjernet.status === 200, `status ${fjernet.status}`);
+  const etterFjerning = await kall(backendUrl, `/api/prosessoekter/${id}`, token);
+  check(
+    "lagret inntekt forblir beskyttet når steget fjernes",
+    etterFjerning.kropp?.resultater?.["hent-inntekt"] === undefined,
+    JSON.stringify(etterFjerning.kropp?.resultater)
+  );
+  check(
+    "lagret kjent ubeskyttet resultat står når steget fjernes",
+    etterFjerning.kropp?.resultater?.["hent-husstand"] !== undefined,
+    JSON.stringify(etterFjerning.kropp?.resultater)
+  );
+
+  const gjenopprettet = await kall(
+    backendUrl,
+    "/api/prosesser/redusert-foreldrebetaling-barnehage",
+    "",
+    { method: "PUT", body: opprinneligProsess }
+  );
+  check("prosessdefinisjonen gjenopprettes etter endringstesten",
+    gjenopprettet.status === 200, `status ${gjenopprettet.status}`);
 }
 
 /*
@@ -421,7 +508,9 @@ async function oppsummeringenGatesAvKildeneSine() {
     "hent-husstand": { type: "ENSLIG_FORSORGER" },
     "hent-inntekt": { beregningsbeloep: 485000 },
     "sjekk-rett": { grunnlag: { beregningsbeloep: 485000 } },
-    oppsummering: { tekst: "Inntektsgrunnlag 2025: 485 000 kr." }
+    oppsummering: { tekst: "Inntektsgrunnlag 2025: 485 000 kr." },
+    "send-inn": { status: "SENDT_INN" },
+    "historisk-ukjent": { beregningsbeloep: 485000 }
   };
   const oekt = {
     oektsId: "oekt-test", personId: "person-001", prosessId: prosess.id,
@@ -437,6 +526,100 @@ async function oppsummeringenGatesAvKildeneSine() {
   );
   check("oppsummeringen står så lenge kildene er samtykket",
     med.resultater.oppsummering !== undefined, JSON.stringify(Object.keys(med.resultater)));
+  check("eldre SUBMIT-resultat står så lenge kildene er samtykket",
+    med.resultater["send-inn"] !== undefined, JSON.stringify(Object.keys(med.resultater)));
+  check("eldre økt beholder kjent ubeskyttet resultat",
+    med.resultater["hent-husstand"] !== undefined, JSON.stringify(Object.keys(med.resultater)));
+  check("eldre økt holder tilbake resultat uten metadata og matchende steg",
+    med.resultater["historisk-ukjent"] === undefined, JSON.stringify(Object.keys(med.resultater)));
+
+  const migrertOekt = structuredClone(oekt);
+  check(
+    "eldre økt fryser kildene før prosessdefinisjonen endres",
+    frysResultatKilder(
+      { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+      migrertOekt,
+      prosess,
+      kaller
+    ),
+    JSON.stringify(migrertOekt.resultatKilder)
+  );
+  const husstandSteg = prosess.steg.find((steg: any) => steg.id === "hent-husstand");
+  const endretProsess = {
+    ...prosess,
+    steg: prosess.steg.map((steg: any) =>
+      steg.id === "hent-inntekt" ? { ...husstandSteg, id: "hent-inntekt" } : steg
+    ).concat([{ ...husstandSteg, id: "historisk-ukjent" }])
+  };
+  const migrertEtterEndring = resultaterNaa(
+    {
+      samtykker: [{ ...samtykke, status: "TRUKKET" }],
+      satser,
+      personer: [],
+      husstander: []
+    } as any,
+    migrertOekt,
+    endretProsess,
+    kaller
+  );
+  check(
+    "endret steg kan ikke omklassifisere eldre beskyttet resultat",
+    migrertEtterEndring.resultater["hent-inntekt"] === undefined,
+    JSON.stringify(Object.keys(migrertEtterEndring.resultater))
+  );
+  check(
+    "frosset kjent ubeskyttet resultat står etter steg-endring",
+    migrertEtterEndring.resultater["hent-husstand"] !== undefined,
+    JSON.stringify(Object.keys(migrertEtterEndring.resultater))
+  );
+  check(
+    "nytt steg med gammel id kan ikke omklassifisere ukjent historisk resultat",
+    migrertEtterEndring.resultater["historisk-ukjent"] === undefined,
+    JSON.stringify(Object.keys(migrertEtterEndring.resultater))
+  );
+
+  const duplikatProsess = {
+    ...prosess,
+    steg: [
+      { ...husstandSteg, id: "hent-inntekt" },
+      ...prosess.steg
+    ]
+  };
+  const duplikatResultat = resultaterNaa(
+    {
+      samtykker: [{ ...samtykke, status: "TRUKKET" }],
+      satser,
+      personer: [],
+      husstander: []
+    } as any,
+    oekt,
+    duplikatProsess,
+    kaller
+  );
+  check(
+    "duplikate steg-id-er kan ikke klassifisere eldre resultat som ubeskyttet",
+    duplikatResultat.resultater["hent-inntekt"] === undefined,
+    JSON.stringify(Object.keys(duplikatResultat.resultater))
+  );
+
+  const eldsteOekt = {
+    ...structuredClone(oekt),
+    resultater: structuredClone(resultaterRaa)
+  };
+  delete (eldsteOekt as any).resultaterRaa;
+  const normalisertEldste = normalizeProsessoekt(eldsteOekt as any);
+  frysResultatKilder(
+    { samtykker: [samtykke], satser, personer: [], husstander: [] } as any,
+    normalisertEldste,
+    prosess,
+    kaller
+  );
+  check(
+    "eldste resultater-felt migreres før kildene fryses",
+    normalisertEldste.resultatKilder["hent-inntekt"]?.[0] === "inntekt"
+      && normalisertEldste.resultatKilder["hent-husstand"]?.length === 0,
+    JSON.stringify(normalisertEldste.resultatKilder)
+  );
 
   for (const [navn, rad] of [
     ["trukket", { ...samtykke, status: "TRUKKET" }],
@@ -448,6 +631,10 @@ async function oppsummeringenGatesAvKildeneSine() {
     );
     check(`oppsummeringen er ute når samtykket er ${navn}`,
       uten.resultater.oppsummering === undefined, JSON.stringify(Object.keys(uten.resultater)));
+    check(`eldre SUBMIT-resultat er ute når samtykket er ${navn}`,
+      uten.resultater["send-inn"] === undefined, JSON.stringify(Object.keys(uten.resultater)));
+    check(`eldre ubeskyttet resultat står når samtykket er ${navn}`,
+      uten.resultater["hent-husstand"] !== undefined, JSON.stringify(Object.keys(uten.resultater)));
   }
 }
 
@@ -494,7 +681,7 @@ async function run() {
     await direkteEierforhold(fnr, token);
     await direkteRegelsjekk(fnr, token);
     await motorFartsdemping(token);
-    await trukketSamtykkeTommerOekten();
+    await trukketSamtykkeTommerOekten(stateDir);
     await flytenStopperNaarGrunnlagetErTrukket();
     await oppsummeringenGatesAvKildeneSine();
   } finally {

@@ -18,6 +18,7 @@ import type {
   Attestformaal,
   Attesttype
 } from "../../shared/politiattest.ts";
+import type { Datakilde } from "../../shared/samtykke.ts";
 
 // --- process model --------------------------------------------------------
 
@@ -118,7 +119,14 @@ export type Prosessoekt = {
    * lesing synlig. På wire heter feltet fortsatt `resultater`.
    */
   resultaterRaa: Record<string, unknown>;
-  aktivtSamtykkeId: string | null;
+   /**
+    * Samtykkekildene som gjaldt da hvert resultat ble lagret. En tom liste betyr
+    * kjent ubeskyttet; manglende metadata betyr ukjent og må behandles deretter.
+    */
+   resultatKilder: Record<string, Datakilde[]>;
+   /** Satt når alle eldre resultater er vurdert mot definisjonen som gjaldt før endring. */
+   resultatKilderFrosset?: boolean;
+   aktivtSamtykkeId: string | null;
   avvistMelding?: string;
   opprettet: string;
   oppdatert: string;

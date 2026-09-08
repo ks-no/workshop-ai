@@ -179,11 +179,14 @@ paths:
         - maskinporten: [ks:innbyggerdialog:les]
       description: >
         `resultater` er samtykkegatet på tidspunktet for lesing, ikke for
-        hentingen. Er samtykket trukket eller utløpt siden steget kjørte,
-        mangler nøkkelen - både for DATA_FETCH-steget og for SJEKK-steget som
-        bærer den samme opplysningen i grunnlaget sitt. Et resultat som ikke
-        krever samtykke står. Det samme gjelder svaret fra `/svar`,
-        `/handling`, `/neste` og `/forrige`.
+        hentingen. Kildene lagres internt sammen med resultatet, så porten
+        påvirkes ikke av at prosessdefinisjonen senere endres. Er samtykket
+        trukket eller utløpt siden steget kjørte, mangler nøkkelen - både for
+        DATA_FETCH-steget og for SJEKK-steget som bærer den samme opplysningen
+        i grunnlaget sitt. Et resultat som er kjent ubeskyttet står. Et eldre
+        resultat uten kildemetadata og uten et matchende steg holdes tilbake.
+        Det samme gjelder svaret fra `/svar`, `/handling`, `/neste` og
+        `/forrige`.
 
         Hver lesing som faktisk serverer en samtykkegatet kilde gir en
         `DATA_LES` i revisjonsloggen, én rad per kilde per økt.

@@ -14,6 +14,7 @@ import { buildAdvarsel, callUpstream, tryUpstream } from "./upstream.ts";
 import { alternativVerdi, alternativLabel } from "./types.ts";
 import { erKatalogsteg } from "./types.ts";
 import type { Katalogsteg } from "./types.ts";
+import { isDatakilde, type Datakilde } from "../../shared/samtykke.ts";
 import type {
   ProsessDefinisjon,
   ProsessSteg,
@@ -114,25 +115,26 @@ function replaceParametere(url: string, oekt: Prosessoekt) {
   return result;
 }
 
-// Katalogen håndhever samtykket, så kilden leses derfra og ikke fra stegets
+// Katalogen håndhever samtykket, så kildene leses derfra og ikke fra stegets
 // eget kreverSamtykke - to erklæringer kunne bare komme ut av takt.
 //
 // `erKatalogsteg` og ikke en liste over stegtyper: porten skal gjelde nøyaktig de
 // stegene getFraKatalog henter for. Med en liste var SJEKK glemt, og porten serverte
 // beregningsbeløpet videre under vilkårsstegets id.
-function samtykkekildeForSteg(
+function samtykkekilderForSteg(
   tilstand: State,
   oekt: Prosessoekt,
   steg: ProsessSteg | undefined,
   kaller: Caller
-): string | null {
-  if (!erKatalogsteg(steg)) return null;
+): Datakilde[] | null {
+  if (!steg) return null;
+  if (!erKatalogsteg(steg)) return [];
   const url = new URL(`http://localhost${replaceParametere(steg.api.url, oekt)}`);
   const treff = findRessurs(steg.api.method || "GET", url.pathname);
   if (!treff) return null;
   const { ressurs, parametere } = treff;
   const sok = url.searchParams;
-  return samtykkekildeFor(ressurs, {
+  const kilde = samtykkekildeFor(ressurs, {
     tilstand,
     parametere,
     sok,
@@ -144,36 +146,118 @@ function samtykkekildeForSteg(
     steg,
     kaller
   });
+  return kilde ? [kilde] : [];
+}
+
+// Eldre økter har ingen lagrede kilder for avledede steg. Så lenge definisjonen
+// fortsatt kjenner stegene, gir katalogen samme konservative kildeunion som før.
+function legacyKilderForAvledetResultat(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon | null,
+  kaller: Caller
+): Datakilde[] | null {
+  if (!prosess) return null;
+  const kilder = new Set<Datakilde>();
+  for (const steg of prosess?.steg || []) {
+    if (!erKatalogsteg(steg)) continue;
+    const stegkilder = samtykkekilderForSteg(tilstand, oekt, steg, kaller);
+    if (stegkilder === null) return null;
+    for (const kilde of stegkilder) kilder.add(kilde);
+  }
+  return [...kilder];
+}
+
+function lagredeKilderForResultat(oekt: Prosessoekt, stegId: string): Datakilde[] | null | undefined {
+  const metadata = oekt.resultatKilder as unknown;
+  if (metadata === undefined) return undefined;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const kilder = (metadata as Record<string, unknown>)[stegId];
+  if (kilder === undefined) return undefined;
+  if (!Array.isArray(kilder) || !kilder.every(
+    (kilde): kilde is Datakilde => typeof kilde === "string" && isDatakilde(kilde)
+  )) {
+    return null;
+  }
+  return [...new Set(kilder)];
+}
+
+function kilderForResultat(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon | null,
+  stegId: string,
+  kaller: Caller
+): Datakilde[] | null {
+  const lagrede = lagredeKilderForResultat(oekt, stegId);
+  if (lagrede !== undefined) return lagrede;
+  if (oekt.resultatKilderFrosset) return null;
+
+  const stegtreff = prosess?.steg?.filter((kandidat) => kandidat.id === stegId) || [];
+  if (stegtreff.length !== 1) return null;
+  const [steg] = stegtreff;
+  if (steg.type === "SUMMARY" || steg.type === "SUBMIT") {
+    return legacyKilderForAvledetResultat(tilstand, oekt, prosess, kaller);
+  }
+  return samtykkekilderForSteg(tilstand, oekt, steg, kaller);
+}
+
+function krevKjenteKilder(kilder: Datakilde[] | null, stegId: string): Datakilde[] {
+  if (kilder !== null) return kilder;
+  throw new HttpError(`Kunne ikke fastslå samtykkekildene for steget ${stegId}.`, 500);
+}
+
+function lagreResultat(
+  oekt: Prosessoekt,
+  stegId: string,
+  resultat: unknown,
+  kilder: readonly Datakilde[]
+): void {
+  oekt.resultaterRaa[stegId] = resultat;
+  oekt.resultatKilder ??= {};
+  oekt.resultatKilder[stegId] = [...new Set(kilder)];
+}
+
+/**
+ * Pins missing metadata before the process builder can replace its only legacy source.
+ *
+ * A missing entry after this pass stays missing on purpose: the historical step could
+ * not be resolved, so `resultaterNaa` must keep failing closed even if a later
+ * definition introduces the same id.
+ */
+export function frysResultatKilder(
+  tilstand: State,
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon,
+  kaller: Caller
+): boolean {
+  if (oekt.resultatKilderFrosset) return false;
+
+  const metadata = oekt.resultatKilder as unknown;
+  if (metadata === undefined) {
+    oekt.resultatKilder = {};
+  } else if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    oekt.resultatKilderFrosset = true;
+    return true;
+  }
+
+  for (const stegId of Object.keys(oekt.resultaterRaa || {})) {
+    if (Object.hasOwn(oekt.resultatKilder, stegId)) continue;
+    const kilder = kilderForResultat(tilstand, oekt, prosess, stegId, kaller);
+    if (kilder !== null) {
+      oekt.resultatKilder[stegId] = [...kilder];
+    }
+  }
+  oekt.resultatKilderFrosset = true;
+  return true;
 }
 
 /**
  * Resultatene økten kan svare med nå, ikke de den kunne svare med da stegene kjørte.
  *
- * Et samtykke kan være trukket eller ha utløpt i mellomtiden, og uten dette
- * serverte hver henting av økten dem ut igjen uten at porten var innom.
+ * Et samtykke kan være trukket eller ha utløpt i mellomtiden. Kildene som gjaldt da
+ * resultatet ble lagret brukes selv om prosessdefinisjonen senere blir endret.
  */
-/*
- * Kildene prosessen henter noe fra, og som fortsatt er samtykket.
- *
- * `SUMMARY` har ingen `api`, så porten kan ikke måles på steget selv - men teksten
- * er skrevet AV de gatede resultatene og siterer beløpet i klartekst, mer enn
- * SJEKK-grunnlaget bærer. Den holder derfor bare så lenge hver kilde prosessen
- * krever samtykke for, fortsatt er samtykket.
- */
-function alleKilderSamtykket(
-  tilstand: State,
-  oekt: Prosessoekt,
-  prosess: ProsessDefinisjon | null,
-  kaller: Caller
-): boolean {
-  for (const steg of prosess?.steg || []) {
-    const kilde = samtykkekildeForSteg(tilstand, oekt, steg, kaller);
-    if (!kilde) continue;
-    if (!hasGyldigSamtykke(tilstand, oekt.personId, kilde, oekt.aktivtSamtykkeId)) return false;
-  }
-  return true;
-}
-
 export function resultaterNaa(
   tilstand: State,
   oekt: Prosessoekt,
@@ -182,26 +266,25 @@ export function resultaterNaa(
 ) {
   const beholdt: Record<string, unknown> = {};
   const gjenlest = new Set<string>();
-  // Regnet én gang, og bare hvis et avledet steg spør etter den.
-  let avledetHolder: boolean | null = null;
+  const samtykkekilder = new Set<Datakilde>();
   for (const [stegId, resultat] of Object.entries(oekt.resultaterRaa || {})) {
-    const steg = prosess?.steg?.find((kandidat) => kandidat.id === stegId);
-    if (steg?.type === "SUMMARY") {
-      avledetHolder ??= alleKilderSamtykket(tilstand, oekt, prosess, kaller);
-      if (avledetHolder) beholdt[stegId] = resultat;
-      continue;
-    }
-    const kilde = samtykkekildeForSteg(tilstand, oekt, steg, kaller);
-    if (!kilde) {
+    const kilder = kilderForResultat(tilstand, oekt, prosess, stegId, kaller);
+    if (kilder === null) continue;
+    if (kilder.every((kilde) =>
+      hasGyldigSamtykke(tilstand, oekt.personId, kilde, oekt.aktivtSamtykkeId)
+    )) {
       beholdt[stegId] = resultat;
-      continue;
-    }
-    if (hasGyldigSamtykke(tilstand, oekt.personId, kilde, oekt.aktivtSamtykkeId)) {
-      beholdt[stegId] = resultat;
-      gjenlest.add(kilde);
+      for (const kilde of kilder) {
+        samtykkekilder.add(kilde);
+        gjenlest.add(kilde);
+      }
     }
   }
-  return { resultater: beholdt, gjenlest: [...gjenlest] };
+  return {
+    resultater: beholdt,
+    gjenlest: [...gjenlest],
+    samtykkekilder: [...samtykkekilder]
+  };
 }
 
 export function buildProsessoektRespons(
@@ -211,9 +294,14 @@ export function buildProsessoektRespons(
   // servert ugjennomgåtte resultater, og det ville typesjekket.
   resultater: Record<string, unknown>
 ) {
-  // Raa-feltet destruktureres bort framfor å bli overskrevet av spredningen: da er
-  // det umulig å svare med det ved et uhell, også om feltet skulle bytte navn igjen.
-  const { resultaterRaa: _raa, ...resten } = oekt;
+  // De interne feltene destruktureres bort framfor å bli overskrevet av spredningen:
+  // da er det umulig å svare med dem ved et uhell.
+  const {
+    resultaterRaa: _raa,
+    resultatKilder: _kilder,
+    resultatKilderFrosset: _frosset,
+    ...resten
+  } = oekt;
   return {
     ...resten,
     resultater,
@@ -347,6 +435,8 @@ type StegContext = {
    * `runStegHandling` og gitt videre, så en handler ikke kan glemme porten.
    */
   resultater: Record<string, unknown>;
+  /** Samtykkekildene de tilgjengelige resultatene er bygget på. */
+  samtykkekilder: Datakilde[];
   /** Who is calling, from the token. See autentisering.ts. */
   kaller: Caller;
 };
@@ -416,7 +506,7 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
         })
       );
       oekt.aktivtSamtykkeId = data.samtykkeId;
-      oekt.resultaterRaa[steg.id] = data;
+      lagreResultat(oekt, steg.id, data, []);
       return data;
     }
 
@@ -450,7 +540,7 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
           })
         })
       );
-      oekt.resultaterRaa[steg.id] = data;
+      lagreResultat(oekt, steg.id, data, []);
       return data;
     }
 
@@ -458,15 +548,23 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
   },
 
   DATA_FETCH: async ({ tilstand, oekt, steg, kaller }) => {
+    const kilder = krevKjenteKilder(
+      samtykkekilderForSteg(tilstand, oekt, steg, kaller),
+      steg.id
+    );
     const data = await getFraKatalog(tilstand, oekt, steg, kaller);
-    oekt.resultaterRaa[steg.id] = data;
+    lagreResultat(oekt, steg.id, data, kilder);
     return data;
   },
 
   SJEKK: async ({ tilstand, oekt, steg, kaller }) => {
+    const kilder = krevKjenteKilder(
+      samtykkekilderForSteg(tilstand, oekt, steg, kaller),
+      steg.id
+    );
     const resultat = await getFraKatalog(tilstand, oekt, steg, kaller) as SjekkResultat;
 
-    oekt.resultaterRaa[steg.id] = resultat;
+    lagreResultat(oekt, steg.id, resultat, kilder);
     if (!resultat.godkjent) {
       oekt.status = "AVVIST";
       oekt.avvistMelding = resultat.melding;
@@ -488,7 +586,7 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
    */
   // Porten er tidspunktet for lesing, også når leseren er en prompt: et trukket
   // samtykke skal ikke nå modellen eller state/ai-trace.jsonl.
-  SUMMARY: async ({ oekt, prosess, steg, resultater }) => {
+  SUMMARY: async ({ oekt, prosess, steg, resultater, samtykkekilder }) => {
     krevHeltGrunnlag(oekt, resultater);
     const data = await callUpstream<any>(
       { service: "KI-tjenesten", action: "Å lage oppsummeringen" },
@@ -507,11 +605,11 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
         })
       })
     );
-    oekt.resultaterRaa[steg.id] = data;
+    lagreResultat(oekt, steg.id, data, samtykkekilder);
     return data;
   },
 
-  SUBMIT: async ({ tilstand, oekt, prosess, steg, resultater, kaller }) => {
+  SUBMIT: async ({ tilstand, oekt, prosess, steg, resultater, samtykkekilder, kaller }) => {
     const person = findPerson(tilstand, oekt.personId);
     krevHeltGrunnlag(oekt, resultater);
     // Dokumentet lagres på søknadsraden og går til SvarUt, så det som står i det
@@ -523,7 +621,7 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
       prosessNavn: prosess.navn,
       sporingsId: oekt.sporingsId
     }, kaller, { dokument, person });
-    oekt.resultaterRaa[steg.id] = data;
+    lagreResultat(oekt, steg.id, data, samtykkekilder);
     oekt.status = "FULLFORT";
     return data;
   }
@@ -552,6 +650,15 @@ export async function runStegHandling(
     );
   }
 
-  const { resultater } = resultaterNaa(tilstand, oekt, prosess, kaller);
-  return handterer({ tilstand, oekt, prosess, steg, body, resultater, kaller });
+  const { resultater, samtykkekilder } = resultaterNaa(tilstand, oekt, prosess, kaller);
+  return handterer({
+    tilstand,
+    oekt,
+    prosess,
+    steg,
+    body,
+    resultater,
+    samtykkekilder,
+    kaller
+  });
 }

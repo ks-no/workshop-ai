@@ -26,6 +26,7 @@ import { routeOverview } from "../../shared/openapi.ts";
 import {
   buildProsessoektRespons,
   createSoknad,
+  frysResultatKilder,
   normaliserValgsvar,
   resultaterNaa,
   runStegHandling
@@ -44,9 +45,11 @@ import {
   findProsessoekt,
   getProsesserForVisning,
   updateProsesskatalog,
+  updateProsessoekter,
   lagreProsessoekt,
   readState,
   normalizeProsess,
+  normalizeProsessoekt,
   newId
 } from "./state.ts";
 
@@ -188,6 +191,9 @@ async function withSession(
   const prosess = findProsess(tilstand, session.prosessId);
   if (!prosess) {
     throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
+  }
+  if (frysResultatKilder(tilstand, session, prosess, kaller)) {
+    await lagreProsessoekt(session);
   }
   const resultat = await fn(session, prosess);
   if (!lesing) {
@@ -402,8 +408,26 @@ const ruter: Rute[] = [
     metode: "PUT",
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
-    handter: async ({ request, response, parametere }) => {
+    handter: async ({ request, response, parametere, tilstand, kaller }) => {
       const body = await readBodyOnce(request);
+      const eksisterendeProsess = findProsess(tilstand, parametere.prosessId);
+      if (eksisterendeProsess) {
+        // Eldre økter har ikke kildemetadata. Frys dem mot definisjonen som fortsatt
+        // gjelder før prosessbyggeren erstatter den, så samme steg-id ikke kan gi
+        // resultatet en svakere klassifisering etterpå.
+        await updateProsessoekter((oekter) => {
+          for (const oekt of oekter.filter(
+            (kandidat) => kandidat.prosessId === parametere.prosessId
+          )) {
+            frysResultatKilder(
+              tilstand,
+              normalizeProsessoekt(oekt),
+              eksisterendeProsess,
+              kaller
+            );
+          }
+        });
+      }
       // Lookup, merge and write all happen against the same fresh read: the
       // prosessbygger sends the whole prosess, so a merge onto a stale copy
       // would silently undo whatever the other save had just added.
@@ -477,6 +501,8 @@ const ruter: Rute[] = [
         stegIndex: 0,
         svar: {},
         resultaterRaa: {},
+        resultatKilder: {},
+        resultatKilderFrosset: true,
         aktivtSamtykkeId: null,
         opprettet: new Date().toISOString(),
         oppdatert: new Date().toISOString(),
@@ -497,7 +523,8 @@ const ruter: Rute[] = [
     metode: "GET",
     sti: "/api/prosessoekter/:oektsId",
     finnPersonId: eierAvOekt,
-    // A read: closed økter stay readable, and nothing is stamped or saved.
+    // A read: closed økter stay readable, and oppdatert is not stamped. A legacy
+    // økt can still be saved once to pin result metadata before definitions change.
     handter: (kontekst) =>
       withSession(kontekst, { lesing: true }, () => {})
   },

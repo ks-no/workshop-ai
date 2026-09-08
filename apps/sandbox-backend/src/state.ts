@@ -6,7 +6,13 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
-import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "./types.ts";
+import type {
+  Datasettnoekkel,
+  ProsessDefinisjon,
+  Prosesskatalog,
+  Prosessoekt,
+  State
+} from "./types.ts";
 
 // Which seed files are currently shadowed by a copy in state/.
 //
@@ -220,15 +226,26 @@ export function findProsess(tilstand: State, prosessId: string) {
 export function findProsessoekt(tilstand: State, oektsId: string) {
   const oekt = tilstand.prosessoekter.find((kandidat: any) => kandidat.oektsId === oektsId);
   if (!oekt) return null;
+  return normalizeProsessoekt(oekt);
+}
+
+export function normalizeProsessoekt(oekt: Prosessoekt): Prosessoekt {
   // Feltet het `resultater` før samtykkeporten ble strammet. state/ er gitignorert og
   // `./start.sh --reset` tømmer det, men `--reload` gjør ikke, og en økt som lå der
   // fra før ga «Intern feil i sandbox-backend» på neste handling - som ser ut som en
   // feil i sandkassen framfor en gammel fil. Kan slettes når ingen har en slik økt.
-  const raa = oekt as { resultaterRaa?: Record<string, unknown>; resultater?: Record<string, unknown> };
+  const raa = oekt as {
+    resultaterRaa?: Record<string, unknown>;
+    resultatKilder?: Record<string, unknown>;
+    resultater?: Record<string, unknown>;
+  };
   if (!raa.resultaterRaa) {
     raa.resultaterRaa = raa.resultater || {};
     delete raa.resultater;
   }
+  // En tom mappe er ikke det samme som ferdig migrert. Prosessoppdateringen fyller
+  // eldre treff før definisjonen endres og setter sitt eget frosset-flagg.
+  raa.resultatKilder ??= {};
   return oekt;
 }
 
@@ -239,15 +256,31 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
  *
- * Two writes to the *same* økt still resolve last-writer-wins. That is one person
- * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
+ * Two writes to the *same* økt otherwise resolve last-writer-wins. Kildemetadata
+ * is merged because a process update can freeze it while a slow handler is in flight.
  */
-export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
-  return updateJson("prosessoekter.json", [], (alle: { oektsId: string }[]) => {
+export function lagreProsessoekt(oekt: Prosessoekt): Promise<void> {
+  return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
     if (i === -1) alle.push(oekt);
-    else alle[i] = oekt;
+    else {
+      // A process update can freeze legacy metadata while a slow SUMMARY request
+      // is in flight. Keep that migration when the request writes its older copy.
+      alle[i] = {
+        ...oekt,
+        resultatKilder: {
+          ...(alle[i].resultatKilder || {}),
+          ...(oekt.resultatKilder || {})
+        },
+        resultatKilderFrosset:
+          alle[i].resultatKilderFrosset || oekt.resultatKilderFrosset
+      };
+    }
   });
+}
+
+export function updateProsessoekter<T>(change: (oekter: Prosessoekt[]) => T): Promise<T> {
+  return updateJson("prosessoekter.json", [], change);
 }
 
 export function getHusstandForPerson(tilstand: State, personId: string) {
