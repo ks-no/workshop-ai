@@ -1,3 +1,65 @@
+export interface KrrData {
+  fnr: string;
+  epost?: {
+    adresse: string;
+    sistOppdatert?: string;
+    sistVerifisert?: string;
+  };
+  tlf?: {
+    nummer: string;
+    sistOppdatert?: string;
+    sistVerifisert?: string;
+  };
+  status: string;
+  reservert: boolean;
+  kanVarsles?: boolean;
+  spraak?: string;
+}
+
+export interface BarnehageplassData {
+  personId: string;
+  barnehageId: string;
+  barnehagenavn: string;
+  kommune: string;
+  plassprosent: number;
+  manedspris: number;
+  barnFnr?: string;
+  barnNavn?: string;
+}
+
+export interface PolitiattestData {
+  attestId: string;
+  dokumenttype: string;
+  fnr: string;
+  formaal: string;
+  hjemmel: string;
+  attesttype: string;
+  utstedt: string;
+  utsteder?: {
+    navn: string;
+    enhet: string;
+    organisasjonsnummer: string;
+  };
+  anmerkninger?: any[];
+}
+
+export interface InntektPost {
+  tekniskNavn: string;
+  visningstekst: string;
+  beloep: number;
+  kilde: string;
+  medregnes: boolean;
+}
+
+export interface InntektData {
+  personId: string;
+  identifikator: string;
+  inntektsaar: number;
+  stadie: string;
+  skatteoppgjoersdato: string;
+  poster: InntektPost[];
+}
+
 export interface Person {
   personId: string;
   syntetiskFodselsnummer: string;
@@ -13,15 +75,21 @@ export interface Person {
     husnummer?: number;
     postnummer?: string;
     poststed?: string;
+    kommunenummer?: string;
     kommune?: string;
   };
   kontakt?: {
     epost?: string;
     telefon?: string;
   };
+  krr?: KrrData | null;
+  barnehageplass?: BarnehageplassData | null;
+  politiattest?: PolitiattestData | null;
+  inntekt?: InntektData | null;
+  husstand?: any | null;
 }
 
-export type CredentialId = "pid" | "krr" | "barnehage" | "politiattest" | "ledsagerbevis";
+export type CredentialId = "pid" | "krr" | "barnehage" | "politiattest" | "ledsagerbevis" | "inntekt";
 
 export interface ClaimDefinition {
   path: string;
