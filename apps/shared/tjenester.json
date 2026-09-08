@@ -9,5 +9,6 @@
   { "navn": "pasientjournal-mock", "port": 8087, "rolle": "Mock av elektronisk pasientjournal", "spesifikasjon": true },
   { "navn": "politiattest-mock", "port": 8088, "rolle": "Mock av politiattest", "spesifikasjon": true },
   { "navn": "demo-gui", "port": 3001, "rolle": "Sidene du er på nå", "spesifikasjon": false },
+  { "navn": "lommebok", "port": 3002, "rolle": "Digital lommebok sandkasse (utsted og verifiser)", "spesifikasjon": false },
   { "navn": "process-builder", "port": 3000, "rolle": "Prosessbygger", "spesifikasjon": false }
 ]

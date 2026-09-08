@@ -239,7 +239,8 @@ const PAGES = [
   { sti: "/chat", tekst: "Chat" },
   { sti: "/agent", tekst: "AI-agent" },
   { sti: "/stegvis", tekst: "Stegvis" },
-  { sti: "/utforsker", tekst: "API-utforsker" }
+  { sti: "/utforsker", tekst: "API-utforsker" },
+  { sti: "http://localhost:3002", tekst: "Digital lommebok" }
 ];
 
 /**
