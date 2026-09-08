@@ -677,10 +677,11 @@ pnpm test:agent:matrikkel
   `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
   `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
   `test:replay`, `test:parametere`, `test:imports`, `test:kodeverk`,
-  `test:revisjon`, `test:openapi`, `test:docs` and `test:kontrakt` on every PR
+  `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog` and `test:kontrakt` on every PR
   and on push to main, and uploads the contract dump as an artifact. It deliberately
-  does **not** run `test:eval` (needs a live model) or the `test:agent*` scripts
-  (need the compose stack up) - run those locally.
+  does **not** run `test:eval` (needs a live model). `test:agent:dialog` starts its own
+  isolated services with the AI mock and runs `test:agent` and `test:agent:nl` through
+  actual submission. The other `test:agent*` scripts still need the compose stack.
 - All eleven services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.

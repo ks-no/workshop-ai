@@ -45,6 +45,7 @@
     "test:kokebok": "node scripts/test-kokebok.ts",
     "test:agent": "node scripts/test-agent-flow.ts",
     "test:agent:nl": "node scripts/test-agent-natural-language.ts",
+    "test:agent:dialog": "node scripts/test-agent-dialog.ts",
     "test:matrikkel-mock": "node scripts/test-matrikkel-mock.ts",
     "test:bergen-matrikkel": "node scripts/test-bergen-matrikkel-bulk.ts",
     "test:tools-matrikkel": "node scripts/test-tools-matrikkel.ts",

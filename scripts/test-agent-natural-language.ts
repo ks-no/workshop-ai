@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { feilmelding } from "../apps/shared/errors.ts";
+import { assertAgentSubmitted } from "./agent-test-assertions.ts";
 
 
 const agentBaseUrl = process.env.AGENT_BASE_URL || "http://localhost:8084";
@@ -166,7 +167,7 @@ async function run() {
     const disagree = await req(`/agent/sessions/${session.sessionId}/messages`, {
       method: "POST", body: JSON.stringify({ message: "nei" })
     });
-    assert(disagree.replies.some((line: any) => line.toLowerCase().includes("gar vi tilbake")), "Expected step back when summary is rejected");
+    assert(disagree.replies.some((line: any) => line.toLowerCase().includes("går vi tilbake")), "Forventet retur til spørsmålet ved avvist oppsummering");
 
     // Write a revised answer directly (without going through interview again)
     const rewrite = await req(`/agent/sessions/${session.sessionId}/messages`, {
@@ -180,6 +181,12 @@ async function run() {
       method: "POST", body: JSON.stringify({ message: "ja" })
     });
     assert(agree.replies.some((line: any) => line.toLowerCase().includes("vil du at jeg skal sende inn")), "Expected submit prompt after summary approval");
+    const submitted = await req(`/agent/sessions/${session.sessionId}/messages`, {
+      method: "POST", body: JSON.stringify({ message: "ja, send inn" })
+    });
+    assert(submitted.awaiting === null, "Forventet avsluttet dialog etter innsending");
+    const oekt = await assertAgentSubmitted(submitted.oektsId, "person-001");
+    assert(oekt.svar.begrunnelse.trafikkproblem.includes("opphoyd gangfelt"), "Søknaden må inneholde den rettede beskrivelsen");
   });
 
   console.log("All natural-language process selection checks passed.");
@@ -189,7 +196,6 @@ run().catch((error) => {
   console.error("Natural-language test failed:", feilmelding(error));
   process.exit(1);
 });
-
 
 
 

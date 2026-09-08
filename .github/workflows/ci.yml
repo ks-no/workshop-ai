@@ -1,7 +1,8 @@
 # Only the checks that need neither a running stack nor a language model.
 #
 # Deliberately excluded: pnpm test:eval (needs a live model - see evals/README.md)
-# and the test:agent* / test:*-matrikkel scripts (need the compose stack up).
+# and standalone test:agent / test:agent:nl / test:*-matrikkel scripts (need a stack).
+# test:agent:dialog starts isolated services with the mock and runs both agent scripts.
 name: CI
 
 on:
@@ -121,6 +122,9 @@ jobs:
       # their own ports against a temp STATE_DIR, with the AI mock and no stack.
       - name: Stegfullføring og lukkede prosessøkter
         run: pnpm test:replay
+
+      - name: Agentdialog og innsending
+        run: pnpm test:agent:dialog
 
       # Kravet om fnr og formaal manglet en gang på id-ruten i begge mockene, og
       # rettelsen pinnet ingenting. Ruter, parametere og eksempelverdier leses av

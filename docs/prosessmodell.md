@@ -124,7 +124,7 @@ avgjøre hvilke verktøy som er relevante.
 
 Hvert forslag har ett av tre brukstyper:
 
-| Brukstype | Hva agenten gjør |
+| Brukstype | Hva agenten gjør når koblingen støttes |
 |---|---|
 | `kontekst` | Kall verktøyet proaktivt og vis resultatet som hint i spørsmålet |
 | `validering` | Kall verktøyet når brukeren svarer, og normaliser/valider svaret |
@@ -135,16 +135,29 @@ Eksempel: et `QUESTION`-steg med feltlabel «Gatenavn» gir forslaget
 viser da tilgjengelige testgater som hint, og normaliserer brukerens svar
 (f.eks. «storg») til kanonisk «Storgata» fra matrikkelen.
 
+**Oppdagelse er ikke det samme som støtte for utføring.** Agenten har bare en
+automatisk kobling for `matrikkel_finn_veger`, på spørsmål med ett tekstfelt
+(eller eldre spørsmål uten feltdefinisjon). Oppdagelsen kjøres på alle
+`QUESTION`-steg. Forslag til andre verktøy eller feltformer gir en synlig advarsel
+om at svaret ikke blir kontrollert med verktøyet. Agenten gjetter ikke argumenter
+eller tolker vilkårlige verktøysvar som gyldige verdier.
+
 Den dynamiske veien er reell, men den er ikke den eneste: `process-agent`
 har i tillegg hardkodede snarveier for `fartsdempende-tiltak` - steg-ID-ene
 `velg-gate`, `hent-gate`, `boliger-bekreft` og `begrunnelse`, pluss
 verktøynavnet `matrikkel_finn_veger`. Snarveiene er der fordi de var raskeste vei
 til en fungerende demo, ikke fordi de er riktige.
 
-Ny funksjonalitet kobles inn ved å legge til heuristikk i
+Nye forslag legges til med heuristikk i
 `apps/ai-gateway/src/server.ts` - `TOOL_HEURISTICS`-arrayen, som ligger lokalt inne
 i funksjonen `heuristicToolChoice` og ikke på toppnivå - og/eller et nytt verktøy i
-`tools-api`.
+`tools-api`. Automatisk utføring krever i tillegg en kobling i `process-agent`
+som bygger riktige argumenter og tolker resultatet. Et alternativ er et
+`DATA_FETCH`-steg mot en ressurs i motoren. Det beholder samtykkeporten og
+revisjonssporet uten at agenten må lære en ny verktøyform.
+
+`pnpm test:agent:dialog` prøver både et støttet verktøy på en ny steg-ID og
+advarslene for verktøy og flerfeltsspørsmål som agenten ikke kan koble automatisk.
 
 ## Slik legger du til en ny case
 

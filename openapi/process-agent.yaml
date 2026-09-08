@@ -261,6 +261,10 @@ components:
             - type: string
             - type: "null"
         awaiting:
+          description: >
+            Ventetilstand i agenten. process_end betyr at siste steg uten innsending
+            er gjennomført; motorøkten er fortsatt åpen og ingen søknad er sendt.
+            null alene beviser ikke innsending, siden en avvist prosess også avslutter dialogen.
           oneOf:
             - type: string
             - type: "null"
@@ -288,6 +292,10 @@ components:
           items:
             type: string
         awaiting:
+          description: >
+            Ventetilstand etter meldingen. process_end stopper ved siste steg uten
+            innsending. Verktøyforslag uten støtte varsles i replies, ikke som
+            vellykket validering.
           oneOf:
             - type: string
             - type: "null"
@@ -307,4 +315,3 @@ components:
           oneOf:
             - type: string
             - type: "null"
-

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { feilmelding } from "../apps/shared/errors.ts";
+import assert from "node:assert/strict";
+import { assertAgentSubmitted } from "./agent-test-assertions.ts";
 
 
 const agentBaseUrl = process.env.AGENT_BASE_URL || "http://localhost:8084";
@@ -76,6 +78,8 @@ async function run() {
   if (status.awaiting !== null) {
     throw new Error(`Forventet fullført agentflyt, fikk awaiting=${status.awaiting}`);
   }
+  const oekt = await assertAgentSubmitted(status.oektsId, "person-028");
+  assert.deepEqual(oekt.svar.behov, { gjelderFor: "barnet mitt", aktivitet: "fotball" });
 }
 
 run().catch((error) => {
