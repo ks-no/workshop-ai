@@ -510,7 +510,10 @@ async function fartsdempingsdokument(stateDir: string) {
   for (const [navn, bekreftelse, boligsetning] of [
     ["skjema-ja", { merEnn20Boliger: "Ja" }, "Søker opplyser at gaten har mer enn 20 boliger."],
     ["fritekst-nei", "Nei, det er ikke riktig", "Søker opplyser at gaten ikke har mer enn 20 boliger."],
-    ["skjema-ukjent", { merEnn20Boliger: "Vet ikke" }, "Det er ikke avklart om gaten har mer enn 20 boliger."]
+    ["skjema-ukjent", { merEnn20Boliger: "Vet ikke" }, "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["usikkert-ja", "Ja, kanskje, jeg vet ikke sikkert.", "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["usikkert-nei", "Nei, jeg vet ikke om det er mer enn20 boliger.", "Det er ikke avklart om gaten har mer enn 20 boliger."],
+    ["motsigende-ja", "Ja, det er ikke mer enn20 boliger.", "Det er ikke avklart om gaten har mer enn 20 boliger."]
   ] as const) {
     const merkelapp = `fartsdemping-${navn}`;
     const id = await fartsdempingsflyt("Storgata", merkelapp);

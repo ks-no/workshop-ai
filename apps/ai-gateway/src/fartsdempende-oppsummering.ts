@@ -13,11 +13,11 @@ function readBoligbekreftelse(svar: unknown): boolean | null {
   const verdi = felter ? felter.merEnn20Boliger : svar;
   if (typeof verdi === "boolean") return verdi;
   const tekst = readText(verdi).toLowerCase().replace(/\s+/g, " ").replace(/[.!]+$/g, "");
-  // Et tall kan være selve terskelen, og «riktig» kan stå i en benektelse.
-  // Bare et uttrykkelig ja eller nei kan gjengis som søkerens bekreftelse.
-  if (/^(nei|neida|no)(?:$|[,!.]\s)/.test(tekst)
+  // Hele svaret må være en kjent bekreftelse. Et ja eller nei først i setningen
+  // sier ikke om resten uttrykker usikkerhet eller motsier bekreftelsen.
+  if (/^(nei|neida|no)(?:, (?:det stemmer ikke|det er ikke riktig|(?:det er )?ikke mer enn 20 boliger(?: i gaten)?))?$/.test(tekst)
     || ["det stemmer ikke", "ikke riktig", "det er ikke riktig"].includes(tekst)) return false;
-  if (/^(ja|japp|yes)(?:$|[,!.]\s)/.test(tekst)
+  if (/^(ja|japp|yes)(?:, (?:det stemmer|det er riktig|det er mer enn 20 boliger(?: i gaten)?))?$/.test(tekst)
     || ["greit", "ok", "okei", "det stemmer", "riktig"].includes(tekst)) return true;
   return null;
 }
