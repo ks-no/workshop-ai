@@ -8,6 +8,7 @@
 - [Prinsipp](#prinsipp)
 - [Kildedata og kjøringstilstand](#kildedata-og-kjøringstilstand)
 - [Datasett](#datasett)
+- [Fryst referansedato](#fryst-referansedato)
 - [Kart over koblingene](#kart-over-koblingene)
 - [Spec-forankring](#spec-forankring)
 - [Fødselsnumrene er syntetiske, og merket som det](#fødselsnumrene-er-syntetiske-og-merket-som-det)
@@ -141,11 +142,24 @@ Importen bygger på nytt hver gang, men **id-ene er stabile**: `personId` og
 i mappen uten at noen blir omnummerert. `--glem-id-er` tildeler dem fra bunnen, og gir
 samme resultat på uendret input - det er sånn determinismen er verifisert.
 
+## Fryst referansedato
+
+`satser.gjelderFra` er **2026-08-01**. Den fryser ikke bare satser og alder:
+reglene bruker også datoen for å velge og vurdere legeerklæringer og for å
+vurdere om en politiattest er innenfor tremånedersgrensen.
+
+På workshopdagen **8. september 2026** kan demoen derfor godta dokumenter som
+har utløpt siden 1. august. Det er tilsiktet for å holde testcasene stabile,
+ikke en påstand om at dokumentene fortsatt er gyldige. Datoen flyttes ikke
+automatisk. Før sandkassen brukes med en annen vurderingsdato, må dokumenter,
+aldersgrenser og forventede utfall gjennomgås samlet. Samtykker og token
+bruker derimot den løpende klokken og kan utløpe under en demo.
+
 ## Kart over koblingene
 
 ```
 kuratert.json  ─┐
-tenor/*.json   ─┴─→ importer-tenor.js ─→ personer.json ────┬─→ husstander.json
+tenor/*.json   ─┴─→ importer-tenor.ts ─→ personer.json ────┬─→ husstander.json
                                        ├─→ folkeregister.seed.json
                                        ├─→ inntekter.json
                                        ├─→ krr.json
@@ -272,6 +286,12 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
   224 foreldrene. Beløpene for de importerte utledes deterministisk fra
   fødselsnummeret. Terskelscenarioene ligger hos de 18 kuraterte husstandene, der
   tallene er forfattet og kontrollert mot `forventet-utfall.json`.
+  Alle importerte rader gjelder inntektsåret 2025, også `UTKAST`: stadiet sier
+  at oppgjøret ikke er ferdig, ikke at inntekten gjelder neste år. Backend velger
+  det nyeste inntektsåret i husstanden og Fiks krever en rad for **samme år hos
+  alle foresatte**. Validatoren bruker samme årsvalg, oppslag og summering, og
+  feiler på delvis grunnlag i stedet for å summere ulike år. En husstand helt
+  uten inntektsopplysninger er fortsatt et eget, tilsiktet testtilfelle.
 - **Kontaktregisteret.** Tenor har ingen kontaktinfo, så e-post, telefon,
   reservasjon og målform utledes deterministisk fra fødselsnummeret: omtrent én
   av ti er reservert, omtrent én av tolv har hverken e-post eller telefon, og
@@ -337,7 +357,7 @@ liste her.
 - 22 legeerklæringer, én per søker
 - 9 politiattester, én per søker
 - 15 barnehageplasser, 11 SFO-plasser, 34 fritidsdeltakelser
-- 6 prosessdefinisjoner + 1 mal
+- 7 prosessdefinisjoner + 1 mal
 
 ---
 

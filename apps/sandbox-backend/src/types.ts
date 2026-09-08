@@ -13,6 +13,7 @@
 // the same files off the same disk, so Person and Husstand belong to neither
 // service. Re-exported nowhere - a caller that needs Person imports it from there.
 import type { Husstand, MedFelter, Person, Plass, Samtykke } from "../../shared/innbyggerdata.ts";
+import type { Inntekt } from "../../shared/inntekt.ts";
 import type {
   Anmerkningskategori,
   Attestformaal,
@@ -252,7 +253,7 @@ export type Prosesskatalog = {
 export type State = {
   personer: Person[];
   husstander: Husstand[];
-  inntekter: MedFelter[];
+  inntekter: Inntekt[];
   barnehageplasser: Plass[];
   sfoplasser: Plass[];
   soknader: MedFelter[];

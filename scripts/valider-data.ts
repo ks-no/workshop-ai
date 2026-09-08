@@ -25,6 +25,7 @@ import {
 // The generated participant table, imported rather than re-rendered - the same
 // reason the vedtak is imported below instead of mirrored.
 import { buildTestpersondok } from "./testpersondok.ts";
+import { validateHusstandsgrunnlag } from "./inntektsgrunnlag.ts";
 // Modulus 11 and Skatteetaten's +80 marker, imported rather than mirrored - the
 // same reason vilkaar.ts is imported below rather than copied.
 import {
@@ -994,16 +995,10 @@ if (eierIFjosanger) {
 // person's income can remove the only case on one side of a threshold, and then
 // every demo produces the same outcome again.
 function husstandsgrunnlag(husstand: Husstand) {
-  let sum = 0;
-  for (const medlem of husstand.medlemmer) {
-    if (medlem.rolle !== "foresatt") continue;
-    const person = krevPerson(medlem.personId);
-    const rader = inntekter.filter((i: any) => i.identifikator === person.syntetiskFodselsnummer);
-    if (rader.length === 0) return null;
-    const nyeste = rader.reduce((a: any, b: any) => (b.inntektsaar > a.inntektsaar ? b : a));
-    sum += nyeste.poster.filter((p: any) => p.medregnes).reduce((t: any, p: any) => t + p.beloep, 0);
-  }
-  return sum;
+  const identer = husstand.medlemmer
+    .filter((medlem) => medlem.rolle === "foresatt")
+    .map((medlem) => krevPerson(medlem.personId).syntetiskFodselsnummer);
+  return validateHusstandsgrunnlag(inntekter, identer, husstand.husstandId);
 }
 
 const grunnlag = husstander.map(husstandsgrunnlag).filter((v) => v !== null);
@@ -1115,9 +1110,7 @@ function vurder(husstand: Husstand, ordning: Ordning) {
   if (plasserSomKvalifiserer(tilstand, soeker, ordning, satser).length === 0) return null;
   const g = husstandsgrunnlag(husstand);
   if (regelBehov[ordning.regel].inntekt && g === null) return null;
-  // grunnlag mirrors beregningsbeloep from fiks-simulator (inntekt minus the posts
-  // not marked medregnes), so the income rules are driven with the same number the
-  // running service would have fetched - no stack needed.
+  // Årsvalg, eksakt oppslag og summering deles med backend og Fiks.
   return evaluateVilkaar(ordning.regel, {
     tilstand,
     personId: soeker,
@@ -1172,8 +1165,8 @@ for (const husstand of husstander) {
     const faktisk = vurder(husstand, ordning);
     if (faktisk === null) {
       throw new Error(
-        `${husstand.husstandId} forventer et utfall for ${rad.ordning}, men har ingen ` +
-        `${ordning.tjeneste}-plass i målgruppen for den ordningen.`
+        `${husstand.husstandId} forventer et utfall for ${rad.ordning}, men mangler ` +
+        `inntektsopplysninger eller en ${ordning.tjeneste}-plass i målgruppen.`
       );
     }
     if (faktisk !== rad.godkjent) {
@@ -1338,8 +1331,10 @@ for (const ordning of satser.ordninger) {
     );
   }
   // Typen er unionen fra vilkaar.ts, så en skrivefeil her stopper på kompilering.
-  // «mangler_foedselsdato» står ikke i listen: ingen i befolkningen mangler dato,
-  // og løkken under fanger grenen hvis noen en dag gjør det.
+  // «mangler_foedselsdato» og «kollektivbehov_ikke_dokumentert» dekkes med
+  // uavhengige fixturer i test:vilkaar. Den eneste erklæringen med
+  // kanNytteKollektiv=true i seeden stoppes allerede av visusgrensen.
+  const fixtureGrener: Avslagsgrunn[] = ["mangler_foedselsdato", "kollektivbehov_ikke_dokumentert"];
   const forventedeGrener: (Avslagsgrunn | "innvilget")[] = [
     "innvilget",
     "for_ung",
@@ -1359,7 +1354,7 @@ for (const ordning of satser.ordninger) {
     }
   }
   for (const gren of utfall.keys()) {
-    if (!(forventedeGrener as string[]).includes(gren)) {
+    if (![...forventedeGrener, ...fixtureGrener].includes(gren as Avslagsgrunn | "innvilget")) {
       throw new Error(
         `${ordning.id}: regelen svarte med grenen "${gren}", som denne sjekken ikke kjenner. ` +
         `Legg den i forventedeGrener, ellers telles den ikke.`
