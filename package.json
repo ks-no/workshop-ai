@@ -26,6 +26,7 @@
     "test:kontrakt": "node scripts/kontrakt-smoke.ts",
     "test:chat-intent": "node scripts/test-chat-fallback-intent.ts",
     "test:sperrer": "node scripts/test-sporsmaalsperrer.ts",
+    "test:oppsummering": "node scripts/test-fartsdempende-oppsummering.ts",
     "test:skjerming": "node scripts/test-skjerming.ts",
     "test:vilkaar": "node scripts/test-vilkaar.ts",
     "test:foedselsnummer": "node scripts/test-foedselsnummer.ts",
