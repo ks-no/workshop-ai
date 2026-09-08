@@ -26,7 +26,8 @@ import { routeOverview } from "../../shared/openapi.ts";
 import {
   buildProsessoektRespons,
   createSoknad,
-  normaliserValgsvar,
+  erStegFullfort,
+  lagreStegSvar,
   resultaterNaa,
   runStegHandling
 } from "./prosess.ts";
@@ -512,10 +513,15 @@ const ruter: Rute[] = [
         throw new HttpError("Fant ikke aktivt steg.", 400);
       }
       // Steget svaret gjelder, ikke nødvendigvis det aktive: ruten har alltid
-      // godtatt en stegId. Er den ukjent, er det ingenting å validere mot.
+      // godtatt en stegId. Endres et tidligere spørsmål, spoles økten tilbake og
+      // alt som ble utledet etter svaret må gjøres på nytt.
       const stegId = body.stegId || steg.id;
       const maalSteg = prosess.steg.find((kandidat) => kandidat.id === stegId);
-      session.svar[stegId] = maalSteg ? normaliserValgsvar(maalSteg, body.svar) : body.svar;
+      if (maalSteg) {
+        lagreStegSvar(session, prosess, maalSteg, body.svar);
+      } else {
+        session.svar[stegId] = body.svar;
+      }
       await addRevisjon({
         sporingsId: session.sporingsId,
         handling: "STEG_SVAR_LAGRET",
@@ -540,6 +546,10 @@ const ruter: Rute[] = [
     handter: (kontekst) => withSession(kontekst, {}, (session, prosess) => {
       if (session.stegIndex >= prosess.steg.length - 1) {
         throw new HttpError("Prosessøkten er allerede på siste steg.", 400);
+      }
+      const steg = prosess.steg[session.stegIndex];
+      if (!steg || !erStegFullfort(session, steg)) {
+        throw new HttpError("Det aktive steget må fullføres før prosessen kan gå videre.", 400);
       }
       session.stegIndex += 1;
     })

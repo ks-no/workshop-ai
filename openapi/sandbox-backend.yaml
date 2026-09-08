@@ -199,6 +199,9 @@ paths:
   /api/prosessoekter/{oektsId}/svar:
     post:
       summary: Lagre svar i prosessøkt
+      description: >
+        Lagrer svar på et spørsmål. Når et tidligere svar endres, flyttes økten
+        tilbake til det spørsmålet og svar og resultater fra senere steg slettes.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -240,6 +243,11 @@ paths:
   /api/prosessoekter/{oektsId}/neste:
     post:
       summary: Gå til neste steg
+      description: >
+        Aktiverer neste steg når det aktive steget er fullført. Ruten utfører
+        aldri steg-handlingen. Spørsmål må være besvart, samtykkeforespørsler må
+        være besvart, og DATA_FETCH-, SJEKK- og SUMMARY-steg må være kjørt via
+        `/handling`.
       security:
         - idporten: []
         - maskinporten: [ks:innbyggerdialog:les]
@@ -252,6 +260,8 @@ paths:
       responses:
         "200":
           description: Neste steg aktivert
+        "400":
+          description: Aktivt steg er ikke fullført, eller økten står på siste steg
   /api/prosessoekter/{oektsId}/forrige:
     post:
       summary: Gå til forrige steg

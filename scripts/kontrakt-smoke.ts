@@ -456,11 +456,11 @@ async function stottekontaktflyt(personId: string, merkelapp: string, tilSubmit 
   await call(`${merkelapp}-forsendelse`, `/api/soknader/${soknadId}/forsendelse`, { somPerson: personId });
 }
 
-// The other half of the flow above: a citizen who walks past the CONSENT_REQUEST
-// without answering it. The samtykke gate lives in the resource catalogue, not in
-// the step, so the 403 has to reach the caller through POST /handling unchanged -
-// that relay is what this pins, and the direct-route 403 in kontaktinfoOppslag
-// cannot say anything about it.
+// The other half of the flow above: a citizen who answers no to the
+// CONSENT_REQUEST. The decision completes the consent step, but grants no access.
+// The samtykke gate lives in the resource catalogue, so the 403 has to reach the
+// caller through POST /handling unchanged - that relay is what this pins, and the
+// direct-route 403 in kontaktinfoOppslag cannot say anything about it.
 //
 // person-022 is used nowhere else in this script, so no other flow can leave a
 // kontaktinfo samtykke behind and quietly turn this 403 into a 200.
@@ -471,11 +471,24 @@ async function stottekontaktUtenSamtykke(merkelapp: string) {
   });
   const id = oekt.oektsId;
 
-  // Straight to hent-kontaktinfo: /neste only moves stegIndex, so the samtykke
-  // step is passed over rather than run.
-  for (const nummer of [1, 2, 3]) {
-    await call(`${merkelapp}-neste-${nummer}`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
-  }
+  await call(`${merkelapp}-neste-1`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-svar-situasjon`, `/api/prosessoekter/${id}/svar`, {
+    method: "POST",
+    body: {
+      stegId: "situasjon",
+      svar: { beskrivelse: "Vil ikke dele kontaktopplysninger", onskerKontakt: "nei" }
+    }
+  });
+  await call(`${merkelapp}-neste-2`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
+  await call(`${merkelapp}-samtykke-opprett`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "opprett-samtykke" }
+  });
+  await call(`${merkelapp}-samtykke-svar`, `/api/prosessoekter/${id}/handling`, {
+    method: "POST",
+    body: { handling: "samtykkesvar", status: "IKKE_SAMTYKKET" }
+  });
+  await call(`${merkelapp}-neste-3`, `/api/prosessoekter/${id}/neste`, { method: "POST" });
   await call(`${merkelapp}-kontaktinfo`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   // A refused step leaves the økt open - withSession saves nothing when the
   // handler throws - so the citizen can go back and consent.

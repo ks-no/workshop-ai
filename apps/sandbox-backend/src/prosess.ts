@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { aktorFor, type Caller } from "./autentisering.ts";
 import { aiBaseUrl, fiksBaseUrl, fiksDialogToken } from "./config.ts";
@@ -79,6 +80,32 @@ export function normaliserValgsvar(steg: ProsessSteg, svar: unknown): unknown {
     }
   }
   return ut;
+}
+
+export function lagreStegSvar(
+  oekt: Prosessoekt,
+  prosess: ProsessDefinisjon,
+  steg: ProsessSteg,
+  svar: unknown
+): unknown {
+  const normalisert = normaliserValgsvar(steg, svar);
+  const endret = !hasOwn(oekt.svar, steg.id) || !isDeepStrictEqual(oekt.svar[steg.id], normalisert);
+  if (steg.type === "QUESTION" && endret) {
+    const stegIndex = prosess.steg.findIndex((kandidat) => kandidat.id === steg.id);
+    if (stegIndex >= 0) {
+      const senereSteg = prosess.steg.slice(stegIndex + 1);
+      for (const senere of senereSteg) {
+        delete oekt.svar[senere.id];
+        delete oekt.resultaterRaa[senere.id];
+      }
+      if (senereSteg.some((senere) => senere.type === "CONSENT_REQUEST")) {
+        oekt.aktivtSamtykkeId = null;
+      }
+      oekt.stegIndex = Math.min(oekt.stegIndex, stegIndex);
+    }
+  }
+  oekt.svar[steg.id] = normalisert;
+  return normalisert;
 }
 
 function replaceParametere(url: string, oekt: Prosessoekt) {
@@ -220,6 +247,60 @@ export function buildProsessoektRespons(
     aktivtSteg: prosess?.steg?.[oekt.stegIndex] || null,
     totaltAntallSteg: prosess?.steg?.length || 0
   };
+}
+
+function hasOwn(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function hasAnswerValue(value: unknown): boolean {
+  return typeof value === "string" ? value.trim().length > 0 : value !== null && value !== undefined;
+}
+
+/**
+ * Whether the active step has left the evidence its own handler is responsible for.
+ *
+ * This only reads session state. Navigation must never execute a step, because that
+ * would let `/neste` fetch data, evaluate rules, or submit on the caller's behalf.
+ */
+export function erStegFullfort(oekt: Prosessoekt, steg: ProsessSteg): boolean {
+  switch (steg.type) {
+    case "INFO":
+      return true;
+    case "QUESTION": {
+      if (!hasOwn(oekt.svar, steg.id)) return false;
+      const svar = oekt.svar[steg.id];
+      if (Array.isArray(svar)) return false;
+      if (typeof svar !== "object" || svar === null) {
+        return hasAnswerValue(svar);
+      }
+      const obligatoriske = (steg.felter || []).filter((felt) => felt.obligatorisk);
+      if (obligatoriske.length > 0) {
+        return obligatoriske.every((felt) =>
+          hasAnswerValue((svar as Record<string, unknown>)[felt.id])
+        );
+      }
+      return Object.values(svar).some(hasAnswerValue);
+    }
+    case "CONSENT_REQUEST": {
+      const resultat = oekt.resultaterRaa[steg.id];
+      if (typeof resultat !== "object" || resultat === null || Array.isArray(resultat)) {
+        return false;
+      }
+      const status = (resultat as Record<string, unknown>).status;
+      return status === "SAMTYKKET" || status === "IKKE_SAMTYKKET";
+    }
+    case "DATA_FETCH":
+    case "SJEKK":
+    case "SUMMARY":
+    case "SUBMIT":
+      return hasOwn(oekt.resultaterRaa, steg.id);
+    default: {
+      const aldri: never = steg;
+      void aldri;
+      return false;
+    }
+  }
 }
 
 // DATA_FETCH and SJEKK consult the shared resource catalog through the same path
@@ -387,13 +468,12 @@ type StegContextFor<T extends Stegtype> = Omit<StegContext, "steg"> & {
 export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown | Promise<unknown> } = {
   INFO: () => ({ type: "INFO", melding: "Informasjonssteg krever ingen handling." }),
 
-  QUESTION: ({ oekt, steg, body }) => {
+  QUESTION: ({ oekt, prosess, steg, body }) => {
     const raatt = body.svar ?? oekt.svar[steg.id];
     if (!raatt) {
       throw new HttpError("Spørsmålssteg krever et svar.", 400);
     }
-    const svar = normaliserValgsvar(steg, raatt);
-    oekt.svar[steg.id] = svar;
+    const svar = lagreStegSvar(oekt, prosess, steg, raatt);
     return { type: "QUESTION", svar };
   },
 
