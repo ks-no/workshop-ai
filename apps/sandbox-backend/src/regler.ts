@@ -1,5 +1,5 @@
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
-import { norskKalenderaar } from "../../shared/alder.ts";
+import { sisteInntektsaar as selectInntektsaar } from "../../shared/inntekt.ts";
 // The samtykke kodeverk belongs to the service that owns the resource, and expiry
 // is part of it. This backend reads state/samtykker.json directly - a sandbox
 // simplification it already lived with - so importing the rule is strictly better
@@ -66,13 +66,11 @@ function sisteInntektsaar(tilstand: State, personId: string) {
   const husstand = getHusstandForPerson(tilstand, personId);
   const identer = husstand.medlemmer
     .filter((medlem: any) => medlem.rolle === "foresatt")
-    .map((medlem: any) => findPerson(tilstand, medlem.personId)?.syntetiskFodselsnummer);
-  const aar = tilstand.inntekter
-    .filter((rad: any) => identer.includes(rad.identifikator))
-    .map((rad: any) => rad.inntektsaar);
-  // Norsk kalenderår og ikke maskinens: containerne står i UTC, så nyttårsaften
-  // mellom 23:00 og midnatt svarte dette fjorårets tall for en norsk innbygger.
-  return aar.length ? Math.max(...aar) : norskKalenderaar() - 1;
+    .flatMap((medlem: any) => {
+      const person = findPerson(tilstand, medlem.personId);
+      return person ? [person.syntetiskFodselsnummer] : [];
+    });
+  return selectInntektsaar(tilstand.inntekter, identer);
 }
 
 export async function getInntektForPerson(tilstand: State, personId: string) {

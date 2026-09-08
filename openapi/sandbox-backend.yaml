@@ -1755,6 +1755,12 @@ components:
       description: >
         Kontrakten et SJEKK-steg må oppfylle. Er godkjent false, settes
         prosessoekten til AVVIST og melding blir avvistMelding.
+        TT-kort krever at legeerklæringen uttrykkelig sier at søkeren ikke kan
+        bruke kollektivtransport. Ellers er godkjent false og
+        grunnlag.avslagsgrunn kollektivbehov_ikke_dokumentert; transportbehovet
+        må avklares før innvilgelse. Tidligere avslagsgrunner, som visusgrensen,
+        vurderes først. Alder og dokumentgyldighet vurderes ved satser.gjelderFra,
+        ikke dagens dato.
         Se docs/prosessmodell.md.
       required: [godkjent, melding]
       properties:

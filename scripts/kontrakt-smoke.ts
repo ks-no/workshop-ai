@@ -360,7 +360,7 @@ async function foreldrebetalingsflyt(
 // Fritidskort is the only ordning outside barnehage and SFO, and the only one that
 // scopes by the child's age rather than by school year. Two people, so the dump
 // carries both outcomes: person-028 is under the threshold, person-008 over it.
-async function fritidskortflyt(personId: string, merkelapp: string) {
+async function fritidskortflyt(personId: string, merkelapp: string, forventetGrunnlag?: number) {
   const oekt = await call(`${merkelapp}-opprett`, "/api/prosessoekter", {
     method: "POST",
     body: { personId, prosessId: "fritidskort-stotte" }
@@ -387,6 +387,41 @@ async function fritidskortflyt(personId: string, merkelapp: string) {
   await call(`${merkelapp}-sjekk`, `/api/prosessoekter/${id}/handling`, { method: "POST", body: {} });
   await call(`${merkelapp}-oekt`, `/api/prosessoekter/${id}`);
   await call(`${merkelapp}-fritid`, `/api/personer/${personId}/fritid`);
+  if (forventetGrunnlag !== undefined) {
+    const inntekt = await call(`${merkelapp}-grunnlag`, `/api/personer/${personId}/inntekt`);
+    const sjekk = await call(`${merkelapp}-vedtak`, `/api/regler/sjekk/ordning?personId=${personId}&ordning=fritidskort-stotte`);
+    // Et avslag alene skjulte at Fiks manglet ektefellens år. Både grunnlaget
+    // og fraværet av feil må stemme før utfallet kan kalles et inntektsavslag.
+    if (inntekt.feilmeldinger?.length !== 0 ||
+        inntekt.inntektsaar !== 2025 ||
+        inntekt.beregningsbeloep !== forventetGrunnlag ||
+        sjekk.godkjent !== false ||
+        sjekk.grunnlag?.feilkode ||
+        sjekk.grunnlag?.beregningsbeloep !== forventetGrunnlag) {
+      throw new Error(`${personId}: forventet et inntektsavslag på ${forventetGrunnlag}, ikke manglende data.`);
+    }
+  }
+}
+
+async function manglendeInntektsaar(stateDir: string) {
+  const personer = JSON.parse(await readFile(path.join(repoRoot, "data/personer.json"), "utf8"));
+  const inntekter = JSON.parse(await readFile(path.join(repoRoot, "data/inntekter.json"), "utf8"));
+  const fnr = personer.find((p: any) => p.personId === "person-058").syntetiskFodselsnummer;
+  // Bare den ene foresattes rad flyttes. Et felles historisk år må ikke velges
+  // i stillhet, og en delsum må ikke presenteres som hele husstandsinntekten.
+  const blandet = inntekter.map((rad: any) =>
+    rad.identifikator === fnr ? { ...rad, inntektsaar: 2026 } : rad);
+  const stateFile = path.join(stateDir, "inntekter.json");
+  await writeFile(stateFile, JSON.stringify(blandet));
+  try {
+    const svar = await call("blandede-aar-feil", "/api/regler/sjekk/ordning?personId=person-058&ordning=fritidskort-stotte");
+    if (svar.godkjent !== false || svar.grunnlag?.feilkode !== "INGEN_SKATTEOPPGJOER_FUNNET" ||
+        !svar.melding?.includes("2026") || svar.grunnlag?.beregningsbeloep !== undefined) {
+      throw new Error("Blandede inntektsår må gi en uttrykkelig datafeil, ikke et beregnet inntektsavslag.");
+    }
+  } finally {
+    await rm(stateFile);
+  }
 }
 
 // Støttekontakt is the only ordning assessed on need rather than money, and the
@@ -1001,6 +1036,15 @@ async function run() {
     });
     await fritidskortflyt("person-028", "fritidskort-innvilget");
     await fritidskortflyt("person-008", "fritidskort-avslag");
+    for (const [personId, grunnlag] of [
+      ["person-058", 1060000],
+      ["person-096", 969000],
+      ["person-233", 1210000],
+      ["person-348", 1560000]
+    ] as const) {
+      await fritidskortflyt(personId, `fritidskort-utkast-${personId}`, grunnlag);
+    }
+    await manglendeInntektsaar(stateDir);
     await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");
     // person-218 has kode 7 and is reservert in KRR: no digital channel, and

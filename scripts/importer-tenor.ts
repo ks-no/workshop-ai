@@ -577,7 +577,9 @@ function buildInntekt(fnr: string, harBarn: boolean) {
   const utkast = seed % 11 === 0;
   return {
     identifikator: fnr,
-    inntektsaar: utkast ? 2026 : 2025,
+    // Et utkast er et uferdig oppgjør for samme år, ikke neste inntektsår.
+    // Ellers mangler ektefellens opplysninger når Fiks spør for hele husstanden.
+    inntektsaar: 2025,
     stadie: utkast ? "UTKAST" : "OPPGJOER",
     ...(utkast ? {} : { skatteoppgjoersdato: "2026-06-15" }),
     poster,

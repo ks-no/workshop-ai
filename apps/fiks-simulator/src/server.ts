@@ -38,6 +38,7 @@ import { feilmelding } from "../../shared/errors.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Inntekt, Inntektspost, Oppgave, FiksSamtykke } from "./state.ts";
 import type { Person } from "../../shared/innbyggerdata.ts";
+import { findInntekt, sumInntektsgrunnlag } from "../../shared/inntekt.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PORT lar testskript starte en isolert instans ved siden av docker compose.
@@ -228,6 +229,7 @@ function buildPost(post: Inntektspost, identifikator: string): Beregningspost {
 }
 
 function buildBeregning(deltakere: Deltaker[]) {
+  const summer = sumInntektsgrunnlag(deltakere.flatMap((d) => d.poster));
   const inntektsposter: Beregningspost[] = [];
   const fradragsposter: Beregningspost[] = [];
 
@@ -257,15 +259,15 @@ function buildBeregning(deltakere: Deltaker[]) {
   });
 
   const inntekt = {
-    beloep: sum(inntektsposter),
+    beloep: summer.inntekt,
     beregning: [gruppe("samletInntekt", "Samlet innrapportert inntekt", "ADDERE", inntektsposter)]
   };
   const fradrag = {
-    beloep: sum(fradragsposter),
+    beloep: summer.fradrag,
     beregning: [gruppe("ytelserUtenforGrunnlaget", "Ytelser som ikke inngår i grunnlaget", "SUBTRAHERE", fradragsposter)]
   };
 
-  return { inntekt, fradrag, beregningsbeloep: inntekt.beloep - fradrag.beloep };
+  return { inntekt, fradrag, beregningsbeloep: summer.beregningsbeloep };
 }
 
 // One visningspost per income type, with the amount broken down by the people
@@ -380,9 +382,7 @@ function computeBeregning(body: BeregningKropp, personer: Person[], inntekter: I
       continue;
     }
 
-    const rad = inntekter.find(
-      (i) => i.identifikator === requested.identifikator && i.inntektsaar === inntektsaar
-    );
+    const rad = findInntekt(inntekter, identifikator, inntektsaar!);
     const ekstraposter = (requested.ekstraposter || []).map((e) => ({
       tekniskNavn: e.tekniskNavn,
       visningstekst: e.visningstekst || e.tekniskNavn,
