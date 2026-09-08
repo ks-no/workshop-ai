@@ -107,7 +107,7 @@ type Revisjonsrad = {
   aktor?: { type: string; id?: string; paaVegneAv?: string };
 };
 
-type Hurtigknapp = { label: string; onClick: () => void; secondary?: boolean };
+type Hurtigknapp = { label: string; onClick: () => unknown; secondary?: boolean };
 
 type Samtalelinje = { rolle: string; tekst: string };
 
@@ -125,6 +125,8 @@ let prosesser: Prosess[] = [];
 let oekt: Prosessoekt | null = null;
 let aktivProsess: Prosess | null = null;
 let aktivAutoHandling: string | null = null;
+let sending = false;
+let pendingRetry: { oektsId: string; stegId: string; showResult: boolean; run: () => Promise<void> } | null = null;
 
 // Grunnlag for frie spørsmål. satser er offentlig og krever ikke samtykke;
 // den hentes én gang og gjenbrukes.
@@ -394,8 +396,73 @@ function setQuickActions(buttons: Hurtigknapp[] = []): void {
     if (button.secondary) {
       node.className = "secondary";
     }
-    node.onclick = button.onClick;
+    node.disabled = sending;
+    node.onclick = () => runChatAction(button.onClick);
     quickActionsEl.appendChild(node);
+  }
+}
+
+function setSending(value: boolean): void {
+  sending = value;
+  for (const id of ["send", "start", "reset"]) {
+    krevEl<HTMLButtonElement>(id).disabled = value;
+  }
+  inputEl.disabled = value;
+  for (const button of quickActionsEl.querySelectorAll("button")) button.disabled = value;
+}
+
+function showChatError(error: unknown): void {
+  removeTyping();
+  addMsg("error", `Feil: ${feilmelding(error)}${pendingRetry ? " Trykk «Prøv igjen», eller skriv «prøv igjen»." : ""}`);
+  if (oekt?.aktivtSteg) renderQuickActionsFor(oekt.aktivtSteg);
+}
+
+async function runChatAction(action: () => unknown): Promise<void> {
+  if (sending) return;
+  setSending(true);
+  try {
+    await action();
+  } catch (error) {
+    showChatError(error);
+  } finally {
+    setSending(false);
+    inputEl.focus();
+  }
+}
+
+function rememberFailedAction(error: unknown, run: () => Promise<void>, showResult = false): never {
+  // A rejected answer needs editing, not replaying the same invalid payload.
+  const status = (error as { status?: number } | null)?.status;
+  const automatic = ["DATA_FETCH", "SJEKK", "SUMMARY"].includes(oekt?.aktivtSteg?.type || "");
+  if (oekt?.aktivtSteg && (automatic || (status !== 400 && status !== 422))) {
+    pendingRetry = { oektsId: oekt.oektsId, stegId: oekt.aktivtSteg.id, showResult, run };
+  } else {
+    pendingRetry = null;
+  }
+  throw error;
+}
+
+async function retryFailedStep(): Promise<void> {
+  const retry = pendingRetry;
+  if (!retry || !oekt || retry.oektsId !== oekt.oektsId) return;
+  const previousStep = oekt.aktivtSteg;
+  // The failed response may have been lost after the write. Read before replaying:
+  // a completed step only needs /neste, and a terminal økt must never be mutated.
+  oekt = readOekt(await req<unknown>(`/api/prosessoekter/${retry.oektsId}`));
+  const savedResult = oekt.resultater?.[retry.stegId];
+  if (retry.showResult && savedResult && typeof savedResult === "object") {
+    showStegresultat(previousStep, savedResult);
+    retry.showResult = false;
+  }
+  updateSessionInfo();
+  if (oekt.status !== "AKTIV" || oekt.aktivtSteg?.id !== retry.stegId) {
+    pendingRetry = null;
+    await renderStep();
+  } else if (oekt.aktivtStegFullfort) {
+    pendingRetry = null;
+    await goNext();
+  } else {
+    await retry.run();
   }
 }
 
@@ -524,6 +591,9 @@ async function answerSidesporsmaal(text: string, fraKnapp = false): Promise<void
     if (!res.ok) {
       throw new Error(data.feil || `Feil ${res.status}`);
     }
+    if (typeof data.tekst !== "string" || !data.tekst.trim()) {
+      throw new Error("KI-tjenesten svarte uten tekst.");
+    }
 
     // En sperre som ikke synes, er ikke demonstrerbar.
     addMsg(data.sperre ? "guardrail" : "assistant", data.tekst ?? "");
@@ -548,6 +618,18 @@ async function answerSidesporsmaal(text: string, fraKnapp = false): Promise<void
 function resumeFlyt(opprinneligTekst: string | null): void {
   const steg = oekt?.aktivtSteg;
   if (!steg) return;
+  if (oekt?.status === "AVVIST" || oekt?.status === "FULLFORT") {
+    addMsg("system", oekt.status === "AVVIST"
+      ? "Søknaden er fortsatt avvist. Du kan stille flere spørsmål om avslaget."
+      : "Prosessen er fullført. Du kan fortsatt stille spørsmål.");
+    renderQuickActionsFor(steg);
+    return;
+  }
+  if (pendingRetry) {
+    addMsg("system", "Steget venter fortsatt på et nytt forsøk.");
+    renderQuickActionsFor(steg);
+    return;
+  }
   addMsg("system", `Sidespørsmål - flyten står på pause. Tilbake til: ${steg.tittel || steg.type}`);
   const aktivtFelt = ventendeFeltSvar?.stegId === steg.id
     ? ventendeFeltSvar.felter[ventendeFeltSvar.indeks]
@@ -565,11 +647,30 @@ async function req<T>(
     ...options,
     headers: withToken({ "Content-Type": "application/json", ...(options.headers || {}) })
   });
-  const data = (await res.json()) as { feil?: string };
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Ugyldig svar fra backend (HTTP ${res.status}).`);
+  }
   if (!res.ok) {
-    throw new Error(data.feil || `Feil ${res.status}`);
+    const feil = data && typeof data === "object" && "feil" in data ? data.feil : null;
+    throw Object.assign(new Error(typeof feil === "string" ? feil : `Feil ${res.status}`), { status: res.status });
   }
   return data as T;
+}
+
+function readOekt(data: unknown): Prosessoekt {
+  const value = data as Prosessoekt | null;
+  if (!value || typeof value !== "object" || typeof value.oektsId !== "string"
+    || !["AKTIV", "FULLFORT", "AVVIST"].includes(value.status || "")
+    || !Number.isInteger(value.stegIndex) || value.stegIndex < 0
+    || typeof value.aktivtStegFullfort !== "boolean"
+    || (value.status === "AKTIV" && (!value.aktivtSteg
+      || typeof value.aktivtSteg.id !== "string" || typeof value.aktivtSteg.type !== "string"))) {
+    throw new Error("Backend svarte uten en gyldig prosesstilstand. Ingen nye steg er startet.");
+  }
+  return value;
 }
 
 function enesteValgfelt(steg: ProsessSteg | null | undefined): SpoersmaalsFelt | null {
@@ -692,7 +793,12 @@ async function aiExplain(promptType: string, context: Record<string, unknown> = 
 async function goNext(valg: { tegnSteg?: boolean } = {}): Promise<void> {
   if (!oekt || oekt.status === "FULLFORT" || oekt.status === "AVVIST") return;
   if (oekt.stegIndex >= ((oekt.totaltAntallSteg ?? 0) - 1)) return;
-  oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" });
+  try {
+    oekt = readOekt(await req<unknown>(`/api/prosessoekter/${oekt.oektsId}/neste`, { method: "POST", body: "{}" }));
+    pendingRetry = null;
+  } catch (error) {
+    rememberFailedAction(error, () => goNext(valg));
+  }
   updateSessionInfo();
   if (valg.tegnSteg !== false) {
     await renderStep();
@@ -865,6 +971,7 @@ function showInnsending(resultat: Stegresultat): void {
 }
 
 async function runHandling(payload: Record<string, unknown>, successText: string): Promise<void> {
+  if (!oekt || oekt.status !== "AKTIV") return;
   const steg = oekt?.aktivtSteg;
   addTyping();
   let result: Handlingsresultat;
@@ -873,14 +980,31 @@ async function runHandling(payload: Record<string, unknown>, successText: string
       method: "POST",
       body: JSON.stringify(payload || {})
     });
+    if (!result || typeof result.resultat !== "object" || result.resultat === null) {
+      throw new Error("Backend svarte uten et gyldig stegresultat.");
+    }
+    oekt = readOekt(result?.oekt);
+    pendingRetry = null;
+  } catch (error) {
+    rememberFailedAction(error, () => runHandling(payload, successText), true);
   } finally {
     removeTyping();
   }
-  oekt = result.oekt;
 
+  addMsg("system", successText);
+  showStegresultat(steg, result.resultat);
+  updateSessionInfo();
+  if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
+    await renderStep();
+  } else {
+    await goNext();
+  }
+}
+
+function showStegresultat(steg: ProsessSteg | null | undefined, result: Handlingsresultat["resultat"]): void {
   // Samtykkestatus vises i statusstripa og sendes med som grunnlag når
   // innbygger spør om databruk.
-  const resultat = Array.isArray(result.resultat) ? null : result.resultat;
+  const resultat = Array.isArray(result) ? null : result;
   if (steg?.type === "CONSENT_REQUEST" && resultat?.status) {
     sisteSamtykke = {
       status: resultat.status,
@@ -889,9 +1013,7 @@ async function runHandling(payload: Record<string, unknown>, successText: string
     };
   }
 
-  updateSessionInfo();
-  addMsg("system", successText);
-  const summary = summarizeResult(steg, result.resultat);
+  const summary = summarizeResult(steg, result);
   if (summary) {
     addMsg("assistant", summary);
     samtale.push({ rolle: "assistent", tekst: summary });
@@ -910,18 +1032,22 @@ async function runHandling(payload: Record<string, unknown>, successText: string
   } else if (steg?.type === "SUMMARY") {
     ventendeOppfolging = ["Hva skjer videre nå?", "Hvilke opplysninger brukte dere?"];
   }
-
-  await goNext();
 }
 
 async function ensureConsentDecision(status: string, successText: string): Promise<void> {
+  if (!oekt || oekt.status !== "AKTIV") return;
   if (!oekt?.aktivtSamtykkeId) {
     addMsg("system", "Jeg oppretter samtykkeforespørselen nå.");
-    const opprettet = await req<Handlingsresultat>(`/api/prosessoekter/${oekt!.oektsId}/handling`, {
-      method: "POST",
-      body: JSON.stringify({ handling: "opprett-samtykke" })
-    });
-    oekt = opprettet.oekt;
+    try {
+      const opprettet = await req<Handlingsresultat>(`/api/prosessoekter/${oekt.oektsId}/handling`, {
+        method: "POST",
+        body: JSON.stringify({ handling: "opprett-samtykke" })
+      });
+      oekt = readOekt(opprettet?.oekt);
+      pendingRetry = null;
+    } catch (error) {
+      rememberFailedAction(error, () => ensureConsentDecision(status, successText));
+    }
     updateSessionInfo();
   }
   await runHandling({ handling: "samtykkesvar", status }, successText);
@@ -943,16 +1069,18 @@ async function autoRunStep(steg: ProsessSteg, successText: string): Promise<void
 async function renderStep(): Promise<void> {
   setQuickActions([]);
   const steg = oekt?.aktivtSteg;
+  if (oekt?.status === "AVVIST") {
+    addMsg("error", oekt.avvistMelding || oekt.resultater?.[steg?.id || ""]?.melding || "Søknaden ble avvist.");
+    renderQuickActionsFor(steg);
+    return;
+  }
+  if (oekt?.status === "FULLFORT") {
+    addMsg("assistant", "Da er vi ferdige. Takk for at du gikk gjennom dette sammen med meg.");
+    renderQuickActionsFor(steg);
+    return;
+  }
   if (!steg || !oekt) {
     addMsg("system", "Ingen aktivt steg.");
-    return;
-  }
-  if (oekt.status === "AVVIST") {
-    addMsg("error", oekt.avvistMelding || oekt.resultater?.[steg.id]?.melding || "Søknaden ble avvist.");
-    return;
-  }
-  if (oekt.status === "FULLFORT") {
-    addMsg("assistant", "Da er vi ferdige. Takk for at du gikk gjennom dette sammen med meg.");
     return;
   }
 
@@ -986,15 +1114,20 @@ async function renderStep(): Promise<void> {
  * feilrutetTekst er rømningsveien: ble en melding lest som spørsmål når
  * den var et svar, sender knappen den inn som svar med ett trykk.
  */
-function renderQuickActionsFor(steg: ProsessSteg, feilrutetTekst: string | null = null): void {
+function renderQuickActionsFor(steg: ProsessSteg | null | undefined, feilrutetTekst: string | null = null): void {
   const knapper: Hurtigknapp[] = [];
+  const aktiv = oekt?.status === "AKTIV";
+  if (aktiv && pendingRetry) {
+    setQuickActions([{ label: "Prøv igjen", onClick: retryFailedStep }]);
+    return;
+  }
 
-  if (steg.type === "INFO") {
+  if (aktiv && steg?.type === "INFO") {
     knapper.push({ label: "Start", onClick: () => goNext() });
   }
 
   const valgfelt = enesteValgfelt(steg);
-  if (steg.type === "QUESTION" && valgfelt) {
+  if (aktiv && steg?.type === "QUESTION" && valgfelt) {
     for (const alternativ of valgfelt.alternativer || []) {
       const verdi = alternativVerdi(alternativ);
       knapper.push({
@@ -1006,33 +1139,36 @@ function renderQuickActionsFor(steg: ProsessSteg, feilrutetTekst: string | null 
     }
   }
 
-  if (steg.type === "CONSENT_REQUEST") {
+  if (aktiv && steg?.type === "CONSENT_REQUEST") {
     knapper.push(
       { label: "Ja, det går fint", onClick: () => ensureConsentDecision("SAMTYKKET", "Takk, jeg ordner det.") },
       { label: "Nei, ikke nå", onClick: () => ensureConsentDecision("IKKE_SAMTYKKET", "Helt i orden."), secondary: true }
     );
   }
 
-  if (steg.type === "SUBMIT") {
+  if (aktiv && steg?.type === "SUBMIT") {
     knapper.push(
       { label: "Ja, send inn", onClick: () => runHandling({}, "Da sender jeg inn søknaden.") },
       { label: "Ikke ennå", onClick: () => addMsg("assistant", "Helt i orden. Gi beskjed når du vil sende den inn."), secondary: true }
     );
   }
 
-  for (const sporsmaal of ventendeOppfolging) {
+  const oppfolging = oekt?.status === "AVVIST"
+    ? ["Hvorfor ble det slik?", "Hvilke opplysninger brukte dere?", "Hva skjer med opplysningene mine?"]
+    : ventendeOppfolging;
+  for (const sporsmaal of oppfolging) {
     knapper.push({
       label: sporsmaal,
       secondary: true,
       onClick: () => {
         addMsg("user", sporsmaal);
         samtale.push({ rolle: "innbygger", tekst: sporsmaal });
-        answerSidesporsmaal(sporsmaal, true);
+        return answerSidesporsmaal(sporsmaal, true);
       }
     });
   }
 
-  if (feilrutetTekst) {
+  if (aktiv && feilrutetTekst) {
     knapper.push({
       label: "Nei, dette var svaret mitt",
       secondary: true,
@@ -1046,7 +1182,7 @@ function renderQuickActionsFor(steg: ProsessSteg, feilrutetTekst: string | null 
 // Egen funksjon framfor et nytt sendMessage-kall: sendMessage skriver
 // innbyggerens melding i loggen øverst, så en runde til dobler den.
 async function svarPaaSpoersmaal(steg: ProsessSteg, tekst: string): Promise<void> {
-  if (!oekt) return;
+  if (!oekt || oekt.status !== "AKTIV") return;
   const felter = steg.felter || [];
   const obligatoriske = felter.filter((felt) => felt.obligatorisk);
   let svar: unknown = tekst;
@@ -1069,10 +1205,15 @@ async function svarPaaSpoersmaal(steg: ProsessSteg, tekst: string): Promise<void
     svar = { [felt.id]: tekst };
   }
 
-  oekt = await req<Prosessoekt>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
-    method: "POST",
-    body: JSON.stringify({ stegId: steg.id, svar })
-  });
+  try {
+    oekt = readOekt(await req<unknown>(`/api/prosessoekter/${oekt.oektsId}/svar`, {
+      method: "POST",
+      body: JSON.stringify({ stegId: steg.id, svar })
+    }));
+    pendingRetry = null;
+  } catch (error) {
+    rememberFailedAction(error, () => svarPaaSpoersmaal(steg, tekst));
+  }
   ventendeFeltSvar = null;
   addMsg("assistant", acknowledgeSvar(steg, tekst));
   updateSessionInfo();
@@ -1091,17 +1232,30 @@ async function sendMessage(
   addMsg("user", text);
   samtale.push({ rolle: "innbygger", tekst: text });
 
-  if (!oekt || !oekt.aktivtSteg) {
+  if (!oekt) {
     addMsg("error", "Start en prosess først.");
     return;
   }
 
-  if (oekt?.status === "AVVIST") {
-    addMsg("error", "Søknaden ble avvist. Start en ny søknad om du vil prøve igjen.");
+  if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
+    if (!valg.hoppOverSporsmaalsruting && !text.trim().toLowerCase().startsWith("svar:") && isSidesporsmaal(text, null)) {
+      await answerSidesporsmaal(text, true);
+    } else {
+      addMsg("system", oekt.status === "AVVIST"
+        ? "Søknaden ble avvist. Du kan spørre om avslaget, eller starte en ny søknad."
+        : "Prosessen er fullført. Du kan fortsatt stille spørsmål.");
+    }
+    renderQuickActionsFor(oekt.aktivtSteg);
+    return;
+  }
+
+  if (pendingRetry && ["prøv igjen", "prov igjen"].includes(text.toLowerCase().trim().replace(/[.!]$/, ""))) {
+    await retryFailedStep();
     return;
   }
 
   const steg = oekt.aktivtSteg;
+  if (!steg) return;
   const prefiks = parseSvarPrefiks(text);
 
   // Eksplisitt rømningsvei begge veier: «svar:» tvinger teksten inn som
@@ -1111,6 +1265,12 @@ async function sendMessage(
 
   if (!tvungetSvar && isSidesporsmaal(text, steg)) {
     await answerSidesporsmaal(text);
+    return;
+  }
+
+  if (pendingRetry) {
+    addMsg("system", "Steget ble ikke fullført. Trykk «Prøv igjen», eller still et spørsmål.");
+    renderQuickActionsFor(steg);
     return;
   }
 
@@ -1184,7 +1344,7 @@ async function sendMessage(
 
     addMsg("error", `Ukjent stegtype: ${steg.type}`);
   } catch (error) {
-    addMsg("error", `Feil: ${feilmelding(error)}`);
+    showChatError(error);
   }
 }
 
@@ -1192,22 +1352,26 @@ async function startChat(): Promise<void> {
   try {
     const personId = personEl.value;
     const prosessId = prosessEl.value;
+    oekt = null;
+    pendingRetry = null;
+    setQuickActions([]);
+    updateSessionInfo();
     aktivProsess = prosesser.find((p) => p.id === prosessId) || null;
     stopForsendelsespolling();
     sisteSamtykke = null;
     ventendeOppfolging = [];
     ventendeFeltSvar = null;
     samtale.length = 0;
-    oekt = await req<Prosessoekt>("/api/prosessoekter", {
+    oekt = readOekt(await req<unknown>("/api/prosessoekter", {
       method: "POST",
       body: JSON.stringify({ personId, prosessId, sporingsId: `flyt-${Date.now()}` })
-    });
+    }));
     chatEl.innerHTML = "";
     updateSessionInfo();
     addMsg("assistant", `Hei ${valgtPerson()}! Jeg kan hjelpe deg med ${aktivProsess?.navn || prosessId}.`);
     await renderStep();
   } catch (error) {
-    addMsg("error", `Kunne ikke starte chat: ${feilmelding(error)}`);
+    showChatError(error);
   }
 }
 
@@ -1225,11 +1389,13 @@ async function loadOptions(): Promise<Person[]> {
   return personer;
 }
 
-krevEl("start").onclick = () => startChat();
-krevEl("send").onclick = () => sendMessage();
+krevEl("start").onclick = () => runChatAction(startChat);
+krevEl("send").onclick = () => runChatAction(() => sendMessage());
 krevEl("reset").onclick = () => {
+  if (sending) return;
   stopForsendelsespolling();
   oekt = null;
+  pendingRetry = null;
   aktivProsess = null;
   sisteSamtykke = null;
   ventendeOppfolging = [];
@@ -1243,7 +1409,7 @@ krevEl("reset").onclick = () => {
 inputEl.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
-    sendMessage();
+    runChatAction(() => sendMessage());
   }
 });
 
