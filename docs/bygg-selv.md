@@ -206,8 +206,8 @@ dekker de kuraterte husstandene, ikke hele befolkningen.
 
 To ting å huske:
 
-- **`./start.sh --reset` sletter `state/`.** Hold en kopi av dine egne datafiler et
-  sted du ikke tømmer, eller sett `STATE_DIR` til en mappe utenfor repoet.
+- **`./start.sh --reset` sletter `state/`.** Den kopierer til `_backup/` først, men
+  hold dine egne datafiler et sted du ikke tømmer.
 - **Skyggingen er stille** for alle andre filer enn `prosessdefinisjoner.json`,
   `personer.json` og `satser.json`. Lurer du på hvorfor en endring i `data/` ikke slår
   gjennom, se etter en fil med samme navn i `state/`.

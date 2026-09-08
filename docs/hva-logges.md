@@ -105,6 +105,9 @@ den kunne hvilken som helst nettside i nettleseren din lese den.
 - **Den eneste slettingen er `./start.sh --reset`.** Den fjerner hele `state/`, og
   tjenestene seeder seg selv fra `data/` neste gang de starter. Den rullerer også
   signeringsnøkkelen, så tokener noen har limt inn et sted slutter å virke.
+- **`--reset` tar en kopi først,** til `_backup/<tidspunkt>-utc/`, slik at KI-sporet
+  ikke går tapt bare fordi noen ryddet opp.
+  [`_backup/README.md`](../_backup/README.md) forklarer katalogen.
 - **`./start.sh --reload` og `docker compose down` sletter ingenting.** `state/` ligger
   på din egen maskin gjennom bind-mounten, ikke inne i containerne.
 - Vil du bare bli kvitt én fil, kan du slette den for hånd. Leserne faller tilbake til

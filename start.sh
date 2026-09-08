@@ -50,7 +50,7 @@ Valg:
   -m, --model MODELL Bruk en bestemt Ollama-modell i stedet for den automatiske
   -y, --yes          Ikke spør før Ollama installeres eller en modell lastes ned
       --mock         Kjør uten språkmodell (KI-svarene blir maler)
-      --reset        Tøm kjøretilstanden i state/ og start fra seed-dataene
+      --reset        Ta en kopi av state/ til _backup/, tøm den, og start fra seed-dataene
       --reload       Start Node-tjenestene på nytt for å ta inn kodeendringer, og avslutt
   -d, --down         Stopp og fjern alle containere
   -h, --help         Vis denne hjelpen
@@ -259,6 +259,23 @@ ensure_env() {
   info "opprettet .env som peker på ${base_url}"
 }
 
+# state/ai-trace.jsonl is the only record of the model calls, and --reset deletes it.
+# The signing key is skipped: it must never reach a directory that may get committed.
+backup_state() {
+  local filer=()
+  for fil in state/*; do
+    [[ -f "$fil" ]] || continue
+    [[ "${fil##*/}" == digdir-nokkel.json ]] && continue
+    filer+=("$fil")
+  done
+  (( ${#filer[@]} )) || return 0
+
+  local maal="_backup/$(date -u +%Y%m%d-%H%M%S)-utc"
+  mkdir -p "$maal"
+  cp "${filer[@]}" "$maal/"
+  info "tok vare på ${#filer[@]} filer i $maal/"
+}
+
 confirm() {
   $ASSUME_YES && return 0
   printf '\n   %s\n   Trykk Enter for å fortsette, eller Ctrl-C for å stoppe. ' "$1"
@@ -462,6 +479,7 @@ preflight
 ensure_env
 
 if $RESET; then
+  backup_state
   # Services seed themselves from data/ whenever a state file is missing,
   # so removing the directory is all it takes.
   rm -rf state

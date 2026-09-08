@@ -115,7 +115,8 @@ lagres med vilje, begge i `state/` på din egen maskin:
   leser data, endrer et samtykke, tar et prosessteg eller kaller modellen.
 - **KI-sporet** (`state/ai-trace.jsonl`) - full prompt og fullt svar per modellkall.
 
-Kjører du mot en KI-provider som ikke er lokal, går hele prompten ut av maskinen.
+Kjører du mot en KI-provider som ikke er lokal, går hele prompten ut av maskinen. Og
+`./start.sh --reset` legger en kopi av `state/` i `_backup/` før den sletter.
 [`docs/hva-logges.md`](docs/hva-logges.md) har hele bildet.
 
 ## Hvordan starte den
@@ -172,7 +173,7 @@ Du skal normalt ikke trenge noen av disse.
 | `-y, --yes` | Ikke spør før installasjon eller nedlasting |
 | `--mock` | Kjør uten språkmodell. Raskeste vei inn, og redningen når nedlasting ikke er mulig |
 | `--reload` | Start Node-tjenestene på nytt så kodeendringer blir live. Det du trenger oftest etter første endring |
-| `--reset` | Tøm `state/` og start fra kildedataene igjen |
+| `--reset` | Kopier `state/` til `_backup/`, tøm den, og start fra kildedataene igjen |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 

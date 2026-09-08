@@ -75,7 +75,8 @@ Nullstill all kjøringstilstand med:
 ./start.sh --reset
 ```
 
-`STATE_DIR` kan settes hvis du vil legge tilstanden utenfor repoet.
+`STATE_DIR` leses bare av skript du kjører selv, som `pnpm test:kontrakt`. Tjenestene
+i compose bruker alltid `state/` i repoet.
 
 ### Å dele en prosess du har laget
 

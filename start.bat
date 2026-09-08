@@ -224,7 +224,7 @@ echo Starter sandkassen i Docker, uten Git Bash eller WSL. Denne filen starter
 echo alltid uten modell, og da er KI-svarene maltekst.
 echo.
 echo Valg:
-echo   --reset     Slett state/ og start fra seed-dataene
+echo   --reset     Kopier state/ til _backup/, slett den, start fra seed-dataene
 echo   --reload    Start Node-tjenestene om igjen slik at kodeendringer tas inn
 echo   --mock      Uten effekt: denne filen starter alltid uten modell
 echo   -d, --down  Stopp og fjern alle containere
@@ -253,8 +253,26 @@ goto :eof
 :reset_state
 rem Services seed themselves from data/ whenever a state file is missing, so
 rem removing the directory is all it takes.
-if exist state rmdir /s /q state
+if exist state (
+  call :backup_state
+  rmdir /s /q state
+)
 echo   state/ er slettet - tjenestene starter fra seed-dataene.
+goto :eof
+
+rem Mirrors backup_state in start.sh; keep the two in step.
+rem PowerShell only because cmd has no locale-independent UTC clock: %DATE% is
+rem formatted per locale and wmic was removed from Windows in 2026.
+:backup_state
+set STAMP=
+for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "(Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')"`) do set STAMP=%%T
+if "%STAMP%"=="" set STAMP=ukjent-tidspunkt
+mkdir "_backup\%STAMP%-utc" 2>nul
+rem Not xcopy-then-delete: that writes the signing key to disk before removing it.
+for %%F in (state\*) do (
+  if /i not "%%~nxF"=="digdir-nokkel.json" copy "%%F" "_backup\%STAMP%-utc\" >nul
+)
+echo   tok vare paa state/ i _backup\%STAMP%-utc\
 goto :eof
 
 :check_ports

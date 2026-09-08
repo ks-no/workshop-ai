@@ -105,8 +105,10 @@ chat, or that every service is a søknad.
   stays in `sandbox-backend`: only the backend and the gate read it.
 - Seed/reference data lives in `data/*.json` (tracked, read-only during normal runs).
 - Runtime mutations go to `state/*.json` (gitignored), so demos do not dirty the repo.
+  `_backup/` is the exception, deliberately left out of `.gitignore` so the KI-spor can
+  leave the machine.
 - `readJson` (`apps/shared/jsonstore.ts`) reads `state/` first and falls back to
-  `data/`. `./start.sh --reset` clears `state/`.
+  `data/`. `./start.sh --reset` copies `state/` to `_backup/`, then clears it.
 - **Every write to a *shared* file under `state/` goes through `updateJson`** in that
   same module, which does the whole read-modify-write inside one queue. The store
   exports no plain writer at all, and that is deliberate: writing a copy the request
@@ -658,7 +660,9 @@ pnpm test:agent:matrikkel
 
 ## Integration edges and env vars
 - In Compose, services call each other by container DNS (`http://sandbox-backend:8080`, etc.).
-- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `PASIENTJOURNAL_BASE_URL`, `POLITIATTEST_BASE_URL`, `STATE_DIR`.
+- Common env vars: `BACKEND_BASE_URL`, `AI_BASE_URL`, `TOOLS_BASE_URL`, `MATRIKKEL_BASE_URL`, `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `BEDROCK_AWS_REGION`, `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_AWS_SESSION_TOKEN`, `BEDROCK_MODEL_ID`, `PASIENTJOURNAL_BASE_URL`, `POLITIATTEST_BASE_URL`, `STATE_DIR` - which
+  `docker-compose.yml` never passes on, so it is read only by scripts you start
+  yourself, never by a service under compose.
 - `tools-api` uses `MATRIKKEL_BASE_URL` (default `http://matrikkel-mock:8085`) to reach the Matrikkel mock.
 - `ai-gateway` falls back to template text when the provider is unavailable, setting an
   `advarsel` field. Check `GET /helse` - it reports `modellNaaBar` plus a `feil` string
