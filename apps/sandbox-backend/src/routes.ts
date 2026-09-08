@@ -27,6 +27,7 @@ import {
   buildProsessoektRespons,
   createSoknad,
   erStegFullfort,
+  invalidateStegOgSenere,
   lagreStegSvar,
   resultaterNaa,
   runStegHandling
@@ -54,6 +55,7 @@ import {
 // Default policy: GET,POST,PUT,OPTIONS and Content-Type,Authorization, on both
 // JSON and text responses. Same bytes this service has always sent.
 const { jsonResponse, textResponse } = svarhjelpere();
+const aktiveSteghandlinger = new Set<string>();
 
 // Hand-written, not generated from the spec: it lists the routes a newcomer
 // needs first, not all of them. routeOverview() below serves the complete list.
@@ -169,17 +171,33 @@ function getSporingsId(url: URL) {
  *
  * `fn` is the handler's single mutation. Returning nothing answers with the
  * plain økt response; returning a value answers `{ oekt, resultat }`, which is
- * the published shape of POST /handling. Domain errors inside `fn` are thrown
- * as HttpError and reach the client before anything is saved.
+ * the published shape of POST /handling. The checkpoint lets a long-running
+ * action claim the current version and persist invalidation before it calls an
+ * upstream service.
  */
 async function withSession(
   { response, parametere, tilstand, kaller }: Pick<Kontekst, "response" | "parametere" | "tilstand" | "kaller">,
-  { lesing = false }: { lesing?: boolean },
-  fn: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<unknown> | unknown
+  {
+    lesing = false,
+    underSteghandling = false,
+    afterSave
+  }: {
+    lesing?: boolean;
+    underSteghandling?: boolean;
+    afterSave?: (session: Prosessoekt, prosess: ProsessDefinisjon) => Promise<void> | void;
+  },
+  fn: (
+    session: Prosessoekt,
+    prosess: ProsessDefinisjon,
+    checkpoint: () => Promise<void>
+  ) => Promise<unknown> | unknown
 ) {
   const session = findProsessoekt(tilstand, parametere.oektsId);
   if (!session) {
     throw new HttpError("Fant ikke prosessøkt.", 404);
+  }
+  if (!lesing && !underSteghandling && aktiveSteghandlinger.has(session.oektsId)) {
+    throw new HttpError("En steghandling pågår allerede for prosessøkten.", 409);
   }
   if (!lesing && (session.status === "AVVIST" || session.status === "FULLFORT")) {
     throw new HttpError("Prosessøkten er avsluttet og kan ikke fortsette.", 400);
@@ -190,10 +208,19 @@ async function withSession(
   if (!prosess) {
     throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
   }
-  const resultat = await fn(session, prosess);
+  let forventetOppdatert = session.oppdatert;
+  const checkpoint = async () => {
+    const forrigeTid = Date.parse(forventetOppdatert);
+    session.oppdatert = new Date(
+      Math.max(Date.now(), Number.isNaN(forrigeTid) ? 0 : forrigeTid + 1)
+    ).toISOString();
+    await lagreProsessoekt(session, { oppdatert: forventetOppdatert });
+    forventetOppdatert = session.oppdatert;
+  };
+  const resultat = await fn(session, prosess, checkpoint);
   if (!lesing) {
-    session.oppdatert = new Date().toISOString();
-    await lagreProsessoekt(session);
+    await checkpoint();
+    await afterSave?.(session, prosess);
   }
   // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
   // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
@@ -506,38 +533,54 @@ const ruter: Rute[] = [
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/svar",
     finnPersonId: eierAvOekt,
-    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess) => {
+    handter: (kontekst) => withSession(kontekst, {
+      afterSave: (session) => addRevisjon({
+        sporingsId: session.sporingsId,
+        handling: "STEG_SVAR_LAGRET",
+        ressurs: "prosessoekt",
+        aktor: aktorFor(kontekst.kaller, session.personId)
+      })
+    }, async (session, prosess) => {
       const body = await readBodyOnce(kontekst.request);
       const steg = prosess.steg[session.stegIndex];
       if (!steg) {
         throw new HttpError("Fant ikke aktivt steg.", 400);
       }
-      // Steget svaret gjelder, ikke nødvendigvis det aktive: ruten har alltid
-      // godtatt en stegId. Endres et tidligere spørsmål, spoles økten tilbake og
-      // alt som ble utledet etter svaret må gjøres på nytt.
       const stegId = body.stegId || steg.id;
-      const maalSteg = prosess.steg.find((kandidat) => kandidat.id === stegId);
-      if (maalSteg) {
-        lagreStegSvar(session, prosess, maalSteg, body.svar);
-      } else {
-        session.svar[stegId] = body.svar;
+      if (stegId !== steg.id) {
+        throw new HttpError("Svar kan bare lagres på det aktive steget.", 400);
       }
-      await addRevisjon({
-        sporingsId: session.sporingsId,
-        handling: "STEG_SVAR_LAGRET",
-        ressurs: "prosessoekt",
-        aktor: aktorFor(kontekst.kaller, session.personId)
-      });
+      if (steg.type !== "QUESTION") {
+        throw new HttpError("Svar kan bare lagres på spørsmålssteg.", 400);
+      }
+      lagreStegSvar(session, prosess, steg, body.svar);
     })
   },
   {
     metode: "POST",
     sti: "/api/prosessoekter/:oektsId/handling",
     finnPersonId: eierAvOekt,
-    handter: (kontekst) => withSession(kontekst, {}, async (session, prosess) => {
-      const body = await readBodyOnce(kontekst.request);
-      return runStegHandling(kontekst.tilstand, session, prosess, body, kontekst.kaller);
-    })
+    handter: async (kontekst) => {
+      const oektsId = kontekst.parametere.oektsId;
+      if (aktiveSteghandlinger.has(oektsId)) {
+        throw new HttpError("En steghandling pågår allerede for prosessøkten.", 409);
+      }
+      aktiveSteghandlinger.add(oektsId);
+      try {
+        await withSession(kontekst, { underSteghandling: true }, async (session, prosess, checkpoint) => {
+          const body = await readBodyOnce(kontekst.request);
+          const steg = prosess.steg[session.stegIndex];
+          if (!steg) {
+            throw new HttpError("Fant ikke aktivt steg.", 400);
+          }
+          invalidateStegOgSenere(session, prosess, steg);
+          await checkpoint();
+          return runStegHandling(kontekst.tilstand, session, prosess, body, kontekst.kaller);
+        });
+      } finally {
+        aktiveSteghandlinger.delete(oektsId);
+      }
+    }
   },
   {
     metode: "POST",
@@ -548,7 +591,13 @@ const ruter: Rute[] = [
         throw new HttpError("Prosessøkten er allerede på siste steg.", 400);
       }
       const steg = prosess.steg[session.stegIndex];
-      if (!steg || !erStegFullfort(session, steg)) {
+      const { resultater } = resultaterNaa(
+        kontekst.tilstand,
+        session,
+        prosess,
+        kontekst.kaller
+      );
+      if (!steg || !erStegFullfort(session, steg, resultater)) {
         throw new HttpError("Det aktive steget må fullføres før prosessen kan gå videre.", 400);
       }
       session.stegIndex += 1;

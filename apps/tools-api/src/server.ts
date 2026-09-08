@@ -246,7 +246,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "run_current_action",
-    description: "Run action for current DATA_FETCH, SUMMARY, or SUBMIT step.",
+    description: "Run action for the current DATA_FETCH, SJEKK, SUMMARY, or SUBMIT step.",
     inputSchema: {
       type: "object",
       required: ["oektsId"],
@@ -255,7 +255,7 @@ const toolDefs: Verktoy[] = [
   },
   {
     name: "next_step",
-    description: "Move process session to next step.",
+    description: "Move to the next step after the current step is complete. Does not run the step action.",
     inputSchema: {
       type: "object",
       required: ["oektsId"],
@@ -1437,5 +1437,4 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Tools-api kjører på http://localhost:${port}`);
 });
-
 

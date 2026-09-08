@@ -117,7 +117,7 @@ jobs:
 
       # Step completion and the closed-økt guard in withSession (routes.ts).
       # /neste cannot skip QUESTION, consent, reads, checks or summaries, and a
-      # replayed SUBMIT cannot create a duplicate søknad. Four services run on
+      # replayed SUBMIT cannot create a duplicate søknad. Six services run on
       # their own ports against a temp STATE_DIR, with the AI mock and no stack.
       - name: Stegfullføring og lukkede prosessøkter
         run: pnpm test:replay

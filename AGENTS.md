@@ -115,7 +115,10 @@ chat, or that every service is a søknad.
   read earlier is the lost update that cost this repo a søknad, a prosess and a
   participant's step, in four separate places. A guard that has to be remembered is not
   a guard. `pnpm test:concurrency` pins it for `prosessoekter.json`, `soknader.json`
-  and `prosessdefinisjoner.json`, and `pnpm test:samtykke` for `samtykker.json`.
+  and `prosessdefinisjoner.json`, and   `pnpm test:samtykke` for `samtykker.json`.
+  Mutations of the same prosessøkt additionally compare `oppdatert` inside that
+  queue; a request holding an older snapshot gets 409 instead of restoring stale
+  answers or results. `pnpm test:concurrency` races that case directly.
   Two files stay outside the store and may: `state/ai-provider-override.json`
   (`ai-gateway`) and `state/digdir-nokkel.json` (`digdir-mock`) have exactly one writer
   each, in one service, so there is no second reader to lose an update to.
@@ -170,7 +173,15 @@ chat, or that every service is a søknad.
   `DATA_FETCH`, `CONSENT_REQUEST`, `SJEKK`, `SUMMARY`, `SUBMIT`. There is no `CONFIRMATION`.
 - Actual sequence in the flagship case `redusert-foreldrebetaling-barnehage`:
   `INFO` -> `DATA_FETCH` -> `CONSENT_REQUEST` -> `DATA_FETCH` -> `SJEKK` -> `SUMMARY` -> `SUBMIT`.
-- The engine is linear: `stegIndex` only counts up. No branching, no conditional jumps.
+- The forward path is linear: `/neste` increments `stegIndex` only after the active
+  step is complete. There is no branching or conditional jump, and `/neste` never
+  executes a step. `/forrige` is the explicit way back. `/svar` accepts only the
+  active `QUESTION`; when a changed answer is saved after moving back, every later
+  answer and result is deleted so stale data cannot complete those steps. Rerunning
+  an action also clears its previous result and all later evidence before the attempt.
+  Only one `/handling` may run per økt at a time, so concurrent SUBMIT calls cannot
+  duplicate the søknad before completion is saved. Other mutation routes return 409
+  while that action runs, so navigation cannot move the økt out from under it.
 - `SJEKK` is a deterministic rules evaluation in the backend. Decisions must stay
   reproducible and auditable - never move eligibility logic into the model. The model
   formulates (`SUMMARY`); it does not compute or decide.

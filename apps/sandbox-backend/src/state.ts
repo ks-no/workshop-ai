@@ -6,6 +6,7 @@ import path from "node:path";
 // here would only be one more hop that can drift.
 import { readJson, seedDir, stateDir, updateJson } from "../../shared/jsonstore.ts";
 import { maskBefolkning } from "../../shared/skjerming.ts";
+import { HttpError } from "./errors.ts";
 import type { Datasettnoekkel, ProsessDefinisjon, Prosesskatalog, State } from "./types.ts";
 
 // Which seed files are currently shadowed by a copy in state/.
@@ -239,14 +240,27 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
  *
- * Two writes to the *same* økt still resolve last-writer-wins. That is one person
- * double-clicking, and the flow is linear, so it is a narrower and acceptable race.
+ * Writes to the same økt use oppdatert as a compare-and-set token. A request that
+ * read an older snapshot gets 409 instead of restoring answers or results that a
+ * concurrent request invalidated.
  */
-export function lagreProsessoekt(oekt: { oektsId: string }): Promise<void> {
-  return updateJson("prosessoekter.json", [], (alle: { oektsId: string }[]) => {
+export function lagreProsessoekt(
+  oekt: { oektsId: string; oppdatert?: string },
+  forventet?: { oppdatert: string }
+): Promise<void> {
+  return updateJson("prosessoekter.json", [], (alle: { oektsId: string; oppdatert?: string }[]) => {
     const i = alle.findIndex((kandidat) => kandidat.oektsId === oekt.oektsId);
-    if (i === -1) alle.push(oekt);
-    else alle[i] = oekt;
+    if (forventet && (i === -1 || alle[i].oppdatert !== forventet.oppdatert)) {
+      throw new HttpError(
+        "Prosessøkten ble endret av et annet kall. Hent økten på nytt og prøv igjen.",
+        409
+      );
+    }
+    if (i === -1) {
+      alle.push(oekt);
+    } else {
+      alle[i] = oekt;
+    }
   });
 }
 

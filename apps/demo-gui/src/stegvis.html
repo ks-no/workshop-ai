@@ -38,10 +38,11 @@
           </div>
           <div class="actions">
             <button id="start">Start prosess</button>
-            <button id="forrige" class="secondary">Forrige steg</button>
-            <button id="neste" class="secondary">Neste steg</button>
+            <button id="forrige" class="secondary" disabled>Forrige steg</button>
+            <button id="neste" class="secondary" aria-describedby="nesteForklaring" disabled>Neste steg</button>
             <button id="hentLogg" class="secondary">Hent revisjonslogg</button>
           </div>
+          <div id="nesteForklaring" class="muted" aria-live="polite">Start en prosess for å se stegene.</div>
           <div id="status" class="status">Velg testbruker og prosess for å starte.</div>
           <div id="aktivtSteg" class="step-card">
             <div class="muted">Ingen aktiv prosess ennå.</div>
