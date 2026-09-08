@@ -17,6 +17,7 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 - [Hva sandkassen er](#hva-sandkassen-er)
 - [Designprinsipp for hackathon](#designprinsipp-for-hackathon)
 - [Status](#status)
+- [Hva som logges](#hva-som-logges)
 - [Hvordan starte den](#hvordan-starte-den)
 - [Hvordan stoppe den](#hvordan-stoppe-den)
 - [Oversikt over tjenester og porter](#oversikt-over-tjenester-og-porter)
@@ -103,6 +104,19 @@ Elleve kjørende tjenester, én valgfri avhengighet i kjøretid, sju komplette d
 - evals av KI-laget: `pnpm test:eval`
 - OpenAPI for alle ni API-tjenestene, komplett og holdt i takt med koden av
   `pnpm test:openapi`: hver rute dokumentert, med `security:` per rute
+
+## Hva som logges
+
+**Loggene sier hva sandkassen gjorde, ikke hvem som kjørte den.** Ingen brukerkonto,
+ingen tilgangslogg, ingen bruksmålinger, og ingenting sendes til KS Digital. To ting
+lagres med vilje, begge i `state/` på din egen maskin:
+
+- **Revisjonsloggen** (`state/revisjonslogg.json`) - én hendelse hver gang sandkassen
+  leser data, endrer et samtykke, tar et prosessteg eller kaller modellen.
+- **KI-sporet** (`state/ai-trace.jsonl`) - full prompt og fullt svar per modellkall.
+
+Kjører du mot en KI-provider som ikke er lokal, går hele prompten ut av maskinen.
+[`docs/hva-logges.md`](docs/hva-logges.md) har hele bildet.
 
 ## Hvordan starte den
 

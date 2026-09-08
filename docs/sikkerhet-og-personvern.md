@@ -13,6 +13,7 @@ Provideren avgjør om promptene forlater maskinen:
 - `ollama` - til Ollama-en `OLLAMA_BASE_URL` peker på. Lokal i standardoppsettet, og
   da forlater ingenting maskinen.
 - `openrouter` - til openrouter.ai: hele prompten går ut av maskinen, til en tredjepart.
+- `telenor-ai-factory` - til Telenor AI Factory: hele prompten går ut av maskinen.
 - `bedrock` - til AWS Bedrock: hele prompten går ut av maskinen, til AWS.
 
 > [!WARNING]
@@ -27,7 +28,8 @@ ved neste oppstart - så sjekk aktiv provider på `/admin`, ikke i `.env`, før 
 
 **Promptene lagres på disk.** `ai-gateway` skriver full prompt og fullt svar til
 `state/ai-trace.jsonl` - med vilje, for at du skal kunne se hva modellen faktisk fikk.
-Filen er gitignorert og nullstilles av `./start.sh --reset`.
+Filen er gitignorert og nullstilles av `./start.sh --reset`. [`docs/hva-logges.md`](hva-logges.md)
+har hele oversikten over hva som skrives hvor.
 
 > [!NOTE]
 > To av casene håndterer opplysninger med sin egen hjemmelsterskel, og de to er løst
@@ -55,5 +57,9 @@ Filen er gitignorert og nullstilles av `./start.sh --reset`.
 **Skal du bytte KI-provider?** Bytteren er <http://localhost:8082/admin>, og
 [`docs/architecture.md`](architecture.md#status-og-kjente-avvik) forklarer hva som skjer
 når modellen ikke svarer.
+
+**Lurer du på hva som blir liggende igjen?**
+[`docs/hva-logges.md`](hva-logges.md) sier hva som lagres, hvor, og hvordan du sletter
+det.
 
 **Tilbake til kartet:** [`docs/README.md`](README.md).
