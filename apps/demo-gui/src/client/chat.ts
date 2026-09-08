@@ -6,6 +6,7 @@ import {
   isSidesporsmaal,
   normalizeBrukersvar,
   parseSvarPrefiks,
+  skalBeholdeSomSvarutkast,
   skalSvareFramfor,
   tolkLokaltSvar
 } from "./fallback-intent.ts";
@@ -1094,18 +1095,20 @@ async function sendMessage(
 
   try {
     if (steg.type === "INFO") {
-      // Any input at an info step means the user has read the information
-      // and wants to move on - whether they say "fortsett", name a street,
-      // or anything else that is not a side-question.
-      //
-      // Men var teksten mer enn et «gå videre», var den svaret på spørsmålet
-      // som kommer. Da sendes den inn i stedet for å kastes.
+      // Et mulig svar beholdes til spørsmålet er synlig. Bare «svar:» eller
+      // bekreftelsesknappen kan sende teksten inn uten en ny bekreftelse.
       const nesteSteg = (aktivProsess?.steg || [])[oekt.stegIndex + 1];
-      const svarerFramfor = skalSvareFramfor(reellTekst, nesteSteg?.type === "QUESTION");
+      const nesteStegErSporsmaal = nesteSteg?.type === "QUESTION";
+      const svarerFramfor = skalSvareFramfor(reellTekst, nesteStegErSporsmaal, tvungetSvar);
+      const beholdSomSvarutkast = skalBeholdeSomSvarutkast(reellTekst, nesteStegErSporsmaal);
       await goNext({ tegnSteg: !svarerFramfor });
       const nyttSteg = oekt?.aktivtSteg;
       if (svarerFramfor && nyttSteg?.type === "QUESTION") {
         await svarPaaSpoersmaal(nyttSteg, reellTekst);
+      } else if (beholdSomSvarutkast && nyttSteg?.type === "QUESTION") {
+        inputEl.value = reellTekst;
+        inputEl.focus();
+        addMsg("assistant", "Jeg har beholdt teksten i svarfeltet. Send den når du har sett spørsmålet.");
       }
       return;
     }

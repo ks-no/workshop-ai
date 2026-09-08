@@ -157,8 +157,19 @@ export function erFortsettSignal(text: string): boolean {
   return FORTSETT_KJERNER.some((kjerne) => matcherFortsettKjerne(ord, kjerne));
 }
 
-export function skalSvareFramfor(text: string, nesteStegErSporsmaal: boolean): boolean {
+export function skalSvareFramfor(
+  text: string,
+  nesteStegErSporsmaal: boolean,
+  eksplisittSvar = false
+): boolean {
+  return nesteStegErSporsmaal
+    && eksplisittSvar
+    && normalizeBrukersvar(text).length > 0;
+}
+
+export function skalBeholdeSomSvarutkast(text: string, nesteStegErSporsmaal: boolean): boolean {
   return nesteStegErSporsmaal
     && normalizeBrukersvar(text).length > 0
-    && !erFortsettSignal(text);
+    && !erFortsettSignal(text)
+    && !isSidesporsmaal(text);
 }
