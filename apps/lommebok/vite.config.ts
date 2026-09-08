@@ -148,8 +148,44 @@ function lommebokApiPlugin() {
                 payload.credential_data = credentialData;
               }
 
+              // Tilpass og rens payload basert på testmiljøets strenge krav per bevis
+              let effectivePersonId = personIdentifier;
+
+              if (credentialConfigurationId === "no.kontaktregisteret.kontaktinformasjon_sd_jwt_vc") {
+                // KRR støtter ikke push av credential_data i testmiljøet
+                delete payload.credential_data;
+                // Testmiljøets KRR krever en person registrert i test-KRR (standard: 16903349844)
+                effectivePersonId = "16903349844";
+                payload.subject.identifier = effectivePersonId;
+              } else if (credentialConfigurationId === "net.eidas2sandkasse:politi_attest_sd_jwt_vc") {
+                // Politiattest i testmiljøet støtter kun is_verified
+                payload.credential_data = {
+                  is_verified: credentialData?.is_verified ? String(credentialData.is_verified) : "1"
+                };
+              } else if (credentialConfigurationId === "net.eidas2sandkasse:inntekts_bevis_sd_jwt_vc") {
+                // Inntektsbevis i testmiljøet støtter kun annual_income og currency
+                payload.credential_data = {
+                  annual_income: String(credentialData?.annual_income || "485000"),
+                  currency: "NOK"
+                };
+              } else if (credentialConfigurationId === "net.eidas2sandkasse:test_pid_sdjwt_alder_sd_jwt_vc") {
+                // PID i testmiljøet støtter kun standard PID-claims
+                if (credentialData) {
+                  payload.credential_data = {
+                    personal_administrative_number: credentialData.personal_administrative_number || personIdentifier,
+                    given_name: credentialData.given_name || "Test",
+                    family_name: credentialData.family_name || "Testesen",
+                    birth_date: credentialData.birth_date || "1990-01-01",
+                    age_over_18: Boolean(credentialData.age_over_18 ?? true),
+                    age_over_16: Boolean(credentialData.age_over_16 ?? true),
+                    issuance_date: credentialData.issuance_date || "2026-09-08",
+                    expiry_date: credentialData.expiry_date || "2031-09-08"
+                  };
+                }
+              }
+
               const form = new URLSearchParams();
-              form.append("personIdentifier", personIdentifier);
+              form.append("personIdentifier", effectivePersonId);
               form.append("json", JSON.stringify(payload));
 
               const bevisRes = await fetch(targetUrl, {
