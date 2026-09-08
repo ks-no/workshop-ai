@@ -230,6 +230,17 @@ paths:
       responses:
         "200":
           description: Handling utført
+        "400":
+          description: >
+            Handlingen kan ikke utføres på det aktive steget, eller prosessøkten
+            er allerede avsluttet. Når flere samtidige SUBMIT-kall gjelder samme
+            økt, utføres det første. De senere kallene svarer stabilt med
+            `Prosessøkten er avsluttet og kan ikke fortsette.` uten nye
+            sideeffekter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
         "403":
           description: >
             SUMMARY eller SUBMIT mangler et gyldig samtykkegrunnlag. Meldingen
