@@ -26,6 +26,7 @@ import { routeOverview } from "../../shared/openapi.ts";
 import {
   buildProsessoektRespons,
   createSoknad,
+  frysResultatKilder,
   normaliserValgsvar,
   resultaterNaa,
   runStegHandling
@@ -43,10 +44,12 @@ import {
   findProsessIKatalog,
   findProsessoekt,
   getProsesserForVisning,
+  mergeFrosneResultatKilder,
   updateProsesskatalog,
   lagreProsessoekt,
   readState,
   normalizeProsess,
+  normalizeProsessoekt,
   newId
 } from "./state.ts";
 
@@ -217,6 +220,7 @@ async function withSession(
     if (!prosess) {
       throw new HttpError(`Prosessøkten peker på prosessen ${session.prosessId}, som ikke finnes lenger.`, 409);
     }
+    frysResultatKilder(currentState, session, prosess);
     const resultat = await fn(session, prosess, currentState);
     if (!lesing) {
       session.oppdatert = new Date().toISOString();
@@ -224,7 +228,7 @@ async function withSession(
     }
     // Porten gjelder også når økten svarer med det den hentet tidligere. Et trukket
     // eller utløpt samtykke tar resultatet ut av svaret, her og ikke per rute.
-    const { resultater, gjenlest } = resultaterNaa(currentState, session, prosess, kaller);
+    const { resultater, gjenlest } = resultaterNaa(currentState, session, prosess);
     await loggGjenleste(currentState, session, gjenlest, kaller);
     const oektSvar = buildProsessoektRespons(session, prosess, resultater);
     jsonResponse(response, 200, resultat === undefined ? oektSvar : { oekt: oektSvar, resultat });
@@ -233,7 +237,6 @@ async function withSession(
   if (lesing) {
     return execute(tilstand);
   }
-
   return runForSession(parametere.oektsId, async () => {
     // Every request loaded state before authorisation. Read it again only after
     // this økt's previous mutation has saved, or the status check is still stale.
@@ -441,8 +444,25 @@ const ruter: Rute[] = [
     metode: "PUT",
     tilgang: "aapen",
     sti: "/api/prosesser/:prosessId",
-    handter: async ({ request, response, parametere }) => {
+    handter: async ({ request, response, parametere, tilstand }) => {
       const body = await readBodyOnce(request);
+      const eksisterendeProsess = findProsess(tilstand, parametere.prosessId);
+      if (eksisterendeProsess) {
+        // Eldre økter har ikke kildemetadata. Frys dem mot definisjonen som fortsatt
+        // gjelder før prosessbyggeren erstatter den, så samme steg-id ikke kan gi
+        // resultatet en svakere klassifisering etterpå.
+        const frosne: Prosessoekt[] = [];
+        for (const oekt of tilstand.prosessoekter) {
+          if (oekt.prosessId !== parametere.prosessId) continue;
+          const kopi = normalizeProsessoekt(structuredClone(oekt));
+          if (frysResultatKilder(tilstand, kopi, eksisterendeProsess)) {
+            frosne.push(kopi);
+          }
+        }
+        if (frosne.length > 0) {
+          await mergeFrosneResultatKilder(frosne);
+        }
+      }
       // Lookup, merge and write all happen against the same fresh read: the
       // prosessbygger sends the whole prosess, so a merge onto a stale copy
       // would silently undo whatever the other save had just added.
@@ -516,6 +536,8 @@ const ruter: Rute[] = [
         stegIndex: 0,
         svar: {},
         resultaterRaa: {},
+        resultatKilder: {},
+        resultatKilderFrosset: true,
         aktivtSamtykkeId: null,
         opprettet: new Date().toISOString(),
         oppdatert: new Date().toISOString(),

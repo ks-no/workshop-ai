@@ -34,6 +34,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getInnbyggerToken } from "../apps/digdir-mock/src/client.ts";
+import {
+  mergeFrossetProsessoekt,
+  mergeProsessoektForLagring
+} from "../apps/sandbox-backend/src/state.ts";
 import { feilkode } from "../apps/shared/errors.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -57,6 +61,28 @@ const failures: string[] = [];
 function check(name: string, condition: unknown, detail = "") {
   if (condition) { passed += 1; return; }
   failures.push(`${name}${detail ? ` - ${detail}` : ""}`);
+}
+
+function oektMedKilder(
+  resultatKilder: Record<string, string[]>,
+  frosset = true,
+  verdi = 1
+) {
+  return {
+    oektsId: "oekt-fletting",
+    prosessId: PROSESS,
+    personId: "person-001",
+    sporingsId: "flyt-fletting",
+    status: "AKTIV",
+    stegIndex: 1,
+    svar: {},
+    resultaterRaa: { resultat: { verdi } },
+    resultatKilder,
+    resultatKilderFrosset: frosset,
+    aktivtSamtykkeId: "samtykke-fletting",
+    opprettet: "2026-09-01T00:00:00.000Z",
+    oppdatert: "2026-09-01T00:00:00.000Z"
+  } as any;
 }
 
 function start(name: string, relativePath: string, env: any) {
@@ -180,6 +206,58 @@ const services = [
 ];
 
 try {
+  const strengFletting = mergeProsessoektForLagring(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "en gammel forespørsel kan ikke svekke en frosset kilde",
+    JSON.stringify(strengFletting.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(strengFletting.resultatKilder)
+  );
+
+  const kildeunion = mergeProsessoektForLagring(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: ["politiattest"] })
+  );
+  check(
+    "samtidige kjente kilder flettes til den strengeste unionen",
+    JSON.stringify(kildeunion.resultatKilder.resultat?.sort())
+      === JSON.stringify(["inntekt", "politiattest"]),
+    JSON.stringify(kildeunion.resultatKilder)
+  );
+
+  const ukjentVinner = mergeProsessoektForLagring(
+    oektMedKilder({}),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "ukjent frosset kilde kan ikke omklassifiseres som ubeskyttet",
+    !Object.hasOwn(ukjentVinner.resultatKilder, "resultat")
+      && ukjentVinner.resultatKilderFrosset,
+    JSON.stringify(ukjentVinner.resultatKilder)
+  );
+
+  const samtidigFrosset = mergeFrossetProsessoekt(
+    oektMedKilder({ resultat: ["inntekt"] }),
+    oektMedKilder({ resultat: [] })
+  );
+  check(
+    "en foreldet prosessfrysing kan ikke svekke metadata som alt er frosset",
+    JSON.stringify(samtidigFrosset.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(samtidigFrosset.resultatKilder)
+  );
+
+  const nyttLegacyResultat = mergeProsessoektForLagring(
+    oektMedKilder({}, false, 1),
+    oektMedKilder({ resultat: ["inntekt"] }, true, 2)
+  );
+  check(
+    "ny kjøring av et legacy-steg beholder den nye kilden",
+    JSON.stringify(nyttLegacyResultat.resultatKilder.resultat) === JSON.stringify(["inntekt"]),
+    JSON.stringify(nyttLegacyResultat.resultatKilder)
+  );
+
   await Promise.all([waitForHealth(digdirUrl), waitForHealth(backendUrl)]);
 
   /*
