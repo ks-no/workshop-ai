@@ -130,8 +130,15 @@ export function invalidateStegOgSenere(
     && typeof aktivtResultat === "object" && aktivtResultat !== null
     && "samtykkeId" in aktivtResultat
     && aktivtResultat.samtykkeId === oekt.aktivtSamtykkeId;
+  const ugyldiggjorteSamtykkeIder = new Set<string>();
   let endret = false;
   for (const kandidat of prosess.steg.slice(stegIndex)) {
+    const resultat = oekt.resultaterRaa[kandidat.id];
+    if (kandidat.type === "CONSENT_REQUEST"
+      && typeof resultat === "object" && resultat !== null
+      && "samtykkeId" in resultat && typeof resultat.samtykkeId === "string") {
+      ugyldiggjorteSamtykkeIder.add(resultat.samtykkeId);
+    }
     if (hasOwn(oekt.resultaterRaa, kandidat.id)) {
       delete oekt.resultaterRaa[kandidat.id];
       endret = true;
@@ -145,7 +152,8 @@ export function invalidateStegOgSenere(
     }
   }
   if (!svarerPaaAktivtSamtykke
-    && senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
+    && oekt.aktivtSamtykkeId
+    && ugyldiggjorteSamtykkeIder.has(oekt.aktivtSamtykkeId)) {
     oekt.aktivtSamtykkeId = null;
     endret = true;
   }
