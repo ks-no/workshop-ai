@@ -183,6 +183,12 @@ const deniedRow = {
   status: "IKKE_SAMTYKKET",
   opprettet: "2026-08-11T10:00:00.000Z"
 };
+const gyldigKontaktinfo = {
+  ...gyldigRad,
+  samtykkeId: "samtykke-kontaktinfo",
+  dataKilder: ["kontaktinfo"],
+  opprettet: "2026-08-12T10:00:00.000Z"
+};
 
 check(
   "et gyldig samtykke hjemler lesning",
@@ -209,6 +215,16 @@ check(
   "et foretrukket avslag faller ikke tilbake til et eldre samtykke",
   hasGyldigSamtykke({ samtykker: [gyldigRad, deniedRow] }, "person-001", "inntekt", "samtykke-nektet", TEST_NOW)
     === null
+);
+check(
+  "et foretrukket samtykke for en annen kilde bevarer et gyldig samtykke for den forespurte kilden",
+  hasGyldigSamtykke(
+    { samtykker: [gyldigRad, gyldigKontaktinfo] },
+    "person-001",
+    "inntekt",
+    "samtykke-kontaktinfo",
+    TEST_NOW
+  )?.samtykkeId === "samtykke-gyldig"
 );
 check(
   "et foretrukket gyldig samtykke brukes selv om en nyere forespørsel er avslått",
