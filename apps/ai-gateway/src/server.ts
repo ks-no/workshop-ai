@@ -9,6 +9,7 @@ import { routeOverview } from "../../shared/openapi.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, sammeOpphav, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
+import { buildFartsdempendeOppsummering } from "./fartsdempende-oppsummering.ts";
 import type { Sporsmaalskontekst } from "./sporsmaalsperrer.ts";
 import {
   buildGrunnlag,
@@ -698,53 +699,6 @@ function buildTemplateResponse(type: string, body: AiKropp) {
     return chunks.length ? chunks.join(" | ") : null;
   }
 
-  function isAffirmative(verdi: unknown): boolean {
-    const tekst = String(verdi || "").toLowerCase().trim();
-    const tallMatch = tekst.match(/\b(\d{1,4})\b/);
-    if (tallMatch) {
-      const antall = Number.parseInt(tallMatch[1], 10);
-      if (Number.isFinite(antall)) {
-        return antall > 20;
-      }
-    }
-    return ["ja", "japp", "yes", "greit", "ok", "okei", "det stemmer", "riktig"].some((ord) => tekst.includes(ord));
-  }
-
-  function buildFartsdempendeOppsummering() {
-    const gateData = findValue((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
-    if (!gateData || !String(tjeneste).toLowerCase().includes("fartsdempende")) {
-      return null;
-    }
-
-    const flereEnn20 = svar["boliger-bekreft"];
-    const begrunnelse = String(svar.begrunnelse || "").trim();
-    const eierSjekk = findValue((v) => v?.godkjent !== undefined && typeof v?.melding === "string");
-
-    const linjer = [
-      `Her er en oppsummering av søknaden om fartsdempende tiltak i ${gateData.adressenavn}, ${gateData.kommune}.`,
-      `Matrikkelen viser ${gateData.antallBoligeiendommer} boligeiendommer og ${gateData.antallEiendommer} eiendommer totalt i gaten.`
-    ];
-
-    if (eierSjekk?.godkjent) {
-      linjer.push("Eierforholdet er kontrollert, og søker har registrert eiendom i gaten.");
-    }
-
-    if (flereEnn20) {
-      linjer.push(
-        isAffirmative(flereEnn20)
-          ? "Søker opplyser at gaten har mer enn 20 boliger."
-          : "Søker opplyser at gaten ikke har mer enn 20 boliger."
-      );
-    }
-
-    if (begrunnelse) {
-      linjer.push(`Begrunnelse fra søker: ${begrunnelse}`);
-    }
-
-    linjer.push("Søknaden sendes inn med disse opplysningene som grunnlag for videre vurdering.");
-    return linjer.join(" ");
-  }
-
   function buildGateLine() {
     const gateData = findValue((v) => v?.adressenavn && v?.antallEiendommer !== undefined);
     if (!gateData) return null;
@@ -755,7 +709,7 @@ function buildTemplateResponse(type: string, body: AiKropp) {
   }
 
   function buildOppsummeringstekst() {
-    const fartsdempendeOppsummering = buildFartsdempendeOppsummering();
+    const fartsdempendeOppsummering = buildFartsdempendeOppsummering(tjeneste, data, svar);
     if (fartsdempendeOppsummering) {
       return fartsdempendeOppsummering;
     }
