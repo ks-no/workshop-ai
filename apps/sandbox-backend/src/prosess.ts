@@ -125,6 +125,11 @@ export function invalidateStegOgSenere(
   const stegIndex = prosess.steg.findIndex((kandidat) => kandidat.id === steg.id);
   if (stegIndex < 0) return false;
 
+  const aktivtResultat = oekt.resultaterRaa[steg.id];
+  const svarerPaaAktivtSamtykke = steg.type === "CONSENT_REQUEST"
+    && typeof aktivtResultat === "object" && aktivtResultat !== null
+    && "samtykkeId" in aktivtResultat
+    && aktivtResultat.samtykkeId === oekt.aktivtSamtykkeId;
   let endret = false;
   for (const kandidat of prosess.steg.slice(stegIndex)) {
     if (hasOwn(oekt.resultaterRaa, kandidat.id)) {
@@ -139,7 +144,8 @@ export function invalidateStegOgSenere(
       endret = true;
     }
   }
-  if (senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
+  if (!svarerPaaAktivtSamtykke
+    && senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
     oekt.aktivtSamtykkeId = null;
     endret = true;
   }
