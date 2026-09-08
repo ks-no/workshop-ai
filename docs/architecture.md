@@ -128,8 +128,11 @@ en flyt: den utsteder tokenene de fire beskyttede API-ene krever.
 Når agenten møter et `QUESTION`-steg kaller den `suggest_step_tools` i `tools-api`.
 Dette kallet sender stegdefinisjonens tekst og feltlabeler til `ai-gateway /ai/velg-verktoy`,
 som returnerer hvilke verktøy som er relevante (`kontekst`, `validering` eller begge).
-Agenten kjører så `kontekst`-verktøy proaktivt og bruker `validering`-verktøy til å normalisere
-brukerens svar.
+Oppdagelsen er dynamisk, men utføringen er avgrenset: bare `matrikkel_finn_veger`
+har adaptere for automatisk kontekst og validering, og automatisk svarhåndtering
+støtter ett tekstfelt. Andre verktøy eller feltformer krever egne adaptere.
+Å legge et navn i katalogen gjør altså ikke agenten i stand til å bruke det.
+Se [prosessmodellen](prosessmodell.md) for detaljene.
 
 Agenten har i tillegg hardkodede snarveier for `fartsdempende-tiltak`: steg-ID-ene
 `velg-gate`, `hent-gate`, `boliger-bekreft`, `begrunnelse` og verktøynavnet
