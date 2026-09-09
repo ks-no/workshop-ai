@@ -3,8 +3,10 @@
 // kollidere. felles.ts lastes som klassisk script foran denne, så funksjonene og
 // typene derfra er globale og trenger ingen import.
 import {
+  isSidesporsmaal,
   normalizeBrukersvar,
   parseSvarPrefiks,
+  skalBeholdeSomSvarutkast,
   skalSvareFramfor,
   tolkLokaltSvar
 } from "./fallback-intent.ts";
@@ -478,29 +480,6 @@ function valgtPerson(): string {
  * feilaktig ble lest som spørsmål koster én tur - mens et spørsmål som
  * ble lagret som svar er stille og ugjenkallelig.
  */
-
-const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "kan jeg", "må jeg", "ma jeg", "får jeg", "far jeg", "hvilke", "hvilken"];
-
-// Lukket liste. Brukes bare på QUESTION-steg, der terskelen må være høy.
-const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
-
-function isSidesporsmaal(text: string, steg: ProsessSteg | null | undefined): boolean {
-  const lower = normalizeBrukersvar(text);
-  if (!lower) return false;
-
-  // startsWith, ikke includes: «jeg lurte på hva du mente med Storgata»
-  // er et svar med et spørreord midt inni.
-  const startsWithSporreord = SPORREORD.some((ord) => lower === ord || lower.startsWith(`${ord} `));
-  const hasQuestionMark = text.includes("?");
-
-  // På QUESTION bærer teksten en verdi vi mister ved feilruting, så her
-  // kreves alle tre. Ellers kan innbygger uansett bare si ja eller nei.
-  if (steg?.type === "QUESTION") {
-    return startsWithSporreord && hasQuestionMark && SIDESPORSMAALSTEMA.some((tema) => lower.includes(tema));
-  }
-
-  return startsWithSporreord || hasQuestionMark;
-}
 
 /*
  * Flyt-blokken er ikke pynt. Uten den leste modellen stegnavnet «Send
@@ -1238,7 +1217,7 @@ async function sendMessage(
   }
 
   if (oekt.status === "AVVIST" || oekt.status === "FULLFORT") {
-    if (!valg.hoppOverSporsmaalsruting && !text.trim().toLowerCase().startsWith("svar:") && isSidesporsmaal(text, null)) {
+    if (!valg.hoppOverSporsmaalsruting && !text.trim().toLowerCase().startsWith("svar:") && isSidesporsmaal(text)) {
       await answerSidesporsmaal(text, true);
     } else {
       addMsg("system", oekt.status === "AVVIST"
@@ -1263,7 +1242,7 @@ async function sendMessage(
   const tvungetSvar = valg.hoppOverSporsmaalsruting || prefiks.harSvarPrefiks;
   const reellTekst = prefiks.tekst;
 
-  if (!tvungetSvar && isSidesporsmaal(text, steg)) {
+  if (!tvungetSvar && isSidesporsmaal(text, steg?.type)) {
     await answerSidesporsmaal(text);
     return;
   }
@@ -1276,18 +1255,20 @@ async function sendMessage(
 
   try {
     if (steg.type === "INFO") {
-      // Any input at an info step means the user has read the information
-      // and wants to move on - whether they say "fortsett", name a street,
-      // or anything else that is not a side-question.
-      //
-      // Men var teksten mer enn et «gå videre», var den svaret på spørsmålet
-      // som kommer. Da sendes den inn i stedet for å kastes.
+      // Et mulig svar beholdes til spørsmålet er synlig. Bare «svar:» eller
+      // bekreftelsesknappen kan sende teksten inn uten en ny bekreftelse.
       const nesteSteg = (aktivProsess?.steg || [])[oekt.stegIndex + 1];
-      const svarerFramfor = skalSvareFramfor(reellTekst, nesteSteg?.type === "QUESTION");
+      const nesteStegErSporsmaal = nesteSteg?.type === "QUESTION";
+      const svarerFramfor = skalSvareFramfor(reellTekst, nesteStegErSporsmaal, tvungetSvar);
+      const beholdSomSvarutkast = skalBeholdeSomSvarutkast(reellTekst, nesteStegErSporsmaal);
       await goNext({ tegnSteg: !svarerFramfor });
       const nyttSteg = oekt?.aktivtSteg;
       if (svarerFramfor && nyttSteg?.type === "QUESTION") {
         await svarPaaSpoersmaal(nyttSteg, reellTekst);
+      } else if (beholdSomSvarutkast && nyttSteg?.type === "QUESTION") {
+        inputEl.value = reellTekst;
+        inputEl.focus();
+        addMsg("assistant", "Jeg har beholdt teksten i svarfeltet. Send den når du har sett spørsmålet.");
       }
       return;
     }

@@ -723,6 +723,42 @@ try {
   const dobbelSendt = await checkHandling("to-samtykker: SUBMIT", dobbelId, tokenA);
   check("to-samtykker: økten fullføres", dobbelSendt.body?.oekt?.status === "FULLFORT");
 
+  const nektetDobbelOekt = await call("/api/prosessoekter", tokenA, {
+    method: "POST", body: { personId: "person-001", prosessId: "to-samtykker" }
+  });
+  const nektetDobbelId = nektetDobbelOekt.body?.oektsId;
+  await checkHandling("to-samtykker-avslag: første forespørsel opprettes", nektetDobbelId, tokenA, {
+    handling: "opprett-samtykke"
+  });
+  await checkHandling("to-samtykker-avslag: første forespørsel godkjennes", nektetDobbelId, tokenA, {
+    handling: "samtykkesvar", status: "SAMTYKKET"
+  });
+  await checkNeste("to-samtykker-avslag: første samtykke", nektetDobbelId, tokenA, "kontakt");
+  await checkHandling("to-samtykker-avslag: første datahenting", nektetDobbelId, tokenA);
+  const tilbakeTilFoersteSamtykke = await call(
+    `/api/prosessoekter/${nektetDobbelId}/forrige`,
+    tokenA,
+    { method: "POST" }
+  );
+  check("to-samtykker-avslag: kan gå tilbake til første samtykke",
+    tilbakeTilFoersteSamtykke.status === 200
+      && tilbakeTilFoersteSamtykke.body?.aktivtSteg?.id === "kontakt-samtykke",
+    `${tilbakeTilFoersteSamtykke.status} ${String(tilbakeTilFoersteSamtykke.body?.aktivtSteg?.id)}`);
+  await checkHandling("to-samtykker-avslag: ny forespørsel opprettes", nektetDobbelId, tokenA, {
+    handling: "opprett-samtykke"
+  });
+  await checkHandling("to-samtykker-avslag: ny forespørsel avslås", nektetDobbelId, tokenA, {
+    handling: "samtykkesvar", status: "IKKE_SAMTYKKET"
+  });
+  await checkNeste("to-samtykker-avslag: avslått samtykke", nektetDobbelId, tokenA, "kontakt");
+  const blokkertEtterAvslag = await call(
+    `/api/prosessoekter/${nektetDobbelId}/handling`,
+    tokenA,
+    { method: "POST", body: {} }
+  );
+  check("to-samtykker-avslag: senere samtykkesteg åpner ikke eldre godkjenning",
+    blokkertEtterAvslag.status === 403, String(blokkertEtterAvslag.status));
+
   // §6: one 404 message, not five. Every økt route answers an unknown id with
   // the same status and the same feil - the drift the wrapper exists to end.
   const ukjent = "oekt-0000000000000-finnes";
