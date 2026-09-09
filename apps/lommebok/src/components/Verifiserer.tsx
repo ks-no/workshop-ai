@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { CREDENTIAL_DEFINITIONS } from "../data/credentials";
-import { CredentialId, Person, ApiCallTrace, VerificationStartResponse } from "../types";
+import {
+  CredentialId,
+  Person,
+  ApiCallTrace,
+  VerificationStartResponse,
+  VerificationResult,
+  VerificationStatusResponse
+} from "../types";
 
 // Samme person som i testmiljøets eksempel: person-040 i data/personer.json
 const EKSEMPELPERSON: Person = {
@@ -18,14 +25,14 @@ interface Props {
 }
 
 export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
   const [laster, setLaster] = useState<boolean>(false);
   const [feil, setFeil] = useState<string | null>(null);
 
   // Verifiseringstilstand
   const [transaksjon, setTransaksjon] = useState<VerificationStartResponse | null>(null);
   const [status, setStatus] = useState<string>("INITIAL"); // INITIAL, WAIT, AVAILABLE, ERROR
-  const [verifisertResultat, setVerifisertResultat] = useState<any | null>(null);
+  const [verifisertResultat, setVerifisertResultat] = useState<VerificationResult | null>(null);
 
   const pollingRef = useRef<number | null>(null);
 
@@ -94,8 +101,9 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
 
       // Start polling for status
       startStatusPolling(data.verifier_transaction_id, clientApp);
-    } catch (err: any) {
-      console.warn("Klarte ikke koble til verifier-service i testmiljøet:", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Ukjent feil";
+      console.warn("Klarte ikke koble til verifier-service i testmiljøet:", message);
       // Generer en mock/fallback transaksjon for testing dersom eudiw-verifier-service ikke svarer
       const fallbackTxId = `tx-demo-${Date.now().toString(36)}`;
       const fallbackAuthRequest = `eudi-openid4vp://${verifierBase.replace(/^https?:\/\//, "")}?client_id=abr.vc.local&request_uri=${verifierBase}/api/v1/${clientApp}/openid4vp/${fallbackTxId}`;
@@ -142,7 +150,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
         });
 
         if (res.ok) {
-          const statusData = await res.json();
+          const statusData: VerificationStatusResponse = await res.json();
           const currentStatus = statusData.status;
 
           if (currentStatus === "AVAILABLE") {
@@ -203,7 +211,7 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
           curl: resultCurl
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Kunne ikke hente verifiseringsresultat:", err);
     }
   };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { CREDENTIAL_DEFINITIONS } from "../data/credentials";
-import { CredentialId, Person, ApiCallTrace } from "../types";
+import { CredentialId, IssuedCredentialData, Person, ApiCallTrace } from "../types";
 
 interface Props {
   onLogApiCall: (trace: ApiCallTrace) => void;
@@ -12,7 +12,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [sokeord, setSokeord] = useState<string>("");
   const [valgtPerson, setValgtPerson] = useState<Person | null>(null);
   const [fnrInput, setFnrInput] = useState<string>("");
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
   const [lasterPersoner, setLasterPersoner] = useState<boolean>(true);
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
@@ -22,10 +22,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
   // Resultat etter utstedelse
   const [issuerUrl, setIssuerUrl] = useState<string>(
-    CREDENTIAL_DEFINITIONS.formalsbekreftelse.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
+    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
   );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
-  const [utstedtData, setUtstedtData] = useState<any | null>(null);
+  const [utstedtData, setUtstedtData] = useState<IssuedCredentialData | null>(null);
   const [kopiert, setKopiert] = useState<boolean>(false);
 
   // Hent alle testpersoner fra KS-sandkassen
@@ -41,7 +41,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
           setValgtPerson(data[0]);
           setFnrInput(data[0].syntetiskFodselsnummer);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Kunne ikke hente personer:", err);
         setFeilmelding("Fikk ikke kontakt med KS-sandkassedatabasen. Sørg for at sandbox-backend eller lommebok-api kjører.");
       } finally {
@@ -85,7 +85,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
   // Utsted bevis-funksjon: kaller /api/utsted som oppretter reell pre-authorization i testmiljøet
   const handleUtsted = async () => {
-    if (!valgtPerson) return;
+    if (!valgtPerson || !eksempelData) return;
     setLasterUtstedelse(true);
     setFeilmelding(null);
     setUtstederStatus("Oppretter gyldig issuance transaction i testmiljøet...");
@@ -157,9 +157,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         },
         curl
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Feil ved utstedelse:", err);
-      setFeilmelding(`Kunne ikke opprette utstedelse i testmiljøet: ${err.message}`);
+      const message = err instanceof Error ? err.message : "Ukjent feil";
+      setFeilmelding(`Kunne ikke opprette utstedelse i testmiljøet: ${message}`);
     } finally {
       setLasterUtstedelse(false);
       setUtstederStatus(null);

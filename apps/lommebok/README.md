@@ -5,9 +5,13 @@ En minimal React-applikasjon i KS-sandkassen som lar deltakere på hackathonet u
 ## Funksjonalitet
 
 ### 1. Utsted bevis (Issuer)
-- **Velg bevis**: Støtter 2 definerte bevis, begge utstedt av bevisgeneratoren i testmiljøet:
-  - **Formålsbekreftelse (politiattest)** (`net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc`)
+- **Velg bevis**: Støtter seks bevis som utstedes av bevisgeneratoren i testmiljøet:
   - **Politiattest (barneomsorgsattest)** (`net.eidas2sandkasse:ks_hackathon_politiattest_sd_jwt_vc`)
+  - Norsk ID-bevis (PID)
+  - Digital kontaktinformasjon (KRR)
+  - Barnehageplass
+  - Kommunalt ledsagerbevis
+  - Inntektsbevis
 - **Tast inn / velg fødselsnummer**: Slår opp direkte mot de 394 syntetiske testpersonene i KS-sandkassen og validerer fødselsnummeret.
 - **Forhåndsvisning**: Genererer bevisdata ferdig utfylt med personens navn, fødselsdato, kommune og registeropplysninger.
 - **QR-kode fra utsteder**: Genererer standard OpenID4VCI Credential Offer URI (`openid-credential-offer://`) og QR-kode som kan skannes direkte inn i en digital lommebok (EUDI Wallet).

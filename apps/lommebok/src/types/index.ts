@@ -40,7 +40,7 @@ export interface PolitiattestData {
     enhet: string;
     organisasjonsnummer: string;
   };
-  anmerkninger?: any[];
+  anmerkninger?: unknown[];
 }
 
 export interface InntektPost {
@@ -86,10 +86,23 @@ export interface Person {
   barnehageplass?: BarnehageplassData | null;
   politiattest?: PolitiattestData | null;
   inntekt?: InntektData | null;
-  husstand?: any | null;
+  husstand?: unknown;
 }
 
 export type CredentialId = "pid" | "krr" | "barnehage" | "politiattest" | "ledsagerbevis" | "inntekt";
+export type CredentialData = Record<string, unknown>;
+
+export interface IssuedCredentialData {
+  transactionId: string;
+  bevisType: string;
+  mottaker: string;
+  claims: CredentialData;
+  credentialOffer: unknown;
+  preAuthorizedCode: string | null;
+  txCode: string | null;
+  qrCodeDataUri: string | null;
+  statusEndpoint: string | null;
+}
 
 export interface ClaimDefinition {
   path: string;
@@ -107,8 +120,8 @@ export interface CredentialDefinition {
   credentialConfigurationId: string;
   defaultIssuerUrl?: string;
   claims: ClaimDefinition[];
-  lagEksempelData: (person: Person) => Record<string, any>;
-  lagDcqlQuery: () => Record<string, any>;
+  lagEksempelData: (person: Person) => CredentialData;
+  lagDcqlQuery: () => CredentialData;
 }
 
 export interface ApiCallTrace {
@@ -118,9 +131,9 @@ export interface ApiCallTrace {
   metode: string;
   url: string;
   headers: Record<string, string>;
-  requestBody?: any;
+  requestBody?: unknown;
   responseStatus?: number;
-  responseBody?: any;
+  responseBody?: unknown;
   curl: string;
 }
 
@@ -133,4 +146,13 @@ export interface VerificationStartResponse {
 export interface VerificationStatusResponse {
   status: "WAIT" | "AVAILABLE" | "EXPIRED" | "FAILED" | "UNKNOWN";
   transaction_id?: string;
+}
+
+export interface VerificationResult {
+  status: string;
+  verifier_transaction_id: string;
+  verified_at: string;
+  credential_configuration_id: string;
+  format: string;
+  claims: CredentialData;
 }
