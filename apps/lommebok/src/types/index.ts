@@ -21,7 +21,7 @@ export interface Person {
   };
 }
 
-export type CredentialId = "pid" | "krr" | "barnehage" | "politiattest" | "ledsagerbevis";
+export type CredentialId = "formalsbekreftelse" | "politiattest";
 
 export interface ClaimDefinition {
   path: string;

@@ -5,11 +5,9 @@ En minimal React-applikasjon i KS-sandkassen som lar deltakere på hackathonet u
 ## Funksjonalitet
 
 ### 1. Utsted bevis (Issuer)
-- **Velg bevis**: Støtter 4 definerte bevis:
-  - **Norsk ID-bevis (PID)** (`no:digdir:eudiw:pid:1`)
-  - **Digital kontaktinformasjon (KRR)** (`no:kontaktregisteret:kontaktinformasjon:1`)
-  - **Kommunal Barnehageplass** (`no:kommune:barnehageplass:1`)
-  - **Politiattest (Vandel)** (`no:politiet:politiattest:1`)
+- **Velg bevis**: Støtter 2 definerte bevis, begge utstedt av bevisgeneratoren i testmiljøet:
+  - **Formålsbekreftelse (politiattest)** (`net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc`)
+  - **Politiattest (barneomsorgsattest)** (`net.eidas2sandkasse:ks_hackathon_politiattest_sd_jwt_vc`)
 - **Tast inn / velg fødselsnummer**: Slår opp direkte mot de 394 syntetiske testpersonene i KS-sandkassen og validerer fødselsnummeret.
 - **Forhåndsvisning**: Genererer bevisdata ferdig utfylt med personens navn, fødselsdato, kommune og registeropplysninger.
 - **QR-kode fra utsteder**: Genererer standard OpenID4VCI Credential Offer URI (`openid-credential-offer://`) og QR-kode som kan skannes direkte inn i en digital lommebok (EUDI Wallet).
@@ -36,20 +34,24 @@ Under fanene vises alle utgående og inngående API-kall i sanntid, inkludert he
 ## Miljøer
 
 Applikasjonen er konfigurert til å gå mot det offisielle **testmiljøet**:
-- **Issuer Server (PID)**: `https://utsteder.test.eidas2sandkasse.net/pid`
 - **Issuer Server (Bevisgenerator)**: `https://utsteder.test.eidas2sandkasse.net/bevisgenerator`
 - **Verifier Service**: `https://verifier-service.test.eidas2sandkasse.net`
 
 Utviklerserveren på port 3002 proxier verifier-kallene gjennom `/api/v1` for å unngå CORS-utfordringer i nettleseren.
 
-## Kjøre applikasjonen lokalt
+## Kjøre applikasjonen
 
 Fra rotmappen til `workshop-ai`:
 ```bash
-# Start med pnpm
-pnpm start:lommebok
+# Start sammen med resten av sandkassen
+./start.sh --mock
 
-# Eller gå til mappen
+# Eller start bare tjenesten med Compose
+docker compose up lommebok
+```
+
+For lokal utvikling uten Compose:
+```bash
 cd apps/lommebok
 pnpm dev
 ```
