@@ -5,6 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SUPPORTED_CREDENTIAL_CONFIGURATION_IDS = new Set([
+  "net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc",
+  "net.eidas2sandkasse:ks_hackathon_politiattest_sd_jwt_vc"
+]);
 
 // Global in-memory cache for verifiserte resultater
 const verificationResultsStore = new Map<string, any>();
@@ -133,6 +137,12 @@ function lommebokApiPlugin() {
                 res.end(JSON.stringify({ error: "Mangler credentialConfigurationId eller personIdentifier" }));
                 return;
               }
+              if (!SUPPORTED_CREDENTIAL_CONFIGURATION_IDS.has(credentialConfigurationId)) {
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: "Ukjent beviskonfigurasjon" }));
+                return;
+              }
 
               const bevisgeneratorBase = process.env.BEVISGENERATOR_URL || "https://bevisgenerator.test.eidas2sandkasse.net";
               const targetUrl = `${bevisgeneratorBase}/start-issuance/${encodeURIComponent(credentialConfigurationId)}`;
@@ -158,31 +168,6 @@ function lommebokApiPlugin() {
                 // Testmiljøets KRR krever en person registrert i test-KRR (standard: 16903349844)
                 effectivePersonId = "16903349844";
                 payload.subject.identifier = effectivePersonId;
-              } else if (credentialConfigurationId === "net.eidas2sandkasse:politi_attest_sd_jwt_vc") {
-                // Politiattest i testmiljøet støtter kun is_verified
-                payload.credential_data = {
-                  is_verified: credentialData?.is_verified ? String(credentialData.is_verified) : "1"
-                };
-              } else if (credentialConfigurationId === "net.eidas2sandkasse:inntekts_bevis_sd_jwt_vc") {
-                // Inntektsbevis i testmiljøet støtter kun annual_income og currency
-                payload.credential_data = {
-                  annual_income: String(credentialData?.annual_income || "485000"),
-                  currency: "NOK"
-                };
-              } else if (credentialConfigurationId === "net.eidas2sandkasse:test_pid_sdjwt_alder_sd_jwt_vc") {
-                // PID i testmiljøet støtter kun standard PID-claims
-                if (credentialData) {
-                  payload.credential_data = {
-                    personal_administrative_number: credentialData.personal_administrative_number || personIdentifier,
-                    given_name: credentialData.given_name || "Test",
-                    family_name: credentialData.family_name || "Testesen",
-                    birth_date: credentialData.birth_date || "1990-01-01",
-                    age_over_18: Boolean(credentialData.age_over_18 ?? true),
-                    age_over_16: Boolean(credentialData.age_over_16 ?? true),
-                    issuance_date: credentialData.issuance_date || "2026-09-08",
-                    expiry_date: credentialData.expiry_date || "2031-09-08"
-                  };
-                }
               }
 
               const form = new URLSearchParams();

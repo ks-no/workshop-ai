@@ -89,7 +89,7 @@ export interface Person {
   husstand?: unknown;
 }
 
-export type CredentialId = "pid" | "krr" | "barnehage" | "politiattest" | "ledsagerbevis" | "inntekt";
+export type CredentialId = "formalsbekreftelse" | "politiattest";
 export type CredentialData = Record<string, unknown>;
 
 export interface IssuedCredentialData {

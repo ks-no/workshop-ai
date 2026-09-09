@@ -12,7 +12,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [sokeord, setSokeord] = useState<string>("");
   const [valgtPerson, setValgtPerson] = useState<Person | null>(null);
   const [fnrInput, setFnrInput] = useState<string>("");
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
   const [lasterPersoner, setLasterPersoner] = useState<boolean>(true);
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
   // Resultat etter utstedelse
   const [issuerUrl, setIssuerUrl] = useState<string>(
-    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
+    CREDENTIAL_DEFINITIONS.formalsbekreftelse.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
   );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
   const [utstedtData, setUtstedtData] = useState<IssuedCredentialData | null>(null);
@@ -81,7 +81,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   };
 
   const valgtBevis = CREDENTIAL_DEFINITIONS[valgtBevisId];
-  const eksempelData = valgtPerson ? valgtBevis.lagEksempelData(valgtPerson) : null;
+  const harPolitiattest = Boolean(valgtPerson?.politiattest);
+  const eksempelData = valgtPerson && (valgtBevisId !== "politiattest" || harPolitiattest)
+    ? valgtBevis.lagEksempelData(valgtPerson)
+    : null;
 
   // Utsted bevis-funksjon: kaller /api/utsted som oppretter reell pre-authorization i testmiljøet
   const handleUtsted = async () => {
@@ -219,6 +222,11 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         </p>
 
         {feilmelding && <div className="alert alert-error">{feilmelding}</div>}
+        {valgtPerson && valgtBevisId === "politiattest" && !harPolitiattest && (
+          <div className="alert alert-info">
+            Denne testpersonen har ingen politiattest i sandkassedataene. Velg en person med registrert attest for å utstede dette beviset med faktiske data.
+          </div>
+        )}
 
         <div className="form-row">
           <div className="form-group flex-1">
@@ -311,7 +319,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
             type="button"
             className="btn btn-primary"
             onClick={handleUtsted}
-            disabled={!valgtPerson || lasterPersoner || lasterUtstedelse}
+            disabled={!valgtPerson || !eksempelData || lasterPersoner || lasterUtstedelse}
           >
             {lasterUtstedelse ? (utstederStatus || "Oppretter utstedelse...") : "Utsted bevis til lommebok"}
           </button>

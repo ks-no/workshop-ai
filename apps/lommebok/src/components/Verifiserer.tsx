@@ -25,7 +25,7 @@ interface Props {
 }
 
 export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
   const [laster, setLaster] = useState<boolean>(false);
   const [feil, setFeil] = useState<string | null>(null);
 

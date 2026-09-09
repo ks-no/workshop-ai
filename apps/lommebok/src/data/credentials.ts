@@ -1,279 +1,171 @@
 import { CredentialDefinition, CredentialId, Person } from "../types";
 
+const ISSUER_URL = "https://utsteder.test.eidas2sandkasse.net/bevisgenerator";
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function maanedereEtter(isodato: string, antall: number): string {
+  const [aar, maaned, dag] = isodato.split("-").map(Number);
+  const totalMaaneder = aar * 12 + maaned - 1 + antall;
+  const nyttAar = Math.floor(totalMaaneder / 12);
+  const nyMaaned = (totalMaaneder % 12) + 1;
+  const sisteDag = new Date(Date.UTC(nyttAar, nyMaaned, 0)).getUTCDate();
+  const nyDag = Math.min(dag, sisteDag);
+  return `${String(nyttAar).padStart(4, "0")}-${String(nyMaaned).padStart(2, "0")}-${String(nyDag).padStart(2, "0")}`;
+}
+
+const LOVDATA_IDER: Record<string, string> = {
+  "barnehageloven": "2005-06-17-64",
+  "opplæringslova": "2023-06-09-30",
+  "helse- og omsorgstjenesteloven": "2011-06-24-30",
+  "politiregisterloven": "2010-05-28-16"
+};
+
+function hjemmelSomUri(hjemmel: string): string {
+  const lovnavn = Object.keys(LOVDATA_IDER).find((navn) => hjemmel.startsWith(navn));
+  const lovdataId = lovnavn ? LOVDATA_IDER[lovnavn] : undefined;
+  return lovdataId
+    ? `https://lovdata.no/dokument/NL/lov/${lovdataId}`
+    : "https://lovdata.no";
+}
+
+function attestFor(person: Person) {
+  const attest = person.politiattest;
+  return {
+    attestId: attest?.attestId || `att-${person.personId.replace(/\D/g, "").padStart(4, "0")}`,
+    formaal: attest?.formaal || "barnehage",
+    attesttype: attest?.attesttype || "barneomsorgsattest",
+    hjemmel: attest?.hjemmel || "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
+    anmerkninger: attest?.anmerkninger || [],
+    utstedt: attest?.utstedt || todayIso(),
+    utsteder: attest?.utsteder || {
+      navn: "Politiet",
+      enhet: "Enhet for vandelskontroll og politiattester",
+      organisasjonsnummer: "889640782"
+    }
+  };
+}
+
 export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> = {
-  pid: {
-    id: "pid",
-    tittel: "Norsk ID-bevis (PID)",
-    beskrivelse: "Offisielt digitalt identitetsbevis iht. eIDAS 2.0-standarden med fødselsnummer, navn og alder.",
-    utstederNavn: "Digitaliseringsdirektoratet / Skatteetaten",
+  formalsbekreftelse: {
+    id: "formalsbekreftelse",
+    tittel: "Formålsbekreftelse (politiattest)",
+    beskrivelse: "Kommunal bekreftelse på at personen skal legge fram politiattest.",
+    utstederNavn: "Kommunen (KS-sandkasse)",
     format: "dc+sd-jwt",
-    vct: "net.eidas2sandkasse:test_pid_sdjwt_alder",
-    credentialConfigurationId: "net.eidas2sandkasse:test_pid_sdjwt_alder_sd_jwt_vc",
-    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
+    vct: "net.eidas2sandkasse:ks_hackathon_formalsbekreftelse",
+    credentialConfigurationId: "net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc",
+    defaultIssuerUrl: ISSUER_URL,
     claims: [
-      { path: "personal_administrative_number", label: "Fødselsnummer", required: true },
-      { path: "family_name", label: "Etternavn", required: true },
-      { path: "given_name", label: "Fornavn", required: true },
-      { path: "birth_date", label: "Fødselsdato", required: true },
-      { path: "age_over_18", label: "Over 18 år" },
-      { path: "age_over_16", label: "Over 16 år" },
-      { path: "issuance_date", label: "Utstedt dato" },
-      { path: "expiry_date", label: "Utløpsdato" }
+      { path: "issuance_date", label: "Utgivelsesdato", required: true },
+      { path: "rolle", label: "Rolle", required: true },
+      { path: "ordning", label: "Ordning", required: true },
+      { path: "person", label: "Person", required: true },
+      { path: "rettslig_grunnlag", label: "Rettslig grunnlag" },
+      { path: "beskrivelse", label: "Beskrivelse" },
+      { path: "instruksjoner", label: "Instruksjoner" }
     ],
     lagEksempelData: (person: Person) => {
-      const birthYear = parseInt(person.foedselsdato?.substring(0, 4) || "1990", 10);
-      const age = new Date().getFullYear() - birthYear;
+      const attest = attestFor(person);
       return {
-        personal_administrative_number: person.syntetiskFodselsnummer,
-        given_name: person.navn.fornavn,
-        family_name: person.navn.etternavn,
-        birth_date: person.foedselsdato,
-        age_over_18: age >= 18,
-        age_over_16: age >= 16,
-        issuance_date: "2026-09-08",
-        expiry_date: "2031-09-08"
+        issuance_date: todayIso(),
+        rolle: attest.formaal,
+        ordning: `politiattest-${attest.formaal}`,
+        person: {
+          person_id: person.personId,
+          foedselsnummer: person.syntetiskFodselsnummer,
+          fornavn: person.navn.fornavn,
+          etternavn: person.navn.etternavn
+        },
+        utsteder: { navn: `${person.bostedsadresse?.kommune || "Drammen"} kommune` },
+        maks_alder_maaneder: 3,
+        syntetisk: true,
+        rettslig_grunnlag: {
+          formaal: attest.formaal,
+          attesttype: attest.attesttype,
+          hjemmel: attest.hjemmel
+        },
+        beskrivelse: "Kommunen bekrefter formålet med politiattesten som skal legges fram.",
+        instruksjoner: [
+          "Du søker selv hos politiet med denne bekreftelsen som vedlegg.",
+          "Kommunen registrerer at kontrollen er gjort og beholder ikke attesten."
+        ]
       };
     },
     lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "pid-bevis",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["urn:eudi:pid:1", "net.eidas2sandkasse:test_pid_sdjwt_alder"]
-          },
-          claims: [
-            { path: ["personal_administrative_number"] },
-            { path: ["given_name"] },
-            { path: ["family_name"] },
-            { path: ["birth_date"] }
-          ]
-        }
-      ]
+      credentials: [{
+        id: "formalsbekreftelse-bevis",
+        format: "dc+sd-jwt",
+        meta: { vct_values: ["net.eidas2sandkasse:ks_hackathon_formalsbekreftelse"] },
+        claims: [
+          { path: ["rolle"] },
+          { path: ["ordning"] },
+          { path: ["person"] },
+          { path: ["rettslig_grunnlag"] }
+        ]
+      }]
     })
   },
 
   politiattest: {
     id: "politiattest",
-    tittel: "Politiattest (Vandel)",
-    beskrivelse: "Attest for vandel uten anmerkninger, til bruk i barnehage, skole og helse/frivillighet.",
-    utstederNavn: "Politiet (Enhet for vandelskontroll)",
+    tittel: "Politiattest",
+    beskrivelse: "Politiattest med formål, attesttype, anmerkninger og utstedelsesdato fra sandkassedataene.",
+    utstederNavn: "Politiet (Enhet for vandelskontroll og politiattester)",
     format: "dc+sd-jwt",
-    vct: "net.eidas2sandkasse:politi_attest",
-    credentialConfigurationId: "net.eidas2sandkasse:politi_attest_sd_jwt_vc",
-    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
+    vct: "net.eidas2sandkasse:ks_hackathon_politiattest",
+    credentialConfigurationId: "net.eidas2sandkasse:ks_hackathon_politiattest_sd_jwt_vc",
+    defaultIssuerUrl: ISSUER_URL,
     claims: [
-      { path: "is_verified", label: "Vandel bekreftet (1 = Gyldig uten anmerkninger)", required: true }
+      { path: "issuance_date", label: "Utgivelsesdato", required: true },
+      { path: "attesttype", label: "Attesttype", required: true },
+      { path: "attest_id", label: "Attest-ID", required: true },
+      { path: "formaal", label: "Formål", required: true },
+      { path: "antall_anmerkninger", label: "Antall anmerkninger", required: true },
+      { path: "anmerkninger", label: "Anmerkninger" },
+      { path: "expiry_date", label: "Utløpsdato", required: true },
+      { path: "hjemmel", label: "Hjemmel" },
+      { path: "utsteder", label: "Utsteder" },
+      { path: "innehaver", label: "Innehaver", required: true }
     ],
     lagEksempelData: (person: Person) => {
-      // Testmiljøets issuer-server krever strengt KUN is_verified claim
-      const harAnmerkning = person.politiattest?.anmerkninger && person.politiattest.anmerkninger.length > 0;
+      const attest = attestFor(person);
+      const antallAnmerkninger = attest.anmerkninger.length;
       return {
-        is_verified: harAnmerkning ? "0" : "1"
+        issuance_date: attest.utstedt,
+        attest_id: attest.attestId,
+        attesttype: attest.attesttype,
+        formaal: attest.formaal,
+        antall_anmerkninger: antallAnmerkninger,
+        anmerkninger: attest.anmerkninger,
+        expiry_date: maanedereEtter(attest.utstedt, 3),
+        hjemmel: hjemmelSomUri(attest.hjemmel),
+        utsteder: attest.utsteder,
+        syntetisk: true,
+        innehaver: {
+          person_id: person.personId,
+          foedselsnummer: person.syntetiskFodselsnummer,
+          fornavn: person.navn.fornavn,
+          etternavn: person.navn.etternavn
+        }
       };
     },
     lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "politiattest-bevis",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["net.eidas2sandkasse:politi_attest", "no:ks:politiattest:1"]
-          },
-          claims: [
-            { path: ["is_verified"] }
-          ]
-        }
-      ]
-    })
-  },
-
-  inntekt: {
-    id: "inntekt",
-    tittel: "Inntektsbevis (Skatteetaten)",
-    beskrivelse: "Bevis for fastsatt skattbar årsinntekt fra Skatteetaten til bruk ved beregning av moderasjonsordninger.",
-    utstederNavn: "Skatteetaten",
-    format: "dc+sd-jwt",
-    vct: "net.eidas2sandkasse:inntekts_bevis",
-    credentialConfigurationId: "net.eidas2sandkasse:inntekts_bevis_sd_jwt_vc",
-    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
-    claims: [
-      { path: "currency", label: "Valuta", required: true },
-      { path: "annual_income", label: "Fastsatt årsinntekt (NOK)", required: true }
-    ],
-    lagEksempelData: (person: Person) => {
-      let totalInntekt = 0;
-      if (person.inntekt?.poster && person.inntekt.poster.length > 0) {
-        totalInntekt = person.inntekt.poster
-          .filter((p) => p.medregnes)
-          .reduce((sum, p) => sum + p.beloep, 0);
-      }
-      if (totalInntekt === 0) totalInntekt = 485000;
-
-      return {
-        annual_income: totalInntekt.toString(),
-        currency: "NOK"
-      };
-    },
-    lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "inntektsbevis-query",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["net.eidas2sandkasse:inntekts_bevis"]
-          },
-          claims: [
-            { path: ["currency"] },
-            { path: ["annual_income"] }
-          ]
-        }
-      ]
-    })
-  },
-
-  ledsagerbevis: {
-    id: "ledsagerbevis",
-    tittel: "Kommunalt ledsagerbevis",
-    beskrivelse: "Kommunalt bevis for personer som har behov for ledsager til arrangementer og offentlige tjenester.",
-    utstederNavn: "Kommunen (KS-sandkasse / Digdir)",
-    format: "dc+sd-jwt",
-    vct: "net.eidas2sandkasse:ledsagerbevis",
-    credentialConfigurationId: "net.eidas2sandkasse:ledsagerbevis_sd_jwt_vc",
-    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
-    claims: [
-      { path: "navn", label: "Kortholders navn", required: true },
-      { path: "kommune_navn", label: "Kommune", required: true },
-      { path: "kommune_nr", label: "Kommunenummer" },
-      { path: "utlopsdato", label: "Utløpsdato", required: true },
-      { path: "antall_ledsagere", label: "Antall ledsagere", required: true }
-    ],
-    lagEksempelData: (person: Person) => {
-      const kommune = person.bostedsadresse?.kommune || "Bergen";
-      const kommuneNr = person.bostedsadresse?.kommunenummer || "4601";
-      return {
-        bilde: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4v5ThPwAG7wKklwQ/bwAAABBkZUJHMUUwNjcxN0FCMUFFMUU5OLCZt84AAAAASUVORK5CYII=",
-        navn: person.visningsnavn,
-        kommune_nr: kommuneNr,
-        kommune_navn: `${kommune} kommune`,
-        utlopsdato: "2028-01-01",
-        antall_ledsagere: "1"
-      };
-    },
-    lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "ledsagerbevis-query",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["net.eidas2sandkasse:ledsagerbevis"]
-          },
-          claims: [
-            { path: ["navn"] },
-            { path: ["kommune_navn"] },
-            { path: ["antall_ledsagere"] }
-          ]
-        }
-      ]
-    })
-  },
-
-  krr: {
-    id: "krr",
-    tittel: "Digital kontaktinformasjon (KRR)",
-    beskrivelse: "Bevis for verifisert e-postadresse og mobiltelefonnummer fra Kontakt- og reservasjonsregisteret.",
-    utstederNavn: "Kontakt- og reservasjonsregisteret (Digdir)",
-    format: "dc+sd-jwt",
-    vct: "no:kontaktregisteret:kontaktinformasjon:1",
-    credentialConfigurationId: "no.kontaktregisteret.kontaktinformasjon_sd_jwt_vc",
-    defaultIssuerUrl: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
-    claims: [
-      { path: "personidentifikator", label: "Personidentifikator", required: true },
-      { path: "epostadresse", label: "E-postadresse", required: true },
-      { path: "mobiltelefonnummer", label: "Mobiltelefonnummer", required: true }
-    ],
-    lagEksempelData: (person: Person) => ({
-      personidentifikator: person.syntetiskFodselsnummer,
-      epostadresse: person.krr?.epost?.adresse || person.kontakt?.epost || `${person.navn.fornavn.toLowerCase()}@example.test`,
-      mobiltelefonnummer: person.krr?.tlf?.nummer || person.kontakt?.telefon || "+4799990001"
-    }),
-    lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "krr-bevis",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["no:kontaktregisteret:kontaktinformasjon:1"]
-          },
-          claims: [
-            { path: ["personidentifikator"] },
-            { path: ["epostadresse"] },
-            { path: ["mobiltelefonnummer"] }
-          ]
-        }
-      ]
-    })
-  },
-
-  barnehage: {
-    id: "barnehage",
-    tittel: "Barnehageplass",
-    beskrivelse: "Kommunalt bevis som dokumenterer tildelt barnehageplass, plassprosent, månedspris og barnets data.",
-    utstederNavn: "KS Kommunal Barnehagetjeneste",
-    format: "dc+sd-jwt",
-    vct: "no:ks:barnehageplass:1",
-    credentialConfigurationId: "no.ks.barnehageplass_sd_jwt_vc",
-    defaultIssuerUrl: "http://localhost:8080/bevisgenerator",
-    claims: [
-      { path: "foresatt_identifikator", label: "Foresatt (FNR)", required: true },
-      { path: "foresatt_navn", label: "Foresattes navn", required: true },
-      { path: "barn_identifikator", label: "Barnets FNR", required: true },
-      { path: "barn_navn", label: "Barnets navn", required: true },
-      { path: "barnehagenavn", label: "Barnehagens navn", required: true },
-      { path: "kommune", label: "Kommune", required: true },
-      { path: "plassprosent", label: "Plassprosent", required: true },
-      { path: "manedspris", label: "Månedspris (NOK)" },
-      { path: "status", label: "Status" }
-    ],
-    lagEksempelData: (person: Person) => {
-      const bhg = person.barnehageplass;
-      const kommune = bhg?.kommune || person.bostedsadresse?.kommune || "Bergen";
-      const bhgNavn = bhg?.barnehagenavn || `${kommune} kommunale barnehage`;
-      const barnFnr = bhg?.barnFnr || "03842250055";
-      const barnNavn = bhg?.barnNavn || "Ella Solberg";
-      const prosent = bhg?.plassprosent ?? 100;
-      const pris = bhg?.manedspris ?? 3200;
-
-      return {
-        foresatt_identifikator: person.syntetiskFodselsnummer,
-        foresatt_navn: person.visningsnavn,
-        barn_identifikator: barnFnr,
-        barn_navn: barnNavn,
-        barnehagenavn: bhgNavn,
-        kommune: kommune,
-        plassprosent: prosent,
-        manedspris: pris,
-        status: "AKTIV_PLASS",
-        gyldig_fra: "2026-08-15"
-      };
-    },
-    lagDcqlQuery: () => ({
-      credentials: [
-        {
-          id: "barnehage-bevis",
-          format: "dc+sd-jwt",
-          meta: {
-            vct_values: ["no:ks:barnehageplass:1"]
-          },
-          claims: [
-            { path: ["foresatt_identifikator"] },
-            { path: ["barn_navn"] },
-            { path: ["barnehagenavn"] },
-            { path: ["kommune"] },
-            { path: ["plassprosent"] }
-          ]
-        }
-      ]
+      credentials: [{
+        id: "politiattest-bevis",
+        format: "dc+sd-jwt",
+        meta: { vct_values: ["net.eidas2sandkasse:ks_hackathon_politiattest"] },
+        claims: [
+          { path: ["attesttype"] },
+          { path: ["formaal"] },
+          { path: ["antall_anmerkninger"] },
+          { path: ["anmerkninger"] },
+          { path: ["expiry_date"] },
+          { path: ["innehaver"] }
+        ]
+      }]
     })
   }
 };
