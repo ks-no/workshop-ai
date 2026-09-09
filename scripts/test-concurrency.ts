@@ -202,8 +202,8 @@ const services = [
 ];
 
 try {
-  // state.ts imports jsonstore, so load it only after STATE_DIR names this test's
-  // directory. An eager import would make the atomic-write test touch real state.
+  // state.ts imports jsonstore, so it must load after STATE_DIR names this test's
+  // temporary directory rather than the workshop's runtime state.
   const { mergeFrossetProsessoekt, mergeProsessoektForLagring } =
     await import("../apps/sandbox-backend/src/state.ts");
   const strengFletting = mergeProsessoektForLagring(
