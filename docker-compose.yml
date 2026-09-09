@@ -80,6 +80,27 @@ services:
     volumes:
       - ./:/workspace
 
+  lommebok:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - corepack pnpm install --frozen-lockfile --filter @innbyggerdialog/lommebok && corepack pnpm --filter @innbyggerdialog/lommebok dev
+    environment:
+      - CI=true
+      - WATCH_POLL=${WATCH_POLL:-0}
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:3002:3002"
+    volumes:
+      - ./:/workspace
+      - lommebok-root-node-modules:/workspace/node_modules
+      - lommebok-package-node-modules:/workspace/apps/lommebok/node_modules
+
   demo-gui:
     healthcheck:
       <<: *helsesjekk
@@ -346,3 +367,5 @@ services:
 
 volumes:
   ollama-data:
+  lommebok-root-node-modules:
+  lommebok-package-node-modules:

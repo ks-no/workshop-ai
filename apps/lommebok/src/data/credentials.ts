@@ -49,8 +49,8 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
       utsteder: {
         navn: `${person.bostedsadresse?.kommune || "Drammen"} kommune`
       },
-      maks_alder_maaneder: "3",
-      syntetisk: "true",
+      maks_alder_maaneder: 3,
+      syntetisk: true,
       rettslig_grunnlag: {
         formaal: "barnehage",
         attesttype: "barneomsorgsattest",
@@ -107,10 +107,10 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
       const attestId = `att-${person.personId.replace(/\D/g, "").padStart(4, "0")}`;
       return {
         issuance_date: utgivelsesdato,
-        antall_anmerkninger: "0",
+        antall_anmerkninger: 0,
         attesttype: "barneomsorgsattest",
-        anmerkninger: [],
-        hjemmel: "barnehageloven § 30, jf. politiregisterloven § 39 første ledd",
+        anmerkninger: ["Ingen anmerkninger"],
+        hjemmel: "https://lovdata.no/dokument/NL/lov/2005-06-17-64",
         formaal: "barnehage",
         expiry_date: maanedereEtter(utgivelsesdato, 3),
         utsteder: {
@@ -118,7 +118,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
           enhet: "Enhet for vandelskontroll og politiattester",
           organisasjonsnummer: "889640782"
         },
-        syntetisk: "true",
+        syntetisk: true,
         attest_id: attestId,
         innehaver: {
           person_id: person.personId,

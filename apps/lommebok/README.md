@@ -39,14 +39,19 @@ Applikasjonen er konfigurert til å gå mot det offisielle **testmiljøet**:
 
 Utviklerserveren på port 3002 proxier verifier-kallene gjennom `/api/v1` for å unngå CORS-utfordringer i nettleseren.
 
-## Kjøre applikasjonen lokalt
+## Kjøre applikasjonen
 
 Fra rotmappen til `workshop-ai`:
 ```bash
-# Start med pnpm
-pnpm start:lommebok
+# Start sammen med resten av sandkassen
+./start.sh --mock
 
-# Eller gå til mappen
+# Eller start bare tjenesten med Compose
+docker compose up lommebok
+```
+
+For lokal utvikling uten Compose:
+```bash
 cd apps/lommebok
 pnpm dev
 ```
