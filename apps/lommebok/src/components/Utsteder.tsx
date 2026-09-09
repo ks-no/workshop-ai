@@ -28,6 +28,13 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [utstedtData, setUtstedtData] = useState<IssuedCredentialData | null>(null);
   const [kopiert, setKopiert] = useState<boolean>(false);
 
+  const kanFaaBevis = (person: Person, bevisId: CredentialId): boolean => {
+    if (bevisId === "formalsbekreftelse" || bevisId === "politiattest") {
+      return Boolean(person.politiattest);
+    }
+    return false;
+  };
+
   // Hent alle testpersoner fra KS-sandkassen
   useEffect(() => {
     async function hentPersoner() {
@@ -37,9 +44,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: Person[] = await res.json();
         setPersoner(data);
-        if (data.length > 0) {
-          setValgtPerson(data[0]);
-          setFnrInput(data[0].syntetiskFodselsnummer);
+        const relevantePersoner = data.filter((person) => kanFaaBevis(person, valgtBevisId));
+        if (relevantePersoner.length > 0) {
+          setValgtPerson(relevantePersoner[0]);
+          setFnrInput(relevantePersoner[0].syntetiskFodselsnummer);
         }
       } catch (err: unknown) {
         console.error("Kunne ikke hente personer:", err);
@@ -55,7 +63,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const handleFnrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fnr = e.target.value.trim();
     setFnrInput(fnr);
-    const funnet = personer.find((p) => p.syntetiskFodselsnummer === fnr);
+    const funnet = personer.find(
+      (p) => p.syntetiskFodselsnummer === fnr && kanFaaBevis(p, valgtBevisId)
+    );
     if (funnet) {
       setValgtPerson(funnet);
     } else {
@@ -65,7 +75,8 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   };
 
   // Filtrer personer til dropdown-søk
-  const filtrertePersoner = personer.filter((p) => {
+  const relevantePersoner = personer.filter((person) => kanFaaBevis(person, valgtBevisId));
+  const filtrertePersoner = relevantePersoner.filter((p) => {
     const s = sokeord.toLowerCase();
     const navn = (p.visningsnavn || "").toLowerCase();
     const fnr = p.syntetiskFodselsnummer || "";
@@ -200,6 +211,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                   if (def.defaultIssuerUrl) {
                     setIssuerUrl(def.defaultIssuerUrl);
                   }
+                  const nestePerson = personer.find((person) => kanFaaBevis(person, id));
+                  setValgtPerson(nestePerson || null);
+                  setFnrInput(nestePerson?.syntetiskFodselsnummer || "");
+                  setSokeord("");
                   setUtstedtOfferUri(null);
                 }}
               >
@@ -209,6 +224,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 </div>
                 <p className="card-desc">{def.beskrivelse}</p>
                 <div className="card-meta">Utsteder: {def.utstederNavn}</div>
+                <div className="card-meta">
+                  {personer.filter((person) => kanFaaBevis(person, id)).length} testpersoner kan få dette beviset
+                </div>
               </button>
             );
           })}
@@ -218,13 +236,13 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
       <div className="card">
         <h2>2. Velg eller tast inn personnummer</h2>
         <p className="description">
-          Personnummeret må eksistere i KS-sandkassens database:
+          Velg blant {relevantePersoner.length} testpersoner med nødvendig grunnlag i KS-sandkassen, eller søk direkte på fødselsnummer:
         </p>
 
         {feilmelding && <div className="alert alert-error">{feilmelding}</div>}
-        {valgtPerson && valgtBevisId === "politiattest" && !harPolitiattest && (
+        {valgtPerson && !harPolitiattest && (
           <div className="alert alert-info">
-            Denne testpersonen har ingen politiattest i sandkassedataene. Velg en person med registrert attest for å utstede dette beviset med faktiske data.
+            Denne testpersonen har ikke nødvendig politiattest i sandkassedataene. Velg en av de {relevantePersoner.length} testpersonene som er relevante for dette beviset.
           </div>
         )}
 
@@ -246,13 +264,13 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
               </span>
             ) : fnrInput.length === 11 ? (
               <span className="feedback-error">
-                ✗ Fant ingen person med dette fødselsnummeret i KS-databasen.
+                ✗ Fant ingen relevant person med dette fødselsnummeret for valgt bevis.
               </span>
             ) : null}
           </div>
 
           <div className="form-group flex-1">
-            <label htmlFor="sokPerson">Søk i KS-testpersoner:</label>
+            <label htmlFor="sokPerson">Søk i relevante KS-testpersoner:</label>
             <input
               id="sokPerson"
               type="text"
@@ -266,7 +284,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
         {sokeord.trim() && (
           <div className="search-results">
-            <div className="search-header">Treff i KS-databasen ({filtrertePersoner.length}):</div>
+            <div className="search-header">Treff blant relevante testpersoner ({filtrertePersoner.length}):</div>
             <ul className="results-list">
               {filtrertePersoner.slice(0, 8).map((p) => (
                 <li key={p.personId}>
