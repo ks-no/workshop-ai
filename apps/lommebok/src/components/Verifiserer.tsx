@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { CREDENTIAL_DEFINITIONS } from "../data/credentials";
-import { CredentialId, ApiCallTrace, VerificationStartResponse } from "../types";
+import { CredentialId, Person, ApiCallTrace, VerificationStartResponse } from "../types";
+
+// Samme person som i testmiljøets eksempel: person-040 i data/personer.json
+const EKSEMPELPERSON: Person = {
+  personId: "person-040",
+  syntetiskFodselsnummer: "02829000078",
+  visningsnavn: "Yara Osman",
+  navn: { fornavn: "Yara", etternavn: "Osman" },
+  foedselsdato: "1990-02-02",
+  bostedsadresse: { kommune: "Bergen" }
+};
 
 interface Props {
   onLogApiCall: (trace: ApiCallTrace) => void;
 }
 
 export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
   const [laster, setLaster] = useState<boolean>(false);
   const [feil, setFeil] = useState<string | null>(null);
 
@@ -205,35 +215,14 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
 
     setStatus("AVAILABLE");
 
-    // Lag et realistisk verifisert datasett basert på valgt bevis
+    // Lag et realistisk verifisert datasett med samme form som det utstedte beviset
     const simulertResultat = {
       status: "SUCCESS",
       verifier_transaction_id: transaksjon.verifier_transaction_id,
       verified_at: new Date().toISOString(),
       credential_configuration_id: valgtBevis.credentialConfigurationId,
       format: valgtBevis.format,
-      claims: {
-        personal_administrative_number: "12818800078",
-        family_name: "Solberg",
-        given_name: "Maja",
-        birth_date: "1988-01-12",
-        ...(valgtBevisId === "barnehage" ? {
-          barnehagenavn: "Solsiden kommunale barnehage",
-          kommune: "Bergen",
-          plassprosent: 100,
-          status: "AKTIV_PLASS"
-        } : {}),
-        ...(valgtBevisId === "politiattest" ? {
-          attesttype: "barneomsorgsattest",
-          formaal: "barnehage og frivillighet",
-          status: "INTET_Å_BEMERKE"
-        } : {}),
-        ...(valgtBevisId === "krr" ? {
-          epostadresse: "maja.solberg@example.test",
-          mobiltelefonnummer: "+4799990001",
-          reservert: false
-        } : {})
-      }
+      claims: valgtBevis.lagEksempelData(EKSEMPELPERSON)
     };
 
     setVerifisertResultat(simulertResultat);

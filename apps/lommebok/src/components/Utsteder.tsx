@@ -12,7 +12,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const [sokeord, setSokeord] = useState<string>("");
   const [valgtPerson, setValgtPerson] = useState<Person | null>(null);
   const [fnrInput, setFnrInput] = useState<string>("");
-  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("pid");
+  const [valgtBevisId, setValgtBevisId] = useState<CredentialId>("formalsbekreftelse");
   const [lasterPersoner, setLasterPersoner] = useState<boolean>(true);
   const [feilmelding, setFeilmelding] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
   // Resultat etter utstedelse
   const [issuerUrl, setIssuerUrl] = useState<string>(
-    CREDENTIAL_DEFINITIONS.pid.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
+    CREDENTIAL_DEFINITIONS.formalsbekreftelse.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
   );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
   const [utstedtData, setUtstedtData] = useState<any | null>(null);
