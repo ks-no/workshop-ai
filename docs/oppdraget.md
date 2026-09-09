@@ -68,7 +68,11 @@ teamene leser deg gjennom. Samme fil forklarer hvorfor, under «Ting du ikke ska
 om».
 
 ## Bruk av KI utviklingsverktøy
-Dette er en KI-workshop, vi oppfordrer til bruk av ki-verktøy. Mangler du tilgang på KI verktøy så send en forespørsel til [bard.saari@ksdigital.no](mailto:baard.saari@ksdigital.no)
+
+Dette er en KI-workshop, og vi oppfordrer til å bruke KI-verktøy. Prinsippene for hvordan -
+dere bestemmer, dere har ansvaret, dere skal kunne forklare det - står i
+[`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md). Mangler du tilgang på KI-verktøy, send en
+forespørsel til [baard.saari@ksdigital.no](mailto:baard.saari@ksdigital.no).
 
 ## Digital lommebok
 

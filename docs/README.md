@@ -35,6 +35,8 @@ ikke noe du leser først.
 | 2 | [`docs/deltakerstart.md`](deltakerstart.md) | Én kommando, URL-ene, hvilken testbruker som hører til hvilken case, ditt første eget API-kall. Den første timen |
 | 3 | [`docs/bygg-selv.md`](bygg-selv.md) | Egen frontend på egen port, egne testdata, hva som er frosset. Når demoen kjører og du vil lage noe selv |
 
+Og [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) gjelder alle som er med, i lokalet, i repoet og på nett.
+
 Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 
 ## Så slår du opp det du trenger
@@ -54,6 +56,7 @@ Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 | Style frontenden din som resten av KS Digital | [`docs/designsystem.md`](designsystem.md) |
 | Vite hva sandkassen logger, og hvordan du sletter det | [`docs/hva-logges.md`](hva-logges.md) |
 | Vite hva som forlater maskinen din før du demonstrerer | [`docs/sikkerhet-og-personvern.md`](sikkerhet-og-personvern.md) |
+| Vite hva som forventes av deg, hvordan KI skal brukes, og hvor du sier fra | [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) |
 | Slå opp et forvaltningsord | [`docs/ordliste.md`](ordliste.md) |
 
 > [!TIP]

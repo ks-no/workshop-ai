@@ -5,6 +5,8 @@ Denne siden er alt du trenger den første timen. Resten av dokumentasjonen kan v
 **Lurer du på hva dere egentlig skal lage?** [`docs/oppdraget.md`](oppdraget.md) er én
 side om det, og tar to minutter.
 
+Og [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) gjelder alle som er med - les den før du begynner.
+
 ## Innhold
 
 - [0. Hent repoet](#0-hent-repoet)

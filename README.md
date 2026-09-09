@@ -75,6 +75,8 @@ På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https:
 > 3. [`docs/bygg-selv.md`](docs/bygg-selv.md) - egen frontend på egen port, egne
 >    tjenester, og hva som er frosset
 >
+> Og før du begynner: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) gjelder alle, i lokalet og i repoet.
+>
 > Kom tilbake hit når du vil ha hele bildet: alle flagg, porter og kjente begrensninger.
 >
 > [`docs/README.md`](docs/README.md) er kartet over all dokumentasjonen.
@@ -480,6 +482,7 @@ gitignorert. Se `docs/syntetiske-data.md`.
 
 Dette repoet er lagt opp for flere team. Se:
 
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - `CONTRIBUTING.md`
 - `openapi/README.md`
 - `docs/architecture.md`

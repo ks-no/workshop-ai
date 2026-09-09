@@ -4,7 +4,8 @@
 > `docs/deltakerstart.md` inngangen - du trenger ikke lese denne filen, og ingenting her
 > fordeler oppgaver til hackathon-team.
 
-Takk for at du bidrar til `innbyggerdialog-sandbox`.
+Takk for at du bidrar til `innbyggerdialog-sandbox`. Alle som bidrar følger
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## Grener og PR-er
 
