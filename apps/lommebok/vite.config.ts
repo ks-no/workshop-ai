@@ -15,6 +15,7 @@ function lommebokApiPlugin() {
     configureServer(server: any) {
       server.middlewares.use(async (req: any, res: any, next: any) => {
         const url = new URL(req.url, `http://${req.headers.host || "localhost:3002"}`);
+        res.setHeader("Access-Control-Allow-Origin", "*");
 
         // Helsesjekk for tjenestetabell
         if (url.pathname === "/helse") {

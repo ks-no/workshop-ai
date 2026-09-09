@@ -82,6 +82,7 @@ async function checkTjeneste(tjeneste: Tjeneste, statusCelle: HTMLElement): Prom
 
 async function renderTjenester(): Promise<void> {
   const tabell = krevEl("tjenestetabell");
+  tabell.replaceChildren();
   // Registeret er lest fra disk og validert av pnpm test:openapi, ikke av oss.
   let tjenester: Tjeneste[];
   try {
@@ -103,6 +104,7 @@ async function renderTjenester(): Promise<void> {
 }
 
 renderTjenester();
+window.setInterval(renderTjenester, 5000);
 
 async function renderModellstatus(): Promise<void> {
   const tabell = krevEl("modellTabell");
