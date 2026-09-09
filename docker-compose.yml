@@ -89,7 +89,11 @@ services:
     command:
       - /bin/sh
       - -c
-      - corepack pnpm install --frozen-lockfile --filter @innbyggerdialog/lommebok && corepack pnpm --filter @innbyggerdialog/lommebok dev
+      - |
+        if [ ! -x /workspace/node_modules/.bin/vite ]; then
+          corepack pnpm install --frozen-lockfile --filter @innbyggerdialog/lommebok
+        fi
+        exec corepack pnpm --filter @innbyggerdialog/lommebok dev
     environment:
       - CI=true
       - WATCH_POLL=${WATCH_POLL:-0}
