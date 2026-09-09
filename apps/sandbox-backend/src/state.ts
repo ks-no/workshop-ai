@@ -349,8 +349,11 @@ export function mergeFrossetProsessoekt(
  * queue, because a SUMMARY step calls the model and can take a minute. Serialising
  * that would block every other session's writes for as long.
  *
- * Two writes to the *same* økt otherwise resolve last-writer-wins. Kildemetadata
- * is merged because a process update can freeze it while a slow handler is in flight.
+ * The request boundary in routes.ts serialises mutations of the same økt before
+ * they reach this merge. Keeping the queue here short still lets a SUMMARY call
+ * wait on the model without blocking writes for unrelated sessions.
+ * Source metadata is merged because a process update can freeze it while a slow
+ * handler is in flight.
  */
 export function lagreProsessoekt(oekt: Prosessoekt): Promise<void> {
   return updateJson("prosessoekter.json", [], (alle: Prosessoekt[]) => {
