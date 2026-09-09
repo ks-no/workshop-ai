@@ -86,6 +86,7 @@ flowchart LR
     PB["process-builder"]
     DG["demo-gui"]
     PAG["process-agent"]
+    LW["lommebok"]
   end
 
   subgraph kjerne["Kjerne"]
@@ -146,7 +147,7 @@ Det betyr at:
 
 ## Status og kjente avvik
 
-Alle elleve tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+Alle tolv tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og sju demo-case er på plass. Det som følger er
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.
