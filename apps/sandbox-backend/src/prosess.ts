@@ -130,8 +130,15 @@ export function invalidateStegOgSenere(
     && typeof aktivtResultat === "object" && aktivtResultat !== null
     && "samtykkeId" in aktivtResultat
     && aktivtResultat.samtykkeId === oekt.aktivtSamtykkeId;
+  const ugyldiggjorteSamtykkeIder = new Set<string>();
   let endret = false;
   for (const kandidat of prosess.steg.slice(stegIndex)) {
+    const resultat = oekt.resultaterRaa[kandidat.id];
+    if (kandidat.type === "CONSENT_REQUEST"
+      && typeof resultat === "object" && resultat !== null
+      && "samtykkeId" in resultat && typeof resultat.samtykkeId === "string") {
+      ugyldiggjorteSamtykkeIder.add(resultat.samtykkeId);
+    }
     if (hasOwn(oekt.resultaterRaa, kandidat.id)) {
       delete oekt.resultaterRaa[kandidat.id];
       endret = true;
@@ -145,7 +152,8 @@ export function invalidateStegOgSenere(
     }
   }
   if (!svarerPaaAktivtSamtykke
-    && senereSteg.some((kandidat) => kandidat.type === "CONSENT_REQUEST") && oekt.aktivtSamtykkeId) {
+    && oekt.aktivtSamtykkeId
+    && ugyldiggjorteSamtykkeIder.has(oekt.aktivtSamtykkeId)) {
     oekt.aktivtSamtykkeId = null;
     endret = true;
   }
@@ -215,6 +223,9 @@ function finnSamtykkekildeForSteg(
   switch (stegtype) {
     case "INFO":
     case "QUESTION":
+      // Disse stegene lagrer aldri resultater. Et historisk resultat med samme id
+      // kan derfor ikke klassifiseres ut fra den gjeldende definisjonen.
+      return { status: "ukjent" };
     case "CONSENT_REQUEST":
     case "SUMMARY":
     case "SUBMIT":
@@ -329,7 +340,12 @@ function lagreResultat(
   kilder: readonly Datakilde[]
 ): void {
   oekt.resultaterRaa[stegId] = resultat;
-  oekt.resultatKilder ??= {};
+  const metadata = oekt.resultatKilder as unknown;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    // Nye kilder kan lagres, men eldre treff uten metadata forblir ukjente.
+    oekt.resultatKilder = {};
+    oekt.resultatKilderFrosset = true;
+  }
   oekt.resultatKilder[stegId] = [...new Set(kilder)];
 }
 
