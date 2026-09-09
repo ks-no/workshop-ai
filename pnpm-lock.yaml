@@ -21,8 +21,8 @@ importers:
   apps/ai-gateway:
     dependencies:
       '@aws-sdk/client-bedrock-runtime':
-        specifier: ^3.1120.0
-        version: 3.1120.0
+        specifier: ^3.1124.0
+        version: 3.1124.0
 
   apps/demo-gui: {}
 
@@ -34,6 +34,8 @@ importers:
 
   apps/pasientjournal-mock: {}
 
+  apps/politiattest-mock: {}
+
   apps/process-agent: {}
 
   apps/process-builder: {}
@@ -44,8 +46,8 @@ importers:
 
 packages:
 
-  '@aws-sdk/client-bedrock-runtime@3.1120.0':
-    resolution: {integrity: sha512-Ln7lPnXhssqTwCDW2uxyivW9BEnpt12Bx0T3F2JzwsfKF+X+LJxdC1S7F9UVrS6ShJ7sIaaezT5+nNGjpQ8iEA==}
+  '@aws-sdk/client-bedrock-runtime@3.1124.0':
+    resolution: {integrity: sha512-yZwrQNto3LKRCZWWd+WyPbB3aHrFt0U5G5PDOlsSeMzLX4UMpAmgzS7YMFkeiFm3UnZ112R5X6g+MbBHyHOUCw==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.977.9':
@@ -68,8 +70,8 @@ packages:
     resolution: {integrity: sha512-Jb59xfEISoN5mmbnA+HYqdtrSX3CgCtJoof+V5D8/TgUI56W63GEEd5Y58WijU3Ou6+WEgaLD1feVzaRXV5IDQ==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/credential-provider-node@3.972.81':
-    resolution: {integrity: sha512-Rml+WitoFvXmv6JZ18U/xGdGDGGvB/mOin0ya0lTnTrdC0Z1lrVxTYh7iNklZBcvcRMrs4DoEf6xy1KWyrLQQw==}
+  '@aws-sdk/credential-provider-node@3.972.82':
+    resolution: {integrity: sha512-znDkEOGXB8W3kG1LJUKP3foBZY/9qLM0eil/DxWXSp37XsdsRLQHE/d/OaCGGVgKpA6znR38h/+INk8do1FjiA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/credential-provider-process@3.972.70':
@@ -108,8 +110,8 @@ packages:
     resolution: {integrity: sha512-ygIivKqh8aHzNkucOCXHyIBgBpLPfrSI0mCqXF+vLBsPTUKqj0VSqAY0GFPe7lQl4HntjOcQ+KSyS7oUV2C54Q==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/token-providers@3.1120.0':
-    resolution: {integrity: sha512-MYzT1kYN+EMErCzc2vMovZSG4r5r1+P/4nFzLhmk0wAYHO1zyLpTAvAjLi1mC/riMEq9w7VBrENC29FKe0dqtQ==}
+  '@aws-sdk/token-providers@3.1124.0':
+    resolution: {integrity: sha512-6Erzl8+J5cvLYXRp14TGeIydeoEqhzxJ3FvYR9gJN56SY2n3NJxEA8rCII+1o/O6koLuER9gYcaEJu724CGtEw==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/types@3.974.5':
@@ -407,14 +409,14 @@ packages:
 
 snapshots:
 
-  '@aws-sdk/client-bedrock-runtime@3.1120.0':
+  '@aws-sdk/client-bedrock-runtime@3.1124.0':
     dependencies:
       '@aws-sdk/core': 3.977.9
-      '@aws-sdk/credential-provider-node': 3.972.81
+      '@aws-sdk/credential-provider-node': 3.972.82
       '@aws-sdk/eventstream-handler-node': 3.972.34
       '@aws-sdk/middleware-eventstream': 3.972.29
       '@aws-sdk/middleware-websocket': 3.972.52
-      '@aws-sdk/token-providers': 3.1120.0
+      '@aws-sdk/token-providers': 3.1124.0
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.33.3
       '@smithy/fetch-http-handler': 5.7.2
@@ -476,7 +478,7 @@ snapshots:
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 
-  '@aws-sdk/credential-provider-node@3.972.81':
+  '@aws-sdk/credential-provider-node@3.972.82':
     dependencies:
       '@aws-sdk/credential-provider-env': 3.972.70
       '@aws-sdk/credential-provider-http': 3.972.72
@@ -568,7 +570,7 @@ snapshots:
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 
-  '@aws-sdk/token-providers@3.1120.0':
+  '@aws-sdk/token-providers@3.1124.0':
     dependencies:
       '@aws-sdk/core': 3.977.9
       '@aws-sdk/nested-clients': 3.997.44
