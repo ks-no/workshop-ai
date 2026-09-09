@@ -78,7 +78,7 @@ export const DeveloperInspector: React.FC<Props> = ({ traces, onClear }) => {
                     <pre className="curl-box">{trace.curl}</pre>
                   </div>
 
-                  {trace.responseBody && (
+                  {trace.responseBody !== undefined && (
                     <details className="response-details">
                       <summary>Vis API-respons ({trace.responseStatus || 200})</summary>
                       <pre className="json-box">

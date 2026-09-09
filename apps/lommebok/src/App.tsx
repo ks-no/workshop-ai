@@ -58,6 +58,26 @@ export function App() {
       </div>
 
       <main className="app-content">
+        <aside className="testflight-banner" aria-label="TestFlight EUDI Wallet">
+          <div className="testflight-banner-content">
+            <span className="testflight-banner-icon" aria-hidden="true">📲</span>
+            <div>
+              <div className="testflight-banner-title">TestFlight EUDI Wallet (iOS)</div>
+              <div className="testflight-banner-desc">
+                For å skanne QR-kodene og motta eller vise bevis på mobil, installer testversjonen av lommeboken via Apple TestFlight.
+              </div>
+            </div>
+          </div>
+          <a
+            href="https://testflight.apple.com/join/2FKCUj1J"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="testflight-btn"
+          >
+            Installer i TestFlight ↗
+          </a>
+        </aside>
+
         {aktivFane === "utsted" ? (
           <Utsteder onLogApiCall={handleLogApiCall} />
         ) : (

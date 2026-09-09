@@ -5,6 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SUPPORTED_CREDENTIAL_CONFIGURATION_IDS = new Set([
+  "net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc",
+  "net.eidas2sandkasse:ks_hackathon_politiattest_sd_jwt_vc"
+]);
 
 // Global in-memory cache for verifiserte resultater
 const verificationResultsStore = new Map<string, any>();
@@ -24,23 +28,90 @@ function lommebokApiPlugin() {
           return;
         }
 
-        // Hent alle personer fra KS-sandkassedata
+        // Hent alle personer fra KS-sandkassedata, beriket med KRR, barnehage, politiattest og inntekt
         if (url.pathname === "/api/personer" && req.method === "GET") {
           try {
-            const dataPath = path.resolve(__dirname, "../../data/personer.json");
-            const raw = fs.readFileSync(dataPath, "utf-8");
-            const personer = JSON.parse(raw).map((p: any) => ({
-              ...p,
-              visningsnavn: [p.navn?.fornavn, p.navn?.mellomnavn, p.navn?.etternavn]
-                .filter(Boolean)
-                .join(" ")
-            }));
+            const dataDir = path.resolve(__dirname, "../../data");
+            const readJson = (file: string, fallback: any = []) => {
+              try {
+                return JSON.parse(fs.readFileSync(path.join(dataDir, file), "utf-8"));
+              } catch {
+                return fallback;
+              }
+            };
+
+            const personer = readJson("personer.json", []);
+            const krr = readJson("krr.json", []);
+            const bhg = readJson("barnehageplasser.json", []);
+            const politiRaw = readJson("politiattester.json", { attester: [] });
+            const politi = politiRaw.attester || [];
+            const inntekter = readJson("inntekter.json", []);
+            const husstander = readJson("husstander.json", []);
+
+            const krrMap = new Map(krr.map((k: any) => [k.fnr, k]));
+            const bhgMap = new Map(bhg.map((b: any) => [b.personId, b]));
+            const politiMap = new Map(politi.map((a: any) => [a.fnr, a]));
+            const inntektMap = new Map(inntekter.map((i: any) => [i.identifikator, i]));
+            const husstandMap = new Map(husstander.map((h: any) => [h.husstandId, h]));
+            const personMap = new Map(personer.map((p: any) => [p.personId, p]));
+
+            const beriket = personer.map((p: any) => {
+              const krrData = krrMap.get(p.syntetiskFodselsnummer) || null;
+              const politiData = politiMap.get(p.syntetiskFodselsnummer) || null;
+              const inntektData = inntektMap.get(p.syntetiskFodselsnummer) || null;
+              const husstandData = p.husstandId ? husstandMap.get(p.husstandId) || null : null;
+
+              // Sjekk barnehageplass for personen selv eller personens barn
+              let bhgData = bhgMap.get(p.personId);
+              let barnFnr = null;
+              let barnNavn = null;
+
+              if (!bhgData && p.foreldrebarnrelasjon) {
+                for (const rel of p.foreldrebarnrelasjon) {
+                  if (rel.relasjon === "BARN") {
+                    const funnetBhg = bhgMap.get(rel.relatertPersonId);
+                    if (funnetBhg) {
+                      bhgData = funnetBhg;
+                      const barnPerson = personMap.get(rel.relatertPersonId);
+                      if (barnPerson) {
+                        barnFnr = barnPerson.syntetiskFodselsnummer;
+                        barnNavn = [barnPerson.navn?.fornavn, barnPerson.navn?.mellomnavn, barnPerson.navn?.etternavn]
+                          .filter(Boolean)
+                          .join(" ");
+                      }
+                      break;
+                    }
+                  }
+                }
+              }
+
+              const barnehageplass = bhgData
+                ? {
+                    ...bhgData,
+                    barnFnr: barnFnr || p.syntetiskFodselsnummer,
+                    barnNavn: barnNavn || [p.navn?.fornavn, p.navn?.mellomnavn, p.navn?.etternavn].filter(Boolean).join(" ")
+                  }
+                : null;
+
+              return {
+                ...p,
+                visningsnavn: [p.navn?.fornavn, p.navn?.mellomnavn, p.navn?.etternavn]
+                  .filter(Boolean)
+                  .join(" "),
+                krr: krrData,
+                barnehageplass,
+                politiattest: politiData,
+                inntekt: inntektData,
+                husstand: husstandData
+              };
+            });
+
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify(personer));
+            res.end(JSON.stringify(beriket));
             return;
           } catch (err: any) {
             res.statusCode = 500;
-            res.end(JSON.stringify({ error: "Kunne ikke lese personer.json", details: err.message }));
+            res.end(JSON.stringify({ error: "Kunne ikke lese sandkassedata", details: err.message }));
             return;
           }
         }
@@ -66,6 +137,12 @@ function lommebokApiPlugin() {
                 res.end(JSON.stringify({ error: "Mangler credentialConfigurationId eller personIdentifier" }));
                 return;
               }
+              if (!SUPPORTED_CREDENTIAL_CONFIGURATION_IDS.has(credentialConfigurationId)) {
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: "Ukjent beviskonfigurasjon" }));
+                return;
+              }
 
               const bevisgeneratorBase = process.env.BEVISGENERATOR_URL || "https://bevisgenerator.test.eidas2sandkasse.net";
               const targetUrl = `${bevisgeneratorBase}/start-issuance/${encodeURIComponent(credentialConfigurationId)}`;
@@ -82,8 +159,19 @@ function lommebokApiPlugin() {
                 payload.credential_data = credentialData;
               }
 
+              // Tilpass og rens payload basert på testmiljøets strenge krav per bevis
+              let effectivePersonId = personIdentifier;
+
+              if (credentialConfigurationId === "no.kontaktregisteret.kontaktinformasjon_sd_jwt_vc") {
+                // KRR støtter ikke push av credential_data i testmiljøet
+                delete payload.credential_data;
+                // Testmiljøets KRR krever en person registrert i test-KRR (standard: 16903349844)
+                effectivePersonId = "16903349844";
+                payload.subject.identifier = effectivePersonId;
+              }
+
               const form = new URLSearchParams();
-              form.append("personIdentifier", personIdentifier);
+              form.append("personIdentifier", effectivePersonId);
               form.append("json", JSON.stringify(payload));
 
               const bevisRes = await fetch(targetUrl, {

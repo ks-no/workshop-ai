@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { CREDENTIAL_DEFINITIONS } from "../data/credentials";
-import { CredentialId, Person, ApiCallTrace } from "../types";
+import { CredentialId, IssuedCredentialData, Person, ApiCallTrace } from "../types";
 
 interface Props {
   onLogApiCall: (trace: ApiCallTrace) => void;
@@ -25,8 +25,15 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
     CREDENTIAL_DEFINITIONS.formalsbekreftelse.defaultIssuerUrl || "https://utsteder.test.eidas2sandkasse.net/bevisgenerator"
   );
   const [utstedtOfferUri, setUtstedtOfferUri] = useState<string | null>(null);
-  const [utstedtData, setUtstedtData] = useState<any | null>(null);
+  const [utstedtData, setUtstedtData] = useState<IssuedCredentialData | null>(null);
   const [kopiert, setKopiert] = useState<boolean>(false);
+
+  const kanFaaBevis = (person: Person, bevisId: CredentialId): boolean => {
+    if (bevisId === "formalsbekreftelse" || bevisId === "politiattest") {
+      return Boolean(person.politiattest);
+    }
+    return false;
+  };
 
   // Hent alle testpersoner fra KS-sandkassen
   useEffect(() => {
@@ -37,11 +44,12 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: Person[] = await res.json();
         setPersoner(data);
-        if (data.length > 0) {
-          setValgtPerson(data[0]);
-          setFnrInput(data[0].syntetiskFodselsnummer);
+        const relevantePersoner = data.filter((person) => kanFaaBevis(person, valgtBevisId));
+        if (relevantePersoner.length > 0) {
+          setValgtPerson(relevantePersoner[0]);
+          setFnrInput(relevantePersoner[0].syntetiskFodselsnummer);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Kunne ikke hente personer:", err);
         setFeilmelding("Fikk ikke kontakt med KS-sandkassedatabasen. Sørg for at sandbox-backend eller lommebok-api kjører.");
       } finally {
@@ -55,7 +63,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   const handleFnrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fnr = e.target.value.trim();
     setFnrInput(fnr);
-    const funnet = personer.find((p) => p.syntetiskFodselsnummer === fnr);
+    const funnet = personer.find(
+      (p) => p.syntetiskFodselsnummer === fnr && kanFaaBevis(p, valgtBevisId)
+    );
     if (funnet) {
       setValgtPerson(funnet);
     } else {
@@ -65,7 +75,8 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   };
 
   // Filtrer personer til dropdown-søk
-  const filtrertePersoner = personer.filter((p) => {
+  const relevantePersoner = personer.filter((person) => kanFaaBevis(person, valgtBevisId));
+  const filtrertePersoner = relevantePersoner.filter((p) => {
     const s = sokeord.toLowerCase();
     const navn = (p.visningsnavn || "").toLowerCase();
     const fnr = p.syntetiskFodselsnummer || "";
@@ -81,11 +92,14 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
   };
 
   const valgtBevis = CREDENTIAL_DEFINITIONS[valgtBevisId];
-  const eksempelData = valgtPerson ? valgtBevis.lagEksempelData(valgtPerson) : null;
+  const harPolitiattest = Boolean(valgtPerson?.politiattest);
+  const eksempelData = valgtPerson && (valgtBevisId !== "politiattest" || harPolitiattest)
+    ? valgtBevis.lagEksempelData(valgtPerson)
+    : null;
 
   // Utsted bevis-funksjon: kaller /api/utsted som oppretter reell pre-authorization i testmiljøet
   const handleUtsted = async () => {
-    if (!valgtPerson) return;
+    if (!valgtPerson || !eksempelData) return;
     setLasterUtstedelse(true);
     setFeilmelding(null);
     setUtstederStatus("Oppretter gyldig issuance transaction i testmiljøet...");
@@ -157,9 +171,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
         },
         curl
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Feil ved utstedelse:", err);
-      setFeilmelding(`Kunne ikke opprette utstedelse i testmiljøet: ${err.message}`);
+      const message = err instanceof Error ? err.message : "Ukjent feil";
+      setFeilmelding(`Kunne ikke opprette utstedelse i testmiljøet: ${message}`);
     } finally {
       setLasterUtstedelse(false);
       setUtstederStatus(null);
@@ -196,6 +211,10 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                   if (def.defaultIssuerUrl) {
                     setIssuerUrl(def.defaultIssuerUrl);
                   }
+                  const nestePerson = personer.find((person) => kanFaaBevis(person, id));
+                  setValgtPerson(nestePerson || null);
+                  setFnrInput(nestePerson?.syntetiskFodselsnummer || "");
+                  setSokeord("");
                   setUtstedtOfferUri(null);
                 }}
               >
@@ -205,6 +224,9 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 </div>
                 <p className="card-desc">{def.beskrivelse}</p>
                 <div className="card-meta">Utsteder: {def.utstederNavn}</div>
+                <div className="card-meta">
+                  {personer.filter((person) => kanFaaBevis(person, id)).length} testpersoner kan få dette beviset
+                </div>
               </button>
             );
           })}
@@ -214,10 +236,15 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
       <div className="card">
         <h2>2. Velg eller tast inn personnummer</h2>
         <p className="description">
-          Personnummeret må eksistere i KS-sandkassens database:
+          Velg blant {relevantePersoner.length} testpersoner med nødvendig grunnlag i KS-sandkassen, eller søk direkte på fødselsnummer:
         </p>
 
         {feilmelding && <div className="alert alert-error">{feilmelding}</div>}
+        {valgtPerson && !harPolitiattest && (
+          <div className="alert alert-info">
+            Denne testpersonen har ikke nødvendig politiattest i sandkassedataene. Velg en av de {relevantePersoner.length} testpersonene som er relevante for dette beviset.
+          </div>
+        )}
 
         <div className="form-row">
           <div className="form-group flex-1">
@@ -237,13 +264,13 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
               </span>
             ) : fnrInput.length === 11 ? (
               <span className="feedback-error">
-                ✗ Fant ingen person med dette fødselsnummeret i KS-databasen.
+                ✗ Fant ingen relevant person med dette fødselsnummeret for valgt bevis.
               </span>
             ) : null}
           </div>
 
           <div className="form-group flex-1">
-            <label htmlFor="sokPerson">Søk i KS-testpersoner:</label>
+            <label htmlFor="sokPerson">Søk i relevante KS-testpersoner:</label>
             <input
               id="sokPerson"
               type="text"
@@ -257,7 +284,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
 
         {sokeord.trim() && (
           <div className="search-results">
-            <div className="search-header">Treff i KS-databasen ({filtrertePersoner.length}):</div>
+            <div className="search-header">Treff blant relevante testpersoner ({filtrertePersoner.length}):</div>
             <ul className="results-list">
               {filtrertePersoner.slice(0, 8).map((p) => (
                 <li key={p.personId}>
@@ -310,7 +337,7 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
             type="button"
             className="btn btn-primary"
             onClick={handleUtsted}
-            disabled={!valgtPerson || lasterPersoner || lasterUtstedelse}
+            disabled={!valgtPerson || !eksempelData || lasterPersoner || lasterUtstedelse}
           >
             {lasterUtstedelse ? (utstederStatus || "Oppretter utstedelse...") : "Utsted bevis til lommebok"}
           </button>
@@ -376,6 +403,18 @@ export const Utsteder: React.FC<Props> = ({ onLogApiCall }) => {
                 <button type="button" className="btn btn-ghost" onClick={kopierLenke}>
                   {kopiert ? "Kopiert!" : "Kopier lenke"}
                 </button>
+              </div>
+
+              <div style={{ marginTop: "1rem", fontSize: "0.85rem", color: "#64748b" }}>
+                📱 Har du ikke installert lommebok på telefonen?{" "}
+                <a
+                  href="https://testflight.apple.com/join/2FKCUj1J"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#2563eb", textDecoration: "underline" }}
+                >
+                  Last ned testversjonen via Apple TestFlight
+                </a>
               </div>
             </div>
           </div>

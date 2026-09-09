@@ -1,3 +1,65 @@
+export interface KrrData {
+  fnr: string;
+  epost?: {
+    adresse: string;
+    sistOppdatert?: string;
+    sistVerifisert?: string;
+  };
+  tlf?: {
+    nummer: string;
+    sistOppdatert?: string;
+    sistVerifisert?: string;
+  };
+  status: string;
+  reservert: boolean;
+  kanVarsles?: boolean;
+  spraak?: string;
+}
+
+export interface BarnehageplassData {
+  personId: string;
+  barnehageId: string;
+  barnehagenavn: string;
+  kommune: string;
+  plassprosent: number;
+  manedspris: number;
+  barnFnr?: string;
+  barnNavn?: string;
+}
+
+export interface PolitiattestData {
+  attestId: string;
+  dokumenttype: string;
+  fnr: string;
+  formaal: string;
+  hjemmel: string;
+  attesttype: string;
+  utstedt: string;
+  utsteder?: {
+    navn: string;
+    enhet: string;
+    organisasjonsnummer: string;
+  };
+  anmerkninger?: unknown[];
+}
+
+export interface InntektPost {
+  tekniskNavn: string;
+  visningstekst: string;
+  beloep: number;
+  kilde: string;
+  medregnes: boolean;
+}
+
+export interface InntektData {
+  personId: string;
+  identifikator: string;
+  inntektsaar: number;
+  stadie: string;
+  skatteoppgjoersdato: string;
+  poster: InntektPost[];
+}
+
 export interface Person {
   personId: string;
   syntetiskFodselsnummer: string;
@@ -13,15 +75,34 @@ export interface Person {
     husnummer?: number;
     postnummer?: string;
     poststed?: string;
+    kommunenummer?: string;
     kommune?: string;
   };
   kontakt?: {
     epost?: string;
     telefon?: string;
   };
+  krr?: KrrData | null;
+  barnehageplass?: BarnehageplassData | null;
+  politiattest?: PolitiattestData | null;
+  inntekt?: InntektData | null;
+  husstand?: unknown;
 }
 
 export type CredentialId = "formalsbekreftelse" | "politiattest";
+export type CredentialData = Record<string, unknown>;
+
+export interface IssuedCredentialData {
+  transactionId: string;
+  bevisType: string;
+  mottaker: string;
+  claims: CredentialData;
+  credentialOffer: unknown;
+  preAuthorizedCode: string | null;
+  txCode: string | null;
+  qrCodeDataUri: string | null;
+  statusEndpoint: string | null;
+}
 
 export interface ClaimDefinition {
   path: string;
@@ -39,8 +120,8 @@ export interface CredentialDefinition {
   credentialConfigurationId: string;
   defaultIssuerUrl?: string;
   claims: ClaimDefinition[];
-  lagEksempelData: (person: Person) => Record<string, any>;
-  lagDcqlQuery: () => Record<string, any>;
+  lagEksempelData: (person: Person) => CredentialData;
+  lagDcqlQuery: () => CredentialData;
 }
 
 export interface ApiCallTrace {
@@ -50,9 +131,9 @@ export interface ApiCallTrace {
   metode: string;
   url: string;
   headers: Record<string, string>;
-  requestBody?: any;
+  requestBody?: unknown;
   responseStatus?: number;
-  responseBody?: any;
+  responseBody?: unknown;
   curl: string;
 }
 
@@ -65,4 +146,13 @@ export interface VerificationStartResponse {
 export interface VerificationStatusResponse {
   status: "WAIT" | "AVAILABLE" | "EXPIRED" | "FAILED" | "UNKNOWN";
   transaction_id?: string;
+}
+
+export interface VerificationResult {
+  status: string;
+  verifier_transaction_id: string;
+  verified_at: string;
+  credential_configuration_id: string;
+  format: string;
+  claims: CredentialData;
 }
