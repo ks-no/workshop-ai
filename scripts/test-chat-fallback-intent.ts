@@ -1,7 +1,9 @@
 import {
   erFortsettSignal,
+  isSidesporsmaal,
   normalizeBrukersvar,
   parseSvarPrefiks,
+  skalBeholdeSomSvarutkast,
   skalSvareFramfor,
   tolkLokaltSvar
 } from "../apps/demo-gui/src/client/fallback-intent.ts";
@@ -76,11 +78,18 @@ for (const tekst of ["gå videre nå", "ja, kjør på", "fortsett takk"]) {
   check(`fortsettelse er ikke samtykke: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
 }
 
-const prefetchedSvar = ["Janaflaten 10", "Nikkelveien", "Jeg bor ved Jokerveien 7"];
+const prefetchedSvar = [
+  "Janaflaten 10",
+  "Nikkelveien",
+  "Jeg bor ved Jokerveien 7",
+  "Jeg vil fortsette med Janaflaten 10",
+  "Jeg er klar over at adressen er Janaflaten 10"
+];
 for (const tekst of prefetchedSvar) {
   check(`svar med kort ja-token blir ukjent: «${tekst}»`, tolkLokaltSvar(tekst) === "ukjent");
   check(`svar med kort ja-token er ikke fortsettelse: «${tekst}»`, !erFortsettSignal(tekst));
-  check(`svar med kort ja-token sendes til neste steg: «${tekst}»`, skalSvareFramfor(tekst, true));
+  check(`svar med kort ja-token sendes ikke uten bekreftelse: «${tekst}»`, !skalSvareFramfor(tekst, true));
+  check(`svar med kort ja-token beholdes som utkast: «${tekst}»`, skalBeholdeSomSvarutkast(tekst, true));
 }
 
 const fortsettSvar = [
@@ -93,14 +102,46 @@ const fortsettSvar = [
   "gå videre nå",
   "ja, kjør på",
   "ja da",
-  "fortsett takk"
+  "fortsett takk",
+  "jeg er klar",
+  "la oss fortsette",
+  "jeg vil gå videre",
+  "ok, la oss starte",
+  "neste steg takk",
+  "jeg er klar til å starte"
 ];
 for (const tekst of fortsettSvar) {
   check(`eksplisitt fortsettelse: «${tekst}»`, erFortsettSignal(tekst));
   check(`fortsettelse lagres ikke som neste svar: «${tekst}»`, !skalSvareFramfor(tekst, true));
+  check(`fortsettelse beholdes ikke som svarutkast: «${tekst}»`, !skalBeholdeSomSvarutkast(tekst, true));
 }
 
 check("INFO uten neste spørsmål lagrer ikke svar", !skalSvareFramfor("Janaflaten 10", false));
+check("svar-prefiks kan sende svar til neste spørsmål",
+  skalSvareFramfor(prefiks.tekst, true, prefiks.harSvarPrefiks));
+check("svar-prefiks overstyrer spørsmålstegn",
+  skalSvareFramfor("Hvor skal jeg møte?", true, true));
+check("spørsmålstegn alene er et sidespørsmål på INFO", isSidesporsmaal("?", "INFO"));
+check("spørsmålstegn alene lagres ikke som neste svar", !skalSvareFramfor("?", true));
+check("spørsmålstegn alene beholdes ikke som svarutkast", !skalBeholdeSomSvarutkast("?", true));
+check("punktum alene er ikke et sidespørsmål", !isSidesporsmaal(".", "INFO"));
+check("spørsmål om samtykke på QUESTION rutes til sidespørsmål",
+  isSidesporsmaal("Hvorfor trenger dere samtykke?", "QUESTION"));
+check("spørsmål uten kjent tema på QUESTION beholdes som svar",
+  !isSidesporsmaal("Hvor skal jeg møte?", "QUESTION"));
+
+for (const tekst of [
+  "det er greit for meg",
+  "gjerne senere",
+  "ja, men bare hvis",
+  "ikke fortsett",
+  "ikke gå videre",
+  "ikke start",
+  "nei, ikke fortsett",
+  "jeg er ikke klar"
+]) {
+  check(`uklar navigasjon lagres ikke uten bekreftelse: «${tekst}»`, !skalSvareFramfor(tekst, true));
+}
 
 if (feil.length > 0) {
   console.error(`Chat-fallback: ${feil.length} av ${bestatt + feil.length} sjekker feilet:`);
