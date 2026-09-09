@@ -296,6 +296,10 @@ paths:
   /ai/velg-prosess:
     post:
       summary: Match fritekstmelding til mest sannsynlig prosess
+      description: >
+        Et menynummer må være hele meldingen, bortsett fra innledende og avsluttende
+        mellomrom. Tall i en behovsbeskrivelse, som «3 km til bussen», tolkes ikke
+        som et menynummer. Fritekst vurderes videre mot prosesskandidatene.
       responses:
         "200":
           description: Prosessvalg returnert

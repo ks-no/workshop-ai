@@ -75,6 +75,7 @@ type Prosessoekt = {
   stegIndex: number;
   totaltAntallSteg?: number;
   aktivtSteg?: ProsessSteg | null;
+  aktivtStegFullfort?: boolean;
   aktivtSamtykkeId?: string | null;
   status?: string;
   avvistMelding?: string;

@@ -46,6 +46,7 @@ Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 | Skjønne hvorfor noe svarer `401` eller `403` | [`docs/deltakerstart.md`](deltakerstart.md#4-ditt-første-eget-kall), så [`docs/feilsoking.md`](feilsoking.md) |
 | Finne ut av noe som ikke virker | [`docs/feilsoking.md`](feilsoking.md) - ett symptom per avsnitt, med årsak og løsning |
 | Finne endepunktene | [`docs/api-oversikt.md`](api-oversikt.md) - den sier hvor de står, og forklarer det spesifikasjonene ikke kan forklare selv |
+| Finne riktig token for backend, Fiks, journal eller politiattest | [`docs/api-oversikt.md`](api-oversikt.md#hvor-endepunktene-står) og tjenestens spesifikasjon |
 | Se hele flyten som `curl` | [`examples/curl/README.md`](../examples/curl/README.md) |
 | Vite hvem som kan logge inn, og hvem som bare er part i saken | [`docs/testpersoner.md`](testpersoner.md) |
 | Forstå datagrunnlaget, og hvor grensene går | [`docs/syntetiske-data.md`](syntetiske-data.md) |

@@ -79,7 +79,7 @@ const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
  */
 function ciChecks(): string[] {
   const yaml = readFileSync(".github/workflows/ci.yml", "utf8");
-  return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:]+)/gm)].map((m) => m[1]);
+  return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:-]+)/gm)].map((m) => m[1]);
 }
 
 const sources = {
@@ -393,7 +393,7 @@ for (const file of markdown) {
     if (!/(\bCI\b|ci\.yml)/i.test(line) || !/(kj(ø|oe)rer|\bruns\b)/i.test(line)) return;
     // The list usually wraps, so read the sentence, not the line.
     const paragraph = lines.slice(i, i + 6).join(" ").split(/(?<=\.)\s/)[0];
-    const mentioned = [...paragraph.matchAll(/`(?:pnpm )?((?:test:)?[\w:]+)`/g)]
+    const mentioned = [...paragraph.matchAll(/`(?:pnpm )?((?:test:)?[\w:-]+)`/g)]
       .map((m) => m[1])
       .filter((name) => name === "lint" || name === "test" || name.startsWith("test:"));
     // One name is a claim about that check ("test:sperrer, som kjører i CI") and is
@@ -743,6 +743,24 @@ for (const file of markdown) {
     }
     start = -1;
   });
+}
+
+// --- executable cookbook examples -----------------------------------------
+
+const cookbook = readFileSync("examples/curl/README.md", "utf8");
+const healthLoop = cookbook.match(/for p in ([\d ]+); do\n[\s\S]*?\/helse"[\s\S]*?\ndone/);
+const apiPorts = (readJson("apps/shared/tjenester.json") as { port: number; spesifikasjon: boolean }[])
+  .filter((service) => service.spesifikasjon).map((service) => service.port).sort();
+const documentedPorts = healthLoop?.[1].trim().split(/\s+/).map(Number).sort();
+if (JSON.stringify(documentedPorts) !== JSON.stringify(apiPorts)) {
+  failures.push("examples/curl/README.md: helsesjekken må prøve alle API-portene i apps/shared/tjenester.json.");
+}
+for (const file of ["docs/deltakerstart.md", "examples/curl/README.md"]) {
+  const text = readFileSync(file, "utf8");
+  const headers = [...text.matchAll(/Authorization: ([^"\n]+)/g)].map((match) => match[1]);
+  if (!headers.length || headers.some((header) => !/^Bearer \$TOKEN(?:_M|_022)?$/.test(header))) {
+    failures.push(`${file}: curl-eksemplene må sende Bearer-tokenet fra token.ts, ikke en plassholder.`);
+  }
 }
 
 // --- report ---------------------------------------------------------------

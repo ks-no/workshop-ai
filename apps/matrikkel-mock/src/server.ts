@@ -10,6 +10,7 @@ import { createGunzip } from "node:zlib";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
+import { buildEiendomKey, matchesAdresseFields, parseAdresse } from "../../shared/adresse.ts";
 import type { GeonorgeAdresse } from "../../shared/registerdata.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -639,6 +640,8 @@ function findEiendomFraAdresse(register: Register, adresseSoek: string): Eiendom
 }
 
 function findEiendommerFraAdresse(register: Register, adresseSoek: string): Eiendom[] {
+  const query = parseAdresse(adresseSoek);
+  if (query) return register.eiendommer.filter((eiendom) => matchesAdresseFields(query, eiendom));
   const soek = normalizeAdresse(adresseSoek);
   if (!soek) return [];
 
@@ -811,6 +814,7 @@ function geonorgeAdresseTilEiendom(adresse: GeonorgeAdresse): Partial<Eiendom> {
     undernummer: safeNumber(adresse?.undernummer, 0) || null,
     adressekode: safeNumber(adresse?.adressekode, 0),
     adresse: geonorgeAdresseTekst(adresse),
+    adressetilleggsnavn: adresse.adressetilleggsnavn,
     husnummer,
     husbokstav,
     postnummer: String(adresse?.postnummer || ""),
@@ -873,18 +877,39 @@ function buildLiveGateTreff(adresser: GeonorgeAdresse[], includeEiendommer = fal
   })).sort((a, b) => a.adressenavn.localeCompare(b.adressenavn, "nb"));
 }
 
-async function getLiveAdresser(gateSoek: string, kommunenummer: string | null = null): Promise<GeonorgeAdresse[]> {
+async function getLiveAdresser(gateSoek: string, kommunenummer: string | null = null, all = false): Promise<GeonorgeAdresse[]> {
   const term = String(gateSoek || "").trim();
   if (!term) return [];
 
   const kandidater = [];
   for (const variant of geonorgeQueryVariants(term)) {
-    const params = new URLSearchParams({ sok: variant, treffPerSide: "50", side: "0" });
-    if (kommunenummer) params.set("kommunenummer", String(kommunenummer));
-    const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`) as { adresser?: GeonorgeAdresse[] };
-    kandidater.push(...(Array.isArray(data?.adresser) ? data.adresser : []));
+    let received = 0;
+    for (let side = 0; ; side += 1) {
+      const pageSize = all ? 1000 : 50;
+      const params = new URLSearchParams({ sok: variant, treffPerSide: String(pageSize), side: String(side) });
+      if (kommunenummer) params.set("kommunenummer", String(kommunenummer));
+      const data = await fetchJson(`${geonorgeAdresseBaseUrl}/sok?${params.toString()}`) as {
+        adresser?: GeonorgeAdresse[]; metadata?: { totaltAntallTreff?: number };
+      };
+      const page = Array.isArray(data?.adresser) ? data.adresser : [];
+      kandidater.push(...page);
+      received += page.length;
+      if (!all || !page.length || received >= (data.metadata?.totaltAntallTreff ?? received)) break;
+    }
   }
   return kandidater;
+}
+
+async function findEiendommerViaLive(adresse: string): Promise<Partial<Eiendom>[]> {
+  try {
+    const candidates = (await getLiveAdresser(adresse, null, true)).map(geonorgeAdresseTilEiendom);
+    return [...new Map(candidates.map((candidate) => [
+      buildEiendomKey(candidate), candidate
+    ])).values()];
+  } catch (error) {
+    utenLive(error, `eiendommer ${adresse}`);
+    return [];
+  }
 }
 
 async function findGaterLive(gateSoek: string, includeEiendommer = false, kommunenummer: string | null = null) {
@@ -1184,8 +1209,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       } else if (adresseSoek) {
         kandidater = findEiendommerFraAdresse(register, adresseSoek);
         if (!kandidater.length) {
-          const liveTreff = await findEiendomViaLive(register, adresseSoek);
-          kandidater = liveTreff?.eiendom ? [liveTreff.eiendom] : [];
+          kandidater = await findEiendommerViaLive(adresseSoek);
         }
       } else {
         kandidater = register.eiendommer;
@@ -1193,8 +1217,10 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
       let filtrert = personId ? kandidater.filter((eiendom) => (eiendom.eiere || []).includes(personId)) : kandidater;
       if (adresseSoek) {
+        const query = parseAdresse(adresseSoek);
         const norm = normalizeAdresse(adresseSoek);
         filtrert = filtrert.filter((eiendom) => {
+          if (query) return matchesAdresseFields(query, eiendom);
           const adresse = normalizeAdresse(eiendom.adresse);
           return adresse === norm || adresse.includes(norm) || norm.includes(adresse);
         });
@@ -1325,4 +1351,3 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 server.listen(port, () => {
   console.log(`Matrikkel-mock kjører på http://localhost:${port}`);
 });
-

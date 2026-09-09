@@ -56,7 +56,8 @@ Sjekk at du har det:
 docker --version && node --version && git --version
 ```
 
-**Portene `3000`, `3001`, `8080`–`8087` og `11434` må være ledige.** Er en av dem
+**Portene `3000`, `3001` og `8080`–`8088` må være ledige.** Med modell trengs også
+`11434` til Ollama. Er en av dem
 opptatt, står det i `docs/feilsoking.md` hvordan du finner ut hvilken.
 
 **Sett av tid første gang: 4-7 minutter** med `./start.sh --mock`, **12–25 minutter**
@@ -172,8 +173,8 @@ Du skal normalt ikke trenge noen av disse.
 | `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
 | `-y, --yes` | Ikke spør før installasjon eller nedlasting |
 | `--mock` | Kjør uten språkmodell. Raskeste vei inn, og redningen når nedlasting ikke er mulig |
-| `--reload` | Start Node-tjenestene på nytt så kodeendringer blir live. Det du trenger oftest etter første endring |
-| `--reset` | Kopier `state/` til `_backup/`, tøm den, og start fra kildedataene igjen |
+| `--reload` | Gjenskap Node-containerne, også når konfigurasjonen er uendret. Tar inn kode og Compose-endringer uten å slette `state/` |
+| `--reset` | Stopp Node-tjenestene, kopier `state/` til `_backup/`, tøm den, og gjenskap containerne fra kildedataene |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 
@@ -181,6 +182,11 @@ Du skal normalt ikke trenge noen av disse.
 > **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
 > vanlig måte - inkludert modellnedlasting. Kjørte du `--mock`, skriv
 > **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.
+
+Ta også med `--mock` ved omlasting: `./start.sh --mock --reload`. `--reset`,
+`--reload` og `--down` er separate operasjoner og kan ikke kombineres.
+Et lagret valg i KI-admin overstyrer fortsatt miljøvariabler. Dersom det hindrer
+mock-modus, stopper skriptet med en forklaring i stedet for å melde at alt er klart.
 
 ### Hva skriptet gjør for deg
 
@@ -204,7 +210,12 @@ Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env
 
 `data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner i `state/`, som er gitignorert. En demokjøring skitner derfor ikke til arbeidstreet - kjører du en flyt og deretter `git status`, skal den være ren.
 
-`./start.sh --reset` nullstiller `state/`. Se `docs/syntetiske-data.md`, også for hvordan du deler en prosess du har laget i byggeren.
+`./start.sh --reset` stopper først alle Node-tjenestene, tar en sikkerhetskopi uten
+signeringsnøkkelen og sletter så `state/`. Feiler stopp eller kopiering, slettes
+ingenting. Containerne gjenskapes etterpå, slik at lagret KI-valg, tokenbuffer og
+agentøkter i minnet også nullstilles. Ollama på macOS og nedlastede modeller beholdes.
+Stopp eventuelle tjenester du har startet utenfor Compose selv før du nullstiller.
+Se `docs/syntetiske-data.md`, også for hvordan du deler en prosess du har laget i byggeren.
 
 ### Hvis noe ikke virker
 
@@ -273,11 +284,19 @@ inkludert.
 Linux og WSL, alt i Docker:
 
 ```bash
-cp .env.example .env          # OLLAMA_BASE_URL=http://ollama:11434
-docker compose up -d
+./start.sh --mock             # uten modell
+# eller, med modellvalg, nedlasting og verifisering:
+./start.sh -y
 ```
 
-Med NVIDIA-GPU: legg til `-f docker-compose.gpu.yml`. Verifiser at Docker har GPU-tilgang med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` - feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+Bruk skriptet også her. En ren kopi av `.env.example` peker på macOS-verten, ikke
+på Ollama-containeren, og `docker compose up -d` laster ikke ned noen modell.
+Skriptet lager riktig `.env` når den mangler. Har du allerede kopiert eksempelfilen
+på Linux/WSL, rett `OLLAMA_BASE_URL` til `http://ollama:11434` før du starter;
+en eksisterende `.env` blir ikke overskrevet.
+
+Med NVIDIA-GPU velger skriptet GPU-overlegget når Docker har NVIDIA-støtte.
+Verifiser GPU-tilgangen med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` - feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 Forhåndslast alle anbefalte modeller, for eksempel før en workshop med dårlig nett:
 
@@ -397,9 +416,10 @@ datasettene i `evals/`, med terskel per datasett og exit≠0 under. Den krever e
 kjørende modell og nekter å score maltekst. Ta en baseline før du endrer, og
 sammenlign etterpå - se `evals/README.md`.
 
-Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl`,
-`test:matrikkel-mock`, `test:tools-matrikkel`, `test:agent:matrikkel`,
-`test:bergen-matrikkel`.
+Disse krever at stacken kjører: `pnpm test:agent`, `test:agent:nl` og
+`test:bergen-matrikkel`. `test:agent:dialog` starter egne tjenester med KI-mock
+og kjører de to agenttestene helt til lagret søknad. `test:matrikkel-mock`,
+`test:tools-matrikkel` og `test:agent:matrikkel` starter også sine egne tjenester.
 
 Bulk-smoketesten mot matrikkel-mocken sampler 40 gater og 25 adresser fra
 seed-datasettet:

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { feilmelding } from "../apps/shared/errors.ts";
 
-const port = 18085;
+const port = Number(process.env.MATRIKKEL_TEST_PORT || 18085);
 const baseUrl = `http://127.0.0.1:${port}`;
 
 function wait(ms: number): Promise<void> {
@@ -90,4 +90,3 @@ kjor().catch((error) => {
   console.error(feilmelding(error));
   process.exitCode = 1;
 });
-
