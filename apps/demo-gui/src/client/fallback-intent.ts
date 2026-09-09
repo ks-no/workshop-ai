@@ -45,7 +45,11 @@ const NEI_SVAR = new Set([
 const FORTSETT_KJERNER = [
   ...JA_SVAR,
   "start",
+  "starte",
+  "begynn",
+  "begynne",
   "fortsett",
+  "fortsette",
   "neste",
   "klar",
   "kjør på",
@@ -65,6 +69,24 @@ const FORTSETT_TILLEGG = new Set([
   "nå",
   "na",
   "gjerne",
+  "jeg",
+  "vi",
+  "er",
+  "vil",
+  "kan",
+  "ønsker",
+  "onsker",
+  "la",
+  "oss",
+  "bare",
+  "ta",
+  "til",
+  "å",
+  "a",
+  "for",
+  "steg",
+  "neste",
+  "klar",
   "klart",
   "greit",
   "okei",
@@ -77,6 +99,26 @@ export function normalizeBrukersvar(text: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const SPORREORD = ["hva", "hvorfor", "hvordan", "hvem", "hvor", "når", "nar", "kan jeg", "må jeg", "ma jeg", "får jeg", "far jeg", "hvilke", "hvilken"];
+const SIDESPORSMAALSTEMA = ["inntektsgrense", "grense", "sats", "samtykke", "opplysning", "data", "personvern", "lagre", "slette", "hvem ser", "hvor lenge", "skatt", "prosent", "avslag", "vedtak", "syntetisk", "ekte"];
+
+export function isSidesporsmaal(text: string, stegtype?: string): boolean {
+  const normalisert = normalizeBrukersvar(text);
+  const harSporsmaalstegn = text.includes("?");
+  if (!normalisert) return harSporsmaalstegn;
+
+  const starterMedSporreord = SPORREORD.some(
+    (ord) => normalisert === ord || normalisert.startsWith(`${ord} `)
+  );
+  if (stegtype === "QUESTION") {
+    return starterMedSporreord
+      && harSporsmaalstegn
+      && SIDESPORSMAALSTEMA.some((tema) => normalisert.includes(tema));
+  }
+
+  return starterMedSporreord || harSporsmaalstegn;
 }
 
 export function parseSvarPrefiks(text: string): { harSvarPrefiks: boolean; tekst: string } {
@@ -115,6 +157,19 @@ export function erFortsettSignal(text: string): boolean {
   return FORTSETT_KJERNER.some((kjerne) => matcherFortsettKjerne(ord, kjerne));
 }
 
-export function skalSvareFramfor(text: string, nesteStegErSporsmaal: boolean): boolean {
-  return nesteStegErSporsmaal && !erFortsettSignal(text);
+export function skalSvareFramfor(
+  text: string,
+  nesteStegErSporsmaal: boolean,
+  eksplisittSvar = false
+): boolean {
+  return nesteStegErSporsmaal
+    && eksplisittSvar
+    && normalizeBrukersvar(text).length > 0;
+}
+
+export function skalBeholdeSomSvarutkast(text: string, nesteStegErSporsmaal: boolean): boolean {
+  return nesteStegErSporsmaal
+    && normalizeBrukersvar(text).length > 0
+    && !erFortsettSignal(text)
+    && !isSidesporsmaal(text);
 }
