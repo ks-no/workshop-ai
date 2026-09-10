@@ -2,9 +2,9 @@ import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AssistantCase, ModelPlan, ServiceId, SpecialistOutput, ToolId } from '../src/domain/assistant-types';
 import type { ModelCall } from '../src/server/assistant-model';
-import { addMessage, analyzeCase } from '../src/server/assistant-service';
+import { addConfirmedAnswers, addMessage, analyzeCase } from '../src/server/assistant-service';
 import { decideToolConsent, type ToolExecutors } from '../src/server/tool-runner';
-import { consentAndReadIncome } from '../src/server/assistant-ks';
+import { connectKs, consentAndReadIncome } from '../src/server/assistant-ks';
 import { TOOL_CATALOGUE, applicationDraftFor, consentParagraph, modelVisibleTools, pendingConsentsFor } from '../src/domain/tool-catalogue';
 
 const previousModelEnv = new Map<string, string | undefined>();
@@ -26,6 +26,10 @@ function model(response: ModelPlan, specialist: SpecialistOutput = { summary: 'S
   return async (_system, context, schema) => schema.parse(context && typeof context === 'object' && 'service' in context ? specialist : response);
 }
 const discard = () => {};
+/** The planner proposes the stated fact; screening may use proposals, the form only confirmed values. */
+function withChildren(current: AssistantCase, response: ModelPlan): ModelPlan {
+  return { ...response, facts: [{ key: 'has_children', value: 'true', sourceId: current.sources[0].id, quote: 'har barn' }] };
+}
 function snapshot<T>(value: T, resource: string) {
   return { value, source: { url: `http://127.0.0.1/${resource}`, retrievedAt: now, text: JSON.stringify(value), synthetic: true as const, resource } };
 }
@@ -52,8 +56,9 @@ test('a personalized SFO case asks for consent in the bot reply, whether or not 
   for (const requests of [[{ tool: 'ks_connect' as ToolId, reason: 'Trenger SFO-plass' }, { tool: 'ks_income' as ToolId, reason: 'Trenger inntekt' }], undefined]) {
     const current = session();
     addMessage(current, 'Jeg mistet jobben og har barn');
-    await analyzeCase(current, model(plan(['family'], requests)), discard);
+    await analyzeCase(current, model(withChildren(current, plan(['family'], requests))), discard);
     assert.equal(current.status === 'error', false, current.error || '');
+    assert.equal(current.services[0].formFlow?.stage, 'consent');
     assert.deepEqual(current.pendingConsents?.map(consent => consent.toolId), ['ks_connect', 'ks_income']);
     assert.equal(current.pendingConsents?.[0].requestedBy, requests ? 'model' : 'catalogue');
     const reply = current.messages.at(-1)!;
@@ -83,12 +88,12 @@ test('tool requests outside the selected services or for information intent are 
 test('one consent click runs the integrations in dependency order and the draft application is filled on re-analysis', async () => {
   const current = session();
   addMessage(current, 'Jeg mistet jobben og har barn');
-  await analyzeCase(current, model(plan(['family'])), discard);
+  await analyzeCase(current, model(withChildren(current, plan(['family']))), discard);
   const revision = current.revision;
   const client = fakeKs();
   const order: ToolId[] = [];
   const executors: ToolExecutors = {
-    ks_connect: async target => { order.push('ks_connect'); const { connectKs } = await import('../src/server/assistant-ks'); await connectKs(target, client); },
+    ks_connect: async target => { order.push('ks_connect'); await connectKs(target, client); },
     ks_income: async target => { order.push('ks_income'); await consentAndReadIncome(target, true, client, discard); },
   };
   const { executed } = await decideToolConsent(current, ['ks_income', 'ks_connect'], true, executors);
@@ -113,12 +118,17 @@ test('one consent click runs the integrations in dependency order and the draft 
   assert.ok(draft.filled >= 6, `filled ${draft.filled}`);
   assert.deepEqual(current.pendingConsents, [], 'fetched tools are not offered again');
   assert.doesNotMatch(current.messages.at(-1)!.text, /henter opplysninger/);
+  assert.equal(family.formFlow?.stage, 'collecting');
+  assert.deepEqual(family.formFlow?.missing, ['job_lost']);
+  assert.ok(current.questions.some(question => question.key === 'job_lost'), 'missing draft fields become follow-up questions');
+  assert.match(current.messages.at(-1)!.text, /Søknadsutkastet for redusert SFO-betaling har \d+\/\d+ felt fylt/);
+  assert.match(current.messages.at(-1)!.text, /Bekreft også forslagene/);
 });
 
 test('declining clears the pending consents and calls no integration; stale or invented ids are rejected', async () => {
   const current = session();
   addMessage(current, 'Jeg mistet jobben og har barn');
-  await analyzeCase(current, model(plan(['family'])), discard);
+  await analyzeCase(current, model(withChildren(current, plan(['family']))), discard);
   let called = 0;
   const executors: ToolExecutors = { ks_connect: async () => { called++; }, ks_income: async () => { called++; } };
   await assert.rejects(decideToolConsent(current, ['read_guidance'], true, executors), /ingen ventende samtykkeforespørsel/);
@@ -139,4 +149,64 @@ test('consent text is Node-authored per language and the draft stays empty witho
   const draft = applicationDraftFor('family', session())!;
   assert.equal(draft.filled, 0);
   assert.equal(applicationDraftFor('housing', session()), null);
+});
+
+test('eligibility loop: unknown asks first, consent follows, missing data is asked after the tools, then the draft is ready', async () => {
+  const current = session();
+  addMessage(current, 'Jeg mistet jobben');
+  await analyzeCase(current, model(plan(['family'])), discard);
+  let family = current.services.find(service => service.id === 'family')!;
+  assert.equal(family.formFlow?.eligibility, 'unknown');
+  assert.equal(family.formFlow?.stage, 'screening');
+  assert.equal(current.pendingConsents?.length, 0, 'no consent is requested before eligibility is plausible');
+  assert.equal(current.questions[0]?.key, 'uses_sfo');
+  assert.match(current.messages.at(-1)!.text, /Kan du ha rett til redusert SFO-betaling\?/);
+  assert.match(current.messages.at(-1)!.text, /Har du barn som bruker eller skal bruke SFO\?/);
+
+  addConfirmedAnswers(current, 'Bruker SFO: Ja.', [{ key: 'uses_sfo', value: 'true', quote: 'Bruker SFO: Ja.' }]);
+  await analyzeCase(current, model(plan(['family'])), discard);
+  family = current.services.find(service => service.id === 'family')!;
+  assert.equal(family.formFlow?.stage, 'consent');
+  assert.deepEqual(current.pendingConsents?.map(consent => consent.toolId), ['ks_connect', 'ks_income']);
+  assert.match(current.messages.at(-1)!.text, /Vil du at jeg henter opplysninger for deg\?/);
+
+  const client = fakeKs();
+  await decideToolConsent(current, ['ks_connect', 'ks_income'], true, {
+    ks_connect: async target => { await connectKs(target, client); },
+    ks_income: async target => { await consentAndReadIncome(target, true, client, discard); },
+  });
+  await analyzeCase(current, model(plan(['family'])), discard);
+  family = current.services.find(service => service.id === 'family')!;
+  assert.equal(family.formFlow?.stage, 'collecting');
+  assert.deepEqual(family.formFlow?.missing, ['job_lost']);
+  assert.ok(current.questions.some(question => question.key === 'job_lost'));
+  assert.match(current.messages.at(-1)!.text, /Jeg mangler fortsatt: har mistet jobben/);
+
+  addConfirmedAnswers(current, 'Har mistet jobben: Ja.', [{ key: 'job_lost', value: 'true', quote: 'Har mistet jobben: Ja.' }]);
+  await analyzeCase(current, model(plan(['family'])), discard);
+  family = current.services.find(service => service.id === 'family')!;
+  assert.equal(family.formFlow?.stage, 'ready');
+  assert.deepEqual(family.formFlow?.missing, []);
+  assert.equal(family.applicationDraft?.fields.filter(field => field.status === 'missing').length, 0);
+  assert.match(current.messages.at(-1)!.text, /Søknadsutkastet for redusert SFO-betaling er fylt ut/);
+  assert.equal(current.pendingConsents?.length, 0);
+});
+
+test('a disqualifying screening answer stops the form without consent, and stated facts pull the form service in', async () => {
+  const declined = session();
+  addMessage(declined, 'Jeg mistet jobben');
+  addConfirmedAnswers(declined, 'Bruker SFO: Nei.', [{ key: 'uses_sfo', value: 'false', quote: 'Bruker SFO: Nei.' }]);
+  await analyzeCase(declined, model(plan(['family'])), discard);
+  const family = declined.services.find(service => service.id === 'family')!;
+  assert.equal(family.formFlow?.eligibility, 'unlikely');
+  assert.equal(family.formFlow?.stage, 'not-applicable');
+  assert.deepEqual(declined.pendingConsents, []);
+  assert.match(declined.messages.at(-1)!.text, /ikke ut til å være aktuelt/);
+
+  const routed = session();
+  addMessage(routed, 'Jeg mistet jobben og har barn');
+  await analyzeCase(routed, model(withChildren(routed, plan([]))), discard);
+  assert.ok(routed.services.some(service => service.id === 'family'), 'a proposed has_children fact adds the family service for screening');
+  assert.ok(routed.events.some(event => event.agent === 'Ruting' && /redusert SFO-betaling/.test(event.detail)));
+  assert.equal(routed.services.find(service => service.id === 'family')?.formFlow?.stage, 'consent');
 });

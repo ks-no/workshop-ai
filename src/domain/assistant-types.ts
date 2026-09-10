@@ -11,6 +11,7 @@ export type ToolId = typeof toolIds[number];
 export type PendingConsent = { toolId: ToolId; title: string; integration: string; purpose: string; serviceIds: ServiceId[]; requestedBy: 'model' | 'catalogue'; revision: number };
 export type ApplicationField = { key: string; label: string; value: string | null; sourceId: string | null; status: 'filled' | 'missing' | 'review'; detail: string };
 export type ApplicationDraft = { title: string; fields: ApplicationField[]; filled: number; note: string };
+export type FormFlow = { formId: string; title: string; eligibility: 'unknown' | 'possible' | 'unlikely'; stage: 'screening' | 'consent' | 'collecting' | 'ready' | 'not-applicable'; missing: FactKey[]; questions: FollowUp[] };
 export type Citation = { sourceId: string; quote: string; lineStart: number; lineEnd: number; page: number | null };
 export type EvidenceSource = {
   id: string; kind: 'conversation' | 'document' | 'register' | 'guidance';
@@ -46,6 +47,7 @@ export type ServiceResult = {
   sourceIds: string[]; questions: FollowUp[];
   assessment: Assessment | null; error: string | null;
   applicationDraft?: ApplicationDraft | null;
+  formFlow?: FormFlow | null;
 };
 export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked' | 'tool-requested'; at: string; detail: string };
 export type AgentRun = { id: string; agent: string; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };

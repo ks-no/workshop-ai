@@ -181,6 +181,18 @@ registerutdrag. Hvert felt har kilde og status (`filled`, `missing`, `review`).
 Uavklarte forslag fyller aldri skjemaet, og ingenting sendes; signatur og
 innsending er et manuelt felt.
 
+[Skjemakatalogen](../src/domain/form-catalogue.ts) legger en egnethetssløyfe
+over verktøyene. Hvert skjema har screeningfakta, et nøkkelordmønster og
+spørsmål for felt som fortsatt mangler. Flyten er: innspill → screening.
+Er egnetheten uavklart, spør Node først og analysen kjøres på nytt når svaret
+kommer. Er skjemaet mulig, bes det om samtykke. Etter at verktøyene har kjørt,
+sjekker Node om utkastet mangler faktafelt; manglende felt blir spørsmål, og
+svaret utløser ny analyse til utkastet er klart. Et diskvalifiserende svar
+stopper skjemaet uten samtykke. Screening kan bruke foreslåtte fakta, siden den
+bare avgjør hva som skal spørres om; selve utfyllingen bruker kun bekreftede
+fakta og hentede registerutdrag. Stadiet (`screening`, `consent`, `collecting`,
+`ready`, `not-applicable`) lagres på tjenesten og vises i tavlen og i svaret.
+
 Python-runtime er uendret. Middlewaren avviser fortsatt alle rammeverksverktøy,
 og agentene ser kun `prepare`- og `specialist`-forespørsler.
 

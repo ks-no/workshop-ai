@@ -6,6 +6,8 @@ import type { FactKey, ServiceCheck, ServiceId } from '../domain/assistant-types
 export type UiLocale = 'nb' | 'en';
 export const UI_LOCALE_KEY = 'sok-assistant-ui-language';
 const translations: Record<string, string> = {
+  'Skjema': 'Form', 'redusert SFO-betaling': 'reduced SFO payment', 'Avklarer om skjemaet er aktuelt': 'Checking whether the form applies', 'Venter på samtykke': 'Awaiting consent',
+  'Mangler opplysninger': 'Missing information', 'Klart til kontroll': 'Ready for review', 'Ikke aktuelt nå': 'Not applicable now',
   'Kan jeg hente opplysninger for deg?': 'May I fetch information for you?', 'Opplysningene er hentet': 'The information has been fetched',
   'Assistenten har bedt om tilgang til disse kildene for å forberede saken. Ingenting hentes før du velger.': 'The assistant has asked for access to these sources to prepare your case. Nothing is fetched until you choose.',
   'Agentene fortsatte automatisk med de nye kildene og fylte ut søknadsutkastet. Du kan kontrollere og rette opplysningene i oversikten.': 'The agents continued automatically with the new sources and filled in the application draft. You can check and correct the information in your overview.',

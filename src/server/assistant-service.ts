@@ -5,6 +5,7 @@ import type { AssistantCase, EvidenceSource, MemoryFact, FollowUp, AgentRun, Ser
 import { FACT_LABELS, citationFor, validateProposal, narrativeWithinEvidence } from '../domain/assistant-verification';
 import { SERVICE_CATALOGUE, guidanceSources, prepareService } from '../domain/service-catalogue';
 import { applicationDraftFor, consentParagraph, modelVisibleTools, pendingConsentsFor } from '../domain/tool-catalogue';
+import { FORM_CATALOGUE, formFlowFor, formFor, screenEligibility, stageParagraph } from '../domain/form-catalogue';
 import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { callModel, markModelSuccess, modelName, planSchema, PLANNER_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
@@ -187,6 +188,13 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
           selected = explicitServiceHints(latestUser.text).map(id => ({ id, reason: localizedNotice(session.language, 'reason') }));
           if (selected.length) event(session, coordinator.id, 'Ruting', 'completed', 'Et tydelig tjenesteord i spørsmålet sikret at riktig fagagent ble startet.');
         }
+        // Form catalogue: facts that make a form possible pull in its service, so eligibility can be screened.
+        const latestText = latestUser?.text ?? '';
+        if (session.intent === 'personalized') for (const form of FORM_CATALOGUE) {
+          if (selected.some(service => service.id === form.serviceId) || screenEligibility(session, form, latestText).eligibility !== 'possible') continue;
+          selected.push({ id: form.serviceId, reason: localizedNotice(session.language, 'reason') });
+          event(session, coordinator.id, 'Ruting', 'completed', `Opplysninger i samtalen tyder på at ${form.title.nb} kan være aktuelt. Tjenesten ble lagt til for vurdering.`);
+        }
         const snapshots = guidanceSources();
         for (const service of selected) {
           const definition = SERVICE_CATALOGUE.find(item => item.id === service.id)!;
@@ -199,7 +207,17 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         if (session.intent === 'information') session.services.forEach(service => { service.status = 'ready'; service.checks = []; service.questions = []; service.assessment = null; });
         // Tool catalogue: the model nominates tools; Node decides which consents to ask for. Nothing runs here.
         const requested = (plan.toolRequests ?? []).map(request => request.tool);
-        const resolved = pendingConsentsFor(session, selected.map(service => service.id), requested, revision);
+        // Eligibility screen: a form whose screening facts are unknown asks first; consent is only requested when the form is possible.
+        for (const service of session.services) {
+          const form = formFor(service.id);
+          if (!form || session.intent !== 'personalized') { service.formFlow = null; continue; }
+          const screen = screenEligibility(session, form, latestText);
+          service.formFlow = { formId: form.id, title: form.title.nb, eligibility: screen.eligibility, stage: 'screening', missing: [], questions: screen.questions };
+          if (screen.questions.length) session.questions = mergeQuestions([...screen.questions, ...session.questions], session);
+          event(session, coordinator.id, 'Skjemakatalog', screen.eligibility === 'unknown' ? 'human' : 'completed', `${form.title.nb}: ${screen.eligibility === 'possible' ? 'kan være aktuelt; ber om samtykke til å hente opplysninger' : screen.eligibility === 'unknown' ? 'uavklart; spør innbyggeren før noe hentes' : 'ikke aktuelt ut fra oppgitte opplysninger'}.`);
+        }
+        const eligible = selected.map(service => service.id).filter(id => { const flow = session.services.find(service => service.id === id)?.formFlow; return !flow || flow.eligibility === 'possible'; });
+        const resolved = pendingConsentsFor(session, eligible, requested, revision);
         session.pendingConsents = resolved.consents;
         for (const consent of resolved.consents) event(session, coordinator.id, 'Verktøykatalog', 'tool-requested', `${consent.title} (${consent.integration}): ${consent.requestedBy === 'model' ? 'koordinatoren ba om verktøyet' : 'katalogen krever verktøyet for valgt tjeneste'}. Venter på samtykke; ingenting er hentet.`);
         for (const toolId of resolved.ignored) event(session, coordinator.id, 'Kontroll', 'blocked', `Verktøyforespørselen «${toolId}» ble ikke tilbudt: ikke knyttet til en valgt tjeneste, feil hensikt eller allerede avslått.`);
@@ -259,7 +277,15 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
       service.applicationDraft = applicationDraftFor(service.id, session);
       if (service.applicationDraft?.filled) event(session, '', 'Verktøykatalog', 'completed', `Fylte ut «${service.applicationDraft.title}»: ${service.applicationDraft.filled} av ${service.applicationDraft.fields.length} felt fra bekreftede opplysninger og hentede kilder. Ingenting er sendt.`);
     }
-    const consentAsk = consentParagraph(session.pendingConsents ?? [], session.language || 'nb');
+    for (const service of session.services) {
+      if (!service.formFlow) continue;
+      service.formFlow = formFlowFor(service, session, service.formFlow.eligibility);
+      if (service.formFlow?.stage === 'collecting') session.questions = mergeQuestions([...session.questions, ...service.formFlow.questions], session);
+    }
+    const formService = session.services.find(service => service.formFlow);
+    const consentAsk = formService?.formFlow
+      ? stageParagraph(formService.formFlow, formService, session, session.pendingConsents ?? [], session.language || 'nb')
+      : consentParagraph(session.pendingConsents ?? [], session.language || 'nb');
     const answer = (session.intent === 'information' && session.services.length
       ? session.services.map(service => service.summary).filter(Boolean).join('\n\n') || session.summary
       : session.summary) + (consentAsk ? `\n\n${consentAsk}` : '');
