@@ -19,6 +19,8 @@
     "start:politiattest": "node apps/politiattest-mock/src/server.ts",
     "start:lommebok": "pnpm --filter @innbyggerdialog/lommebok dev",
     "dev:lommebok": "pnpm --filter @innbyggerdialog/lommebok dev",
+    "start:politiattest-flyt": "pnpm --filter @innbyggerdialog/politiattest-flyt dev",
+    "dev:politiattest-flyt": "pnpm --filter @innbyggerdialog/politiattest-flyt dev",
     "check:matrikkel-source": "node scripts/check-matrikkel-data-source.ts",
     "data:tenor": "node scripts/importer-tenor.ts",
     "token": "node scripts/token.ts",
@@ -51,7 +53,7 @@
     "test:bergen-matrikkel": "node scripts/test-bergen-matrikkel-bulk.ts",
     "test:tools-matrikkel": "node scripts/test-tools-matrikkel.ts",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.ts",
-    "lint": "tsc --noEmit && pnpm lint:klient && pnpm --filter @innbyggerdialog/lommebok lint",
+    "lint": "tsc --noEmit && pnpm lint:klient && pnpm --filter @innbyggerdialog/lommebok lint && pnpm --filter @innbyggerdialog/politiattest-flyt lint",
     "lint:klient": "tsc -p apps/shared/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   },

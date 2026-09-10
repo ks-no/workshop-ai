@@ -1,4 +1,5 @@
 import { CredentialDefinition, CredentialId, Person } from "../types";
+import { anmerkningerForLommebok } from "../../../shared/lommebokbevis";
 
 const ISSUER_URL = "https://utsteder.test.eidas2sandkasse.net/bevisgenerator";
 
@@ -139,7 +140,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
         attesttype: attest.attesttype,
         formaal: attest.formaal,
         antall_anmerkninger: antallAnmerkninger,
-        anmerkninger: attest.anmerkninger,
+        anmerkninger: anmerkningerForLommebok(attest.anmerkninger),
         expiry_date: maanedereEtter(attest.utstedt, 3),
         hjemmel: hjemmelSomUri(attest.hjemmel),
         utsteder: attest.utsteder,
@@ -158,10 +159,11 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
         format: "dc+sd-jwt",
         meta: { vct_values: ["net.eidas2sandkasse:ks_hackathon_politiattest"] },
         claims: [
+          { path: ["attest_id"] },
           { path: ["attesttype"] },
           { path: ["formaal"] },
+          { path: ["issuance_date"] },
           { path: ["antall_anmerkninger"] },
-          { path: ["anmerkninger"] },
           { path: ["expiry_date"] },
           { path: ["innehaver"] }
         ]

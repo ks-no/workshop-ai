@@ -331,6 +331,7 @@ export default defineConfig({
   server: {
     port: 3002,
     host: true,
+    allowedHosts: ["lommebok"],
     proxy: {
       "/api/v1": {
         target: process.env.VERIFIER_SERVICE_URL || "https://verifier-service.test.eidas2sandkasse.net",
