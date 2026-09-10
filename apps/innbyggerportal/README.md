@@ -13,6 +13,7 @@ oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 
 | Kort | Hva som står der | Hvor tallene kommer fra |
 | --- | --- | --- |
+| Aktuelt for deg | Karusell med det innbyggeren bør gjøre noe med nå | `state/samtykker.json`, `state/oppgaver.json`, `state/forsendelser.json`, `data/satser.json`, `data/prosessdefinisjoner.json` |
 | Min profil | Navn, adresse, kommune, maskert fødselsnummer, husstand og fast eiendom | `data/personer.json`, `data/husstander.json`, `data/matrikkel.json`, `data/eierforhold.json` |
 | Pågående sak | Søknaden eller den påbegynte prosessen, med stegene fra prosessdefinisjonen | `state/soknader.json`, `state/oppgaver.json`, `state/prosessoekter.json`, `data/prosessdefinisjoner.json` |
 | Tjenester | Fem snarveier som folder seg ut med det innbyggeren faktisk har | `state/forsendelser.json`, `data/eierforhold.json`, `data/barnehageplasser.json`, `data/sfoplasser.json`, `data/fritidsdeltakelse.json`, `data/tjenestetilbud.json` |
@@ -20,6 +21,32 @@ oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 
 Hvert kort skriver kilden sin nederst, så et tall på skjermen kan følges tilbake til
 raden det står i.
+
+## Aktuelt for deg
+
+Karusellen øverst er de fem påminnelsestypene under, i denne rekkefølgen. Er ingen av
+dem utløst, vises ikke kortet i det hele tatt.
+
+| Utløser | Blir til |
+| --- | --- |
+| En frist i kalenderen som ikke har gått ut, og som er gul eller rød | «Samtykket ditt utløper 1. oktober 2026» |
+| En oppgave i `state/oppgaver.json` | «1 søknad ligger hos saksbehandler» |
+| En forsendelse til innbyggerens fødselsnummer | «Du har 1 ulest melding» |
+| En plass husstanden betaler for, uten søknad om ordningen som hører til | «Har dere søkt om redusert foreldrebetaling i barnehagen?» |
+
+**Utløseren er et faktum, ikke en vurdering.** At husstanden har en barnehageplass og
+ingen søknad om redusert foreldrebetaling sier at søknaden ikke er sendt. Det sier
+ingenting om at den ville blitt innvilget - den vurderingen gjør backend i `SJEKK`-steget,
+og teksten i påminnelsen sier det rett ut. Siden regner ikke på inntekt, alder eller
+trinn, og skal ikke gjøre det.
+
+Knappen gjør én av to ting. «Start søknaden» går til flyten i demo-GUI-et, og «Les mer»
+lister ordningene for tjenesten rett fra `data/satser.json`, med hvilken testbruker og
+prosess du skal velge. De andre påminnelsene peker innover i siden i stedet: de åpner
+samtykkepanelet eller postkassen lenger nede, framfor å sende deg et sted som ikke
+finnes.
+
+`DEMO_GUI_BASE_URL` overstyrer adressen til demo-GUI-et hvis det ikke står på `:3001`.
 
 ## Kommunen sitter ett sted
 
@@ -29,8 +56,10 @@ som hentes. Skal siden vise en annen kommune, er det de to linjene. Toppfeltet i
 `minside.html` har Stavanger ferdig utfylt bare for at det ikke skal stå tomt før
 scriptet har kjørt; klienten skriver det om fra `/api/minside/{personId}`.
 
-Seeden har 12 personer i Stavanger, hvorav fem voksne. Alle fem har adresse i
-matrikkelen og tinglyst eier, og alle tre husstandene har barn i barnehage eller SFO.
+Hvem som bor i Stavanger står i `data/personer.json`, og velgeren øverst på siden
+lister de voksne av dem. Alle har adresse i matrikkelen og tinglyst eier i grunnboken,
+og hver husstand har barn i barnehage eller SFO, så profilkortet og tjenestelisten har
+noe å vise for hver av dem.
 
 To ting er verdt å vite om Stavanger som demokommune:
 

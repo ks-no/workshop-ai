@@ -114,6 +114,150 @@
           --dsc-card-padding: var(--ds-size-6);
         }
 
+        /* Aktuelt for deg */
+
+        .aktuelt {
+          display: grid;
+          gap: var(--ds-size-3);
+          padding: var(--ds-size-5);
+          border: 2px solid var(--aktuelt-kant);
+          border-radius: var(--ds-border-radius-lg);
+          background: var(--aktuelt-flate);
+        }
+
+        .aktuelt[data-farge="success"] {
+          --aktuelt-kant: var(--ds-color-success-border-default);
+          --aktuelt-flate: var(--ds-color-success-background-tinted);
+          --aktuelt-tekst: var(--ds-color-success-text-default);
+          --aktuelt-fylt: var(--ds-color-success-base-default);
+          --aktuelt-fylt-tekst: var(--ds-color-success-base-contrast-default);
+        }
+
+        .aktuelt[data-farge="info"] {
+          --aktuelt-kant: var(--ds-color-info-border-default);
+          --aktuelt-flate: var(--ds-color-info-background-tinted);
+          --aktuelt-tekst: var(--ds-color-info-text-default);
+          --aktuelt-fylt: var(--ds-color-info-base-default);
+          --aktuelt-fylt-tekst: var(--ds-color-info-base-contrast-default);
+        }
+
+        .aktuelt[data-farge="warning"] {
+          --aktuelt-kant: var(--ds-color-warning-border-default);
+          --aktuelt-flate: var(--ds-color-warning-background-tinted);
+          --aktuelt-tekst: var(--ds-color-warning-text-default);
+          --aktuelt-fylt: var(--ds-color-warning-base-default);
+          --aktuelt-fylt-tekst: var(--ds-color-warning-base-contrast-default);
+        }
+
+        .aktuelt[data-farge="danger"] {
+          --aktuelt-kant: var(--ds-color-danger-border-default);
+          --aktuelt-flate: var(--ds-color-danger-background-tinted);
+          --aktuelt-tekst: var(--ds-color-danger-text-default);
+          --aktuelt-fylt: var(--ds-color-danger-base-default);
+          --aktuelt-fylt-tekst: var(--ds-color-danger-base-contrast-default);
+        }
+
+        .aktuelt__topp {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ds-size-3);
+        }
+
+        .aktuelt__merke {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ds-size-1);
+          padding: var(--ds-size-1) var(--ds-size-3);
+          border-radius: var(--ds-border-radius-full);
+          background: var(--aktuelt-fylt);
+          color: var(--aktuelt-fylt-tekst);
+          font-size: var(--ds-font-size-1);
+          font-weight: var(--ds-font-weight-semibold);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .aktuelt__kategori {
+          flex: 1;
+          color: var(--aktuelt-tekst);
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        /* «Les mer» skal lese som en del av kortet, ikke som en grå lenke. */
+        .aktuelt__handlinger .ds-link {
+          color: var(--aktuelt-tekst);
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        .aktuelt__bunn {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-4);
+          padding-top: var(--ds-size-3);
+          border-top: 1px solid var(--aktuelt-kant);
+        }
+
+        .aktuelt__handlinger {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ds-size-4);
+        }
+
+        .aktuelt__teller {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-3);
+          color: var(--aktuelt-tekst);
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        /* Pilene deler ramme, slik de gjør i skissen. */
+        .aktuelt__blaing {
+          display: flex;
+          border: 1px solid var(--aktuelt-kant);
+          border-radius: var(--ds-border-radius-md);
+          overflow: hidden;
+          background: var(--ds-color-surface-default);
+        }
+
+        .aktuelt__blaing button {
+          display: grid;
+          place-items: center;
+          padding: var(--ds-size-2) var(--ds-size-3);
+          border: 0;
+          background: none;
+          color: var(--ds-color-text-default);
+          cursor: pointer;
+        }
+
+        .aktuelt__blaing button:hover:not(:disabled) {
+          background: var(--ds-color-surface-hover);
+        }
+
+        .aktuelt__blaing button:disabled {
+          color: var(--ds-color-text-subtle);
+          cursor: default;
+        }
+
+        .aktuelt__lukk {
+          flex: none;
+          padding: var(--ds-size-1);
+          border: 0;
+          border-radius: var(--ds-border-radius-sm);
+          background: none;
+          color: var(--ds-color-text-subtle);
+          cursor: pointer;
+        }
+
+        .aktuelt__lukk:hover {
+          background: var(--ds-color-surface-hover);
+          color: var(--ds-color-text-default);
+        }
+
         .korttittel {
           display: flex;
           align-items: flex-start;
@@ -341,6 +485,36 @@
           --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E");
         }
 
+        .ikon[data-ikon="varsel"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 7.6v.6'/%3E%3C/svg%3E");
+          width: var(--ds-size-4);
+          height: var(--ds-size-4);
+        }
+
+        .ikon[data-ikon="forrige"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E");
+          width: var(--ds-size-5);
+          height: var(--ds-size-5);
+        }
+
+        .ikon[data-ikon="neste"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+          width: var(--ds-size-5);
+          height: var(--ds-size-5);
+        }
+
+        .ikon[data-ikon="lukk"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
+          width: var(--ds-size-5);
+          height: var(--ds-size-5);
+        }
+
+        .ikon[data-ikon="pil"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h15M13 6l6 6-6 6'/%3E%3C/svg%3E");
+          width: var(--ds-size-5);
+          height: var(--ds-size-5);
+        }
+
         .ikon[data-ikon="sjekk"] {
           --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4 10-10'/%3E%3C/svg%3E");
           width: var(--ds-size-4);
@@ -423,6 +597,8 @@
       <div class="ds-alert" data-color="danger" id="feil" hidden>
         <p class="ds-paragraph" id="feiltekst"></p>
       </div>
+
+      <section class="aktuelt" id="aktuelt" aria-labelledby="aktuelt-tittel" hidden></section>
 
       <div class="kolonner">
         <div class="kolonne">

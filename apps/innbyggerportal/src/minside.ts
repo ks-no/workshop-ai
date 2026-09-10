@@ -89,6 +89,28 @@ export type Samtykkerad = {
   utloper: string | null;
 };
 
+export type Handling = {
+  tekst: string;
+  /** Absolutt URL, for det som bor i en annen tjeneste. */
+  url: string | null;
+  /** Et kort lenger nede på siden, for det som alt står her. */
+  maal: "saker" | "samtykker" | "postkasse" | null;
+};
+
+export type Paaminnelse = {
+  id: string;
+  kategori: string;
+  farge: "info" | "warning" | "danger" | "success";
+  tittel: string;
+  /** ISO-dato som hører til tittelen. Klienten skriver den ut på norsk. */
+  dato: string | null;
+  tekst: string;
+  handling: Handling | null;
+  /** Radene bak «Les mer». Tomt når det ikke er mer å si. */
+  lesMer: string[];
+  kilde: string;
+};
+
 export type Innbygger = {
   personId: string;
   navn: string;
@@ -123,6 +145,7 @@ export type Minside = {
     medlemmer: { personId: string; navn: string; rolle: string; alder: number | null }[];
   } | null;
   eiendom: Eiendom | null;
+  paaminnelser: Paaminnelse[];
   samtykker: Samtykkerad[];
   saker: Sak[];
   tjenester: Tjeneste[];
@@ -186,6 +209,30 @@ function kroner(beloep: number): string {
 /** «1 melding», «2 meldinger». Merkene står ved siden av en tittel og må bøyes. */
 function antall(tall: number, entall: string, flertall: string): string {
   return `${tall} ${tall === 1 ? entall : flertall}`;
+}
+
+/**
+ * Slår opp den innloggede på `pid`-kravet fra ID-porten, som er
+ * fødselsnummeret. Svarer også for en som bor et annet sted, med `iKommunen`
+ * false: da kan innlogingen si «du bor i Bergen» framfor «finnes ikke», og
+ * forskjellen mellom feil kommune og ukjent person blir synlig for innbyggeren.
+ */
+export async function finnInnbyggerForPid(pid: string): Promise<{
+  personId: string;
+  navn: string;
+  kommune: string;
+  iKommunen: boolean;
+} | null> {
+  const personer: Person[] = await readJson("personer.json");
+  const raa = personer.find((post) => post.syntetiskFodselsnummer === pid);
+  if (!raa) return null;
+  const person = maskPerson(raa);
+  return {
+    personId: person.personId,
+    navn: helnavn(person),
+    kommune: person.bostedsadresse?.kommune ?? "ukjent kommune",
+    iKommunen: person.bostedsadresse?.kommunenummer === KOMMUNENUMMER
+  };
 }
 
 /** Innbyggerne siden kan vises for: de voksne i kommunen, sortert på navn. */
@@ -441,6 +488,164 @@ async function byggTjenester(
   ];
 }
 
+/*
+ * Hvilken prosess en plass peker på. Sandkassen har én søknad per tjeneste, og
+ * ordningene under den kan være flere - hvilken av dem som gjelder avhenger av
+ * trinn og inntekt, og det avgjør backend. Derfor navngir påminnelsen prosessen
+ * og lar «Les mer» liste ordningene, framfor å peke på én av dem.
+ */
+const PROSESS_PER_PLASS: Record<Betaling["type"], string> = {
+  barnehage: "redusert-foreldrebetaling-barnehage",
+  sfo: "sfo-moderasjon",
+  fritid: "fritidskort-stotte"
+};
+
+/*
+ * Ordene påminnelsen settes sammen av. De står her og ikke i satser.json fordi
+ * de er grammatikk og ikke data: setningen trenger entall, flertall og en
+ * substantivfrase som kan stå etter «rett til». Listen over ordninger kommer
+ * fortsatt fra satser.json, den er det ingen kopi av her. Nøkkelen er en lukket
+ * union, så en ny plasstype gir en kompilatorfeil framfor en tom streng.
+ */
+const PLASSORD: Record<Betaling["type"], { entall: string; flertall: string; ordning: string }> = {
+  barnehage: {
+    entall: "barnehageplass",
+    flertall: "barnehageplasser",
+    ordning: "redusert foreldrebetaling i barnehagen"
+  },
+  sfo: { entall: "SFO-plass", flertall: "SFO-plasser", ordning: "redusert betaling i SFO" },
+  fritid: {
+    entall: "fritidsaktivitet",
+    flertall: "fritidsaktiviteter",
+    ordning: "fritidskort-støtte"
+  }
+};
+
+const DEMO_GUI = process.env.DEMO_GUI_BASE_URL || "http://localhost:3001";
+
+/**
+ * «Aktuelt for deg»: det innbyggeren bør gjøre noe med nå.
+ *
+ * Hver påminnelse har en utløser som er et faktum i dataene - en dato som
+ * nærmer seg, en oppgave som finnes, en plass uten søknad. Ingen av dem er en
+ * vurdering: at husstanden har en barnehageplass og ingen søknad om redusert
+ * foreldrebetaling sier at søknaden ikke er sendt, ikke at den ville blitt
+ * innvilget. Den vurderingen hører i backend, og teksten sier det.
+ */
+async function byggPaaminnelser(
+  person: Person,
+  hendelser: Hendelse[],
+  saker: Sak[],
+  betalinger: Betaling[]
+): Promise<Paaminnelse[]> {
+  const paaminnelser: Paaminnelse[] = [];
+  const naa = idag();
+
+  // 1. Frister som ikke har gått ut ennå. Hendelseslisten er alt sortert med
+  // den nærmeste først, så de to øverste er de som haster.
+  const frister = hendelser
+    .filter((post) => post.dato >= naa)
+    .filter((post) => post.farge === "danger" || post.farge === "warning")
+    .slice(0, 2);
+  for (const frist of frister) {
+    paaminnelser.push({
+      id: `frist-${frist.kategori.toLowerCase()}-${frist.dato}`,
+      kategori: "Frist som nærmer seg",
+      farge: frist.farge === "danger" ? "danger" : "warning",
+      tittel: frist.tittel,
+      dato: frist.dato,
+      tekst: frist.detalj,
+      handling:
+        frist.kategori === "Samtykke"
+          ? { tekst: "Se samtykkene dine", url: null, maal: "samtykker" }
+          : null,
+      lesMer: [],
+      kilde: frist.kilde
+    });
+  }
+
+  // 2. En oppgave som ligger hos saksbehandler.
+  const oppgaver: any[] = await readJson("oppgaver.json", []);
+  const mine = oppgaver.filter((post) => post.personId === person.personId);
+  if (mine.length > 0) {
+    paaminnelser.push({
+      id: "sak-til-behandling",
+      kategori: "Saken din er i gang",
+      farge: "info",
+      tittel: antall(mine.length, "søknad ligger", "søknader ligger") + " hos saksbehandler",
+      dato: null,
+      tekst:
+        "Du trenger ikke gjøre noe. Vi sier fra i postkassen din når vedtaket er klart.",
+      handling: { tekst: "Se saksgangen", url: null, maal: "saker" },
+      lesMer: mine.map((post) => `${post.tittel} - ${post.status.toLowerCase()} ${post.opprettet.slice(0, 10)}`),
+      kilde: "state/oppgaver.json"
+    });
+  }
+
+  // 3. Post innbyggeren ikke har åpnet.
+  const forsendelser: any[] = await readJson("forsendelser.json", []);
+  const post = forsendelser.filter(
+    (rad) => rad.mottaker?.digitalId === person.syntetiskFodselsnummer
+  );
+  if (post.length > 0) {
+    paaminnelser.push({
+      id: "ulest-post",
+      kategori: "Nytt i postkassen",
+      farge: "info",
+      tittel: `Du har ${antall(post.length, "ulest melding", "uleste meldinger")}`,
+      dato: null,
+      tekst: "Meldinger og vedtak fra kommunen kommer hit framfor i posten.",
+      handling: { tekst: "Åpne postkassen", url: null, maal: "postkasse" },
+      lesMer: post.map((rad) => `${rad.tittel} - ${rad.opprettet.slice(0, 10)}`),
+      kilde: "state/forsendelser.json"
+    });
+  }
+
+  // 4. En plass husstanden betaler for, uten at det finnes en søknad om
+  // ordningen som hører til.
+  const katalog = await readJson("prosessdefinisjoner.json");
+  const definisjoner: any[] = katalog.prosesser ?? [];
+  const satser = await readJson("satser.json");
+  const soekt = new Set(saker.map((sak) => sak.prosessId));
+
+  for (const type of ["barnehage", "sfo", "fritid"] as const) {
+    const mine = betalinger.filter((rad) => rad.type === type);
+    if (mine.length === 0) continue;
+    const prosessId = PROSESS_PER_PLASS[type];
+    if (soekt.has(prosessId)) continue;
+
+    const definisjon = definisjoner.find((rad) => rad.id === prosessId);
+    const ordninger: any[] = (satser.ordninger ?? []).filter((rad: any) => rad.tjeneste === type);
+    const sum = mine.reduce((total, rad) => total + rad.maanedspris, 0);
+
+    const ord = PLASSORD[type];
+
+    paaminnelser.push({
+      id: `ordning-${type}`,
+      kategori: "Viktig påminnelse for din husstand",
+      farge: "success",
+      tittel: `Har dere søkt om ${ord.ordning}?`,
+      dato: null,
+      tekst:
+        `Husstanden betaler ${kroner(sum)} i måneden for ` +
+        `${antall(mine.length, ord.entall, ord.flertall)}, og har ingen søknad om ordningen. ` +
+        "Søknaden avgjør om dere har rett, ikke denne siden.",
+      handling: { tekst: "Start søknaden", url: `${DEMO_GUI}/stegvis`, maal: null },
+      lesMer: [
+        ...ordninger.map((rad: any) =>
+          [rad.navn, rad.beskrivelse, rad.inntektsgrense ? `Inntektsgrense ${kroner(rad.inntektsgrense)}.` : null]
+            .filter(Boolean)
+            .join(" - ")
+        ),
+        `Velg testbruker ${person.personId} og prosessen «${definisjon?.navn ?? prosessId}» i demo-GUI-et.`
+      ],
+      kilde: "data/satser.json og data/prosessdefinisjoner.json"
+    });
+  }
+
+  return paaminnelser;
+}
+
 async function byggSamtykker(personId: string): Promise<Samtykkerad[]> {
   const samtykker: any[] = await readJson("samtykker.json", []);
   return samtykker
@@ -594,6 +799,8 @@ export async function byggMinside(personId: string): Promise<Minside | null> {
   const husstandsIder = medlemmer.map((medlem) => medlem.personId);
   const betalinger = await finnBetalinger(husstandsIder);
   const saker = await byggSaker(person.personId);
+  // Påminnelsene leser fristene ut av hendelsene, så kalenderen bygges først.
+  const hendelser = await byggHendelser(person, krr, saker, betalinger);
 
   return {
     kommune: {
@@ -625,9 +832,10 @@ export async function byggMinside(personId: string): Promise<Minside | null> {
       : null,
     husstand: husstand ? { husstandId: husstand.husstandId, type: husstand.type, medlemmer } : null,
     eiendom: await finnEiendom(person),
+    paaminnelser: await byggPaaminnelser(person, hendelser, saker, betalinger),
     samtykker: await byggSamtykker(person.personId),
     saker,
     tjenester: await byggTjenester(person, krr, saker, betalinger),
-    hendelser: await byggHendelser(person, krr, saker, betalinger)
+    hendelser
   };
 }

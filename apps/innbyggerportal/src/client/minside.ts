@@ -42,6 +42,20 @@ type Hendelse = {
   kilde: string;
 };
 
+type Handling = { tekst: string; url: string | null; maal: string | null };
+
+type Paaminnelse = {
+  id: string;
+  kategori: string;
+  farge: string;
+  tittel: string;
+  dato: string | null;
+  tekst: string;
+  handling: Handling | null;
+  lesMer: string[];
+  kilde: string;
+};
+
 type Minside = {
   kommune: { nummer: string; navn: string; vaapen: string };
   person: {
@@ -87,6 +101,7 @@ type Minside = {
     status: string;
     utloper: string | null;
   }[];
+  paaminnelser: Paaminnelse[];
   saker: Sak[];
   tjenester: Tjeneste[];
   hendelser: Hendelse[];
@@ -210,6 +225,157 @@ function tegnKommune(minside: Minside): void {
   krevEl("bunntekst").textContent = `${minside.kommune.navn} kommune, syntetisk demo`;
 }
 
+/* Aktuelt for deg */
+
+/**
+ * Karusellen øverst. Én påminnelse om gangen, med teller og piler, slik skissen
+ * viser den. Bare den synlige ligger i DOM-en, så en skjermleser leser ikke opp
+ * tre påminnelser når det står «1 av 3»; bytte annonseres av aria-live.
+ */
+function tegnAktuelt(minside: Minside): void {
+  const seksjon = krevEl("aktuelt");
+  seksjon.replaceChildren();
+
+  if (minside.paaminnelser.length === 0) {
+    seksjon.hidden = true;
+    return;
+  }
+  seksjon.hidden = false;
+
+  let indeks = 0;
+  let visLesMer = false;
+
+  const topp = lag("div", "aktuelt__topp");
+  const merke = lag("span", "aktuelt__merke");
+  merke.append(ikon("varsel"));
+  merke.append(document.createTextNode("Aktuelt for deg"));
+  const kategori = lag("p", "ds-paragraph aktuelt__kategori");
+  kategori.setAttribute("data-size", "sm");
+  const lukk = attributter(lag("button", "aktuelt__lukk"), {
+    type: "button",
+    "aria-label": "Lukk påminnelsene"
+  });
+  lukk.append(ikon("lukk"));
+  lukk.addEventListener("click", () => {
+    seksjon.hidden = true;
+  });
+  topp.append(merke, kategori, lukk);
+
+  const innhold = attributter(lag("div", "stablet"), { "aria-live": "polite" });
+  const tittel = overskrift("", "sm");
+  tittel.id = "aktuelt-tittel";
+  const tekst = avsnitt("", "md", "long");
+  const lesMerListe = lag("ul", "ds-list");
+  lesMerListe.hidden = true;
+  const kilde = kildelinje("");
+  kilde.hidden = true;
+  innhold.append(tittel, tekst, lesMerListe, kilde);
+
+  const bunn = lag("div", "aktuelt__bunn");
+  const handlinger = lag("div", "aktuelt__handlinger");
+  const teller = lag("div", "aktuelt__teller");
+  const tellertekst = lag("span", undefined, "");
+  const blaing = lag("div", "aktuelt__blaing");
+  const forrige = attributter(lag("button"), {
+    type: "button",
+    "aria-label": "Forrige påminnelse"
+  });
+  forrige.append(ikon("forrige"));
+  const neste = attributter(lag("button"), { type: "button", "aria-label": "Neste påminnelse" });
+  neste.append(ikon("neste"));
+  blaing.append(forrige, neste);
+  teller.append(tellertekst, blaing);
+  bunn.append(handlinger, teller);
+
+  seksjon.append(topp, innhold, bunn);
+
+  const tegn = () => {
+    const paaminnelse = minside.paaminnelser[indeks];
+    if (!paaminnelse) return;
+
+    seksjon.setAttribute("data-farge", paaminnelse.farge);
+    kategori.textContent = paaminnelse.kategori;
+    tittel.textContent = paaminnelse.dato
+      ? `${paaminnelse.tittel} ${langDato(paaminnelse.dato)}`
+      : paaminnelse.tittel;
+    tekst.textContent = paaminnelse.tekst;
+
+    handlinger.replaceChildren();
+    if (paaminnelse.handling) handlinger.append(tegnHandling(paaminnelse.handling));
+    if (paaminnelse.lesMer.length > 0) {
+      const knapp = attributter(lag("button", "ds-link", visLesMer ? "Vis mindre" : "Les mer"), {
+        type: "button",
+        "aria-expanded": String(visLesMer),
+        "aria-controls": "aktuelt-les-mer"
+      });
+      knapp.addEventListener("click", () => {
+        visLesMer = !visLesMer;
+        tegn();
+      });
+      handlinger.append(knapp);
+    }
+
+    lesMerListe.id = "aktuelt-les-mer";
+    lesMerListe.replaceChildren();
+    lesMerListe.hidden = !visLesMer || paaminnelse.lesMer.length === 0;
+    if (!lesMerListe.hidden) {
+      for (const linje of paaminnelse.lesMer) lesMerListe.append(lag("li", undefined, linje));
+    }
+    kilde.textContent = `Kilde: ${paaminnelse.kilde}`;
+    kilde.hidden = lesMerListe.hidden;
+
+    tellertekst.textContent = `${indeks + 1} av ${minside.paaminnelser.length}`;
+    blaing.hidden = minside.paaminnelser.length < 2;
+    (forrige as HTMLButtonElement).disabled = indeks === 0;
+    (neste as HTMLButtonElement).disabled = indeks === minside.paaminnelser.length - 1;
+  };
+
+  for (const [knapp, retning] of [
+    [forrige, -1],
+    [neste, 1]
+  ] as const) {
+    knapp.addEventListener("click", () => {
+      indeks = Math.min(Math.max(indeks + retning, 0), minside.paaminnelser.length - 1);
+      visLesMer = false;
+      tegn();
+    });
+  }
+
+  tegn();
+}
+
+function tegnHandling(handling: Handling): HTMLElement {
+  if (handling.url) {
+    const lenke = lag("a", "ds-button", handling.tekst) as HTMLAnchorElement;
+    lenke.href = handling.url;
+    lenke.rel = "noopener";
+    lenke.append(ikon("pil"));
+    return lenke;
+  }
+  const knapp = attributter(lag("button", "ds-button", handling.tekst), { type: "button" });
+  knapp.append(ikon("pil"));
+  knapp.addEventListener("click", () => gaaTil(handling.maal));
+  return knapp;
+}
+
+/** Hopper til kortet lenger nede som svarer på påminnelsen, og åpner det. */
+function gaaTil(maal: string | null): void {
+  if (maal === "samtykker") {
+    const knapp = document.getElementById("knapp-samtykker");
+    const panel = document.getElementById("panel-samtykker");
+    if (knapp && panel?.hidden) knapp.click();
+    panel?.scrollIntoView({ block: "center" });
+    return;
+  }
+  if (maal === "postkasse") {
+    const rad = document.getElementById("tjeneste-postkasse");
+    if (rad instanceof HTMLDetailsElement) rad.open = true;
+    rad?.scrollIntoView({ block: "center" });
+    return;
+  }
+  document.getElementById(maal || "")?.scrollIntoView({ block: "start" });
+}
+
 /* Profilkortet */
 
 function tegnProfil(minside: Minside): void {
@@ -314,6 +480,7 @@ function tegnProfilknapper(minside: Minside): HTMLElement {
   });
   const samtykker = attributter(lag("button", "ds-button", "Samtykker og varsler"), {
     type: "button",
+    id: "knapp-samtykker",
     "aria-expanded": "false",
     "aria-controls": "panel-samtykker"
   });
@@ -506,6 +673,7 @@ function tegnTjenester(minside: Minside): void {
 
 function tegnTjeneste(tjeneste: Tjeneste): HTMLElement {
   const detaljer = lag("details", "ds-details tjeneste");
+  detaljer.id = `tjeneste-${tjeneste.id}`;
   detaljer.setAttribute("data-variant", "default");
 
   const sammendrag = lag("summary");
@@ -650,6 +818,7 @@ async function visInnbygger(personId: string): Promise<void> {
     const minside: Minside = await hentJson(`/api/minside/${encodeURIComponent(personId)}`);
     skjulFeil();
     tegnKommune(minside);
+    tegnAktuelt(minside);
     tegnProfil(minside);
     tegnSaker(minside);
     tegnTjenester(minside);
