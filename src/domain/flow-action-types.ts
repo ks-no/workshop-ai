@@ -60,6 +60,7 @@ export type FlowReview = {
   updatedAt: string;
 };
 export type FlowActivity = {
+  checklist?: ChecklistMark[];
   draft: ActionDraft | null;
   attempts: ActionAttempt[];
   outbox: MockEmail[];
@@ -67,3 +68,4 @@ export type FlowActivity = {
   notifications: FlowNotification[];
   reviews: FlowReview[];
 };
+export type ChecklistMark = { id: string; key: string; checked: boolean; version: number; updatedAt: string };

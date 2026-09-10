@@ -82,7 +82,7 @@ export type FlowCommand =
   | { action: 'approve'; facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string; revision: number; caseId: string }
   | { action: 'prepare'; execution: FlowExecution; revision: number; caseId: string }
   | { action: 'execute'; draftId: string; revision: number; caseId: string }
-  | { action: 'choose'; type: FlowActionType; revision: number; caseId: string }
+  | { action: 'choose'; type: FlowActionType; templateId?: string; revision: number; caseId: string }
   | { action: 'review-facts'; revision: number; caseId: string }
   | { action: 'skip'; revision: number; caseId: string }
   | { action: 'continue'; revision: number; caseId: string }

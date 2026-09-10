@@ -26,7 +26,7 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('approve'), facts: z.array(z.object({ id: z.string().uuid(), value: z.string().max(400) }).strict()).max(40), remove: z.array(z.string().uuid()).max(40).default([]), fetch: z.array(z.enum(flowFetchables)).max(3).default([]), note: z.string().max(2000).default(''), revision, caseId }).strict(),
   z.object({ action: z.literal('prepare'), execution, revision, caseId }).strict(),
   z.object({ action: z.literal('execute'), draftId: z.string().uuid(), revision, caseId }).strict(),
-  z.object({ action: z.literal('choose'), type: z.enum(flowActionTypes), revision, caseId }).strict(),
+  z.object({ action: z.literal('choose'), type: z.enum(flowActionTypes), templateId: z.string().min(1).max(80).optional(), revision, caseId }).strict(),
   z.object({ action: z.literal('review-facts'), revision, caseId }).strict(),
   z.object({ action: z.literal('skip'), revision, caseId }).strict(),
   z.object({ action: z.literal('continue'), revision, caseId }).strict(),
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         if (command.action === 'input') lastEvent = addInput(session, command.text);
         else if (command.action === 'answers') lastEvent = answerQuestions(session, command.answers, command.note);
         else if (command.action === 'approve') lastEvent = await approveReview(session, command);
-        else if (command.action === 'choose') { chooseFlowAction(session, command.type); saveFlowCase(session); return; }
+        else if (command.action === 'choose') { chooseFlowAction(session, command.type, command.templateId); saveFlowCase(session); return; }
         else if (command.action === 'review-facts') { reviewFlowFacts(session); saveFlowCase(session); return; }
         else if (command.action === 'skip') lastEvent = skipProposal(session);
         else if (command.action === 'continue') lastEvent = continueFlow(session);

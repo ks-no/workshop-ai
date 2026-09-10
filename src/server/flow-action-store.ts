@@ -14,6 +14,8 @@ import type {
 } from '../domain/flow-action-types';
 import { assistantDatabase } from './assistant-store';
 import { CaseError } from './case-service';
+import { checklistKeys } from '../domain/family-overview';
+import type { ChecklistMark } from '../domain/flow-action-types';
 const now = () => new Date().toISOString();
 function db() {
   const d = assistantDatabase();
@@ -133,7 +135,19 @@ export function activityForCase(caseId: string): FlowActivity {
     reminders: all(caseId, 'reminder'),
     notifications: all(caseId, 'notification'),
     reviews: all(caseId, 'review'),
+    checklist: all(caseId, 'checklist'),
   };
+}
+export function setChecklistMark(caseId: string, key: string, checked: boolean, version: number): ChecklistMark {
+  if (!checklistKeys.has(key)) throw new CaseError('Dette sjekkpunktet finnes ikke.', 400);
+  return transaction(() => {
+    owner(caseId);
+    const current = all<ChecklistMark>(caseId, 'checklist').find(mark => mark.key === key);
+    if ((current?.version ?? 0) !== version) throw new CaseError('Sjekklisten er endret i en annen fane. Last inn siste versjon.', 409);
+    const mark = { id: current?.id ?? randomUUID(), key, checked, version: version + 1, updatedAt: now() };
+    write(caseId, 'checklist', mark, key);
+    return mark;
+  });
 }
 export async function executeApprovedAction(
   session: FlowCase,

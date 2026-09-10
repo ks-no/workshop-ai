@@ -363,8 +363,10 @@ export function reviewFlowFacts(session: FlowCase) {
 }
 
 /** Explicit user intent can select a capability even when model inference is unavailable. */
-export function chooseFlowAction(session: FlowCase, type: FlowExecution['type']) {
+export function chooseFlowAction(session: FlowCase, type: FlowExecution['type'], templateId?: string) {
   if (!session.situation) throw new CaseError('Beskriv situasjonen først.');
+  const selectedTemplate = templateId ? templateFor(templateId) : null;
+  if (templateId && (type !== 'form' || !selectedTemplate)) throw new CaseError('Velg et skjema som finnes i tjenestekatalogen.');
   const contact = flowContact('citizen-service');
   let proposal: FlowProposal;
   if (type === 'email') proposal = { type, contact, ...fallbackFlowEmail(session, contact), aiDrafted: false };
@@ -372,7 +374,7 @@ export function chooseFlowAction(session: FlowCase, type: FlowExecution['type'])
   else if (type === 'reminder') proposal = normalizeReminder(session, {}, 'Følg opp saken').proposal;
   else {
     const forms = FLOW_FORMS.map(template => buildFlowForm(session, template));
-    proposal = forms.find(form => form.fields.every(field => !field.required || !!field.value)) ?? buildFlowForm(session, FLOW_FORMS.at(-1)!);
+    proposal = selectedTemplate ? buildFlowForm(session, selectedTemplate) : forms.find(form => form.fields.every(field => !field.required || !!field.value)) ?? buildFlowForm(session, FLOW_FORMS.at(-1)!);
     // The generic citizen-authored request is editable, including its subject.
     if (proposal.templateId === 'general-request') proposal.fields = proposal.fields.map(field => ({ ...field, editable: true }));
   }

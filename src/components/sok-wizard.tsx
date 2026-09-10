@@ -7,6 +7,7 @@ import {
   EXPERIMENTAL_FileUpload, Field, FieldDescription, Fieldset, FieldsetLegend, Heading, Label, Link as DsLink, ListItem, ListUnordered, Paragraph, Radio, Select, SelectOption, Spinner, Tag, Textfield, ValidationMessage,
 } from '@digdir/designsystemet-react';
 import { componentForStep, type FlowComponentId } from '../domain/flow-components';
+import { FamilyOverview } from './family-overview';
 import { FlowActivityPanel } from './flow-activity-panel';
 import { dateTime } from '../domain/format';
 import { ACTION_LABELS, FLOW_SOURCES, SANDBOX_NOTE, STEP_LABELS } from '../domain/flow-catalogue';
@@ -66,6 +67,7 @@ export function SokWizard() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [summaryView, setSummaryView] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const [showDraft, setShowDraft] = useState(true);
   const [situation, setSituation] = useState('');
   const [uploads, setUploads] = useState<File[]>([]);
@@ -183,11 +185,13 @@ export function SokWizard() {
     const body = withCase({ action: 'execute', draftId: draft.id });
     if (body) await command(body, { heading: 'Utfører det godkjente utkastet', hint: 'Resultatet vises når serveren har svart.', tasks: [{ title: 'Venter på resultat', detail: 'Ikke send samme handling på nytt mens du venter.' }] });
   }
-  async function choose(type: 'email' | 'form' | 'reminder' | 'contact') {
-    const body = withCase({ action: 'choose', type });
+  async function choose(type: 'email' | 'form' | 'reminder' | 'contact', templateId?: string) {
+    const body = withCase({ action: 'choose', type, ...(templateId ? { templateId } : {}) });
+    setOverviewOpen(false);
     if (body) { setSummaryView(false); setShowDraft(false); await command(body, { heading: 'Forbereder valgt handling', hint: 'Du kan redigere før du godkjenner.', tasks: [{ title: 'Lager forslag', detail: 'Bruker opplysningene i saken.' }] }); }
   }
   async function reviewFacts() {
+    setOverviewOpen(false);
     const body = withCase({ action: 'review-facts' });
     if (body) { setShowDraft(false); await command(body, { heading: 'Henter opplysningene', hint: 'Rett opplysningene før du fortsetter.', tasks: [{ title: 'Åpner opplysningene', detail: 'Utkastet må godkjennes på nytt etter endringer.' }] }); }
   }
@@ -207,7 +211,7 @@ export function SokWizard() {
     }
     latest.current = null;
     setSnapshot(current => current ? { ...current, session: null } : current);
-    setSituation(''); setUploads([]); setError(''); setNotice(''); setSummaryView(false);
+    setSituation(''); setUploads([]); setError(''); setNotice(''); setSummaryView(false); setOverviewOpen(false);
   }
   function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -225,6 +229,9 @@ export function SokWizard() {
     {session && <Paragraph data-size="sm" className={styles.stageLabel}>Steg {session.stepCount} · {phase === 'thinking' ? 'Arbeider med saken' : 'Du styrer hva som skjer videre'}</Paragraph>}
 
     <main id="main" className={styles.content}><div className={styles.container}>
+      {session?.situation && <Button variant="secondary" disabled={!!busy} aria-expanded={overviewOpen} aria-controls="family-overview" onClick={() => setOverviewOpen(open => !open)}>{overviewOpen ? 'Tilbake til veiviseren' : 'Familieoversikt'}</Button>}
+      {overviewOpen && session && <div id="family-overview"><FamilyOverview session={session} activity={snapshot?.activity} onChoose={(type, templateId) => void choose(type, templateId)} onReview={() => void reviewFacts()} onRefresh={refresh} /></div>}
+      <div hidden={overviewOpen}>
       {notice && phase !== 'thinking' && <Alert data-color="info" role="status" className={styles.stackSm}>{notice}</Alert>}
       {error && phase !== 'thinking' && <Alert data-color="danger" role="alert" className={styles.stackSm}>{error}</Alert>}
       {session?.notice && phase !== 'thinking' && phase !== 'start' && <Alert data-color="warning" role="status" className={styles.stackSm}>{session.notice}</Alert>}
@@ -278,6 +285,7 @@ export function SokWizard() {
         </DetailsContent></Details>
         {snapshot?.activity && <FlowActivityPanel activity={snapshot.activity} outcomes={session.outcomes} onRefresh={refresh} />}
       </>}
+      </div>
     </div></main>
   </div>;
 }

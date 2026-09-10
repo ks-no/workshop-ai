@@ -6,6 +6,25 @@ question form, evidence review, email draft, application draft, reminder editor,
 human review, and completion summary. Uploads, notifications and the activity
 history are host-controlled UI. Models return validated data, never runnable UI.
 
+## Family overview
+
+After starting a case, click **Familieoversikt** above the current wizard step.
+The **Støttekart** connects your situation to the registered SFO, housing, moving
+and general-request services. These are options to explore, not eligibility
+recommendations. Cards show confirmed/missing requirements and open the exact
+selected form through the existing draft approval flow.
+
+**Sjekkliste** shows required facts with their sources and lets you mark which
+suggested documents you have ready. Marks survive reload and server restart,
+are isolated per case and use version checks across tabs. They neither upload
+files nor approve facts or applications; actual requirements may need confirmation
+with the recipient. They expire/delete with the case.
+
+**Tidslinje** combines saved case steps, uploads, outcomes, current reminders and
+local review updates. Reminder times use Europe/Oslo and are not represented as
+official application deadlines. The overview uses existing data without additional
+model calls. Return to the wizard to edit/cancel reminders or continue the case.
+
 ## Planning and approval
 
 The existing Python Microsoft Agent Framework runtime runs one bounded planner
