@@ -7,15 +7,17 @@ export type ActionDraft = {
   execution: FlowExecution;
   proposal: FlowProposal;
   createdAt: string;
-  status: 'prepared' | 'superseded' | 'running' | 'completed' | 'uncertain';
+  status: 'prepared' | 'superseded' | 'running' | 'completed' | 'uncertain' | 'failed';
 };
 export type ActionAttempt = {
+  canCheckReceipt?: boolean;
   leaseExpiresAt?: string;
   ownerPid?: number;
   ownerHost?: string;
   id: string;
   draftId: string;
-  status: 'running' | 'completed' | 'uncertain';
+  status: 'running' | 'completed' | 'uncertain' | 'failed';
+  resolution?: { at: string; method: 'user-confirmed-not-submitted' | 'verified-receipt'; note: string };
   createdAt: string;
   outcome: FlowOutcome | null;
   error: string | null;

@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Alert, Button, Card, CardBlock, Details, DetailsContent, DetailsSummary, Heading, Paragraph, Tag, Textfield } from '@digdir/designsystemet-react';
-import type { FlowActivity, FlowReminder } from '../domain/flow-action-types';
+import { Alert, Button, Card, CardBlock, Checkbox, Details, DetailsContent, DetailsSummary, Heading, Paragraph, Tag, Textfield } from '@digdir/designsystemet-react';
+import type { ActionAttempt, FlowActivity, FlowReminder } from '../domain/flow-action-types';
 import { reminderCalendar } from '../domain/flow-catalogue';
 import type { FlowOutcome } from '../domain/flow-types';
 import styles from './sok-wizard.module.css';
 
-type ActivityCommand = { action: 'cancel-reminder'; id: string; version: number } | { action: 'edit-reminder'; id: string; version: number; title: string; date: string; time: string | null; note: string } | { action: 'read-notification'; id: string };
+type ActivityCommand = { action: 'check-receipt'; id: string; caseId: string; revision: number } | { action: 'confirm-not-submitted'; id: string; caseId: string; revision: number; confirmed: true; note: string } | { action: 'cancel-reminder'; id: string; version: number } | { action: 'edit-reminder'; id: string; version: number; title: string; date: string; time: string | null; note: string } | { action: 'read-notification'; id: string };
 
-export function FlowActivityPanel({ activity, outcomes, onRefresh }: { activity: FlowActivity; outcomes: FlowOutcome[]; onRefresh: () => Promise<unknown> }) {
+export function FlowActivityPanel({ caseId, revision, activity, outcomes, onRefresh }: { caseId: string; revision: number; activity: FlowActivity; outcomes: FlowOutcome[]; onRefresh: () => Promise<unknown> }) {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   async function mutate(command: ActivityCommand) {
@@ -19,12 +19,12 @@ export function FlowActivityPanel({ activity, outcomes, onRefresh }: { activity:
       if (!response.ok) { const body = await response.json(); throw new Error(body.error ?? 'Kunne ikke lagre endringen.'); }
       await onRefresh();
       return true;
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Kunne ikke lagre endringen.'); return false; }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Kunne ikke lagre endringen.'); await onRefresh().catch(() => {}); return false; }
     finally { setPending(false); }
   }
   return <div className={styles.stack} aria-busy={pending}>
     {error && <Alert data-color="danger" role="alert">{error}</Alert>}
-    {activity.attempts.filter(attempt => attempt.status === 'uncertain' || attempt.status === 'running').map(attempt => <Alert key={attempt.id} data-color="warning">{attempt.status === 'uncertain' ? 'Resultatet av handlingen er usikkert. Ikke send på nytt. Kontroller status med ansvarlig for tjenesten.' : 'Handlingen behandles. Venter på bekreftet resultat.'}{attempt.error ? ` ${attempt.error}` : ''}</Alert>)}
+    {activity.attempts.filter(attempt => attempt.status !== 'completed').map(attempt => <RecoveryCard key={attempt.id} attempt={attempt} caseId={caseId} revision={revision} pending={pending} mutate={mutate} onRefresh={onRefresh} />)}
     {activity.notifications.filter(notification => !notification.readAt).map(notification => <Alert key={notification.id} data-color="info" role="status">
       <Heading level={2} data-size="xs">{notification.title}</Heading><Paragraph className={styles.preservedText}>{notification.body}</Paragraph>
       <Button variant="secondary" disabled={pending} onClick={() => void mutate({ action: 'read-notification', id: notification.id })}>Merk varsel som lest</Button>
@@ -49,6 +49,29 @@ export function FlowActivityPanel({ activity, outcomes, onRefresh }: { activity:
       </CardBlock></Card>)}
     </DetailsContent></Details>}
   </div>;
+}
+
+function RecoveryCard({ attempt, caseId, revision, pending, mutate, onRefresh }: { attempt: ActionAttempt; caseId: string; revision: number; pending: boolean; mutate: (command: ActivityCommand) => Promise<boolean>; onRefresh: () => Promise<unknown> }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [note, setNote] = useState('');
+  return <Card data-color="warning"><CardBlock className={styles.cardStack}>
+    <Heading level={2} data-size="xs">{attempt.status === 'failed' ? 'Handlingen kan forberedes på nytt' : attempt.status === 'running' ? 'Handlingen behandles' : 'Avklar tidligere handling'}</Heading>
+    {attempt.error && <Paragraph>{attempt.error}</Paragraph>}
+    <Paragraph data-size="sm">Referanse: {attempt.id}</Paragraph>
+    {attempt.status === 'failed' ? <Paragraph>{attempt.resolution ? attempt.resolution.note : 'Innsendingen startet ikke.'} Rett eventuelle problemer med tjenesten, og lag et nytt utkast i skjemaet ovenfor. Du må godkjenne det på nytt.</Paragraph> : <>
+      <Paragraph>Vi sender ikke på nytt før utfallet er avklart. En tom kvitteringsliste er ikke bevis på at ingenting ble registrert.</Paragraph>
+      <Button variant="secondary" disabled={pending} onClick={() => void onRefresh().catch(() => {})}>Oppdater status</Button>
+      {attempt.status === 'uncertain' && <>
+        {attempt.canCheckReceipt && <Button variant="secondary" disabled={pending} onClick={() => void mutate({ action: 'check-receipt', id: attempt.id, caseId, revision })}>Sjekk kvittering hos KS</Button>}
+        <Details><DetailsSummary>Jeg har kontrollert at handlingen ikke ble registrert</DetailsSummary><DetailsContent className={styles.stack}>
+          <Paragraph>Kontroller med mottakeren eller ansvarlig for tjenesten først. Dette valget sender ingenting og lagrer avklaringen i saken.</Paragraph>
+          <Textfield label="Hvordan kontrollerte du utfallet?" value={note} onChange={event => setNote(event.target.value)} maxLength={400} />
+          <Checkbox label="Jeg bekrefter at handlingen ikke ble registrert" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />
+          <Button disabled={pending || !confirmed || note.trim().length < 10} onClick={() => void mutate({ action: 'confirm-not-submitted', id: attempt.id, caseId, revision, confirmed: true, note })}>Lagre avklaring og tillat nytt utkast</Button>
+        </DetailsContent></Details>
+      </>}
+    </>}
+  </CardBlock></Card>;
 }
 
 function ReminderCard({ reminder, outcome, pending, mutate }: { reminder: FlowReminder; outcome: FlowOutcome | undefined; pending: boolean; mutate: (command: ActivityCommand) => Promise<boolean> }) {

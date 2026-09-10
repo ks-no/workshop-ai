@@ -31,6 +31,10 @@
 .subtle { color: var(--ds-color-neutral-text-subtle); }
 .cardStack { display: flex; flex-direction: column; gap: var(--ds-size-3); }
 .stackSm { display: flex; flex-direction: column; gap: var(--ds-size-2); }
+.container :global(.ds-alert) { margin-block: var(--ds-size-4); }
+.overviewInvitation, .overviewReturn { margin-block-end: var(--ds-size-6); }
+.overviewCta { align-self: flex-start; max-width: 100%; white-space: normal; text-align: start; }
+.overviewCta svg { flex-shrink: 0; }
 
 /* Running tasks (model and fetch work) */
 .taskTitle { display: flex; align-items: center; gap: var(--ds-size-2); }

@@ -13,7 +13,10 @@ test('family map, checklist persistence and timeline work on mobile without mode
   const input = await page.request.post('/api/flow', { data: { action: 'input', text: 'Jeg har barn på SFO og trenger hjelp med husleie.', caseId: start.session.id, revision: start.session.revision } });
   expect(input.ok()).toBe(true);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Familieoversikt', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Se hva som kan hjelpe familien din', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath('family-invitation-mobile.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Utforsk familieoversikten', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Familieoversikt', exact: true })).toBeFocused();
   await expect(page.getByRole('heading', { name: 'Barn og SFO', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bolig og boutgifter', exact: true })).toBeVisible();
@@ -27,13 +30,13 @@ test('family map, checklist persistence and timeline work on mobile without mode
   await expect(documentCheckbox).toBeChecked();
   await expect(page.getByText('1 av 2 dokumenter markert klare', { exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Familieoversikt', exact: true }).click();
+  await page.getByRole('button', { name: 'Utforsk familieoversikten', exact: true }).click();
   await page.getByRole('tab', { name: 'Sjekkliste', exact: true }).click();
   await expect(documentCheckbox).toBeChecked();
   await page.getByLabel('Velg tjeneste', { exact: true }).selectOption('housing-allowance');
   await page.getByRole('button', { name: 'Fortsett med dette skjemaet' }).click();
   await expect(page.getByRole('heading', { name: 'Forberedt søknad om bostøtte (til Husbanken)', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Familieoversikt', exact: true }).click();
+  await page.getByRole('button', { name: 'Utforsk familieoversikten', exact: true }).click();
   await page.getByRole('tab', { name: 'Tidslinje', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Saken startet', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

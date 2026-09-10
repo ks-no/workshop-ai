@@ -230,7 +230,15 @@ export function SokWizard() {
     {session && <Paragraph data-size="sm" className={styles.stageLabel}>Steg {session.stepCount} · {phase === 'thinking' ? 'Arbeider med saken' : 'Du styrer hva som skjer videre'}</Paragraph>}
 
     <main id="main" className={styles.content}><div className={styles.container}>
-      {session?.situation && <Button variant="secondary" disabled={!!busy} aria-expanded={overviewOpen} aria-controls="family-overview" onClick={() => setOverviewOpen(open => !open)}>{overviewOpen ? 'Tilbake til veiviseren' : 'Familieoversikt'}</Button>}
+      {session?.situation && (overviewOpen
+        ? <Button className={styles.overviewReturn} variant="secondary" disabled={!!busy} aria-expanded={true} aria-controls="family-overview" onClick={() => setOverviewOpen(false)}><ArrowLeft aria-hidden="true" />Tilbake til veiviseren</Button>
+        : <Card variant="tinted" data-color="accent" className={styles.overviewInvitation} aria-labelledby="overview-invitation-heading">
+          <CardBlock className={styles.cardStack}>
+            <Heading id="overview-invitation-heading" level={2} data-size="xs">Se hva som kan hjelpe familien din</Heading>
+            <Paragraph data-size="sm">Utforsk aktuelle tjenester i et kart, samle dokumentene i en sjekkliste og følg saken i en tidslinje.</Paragraph>
+            <Button className={styles.overviewCta} variant="primary" data-size="sm" disabled={!!busy} aria-expanded={false} aria-controls="family-overview" onClick={() => setOverviewOpen(true)}>Utforsk familieoversikten<ArrowRight aria-hidden="true" /></Button>
+          </CardBlock>
+        </Card>)}
       {overviewOpen && session && <div id="family-overview"><FamilyOverview session={session} activity={snapshot?.activity} onChoose={(type, templateId) => void choose(type, templateId)} onReview={() => void reviewFacts()} onRefresh={refresh} /></div>}
       <div hidden={overviewOpen}>
       {notice && phase !== 'thinking' && <Alert data-color="info" role="status" className={styles.stackSm}>{notice}</Alert>}
@@ -284,7 +292,7 @@ export function SokWizard() {
           <Button variant="secondary" onClick={() => void choose('reminder')}>Lag påminnelse</Button>
           <Button variant="secondary" onClick={() => void choose('contact')}>Be om menneskelig vurdering</Button>
         </DetailsContent></Details>
-        {snapshot?.activity && <FlowActivityPanel activity={snapshot.activity} outcomes={session.outcomes} onRefresh={refresh} />}
+        {snapshot?.activity && <FlowActivityPanel caseId={session.id} revision={session.revision} activity={snapshot.activity} outcomes={session.outcomes} onRefresh={refresh} />}
       </>}
       </div>
     </div></main>

@@ -8,7 +8,7 @@ history are host-controlled UI. Models return validated data, never runnable UI.
 
 ## Family overview
 
-After starting a case, click **Familieoversikt** above the current wizard step.
+After starting a case, click **Utforsk familieoversikten** in the invitation card above the current wizard step. The card explains the map, checklist and timeline before opening them.
 The **Støttekart** connects your situation to the registered SFO, housing, moving
 and general-request services. These are options to explore, not eligibility
 recommendations. Cards show confirmed/missing requirements and open the exact
@@ -46,6 +46,17 @@ SQLite claims execution before any effect. Replaying a completed draft returns
 its receipt without repeating the action. An interrupted dispatch is blocked
 from retry: a running or uncertain record may require checking the external
 system. A network failure is not proof that the external system did nothing.
+
+Pre-dispatch configuration/token failures are recorded as `failed` with a safe
+diagnostic and allow a new draft and approval. Other failures remain `uncertain`;
+choosing the same KS form again cannot bypass this guard. The activity panel
+offers **Sjekk kvittering hos KS**, a read-only lookup that restores one matching
+receipt without resubmitting. Empty or ambiguous results keep the action blocked.
+After checking with the recipient/operator, a citizen can explicitly attest that
+nothing was registered and explain the check. This resolution is recorded with
+time and case revision; it permits a new approval but sends nothing itself.
+Both recovery commands require the cookie-owned case and current revision.
+KS availability requires the separate stack (`npm run start:ks`, after `npm run setup:ks`).
 
 ## What actions actually do
 

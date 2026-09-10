@@ -304,7 +304,7 @@ export async function executeAction(session: FlowCase, execution: FlowExecution,
       let created: Awaited<ReturnType<KsClient['createApplication']>>;
       try { created = await ks.createApplication({ ...template.ksProcess, caseId: session.id }); }
       catch (error) {
-        if (error instanceof KsDemoError) throw new CaseError(error.message, 502);
+        if (error instanceof KsDemoError) throw error;
         throw new CaseError('KS-sandkassen kunne ikke ta imot testsøknaden. Kontroller at KS-tjenestene kjører (npm run start:ks).', 502);
       }
       const receipt = { soknadId: created.value.soknadId, prosessId: created.value.prosessId, status: created.value.status, opprettet: created.value.opprettet,

@@ -15,6 +15,7 @@ import type {
 import { assistantDatabase } from './assistant-store';
 import { CaseError } from './case-service';
 import { checklistKeys } from '../domain/family-overview';
+import { KsDemoError } from '../providers/ks-demo-client';
 import type { ChecklistMark } from '../domain/flow-action-types';
 const now = () => new Date().toISOString();
 function db() {
@@ -102,6 +103,10 @@ export function prepareAction(
   if (execution.type === 'reminder') reminderDueAt(execution, session.expiresAt);
   return transaction(() => {
     assertCurrentSession(session, persist ? session.revision - 1 : session.revision);
+    const proposal = session.step!.proposal!;
+    if (proposal.type === 'form' && proposal.submission === 'ks-sandbox' && all<ActionDraft>(session.id, 'draft').some(draft =>
+      ['running', 'uncertain'].includes(draft.status) && draft.proposal.type === 'form' && draft.proposal.templateId === proposal.templateId))
+      throw new CaseError('En tidligere utførelse må avklares før du kan lage et nytt utkast.', 409);
     const current = all<ActionDraft>(session.id, 'draft')
       .filter((draft) => draft.stepId === session.step?.id)
       .at(-1);
@@ -130,7 +135,10 @@ export function activityForCase(caseId: string): FlowActivity {
       all<ActionDraft>(caseId, 'draft')
         .filter((d) => d.status !== 'superseded')
         .at(-1) ?? null,
-    attempts: all(caseId, 'attempt'),
+    attempts: all<ActionAttempt>(caseId, 'attempt').map(attempt => {
+      const draft = get<ActionDraft>(caseId, 'draft', attempt.draftId);
+      return { ...attempt, canCheckReceipt: draft.proposal.type === 'form' && draft.proposal.submission === 'ks-sandbox' };
+    }),
     outbox: all(caseId, 'outbox'),
     reminders: all(caseId, 'reminder'),
     notifications: all(caseId, 'notification'),
@@ -214,20 +222,65 @@ export async function executeApprovedAction(
       write(session.id, 'attempt', claim.attempt, draftId);
     });
     return outcome;
-  } catch {
+  } catch (error) {
+    const notSent = error instanceof KsDemoError && error.submissionNotSent;
+    const detail = error instanceof KsDemoError || error instanceof CaseError ? error.message : 'Utførelsen ble avbrutt.';
     transaction(() => {
       if (!db().prepare('SELECT id FROM flows WHERE id=? AND expires>?').get(session.id, Date.now())) return;
-      claim.draft.status = 'uncertain';
-      claim.attempt.status = 'uncertain';
-      claim.attempt.error = 'Utførelsen ble avbrutt. Kontroller utfallet før du gjør noe mer.';
+      claim.draft.status = notSent ? 'failed' : 'uncertain';
+      claim.attempt.status = notSent ? 'failed' : 'uncertain';
+      claim.attempt.error = detail;
       write(session.id, 'draft', claim.draft);
       write(session.id, 'attempt', claim.attempt, draftId);
     });
     throw new CaseError(
-      'Utfallet er usikkert. Handlingen blir ikke utført på nytt automatisk. Kontroller kvittering eller kontakt lokal operatør før du fortsetter.',
-      409,
+      notSent ? `${detail} Ingenting ble sendt. Rett problemet og lag et nytt utkast.` : `${detail} Utfallet er usikkert. Bruk avklaringen nedenfor før du prøver igjen.`,
+      notSent ? 502 : 409,
     );
   }
+}
+
+/** Recovery never dispatches an effect. A new draft still needs a separate approval. */
+export function actionRecoveryContext(caseId: string, attemptId: string) {
+  owner(caseId);
+  recoverAbandonedAttempts(Date.now(), caseId);
+  const attempt = get<ActionAttempt>(caseId, 'attempt', attemptId);
+  if (attempt.status !== 'uncertain') throw new CaseError('Utførelsen er ikke klar for avklaring. Last inn status på nytt.', 409);
+  const draft = get<ActionDraft>(caseId, 'draft', attempt.draftId);
+  const competing = all<ActionAttempt>(caseId, 'attempt').filter(other => {
+    if (other.id === attempt.id || !['uncertain', 'running'].includes(other.status)) return false;
+    const proposal = get<ActionDraft>(caseId, 'draft', other.draftId).proposal;
+    return draft.proposal.type === 'form' && proposal.type === 'form' && proposal.templateId === draft.proposal.templateId;
+  });
+  return { attempt, draft, competing };
+}
+
+export function resolveActionAttempt(session: FlowCase, attemptId: string, resolution: NonNullable<ActionAttempt['resolution']>, persist: (session: FlowCase) => void, outcome?: FlowOutcome) {
+  return transaction(() => {
+    assertCurrentSession(session);
+    const attempt = get<ActionAttempt>(session.id, 'attempt', attemptId);
+    const draft = get<ActionDraft>(session.id, 'draft', attempt.draftId);
+    if (attempt.status !== 'uncertain' || draft.status !== 'uncertain') throw new CaseError('Utførelsen er endret eller behandles fortsatt. Last inn status på nytt.', 409);
+    if (resolution.method === 'verified-receipt' && !outcome) throw new CaseError('En kontrollert kvittering mangler.', 409);
+    attempt.resolution = resolution;
+    attempt.status = outcome ? 'completed' : 'failed';
+    draft.status = attempt.status;
+    attempt.outcome = outcome ?? null;
+    if (outcome && !session.outcomes.some(item => item.reference === outcome.reference)) session.outcomes.push(outcome);
+    if (outcome && session.step?.id === draft.stepId) {
+      session.history.push({ kind: session.step.kind, title: session.step.title, by: session.step.by, result: `Kvittering gjenfunnet: ${outcome.reference}`, at: resolution.at });
+      session.history = session.history.slice(-30);
+      session.step = null;
+      session.status = 'acted';
+    }
+    session.revision++;
+    session.events.push({ id: randomUUID(), at: resolution.at, agent: resolution.method === 'verified-receipt' ? 'KS API' : 'Innbygger', type: 'human', detail: resolution.note });
+    session.events = session.events.slice(-150);
+    persist(session);
+    write(session.id, 'attempt', attempt);
+    write(session.id, 'draft', draft);
+    return attempt;
+  });
 }
 function effect<T extends { id: string }>(caseId: string, kind: string, key: string, make: () => T): T {
   return transaction(() => {
