@@ -109,6 +109,14 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
                   <QrPanel
                     verdi={sak.politiattest.verification.authorizationRequest || ""}
                   />
+                  {sak.politiattest.verification.authorizationRequest && (
+                    <a
+                      href={sak.politiattest.verification.authorizationRequest}
+                      className="btn btn-secondary"
+                    >
+                      Åpne i lommebok på denne enheten
+                    </a>
+                  )}
                 </>
               ) : sak.politiattest.verification?.stage === "godkjent" ? (
                 <StatusBadge tekst="Politiattesten er mottatt av Drammen kommune" tone="suksess" />
