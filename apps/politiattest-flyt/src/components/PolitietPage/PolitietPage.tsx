@@ -19,6 +19,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
   const formalsbevis = sak.formalsbevis;
   const verifisering = useVerifisering("formalsbekreftelse", person, dispatch);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
+  const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
 
   if (!person) {
     return (
@@ -34,6 +35,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
   async function utstedPolitiattest() {
     if (!person) return;
     setUtstederLaster(true);
+    setUtstedelsesfeil(null);
     try {
       const resultat = await utstedBevis("politiattest", person);
       const message: InboxMessage = {
@@ -53,6 +55,8 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
         }
       };
       dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "politiattest", issuance: message.issuance, message });
+    } catch (err) {
+      setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
     } finally {
       setUtstederLaster(false);
     }
@@ -127,6 +131,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
               {utstederLaster ? "Utsteder…" : "Utsted politiattest"}
             </button>
           )}
+          {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
           {sak.politiattest.issuance && (
             <StatusBadge
               tekst={

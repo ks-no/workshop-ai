@@ -45,10 +45,10 @@ bekrefte at lommeboken faktisk har hentet beviset før neste presentasjon lykkes
 
 Utstedelse og verifisering går mot to eksterne testtjenester
 (`bevisgenerator.test.eidas2sandkasse.net` og
-`verifier-service.test.eidas2sandkasse.net`, via lommebokens egne endepunkter). Er de
-utilgjengelige, faller adapteren automatisk tilbake til et simulert forløp - tydelig
-merket i grensesnittet - slik at hele flyten kan testes uten nett. Verifisering har i
-tillegg en manuell «Simuler»-knapp, uavhengig av om oppkoblingen fungerer.
+`verifier-service.test.eidas2sandkasse.net`) på samme måte som `apps/lommebok`.
+Utstedelsesfeil vises som feil og lager aldri en QR-kode som ser ekte ut.
+Verifisering har en tydelig merket, manuell «Simuler»-knapp for testing uten en fysisk
+lommebok.
 
 ## Kjøring
 

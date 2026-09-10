@@ -45,49 +45,32 @@ export interface UtstedelseResultat {
   feilmelding?: string;
 }
 
-function simulertUtstedelse(kind: CredentialKind): UtstedelseResultat {
-  const transactionId = `sim-utsted-${kind}-${Date.now().toString(36)}`;
-  return {
-    suksess: true,
-    simulert: true,
-    transactionId,
-    credentialOfferUri: `openid-credential-offer://simulert?tx=${transactionId}`,
-    qrCodeDataUri: null
-  };
-}
-
 // POST /api/utsted - starter OpenID4VCI pre-authorized-flow mot testmiljøets
 // bevisgenerator, via lommeboks eksisterende middleware.
 export async function utstedBevis(kind: CredentialKind, person: Person): Promise<UtstedelseResultat> {
-  try {
-    const res = await fetch("/api/utsted", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        credentialConfigurationId: CREDENTIAL_CONFIGURATION_IDS[kind],
-        personIdentifier: person.syntetiskFodselsnummer,
-        credentialData: claimsFor(kind, person)
-      })
-    });
+  const res = await fetch("/api/utsted", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      credentialConfigurationId: CREDENTIAL_CONFIGURATION_IDS[kind],
+      personIdentifier: person.syntetiskFodselsnummer,
+      credentialIssuer: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
+      credentialData: claimsFor(kind, person)
+    })
+  });
 
-    if (!res.ok) {
-      const feil = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      console.warn("Utstedelse mot testmiljøet feilet, faller tilbake til simulert:", feil);
-      return { ...simulertUtstedelse(kind), feilmelding: feil.error || feil.detaljer };
-    }
-
-    const data = await res.json();
-    return {
-      suksess: true,
-      simulert: false,
-      transactionId: data.issuanceTransactionId || null,
-      credentialOfferUri: data.credentialOfferUri || null,
-      qrCodeDataUri: data.qrCodeDataUri || null
-    };
-  } catch (err) {
-    console.warn("Nettverksfeil ved utstedelse, faller tilbake til simulert:", err);
-    return { ...simulertUtstedelse(kind), feilmelding: err instanceof Error ? err.message : "Ukjent feil" };
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.detaljer || data.error || `HTTP ${res.status}`);
   }
+
+  return {
+    suksess: true,
+    simulert: false,
+    transactionId: data.issuanceTransactionId || null,
+    credentialOfferUri: data.credentialOfferUri || null,
+    qrCodeDataUri: data.qrCodeDataUri || null
+  };
 }
 
 export interface VerifiseringStartResultat {

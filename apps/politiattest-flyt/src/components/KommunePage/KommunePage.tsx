@@ -18,6 +18,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
   const person = sak.person;
   const verifisering = useVerifisering("politiattest", person, dispatch);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
+  const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
 
   if (!person) {
     return (
@@ -30,6 +31,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
   async function utstedFormalsbevis() {
     if (!person) return;
     setUtstederLaster(true);
+    setUtstedelsesfeil(null);
     try {
       const resultat = await utstedBevis("formalsbekreftelse", person);
       const message: InboxMessage = {
@@ -49,6 +51,8 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         }
       };
       dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "formalsbekreftelse", issuance: message.issuance, message });
+    } catch (err) {
+      setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
     } finally {
       setUtstederLaster(false);
     }
@@ -95,6 +99,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
             {utstederLaster ? "Utsteder…" : "Utsted formålsbevis"}
           </button>
         )}
+        {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
         {sak.formalsbevis.issuance && (
           <StatusBadge
             tekst={
