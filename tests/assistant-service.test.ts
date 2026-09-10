@@ -639,6 +639,30 @@ test('a failing stage job does not lose the analysis', async () => {
   assert.equal(current.messages.at(-1)?.text, current.summary);
 });
 
+test('a malformed critic response ends the tail softly and keeps the completed analysis', async () => {
+  // Unlike a transport failure (thrown error, exercised above), this is the critic job resolving
+  // with output that does not fit criticSchema at all. The stage handler's own parse must catch
+  // it and fail the tail softly rather than throwing away an otherwise complete, grounded draft.
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const malformedCritic: ModelCall = async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return { thisIsNotAVerdict: true } as never;
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    return schema.parse(context && typeof context === 'object' && 'service' in context
+      ? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }
+      : plan(['moving']));
+  };
+  await analyzeCase(current, malformedCritic, discardPersistence);
+  const criticRun = current.runs.find(run => run.stage === 'critic');
+  assert.equal(criticRun?.status, 'failed');
+  assert.notEqual(current.status, 'analyzing');
+  assert.notEqual(current.status, 'error');
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 0);
+  assert.equal(current.messages.at(-1)?.text, current.summary);
+});
+
 test('the polish step receives the critique even when the first round passed', async () => {
   const current = session();
   addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
