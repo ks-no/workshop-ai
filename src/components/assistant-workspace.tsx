@@ -87,7 +87,7 @@ function Workspace() {
   const locked = loading || !!busy || analyzing || caseChanged;
   const modelAvailable = model?.available === true;
   const waitingFacts = session?.facts.filter(fact => fact.status === 'proposed' || fact.status === 'conflict').length ?? 0;
-  const ksActionRequired = !!session && session.intent === 'personalized' && session.services.some(service => service.id === 'family') && !session.ksData?.incomeReadAt && session.ksAccessDecision?.status !== 'declined';
+  const ksActionRequired = !!session && (session.pendingConsents ?? []).some(consent => consent.revision === session.revision);
 
   useEffect(() => {
     if (!busy && !analyzing) return;

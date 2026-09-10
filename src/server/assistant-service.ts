@@ -4,6 +4,7 @@ import { runPythonRuntime, type AgentJob } from './assistant-runtime';
 import type { AssistantCase, EvidenceSource, MemoryFact, FollowUp, AgentRun, ServiceResult, StructuredAnswer, ServiceId } from '../domain/assistant-types';
 import { FACT_LABELS, citationFor, validateProposal, narrativeWithinEvidence } from '../domain/assistant-verification';
 import { SERVICE_CATALOGUE, guidanceSources, prepareService } from '../domain/service-catalogue';
+import { applicationDraftFor, consentParagraph, modelVisibleTools, pendingConsentsFor } from '../domain/tool-catalogue';
 import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { callModel, markModelSuccess, modelName, planSchema, PLANNER_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
@@ -25,7 +26,7 @@ function minimalModelSources(session: AssistantCase, sourceIds: Set<string>, fac
 }
 export function invalidateAnalysis(session: AssistantCase) {
   session.revision++; session.analyzedRevision = null; session.services = []; session.questions = [];
-  session.intent = null; session.summary = ''; session.unsupported = []; session.error = null; session.status = 'collecting';
+  session.intent = null; session.summary = ''; session.unsupported = []; session.error = null; session.status = 'collecting'; session.pendingConsents = [];
 }
 function event(session: AssistantCase, runId: string, agent: string, type: AssistantCase['events'][number]['type'], detail: string) {
   session.events.push({ id: randomUUID(), runId, agent, type, at: new Date().toISOString(), detail });
@@ -134,6 +135,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
       memory: session.facts.slice(-80).map(({ key, value, status, citation }) => ({ key, value, status, sourceId: citation.sourceId })),
       sources: evidence.map(({ id, title, text, kind }) => ({ id, title, kind, text: text.slice(0, 14000) })),
       ksDataAvailable: !!session.ksData,
+      tools: modelVisibleTools('coordinator', session),
     };
     const planner: AgentJob = { id: 'coordinator', name: 'Koordinator', role: 'coordinator', model: modelName('coordinator'),
       prompt: PLANNER_PROMPT, context, schema: z.toJSONSchema(planSchema) };
@@ -195,6 +197,12 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         }
         session.services = selected.map(service => prepareService(service.id, session, service.reason));
         if (session.intent === 'information') session.services.forEach(service => { service.status = 'ready'; service.checks = []; service.questions = []; service.assessment = null; });
+        // Tool catalogue: the model nominates tools; Node decides which consents to ask for. Nothing runs here.
+        const requested = (plan.toolRequests ?? []).map(request => request.tool);
+        const resolved = pendingConsentsFor(session, selected.map(service => service.id), requested, revision);
+        session.pendingConsents = resolved.consents;
+        for (const consent of resolved.consents) event(session, coordinator.id, 'Verktøykatalog', 'tool-requested', `${consent.title} (${consent.integration}): ${consent.requestedBy === 'model' ? 'koordinatoren ba om verktøyet' : 'katalogen krever verktøyet for valgt tjeneste'}. Venter på samtykke; ingenting er hentet.`);
+        for (const toolId of resolved.ignored) event(session, coordinator.id, 'Kontroll', 'blocked', `Verktøyforespørselen «${toolId}» ble ikke tilbudt: ikke knyttet til en valgt tjeneste, feil hensikt eller allerede avslått.`);
         persist(session);
         const jobs: AgentJob[] = selected.map(selectedService => {
           const definition = SERVICE_CATALOGUE.find(item => item.id === selectedService.id)!;
@@ -247,9 +255,14 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
     const pending = session.facts.some(fact => ['proposed', 'conflict'].includes(fact.status));
     session.status = session.services.some(service => service.status === 'error') ? 'error' : pending || !session.services.length ? 'awaiting-human' : 'ready';
     session.error = session.status === 'error' ? 'En spesialist kunne ikke fullføre. De andre resultatene er bevart. Prøv analysen på nytt.' : null;
-    const answer = session.intent === 'information' && session.services.length
+    for (const service of session.services) {
+      service.applicationDraft = applicationDraftFor(service.id, session);
+      if (service.applicationDraft?.filled) event(session, '', 'Verktøykatalog', 'completed', `Fylte ut «${service.applicationDraft.title}»: ${service.applicationDraft.filled} av ${service.applicationDraft.fields.length} felt fra bekreftede opplysninger og hentede kilder. Ingenting er sendt.`);
+    }
+    const consentAsk = consentParagraph(session.pendingConsents ?? [], session.language || 'nb');
+    const answer = (session.intent === 'information' && session.services.length
       ? session.services.map(service => service.summary).filter(Boolean).join('\n\n') || session.summary
-      : session.summary;
+      : session.summary) + (consentAsk ? `\n\n${consentAsk}` : '');
     const answerSourceIds = session.intent === 'information'
       ? session.services.flatMap(service => service.sourceIds)
       : [...evidence.map(source => source.id), ...session.facts.map(fact => fact.citation.sourceId)];

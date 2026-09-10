@@ -24,6 +24,16 @@ export function AssistantPlanBoard({ session, busy, onQuestions }: { session: As
         </li>;
       })}</ul>
       {!service.checks.length && <p className="small">{t('Ingen sjekkpunkter ennå.')}</p>}
+      {service.applicationDraft && <details className="assistant-board-sources" open={service.applicationDraft.filled > 0}>
+        <summary>{t('Søknadsutkast')} · {service.applicationDraft.filled}/{service.applicationDraft.fields.length} {t('felt fylt')}</summary>
+        <p className="small">{t(service.applicationDraft.title)}. {t(service.applicationDraft.note)}</p>
+        <ul className="assistant-board-checks">{service.applicationDraft.fields.map(field => <li key={field.key} className={`is-${field.status === 'filled' ? 'ready' : field.status === 'review' ? 'human' : 'missing'}`}>
+          <span className="small">{t(field.status === 'filled' ? 'Fylt ut' : field.status === 'review' ? 'Du må kontrollere' : 'Mangler')}</span>
+          <h4>{t(field.label)}</h4>
+          {field.value && <p><strong>{t(field.value)}</strong></p>}
+          <p className="small">{t(field.detail)}</p>
+        </li>)}</ul>
+      </details>}
       <details className="assistant-board-sources"><summary>{t('Kilder for tjenesten')}</summary>{session.sources.filter(source => service.sourceIds.includes(source.id)).map(source => <AssistantSource key={source.id} source={source} />)}</details>
     </article>)}
   </section>;

@@ -165,7 +165,7 @@ test('specialist schema keeps strict finding citations and local length limits',
 test('schemas exported to Python retain strict properties, language defaults and local maximums', () => {
   const planner = z.toJSONSchema(planSchema);
   assert.equal(planner.additionalProperties, false);
-  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported']);
+  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported', 'toolRequests']);
   assert.equal((planner.properties?.language as Record<string, unknown>).default, 'nb');
   assert.equal((planner.properties?.intent as Record<string, unknown>).default, 'personalized');
   assert.equal((planner.properties?.summary as Record<string, unknown>).maxLength, 1600);
