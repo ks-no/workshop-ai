@@ -175,6 +175,19 @@ test('Telenor configuration is fail-closed: only an https execute-api/telenor ho
   }
 });
 
+test('a typo in AI_PROVIDER fails closed even with otherwise valid Cloudflare credentials', async () => {
+  // aiProvider() itself is total and falls back to cloudflare for any unrecognised value, but a
+  // silent fallback here would let an operator believe they configured Telenor while every
+  // prompt actually went to Cloudflare. modelStatus() must therefore reject the typo outright.
+  process.env.AI_PROVIDER = 'telnor';
+  const status = await modelStatus();
+  assert.equal(aiProvider(), 'cloudflare');
+  assert.equal(status.provider, 'cloudflare');
+  assert.equal(status.available, false);
+  assert.match(status.message, /ikke konfigurert/);
+  assertSanitized(status);
+});
+
 test('missing or invalid configuration fails before starting Python and redacts values', async () => {
   process.env.ASSISTANT_PYTHON = resolve('backend/PRIVATE-UPSTREAM-DETAIL-missing-python');
   for (const [key, value] of [
