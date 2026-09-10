@@ -17,6 +17,8 @@ import {
 } from "./credentialDefinitions";
 
 const VERIFIER_CLIENT_APP = "bevisgenerator-login";
+const VERIFIER_BASE_URL = "https://verifier-service.test.eidas2sandkasse.net";
+const FALLBACK_CLIENT_ID = "abr.vc.local";
 
 function claimsFor(kind: CredentialKind, person: Person): Record<string, unknown> {
   return kind === "formalsbekreftelse" ? byggFormalsbevisClaims(person) : byggPolitiattestClaims(person);
@@ -117,10 +119,14 @@ export async function startVerifisering(kind: CredentialKind): Promise<Verifiser
   } catch (err) {
     console.warn("Klarte ikke starte verifisering mot testmiljøet, simulerer i stedet:", err);
     const transactionId = `sim-verify-${kind}-${Date.now().toString(36)}`;
+    const requestUri = `${VERIFIER_BASE_URL}/api/v1/${VERIFIER_CLIENT_APP}/openid4vp/${transactionId}`;
     return {
       simulert: true,
       transactionId,
-      authorizationRequest: `eudi-openid4vp://simulert?tx=${transactionId}`
+      authorizationRequest:
+        `eudi-openid4vp://${VERIFIER_BASE_URL.replace(/^https?:\/\//, "")}` +
+        `?client_id=${encodeURIComponent(FALLBACK_CLIENT_ID)}` +
+        `&request_uri=${encodeURIComponent(requestUri)}`
     };
   }
 }
