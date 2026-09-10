@@ -278,6 +278,8 @@ const svar: Record<string, Record<string, string>> = {};
 const hentet: Record<string, Hentetilstand> = {};
 /** Datakildene personen har gyldig samtykke for nå, fra tilgangsoversikten. */
 let harSamtykke: string[] = [];
+/** Hva forhåndssjekken sier om denne saken nå. Tom til oversikten er lest. */
+let forhaandsstatus = "";
 let sender = false;
 
 /**
@@ -358,8 +360,11 @@ async function lesSamtykker(): Promise<void> {
       { headers: withToken() }
     );
     harSamtykke = oversikt.harSamtykke ?? [];
+    const rad = (oversikt.tilganger ?? []).find((post: any) => post.prosessId === prosess.id);
+    forhaandsstatus = rad?.status ?? "";
   } catch (feil) {
     harSamtykke = [];
+    forhaandsstatus = "";
   }
 }
 
@@ -573,6 +578,23 @@ function tegnSkjema(fokusId?: string): void {
   topp.append(overskrift(prosess.navn, "lg", "h1"));
   if (intro?.tekst) topp.append(avsnitt(intro.tekst, "md", "long"));
   topp.append(avsnitt("Felt merket med * må fylles ut.", "sm"));
+
+  // Tilgangsoversikten har kjørt den samme regelen på forhånd. Sier den nei
+  // allerede, skal skjemaet si det her og ikke la det komme som en overraskelse
+  // etter at alt er fylt ut.
+  if (forhaandsstatus === "ikke-aktuell") {
+    const varsel = attributter(lag("div", "ds-alert"), { "data-color": "warning" });
+    varsel.append(overskrift("Reglene gir ikke rett på dette i dag", "xs", "h2"));
+    varsel.append(avsnitt(
+      "Kommunen har kjørt vurderingen på forhånd med det den vet om deg nå, og svaret " +
+      "er nei. Du kan fylle ut og sende likevel - vurderingen kjøres på nytt - men da " +
+      "får du samme svaret med begrunnelsen i.",
+      "sm",
+      "long"
+    ));
+    topp.append(varsel);
+  }
+
   beholder.append(topp);
 
   let nummer = 0;
@@ -711,8 +733,9 @@ async function sendInn(
   meld("Oppretter prosessøkt …");
 
   try {
-    const soknadId = await kjorProsessoekt(meld);
-    visKvittering(soknadId);
+    const utfall = await kjorProsessoekt(meld);
+    if (utfall.avvist) visAvslag(utfall.melding);
+    else visKvittering(utfall.soknadId);
   } catch (feil) {
     sender = false;
     knapp.disabled = false;
@@ -720,7 +743,15 @@ async function sendInn(
   }
 }
 
-async function kjorProsessoekt(meld: (tekst: string) => void): Promise<string> {
+/**
+ * Utfallet av en kjørt økt. Et avslag er ikke en feil: SJEKK-steget kjørte,
+ * regelen svarte nei, og begrunnelsen er det innbyggeren skal få se. Motoren
+ * setter da økten til AVVIST, og hvert videre kall svarer 400 - så løkken må
+ * stoppe her framfor å sende det neste og vise fram statuskoden.
+ */
+type Utfall = { avvist: true; melding: string } | { avvist: false; soknadId: string };
+
+async function kjorProsessoekt(meld: (tekst: string) => void): Promise<Utfall> {
   const post = (sti: string, kropp?: unknown) =>
     hentJson(`${BACKEND_BASE}${sti}`, {
       method: "POST",
@@ -762,15 +793,58 @@ async function kjorProsessoekt(meld: (tekst: string) => void): Promise<string> {
       headers: withToken()
     });
 
+    if (oekt.status === "AVVIST") {
+      // Samme rekkefølge som de to andre klientene leser den i: økten sin egen
+      // melding først, så meldingen fra steget som avviste.
+      const fraSteget = (oekt.resultater?.[aktivt.id] ?? oekt.resultaterRaa?.[aktivt.id])?.melding;
+      return {
+        avvist: true,
+        melding: oekt.avvistMelding || fraSteget || "Vurderingen ga avslag."
+      };
+    }
+
     if (aktivt.type === "SUBMIT" && oekt.aktivtStegFullfort) {
       const resultat = oekt.resultater?.[aktivt.id] ?? oekt.resultaterRaa?.[aktivt.id];
       const soknadId = resultat?.soknadId;
       if (!soknadId) throw new Error("Søknaden ble sendt, men svaret bar ingen soknadId.");
-      return soknadId;
+      return { avvist: false, soknadId };
     }
     if (oekt.aktivtStegFullfort) await post(`/api/prosessoekter/${oekt.oektsId}/neste`);
   }
   throw new Error("Prosessøkten kom ikke fram til innsending.");
+}
+
+/**
+ * Avslaget, med begrunnelsen fra regelen.
+ *
+ * Ingen søknad ble registrert: i denne motoren avgjør SJEKK-steget før SUBMIT,
+ * og en avvist økt kommer aldri dit. Panelet sier det, framfor å la innbyggeren
+ * tro at det ligger en søknad til behandling et sted.
+ */
+function visAvslag(melding: string): void {
+  const beholder = krevEl("skjema");
+  beholder.replaceChildren();
+
+  const kort = lag("section", "ds-card");
+  kort.append(kortblokk(
+    merkelapp("Avslag", "danger"),
+    overskrift("Du har ikke rett på dette nå", "lg", "h1")
+  ));
+  kort.append(kortblokk(avsnitt(melding, "md", "long")));
+  kort.append(kortblokk(avsnitt(
+    "Vurderingen er gjort på opplysningene kommunen har i dag. Endrer de seg - for " +
+    "eksempel ved et nytt skatteoppgjør - kan du søke på nytt. Ingen søknad er " +
+    "registrert, fordi denne saken avgjøres før innsending.",
+    "sm",
+    "long"
+  )));
+  const rad = lag("div", "knapperad");
+  const tilMinSide = lag("a", "ds-button", "Til Min side") as HTMLAnchorElement;
+  tilMinSide.href = "/minside";
+  rad.append(tilMinSide);
+  kort.append(kortblokk(rad));
+  beholder.append(kort);
+  window.scrollTo({ top: 0 });
 }
 
 function visKvittering(soknadId: string): void {

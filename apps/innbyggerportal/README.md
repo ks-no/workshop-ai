@@ -147,6 +147,17 @@ backend ga.
 send-knappen sier hvilke kilder det gjelder. Bryteren lenger oppe er til for å se hva
 kommunen vil hente **før** man sier ja til at den gjør det.
 
+**Et avslag er et utfall, ikke en feil.** Sier `SJEKK`-steget nei, setter motoren
+økten til `AVVIST`, og hvert videre kall på den svarer `400 Prosessøkten er avsluttet
+og kan ikke fortsette`. Løkken stopper derfor på `AVVIST` og viser begrunnelsen fra
+`avvistMelding`, med meldingen fra steget som reserve - samme rekkefølge som de to
+andre klientene leser den i. Panelet sier også at ingen søknad ble registrert, for i
+denne motoren avgjøres saken før `SUBMIT`, og en avvist økt kommer aldri dit.
+
+Tilgangsoversikten har kjørt den samme regelen på forhånd. Står saken som
+`ikke-aktuell`, sier skjemaet det øverst før man fyller ut noe, framfor å la svaret
+komme som en overraskelse etter at alt er fylt inn.
+
 ## Ruter
 
 | Rute | Hva den gjør |
