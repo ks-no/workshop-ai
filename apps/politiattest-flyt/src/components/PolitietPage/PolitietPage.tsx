@@ -5,7 +5,6 @@ import { useVerifisering } from "../../state/useVerifisering";
 import type { VerifiseringController } from "../../state/useVerifisering";
 import { utstedBevis } from "../../integrations/lommebokApi";
 import {
-  formalsbevisRader,
   formalsbevisRaderFraClaims,
   politiattestInnholdRader
 } from "../../integrations/credentialPresentation";
@@ -25,8 +24,19 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
   const person = sak.person;
   const formalsbevis = sak.formalsbevis;
   const formalsverifisering = useVerifisering("formalsbekreftelse", person, dispatch);
+  const automatiskStartet = React.useRef(false);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const stage = formalsbevis.verification?.stage ?? "ikke_startet";
+    if (!person || stage !== "ikke_startet" || automatiskStartet.current) return;
+
+    automatiskStartet.current = true;
+    void formalsverifisering.start().finally(() => {
+      automatiskStartet.current = false;
+    });
+  }, [person?.personId, formalsbevis.verification?.stage]);
 
   if (!person) {
     return (
@@ -36,9 +46,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
     );
   }
 
-  const kanUtstedePolitiattest =
-    formalsbevis.verification?.stage === "godkjent" && sak.politiattest.issuance == null;
-  const kanStarteFormalsverifisering = ["ikke_startet", "avvist", "feilet"].includes(
+  const kanProveFormalsverifiseringPaNytt = ["avvist", "feilet"].includes(
     formalsbevis.verification?.stage ?? "ikke_startet"
   );
 
@@ -70,32 +78,19 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
     <main className="politiet-page">
       <header className="politiet-page__header">
         <span className="politiet-page__etat">POLITIET</span>
-        <h1>Vandelskontroll og politiattester</h1>
-        <p>Enhet for vandelskontroll og politiattester - saksbehandling (demo)</p>
+        <h1>Søknad om politiattest</h1>
+        <p>Digital søknad (demo)</p>
       </header>
 
       <section className="politiet-page__kort">
-        <h2>1. Kontroll av formålsbekreftelse</h2>
+        <h2>Kontroll av formålsbekreftelse</h2>
         <p>
-          Søkeren viser fram formålsbekreftelsen fra kommunen i sin digitale lommebok, slik at
-          politiet kan bekrefte at forespørselen om politiattest faktisk gjelder skolejobb.
+          Skann QR-koden med den digitale lommeboken for å vise formålsbekreftelsen fra
+          Drammen kommune.
         </p>
 
-        {formalsbevis.verification?.stage !== "godkjent" && (
-          <MetadataTable
-            tittel="Opplysninger Politiet ber om fra formålsbeviset"
-            rader={formalsbevisRader(person)}
-          />
-        )}
-
-        {kanStarteFormalsverifisering && (
-          <button type="button" className="btn btn-primary" onClick={formalsverifisering.start} disabled={formalsverifisering.starter}>
-            {formalsverifisering.starter
-              ? "Starter…"
-              : formalsbevis.verification?.stage === "ikke_startet"
-                ? "Be om å få se formålsbekreftelsen"
-                : "Prøv verifisering på nytt"}
-          </button>
+        {formalsverifisering.starter && (
+          <StatusBadge tekst="Gjør klar QR-koden…" tone="venter" />
         )}
 
         {formalsbevis.verification?.stage === "venter_paa_presentasjon" && formalsbevis.verification.transactionId && (
@@ -124,6 +119,16 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
         )}
         {formalsbevis.verification?.stage === "feilet" && (
           <StatusBadge tekst="Verifiseringen feilet. Prøv igjen." tone="feil" />
+        )}
+        {kanProveFormalsverifiseringPaNytt && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={formalsverifisering.start}
+            disabled={formalsverifisering.starter}
+          >
+            Opprett ny QR-kode
+          </button>
         )}
       </section>
 
@@ -172,11 +177,6 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
         </section>
       )}
 
-      {kanUtstedePolitiattest === false && formalsbevis.verification?.stage !== "godkjent" && (
-        <p className="politiet-page__hjelpetekst">
-          Politiattest kan først utstedes etter at formålsbekreftelsen er kontrollert og godkjent over.
-        </p>
-      )}
     </main>
   );
 };
