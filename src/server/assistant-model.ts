@@ -19,19 +19,23 @@ export const specialistSchema = z.object({
   questions: z.array(z.object({ key: z.string().max(80), question: text }).strict()).max(4),
 }).strict();
 
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+/** Mirrors provider_configuration() in backend/agent_runtime.py: an OpenAI-compatible endpoint such as a LiteLLM proxy. */
 function configuration() {
-  const account = process.env.CF_ACCOUNT_ID || '';
-  const token = process.env.CF_AI_GATEWAY_TOKEN || '';
-  const gateway = process.env.CF_AI_GATEWAY_ID || 'default';
-  if (!/^[a-f0-9]{32}$/i.test(account) || !token || !/^[a-zA-Z0-9_-]{1,64}$/.test(gateway)) {
-    throw new Error('Legg inn CF_ACCOUNT_ID og CF_AI_GATEWAY_TOKEN i serverens .env.local og start appen på nytt.');
+  const baseUrl = (process.env.LLM_BASE_URL || '').trim();
+  const token = process.env.LLM_API_KEY || '';
+  let url: URL | null = null;
+  try { url = new URL(baseUrl); } catch { /* empty or malformed; rejected below */ }
+  const secure = !!url && (url.protocol === 'https:' || (url.protocol === 'http:' && LOOPBACK_HOSTS.includes(url.hostname)));
+  if (!url || !secure || url.username || url.password || url.search || url.hash || !token || !modelName('coordinator') || !modelName('specialist')) {
+    throw new Error('Legg inn LLM_BASE_URL, LLM_API_KEY og LLM_MODEL i serverens .env.local og start appen på nytt.');
   }
-  return { url: `https://api.cloudflare.com/client/v4/accounts/${account}/ai/v1/chat/completions`, token, gateway };
+  return { baseUrl: baseUrl.replace(/\/+$/, ''), token };
 }
 export type ModelRole = 'coordinator' | 'specialist';
 export function modelName(role: ModelRole = 'coordinator') {
   return (role === 'coordinator' ? process.env.LLM_COORDINATOR_MODEL : process.env.LLM_SPECIALIST_MODEL)
-    || process.env.LLM_MODEL || (role === 'coordinator' ? '@cf/qwen/qwen3.8-27b' : '@cf/google/gemma-4-26b-a4b-it');
+    || process.env.LLM_MODEL || '';
 }
 let lastSuccessAt: string | null = null;
 export function markModelSuccess() { lastSuccessAt = new Date().toISOString(); }
@@ -40,12 +44,12 @@ export async function modelStatus(): Promise<ModelStatus> {
   const models = { coordinator: model, specialist: modelName('specialist') };
   try {
     configuration();
-    if (!runtimeInstalled()) return { available: false, provider: 'cloudflare', model, models, message: 'Installer Python-agentene med npm run setup:backend før du starter.' };
-    return { available: true, provider: 'cloudflare', model, models, message: lastSuccessAt
+    if (!runtimeInstalled()) return { available: false, provider: 'litellm', model, models, message: 'Installer Python-agentene med npm run setup:backend før du starter.' };
+    return { available: true, provider: 'litellm', model, models, message: lastSuccessAt
       ? 'AI-modellen svarte på siste fullførte modellkall. Bare utvalgte utdrag behandles; saksminnet lagres lokalt.'
       : 'AI-modellen er konfigurert. Forbindelsen prøves når du sender en beskrivelse. Bare utvalgte utdrag behandles.' };
   } catch {
-    return { available: false, provider: 'cloudflare', model, models, message: 'AI-modellen er ikke konfigurert. Legg inn serverinnstillingene i .env.local. Saksminnet lagres lokalt.' };
+    return { available: false, provider: 'litellm', model, models, message: 'AI-modellen er ikke konfigurert. Legg inn serverinnstillingene i .env.local. Saksminnet lagres lokalt.' };
   }
 }
 

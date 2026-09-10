@@ -64,7 +64,7 @@ export type AssistantCase = {
   ksAccessDecision?: KsAccessDecision | null;
   pendingConsents?: PendingConsent[];
 };
-export type ModelStatus = { available: boolean; provider: 'cloudflare'; model: string; models?: { coordinator: string; specialist: string }; message: string };
+export type ModelStatus = { available: boolean; provider: 'litellm'; model: string; models?: { coordinator: string; specialist: string }; message: string };
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 export type AssistantCommand =
   | { action: 'start' }
