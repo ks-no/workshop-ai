@@ -27,8 +27,12 @@ def emit(value: dict[str, Any]) -> None:
     print(json.dumps(value, ensure_ascii=False, separators=(",", ":")), flush=True)
 
 
-def safe_error(error: Exception) -> str:
+PROVIDER_NAMES = {"cloudflare": "Cloudflare", "telenor-ai-factory": "Telenor AI Factory"}
+
+
+def safe_error(error: Exception, provider: str = "cloudflare") -> str:
     # Framework clients wrap SDK errors. Inspect typed causes, never their raw text.
+    name = PROVIDER_NAMES.get(provider, "Leverandøren")
     seen: set[int] = set()
     while id(error) not in seen:
         seen.add(id(error))
@@ -40,18 +44,18 @@ def safe_error(error: Exception) -> str:
         error = cause
     if isinstance(error, APIStatusError):
         if error.status_code in (401, 403):
-            return "Cloudflare avviste tilgangen. Kontroller serverens token og Workers AI-tilgang."
+            return f"{name} avviste tilgangen. Kontroller serverens nøkkel og tilgang."
         if error.status_code in (402, 429):
-            return "Cloudflare har nådd en bruksgrense. Kontroller saldo eller vent før du prøver igjen."
-        return f"Cloudflare kunne ikke fullføre modellkallet (HTTP {error.status_code})."
+            return f"{name} har nådd en bruksgrense. Kontroller saldo eller vent før du prøver igjen."
+        return f"{name} kunne ikke fullføre modellkallet (HTTP {error.status_code})."
     if isinstance(error, (TimeoutError, APIConnectionError, APITimeoutError)):
-        return "Cloudflare kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
+        return f"{name} kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
     if isinstance(error, ValueError) and str(error).startswith("KI returnerte"):
         return str(error)
     return "Agentkjøringen kunne ikke fullføres. Opplysningene er bevart; kontroller Python-oppsettet og prøv igjen."
 
 
-def provider_configuration() -> dict[str, Any]:
+def cloudflare_configuration() -> dict[str, Any]:
     account = os.environ.get("CF_ACCOUNT_ID", "")
     token = os.environ.get("CF_AI_GATEWAY_TOKEN", "")
     gateway = os.environ.get("CF_AI_GATEWAY_ID", "default")
@@ -59,6 +63,21 @@ def provider_configuration() -> dict[str, Any]:
         raise ValueError("Invalid server configuration")
     return {"api_key": token, "base_url": f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1",
             "max_retries": 0, "default_headers": {"cf-aig-gateway-id": gateway, "cf-aig-skip-cache": "true", "cf-aig-collect-log": "false"}}
+
+
+def telenor_ai_factory_configuration() -> dict[str, Any]:
+    base_url = os.environ.get("TELENOR_AI_FACTORY_BASE_URL", "")
+    key = os.environ.get("TELENOR_AI_FACTORY_API_KEY", "")
+    # Base URL comes only from the server's own environment, never from a job payload or the admin endpoint.
+    if not key or not re.fullmatch(r"https://[^\s@]+", base_url):
+        raise ValueError("Invalid server configuration")
+    return {"api_key": key, "base_url": base_url, "max_retries": 0, "default_headers": {}}
+
+
+def provider_configuration(provider: str = "cloudflare") -> dict[str, Any]:
+    if provider == "telenor-ai-factory":
+        return telenor_ai_factory_configuration()
+    return cloudflare_configuration()
 
 
 async def host_agent(bridge, job):
@@ -109,7 +128,7 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     validator = Draft202012Validator(schema)
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
     async with asyncio.timeout(timeout):
-        async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
+        async with client_factory(**provider_configuration(job.get("provider", "cloudflare")), timeout=timeout) as sdk:
             chat = OpenAIChatCompletionClient(model=job["model"].removeprefix("workers-ai/"), async_client=sdk)
             agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
                           middleware=[analysis_only_middleware],
@@ -192,7 +211,7 @@ class Specialist(Executor):
                 await self.bridge.request("specialist", {"id": self.id, "output": output})
                 result["status"] = "completed"
             except Exception as error:
-                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error)})
+                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error, job.get("provider", "cloudflare"))})
                 result["status"] = "failed"
         # Every graph branch emits once, including unselected services. The fixed join
         # never waits forever for a branch that did not need an actual model call.
@@ -239,7 +258,8 @@ async def main() -> None:
         if task in done:
             emit({"type": "complete", **task.result()})
     except Exception as error:
-        emit({"type": "error", "message": safe_error(error)})
+        provider = (payload.get("job") or payload.get("planner") or {}).get("provider", "cloudflare")
+        emit({"type": "error", "message": safe_error(error, provider)})
     finally:
         task.cancel()
         listener.cancel()

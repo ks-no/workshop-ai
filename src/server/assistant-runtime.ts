@@ -3,7 +3,7 @@ import { accessSync, constants } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 
-export type AgentJob = { id: string; name: string; role: 'coordinator' | 'specialist'; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
+export type AgentJob = { id: string; name: string; role: 'coordinator' | 'specialist'; provider: string; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
 type RequestHandler = (method: string, data: Record<string, unknown>) => Promise<unknown>;
 const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
 

@@ -7,6 +7,7 @@ import { SERVICE_CATALOGUE, guidanceSources, prepareService } from '../domain/se
 import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { callModel, markModelSuccess, modelName, planSchema, PLANNER_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
+import { activeSelection, assertReady } from './assistant-providers';
 
 type Persist = (session: AssistantCase) => void;
 const STRUCTURED_ANSWER_PURPOSE = 'Direkte svar fra strukturert spørsmålsskjema; lagret som innbyggerens eget valg.';
@@ -126,6 +127,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
   const running = new Map<string, AgentRun>();
   const visibleSources = new Map<string, { id: string; kind: string; title: string; text: string }[]>();
   try {
+    if (infer === callModel) { assertReady('coordinator'); assertReady('specialist'); }
     const evidence = session.sources.filter(source => ['conversation', 'document'].includes(source.kind)).slice(-12);
     const context = {
       _security: MODEL_SECURITY,
@@ -135,7 +137,8 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
       sources: evidence.map(({ id, title, text, kind }) => ({ id, title, kind, text: text.slice(0, 14000) })),
       ksDataAvailable: !!session.ksData,
     };
-    const planner: AgentJob = { id: 'coordinator', name: 'Koordinator', role: 'coordinator', model: modelName('coordinator'),
+    const coordinatorSelection = activeSelection('coordinator');
+    const planner: AgentJob = { id: 'coordinator', name: 'Koordinator', role: 'coordinator', provider: coordinatorSelection.provider, model: coordinatorSelection.model,
       prompt: PLANNER_PROMPT, context, schema: z.toJSONSchema(planSchema) };
     await runPythonRuntime({ mode: 'workflow', planner, hostModels: infer !== callModel }, async (method, data) => {
       if (method === 'model') {
@@ -196,6 +199,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         session.services = selected.map(service => prepareService(service.id, session, service.reason));
         if (session.intent === 'information') session.services.forEach(service => { service.status = 'ready'; service.checks = []; service.questions = []; service.assessment = null; });
         persist(session);
+        const specialistSelection = activeSelection('specialist');
         const jobs: AgentJob[] = selected.map(selectedService => {
           const definition = SERVICE_CATALOGUE.find(item => item.id === selectedService.id)!;
           const service = session.services.find(item => item.id === selectedService.id)!;
@@ -204,7 +208,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
           // Specialists see public guidance plus exact cited fact excerpts. Register snapshots stay server-side.
           const sources = minimalModelSources(session, sourceIds, facts);
           visibleSources.set(service.id, sources);
-          return { id: service.id, name: definition.title, role: 'specialist', model: modelName('specialist'),
+          return { id: service.id, name: definition.title, role: 'specialist', provider: specialistSelection.provider, model: specialistSelection.model,
             prompt: specialistPrompt(definition.title, session.language || 'nb'), schema: z.toJSONSchema(specialistSchema),
             context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(session.language), intent: session.intent,
               citizenQuestion: session.intent === 'information' ? latestUser?.text || '' : '', service: definition, reason: selectedService.reason,

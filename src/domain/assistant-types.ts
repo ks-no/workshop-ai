@@ -55,7 +55,14 @@ export type AssistantCase = {
   ksData: { personId: string; connectedAt: string; incomeReadAt: string | null; consent: KsDemoConsent | null } | null;
   ksAccessDecision?: KsAccessDecision | null;
 };
-export type ModelStatus = { available: boolean; provider: 'cloudflare'; model: string; models?: { coordinator: string; specialist: string }; message: string };
+export type ProviderId = 'cloudflare' | 'telenor-ai-factory';
+export type RoleStatus = { provider: ProviderId; model: string; keyConfigured: boolean };
+export type ModelStatus = {
+  available: boolean; provider: ProviderId; model: string;
+  models?: { coordinator: string; specialist: string };
+  roles?: { coordinator: RoleStatus; specialist: RoleStatus };
+  message: string;
+};
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 export type AssistantCommand =
   | { action: 'start' }
