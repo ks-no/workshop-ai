@@ -27,7 +27,7 @@ export function createAssistantCase(): AssistantCase {
   const session: AssistantCase = {
     id: randomUUID(), createdAt: now, updatedAt: now, expiresAt: new Date(Date.now() + TTL).toISOString(), revision: 1,
     language: 'nb', status: 'collecting', messages: [], facts: [], sources: [], intent: null, services: [], questions: [], unsupported: [],
-    runs: [], events: [], summary: '', analyzedRevision: null, handoff: null, error: null, ksData: null, ksAccessDecision: null, pendingConsents: [],
+    runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null, ksAccessDecision: null, pendingConsents: [],
   };
   database.prepare('INSERT INTO cases (id, expires, body) VALUES (?, ?, ?)').run(session.id, Date.parse(session.expiresAt), JSON.stringify(session));
   return session;
@@ -38,6 +38,7 @@ export function loadAssistantCase(id?: string): AssistantCase {
   const session: AssistantCase = JSON.parse(row.body);
   session.language ??= 'nb';
   session.intent ??= null;
+  session.critique ??= [];
   session.ksData ??= null;
   session.ksAccessDecision ??= null;
   session.pendingConsents = (session.pendingConsents ?? []).filter(consent => consent.revision === session.revision);

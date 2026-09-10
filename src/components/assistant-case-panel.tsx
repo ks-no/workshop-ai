@@ -8,7 +8,7 @@ import { AssistantPlanBoard } from './assistant-plan-board';
 import { AssistantSfoAnswer } from './assistant-sfo-answer';
 
 import { useState } from 'react';
-import type { AssistantCase, AssistantCommand, MemoryFact, ServiceResult, FollowUp, EvidenceSource } from '../domain/assistant-types';
+import type { AgentRun, AssistantCase, AssistantCommand, MemoryFact, ServiceResult, FollowUp, EvidenceSource } from '../domain/assistant-types';
 import { ore } from '../domain/format';
 import { AssistantEvidence, AssistantSource } from './assistant-evidence';
 
@@ -115,7 +115,7 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
       <section className="assistant-case-section assistant-activity-panel" aria-labelledby="activity-heading">
         <div className="assistant-section-heading"><h2 id="activity-heading" tabIndex={-1}>{t('Oppgavedetaljer')}</h2>{selectedRun && <PktTag size="small" skin={selectedRun.status === 'failed' ? 'red' : selectedRun.status === 'running' ? 'blue-light' : 'green'}>{t(selectedRun.status === 'running' ? 'Arbeider' : selectedRun.status === 'completed' ? 'Fullført' : 'Feilet')}</PktTag>}</div>
         {!selectedRun ? <div className="assistant-empty"><AssistantIcon name="document-text" aria-hidden="true" /><p>{t('Ingen agentoppgaver er registrert ennå.')}</p></div> : <>
-          <p className="assistant-activity-agent">{t(activityAgentName(selectedRun.agent))}</p>
+          <p className="assistant-activity-agent">{t(activityAgentName(selectedRun))}</p>
           <dl className="assistant-activity-meta">
             <div><dt>{t('Startet')}</dt><dd>{dateTime(selectedRun.startedAt)}</dd></div>
             <div><dt>{t('Varighet')}</dt><dd>{selectedRun.durationMs === null ? t('Pågår') : `${Math.round(selectedRun.durationMs / 1000)} ${t('sekunder')}`}</dd></div>
@@ -124,6 +124,18 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
           {!selectedEvents.length ? <p className="small">{t('Ingen detaljer er registrert for denne oppgaven.')}</p> : <ol className="assistant-task-timeline">{selectedEvents.map(item => <li key={item.id}><span className={`assistant-task-dot is-${item.type}`} aria-hidden="true" /><div><strong>{t(activityEventName(item.type))}</strong><p>{t(item.detail)}</p><time className="small" dateTime={item.at}>{dateTime(item.at)}</time></div></li>)}</ol>}
         </>}
       </section>
+      {!!session?.critique.length && <section className="assistant-case-section assistant-critique-panel" aria-labelledby="critique-heading">
+        <div className="assistant-section-heading"><h2 id="critique-heading" tabIndex={-1}>{t('Kritikerens gjennomgang')}</h2></div>
+        <p className="assistant-section-intro">{t('Dette er modellens egen kontroll av utkastet. Det erstatter ikke en saksbehandlers vurdering.')}</p>
+        {session.critique.map(round => <article className="assistant-critique-round" key={round.round}>
+          <div className="assistant-critique-round-heading"><h3>{t('Runde')} {round.round}</h3><PktTag size="small" skin={round.verdict === 'PASS' ? 'green' : 'yellow'}>{t(round.verdict === 'PASS' ? 'Godkjent' : 'Må revideres')}</PktTag></div>
+          {!!round.gaps.length && <ul className="assistant-critique-gaps">{round.gaps.map((gap, i) => <li key={i}>
+            <blockquote className="assistant-critique-quote" lang={session.language || 'nb'}><AssistantMarkdown text={gap.quote} language={session.language || 'nb'} /></blockquote>
+            <AssistantMarkdown text={gap.point} language={session.language || 'nb'} />
+          </li>)}</ul>}
+          {!!round.notes && <AssistantMarkdown text={round.notes} language={session.language || 'nb'} />}
+        </article>)}
+      </section>}
     </div>
 
     <div id="assistant-sources" role="tabpanel" aria-label={t('Kilder')} hidden={view !== 'sources'}>
@@ -136,9 +148,12 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
   </div>;
 }
 
-function activityAgentName(name: string) {
+function activityAgentName(run: Pick<AgentRun, 'agent' | 'stage'>) {
+  if (run.stage === 'triage') return 'Triage';
+  if (run.stage === 'critic') return 'Kritiker';
+  if (run.stage === 'polish') return 'Språkvask';
   const names: Record<string, string> = { coordinator: 'Koordinator', family: 'Familie og SFO', housing: 'Bolig', moving: 'Flytting', human: 'Du', system: 'Systemet' };
-  return names[name] ?? name;
+  return names[run.agent] ?? run.agent;
 }
 
 function activityEventName(type: string) {

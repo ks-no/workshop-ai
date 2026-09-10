@@ -10,7 +10,7 @@ import { AssistantKsAction } from './assistant-ks-connection';
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import type { AssistantCase, AssistantCommand, AssistantMessage, AssistantResponse, EvidenceSource, FollowUp, StructuredAnswer } from '../domain/assistant-types';
+import { modelRoles, type AgentRun, type AssistantCase, type AssistantCommand, type AssistantMessage, type AssistantResponse, type EvidenceSource, type FollowUp, type StructuredAnswer } from '../domain/assistant-types';
 import { AssistantCasePanel, type AssistantCaseView } from './assistant-case-panel';
 
 async function readResponse(response: Response): Promise<AssistantResponse> {
@@ -231,7 +231,7 @@ function Workspace() {
       <div className="assistant-mobile-tabs" aria-label={t('Velg visning')}><PktTabs tabs={[{ text: t('Samtale'), active: tab === 'conversation', controls: 'conversation-panel' }, { text: t('Din oversikt'), active: tab === 'case', controls: 'case-panel', ...(waitingFacts > 0 ? { tag: { text: `${waitingFacts}`, skin: 'blue-light' as const } } : {}) }]} onTabSelected={index => setTab(index === 0 ? 'conversation' : 'case')} /></div>
       <div className="assistant-workspace">
         <section id="conversation-panel" className={`assistant-conversation ${tab === 'conversation' ? 'is-mobile-active' : ''}`} aria-labelledby="conversation-heading">
-          <div className="assistant-conversation-scroll">
+          <div className="assistant-conversation-scroll" tabIndex={0} role="group" aria-label={t("Samtalen")}>
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
           {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
@@ -314,13 +314,13 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
   const displayedRuns = session?.runs.slice(-12).reverse() ?? [];
   const currentRun = session?.runs.findLast(run => run.status === 'running') ?? session?.runs.at(-1);
   const currentRuns = session?.runs.filter(run => run.revision === session.revision) ?? [];
-  const specialistRuns = currentRuns.slice(1);
-  const progressValue = specialistRuns.some(run => run.status === 'completed' || run.status === 'failed') ? 85
-    : specialistRuns.some(run => run.status === 'running') ? 65
-      : currentRuns[0]?.status === 'completed' ? 45
-        : currentRuns.length ? 25 : 15;
+  const progressValue = currentRuns.length ? Math.round(Math.max(...currentRuns.map(run => {
+    const stageIndex = modelRoles.indexOf(run.stage);
+    const stageDone = run.status === 'completed' || run.status === 'failed';
+    return 15 + stageIndex * 20 + (stageDone ? 20 : 10);
+  }))) : 15;
   const currentLabel = pendingLabel || latestEvent?.detail || 'Agentarbeidet er fullført';
-  const currentTitle = pendingLabel || (currentRun ? agentName(currentRun.agent) : currentLabel);
+  const currentTitle = pendingLabel || (currentRun ? agentName(currentRun) : currentLabel);
   const currentDetail = latestEvent?.detail && currentTitle !== latestEvent.detail ? latestEvent.detail : '';
   return <div className="assistant-activity">
     {!!displayedRuns.length && <div className="assistant-task-card" role={pendingLabel ? 'status' : undefined} aria-live={pendingLabel ? 'polite' : undefined}>
@@ -330,7 +330,7 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
           const runEvents = session?.events.filter(item => item.runId === run.id) ?? [];
           const lastDetail = runEvents.at(-1)?.detail;
           const time = new Date(run.startedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' });
-          return <button type="button" key={run.id} onClick={() => onTaskSelect(run.id)} aria-current={selectedTaskId === run.id ? 'true' : undefined} aria-label={`${t('Vis detaljer for')} ${t(agentName(run.agent))}, ${time}`}><AssistantIcon name={run.status === 'completed' ? 'check' : run.status === 'failed' ? 'alert-warning' : 'document-text'} aria-hidden="true" /><span><strong>{t(agentName(run.agent))}<time dateTime={run.startedAt}>{time}</time></strong><small>{lastDetail ? t(lastDetail) : dateTime(run.startedAt)}</small></span><span className={`assistant-task-status is-${run.status}`}>{t(run.status === 'running' ? 'Arbeider' : run.status === 'completed' ? 'Fullført' : 'Feilet')}</span></button>;
+          return <button type="button" key={run.id} onClick={() => onTaskSelect(run.id)} aria-current={selectedTaskId === run.id ? 'true' : undefined} aria-label={`${t('Vis detaljer for')} ${t(agentName(run))}, ${time}`}><AssistantIcon name={run.status === 'completed' ? 'check' : run.status === 'failed' ? 'alert-warning' : 'document-text'} aria-hidden="true" /><span><strong>{t(agentName(run))}<time dateTime={run.startedAt}>{time}</time></strong><small>{lastDetail ? t(lastDetail) : dateTime(run.startedAt)}</small></span><span className={`assistant-task-status is-${run.status}`}>{t(run.status === 'running' ? 'Arbeider' : run.status === 'completed' ? 'Fullført' : 'Feilet')}</span></button>;
         })}</div>
       </details>
       {pendingLabel && <div className="assistant-progress-shell">
@@ -342,7 +342,10 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
   </div>;
 }
 
-function agentName(name: string) {
+function agentName(run: Pick<AgentRun, 'agent' | 'stage'>) {
+  if (run.stage === 'triage') return 'Triage';
+  if (run.stage === 'critic') return 'Kritiker';
+  if (run.stage === 'polish') return 'Språkvask';
   const names: Record<string, string> = { coordinator: 'Koordinator', family: 'Familie og SFO', housing: 'Bolig', moving: 'Flytting', human: 'Du', system: 'Systemet' };
-  return names[name] ?? name;
+  return names[run.agent] ?? run.agent;
 }

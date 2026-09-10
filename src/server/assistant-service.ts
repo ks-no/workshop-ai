@@ -1,14 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { runPythonRuntime, type AgentJob } from './assistant-runtime';
-import type { AssistantCase, EvidenceSource, MemoryFact, FollowUp, AgentRun, ServiceResult, StructuredAnswer, ServiceId } from '../domain/assistant-types';
+import { modelRoles } from '../domain/assistant-types';
+import type { AssistantCase, AssistantMessage, CritiqueRound, EvidenceSource, MemoryFact, FollowUp, AgentRun, ModelRole, ServiceResult, StructuredAnswer, ServiceId } from '../domain/assistant-types';
 import { FACT_LABELS, citationFor, validateProposal, narrativeWithinEvidence } from '../domain/assistant-verification';
 import { SERVICE_CATALOGUE, guidanceSources, prepareService } from '../domain/service-catalogue';
 import { applicationDraftFor, consentParagraph, modelVisibleTools, pendingConsentsFor } from '../domain/tool-catalogue';
 import { FORM_CATALOGUE, formFlowFor, formFor, screenEligibility, stageParagraph } from '../domain/form-catalogue';
 import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
-import { callModel, markModelSuccess, modelName, planSchema, PLANNER_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
+import { answerSchema, callModel, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
 
 type Persist = (session: AssistantCase) => void;
 const STRUCTURED_ANSWER_PURPOSE = 'Direkte svar fra strukturert spørsmålsskjema; lagret som innbyggerens eget valg.';
@@ -27,7 +28,8 @@ function minimalModelSources(session: AssistantCase, sourceIds: Set<string>, fac
 }
 export function invalidateAnalysis(session: AssistantCase) {
   session.revision++; session.analyzedRevision = null; session.services = []; session.questions = [];
-  session.intent = null; session.summary = ''; session.unsupported = []; session.error = null; session.status = 'collecting'; session.pendingConsents = [];
+  session.intent = null; session.summary = ''; session.unsupported = []; session.error = null; session.status = 'collecting';
+  session.critique = []; session.pendingConsents = [];
 }
 function event(session: AssistantCase, runId: string, agent: string, type: AssistantCase['events'][number]['type'], detail: string) {
   session.events.push({ id: randomUUID(), runId, agent, type, at: new Date().toISOString(), detail });
@@ -112,21 +114,59 @@ function mergeQuestions(questions: FollowUp[], session: AssistantCase): FollowUp
   }
   return [...byKey.values()].slice(0, 8);
 }
+const stageLabels: Record<ModelRole, string> = { triage: 'Triage', draft: 'Utkast', critic: 'Kritiker', polish: 'Språkvask' };
+function stageRole(value: unknown): ModelRole {
+  return modelRoles.includes(value as ModelRole) ? value as ModelRole : 'draft';
+}
+/** The revised draft and the polish step share answerSchema, so the job id decides here, not the role. */
+function jobSchema(id: string, role: ModelRole) {
+  if (id === 'critic') return criticSchema;
+  if (id === 'draft-revision' || id === 'polish') return answerSchema;
+  return role === 'triage' ? planSchema : specialistSchema;
+}
 export async function analyzeCase(session: AssistantCase, infer: ModelCall = callModel, persist: Persist = saveAssistantCase) {
   invalidateAnalysis(session);
   const revision = session.revision;
   session.status = 'analyzing'; session.error = null; session.analyzedRevision = null; session.services = [];
-  const run = (agent: string, role: 'coordinator' | 'specialist'): AgentRun => {
-    const value: AgentRun = { id: randomUUID(), agent, revision, status: 'running', startedAt: new Date().toISOString(), completedAt: null, model: modelName(role), durationMs: null, framework: 'Microsoft Agent Framework 1.17.0 · Python' };
+  const run = (agent: string, stage: ModelRole): AgentRun => {
+    const value: AgentRun = { id: randomUUID(), agent, stage, revision, status: 'running', startedAt: new Date().toISOString(), completedAt: null, model: modelName(stage), durationMs: null, framework: 'Microsoft Agent Framework 1.17.0 · Python' };
     session.runs.push(value); event(session, value.id, agent, 'started', 'Modellanalysen er startet.'); persist(session); return value;
   };
   const finish = (item: AgentRun, error?: string) => {
     item.status = error ? 'failed' : 'completed'; item.completedAt = new Date().toISOString(); item.durationMs = Date.now() - Date.parse(item.startedAt);
     event(session, item.id, item.agent, error ? 'failed' : 'completed', error || 'Strukturert svar mottatt og kontrollert.'); persist(session);
   };
-  let coordinator: AgentRun | undefined;
+  let triageRun: AgentRun | undefined;
   const running = new Map<string, AgentRun>();
   const visibleSources = new Map<string, { id: string; kind: string; title: string; text: string }[]>();
+  let latestUser: AssistantMessage | undefined;
+  // Critic/polish tail state. The host owns stage order and the bound; Python only executes jobs.
+  const stageRuns = new Map<string, AgentRun>();
+  let answer = '';
+  let criticRound = 0;
+  let nextStage: 'critic' | 'revise' | 'polish' | 'done' = 'critic';
+  const assembledAnswer = () => session.intent === 'information' && session.services.length
+    ? session.services.map(service => service.summary).filter(Boolean).join('\n\n') || session.summary
+    : session.summary;
+  const tailSources = () => [...new Map([...visibleSources.values()].flat().map(source => [source.id, source])).values()];
+  // The drafted answer counts as evidence for the tail: rewording grounded text must pass,
+  // introducing an ungrounded number must not. Each service summary was already checked.
+  const tailEvidence = () => [...tailSources().map(source => source.text), assembledAnswer()].join('\n');
+  const nextStageJob = (): AgentJob | null => {
+    if (nextStage === 'done' || !session.services.length || !answer) return null;
+    const language = session.language || 'nb';
+    const review = session.critique.at(-1) ?? null;
+    const stage: ModelRole = nextStage === 'revise' ? 'draft' : nextStage;
+    const id = nextStage === 'revise' ? 'draft-revision' : nextStage;
+    const item = run(nextStage === 'revise' ? 'Utkast etter kritikk' : stageLabels[stage], stage);
+    stageRuns.set(id, item);
+    return { id, name: item.agent, role: stage, model: modelName(stage),
+      prompt: nextStage === 'critic' ? criticPrompt(language) : nextStage === 'revise' ? draftRevisionPrompt(language) : polishPrompt(language),
+      schema: z.toJSONSchema(nextStage === 'critic' ? criticSchema : answerSchema),
+      context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(language), intent: session.intent,
+        citizenQuestion: latestUser?.text || '', draft: answer, review,
+        openQuestions: session.questions.map(({ key, question }) => ({ key, question })), sources: tailSources() } };
+  };
   try {
     const evidence = session.sources.filter(source => ['conversation', 'document'].includes(source.kind)).slice(-12);
     const context = {
@@ -138,32 +178,32 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
       ksDataAvailable: !!session.ksData,
       tools: modelVisibleTools('coordinator', session),
     };
-    const planner: AgentJob = { id: 'coordinator', name: 'Koordinator', role: 'coordinator', model: modelName('coordinator'),
-      prompt: PLANNER_PROMPT, context, schema: z.toJSONSchema(planSchema) };
-    await runPythonRuntime({ mode: 'workflow', planner, hostModels: infer !== callModel }, async (method, data) => {
+    const triage: AgentJob = { id: 'triage', name: 'Triage', role: 'triage', model: modelName('triage'),
+      prompt: TRIAGE_PROMPT, context, schema: z.toJSONSchema(planSchema) };
+    await runPythonRuntime({ mode: 'workflow', triage, hostModels: infer !== callModel }, async (method, data) => {
       if (method === 'model') {
         if (infer === callModel) throw new Error('Unexpected host model request');
-        const role = data.role === 'coordinator' ? 'coordinator' : 'specialist';
-        try { return { output: await infer<unknown>(String(data.prompt), data.context, role === 'coordinator' ? planSchema : specialistSchema, role) }; }
+        const role = stageRole(data.role);
+        try { return { output: await infer<unknown>(String(data.prompt), data.context, jobSchema(String(data.id), role), role) }; }
         catch (error) { return { error: error instanceof Error ? error.message : 'Model failed' }; }
       }
       if (method === 'started') {
-        const role = data.role === 'coordinator' ? 'coordinator' : 'specialist';
+        const role = stageRole(data.role);
         const item = run(String(data.name), role);
         running.set(String(data.id), item);
-        if (role === 'coordinator') coordinator = item;
+        if (role === 'triage') triageRun = item;
         return null;
       }
       if (method === 'prepare') {
-        if (!coordinator) throw new Error('Coordinator did not start');
+        if (!triageRun) throw new Error('Triage did not start');
         const plan = planSchema.parse(data.output);
         if (infer === callModel) markModelSuccess();
         if (session.revision !== revision) throw new CaseError('Opplysningene er endret. Kjør analysen på nytt.', 409);
         for (const proposed of plan.facts) {
-          if (session.facts.length >= 160) { event(session, coordinator.id, 'Kontroll', 'blocked', 'Grensen for lagrede opplysninger er nådd.'); break; }
+          if (session.facts.length >= 160) { event(session, triageRun.id, 'Kontroll', 'blocked', 'Grensen for lagrede opplysninger er nådd.'); break; }
           if (!evidence.some(source => source.id === proposed.sourceId)) continue;
           const valid = validateProposal(proposed, evidence);
-          if (!valid) { event(session, coordinator.id, 'Kontroll', 'blocked', 'Et AI-forslag manglet en gyldig kilde eller entydig verdi og ble utelatt.'); continue; }
+          if (!valid) { event(session, triageRun.id, 'Kontroll', 'blocked', 'Et AI-forslag manglet en gyldig kilde eller entydig verdi og ble utelatt.'); continue; }
           const proposalSource = evidence.find(source => source.id === proposed.sourceId);
           if (proposalSource?.purpose === STRUCTURED_ANSWER_PURPOSE && session.facts.some(fact => fact.key === proposed.key && fact.status === 'confirmed' && fact.citation.sourceId === proposed.sourceId)) continue;
           if (session.facts.some(fact => fact.key === proposed.key && fact.value === valid.value && (['confirmed', 'proposed', 'conflict'].includes(fact.status) || fact.citation.sourceId === proposed.sourceId))) continue;
@@ -172,35 +212,35 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         }
         session.language = plan.language === 'no' ? 'nb' : plan.language;
         session.intent = plan.intent || 'personalized';
-        const latestUser = [...session.messages].reverse().find(message => message.role === 'user' && evidence.some(source => source.id === message.sourceId && source.kind === 'conversation'));
+        latestUser = [...session.messages].reverse().find(message => message.role === 'user' && evidence.some(source => source.id === message.sourceId && source.kind === 'conversation'));
         if (latestUser) latestUser.language = session.language;
-        const plannerEvidence = evidence.map(source => source.text).join('\n');
-        if (!narrativeWithinEvidence(plan.summary, plannerEvidence, session.language)) {
-          event(session, coordinator.id, 'Kontroll', 'blocked', 'En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt.');
+        const triageEvidence = evidence.map(source => source.text).join('\n');
+        if (!narrativeWithinEvidence(plan.summary, triageEvidence, session.language)) {
+          event(session, triageRun.id, 'Kontroll', 'blocked', 'En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt.');
           plan.summary = localizedNotice(session.language, 'summary');
         }
-        plan.services = plan.services.map(service => ({ ...service, reason: narrativeWithinEvidence(service.reason, plannerEvidence, session.language) ? service.reason : localizedNotice(session.language, 'reason') }));
+        plan.services = plan.services.map(service => ({ ...service, reason: narrativeWithinEvidence(service.reason, triageEvidence, session.language) ? service.reason : localizedNotice(session.language, 'reason') }));
         session.summary = plan.summary; session.unsupported = plan.unsupported;
         session.questions = mergeQuestions(plan.questions, session);
-        finish(coordinator);
+        finish(triageRun);
         let selected = [...new Map(plan.services.map(service => [service.id, service])).values()];
         if (!selected.length && latestUser) {
           selected = explicitServiceHints(latestUser.text).map(id => ({ id, reason: localizedNotice(session.language, 'reason') }));
-          if (selected.length) event(session, coordinator.id, 'Ruting', 'completed', 'Et tydelig tjenesteord i spørsmålet sikret at riktig fagagent ble startet.');
+          if (selected.length) event(session, triageRun.id, 'Ruting', 'completed', 'Et tydelig tjenesteord i spørsmålet sikret at riktig fagagent ble startet.');
         }
         // Form catalogue: facts that make a form possible pull in its service, so eligibility can be screened.
         const latestText = latestUser?.text ?? '';
         if (session.intent === 'personalized') for (const form of FORM_CATALOGUE) {
           if (selected.some(service => service.id === form.serviceId) || screenEligibility(session, form, latestText).eligibility !== 'possible') continue;
           selected.push({ id: form.serviceId, reason: localizedNotice(session.language, 'reason') });
-          event(session, coordinator.id, 'Ruting', 'completed', `Opplysninger i samtalen tyder på at ${form.title.nb} kan være aktuelt. Tjenesten ble lagt til for vurdering.`);
+          event(session, triageRun.id, 'Ruting', 'completed', `Opplysninger i samtalen tyder på at ${form.title.nb} kan være aktuelt. Tjenesten ble lagt til for vurdering.`);
         }
         const snapshots = guidanceSources();
         for (const service of selected) {
           const definition = SERVICE_CATALOGUE.find(item => item.id === service.id)!;
           for (const sourceId of definition.sourceIds) {
             if (!session.sources.some(source => source.id === sourceId)) session.sources.push(snapshots.find(source => source.id === sourceId)!);
-            event(session, coordinator.id, 'Kildeverktøy', 'source-read', `Leste kontrollert veiledningsutdrag: ${sourceId}. Ikke et live registeroppslag.`);
+            event(session, triageRun.id, 'Kildeverktøy', 'source-read', `Leste kontrollert veiledningsutdrag: ${sourceId}. Ikke et live registeroppslag.`);
           }
         }
         session.services = selected.map(service => prepareService(service.id, session, service.reason));
@@ -214,13 +254,13 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
           const screen = screenEligibility(session, form, latestText);
           service.formFlow = { formId: form.id, title: form.title.nb, eligibility: screen.eligibility, stage: 'screening', missing: [], questions: screen.questions };
           if (screen.questions.length) session.questions = mergeQuestions([...screen.questions, ...session.questions], session);
-          event(session, coordinator.id, 'Skjemakatalog', 'completed', `${form.title.nb}: ${screen.eligibility === 'possible' ? 'kan være aktuelt; ber om samtykke til å hente opplysninger' : screen.eligibility === 'unknown' ? 'uavklart; spør innbyggeren før noe hentes' : 'ikke aktuelt ut fra oppgitte opplysninger'}.`);
+          event(session, triageRun.id, 'Skjemakatalog', 'completed', `${form.title.nb}: ${screen.eligibility === 'possible' ? 'kan være aktuelt; ber om samtykke til å hente opplysninger' : screen.eligibility === 'unknown' ? 'uavklart; spør innbyggeren før noe hentes' : 'ikke aktuelt ut fra oppgitte opplysninger'}.`);
         }
         const eligible = selected.map(service => service.id).filter(id => { const flow = session.services.find(service => service.id === id)?.formFlow; return !flow || flow.eligibility === 'possible'; });
         const resolved = pendingConsentsFor(session, eligible, requested, revision);
         session.pendingConsents = resolved.consents;
-        for (const consent of resolved.consents) event(session, coordinator.id, 'Verktøykatalog', 'tool-requested', `${consent.title} (${consent.integration}): ${consent.requestedBy === 'model' ? 'koordinatoren ba om verktøyet' : 'katalogen krever verktøyet for valgt tjeneste'}. Venter på samtykke; ingenting er hentet.`);
-        for (const toolId of resolved.ignored) event(session, coordinator.id, 'Kontroll', 'blocked', `Verktøyforespørselen «${toolId}» ble ikke tilbudt: ikke knyttet til en valgt tjeneste, feil hensikt eller allerede avslått.`);
+        for (const consent of resolved.consents) event(session, triageRun.id, 'Verktøykatalog', 'tool-requested', `${consent.title} (${consent.integration}): ${consent.requestedBy === 'model' ? 'koordinatoren ba om verktøyet' : 'katalogen krever verktøyet for valgt tjeneste'}. Venter på samtykke; ingenting er hentet.`);
+        for (const toolId of resolved.ignored) event(session, triageRun.id, 'Kontroll', 'blocked', `Verktøyforespørselen «${toolId}» ble ikke tilbudt: ikke knyttet til en valgt tjeneste, feil hensikt eller allerede avslått.`);
         persist(session);
         const jobs: AgentJob[] = selected.map(selectedService => {
           const definition = SERVICE_CATALOGUE.find(item => item.id === selectedService.id)!;
@@ -230,7 +270,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
           // Specialists see public guidance plus exact cited fact excerpts. Register snapshots stay server-side.
           const sources = minimalModelSources(session, sourceIds, facts);
           visibleSources.set(service.id, sources);
-          return { id: service.id, name: definition.title, role: 'specialist', model: modelName('specialist'),
+          return { id: service.id, name: definition.title, role: 'draft', model: modelName('draft'),
             prompt: specialistPrompt(definition.title, session.language || 'nb'), schema: z.toJSONSchema(specialistSchema),
             context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(session.language), intent: session.intent,
               citizenQuestion: session.intent === 'information' ? latestUser?.text || '' : '', service: definition, reason: selectedService.reason,
@@ -265,6 +305,38 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         finish(agentRun);
         return null;
       }
+      if (method === 'stage') {
+        if (!answer) answer = assembledAnswer();
+        const previous = data.id ? stageRuns.get(String(data.id)) : undefined;
+        if (previous && typeof data.error === 'string') { finish(previous, data.error); nextStage = 'done'; }
+        else if (previous) try {
+          if (String(data.id) === 'critic') {
+            const review = criticSchema.parse(data.output);
+            if (infer === callModel) markModelSuccess();
+            criticRound++;
+            const round: CritiqueRound = { round: criticRound, verdict: review.verdict, gaps: review.gaps, notes: review.notes, at: new Date().toISOString() };
+            session.critique.push(round);
+            finish(previous);
+            const revising = review.verdict === 'REVISE' && criticRound < maxRevisions();
+            if (review.verdict === 'REVISE' && !revising) event(session, previous.id, 'Kritiker', 'blocked', `Kritikeren ba om endringer, men grensen på ${maxRevisions()} runder er nådd. Utkastet vises som det er.`);
+            nextStage = revising ? 'revise' : 'polish';
+          } else {
+            const rewritten = answerSchema.parse(data.output);
+            if (infer === callModel) markModelSuccess();
+            if (narrativeWithinEvidence(rewritten.answer, tailEvidence(), session.language)) answer = rewritten.answer;
+            else event(session, previous.id, 'Kontroll', 'blocked', 'Et omskrevet svar innførte tall eller påstander uten kilde og ble forkastet. Forrige versjon beholdes.');
+            finish(previous);
+            nextStage = String(data.id) === 'polish' ? 'done' : 'critic';
+          }
+        } catch {
+          // The draft is already grounded and checked. A malformed review ends the tail
+          // instead of failing an analysis that is otherwise complete.
+          finish(previous, 'Kvalitetskontrollen kunne ikke leses. Utkastet vises uten språkvask.');
+          nextStage = 'done';
+        }
+        const job = nextStageJob();
+        return job ? { job } : null;
+      }
       throw new Error('Unknown workflow request');
     });
     if (session.revision !== revision) throw new CaseError('Opplysningene er endret. Kjør analysen på nytt.', 409);
@@ -286,17 +358,15 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
     const consentAsk = formService?.formFlow
       ? stageParagraph(formService.formFlow, formService, session, session.pendingConsents ?? [], session.language || 'nb')
       : consentParagraph(session.pendingConsents ?? [], session.language || 'nb');
-    const answer = (session.intent === 'information' && session.services.length
-      ? session.services.map(service => service.summary).filter(Boolean).join('\n\n') || session.summary
-      : session.summary) + (consentAsk ? `\n\n${consentAsk}` : '');
+    const finalAnswer = (answer || assembledAnswer()) + (consentAsk ? `\n\n${consentAsk}` : '');
     const answerSourceIds = session.intent === 'information'
       ? session.services.flatMap(service => service.sourceIds)
       : [...evidence.map(source => source.id), ...session.facts.map(fact => fact.citation.sourceId)];
-    session.messages.push({ id: randomUUID(), role: 'assistant', language: session.language || 'nb', text: answer, at: new Date().toISOString(), sourceId: null, sourceIds: [...new Set(answerSourceIds)] });
+    session.messages.push({ id: randomUUID(), role: 'assistant', language: session.language || 'nb', text: finalAnswer, at: new Date().toISOString(), sourceId: null, sourceIds: [...new Set(answerSourceIds)] });
     persist(session);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Analysen kunne ikke fullføres.';
-    for (const item of running.values()) if (item.status === 'running') finish(item, message);
+    for (const item of [...running.values(), ...stageRuns.values()]) if (item.status === 'running') finish(item, message);
     session.status = 'error'; session.error = message; session.analyzedRevision = null; persist(session);
   }
   return session;
