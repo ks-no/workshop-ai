@@ -8,6 +8,7 @@
 // merket `simulert: true` i tilstanden - se komponentene som viser det fram.
 
 import type { CredentialKind, Person } from "../types";
+import { extractVerifiedClaims } from "../../../shared/openid4vp";
 import {
   CREDENTIAL_CONFIGURATION_IDS,
   byggFormalsbevisClaims,
@@ -26,6 +27,10 @@ function claimsFor(kind: CredentialKind, person: Person): Record<string, unknown
 
 function dcqlQueryFor(kind: CredentialKind) {
   return kind === "formalsbekreftelse" ? byggFormalsbevisDcqlQuery() : byggPolitiattestDcqlQuery();
+}
+
+function credentialQueryIdFor(kind: CredentialKind): string {
+  return kind === "formalsbekreftelse" ? "formalsbekreftelse-bevis" : "politiattest-bevis";
 }
 
 export async function hentPersoner(): Promise<Person[]> {
@@ -132,13 +137,18 @@ export async function hentVerifiseringsstatus(transactionId: string): Promise<Ve
 }
 
 // GET /api/v1/.../verify/result/:id
-export async function hentVerifiseringsresultat(transactionId: string): Promise<Record<string, unknown> | null> {
+export async function hentVerifiseringsresultat(
+  transactionId: string,
+  kind: CredentialKind
+): Promise<{ claims: Record<string, unknown>; raw: Record<string, unknown> } | null> {
   try {
     const res = await fetch(`/api/v1/${VERIFIER_CLIENT_APP}/verify/result/${transactionId}`, {
       headers: { Accept: "application/json", "X-API-KEY": "KS-HACKATHON" }
     });
     if (!res.ok) return null;
-    return res.json();
+    const raw = await res.json() as Record<string, unknown>;
+    const claims = extractVerifiedClaims(raw, credentialQueryIdFor(kind));
+    return claims ? { claims, raw } : null;
   } catch {
     return null;
   }

@@ -31,6 +31,9 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
 
   const kanUtstedePolitiattest =
     formalsbevis.verification?.stage === "godkjent" && sak.politiattest.issuance == null;
+  const kanStarteFormalsverifisering = ["ikke_startet", "avvist", "feilet"].includes(
+    formalsbevis.verification?.stage ?? "ikke_startet"
+  );
 
   async function utstedPolitiattest() {
     if (!person) return;
@@ -77,9 +80,13 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
           politiet kan bekrefte at forespørselen om politiattest faktisk gjelder skolejobb.
         </p>
 
-        {formalsbevis.verification?.stage === "ikke_startet" && (
+        {kanStarteFormalsverifisering && (
           <button type="button" className="btn btn-primary" onClick={verifisering.start} disabled={verifisering.starter}>
-            {verifisering.starter ? "Starter…" : "Be om å få se formålsbekreftelsen"}
+            {verifisering.starter
+              ? "Starter…"
+              : formalsbevis.verification?.stage === "ikke_startet"
+                ? "Be om å få se formålsbekreftelsen"
+                : "Prøv verifisering på nytt"}
           </button>
         )}
 

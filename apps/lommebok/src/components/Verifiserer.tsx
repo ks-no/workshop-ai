@@ -9,6 +9,7 @@ import {
   VerificationResult,
   VerificationStatusResponse
 } from "../types";
+import { extractVerifiedClaims } from "../../../shared/openid4vp";
 
 // Samme person som i testmiljøets eksempel: person-040 i data/personer.json
 const EKSEMPELPERSON: Person = {
@@ -187,13 +188,19 @@ export const Verifiserer: React.FC<Props> = ({ onLogApiCall }) => {
 
       if (res.ok) {
         const resultData = await res.json();
-        setVerifisertResultat(resultData);
+        const credentialQueryId =
+          valgtBevisId === "formalsbekreftelse"
+            ? "formalsbekreftelse-bevis"
+            : "politiattest-bevis";
+        const claims = extractVerifiedClaims(resultData, credentialQueryId);
+        const normalizedResult = { ...resultData, claims: claims ?? {} };
+        setVerifisertResultat(normalizedResult);
 
         // Lagre i API-serveren vår slik at deltakere kan hente via GET /api/verifikasjon/:id
         await fetch("/api/verifikasjon/lagre", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transactionId: txId, result: resultData })
+          body: JSON.stringify({ transactionId: txId, result: normalizedResult })
         });
 
         onLogApiCall({

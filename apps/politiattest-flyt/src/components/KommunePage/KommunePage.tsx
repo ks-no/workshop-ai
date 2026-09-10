@@ -60,6 +60,9 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
 
   const politiattestGodkjent = sak.politiattest.verification?.stage === "godkjent";
   const claims = sak.politiattest.verification?.claims;
+  const kanStartePolitiattestverifisering = ["ikke_startet", "avvist", "feilet"].includes(
+    sak.politiattest.verification?.stage ?? "ikke_startet"
+  );
 
   return (
     <main className="kommune-page">
@@ -128,9 +131,13 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           <h2>3. Kontroll av innsendt politiattest</h2>
           <p>Søkeren har fått politiattesten fra politiet og kan nå legge den fram for kommunen.</p>
 
-          {sak.politiattest.verification?.stage === "ikke_startet" && (
+          {kanStartePolitiattestverifisering && (
             <button type="button" className="btn btn-primary" onClick={verifisering.start} disabled={verifisering.starter}>
-              {verifisering.starter ? "Starter…" : "Be om å få se politiattesten"}
+              {verifisering.starter
+                ? "Starter…"
+                : sak.politiattest.verification?.stage === "ikke_startet"
+                  ? "Be om å få se politiattesten"
+                  : "Prøv verifisering på nytt"}
             </button>
           )}
 
