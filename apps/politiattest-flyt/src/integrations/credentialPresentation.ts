@@ -39,10 +39,10 @@ export function formalsbevisRaderFraClaims(
   const holder = asRecord(claims["person"]);
   const rettsligGrunnlag = asRecord(claims["rettslig_grunnlag"]);
   return [
-    { label: "Innehaver", verdi: personName(holder) },
+    { label: "Mottaker", verdi: personName(holder) },
     { label: "Fødselsnummer", verdi: asText(holder["foedselsnummer"]) },
     { label: "Formål", verdi: asText(claims["rolle"]) },
-    { label: "Ordning", verdi: asText(claims["ordning"]) },
+    { label: "Stilling", verdi: "Skoleassistent" },
     { label: "Attesttype", verdi: asText(rettsligGrunnlag["attesttype"]) },
     { label: "Hjemmel", verdi: asText(rettsligGrunnlag["hjemmel"]) }
   ];
@@ -71,7 +71,7 @@ export function politiattestRaderFraClaims(
   const holder = asRecord(claims["innehaver"]);
   return [
     { label: "Attest-ID", verdi: asText(claims["attest_id"]) },
-    { label: "Innehaver", verdi: personName(holder) },
+    { label: "Mottaker", verdi: personName(holder) },
     { label: "Fødselsnummer", verdi: asText(holder["foedselsnummer"]) },
     { label: "Attesttype", verdi: asText(claims["attesttype"]) },
     { label: "Formål", verdi: asText(claims["formaal"]) },

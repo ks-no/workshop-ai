@@ -20,6 +20,11 @@ export const QrPanel: React.FC<Props> = ({ verdi, simulert = false, bildeUrl = n
         <QRCodeSVG value={verdi} size={storrelse} level="M" includeMargin />
       )}
     </div>
+    {verdi && (
+      <a href={verdi} className="btn btn-secondary">
+        Åpne i lommebok på denne enheten
+      </a>
+    )}
     {simulert && (
       <p className="qr-panel__simulert-varsel">
         Simulert - ingen ekte kobling til testmiljøet akkurat nå. Bruk knappen «Simuler» under

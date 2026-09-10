@@ -140,7 +140,7 @@ export const CREDENTIAL_DEFINITIONS: Record<CredentialId, CredentialDefinition> 
         attesttype: attest.attesttype,
         formaal: attest.formaal,
         antall_anmerkninger: antallAnmerkninger,
-        anmerkninger: anmerkningerForLommebok(attest.anmerkninger),
+        anmerkninger: anmerkningerForLommebok(antallAnmerkninger),
         expiry_date: maanedereEtter(attest.utstedt, 3),
         hjemmel: hjemmelSomUri(attest.hjemmel),
         utsteder: attest.utsteder,

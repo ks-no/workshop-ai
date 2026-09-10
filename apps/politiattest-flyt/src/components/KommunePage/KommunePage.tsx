@@ -73,16 +73,36 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
     }
   }
 
+  const stilling = "Skoleassistent";
   const politiattestGodkjent = sak.politiattest.verification?.stage === "godkjent";
+  const sakErAvsluttet = sak.kommuneSaksstatus === "avsluttet";
   const claims = sak.politiattest.verification?.claims;
+  const prosessSteg =
+    sak.kommuneSaksstatus === "avsluttet"
+      ? "Steg 3 av 3: saksbehandling fullført"
+      : politiattestGodkjent
+        ? "Steg 3 av 3: politiattest til vurdering"
+        : sak.formalsbevis.issuance
+          ? "Steg 2 av 3: venter på politiattest"
+          : "Steg 1 av 3: klargjør formålsbekreftelse";
 
   return (
     <main className="kommune-page">
       <header className="kommune-page__header">
         <span className="kommune-page__kommunevaapen" aria-hidden="true">DK</span>
-        <div>
+        <div className="kommune-page__sakshode">
           <span className="kommune-page__etat">Drammen kommune</span>
-          <h1>Jobbtilbud - skoleassistent</h1>
+          <h1>Politiattest i jobbtilbud</h1>
+          <p className="kommune-page__stilling">Stilling: {stilling}</p>
+          <div className="kommune-page__saksstatus">
+            <span>{sakErAvsluttet ? "Avsluttet sak" : "Aktiv sak"}</span>
+            <span>{prosessSteg}</span>
+          </div>
+        </div>
+        <div className="kommune-page__innlogget">
+          <span>Innlogget som</span>
+          <strong>Nora Nordmann</strong>
+          <small>Saksbehandler</small>
         </div>
       </header>
 
@@ -92,66 +112,89 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           rader={[
             { label: "Kandidat", verdi: person.visningsnavn },
             { label: "Tilbud sendt", verdi: sak.soknadsdato },
-            { label: "Stilling", verdi: "Skoleassistent (demo)" },
+            { label: "Stilling", verdi: stilling },
             {
               label: "Status",
               verdi:
-                sak.kommuneSaksstatus === "politiattest_mottatt"
-                  ? "Politiattest kontrollert - klar for ansettelse"
-                  : "Jobbtilbud sendt - venter på politiattest"
+                sak.kommuneSaksstatus === "avsluttet"
+                  ? "Sak avsluttet - klar for ansettelse"
+                  : sak.kommuneSaksstatus === "politiattest_mottatt"
+                    ? "Politiattest mottatt - venter på saksbehandling"
+                    : "Jobbtilbud sendt - venter på politiattest"
             }
           ]}
         />
       </section>
 
       <section className="kommune-page__kort">
-        <h2>1. Politiattest før ansettelse</h2>
-        <p>
-          Kandidaten har fått tilbud om jobb som skoleassistent. Før kandidaten kan
-          ansettes, må Drammen kommune kontrollere en gyldig politiattest. Kommunen
-          utsteder derfor et formålsbevis som kandidaten bruker når politiattesten
-          bestilles hos Politiet.
-        </p>
-        <MetadataTable
-          tittel="Opplysninger kommunen legger i formålsbeviset"
-          rader={formalsbevisRader(person)}
-        />
-        {sak.formalsbevis.issuance == null && (
-          <button type="button" className="btn btn-primary" onClick={utstedFormalsbevis} disabled={utstederLaster}>
-            {utstederLaster ? "Utsteder…" : "Utsted formålsbevis"}
-          </button>
-        )}
-        {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
-        {sak.formalsbevis.issuance && (
-          <StatusBadge
-            tekst={
-              sak.formalsbevis.issuance.status === "tilbud_klart"
-                ? "Formålsbevis sendt til kandidatens innboks"
-                : "Utstedelsen feilet"
-            }
-            tone={sak.formalsbevis.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
-          />
+        <h2>Steg 1: Formålsbekreftelse for stillingen</h2>
+        {sakErAvsluttet ? (
+          <StatusBadge tekst="Formålsbekreftelse brukt i søknaden" tone="suksess" />
+        ) : (
+          <>
+            <p>
+              Utsted formålsbekreftelsen for skolejobb. Kandidaten bruker den når hen bestiller
+              politiattest hos Politiet. Når attesten er levert til Drammen kommune, skal du
+              kontrollere den før ansettelsen kan fullføres.
+            </p>
+            <MetadataTable
+              tittel="Opplysninger kommunen legger i formålsbekreftelsen"
+              rader={formalsbevisRader(person)}
+            />
+            {sak.formalsbevis.issuance == null && (
+              <button type="button" className="btn btn-primary" onClick={utstedFormalsbevis} disabled={utstederLaster}>
+                {utstederLaster ? "Utsteder…" : "Utsted formålsbekreftelse"}
+              </button>
+            )}
+            {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
+            {sak.formalsbevis.issuance && (
+              <StatusBadge
+                tekst={
+                  sak.formalsbevis.issuance.status === "tilbud_klart"
+                    ? "Formålsbekreftelse sendt til kandidatens innboks"
+                    : "Utstedelsen feilet"
+                }
+                tone={sak.formalsbevis.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
+              />
+            )}
+          </>
         )}
       </section>
 
       {sak.formalsbevis.issuance && (
         <section className="kommune-page__kort kommune-page__venteboks" aria-live="polite">
-          <h2>2. Kontroller politiattesten</h2>
+          <h2>{sakErAvsluttet ? "Steg 3: Saksbehandling" : "Steg 2: Politiattest for stillingen"}</h2>
           {!politiattestGodkjent ? (
             <StatusBadge tekst="Venter på politiattest fra kandidaten" tone="venter" />
+          ) : sak.kommuneSaksstatus === "avsluttet" ? (
+            <StatusBadge tekst="Saksbehandling fullført - kandidaten er klar for ansettelse" tone="suksess" />
           ) : (
-            <StatusBadge tekst="Politiattest kontrollert - kandidaten kan ansettes" tone="suksess" />
+            <StatusBadge tekst="Politiattest mottatt" tone="suksess" />
           )}
-        </section>
-      )}
-
-      {politiattestGodkjent && claims && (
-        <section className="kommune-page__kort">
-          <h2>Verifisert politiattest</h2>
-          <MetadataTable
-            tittel="Opplysninger kommunen hentet fra beviset"
-            rader={politiattestRaderFraClaims(claims)}
-          />
+          {politiattestGodkjent && claims && (
+            <section>
+              <h2>Verifisert politiattest</h2>
+              <MetadataTable
+                tittel="Opplysninger kommunen hentet fra beviset"
+                rader={politiattestRaderFraClaims(claims)}
+              />
+            </section>
+          )}
+          {politiattestGodkjent && sak.kommuneSaksstatus === "politiattest_mottatt" && (
+            <>
+              <p>
+                En saksbehandler må kontrollere at politiattesten gjelder riktig formål
+                og vurdere opplysningene før ansettelsen kan fullføres.
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => dispatch({ type: "POLITIATTEST_KONTROLL_FULLFORT" })}
+              >
+                Registrer kontroll som fullført
+              </button>
+            </>
+          )}
         </section>
       )}
     </main>

@@ -1,24 +1,16 @@
 import React, { useState } from "react";
 import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
-import type { VerifiseringController } from "../../state/useVerifisering";
-import {
-  formalsbevisRader,
-  politiattestRader,
-  politiattestRaderFraClaims
-} from "../../integrations/credentialPresentation";
 import { QrPanel } from "../shared/QrPanel";
 import { StatusBadge } from "../shared/StatusBadge";
-import { MetadataTable } from "../shared/MetadataTable";
 
 interface Props {
   sak: CaseState;
   dispatch: React.Dispatch<SakHandling>;
-  politiattestVerifisering: VerifiseringController;
 }
 
 // Digipost-inspirert postkasse for demoformål, uten å kopiere den ekte tjenesten.
-export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifisering }) => {
+export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
   const [valgtMeldingId, setValgtMeldingId] = useState<string | null>(sak.inboxMessages[0]?.id ?? null);
 
   if (!sak.person) {
@@ -102,7 +94,7 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
                 <span className="innboks-page__emne">{melding.title}</span>
                 <span className="innboks-page__forhandsvisning">
                   {melding.type === "utstedelse"
-                    ? "Formålsbeviset ditt er klart for den digitale lommeboken."
+                    ? "Formålsbekreftelsen din er klar for den digitale lommeboken."
                     : "Vi venter på politiattesten før ansettelsen kan fullføres."}
                 </span>
               </button>
@@ -110,7 +102,11 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
           </section>
 
           <article className="innboks-page__meldingsvisning" aria-live="polite">
-            {!valgtMelding && <p>Velg en melding for å se innholdet.</p>}
+            {!valgtMelding && (
+              <p className="innboks-page__tom innboks-page__tom--visning">
+                Velg en melding for å se innholdet.
+              </p>
+            )}
             {valgtMelding && (
               <>
                 <header className="innboks-page__brevhode">
@@ -128,86 +124,46 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
                   </div>
                 </header>
                 <div className="innboks-page__brevinnhold">
-                  <p>Hei {sak.person.navn.fornavn},</p>
-                  <p className="innboks-page__meldingstekst">
-                    {valgtMelding.type === "utstedelse"
-                      ? "Du har fått et formålsbevis fra Drammen kommune. Beviset brukes når du søker om politiattest for jobb i skolen."
-                      : "Vi venter fortsatt på politiattesten din. Når du har hentet den fra Politiet, kan du dele de nødvendige opplysningene med Drammen kommune ved å bruke QR-koden under."}
-                  </p>
-
                   {valgtMelding.type === "utstedelse" && valgtMelding.issuance.status === "tilbud_klart" ? (
                     <>
-                      <StatusBadge tekst="Klart for digital lommebok" tone="venter" />
-                      <MetadataTable
-                        tittel="Opplysninger som lagres i lommeboken"
-                        rader={formalsbevisRader(sak.person)}
-                      />
+                      <p>Du har fått tilbud om stilling som skoleassistent hos Drammen kommune. Før du kan ansettes, trenger vi politiattest. Her er formålsbekreftelsen du bruker når du går inn på politiet.no og søker om politiattest.</p>
                       <QrPanel
-                        verdi={valgtMelding.issuance.credentialOfferUri || ""}
-                        bildeUrl={valgtMelding.issuance.qrCodeDataUri}
-                        simulert={valgtMelding.issuance.simulated}
-                      />
-                      {valgtMelding.issuance.credentialOfferUri && (
-                        <a href={valgtMelding.issuance.credentialOfferUri} className="btn btn-secondary">
-                          Åpne i lommebok på denne enheten
-                        </a>
-                      )}
+                      verdi={valgtMelding.issuance.credentialOfferUri || ""}
+                      bildeUrl={valgtMelding.issuance.qrCodeDataUri}
+                      simulert={valgtMelding.issuance.simulated}
+                    />
                     </>
-                  ) : valgtMelding.type === "utstedelse" ? (
-                    <StatusBadge tekst={`Utstedelsen feilet: ${valgtMelding.issuance.feilmelding ?? "ukjent feil"}`} tone="feil" />
-                  ) : sak.politiattest.verification?.stage === "venter_paa_presentasjon" &&
-                    sak.politiattest.verification.transactionId ? (
+                  ) : valgtMelding.type === "ettersporsel" ? (
                     <>
-                      <StatusBadge tekst="Venter på at du viser fram politiattesten" tone="venter" />
-                      <MetadataTable
-                        tittel="Opplysninger du deler med Drammen kommune"
-                        rader={politiattestRader(sak.person)}
-                      />
-                      <QrPanel
-                        verdi={sak.politiattest.verification.authorizationRequest || ""}
-                      />
-                      {sak.politiattest.verification.authorizationRequest && (
-                        <a
-                          href={sak.politiattest.verification.authorizationRequest}
-                          className="btn btn-secondary"
-                        >
-                          Åpne i lommebok på denne enheten
-                        </a>
-                      )}
-                    </>
-                  ) : sak.politiattest.verification?.stage === "godkjent" ? (
-                    <>
-                      <StatusBadge tekst="Politiattesten er mottatt av Drammen kommune" tone="suksess" />
-                      <MetadataTable
-                        tittel="Opplysninger kommunen hentet fra beviset"
-                        rader={politiattestRaderFraClaims(
-                          sak.politiattest.verification.claims ?? {}
+                      <p>
+                        Drammen kommune venter på politiattesten din i forbindelse med
+                        søknaden på stillingen som skoleassistent. Frist for å levere
+                        politiattesten er 20. september 2026.
+                      </p>
+                      {sak.politiattest.verification?.stage === "venter_paa_presentasjon" &&
+                        sak.politiattest.verification.transactionId && (
+                          <QrPanel verdi={sak.politiattest.verification.authorizationRequest || ""} />
                         )}
-                      />
+                      {sak.politiattest.verification?.stage === "godkjent" && (
+                        <StatusBadge
+                          tekst="Politiattesten er levert til Drammen kommune"
+                          tone="suksess"
+                        />
+                      )}
+                      {sak.politiattest.verification?.stage === "avvist" && (
+                        <StatusBadge
+                          tekst={`Politiattesten ble avvist: ${sak.politiattest.verification.rejectionReason}`}
+                          tone="feil"
+                        />
+                      )}
+                      {sak.politiattest.verification?.stage === "feilet" && (
+                        <StatusBadge
+                          tekst="Leveringen feilet. Opprett en ny forespørsel og prøv igjen."
+                          tone="feil"
+                        />
+                      )}
                     </>
-                  ) : sak.politiattest.verification?.stage === "avvist" ||
-                    sak.politiattest.verification?.stage === "feilet" ? (
-                    <>
-                      <StatusBadge
-                        tekst={
-                          sak.politiattest.verification.stage === "avvist"
-                            ? `Kunne ikke godkjenne attesten: ${sak.politiattest.verification.rejectionReason}`
-                            : "Verifiseringen feilet."
-                        }
-                        tone="feil"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={politiattestVerifisering.start}
-                        disabled={politiattestVerifisering.starter}
-                      >
-                        {politiattestVerifisering.starter ? "Starter…" : "Prøv verifisering på nytt"}
-                      </button>
-                    </>
-                  ) : (
-                    <StatusBadge tekst="Venter på at Politiet utsteder attesten" tone="venter" />
-                  )}
+                  ) : null}
                 </div>
               </>
             )}
