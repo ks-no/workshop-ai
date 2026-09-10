@@ -87,7 +87,7 @@ function Workspace() {
   const locked = loading || !!busy || analyzing || caseChanged;
   const modelAvailable = model?.available === true;
   const waitingFacts = session?.facts.filter(fact => fact.status === 'proposed' || fact.status === 'conflict').length ?? 0;
-  const ksActionRequired = !!session && session.intent === 'personalized' && session.services.some(service => service.id === 'family') && !session.ksData?.incomeReadAt && session.ksAccessDecision?.status !== 'declined';
+  const ksActionRequired = !!session && (session.pendingConsents ?? []).some(consent => consent.revision === session.revision);
 
   useEffect(() => {
     if (!busy && !analyzing) return;
@@ -231,7 +231,7 @@ function Workspace() {
       <div className="assistant-mobile-tabs" aria-label={t('Velg visning')}><PktTabs tabs={[{ text: t('Samtale'), active: tab === 'conversation', controls: 'conversation-panel' }, { text: t('Din oversikt'), active: tab === 'case', controls: 'case-panel', ...(waitingFacts > 0 ? { tag: { text: `${waitingFacts}`, skin: 'blue-light' as const } } : {}) }]} onTabSelected={index => setTab(index === 0 ? 'conversation' : 'case')} /></div>
       <div className="assistant-workspace">
         <section id="conversation-panel" className={`assistant-conversation ${tab === 'conversation' ? 'is-mobile-active' : ''}`} aria-labelledby="conversation-heading">
-          <div className="assistant-conversation-scroll">
+          <div className="assistant-conversation-scroll" tabIndex={0} role="group" aria-label={t("Samtalen")}>
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
           {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}

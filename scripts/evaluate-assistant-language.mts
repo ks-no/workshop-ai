@@ -7,7 +7,7 @@ import { addDocument, addMessage, analyzeCase } from '../src/server/assistant-se
 import { modelName } from '../src/server/assistant-model.ts';
 import type { AssistantCase } from '../src/domain/assistant-types.ts';
 
-// Explicit opt-in: real Cloudflare calls using synthetic citizen text only.
+// Explicit opt-in: real model calls through the configured LLM endpoint, using synthetic citizen text only.
 const directory = mkdtempSync(join(tmpdir(), 'sok-language-eval-'));
 process.env.ASSISTANT_DATA_DIR = directory;
 let session = createAssistantCase();

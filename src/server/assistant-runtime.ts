@@ -9,12 +9,12 @@ type RequestHandler = (method: string, data: Record<string, unknown>) => Promise
 const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'stage', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
 
 /** Explicit allowlist, as in ks-runtime.ts: an agent process inherits its own settings and no other server secret. */
-const runtimeEnvKeys = ['AI_PROVIDER', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID',
+const runtimeEnvKeys = ['LLM_BASE_URL', 'LLM_API_KEY', 'AI_PROVIDER', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID',
   'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MODEL_TIMEOUT_MS',
   'PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'SystemRoot', 'TEMP', 'TMP', 'USERPROFILE'];
 function runtimeEnv(): NodeJS.ProcessEnv {
   const env = { NODE_ENV: process.env.NODE_ENV } as NodeJS.ProcessEnv;
-  for (const key of runtimeEnvKeys) if (process.env[key]) env[key] = process.env[key];
+  for (const key of runtimeEnvKeys) if (process.env[key] !== undefined) env[key] = process.env[key];
   return env;
 }
 

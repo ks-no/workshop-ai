@@ -56,9 +56,9 @@ function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: strin
   return Buffer.from(document);
 }
 
-test('citizen assistant starts with an honest connection state and no invented case', async ({ page }) => {
+test('citizen assistant starts with an honest connection state and no invented case', async ({ page, baseURL }) => {
   const remoteRequests: string[] = [];
-  page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:3210/')) remoteRequests.push(request.url()); });
+  page.on('request', request => { if (new URL(request.url()).origin !== new URL(baseURL!).origin) remoteRequests.push(request.url()); });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   const initial = await snapshot(page);
@@ -419,7 +419,7 @@ test('agent task disclosure opens a selected run in the right activity panel', a
   finally { database.close(); }
   await page.reload();
   await page.locator('.assistant-task-disclosure > summary').click();
-  const task = page.getByRole('button', { name: /Vis detaljer for Koordinator/ });
+  const task = page.getByRole('button', { name: /Vis detaljer for Triage/ });
   await expect(task).toBeVisible();
   await task.click();
   await expect(page.getByRole('tab', { name: 'Aktivitet', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -523,27 +523,33 @@ test('the agent routes a personal SFO request to contextual KS consent and suppo
   await expect(page.getByRole('button', { name: 'Hent fra KS', exact: true })).toHaveCount(0);
   await page.getByLabel('Hva er situasjonen din?').fill('Jeg bruker SFO og vil vite om familien min kan betale mindre.');
   await page.getByRole('button', { name: 'Send melding', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Kan vi hente testopplysninger fra KS?' })).toBeVisible({ timeout: 200000 });
+  await expect(page.getByRole('heading', { name: 'Kan jeg hente opplysninger for deg?' })).toBeVisible({ timeout: 200000 });
+  // Consent is visible after triage; the reply is appended only after critic/polish completes.
+  await expect.poll(async () => (await snapshot(page)).session?.status, { timeout: 200000 }).not.toBe('analyzing');
+  expect((await snapshot(page)).session?.error).toBeNull();
+  await expect(page.locator('.assistant-message.is-assistant').last()).toContainText('Vil du at jeg henter opplysninger for deg?');
+  expect((await snapshot(page)).session?.pendingConsents?.map(consent => consent.toolId)).toEqual(['ks_connect', 'ks_income']);
   const state = (await snapshot(page)).session!;
   expect(state.intent).toBe('personalized');
   expect(state.services.some(service => service.id === 'family')).toBe(true);
   expect(state.ksData?.incomeReadAt ?? null).toBeNull();
   await expect(page.getByRole('heading', { name: 'Dette trenger vi å vite' })).toHaveCount(0);
-  const consentLabel = 'Jeg samtykker til å hente disse syntetiske personopplysningene fra KS-sandkassen for denne SFO-vurderingen.';
+  const consentLabel = 'Jeg samtykker til at disse syntetiske opplysningene hentes for denne vurderingen.';
   await expect(page.getByLabel(consentLabel)).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Samtykk, hent og fortsett', exact: true })).toBeDisabled();
   await page.getByLabel(consentLabel).check();
   await expect(page.getByRole('button', { name: 'Samtykk, hent og fortsett', exact: true })).toBeEnabled();
   await page.reload();
   await expect(page.getByLabel(consentLabel)).not.toBeChecked();
-  await page.getByRole('button', { name: 'Fortsett uten KS', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Vi fortsetter uten KS' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fortsett uten å hente', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Vi fortsetter uten å hente opplysninger' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Dette trenger vi å vite' })).toBeVisible();
   const declined = (await snapshot(page)).session!;
   expect(declined.ksAccessDecision?.status).toBe('declined');
   expect(declined.ksData?.incomeReadAt ?? null).toBeNull();
-  expect(mutations.find(command => command.action === 'ks-access')).toMatchObject({ approved: false, caseId: state.id, revision: state.revision });
-  expect(mutations.some(command => command.action === 'connect-ks' || command.action === 'income-consent')).toBe(false);
+  expect(mutations.find(command => command.action === 'tool-consent')).toMatchObject({ approved: false, toolIds: ['ks_connect', 'ks_income'], caseId: state.id, revision: state.revision });
+  expect(declined.pendingConsents).toEqual([]);
+  expect(mutations.some(command => ['connect-ks', 'income-consent', 'ks-access'].includes(String(command.action)))).toBe(false);
   await noAccessibilityErrors(page);
   await page.getByRole('button', { name: 'Avslutt og slett', exact: true }).click();
   await page.getByRole('button', { name: 'Slett saken', exact: true }).click();

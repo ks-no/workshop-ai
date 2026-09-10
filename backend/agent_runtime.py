@@ -55,17 +55,30 @@ def safe_error(error: Exception) -> str:
     return "Agentkjøringen kunne ikke fullføres. Opplysningene er bevart; kontroller Python-oppsettet og prøv igjen."
 
 
+def configured_provider() -> str:
+    # Presence selects the generic endpoint even when its value is invalid: never fall back silently.
+    return (os.environ.get("AI_PROVIDER") or ("litellm" if "LLM_BASE_URL" in os.environ else "cloudflare")).strip().lower()
+
+
 def provider_label() -> str:
-    return "Telenor AI Factory" if os.environ.get("AI_PROVIDER", "cloudflare").strip().lower() == "telenor" else "Cloudflare"
+    return {"telenor": "Telenor AI Factory", "litellm": "Modelltjenesten"}.get(configured_provider(), "Cloudflare")
 
 
 def provider_configuration() -> dict[str, Any]:
-    provider = os.environ.get("AI_PROVIDER", "cloudflare").strip().lower()
+    provider = configured_provider()
+    if provider == "litellm":
+        base_url = os.environ.get("LLM_BASE_URL", "").strip()
+        api_key = os.environ.get("LLM_API_KEY", "")
+        url = urlsplit(base_url)
+        secure = url.scheme == "https" or (url.scheme == "http" and url.hostname in ("localhost", "127.0.0.1", "::1"))
+        if not url.hostname or not secure or url.username or url.password or url.query or url.fragment or not api_key:
+            raise ValueError("Invalid server configuration")
+        return {"api_key": api_key, "base_url": base_url.rstrip("/"), "max_retries": 0}
     if provider == "telenor":
         base = os.environ.get("TELENOR_AI_FACTORY_BASE_URL", "").strip()
         key = os.environ.get("TELENOR_AI_FACTORY_API_KEY", "").strip()
         parts = urlsplit(base)
-        if parts.scheme != "https" or not TELENOR_HOSTNAME_PATTERN.match(parts.hostname or "") or parts.query or parts.fragment or not key:
+        if parts.scheme != "https" or not TELENOR_HOSTNAME_PATTERN.match(parts.hostname or "") or parts.username or parts.password or parts.query or parts.fragment or not key:
             raise ValueError("Invalid server configuration")
         root = base.rstrip("/")
         return {"api_key": key, "base_url": root if root.endswith("/v1") else root + "/v1", "max_retries": 0}
@@ -147,11 +160,15 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
     async with asyncio.timeout(timeout):
         async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
-            chat = OpenAIChatCompletionClient(model=job["model"].removeprefix("workers-ai/"), async_client=sdk)
+            cloudflare = configured_provider() == "cloudflare"
+            model = job["model"].removeprefix("workers-ai/") if cloudflare else job["model"]
+            options = {"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}, "store": False}
+            if cloudflare:
+                options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+            chat = OpenAIChatCompletionClient(model=model, async_client=sdk)
             agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
                           middleware=[analysis_only_middleware],
-                          default_options={"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"},
-                                           "store": False, "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}})
+                          default_options=options)
             for attempt in range(2):
                 response = await agent.run(messages)
                 content = response_content(response)

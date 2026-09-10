@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 import { z } from 'zod';
 import { aiProvider, callModel, maxRevisions, modelName, modelStatus, planSchema, responseLanguageName, specialistPrompt, specialistSchema, TRIAGE_PROMPT } from '../src/server/assistant-model';
 import { runtimeInstalled } from '../src/server/assistant-runtime';
@@ -8,10 +10,9 @@ import type { ModelPlan } from '../src/domain/assistant-types';
 
 // HTTP behavior is exercised through the real Python Agent/SDK in test_agent_runtime.py.
 const fixtureConfig = {
-  CF_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
-  CF_AI_GATEWAY_TOKEN: 'test-only-not-a-real-cloudflare-token',
-  CF_AI_GATEWAY_ID: 'adapter-tests',
-  LLM_MODEL: 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
+  LLM_BASE_URL: 'https://litellm.test.invalid/v1',
+  LLM_API_KEY: 'test-only-not-a-real-api-key',
+  LLM_MODEL: 'controlled-model',
   ASSISTANT_MODEL_TIMEOUT_MS: '10000',
   ASSISTANT_PYTHON: resolve(process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python'),
 };
@@ -23,7 +24,7 @@ const telenorFixture = {
 // afterEach, so a test only has to set what it needs and never has to remember to unset it.
 const volatileKeys = ['LLM_TRIAGE_MODEL', 'LLM_DRAFT_MODEL', 'LLM_CRITIC_MODEL', 'LLM_POLISH_MODEL',
   'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'AI_PROVIDER',
-  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS'];
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'];
 const previousEnv = new Map<string, string | undefined>();
 beforeEach(() => {
   for (const [key, value] of Object.entries(fixtureConfig)) {
@@ -50,8 +51,7 @@ const validPlan: ModelPlan = {
 };
 function assertSanitized(value: unknown) {
   const serialized = value instanceof Error ? value.message : JSON.stringify(value);
-  for (const privateValue of [fixtureConfig.CF_AI_GATEWAY_TOKEN, fixtureConfig.CF_ACCOUNT_ID, fixtureConfig.CF_AI_GATEWAY_ID,
-    telenorFixture.TELENOR_AI_FACTORY_API_KEY, telenorFixture.TELENOR_AI_FACTORY_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
+  for (const privateValue of [fixtureConfig.LLM_API_KEY, fixtureConfig.LLM_BASE_URL, telenorFixture.TELENOR_AI_FACTORY_API_KEY, telenorFixture.TELENOR_AI_FACTORY_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
     assert.ok(!serialized.includes(privateValue));
   }
 }
@@ -60,13 +60,16 @@ test('configured status reports local runtime availability and model metadata wi
   assert.equal(runtimeInstalled(), true, 'Install the Python backend before running the suite');
   const status = await modelStatus();
   assert.equal(status.available, true);
-  assert.equal(status.provider, 'cloudflare');
+  assert.equal(status.provider, 'litellm');
   assert.equal(status.model, fixtureConfig.LLM_MODEL);
   assert.deepEqual(status.models, { triage: fixtureConfig.LLM_MODEL, draft: fixtureConfig.LLM_MODEL, critic: fixtureConfig.LLM_MODEL, polish: fixtureConfig.LLM_MODEL });
   assertSanitized(status);
 });
 
 test('role defaults use Qwen for triage/critic/polish and Gemma for draft, and appear in status', async () => {
+  process.env.AI_PROVIDER = 'cloudflare';
+  process.env.CF_ACCOUNT_ID = 'a'.repeat(32);
+  process.env.CF_AI_GATEWAY_TOKEN = 'test-only-cloudflare';
   delete process.env.LLM_MODEL;
   const expected = { triage: '@cf/qwen/qwen3.8-27b', draft: '@cf/google/gemma-4-26b-a4b-it', critic: '@cf/qwen/qwen3.8-27b', polish: '@cf/qwen/qwen3.8-27b' };
   assert.equal(modelName(), expected.triage);
@@ -80,7 +83,27 @@ test('role defaults use Qwen for triage/critic/polish and Gemma for draft, and a
   delete process.env.CF_AI_GATEWAY_TOKEN;
   const unavailable = await modelStatus();
   assert.equal(unavailable.available, false);
-  assert.deepEqual(unavailable.models, expected);
+  assert.deepEqual(unavailable.models, configured.models);
+});
+
+test('there is no built-in model default: both roles must be named before status reports availability', async () => {
+  delete process.env.LLM_MODEL;
+  assert.equal(modelName(), '');
+  assert.equal(modelName('draft'), '');
+  const unnamed = await modelStatus();
+  assert.equal(unnamed.available, false);
+  assert.deepEqual(unnamed.models, { triage: '', draft: '', critic: '', polish: '' });
+  process.env.LLM_COORDINATOR_MODEL = 'coordinator-only';
+  assert.equal((await modelStatus()).available, false, 'a specialist model is still missing');
+  process.env.LLM_SPECIALIST_MODEL = 'specialist-only';
+  const configured = await modelStatus();
+  assert.equal(configured.available, true);
+  assert.equal(configured.model, 'coordinator-only');
+  assert.deepEqual(configured.models, { triage: 'coordinator-only', draft: 'specialist-only', critic: 'coordinator-only', polish: 'coordinator-only' });
+  delete process.env.LLM_API_KEY;
+  const unavailable = await modelStatus();
+  assert.equal(unavailable.available, false);
+  assert.deepEqual(unavailable.models, configured.models);
 });
 
 test('per-role env overrides take precedence independently for all four roles', () => {
@@ -114,11 +137,14 @@ test('LLM_MODEL is the last fallback before the provider default, below both leg
   delete process.env.LLM_COORDINATOR_MODEL;
   assert.equal(modelName('triage'), fixtureConfig.LLM_MODEL);
   delete process.env.LLM_MODEL;
+  process.env.AI_PROVIDER = 'cloudflare';
   assert.equal(modelName('triage'), '@cf/qwen/qwen3.8-27b');
   assert.equal(modelName('draft'), '@cf/google/gemma-4-26b-a4b-it');
 });
 
 test('aiProvider defaults to cloudflare, accepts telenor case-insensitively and with surrounding whitespace, and treats anything else as cloudflare', () => {
+  assert.equal(aiProvider(), 'litellm');
+  delete process.env.LLM_BASE_URL;
   assert.equal(aiProvider(), 'cloudflare');
   for (const value of ['telenor', 'TELENOR', 'Telenor', ' telenor ', '\ttelenor\n']) {
     process.env.AI_PROVIDER = value;
@@ -191,10 +217,11 @@ test('a typo in AI_PROVIDER fails closed even with otherwise valid Cloudflare cr
 test('missing or invalid configuration fails before starting Python and redacts values', async () => {
   process.env.ASSISTANT_PYTHON = resolve('backend/PRIVATE-UPSTREAM-DETAIL-missing-python');
   for (const [key, value] of [
-    ['CF_ACCOUNT_ID', ''], ['CF_ACCOUNT_ID', 'PRIVATE-UPSTREAM-DETAIL/invalid-account'],
-    ['CF_AI_GATEWAY_TOKEN', ''], ['CF_AI_GATEWAY_ID', '../PRIVATE-UPSTREAM-DETAIL'],
+    ['LLM_BASE_URL', ''], ['LLM_BASE_URL', 'PRIVATE-UPSTREAM-DETAIL'],
+    ['LLM_BASE_URL', 'http://PRIVATE-UPSTREAM-DETAIL.example/v1'], ['LLM_BASE_URL', 'https://user:PRIVATE-UPSTREAM-DETAIL@litellm.test.invalid/v1'],
+    ['LLM_API_KEY', ''], ['LLM_MODEL', ''],
   ]) {
-    for (const configKey of ['CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'] as const) process.env[configKey] = fixtureConfig[configKey];
+    for (const configKey of ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'] as const) process.env[configKey] = fixtureConfig[configKey];
     process.env[key] = value;
     const status = await modelStatus();
     assert.equal(status.available, false);
@@ -270,7 +297,7 @@ test('specialist schema keeps strict finding citations and local length limits',
 test('schemas exported to Python retain strict properties, language defaults and local maximums', () => {
   const planner = z.toJSONSchema(planSchema);
   assert.equal(planner.additionalProperties, false);
-  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported']);
+  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported', 'toolRequests']);
   assert.equal((planner.properties?.language as Record<string, unknown>).default, 'nb');
   assert.equal((planner.properties?.intent as Record<string, unknown>).default, 'personalized');
   assert.equal((planner.properties?.summary as Record<string, unknown>).maxLength, 1600);
@@ -294,4 +321,36 @@ test('language prompts require translated prose while preserving quotations and 
   assert.match(TRIAGE_PROMPT, /keep currentLanguage/);
   assert.match(TRIAGE_PROMPT, /summary, describe the need without repeating numeric amounts/);
   assert.match(TRIAGE_PROMPT, /No model assertion is a confirmed fact/);
+});
+
+
+test('generic endpoint settings reach the real Python child and preserve its configured model', async () => {
+  let calls = 0;
+  const server = createServer(async (request, response) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    assert.equal(request.url, '/v1/chat/completions');
+    assert.equal(request.headers.authorization, `Bearer ${fixtureConfig.LLM_API_KEY}`);
+    assert.equal(body.model, fixtureConfig.LLM_MODEL);
+    calls++;
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ id: 'test-completion', object: 'chat.completion', created: 0, model: body.model,
+      choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(validPlan) } }] }));
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.LLM_BASE_URL = `http://127.0.0.1:${address.port}/v1`;
+    const output = await callModel('Return the supplied plan.', {
+      _security: { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] },
+    }, planSchema);
+    assert.deepEqual(output, validPlan);
+    assert.equal(calls, 1);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });

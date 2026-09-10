@@ -20,7 +20,7 @@ const priorDataDirectory = process.env.ASSISTANT_DATA_DIR;
 process.env.ASSISTANT_DATA_DIR = directory;
 const createdIds = new Set<string>();
 const origin = 'http://127.0.0.1:3210';
-const fixtureConfig = { CF_ACCOUNT_ID: '', CF_AI_GATEWAY_TOKEN: '', CF_AI_GATEWAY_ID: 'http-tests' };
+const fixtureConfig = { LLM_BASE_URL: '', LLM_API_KEY: '', LLM_MODEL: 'http-tests' };
 const previousEnv = new Map<string, string | undefined>();
 let previousFetch: typeof globalThis.fetch;
 let modelCalls = 0;

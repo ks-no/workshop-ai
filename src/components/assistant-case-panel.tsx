@@ -157,7 +157,7 @@ function activityAgentName(run: Pick<AgentRun, 'agent' | 'stage'>) {
 }
 
 function activityEventName(type: string) {
-  const names: Record<string, string> = { started: 'Startet', 'source-read': 'Leste kilde', completed: 'Fullført', failed: 'Feilet', human: 'Bekreftelse', blocked: 'Stoppet for avklaring' };
+  const names: Record<string, string> = { started: 'Startet', 'source-read': 'Leste kilde', completed: 'Fullført', failed: 'Feilet', human: 'Bekreftelse', blocked: 'Stoppet for avklaring', 'tool-requested': 'Ba om verktøy' };
   return names[type] ?? type;
 }
 

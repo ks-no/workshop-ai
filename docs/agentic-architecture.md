@@ -153,6 +153,49 @@ og sender `store: false`. Dette beskriver appens forespørselsvalg, ikke et løf
 om all intern behandling eller lagring hos leverandøren. Lokal sletting fjerner
 appens saksminne; den tilbakekaller ikke modellkall som allerede er utført.
 
+## Verktøykatalog og kontekstuelt samtykke
+
+[Verktøykatalogen](../src/domain/tool-catalogue.ts) er en deklarativ liste over
+det agentene kan be om: veiledningsutdrag, husstand/SFO-plass/satser fra kommunen,
+inntektsgrunnlag fra Skatteetaten via KS Fiks, og lokal utfylling av
+søknadsutkastet. Hvert verktøy har type, port (`none` eller `consent`), integrasjon,
+tillatte roller, tilknyttede tjenester og avhengigheter. Modellen får bare id,
+beskrivelse, port og om verktøyet allerede er hentet. Kjørbar kode ligger i
+[verktøykjøreren](../src/server/tool-runner.ts) på serveren.
+
+Flyten er vertsstyrt. Koordinatoren kan nominere verktøy i `toolRequests`, men
+utfører ingenting. I `prepare`-steget avgjør Node hvilke samtykker som skal
+spørres om: et portet verktøy knyttet til en valgt tjeneste tilbys alltid ved
+personlig hensikt, uansett om modellen husket å be om det. Forespørsler utenfor
+valgte tjenester, ved informasjonshensikt eller etter et avslag blir ignorert og
+logget som `blocked`. Ventende samtykker lagres på saken med revisjon, og Node
+legger en egen samtykketekst fra katalogen inn i assistentens svar. Modellen
+skriver aldri samtykketeksten.
+
+Ett valg i grensesnittet sender `tool-consent` med verktøy-id-er, saks-ID og
+revisjon. Node kontrollerer at forespørslene faktisk venter for gjeldende revisjon,
+kjører integrasjonene i avhengighetsrekkefølge, lagrer resultatene som kilder og
+registerfakta, og starter ny analyse. Etter analysen fyller beregningsverktøyet
+ut et søknadsutkast for redusert SFO-betaling fra bekreftede fakta og hentede
+registerutdrag. Hvert felt har kilde og status (`filled`, `missing`, `review`).
+Uavklarte forslag fyller aldri skjemaet, og ingenting sendes; signatur og
+innsending er et manuelt felt.
+
+[Skjemakatalogen](../src/domain/form-catalogue.ts) legger en egnethetssløyfe
+over verktøyene. Hvert skjema har screeningfakta, et nøkkelordmønster og
+spørsmål for felt som fortsatt mangler. Flyten er: innspill → screening.
+Er egnetheten uavklart, spør Node først og analysen kjøres på nytt når svaret
+kommer. Er skjemaet mulig, bes det om samtykke. Etter at verktøyene har kjørt,
+sjekker Node om utkastet mangler faktafelt; manglende felt blir spørsmål, og
+svaret utløser ny analyse til utkastet er klart. Et diskvalifiserende svar
+stopper skjemaet uten samtykke. Screening kan bruke foreslåtte fakta, siden den
+bare avgjør hva som skal spørres om; selve utfyllingen bruker kun bekreftede
+fakta og hentede registerutdrag. Stadiet (`screening`, `consent`, `collecting`,
+`ready`, `not-applicable`) lagres på tjenesten og vises i tavlen og i svaret.
+
+Python-runtime er uendret. Middlewaren avviser fortsatt alle rammeverksverktøy,
+og agentene ser kun `prepare`- og `specialist`-forespørsler.
+
 ## Prompt injection og agentmyndighet
 
 Samtaletekst, dokumenter og registerutdrag merkes som **ubetrodd** og **privat**

@@ -5,7 +5,8 @@ import { failure, json, readBody } from '../../../server/http';
 import { createAssistantCase, deleteAssistantCase, loadAssistantCase, saveAssistantCase, withAssistantLock } from '../../../server/assistant-store';
 import { ASSISTANT_COOKIE, assistantFrom, assistantResponse } from '../../../server/assistant-http';
 import { addConfirmedAnswers, addMessage, analyzeCase, decideFactAndContinue, prepareHandoff } from '../../../server/assistant-service';
-import { factKeys } from '../../../domain/assistant-types';
+import { factKeys, toolIds } from '../../../domain/assistant-types';
+import { decideToolConsent } from '../../../server/tool-runner';
 
 import { connectKs, consentAndReadIncome, declineKsAccess } from '../../../server/assistant-ks';
 
@@ -21,6 +22,7 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('connect-ks'), revision, caseId }).strict(),
   z.object({ action: z.literal('income-consent'), approved: z.literal(true), revision, caseId }).strict(),
   z.object({ action: z.literal('ks-access'), approved: z.boolean(), revision, caseId }).strict(),
+  z.object({ action: z.literal('tool-consent'), toolIds: z.array(z.enum(toolIds)).min(1).max(4), approved: z.boolean(), revision, caseId }).strict(),
   z.object({ action: z.literal('handoff'), confirmed: z.literal(true), revision, caseId }).strict(),
 ]);
 export async function GET(request: NextRequest) {
@@ -55,6 +57,10 @@ export async function POST(request: NextRequest) {
           await consentAndReadIncome(session, true);
           if (session.messages.length) await analyzeCase(session);
         }
+      }
+      else if (command.action === 'tool-consent') {
+        const { executed } = await decideToolConsent(session, command.toolIds, command.approved);
+        if (executed.length && session.messages.length) await analyzeCase(session);
       }
       else if (command.action === 'handoff') prepareHandoff(session, command.confirmed);
       saveAssistantCase(session);
