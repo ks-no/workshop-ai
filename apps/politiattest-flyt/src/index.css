@@ -410,35 +410,94 @@ button {
   text-align: center;
 }
 
-/* --- Innboks: forenklet Gmail-lignende kontovisning --- */
+/* --- Innboks: Digipost-inspirert digital postkasse --- */
 .innboks-page {
-  max-width: 960px;
+  --digipost-rod: #e32d22;
+  --digipost-mork: #4a1011;
+  --digipost-lys: #fff1ef;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 0 1.25rem 3rem;
+  padding-bottom: 3rem;
+  background: #f6f3f1;
+  box-shadow: 0 8px 30px rgba(74, 16, 17, 0.08);
 }
 
 .innboks-page__header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: 1.25rem 0;
+  align-items: center;
+  min-height: 76px;
+  padding: 0.75rem 1.5rem;
+  background: var(--digipost-rod);
+  color: #fff;
+}
+
+.innboks-page__merke,
+.innboks-page__bruker {
+  display: flex;
+  align-items: center;
+}
+
+.innboks-page__merke {
+  gap: 0.65rem;
+}
+
+.innboks-page__logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.innboks-page__demo {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.innboks-page__bruker {
+  gap: 0.65rem;
+}
+
+.innboks-page__bruker > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.innboks-page__bruker small {
+  color: #fff;
+  opacity: 0.85;
+}
+
+.innboks-page__brukerinitialer {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  font-weight: 700;
 }
 
 .innboks-page__layout {
   display: grid;
-  grid-template-columns: 160px 280px 1fr;
-  gap: 1rem;
-  background: #fff;
-  border: 1px solid var(--kant);
-  border-radius: 10px;
-  overflow: hidden;
-  min-height: 420px;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: 650px;
 }
 
 .innboks-page__mapper {
-  background: #f8f5f2;
+  background: var(--digipost-lys);
   border-right: 1px solid var(--kant);
-  padding: 1rem 0.5rem;
+  padding: 1.75rem 1rem;
+}
+
+.innboks-page__mapper h2 {
+  margin: 0 0 1rem 0.75rem;
+  color: var(--digipost-mork);
+  font-size: 1rem;
 }
 
 .innboks-page__mapper ul {
@@ -448,68 +507,222 @@ button {
 }
 
 .innboks-page__mappe {
-  padding: 0.5rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.9rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 5px;
+  font-size: 0.95rem;
   display: flex;
   justify-content: space-between;
 }
 
 .innboks-page__mappe--aktiv {
-  background: #fde9e7;
+  background: #fff;
+  color: var(--digipost-mork);
   font-weight: 700;
+  box-shadow: 0 2px 8px rgba(74, 16, 17, 0.08);
 }
 
 .innboks-page__telling {
-  color: #b3261e;
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  background: var(--digipost-rod);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
+.innboks-page__sikkerhet {
+  margin: 2rem 0.75rem 0;
+  color: #6e5555;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.innboks-page__post {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  min-width: 0;
+  margin: 1.5rem;
+  background: #fff;
+  border: 1px solid #dfd8d5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 .innboks-page__meldingsliste {
-  border-right: 1px solid var(--kant);
-  padding: 0.5rem 0;
+  border-right: 1px solid #dfd8d5;
   overflow-y: auto;
+}
+
+.innboks-page__listehode {
+  padding: 1.25rem;
+  border-bottom: 1px solid #dfd8d5;
+}
+
+.innboks-page__listehode h1 {
+  margin: 0;
+  color: var(--digipost-mork);
+  font-size: 1.35rem;
+}
+
+.innboks-page__listehode span {
+  color: var(--tekst-lys);
+  font-size: 0.85rem;
 }
 
 .innboks-page__melding {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.15rem;
+  gap: 0.3rem;
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #eee9e6;
+  padding: 1rem 1.25rem;
   cursor: pointer;
+}
+
+.innboks-page__melding:hover {
+  background: #faf7f5;
+}
+
+.innboks-page__melding:focus-visible {
+  outline: 3px solid #1c4ed8;
+  outline-offset: -3px;
 }
 
 .innboks-page__melding--ulest {
   font-weight: 700;
-  background: #fafafa;
+  background: #fff;
 }
 
 .innboks-page__melding--valgt {
-  background: #eef2ff;
+  background: var(--digipost-lys);
+}
+
+.innboks-page__melding--valgt:hover {
+  background: var(--digipost-lys);
+}
+
+.innboks-page__meldingshode {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .innboks-page__avsender {
-  font-size: 0.75rem;
+  color: var(--digipost-mork);
+  font-size: 0.85rem;
+}
+
+.innboks-page__ulest {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  background: var(--digipost-rod);
+  border-radius: 50%;
+}
+
+.innboks-page__emne {
+  color: var(--tekst);
+  line-height: 1.3;
+}
+
+.innboks-page__forhandsvisning {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--tekst-lys);
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .innboks-page__tid {
+  margin-left: auto;
   font-size: 0.7rem;
   color: var(--tekst-lys);
+  font-weight: 400;
 }
 
 .innboks-page__meldingsvisning {
-  padding: 1.5rem;
+  min-width: 0;
+  background: #fff;
+}
+
+.innboks-page__brevhode {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #eee9e6;
+}
+
+.innboks-page__avsendermerke {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--digipost-lys);
+  color: var(--digipost-mork);
+  font-weight: 700;
+}
+
+.innboks-page__brevhode > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.innboks-page__bekreftet {
+  color: var(--suksess);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.innboks-page__brevhode h2 {
+  margin: 0.35rem 0 0;
+  color: var(--digipost-mork);
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.innboks-page__brevhode time {
+  color: var(--tekst-lys);
+  font-size: 0.8rem;
+}
+
+.innboks-page__brevinnhold {
+  max-width: 680px;
+  padding: 1.5rem 2rem 2.5rem;
+}
+
+.innboks-page__brevinnhold > p:first-child {
+  margin-top: 0;
+}
+
+.innboks-page__brevinnhold .metadata-table {
+  margin: 1.25rem 0;
+  background: #faf8f7;
+}
+
+.innboks-page__brevinnhold .qr-panel {
+  margin: 1.25rem 0;
 }
 
 .innboks-page__meldingstekst {
-  color: var(--tekst-lys);
+  max-width: 65ch;
+  color: var(--tekst);
+  line-height: 1.6;
 }
 
 .innboks-page__tom {
@@ -517,13 +730,44 @@ button {
   color: var(--tekst-lys);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .innboks-page__layout {
     grid-template-columns: 1fr;
   }
-  .innboks-page__mapper,
-  .innboks-page__meldingsliste {
+  .innboks-page__mapper {
     border-right: none;
     border-bottom: 1px solid var(--kant);
+  }
+  .innboks-page__mapper ul {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .innboks-page__mapper h2,
+  .innboks-page__sikkerhet {
+    display: none;
+  }
+  .innboks-page__post {
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .innboks-page__post {
+    grid-template-columns: 1fr;
+  }
+  .innboks-page__meldingsliste {
+    border-right: none;
+    border-bottom: 1px solid #dfd8d5;
+  }
+  .innboks-page__header {
+    align-items: flex-start;
+  }
+  .innboks-page__bruker > span:last-child {
+    display: none;
+  }
+  .innboks-page__brevhode,
+  .innboks-page__brevinnhold {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
   }
 }

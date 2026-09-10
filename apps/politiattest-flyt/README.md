@@ -7,7 +7,7 @@ men viser den fram som fire ulike systemer:
 - **Drammen kommune** (saksbehandlingssystem) - utsteder formålsbevis, sender en
   etterspørsel etter politiattesten, og viser den ferdig kontrollerte metadataen.
 - **Politiet** - kontrollerer formålsbeviset, utsteder politiattest.
-- **Innboks** - en forenklet, Gmail-lignende visning av kommunens e-poster til
+- **Innboks** - en Digipost-inspirert visning av kommunens digitale post til
   søkeren, med QR-koder for å hente formålsbeviset og vise fram politiattesten.
 - **Start** - velg en syntetisk testperson med en politiattest for formål «skole».
 
@@ -63,5 +63,5 @@ pnpm --filter @innbyggerdialog/politiattest-flyt dev
 Ingen av sidene er pikselkopier. **Politiet**-siden låner fargespråk og struktur fra
 politiet.no (mørkeblå header, myndighetsspråk). **Drammen kommune**-siden låner fra
 drammen.kommune.no (saksbehandlerkort, journalkolonne). **Innboks** er en forenklet,
-gjenkjennelig e-postkonto. Alt navn og innhold er syntetisk og markert som demo - se
+Digipost-inspirert digital postkasse. Alt navn og innhold er syntetisk og markert som demo - se
 `AGENTS.md` for hvorfor dette repoet ikke kopierer virkelige tjenester.
