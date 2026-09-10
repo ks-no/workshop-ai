@@ -81,12 +81,21 @@ og avgjort, mangler det et samtykke til noe regelen leser, eller kan regelen kj�
 med det kommunen vet nå. Statusene skrives ut som de kommer på tråden. Er backend
 nede, melder kortet det for seg selv - resten av Min side står igjen.
 
-**Bryteren er samtykket.** «Krever samtykke» er ikke en blindvei: raden sier hvilken
-kilde som mangler, og under den står bryteren som gir den. Slår du den på, oppretter
-backend samtykket prosessens `CONSENT_REQUEST`-steg ber om, svarer ja på det, og
-kortet tegnes på nytt - da har regelen grunnlaget sitt, og raden sier hva svaret
-faktisk ble. Slår du den av, trekkes samtykket og raden går tilbake til «Krever
-samtykke».
+**Bryteren er samtykket.** «Krever samtykke» er ikke en blindvei: raden lister
+samtykkene saken hviler på, ett per linje, med «Gitt» eller «Mangler» på hver - og
+under dem står bryteren som gir dem. Slår du den på, oppretter backend samtykket
+prosessens `CONSENT_REQUEST`-steg ber om, svarer ja på det, og kortet tegnes på nytt -
+da har regelen grunnlaget sitt, og raden sier hva svaret faktisk ble. Slår du den av,
+trekkes samtykket og raden går tilbake til «Krever samtykke».
+
+**Listen er alltid en liste, også når den har ett punkt.** Kildene sto en stund limt
+sammen med komma bak et setningsfragment («før vi får se på inntekt, politiattest»),
+og da var det ikke mulig å se at en sak leser to ting, eller at det ene av dem alt er
+på plass. Nå bygges listen av `samtykkekilder` og `manglerSamtykke` sammen: den første
+sier hva saken leser bak porten uansett, den andre hva som mangler i dag. En sak som
+leser tre kilder der én er gitt, viser nøyaktig det. Bryteren gjentar ikke navnene -
+de står rett over - men peker på listen med `aria-describedby`, siden rekkefølgen på
+skjermen ikke er noe en skjermleser kan lene seg på.
 
 To ting er verdt å vite, og kortet sier begge nederst:
 

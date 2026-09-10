@@ -315,6 +315,22 @@
           flex: 1;
         }
 
+        /* Ett samtykke per linje, med statusmerket ute ved kanten. Uten dette
+           renner navnet og merket sammen til én setning igjen. */
+        .samtykkekilder {
+          margin: 0;
+          display: grid;
+          gap: var(--ds-size-1);
+        }
+
+        .samtykkekilde {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-2);
+        }
+
         /* En enslig knapp i en tjenesterad skal holde sin egen bredde. Radene
            er grid, så uten dette strekkes den over hele kolonnen. */
         .startknapp {

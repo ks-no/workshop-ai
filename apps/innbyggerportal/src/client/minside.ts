@@ -711,7 +711,7 @@ const TILGANGSVISNING: Record<Tilgangsstatus, { merke: string; farge: string; fo
   },
   "krever-samtykke": {
     merke: "Krever samtykke", farge: "warning",
-    forklaring: "Vi kan ikke si om du har rett på dette før vi får se på"
+    forklaring: "Vi kan ikke si om du har rett på dette uten et samtykke."
   },
   "ikke-aktuell": {
     merke: "Ikke aktuell nå", farge: "neutral",
@@ -723,24 +723,10 @@ const TILGANGSVISNING: Record<Tilgangsstatus, { merke: string; farge: string; fo
   }
 };
 
-/** «inntekt, politiattest» - datakildene slik de leses i en setning. */
-function samtykkeliste(kilder: string[] | undefined): string {
-  return (kilder ?? []).join(", ");
-}
-
-function forklaringFor(rad: TilgangPerCase | TilgangAlternativ): string {
-  const visning = TILGANGSVISNING[rad.status];
-  if (rad.status !== "krever-samtykke") return visning.forklaring;
-  const kilder = samtykkeliste(rad.manglerSamtykke);
-  return kilder ? `${visning.forklaring} ${kilder}.` : "Vi mangler et samtykke for denne.";
-}
-
-/* Samtykkebryteren */
-
 /*
- * Kodeverket skrives ut ordrett ellers på siden - se samtykkeliste over - men
- * en bryter er en setning innbyggeren sier ja til, og «inntekt» er ikke en
- * setning. Derfor ett navn per kilde her, og bare her.
+ * Statusverdiene og datakildene er kodeverk og skrives ut ordrett andre steder,
+ * men her leses de av en innbygger: «inntekt» er ikke noe man sier ja til, det
+ * er «inntekten din». Derfor ett navn per kilde, og bare her.
  */
 const KILDENAVN: Record<Datakilde, string> = {
   inntekt: "inntekten din",
@@ -749,11 +735,60 @@ const KILDENAVN: Record<Datakilde, string> = {
   politiattest: "politiattesten din"
 };
 
-function kildesetning(kilder: Datakilde[]): string {
-  const navn = kilder.map((kilde) => KILDENAVN[kilde] ?? kilde);
-  if (navn.length < 2) return navn[0] ?? "opplysningene dine";
-  return `${navn.slice(0, -1).join(", ")} og ${navn[navn.length - 1]}`;
+function forklaringFor(rad: TilgangPerCase | TilgangAlternativ): string {
+  return TILGANGSVISNING[rad.status].forklaring;
 }
+
+/**
+ * Samtykkene saken hviler på, ett og ett, med om det er gitt nå.
+ *
+ * `samtykkekilder` er alle kildene saken leser bak porten, `manglerSamtykke` de
+ * som mangler i dag. Listen bygges av begge: da forsvinner ikke raden i det
+ * samtykket gis, og innbyggeren ser fortsatt hva saken leser - og at det er
+ * flere, når det er flere.
+ */
+function samtykkestatuser(
+  rad: TilgangPerCase,
+  harSamtykke: Datakilde[]
+): { kilde: Datakilde; gitt: boolean }[] {
+  const kilder = new Set<Datakilde>([
+    ...(rad.samtykkekilder ?? []),
+    ...((rad.manglerSamtykke ?? []) as Datakilde[])
+  ]);
+  return [...kilder].map((kilde) => ({ kilde, gitt: harSamtykke.includes(kilde) }));
+}
+
+/**
+ * Én linje per samtykke, med navnet innbyggeren kjenner det under og om det er
+ * på plass. Alltid en liste, også når den har ett punkt: en sak som leser to
+ * kilder skal ikke se ut som en som leser én, og det er ikke synlig i en setning
+ * der kildene er limt sammen med komma.
+ */
+function tegnSamtykkestatuser(
+  statuser: { kilde: Datakilde; gitt: boolean }[],
+  krevesNa: boolean,
+  listeId: string
+): HTMLElement {
+  const beholder = lag("div", "stablet");
+  beholder.append(avsnitt(
+    krevesNa
+      ? "Vi kan ikke svare før du sier ja til at kommunen får se:"
+      : "Denne saken leser dette om deg:",
+    "sm"
+  ));
+  const liste = lag("ul", "ds-list samtykkekilder");
+  liste.id = listeId;
+  for (const { kilde, gitt } of statuser) {
+    const punkt = lag("li", "samtykkekilde");
+    punkt.append(lag("span", undefined, storForbokstav(KILDENAVN[kilde] ?? kilde)));
+    punkt.append(merkelapp(gitt ? "Gitt" : "Mangler", gitt ? "success" : "warning"));
+    liste.append(punkt);
+  }
+  beholder.append(liste);
+  return beholder;
+}
+
+/* Samtykkebryteren */
 
 /**
  * Bryteren som gir og trekker samtykket saken trenger.
@@ -768,7 +803,8 @@ function samtykkebryter(
   post: TilgangPerCase,
   kilder: Datakilde[],
   harSamtykke: Datakilde[],
-  personId: string
+  personId: string,
+  listeId: string
 ): HTMLElement {
   const bryterId = `samtykke-${post.prosessId}`;
   const beholder = lag("div", "stablet samtykke");
@@ -777,8 +813,16 @@ function samtykkebryter(
   const bryter = lag("input", "ds-input");
   attributter(bryter, { type: "checkbox", role: "switch", id: bryterId });
   bryter.checked = kilder.every((kilde) => harSamtykke.includes(kilde));
-  const etikett = lag("label", "ds-label", `Kommunen kan se ${kildesetning(kilder)}`);
+  // Navnene står i listen rett over, så etiketten gjentar dem ikke. En bryter
+  // uten dem er intetsigende alene, og derfor peker aria-describedby på listen:
+  // rekkefølgen på skjermen er ikke noe en skjermleser kan lene seg på.
+  const etikett = lag(
+    "label",
+    "ds-label",
+    kilder.length > 1 ? "Ja, kommunen kan se alle disse" : "Ja, kommunen kan se dette"
+  );
   attributter(etikett, { for: bryterId, "data-weight": "regular", "data-size": "sm" });
+  attributter(bryter, { "aria-describedby": listeId });
   felt.append(bryter, etikett);
 
   // Designsystemets egen feiltekst, ikke et avsnitt med farge: den kommer med
@@ -905,7 +949,14 @@ function tegnTilgang(
   topp.append(overskrift(prosessnavn, "2xs", "h3"));
   topp.append(merkelapp(visning.merke, visning.farge));
   rute.append(topp);
-  rute.append(avsnitt(forklaringFor(post), "sm"));
+  const statuser = samtykkestatuser(post, harSamtykke);
+  const listeId = `samtykkekilder-${post.prosessId}`;
+
+  // Ledeteksten over kildelisten sier alt forklaringen ville sagt, så de to skal
+  // ikke stå etter hverandre og gjenta hverandre.
+  if (!(post.status === "krever-samtykke" && statuser.length > 0)) {
+    rute.append(avsnitt(forklaringFor(post), "sm"));
+  }
 
   // Et lukket sett svaralternativer gir én status per alternativ - en rolle kan
   // være grei og en annen ikke. Da er saksstatusen over en oppsummering, og
@@ -927,8 +978,11 @@ function tegnTilgang(
   // Ingen kilder betyr at saken ikke leser noe bak porten - eller at en ferdig
   // behandlet søknad gjorde at regelen ikke ble kjørt. Ingen av delene er noe en
   // bryter kan gjøre noe med.
+  if (statuser.length > 0) {
+    rute.append(tegnSamtykkestatuser(statuser, post.status === "krever-samtykke", listeId));
+  }
   if (post.samtykkekilder?.length) {
-    rute.append(samtykkebryter(post, post.samtykkekilder, harSamtykke, personId));
+    rute.append(samtykkebryter(post, post.samtykkekilder, harSamtykke, personId, listeId));
   }
 
   // En ferdig behandlet søknad har ingen ny søknad å starte. De øvrige har det,
