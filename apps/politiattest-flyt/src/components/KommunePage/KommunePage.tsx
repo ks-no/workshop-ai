@@ -2,6 +2,10 @@ import React from "react";
 import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
 import { utstedBevis } from "../../integrations/lommebokApi";
+import {
+  formalsbevisRader,
+  politiattestRaderFraClaims
+} from "../../integrations/credentialPresentation";
 import { StatusBadge } from "../shared/StatusBadge";
 import { MetadataTable } from "../shared/MetadataTable";
 
@@ -105,6 +109,10 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           Før søkeren kan bestille politiattest hos politiet, må kommunen bekrefte formålet med
           attesten - denne bekreftelsen sendes til søkerens digitale lommebok.
         </p>
+        <MetadataTable
+          tittel="Opplysninger kommunen legger i formålsbeviset"
+          rader={formalsbevisRader(person)}
+        />
         {sak.formalsbevis.issuance == null && (
           <button type="button" className="btn btn-primary" onClick={utstedFormalsbevis} disabled={utstederLaster}>
             {utstederLaster ? "Utsteder…" : "Utsted formålsbevis"}
@@ -138,13 +146,8 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         <section className="kommune-page__kort">
           <h2>Verifisert politiattest</h2>
           <MetadataTable
-            rader={[
-              { label: "Attesttype", verdi: String(claims["attesttype"]) },
-              { label: "Formål", verdi: String(claims["formaal"]) },
-              { label: "Utstedt", verdi: String(claims["issuance_date"]) },
-              { label: "Utløper", verdi: String(claims["expiry_date"]) },
-              { label: "Antall anmerkninger", verdi: String(claims["antall_anmerkninger"]) }
-            ]}
+            tittel="Opplysninger kommunen hentet fra beviset"
+            rader={politiattestRaderFraClaims(claims)}
           />
         </section>
       )}

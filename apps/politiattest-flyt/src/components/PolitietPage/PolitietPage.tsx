@@ -4,6 +4,11 @@ import type { SakHandling } from "../../state/caseReducer";
 import { useVerifisering } from "../../state/useVerifisering";
 import type { VerifiseringController } from "../../state/useVerifisering";
 import { utstedBevis } from "../../integrations/lommebokApi";
+import {
+  formalsbevisRader,
+  formalsbevisRaderFraClaims,
+  politiattestInnholdRader
+} from "../../integrations/credentialPresentation";
 import { StatusBadge } from "../shared/StatusBadge";
 import { QrPanel } from "../shared/QrPanel";
 import { MetadataTable } from "../shared/MetadataTable";
@@ -76,6 +81,13 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
           politiet kan bekrefte at forespørselen om politiattest faktisk gjelder skolejobb.
         </p>
 
+        {formalsbevis.verification?.stage !== "godkjent" && (
+          <MetadataTable
+            tittel="Opplysninger Politiet ber om fra formålsbeviset"
+            rader={formalsbevisRader(person)}
+          />
+        )}
+
         {kanStarteFormalsverifisering && (
           <button type="button" className="btn btn-primary" onClick={formalsverifisering.start} disabled={formalsverifisering.starter}>
             {formalsverifisering.starter
@@ -99,12 +111,10 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
           <>
             <StatusBadge tekst="Formål bekreftet: skole" tone="suksess" />
             <MetadataTable
-              tittel="Verifiserte opplysninger"
-              rader={[
-                { label: "Formål", verdi: "Skole" },
-                { label: "Utsteder", verdi: "Drammen kommune" },
-                { label: "Innehaver", verdi: person.visningsnavn }
-              ]}
+              tittel="Opplysninger Politiet hentet fra beviset"
+              rader={formalsbevisRaderFraClaims(
+                formalsbevis.verification.claims ?? {}
+              )}
             />
           </>
         )}
@@ -121,6 +131,10 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
         <section className="politiet-page__kort">
           <h2>2. Utstedelse av politiattest</h2>
           <p>Vandelskontrollen er gjennomført. Politiattesten kan nå utstedes til søkerens lommebok.</p>
+          <MetadataTable
+            tittel="Opplysninger Politiet legger i politiattesten"
+            rader={politiattestInnholdRader(person)}
+          />
           {sak.politiattest.issuance == null && (
             <button type="button" className="btn btn-primary" onClick={utstedPolitiattest} disabled={utstederLaster}>
               {utstederLaster ? "Utsteder…" : "Utsted politiattest"}

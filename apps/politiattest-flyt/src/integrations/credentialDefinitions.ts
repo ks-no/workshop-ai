@@ -141,10 +141,11 @@ export function byggPolitiattestDcqlQuery() {
       format: "dc+sd-jwt",
       meta: { vct_values: [CREDENTIAL_VCT.politiattest] },
       claims: [
+        { path: ["attest_id"] },
         { path: ["attesttype"] },
         { path: ["formaal"] },
+        { path: ["issuance_date"] },
         { path: ["antall_anmerkninger"] },
-        { path: ["anmerkninger"] },
         { path: ["expiry_date"] },
         { path: ["innehaver"] }
       ]

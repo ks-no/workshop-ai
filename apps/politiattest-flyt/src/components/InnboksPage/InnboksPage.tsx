@@ -2,8 +2,14 @@ import React, { useState } from "react";
 import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
 import type { VerifiseringController } from "../../state/useVerifisering";
+import {
+  formalsbevisRader,
+  politiattestRader,
+  politiattestRaderFraClaims
+} from "../../integrations/credentialPresentation";
 import { QrPanel } from "../shared/QrPanel";
 import { StatusBadge } from "../shared/StatusBadge";
+import { MetadataTable } from "../shared/MetadataTable";
 
 interface Props {
   sak: CaseState;
@@ -89,6 +95,10 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
               {valgtMelding.type === "utstedelse" && valgtMelding.issuance.status === "tilbud_klart" ? (
                 <>
                   <StatusBadge tekst="Tilbud klart - ikke bekreftet mottatt i lommebok" tone="venter" />
+                  <MetadataTable
+                    tittel="Opplysninger som lagres i lommeboken"
+                    rader={formalsbevisRader(sak.person)}
+                  />
                   <QrPanel
                     verdi={valgtMelding.issuance.credentialOfferUri || ""}
                     bildeUrl={valgtMelding.issuance.qrCodeDataUri}
@@ -106,6 +116,10 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
                 sak.politiattest.verification.transactionId ? (
                 <>
                   <StatusBadge tekst="Venter på at du viser fram politiattesten" tone="venter" />
+                  <MetadataTable
+                    tittel="Opplysninger du deler med Drammen kommune"
+                    rader={politiattestRader(sak.person)}
+                  />
                   <QrPanel
                     verdi={sak.politiattest.verification.authorizationRequest || ""}
                   />
@@ -119,7 +133,15 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifi
                   )}
                 </>
               ) : sak.politiattest.verification?.stage === "godkjent" ? (
-                <StatusBadge tekst="Politiattesten er mottatt av Drammen kommune" tone="suksess" />
+                <>
+                  <StatusBadge tekst="Politiattesten er mottatt av Drammen kommune" tone="suksess" />
+                  <MetadataTable
+                    tittel="Opplysninger kommunen hentet fra beviset"
+                    rader={politiattestRaderFraClaims(
+                      sak.politiattest.verification.claims ?? {}
+                    )}
+                  />
+                </>
               ) : sak.politiattest.verification?.stage === "avvist" ||
                 sak.politiattest.verification?.stage === "feilet" ? (
                 <>
