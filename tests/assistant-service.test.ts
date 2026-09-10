@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { AssistantCase, ModelPlan, ServiceId, SpecialistOutput } from '../src/domain/assistant-types';
+import type { AssistantCase, CritiqueRound, ModelPlan, ServiceId, SpecialistOutput } from '../src/domain/assistant-types';
 import type { ModelCall } from '../src/server/assistant-model';
 import { addConfirmedAnswers, addDocument, addMessage, analyzeCase, decideFact, decideFactAndContinue, discardDraft, draftEmail, fillForm, handoffDocument, prepareHandoff, sendEmail, submitForm } from '../src/server/assistant-service';
 import type { submitKsApplication } from '../src/server/assistant-ks';
 
 const previousModelEnv = new Map<string, string | undefined>();
 beforeEach(() => {
-  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL']) {
+  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'ASSISTANT_MAX_REVISIONS']) {
     previousModelEnv.set(key, process.env[key]);
     delete process.env[key];
   }
@@ -23,16 +23,33 @@ afterEach(() => {
 
 function session(): AssistantCase {
   const now = new Date().toISOString();
-  return { id: 'service-test', createdAt: now, updatedAt: now, expiresAt: now, revision: 1, status: 'collecting', messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', analyzedRevision: null, handoff: null, error: null, ksData: null };
+  return { id: 'service-test', createdAt: now, updatedAt: now, expiresAt: now, revision: 1, status: 'collecting', messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null };
 }
 function plan(services: ServiceId[] = ['housing']): ModelPlan {
   return { summary: 'Forbered opplysningene for menneskelig vurdering.', services: services.map(id => ({ id, reason: 'Innbyggerens beskrivelse' })), facts: [], questions: [], unsupported: [] };
 }
 type SpecialistContext = { intent?: 'information' | 'personalized'; citizenQuestion?: string; service: { id: ServiceId }; sources: { id: string; kind: string; text: string }[]; facts: { key: string; value: string; status: string }[] };
+type TailContext = { intent?: 'information' | 'personalized'; citizenQuestion?: string; draft: string; review: CritiqueRound | null; openQuestions: { key: string; question: string }[]; sources: { id: string; kind: string; text: string }[] };
+type CriticOutput = { verdict: 'PASS' | 'REVISE'; gaps: { point: string; quote: string }[]; notes: string };
+type TailOverrides = {
+  critic?: (context: TailContext) => CriticOutput | Promise<CriticOutput>;
+  revise?: (context: TailContext) => { answer: string } | Promise<{ answer: string }>;
+  polish?: (context: TailContext) => { answer: string } | Promise<{ answer: string }>;
+};
 // These injected responses exercise transport boundaries; they are never installed as production inference.
-function model(response: ModelPlan, specialist?: (context: SpecialistContext) => SpecialistOutput | Promise<SpecialistOutput>): ModelCall {
-  return async (_system, context, schema) => schema.parse(context && typeof context === 'object' && 'service' in context
-    ? await (specialist?.(context as SpecialistContext) ?? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }) : response);
+// By default the critic PASSes and the revision/polish steps hand the draft back untouched, so a test that
+// only cares about the triage/draft stages does not have to know the review tail exists.
+function model(response: ModelPlan, specialist?: (context: SpecialistContext) => SpecialistOutput | Promise<SpecialistOutput>, tail?: TailOverrides): ModelCall {
+  return async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      const tailContext = context as TailContext;
+      if (role === 'critic') return schema.parse(await (tail?.critic?.(tailContext) ?? { verdict: 'PASS', gaps: [], notes: '' }));
+      const rewrite = role === 'polish' ? tail?.polish : tail?.revise;
+      return schema.parse(await (rewrite?.(tailContext) ?? { answer: tailContext.draft }));
+    }
+    return schema.parse(context && typeof context === 'object' && 'service' in context
+      ? await (specialist?.(context as SpecialistContext) ?? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }) : response);
+  };
 }
 const discardPersistence = () => {};
 
@@ -166,31 +183,37 @@ test('selected specialists start separately, receive bounded evidence, and canno
   await analyzeCase(current, inference, discardPersistence);
   assert.equal(contexts.length, 3);
   assert.ok(contexts.every(context => !JSON.stringify(context).includes('PRIVAT-UTENFOR-UTDRAG')));
-  assert.equal(current.runs.length, 4);
+  assert.equal(current.runs.length, 6); // triage + 3 specialists + critic + polish
   assert.ok(current.runs.every(run => run.status === 'completed'));
   assert.ok(current.services.every(service => service.findings.some(finding => finding.text === 'Kilden gir veiledning til forberedelsen.')));
   assert.ok(current.services.every(service => !service.findings.some(finding => finding.text === 'Denne påstanden mangler dekning.')));
   assert.equal(current.events.filter(event => event.type === 'blocked').length, 3);
 });
 
-test('analysis passes explicit model roles and records the coordinator and specialist models separately', async () => {
-  process.env.LLM_COORDINATOR_MODEL = 'coordinator-model';
-  process.env.LLM_SPECIALIST_MODEL = 'specialist-model';
+test('analysis passes explicit model roles and records the triage, draft, critic and polish models separately', async () => {
+  process.env.LLM_COORDINATOR_MODEL = '@cf/qwen/qwen3.8-27b'; // legacy fallback for triage, critic and polish
+  process.env.LLM_SPECIALIST_MODEL = '@cf/google/gemma-4-26b-a4b-it'; // legacy fallback for draft
   const current = session();
   addMessage(current, 'Jeg trenger hjelp med familie, bolig og flytting.');
   const roles: (string | undefined)[] = [];
   const infer: ModelCall = async (_system, context, schema, role) => {
-    const isSpecialist = context !== null && typeof context === 'object' && 'service' in context;
     roles.push(role);
-    assert.equal(role, isSpecialist ? 'specialist' : 'coordinator');
+    if (context !== null && typeof context === 'object' && 'draft' in context) {
+      assert.ok(role === 'critic' || role === 'polish');
+      return schema.parse(role === 'critic' ? { verdict: 'PASS', gaps: [], notes: '' } : { answer: (context as { draft: string }).draft });
+    }
+    const isSpecialist = context !== null && typeof context === 'object' && 'service' in context;
+    assert.equal(role, isSpecialist ? 'draft' : 'triage');
     return schema.parse(isSpecialist ? { summary: 'Kontroller sjekklisten før du går videre.', findings: [], questions: [] } : plan(['family', 'housing', 'moving']));
   };
   await analyzeCase(current, infer, discardPersistence);
-  assert.deepEqual(roles, ['coordinator', 'specialist', 'specialist', 'specialist']);
-  assert.equal(current.runs.length, 4);
+  assert.deepEqual(roles, ['triage', 'draft', 'draft', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.length, 6);
   assert.ok(current.runs.every(run => run.status === 'completed'));
-  assert.equal(current.runs[0].model, 'coordinator-model');
-  assert.ok(current.runs.slice(1).every(run => run.model === 'specialist-model'));
+  assert.equal(current.runs[0].model, '@cf/qwen/qwen3.8-27b');
+  assert.ok(current.runs.slice(1, 4).every(run => run.model === '@cf/google/gemma-4-26b-a4b-it'));
+  assert.equal(current.runs.find(run => run.stage === 'critic')?.model, '@cf/qwen/qwen3.8-27b');
+  assert.equal(current.runs.find(run => run.stage === 'polish')?.model, '@cf/qwen/qwen3.8-27b');
   assert.equal(current.error, null);
 });
 
@@ -304,7 +327,11 @@ test('a case with no prior language defaults to Norwegian and normalizes the Nor
   const seenLanguages: unknown[] = [];
   const response = plan(['housing']);
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') {
       seenLanguages.push((context as { currentLanguage: string }).currentLanguage);
       return schema.parse(response);
     }
@@ -380,7 +407,11 @@ test('the chosen response language reaches specialists and messages while source
   const languages: unknown[] = [];
   const originalSources = structuredClone(current.sources);
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') {
       languages.push((context as { currentLanguage: string }).currentLanguage);
       return schema.parse(response);
     }
@@ -426,7 +457,11 @@ test('unsafe generated amounts use Vietnamese safety notices without changing th
   response.services[0].reason = 'Du får 888888 kroner.';
   response.facts = [{ key: 'monthly_rent', value: '12000', sourceId: document.id, quote }];
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') return schema.parse(response);
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') return schema.parse(response);
     assert.match(system, /REQUIRED OUTPUT LANGUAGE: Vietnamese/);
     assert.equal((context as { responseLanguage: string }).responseLanguage, 'Vietnamese (tiếng Việt)');
     return schema.parse({ summary: 'Du får 777777 kroner.', findings: [
@@ -464,7 +499,11 @@ test('specialists receive only exact cited register facts and never full KS snap
     citation: { sourceId: 'ks-income', quote: '"beregningstype": "household_year"', lineStart: 3, lineEnd: 3, page: null }, createdAt: now, confirmedAt: now });
   const response = plan(['family']);
   const infer: ModelCall = async (_system, context, schema, role) => {
-    if (role === 'coordinator') return schema.parse(response);
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') return schema.parse(response);
     const specialist = context as SpecialistContext & { _security: { integrity: string; confidentiality: string; allowedCapabilities: string[] } };
     assert.deepEqual(specialist._security, { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] });
     const visibleIncome = specialist.sources.find(source => source.id === 'ks-income');
@@ -487,9 +526,15 @@ test('prompt injection in a document cannot confirm facts, execute actions, or c
   const response = plan(['family']);
   response.summary = 'Søknaden din er sendt.';
   response.facts = [{ key: 'cohabitant_missing', value: 'true', sourceId: 'hostile-document', quote: attack }];
-  const infer: ModelCall = async (_system, _context, schema, role) => role === 'coordinator'
-    ? schema.parse(response)
-    : schema.parse({ summary: 'Søknaden din er sendt.', findings: [{ text: 'We have submitted the application.', sourceId: 'hostile-document', quote: attack }], questions: [] });
+  const infer: ModelCall = async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    return role === 'triage'
+      ? schema.parse(response)
+      : schema.parse({ summary: 'Søknaden din er sendt.', findings: [{ text: 'We have submitted the application.', sourceId: 'hostile-document', quote: attack }], questions: [] });
+  };
   await analyzeCase(current, infer, discardPersistence);
   assert.equal(current.handoff, null);
   assert.equal(current.facts.find(fact => fact.key === 'cohabitant_missing')?.status, 'proposed');
@@ -509,7 +554,7 @@ async function movingCase() {
   return current;
 }
 const emailModel = (output: { subject: string; body: string }): ModelCall => async (system, _context, schema, role) => {
-  assert.equal(role, 'specialist');
+  assert.equal(role, 'draft');
   assert.match(system, /REQUIRED OUTPUT LANGUAGE/);
   return schema.parse(output);
 };
@@ -653,4 +698,138 @@ test('unresolved proposals and general questions block personal end actions', as
   await analyzeCase(general, model(info), discardPersistence);
   assert.equal(general.services[0].recommendedAction?.kind, 'contact');
   await assert.rejects(draftEmail(general, 'housing', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /generelt spørsmål/);
+});
+
+test('a critic returning PASS runs polish and never re-drafts', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.stage === 'critic').length, 1);
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 1);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].verdict, 'PASS');
+});
+
+test('a critic returning REVISE triggers exactly one new draft attempt, then a second critic, then polish', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 1);
+  assert.equal(current.critique.length, 2);
+  assert.ok(current.critique.every(round => round.verdict === 'REVISE'));
+});
+
+test('ASSISTANT_MAX_REVISIONS=1 kills the loop after the first critic round', async () => {
+  process.env.ASSISTANT_MAX_REVISIONS = '1';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+});
+
+test('ASSISTANT_MAX_REVISIONS=4 allows more revision rounds before stopping', async () => {
+  process.env.ASSISTANT_MAX_REVISIONS = '4';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 3);
+  assert.equal(current.critique.length, 4);
+});
+
+test('the full critique survives without truncation, including long notes and every gap', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const longNotes = 'Dette er en lang og detaljert tilbakemelding fra kritikeren. '.repeat(20).slice(0, 1200);
+  assert.equal(longNotes.length, 1200);
+  const gaps = [
+    { point: 'Mangler kilde for flyttedatoen.', quote: 'flyttet 1. oktober' },
+    { point: 'Påstand om vedtak må fjernes.', quote: 'saken er godkjent' },
+    { point: 'Beløpet er ikke dokumentert.', quote: '45000 kroner' },
+  ];
+  const withFullCritique = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'PASS', gaps, notes: longNotes }),
+  });
+  await analyzeCase(current, withFullCritique, discardPersistence);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].notes, longNotes);
+  assert.equal(current.critique[0].notes.length, 1200);
+  assert.deepEqual(current.critique[0].gaps, gaps);
+});
+
+test('a polished answer that introduces an ungrounded number is rejected and the previous text is kept', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const ungroundedPolish = model(plan(['moving']), undefined, {
+    polish: () => ({ answer: 'Husk å sette av 54321 kroner til flyttingen.' }),
+  });
+  await analyzeCase(current, ungroundedPolish, discardPersistence);
+  assert.ok(!current.messages.at(-1)?.text.includes('54321'));
+  assert.ok(current.events.some(event => event.type === 'blocked' && event.detail.includes('forkastet')));
+});
+
+test('a failing stage job does not lose the analysis', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const failingCritic = model(plan(['moving']), undefined, {
+    critic: () => { throw new Error('Model transport failed'); },
+  });
+  await analyzeCase(current, failingCritic, discardPersistence);
+  const criticRun = current.runs.find(run => run.stage === 'critic');
+  assert.equal(criticRun?.status, 'failed');
+  assert.notEqual(current.status, 'analyzing');
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 0);
+  assert.equal(current.messages.at(-1)?.text, current.summary);
+});
+
+test('a malformed critic response ends the tail softly and keeps the completed analysis', async () => {
+  // Unlike a transport failure (thrown error, exercised above), this is the critic job resolving
+  // with output that does not fit criticSchema at all. The stage handler's own parse must catch
+  // it and fail the tail softly rather than throwing away an otherwise complete, grounded draft.
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const malformedCritic: ModelCall = async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return { thisIsNotAVerdict: true } as never;
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    return schema.parse(context && typeof context === 'object' && 'service' in context
+      ? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }
+      : plan(['moving']));
+  };
+  await analyzeCase(current, malformedCritic, discardPersistence);
+  const criticRun = current.runs.find(run => run.stage === 'critic');
+  assert.equal(criticRun?.status, 'failed');
+  assert.notEqual(current.status, 'analyzing');
+  assert.notEqual(current.status, 'error');
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 0);
+  assert.equal(current.messages.at(-1)?.text, current.summary);
+});
+
+test('the polish step receives the critique even when the first round passed', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  let polishReview: CritiqueRound | null | undefined;
+  const capturePolishReview = model(plan(['moving']), undefined, {
+    polish: context => { polishReview = context.review; return { answer: context.draft }; },
+  });
+  await analyzeCase(current, capturePolishReview, discardPersistence);
+  assert.ok(polishReview, 'the polish job must receive the first critic round, not a blank review');
+  assert.equal(polishReview?.verdict, 'PASS');
+  assert.equal(polishReview?.round, 1);
+  assert.deepEqual(polishReview, current.critique[0]);
 });

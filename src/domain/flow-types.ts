@@ -1,5 +1,7 @@
 import type { ContactPoint, ModelStatus } from './assistant-types';
 import type { KsDemoConsent } from '../providers/ks-demo-client';
+import type { FlowComponentId } from './flow-components';
+import type { FlowActivity } from './flow-action-types';
 
 /**
  * The step-driven front-page flow ("Søk én gang"). A planner (AI model, with a rule-based
@@ -37,8 +39,9 @@ export type FlowProposal =
   | { type: 'email'; contact: ContactPoint; subject: string; body: string; aiDrafted: boolean }
   | { type: 'form'; templateId: string; title: string; recipient: ContactPoint; submission: 'ks-sandbox' | 'local'; fields: FlowFormField[]; attachments: string[] }
   | { type: 'reminder'; title: string; date: string; time: string | null; note: string }
-  | { type: 'contact'; contact: ContactPoint; reason: string };
+  | { type: 'contact'; contact: ContactPoint; reason: string; summary?: string };
 export type FlowStep = {
+  component?: FlowComponentId;
   id: string; kind: FlowStepKind; title: string; message: string; rationale: string;
   by: 'model' | 'rule'; model: string | null; createdAt: string; revision: number; durationMs: number;
   /** ask */ questions: FlowQuestion[];
@@ -46,6 +49,8 @@ export type FlowStep = {
   /** action */ proposal: FlowProposal | null;
 };
 export type FlowOutcome = {
+  status?: 'mocked' | 'prepared' | 'submitted' | 'scheduled' | 'queued';
+  resourceId?: string;
   id: string; kind: FlowActionType; title: string; reference: string; detail: string; createdAt: string; revision: number;
   localOnly: boolean; recipient: ContactPoint | null;
   payload: {
@@ -64,18 +69,21 @@ export type FlowCase = {
   error: string | null; notice: string | null; stepCount: number;
   ks: { personId: string | null; fetched: FlowFetchable[]; declined: FlowFetchable[]; fetchedAt: string | null; consent: KsDemoConsent | null };
 };
-export type FlowResponse = { session: FlowCase | null; model: ModelStatus };
+export type FlowResponse = { session: FlowCase | null; model: ModelStatus; activity?: FlowActivity };
 export type FlowExecution =
   | { type: 'email'; to: string; subject: string; body: string }
   | { type: 'form'; fields: Record<string, string> }
   | { type: 'reminder'; title: string; date: string; time: string | null; note: string }
-  | { type: 'contact' };
+  | { type: 'contact'; summary?: string };
 export type FlowCommand =
   | { action: 'start' }
   | { action: 'input'; text: string; revision: number; caseId: string }
   | { action: 'answers'; answers: { key: string; value: string }[]; note: string; revision: number; caseId: string }
   | { action: 'approve'; facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string; revision: number; caseId: string }
-  | { action: 'execute'; execution: FlowExecution; revision: number; caseId: string }
+  | { action: 'prepare'; execution: FlowExecution; revision: number; caseId: string }
+  | { action: 'execute'; draftId: string; revision: number; caseId: string }
+  | { action: 'choose'; type: FlowActionType; revision: number; caseId: string }
+  | { action: 'review-facts'; revision: number; caseId: string }
   | { action: 'skip'; revision: number; caseId: string }
   | { action: 'continue'; revision: number; caseId: string }
   | { action: 'retry'; revision: number; caseId: string };

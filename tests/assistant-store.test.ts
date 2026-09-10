@@ -84,7 +84,7 @@ test('a fresh process recovers persisted interrupted analysis without losing evi
   current.status = 'analyzing';
   current.analyzedRevision = current.revision;
   current.summary = 'Case content survives a restart.';
-  current.runs = [{ id: 'interrupted-run', agent: 'Coordinator', revision: current.revision, status: 'running', startedAt: current.createdAt, completedAt: null, model: 'test-transport', durationMs: null }];
+  current.runs = [{ id: 'interrupted-run', agent: 'Coordinator', stage: 'triage', revision: current.revision, status: 'running', startedAt: current.createdAt, completedAt: null, model: 'test-transport', durationMs: null }];
   current.sources.push({ id: 'saved-message', kind: 'conversation', title: 'Synthetic text', text: 'I need help preparing a move.', url: null, retrievedAt: current.createdAt, purpose: 'Restart test', period: '2026' });
   saveAssistantCase(current);
   try {

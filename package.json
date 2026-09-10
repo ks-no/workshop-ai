@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
+    "start:reminders": "node --env-file-if-exists=.env.local --import tsx scripts/reminder-worker.mts",
     "diagrams:render": "node scripts/render-diagrams.mjs",
     "sandbox:inspect": "node scripts/inspect-sandbox.mjs",
     "test:ai": "node --env-file=.env.local --import tsx scripts/evaluate-assistant.mts",

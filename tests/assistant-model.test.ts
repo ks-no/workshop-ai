@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 import { z } from 'zod';
-import { callModel, modelName, modelStatus, planSchema, PLANNER_PROMPT, responseLanguageName, specialistPrompt, specialistSchema } from '../src/server/assistant-model';
+import { aiProvider, callModel, maxRevisions, modelName, modelStatus, planSchema, responseLanguageName, specialistPrompt, specialistSchema, TRIAGE_PROMPT } from '../src/server/assistant-model';
 import { runtimeInstalled } from '../src/server/assistant-runtime';
 import type { ModelPlan } from '../src/domain/assistant-types';
 
@@ -14,13 +16,22 @@ const fixtureConfig = {
   ASSISTANT_MODEL_TIMEOUT_MS: '10000',
   ASSISTANT_PYTHON: resolve(process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python'),
 };
+const telenorFixture = {
+  TELENOR_AI_FACTORY_BASE_URL: 'https://abc123.execute-api.eu-north-1.amazonaws.com/prod',
+  TELENOR_AI_FACTORY_API_KEY: 'test-only-not-a-real-telenor-key',
+};
+// Every key a test in this file might set gets a clean slate here and an automatic restore in
+// afterEach, so a test only has to set what it needs and never has to remember to unset it.
+const volatileKeys = ['LLM_TRIAGE_MODEL', 'LLM_DRAFT_MODEL', 'LLM_CRITIC_MODEL', 'LLM_POLISH_MODEL',
+  'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'AI_PROVIDER',
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'];
 const previousEnv = new Map<string, string | undefined>();
 beforeEach(() => {
   for (const [key, value] of Object.entries(fixtureConfig)) {
     previousEnv.set(key, process.env[key]);
     process.env[key] = value;
   }
-  for (const key of ['LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL']) {
+  for (const key of volatileKeys) {
     previousEnv.set(key, process.env[key]);
     delete process.env[key];
   }
@@ -40,7 +51,7 @@ const validPlan: ModelPlan = {
 };
 function assertSanitized(value: unknown) {
   const serialized = value instanceof Error ? value.message : JSON.stringify(value);
-  for (const privateValue of [fixtureConfig.LLM_API_KEY, fixtureConfig.LLM_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
+  for (const privateValue of [fixtureConfig.LLM_API_KEY, fixtureConfig.LLM_BASE_URL, telenorFixture.TELENOR_AI_FACTORY_API_KEY, telenorFixture.TELENOR_AI_FACTORY_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
     assert.ok(!serialized.includes(privateValue));
   }
 }
@@ -51,40 +62,156 @@ test('configured status reports local runtime availability and model metadata wi
   assert.equal(status.available, true);
   assert.equal(status.provider, 'litellm');
   assert.equal(status.model, fixtureConfig.LLM_MODEL);
-  assert.deepEqual(status.models, { coordinator: fixtureConfig.LLM_MODEL, specialist: fixtureConfig.LLM_MODEL });
+  assert.deepEqual(status.models, { triage: fixtureConfig.LLM_MODEL, draft: fixtureConfig.LLM_MODEL, critic: fixtureConfig.LLM_MODEL, polish: fixtureConfig.LLM_MODEL });
   assertSanitized(status);
+});
+
+test('role defaults use Qwen for triage/critic/polish and Gemma for draft, and appear in status', async () => {
+  process.env.AI_PROVIDER = 'cloudflare';
+  process.env.CF_ACCOUNT_ID = 'a'.repeat(32);
+  process.env.CF_AI_GATEWAY_TOKEN = 'test-only-cloudflare';
+  delete process.env.LLM_MODEL;
+  const expected = { triage: '@cf/qwen/qwen3.8-27b', draft: '@cf/google/gemma-4-26b-a4b-it', critic: '@cf/qwen/qwen3.8-27b', polish: '@cf/qwen/qwen3.8-27b' };
+  assert.equal(modelName(), expected.triage);
+  assert.equal(modelName('triage'), expected.triage);
+  assert.equal(modelName('draft'), expected.draft);
+  assert.equal(modelName('critic'), expected.critic);
+  assert.equal(modelName('polish'), expected.polish);
+  const configured = await modelStatus();
+  assert.equal(configured.model, expected.triage);
+  assert.deepEqual(configured.models, expected);
+  delete process.env.CF_AI_GATEWAY_TOKEN;
+  const unavailable = await modelStatus();
+  assert.equal(unavailable.available, false);
+  assert.deepEqual(unavailable.models, configured.models);
 });
 
 test('there is no built-in model default: both roles must be named before status reports availability', async () => {
   delete process.env.LLM_MODEL;
   assert.equal(modelName(), '');
-  assert.equal(modelName('specialist'), '');
+  assert.equal(modelName('draft'), '');
   const unnamed = await modelStatus();
   assert.equal(unnamed.available, false);
-  assert.deepEqual(unnamed.models, { coordinator: '', specialist: '' });
+  assert.deepEqual(unnamed.models, { triage: '', draft: '', critic: '', polish: '' });
   process.env.LLM_COORDINATOR_MODEL = 'coordinator-only';
   assert.equal((await modelStatus()).available, false, 'a specialist model is still missing');
   process.env.LLM_SPECIALIST_MODEL = 'specialist-only';
   const configured = await modelStatus();
   assert.equal(configured.available, true);
   assert.equal(configured.model, 'coordinator-only');
-  assert.deepEqual(configured.models, { coordinator: 'coordinator-only', specialist: 'specialist-only' });
+  assert.deepEqual(configured.models, { triage: 'coordinator-only', draft: 'specialist-only', critic: 'coordinator-only', polish: 'coordinator-only' });
   delete process.env.LLM_API_KEY;
   const unavailable = await modelStatus();
   assert.equal(unavailable.available, false);
   assert.deepEqual(unavailable.models, configured.models);
 });
 
-test('role overrides take precedence independently while the legacy model remains the fallback', () => {
-  process.env.LLM_COORDINATOR_MODEL = 'openai/coordinator-override';
-  process.env.LLM_SPECIALIST_MODEL = 'openai/specialist-override';
-  assert.equal(modelName(), process.env.LLM_COORDINATOR_MODEL);
-  assert.equal(modelName('specialist'), process.env.LLM_SPECIALIST_MODEL);
+test('per-role env overrides take precedence independently for all four roles', () => {
+  process.env.LLM_TRIAGE_MODEL = 'workers-ai/@cf/test/triage-override';
+  process.env.LLM_DRAFT_MODEL = 'workers-ai/@cf/test/draft-override';
+  process.env.LLM_CRITIC_MODEL = 'workers-ai/@cf/test/critic-override';
+  process.env.LLM_POLISH_MODEL = 'workers-ai/@cf/test/polish-override';
+  assert.equal(modelName('triage'), process.env.LLM_TRIAGE_MODEL);
+  assert.equal(modelName('draft'), process.env.LLM_DRAFT_MODEL);
+  assert.equal(modelName('critic'), process.env.LLM_CRITIC_MODEL);
+  assert.equal(modelName('polish'), process.env.LLM_POLISH_MODEL);
+});
+
+test('the legacy coordinator/specialist env vars still work as the fallback under the new roles', () => {
+  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-legacy';
+  process.env.LLM_SPECIALIST_MODEL = 'workers-ai/@cf/test/specialist-legacy';
+  assert.equal(modelName('triage'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('critic'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('polish'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('draft'), process.env.LLM_SPECIALIST_MODEL);
+  // A per-role override still wins over the legacy fallback.
+  process.env.LLM_TRIAGE_MODEL = 'workers-ai/@cf/test/triage-override';
+  assert.equal(modelName('triage'), process.env.LLM_TRIAGE_MODEL);
+});
+
+test('LLM_MODEL is the last fallback before the provider default, below both legacy and per-role vars', () => {
+  assert.equal(modelName('triage'), fixtureConfig.LLM_MODEL);
+  assert.equal(modelName('draft'), fixtureConfig.LLM_MODEL);
+  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-legacy';
+  assert.equal(modelName('triage'), process.env.LLM_COORDINATOR_MODEL);
   delete process.env.LLM_COORDINATOR_MODEL;
-  assert.equal(modelName('coordinator'), fixtureConfig.LLM_MODEL);
-  assert.equal(modelName('specialist'), 'openai/specialist-override');
-  delete process.env.LLM_SPECIALIST_MODEL;
-  assert.equal(modelName('specialist'), fixtureConfig.LLM_MODEL);
+  assert.equal(modelName('triage'), fixtureConfig.LLM_MODEL);
+  delete process.env.LLM_MODEL;
+  process.env.AI_PROVIDER = 'cloudflare';
+  assert.equal(modelName('triage'), '@cf/qwen/qwen3.8-27b');
+  assert.equal(modelName('draft'), '@cf/google/gemma-4-26b-a4b-it');
+});
+
+test('aiProvider defaults to cloudflare, accepts telenor case-insensitively and with surrounding whitespace, and treats anything else as cloudflare', () => {
+  assert.equal(aiProvider(), 'litellm');
+  delete process.env.LLM_BASE_URL;
+  assert.equal(aiProvider(), 'cloudflare');
+  for (const value of ['telenor', 'TELENOR', 'Telenor', ' telenor ', '\ttelenor\n']) {
+    process.env.AI_PROVIDER = value;
+    assert.equal(aiProvider(), 'telenor', `expected ${JSON.stringify(value)} to select telenor`);
+  }
+  for (const value of ['cloudflare', 'openai', 'unknown-provider', '']) {
+    process.env.AI_PROVIDER = value;
+    assert.equal(aiProvider(), 'cloudflare', `expected ${JSON.stringify(value)} to fall back to cloudflare`);
+  }
+});
+
+test('Telenor defaults appear in modelStatus when AI_PROVIDER=telenor', async () => {
+  delete process.env.LLM_MODEL;
+  process.env.AI_PROVIDER = 'telenor';
+  const expected = { triage: 'Qwen3-Coder-Next-FP8', draft: 'GLM-5.2-FP8', critic: 'Qwen3-Coder-Next-FP8', polish: 'Qwen3-Coder-Next-FP8' };
+  const status = await modelStatus();
+  assert.equal(status.provider, 'telenor');
+  assert.equal(status.model, expected.triage);
+  assert.deepEqual(status.models, expected);
+  assertSanitized(status);
+});
+
+test('maxRevisions defaults to 2, clamps to 1..5, falls back on non-numeric input and truncates a float', () => {
+  delete process.env.ASSISTANT_MAX_REVISIONS;
+  assert.equal(maxRevisions(), 2);
+  for (const [input, expected] of [['1', 1], ['5', 5], ['0', 1], ['-3', 1], ['9', 5], ['not-a-number', 2], ['2.7', 2]] as const) {
+    process.env.ASSISTANT_MAX_REVISIONS = input;
+    assert.equal(maxRevisions(), expected, `expected ASSISTANT_MAX_REVISIONS=${input} to resolve to ${expected}`);
+  }
+});
+
+test('Telenor configuration is fail-closed: only an https execute-api/telenor host with a non-empty key is available', async () => {
+  process.env.AI_PROVIDER = 'telenor';
+  process.env.TELENOR_AI_FACTORY_BASE_URL = telenorFixture.TELENOR_AI_FACTORY_BASE_URL;
+  process.env.TELENOR_AI_FACTORY_API_KEY = telenorFixture.TELENOR_AI_FACTORY_API_KEY;
+  const valid = await modelStatus();
+  assert.equal(valid.available, true);
+  assert.equal(valid.provider, 'telenor');
+  assertSanitized(valid);
+
+  for (const [key, value] of [
+    ['TELENOR_AI_FACTORY_BASE_URL', ''],
+    ['TELENOR_AI_FACTORY_BASE_URL', telenorFixture.TELENOR_AI_FACTORY_BASE_URL.replace('https://', 'http://')],
+    ['TELENOR_AI_FACTORY_BASE_URL', 'https://evil.example.com/prod'],
+    ['TELENOR_AI_FACTORY_BASE_URL', `${telenorFixture.TELENOR_AI_FACTORY_BASE_URL}?token=x`],
+    ['TELENOR_AI_FACTORY_API_KEY', ''],
+  ] as const) {
+    process.env.TELENOR_AI_FACTORY_BASE_URL = telenorFixture.TELENOR_AI_FACTORY_BASE_URL;
+    process.env.TELENOR_AI_FACTORY_API_KEY = telenorFixture.TELENOR_AI_FACTORY_API_KEY;
+    process.env[key] = value;
+    const status = await modelStatus();
+    assert.equal(status.available, false, `expected ${key}=${JSON.stringify(value)} to be rejected`);
+    assertSanitized(status);
+  }
+});
+
+test('a typo in AI_PROVIDER fails closed even with otherwise valid Cloudflare credentials', async () => {
+  // aiProvider() itself is total and falls back to cloudflare for any unrecognised value, but a
+  // silent fallback here would let an operator believe they configured Telenor while every
+  // prompt actually went to Cloudflare. modelStatus() must therefore reject the typo outright.
+  process.env.AI_PROVIDER = 'telnor';
+  const status = await modelStatus();
+  assert.equal(aiProvider(), 'cloudflare');
+  assert.equal(status.provider, 'cloudflare');
+  assert.equal(status.available, false);
+  assert.match(status.message, /ikke konfigurert/);
+  assertSanitized(status);
 });
 
 test('missing or invalid configuration fails before starting Python and redacts values', async () => {
@@ -190,8 +317,40 @@ test('language prompts require translated prose while preserving quotations and 
   assert.ok((prompt.match(/Vietnamese/g) ?? []).length >= 2);
   assert.match(prompt, /Keep quotations in their original language/);
   assert.match(prompt, /Do not repeat numeric amounts in the summary/);
-  assert.match(PLANNER_PROMPT, /latest citizen-authored conversation source/);
-  assert.match(PLANNER_PROMPT, /keep currentLanguage/);
-  assert.match(PLANNER_PROMPT, /summary, describe the need without repeating numeric amounts/);
-  assert.match(PLANNER_PROMPT, /No model assertion is a confirmed fact/);
+  assert.match(TRIAGE_PROMPT, /latest citizen-authored conversation source/);
+  assert.match(TRIAGE_PROMPT, /keep currentLanguage/);
+  assert.match(TRIAGE_PROMPT, /summary, describe the need without repeating numeric amounts/);
+  assert.match(TRIAGE_PROMPT, /No model assertion is a confirmed fact/);
+});
+
+
+test('generic endpoint settings reach the real Python child and preserve its configured model', async () => {
+  let calls = 0;
+  const server = createServer(async (request, response) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    assert.equal(request.url, '/v1/chat/completions');
+    assert.equal(request.headers.authorization, `Bearer ${fixtureConfig.LLM_API_KEY}`);
+    assert.equal(body.model, fixtureConfig.LLM_MODEL);
+    calls++;
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ id: 'test-completion', object: 'chat.completion', created: 0, model: body.model,
+      choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(validPlan) } }] }));
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.LLM_BASE_URL = `http://127.0.0.1:${address.port}/v1`;
+    const output = await callModel('Return the supplied plan.', {
+      _security: { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] },
+    }, planSchema);
+    assert.deepEqual(output, validPlan);
+    assert.equal(calls, 1);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });

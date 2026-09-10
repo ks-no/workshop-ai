@@ -11,7 +11,7 @@ import { AssistantEmailDraftPanel, AssistantFormDraftPanel, AssistantNextActions
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import type { AssistantCase, AssistantCommand, AssistantMessage, AssistantResponse, EvidenceSource, FollowUp, StructuredAnswer } from '../domain/assistant-types';
+import { modelRoles, type AgentRun, type AssistantCase, type AssistantCommand, type AssistantMessage, type AssistantResponse, type EvidenceSource, type FollowUp, type StructuredAnswer } from '../domain/assistant-types';
 import { AssistantCasePanel, type AssistantCaseView } from './assistant-case-panel';
 
 async function readResponse(response: Response): Promise<AssistantResponse> {
@@ -317,13 +317,13 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
   const displayedRuns = session?.runs.slice(-12).reverse() ?? [];
   const currentRun = session?.runs.findLast(run => run.status === 'running') ?? session?.runs.at(-1);
   const currentRuns = session?.runs.filter(run => run.revision === session.revision) ?? [];
-  const specialistRuns = currentRuns.slice(1);
-  const progressValue = specialistRuns.some(run => run.status === 'completed' || run.status === 'failed') ? 85
-    : specialistRuns.some(run => run.status === 'running') ? 65
-      : currentRuns[0]?.status === 'completed' ? 45
-        : currentRuns.length ? 25 : 15;
+  const progressValue = currentRuns.length ? Math.round(Math.max(...currentRuns.map(run => {
+    const stageIndex = modelRoles.indexOf(run.stage);
+    const stageDone = run.status === 'completed' || run.status === 'failed';
+    return 15 + stageIndex * 20 + (stageDone ? 20 : 10);
+  }))) : 15;
   const currentLabel = pendingLabel || latestEvent?.detail || 'Agentarbeidet er fullført';
-  const currentTitle = pendingLabel || (currentRun ? agentName(currentRun.agent) : currentLabel);
+  const currentTitle = pendingLabel || (currentRun ? agentName(currentRun) : currentLabel);
   const currentDetail = latestEvent?.detail && currentTitle !== latestEvent.detail ? latestEvent.detail : '';
   return <div className="assistant-activity">
     {!!displayedRuns.length && <div className="assistant-task-card" role={pendingLabel ? 'status' : undefined} aria-live={pendingLabel ? 'polite' : undefined}>
@@ -333,7 +333,7 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
           const runEvents = session?.events.filter(item => item.runId === run.id) ?? [];
           const lastDetail = runEvents.at(-1)?.detail;
           const time = new Date(run.startedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' });
-          return <button type="button" key={run.id} onClick={() => onTaskSelect(run.id)} aria-current={selectedTaskId === run.id ? 'true' : undefined} aria-label={`${t('Vis detaljer for')} ${t(agentName(run.agent))}, ${time}`}><AssistantIcon name={run.status === 'completed' ? 'check' : run.status === 'failed' ? 'alert-warning' : 'document-text'} aria-hidden="true" /><span><strong>{t(agentName(run.agent))}<time dateTime={run.startedAt}>{time}</time></strong><small>{lastDetail ? t(lastDetail) : dateTime(run.startedAt)}</small></span><span className={`assistant-task-status is-${run.status}`}>{t(run.status === 'running' ? 'Arbeider' : run.status === 'completed' ? 'Fullført' : 'Feilet')}</span></button>;
+          return <button type="button" key={run.id} onClick={() => onTaskSelect(run.id)} aria-current={selectedTaskId === run.id ? 'true' : undefined} aria-label={`${t('Vis detaljer for')} ${t(agentName(run))}, ${time}`}><AssistantIcon name={run.status === 'completed' ? 'check' : run.status === 'failed' ? 'alert-warning' : 'document-text'} aria-hidden="true" /><span><strong>{t(agentName(run))}<time dateTime={run.startedAt}>{time}</time></strong><small>{lastDetail ? t(lastDetail) : dateTime(run.startedAt)}</small></span><span className={`assistant-task-status is-${run.status}`}>{t(run.status === 'running' ? 'Arbeider' : run.status === 'completed' ? 'Fullført' : 'Feilet')}</span></button>;
         })}</div>
       </details>
       {pendingLabel && <div className="assistant-progress-shell">
@@ -345,7 +345,10 @@ function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, o
   </div>;
 }
 
-function agentName(name: string) {
+function agentName(run: Pick<AgentRun, 'agent' | 'stage'>) {
+  if (run.stage === 'triage') return 'Triage';
+  if (run.stage === 'critic') return 'Kritiker';
+  if (run.stage === 'polish') return 'Språkvask';
   const names: Record<string, string> = { coordinator: 'Koordinator', family: 'Familie og SFO', housing: 'Bolig', moving: 'Flytting', human: 'Du', system: 'Systemet' };
-  return names[name] ?? name;
+  return names[run.agent] ?? run.agent;
 }

@@ -81,7 +81,7 @@ test('every command advances one revision, the rule planner answers when no mode
   const current = newCase();
   const other = newCase();
   const before = loadFlowCase(current.id);
-  for (const command of [{ action: 'input', text: 'Feil sak.' }, { action: 'answers', answers: [] }, { action: 'approve', facts: [] }, { action: 'execute', execution: { type: 'contact' } }, { action: 'skip' }, { action: 'continue' }, { action: 'retry' }]) {
+  for (const command of [{ action: 'input', text: 'Feil sak.' }, { action: 'answers', answers: [] }, { action: 'approve', facts: [] }, { action: 'prepare', execution: { type: 'contact', summary: 'Hjelp meg.' } }, { action: 'execute', draftId: '11111111-2222-4333-8444-555555555555' }, { action: 'choose', type: 'email' }, { action: 'review-facts' }, { action: 'skip' }, { action: 'continue' }, { action: 'retry' }]) {
     const rejected = await post({ ...command, caseId: other.id, revision: current.revision }, current);
     assert.equal(rejected.status, 409, command.action);
     assert.deepEqual(loadFlowCase(current.id), before);
@@ -116,7 +116,7 @@ test('every command advances one revision, the rule planner answers when no mode
   assert.equal(state.step?.proposal?.type, 'form');
   assert.equal(state.facts.filter(fact => fact.status === 'confirmed').length, 3);
 
-  const mismatch = await post({ action: 'execute', execution: { type: 'contact' }, caseId: state.id, revision: state.revision }, current);
+  const mismatch = await post({ action: 'prepare', execution: { type: 'contact', summary: 'Hjelp meg.' }, caseId: state.id, revision: state.revision }, current);
   assert.equal(mismatch.status, 409);
   const skipped = await post({ action: 'skip', caseId: state.id, revision: state.revision }, current);
   assert.equal(skipped.status, 200, skipped.body.error);
@@ -173,5 +173,89 @@ test('document upload checks case identity and revision before extraction, then 
   assert.equal(state.sources.length, 1);
   assert.equal(state.sources[0].kind, 'document');
   assert.equal(state.step, null, 'Before the first description the document waits for the planner.');
+  assert.equal(networkCalls, 0);
+});
+
+test('choose, prepare and execute persist the exact edited email once and reject raw execution', async () => {
+  const current = newCase();
+  const input = await post({ action: 'input', text: 'Jeg trenger hjelp med flytting.', caseId: current.id, revision: current.revision }, current);
+  assert.equal(input.status, 200, input.body.error);
+  const chosen = await post({ action: 'choose', type: 'email', caseId: current.id, revision: input.body.session.revision }, current);
+  assert.equal(chosen.status, 200, chosen.body.error);
+  let state = chosen.body.session as FlowCase;
+  assert.equal(state.step?.proposal?.type, 'email');
+  const execution = { type: 'email', to: 'edited@example.org', subject: 'Mitt redigerte emne', body: 'Dette er den nøyaktige teksten jeg godkjenner.' };
+  const missing = await post({ action: 'execute', draftId: '11111111-2222-4333-8444-555555555555', caseId: state.id, revision: state.revision }, current);
+  assert.equal(missing.status, 404);
+  const invalid = await post({ action: 'prepare', execution: { ...execution, to: 'ugyldig' }, caseId: state.id, revision: state.revision }, current);
+  assert.equal(invalid.status, 400);
+  assert.equal(loadFlowCase(current.id).revision, state.revision);
+  const raw = await post({ action: 'execute', execution, caseId: state.id, revision: state.revision }, current);
+  assert.equal(raw.status, 400);
+  const prepared = await post({ action: 'prepare', execution, caseId: state.id, revision: state.revision }, current);
+  assert.equal(prepared.status, 200, prepared.body.error);
+  state = prepared.body.session;
+  assert.deepEqual(prepared.body.activity.draft.execution, execution);
+  assert.equal(prepared.body.activity.outbox.length, 0, 'Preparing a draft has no effect.');
+  const draftId = prepared.body.activity.draft.id;
+  const other = newCase();
+  const foreign = await post({ action: 'execute', draftId, caseId: other.id, revision: other.revision }, other);
+  assert.ok(foreign.status >= 400);
+  const done = await post({ action: 'execute', draftId, caseId: state.id, revision: state.revision }, current);
+  assert.equal(done.status, 200, done.body.error);
+  const outbox = done.body.activity.outbox;
+  assert.equal(outbox.length, 1);
+  assert.deepEqual({ type: 'email', to: outbox[0].to, subject: outbox[0].subject, body: outbox[0].body }, execution);
+  assert.equal(outbox[0].status, 'mock-recorded');
+  assert.equal(done.body.session.outcomes.length, 1);
+  assert.equal(done.body.session.outcomes[0].status, 'mocked');
+  const replay = await post({ action: 'execute', draftId, caseId: state.id, revision: done.body.session.revision }, current);
+  assert.equal(replay.status, 200, replay.body.error);
+  assert.equal(replay.body.activity.outbox.length, 1);
+  assert.equal(replay.body.session.outcomes.length, 1);
+  assert.equal(networkCalls, 0);
+});
+
+test('new edits and case changes invalidate old drafts before any effect', async () => {
+  const current = newCase();
+  const input = await post({ action: 'input', text: 'Jeg trenger hjelp med flytting.', caseId: current.id, revision: current.revision }, current);
+  assert.equal(input.status, 200, input.body.error);
+  const chosen = await post({ action: 'choose', type: 'contact', caseId: current.id, revision: input.body.session.revision }, current);
+  assert.equal(chosen.status, 200, chosen.body.error);
+  const first = await post({ action: 'prepare', execution: { type: 'contact', summary: 'Første sammendrag.' }, caseId: current.id, revision: chosen.body.session.revision }, current);
+  assert.equal(first.status, 200, first.body.error);
+  const second = await post({ action: 'prepare', execution: { type: 'contact', summary: 'Rettet sammendrag.' }, caseId: current.id, revision: first.body.session.revision }, current);
+  assert.equal(second.status, 200, second.body.error);
+  assert.notEqual(first.body.activity.draft.id, second.body.activity.draft.id);
+  const old = await post({ action: 'execute', draftId: first.body.activity.draft.id, caseId: current.id, revision: second.body.session.revision }, current);
+  assert.equal(old.status, 409);
+  const changed = await post({ action: 'input', text: 'Jeg vil også rette situasjonen.', caseId: current.id, revision: second.body.session.revision }, current);
+  assert.equal(changed.status, 200, changed.body.error);
+  const stale = await post({ action: 'execute', draftId: second.body.activity.draft.id, caseId: current.id, revision: changed.body.session.revision }, current);
+  assert.equal(stale.status, 409);
+  const read = await GET(new NextRequest(`${origin}/api/flow`, { headers: { Cookie: `${FLOW_COOKIE}=${current.id}` } }));
+  const activity = (await read.json()).activity;
+  assert.equal(activity.reviews.length, 0);
+  assert.equal(activity.attempts.length, 0);
+  assert.equal(networkCalls, 0);
+});
+
+test('contact approval creates the exact local review summary and exposes it on resume', async () => {
+  const current = newCase();
+  const input = await post({ action: 'input', text: 'Jeg trenger en menneskelig vurdering.', caseId: current.id, revision: current.revision }, current);
+  assert.equal(input.status, 200, input.body.error);
+  const chosen = await post({ action: 'choose', type: 'contact', caseId: current.id, revision: input.body.session.revision }, current);
+  assert.equal(chosen.status, 200, chosen.body.error);
+  const summary = 'Jeg ønsker at en person vurderer dette redigerte sammendraget.';
+  const prepared = await post({ action: 'prepare', execution: { type: 'contact', summary }, caseId: current.id, revision: chosen.body.session.revision }, current);
+  assert.equal(prepared.status, 200, prepared.body.error);
+  const done = await post({ action: 'execute', draftId: prepared.body.activity.draft.id, caseId: current.id, revision: prepared.body.session.revision }, current);
+  assert.equal(done.status, 200, done.body.error);
+  assert.equal(done.body.activity.reviews.length, 1);
+  assert.equal(done.body.activity.reviews[0].summary, summary);
+  assert.equal(done.body.activity.reviews[0].status, 'queued');
+  assert.equal(done.body.session.outcomes[0].localOnly, true);
+  const resumed = await post({ action: 'start' }, current);
+  assert.deepEqual(resumed.body.activity.reviews, done.body.activity.reviews);
   assert.equal(networkCalls, 0);
 });

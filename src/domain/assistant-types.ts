@@ -3,6 +3,10 @@ import type { KsDemoConsent } from '../providers/ks-demo-client';
 
 export const serviceIds = ['family', 'housing', 'moving'] as const;
 export type ServiceId = typeof serviceIds[number];
+export const modelRoles = ['triage', 'draft', 'critic', 'polish'] as const;
+export type ModelRole = typeof modelRoles[number];
+export const aiProviders = ['cloudflare', 'telenor', 'litellm'] as const;
+export type AiProvider = typeof aiProviders[number];
 export const factKeys = ['job_lost', 'has_children', 'uses_sfo', 'needs_housing', 'moving', 'household_income_annual', 'income_basis', 'monthly_rent', 'household_size', 'move_date', 'new_municipality', 'cohabitant_missing'] as const;
 export type FactKey = typeof factKeys[number];
 /** Tool catalogue ids. The model may only nominate these; Node validates, gates and executes. */
@@ -81,7 +85,10 @@ export type Outcome = {
   payload: { to?: string; subject?: string; body?: string; fields?: { id: string; label: string; value: string }[]; ksSoknadId?: string; ksOppgaveId?: string | null; ksWarning?: string | null };
 };
 export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked' | 'tool-requested'; at: string; detail: string };
-export type AgentRun = { id: string; agent: string; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };
+export type AgentRun = { id: string; agent: string; stage: ModelRole; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };
+export type CritiqueGap = { point: string; quote: string };
+/** Full critic output per round. Never truncate for display; the UI shows all of it. */
+export type CritiqueRound = { round: number; verdict: 'PASS' | 'REVISE'; gaps: CritiqueGap[]; notes: string; at: string };
 export type Handoff = { id: string; createdAt: string; revision: number; serviceIds: ServiceId[]; localOnly: true; status: 'prepared-for-human-review' };
 export type KsAccessDecision = { status: 'approved' | 'declined'; decidedAt: string };
 export type AssistantCase = {
@@ -91,7 +98,7 @@ export type AssistantCase = {
   messages: AssistantMessage[]; facts: MemoryFact[]; sources: EvidenceSource[];
   intent?: 'information' | 'personalized' | null;
   services: ServiceResult[]; questions: FollowUp[]; unsupported: string[];
-  runs: AgentRun[]; events: AgentEvent[]; summary: string;
+  runs: AgentRun[]; events: AgentEvent[]; summary: string; critique: CritiqueRound[];
   analyzedRevision: number | null; handoff: Handoff | null; error: string | null;
   ksData: { personId: string; connectedAt: string; incomeReadAt: string | null; consent: KsDemoConsent | null } | null;
   ksAccessDecision?: KsAccessDecision | null;
@@ -99,9 +106,7 @@ export type AssistantCase = {
   drafts?: { email: EmailDraft | null; form: FormDraft | null };
   outcomes?: Outcome[];
 };
-/** One OpenAI-compatible endpoint (the AI Factory LiteLLM proxy, or any loopback server such as Ollama) configured through LLM_BASE_URL. */
-export type ModelProvider = 'litellm';
-export type ModelStatus = { available: boolean; provider: ModelProvider; model: string; models?: { coordinator: string; specialist: string }; message: string };
+export type ModelStatus = { available: boolean; provider: AiProvider; model: string; models?: Record<ModelRole, string>; message: string };
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 export type AssistantCommand =
   | { action: 'start' }

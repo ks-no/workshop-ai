@@ -10,7 +10,7 @@ function session(): AssistantCase {
   const message: EvidenceSource = { id: 'citizen-message', kind: 'conversation', title: 'Din beskrivelse 1', text: 'Jeg har mistet jobben og skal flytte til Bergen 2026-10-01. Husholdningen tjener 320000 kroner i året.', url: null, retrievedAt: now, purpose: 'Forstå behov', period: 'Nå' };
   return { id: 'case', createdAt: now, updatedAt: now, expiresAt: now, revision: 3, analyzedRevision: 3, status: 'ready', intent: 'personalized', language: 'nb',
     messages: [{ id: 'm1', role: 'user', text: message.text, at: now, sourceId: message.id }, { id: 'm2', role: 'assistant', text: 'KI-tolkning', at: now, sourceId: null }],
-    facts: [], sources: [...guidanceSources(), message], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', handoff: null, error: null, ksData: null, drafts: { email: null, form: null }, outcomes: [] };
+    facts: [], sources: [...guidanceSources(), message], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', handoff: null, critique: [], error: null, ksData: null, drafts: { email: null, form: null }, outcomes: [] };
 }
 function fact(key: FactKey, value: string, sourceId = 'citizen-message', status: MemoryFact['status'] = 'confirmed'): MemoryFact {
   return { id: `${key}-${value}`, key, value, label: key, status, citation: { sourceId, quote: value, lineStart: 1, lineEnd: 1, page: null }, createdAt: now, confirmedAt: now };

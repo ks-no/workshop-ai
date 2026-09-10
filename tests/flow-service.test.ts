@@ -1,4 +1,9 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { DatabaseSync } from 'node:sqlite';
+import { createFlowCase } from '../src/server/flow-store';
 import assert from 'node:assert/strict';
 import type { FlowCase, FlowProposal } from '../src/domain/flow-types';
 import { addDays, reminderCalendar } from '../src/domain/flow-catalogue';
@@ -9,6 +14,16 @@ import type { ksClient } from '../src/server/ks-runtime';
 import { KsDemoError } from '../src/providers/ks-demo-client';
 
 type KsClient = ReturnType<typeof ksClient>;
+const directory = mkdtempSync(join(tmpdir(), 'flow-service-tests-'));
+const previousDataDirectory = process.env.ASSISTANT_DATA_DIR;
+process.env.ASSISTANT_DATA_DIR = directory;
+after(() => {
+  const state = globalThis as typeof globalThis & { assistantDb?: DatabaseSync };
+  state.assistantDb?.close(); delete state.assistantDb;
+  if (previousDataDirectory === undefined) delete process.env.ASSISTANT_DATA_DIR;
+  else process.env.ASSISTANT_DATA_DIR = previousDataDirectory;
+  rmSync(directory, { recursive: true, force: true });
+});
 const CASE_ID = '11111111-2222-4333-8444-555555555555';
 function session(): FlowCase {
   const now = new Date().toISOString();
@@ -20,7 +35,7 @@ type Plan = Partial<FlowPlannerOutput> & Pick<FlowPlannerOutput, 'kind'>;
 // Injected planner outputs exercise validation boundaries; they are never installed as production inference.
 function planner(respond: (context: Record<string, unknown>) => Plan | Promise<Plan>): ModelCall {
   return async (_system, context, schema, role) => {
-    assert.equal(role, 'coordinator');
+    assert.equal(role, 'triage');
     const output = await respond(context as Record<string, unknown>);
     return schema.parse({ title: 'Tittel fra modellen', message: 'Melding fra modellen.', rationale: 'Begrunnelse fra modellen.', ...output });
   };
@@ -105,7 +120,9 @@ test('a review step keeps only facts quoted verbatim from a stored source, and a
 
   await planNextStep(current, lastEvent, planner(() => ({ kind: 'review' })), keep);
   assert.equal(current.step?.by, 'rule', 'A repeated review with nothing new is replaced by the rule planner.');
-  assert.equal(current.step?.kind, 'ask');
+  assert.equal(current.step?.kind, 'action');
+  assert.equal(current.step?.proposal?.type, 'contact', 'A housing question does not trigger unrelated SFO questions.');
+  assert.deepEqual(current.step?.fetch, []);
 });
 
 test('messages with unsupported numbers or submission claims are replaced by neutral notices, also under document injection', async () => {
@@ -124,7 +141,7 @@ test('messages with unsupported numbers or submission claims are replaced by neu
 });
 
 test('an e-mail action uses the contact catalogue, checks the draft against the case, executes only on approval and can conclude', async () => {
-  const current = session(); bumpRevision(current);
+  const current = createFlowCase(); bumpRevision(current);
   addInput(current, 'Jeg flytter til Bergen 2026-10-01 og har mistet jobben.');
   await planNextStep(current, 'input', planner(() => ({ kind: 'ask', questions: [{ key: 'move_date', label: 'Flyttedato', kind: 'date' }] })), keep);
   assert.throws(() => answerQuestions(current, [{ key: 'move_date', value: '1. oktober' }], ''), /ÅÅÅÅ-MM-DD/);
@@ -149,12 +166,12 @@ test('an e-mail action uses the contact catalogue, checks the draft against the 
   await assert.rejects(executeAction(current, { type: 'email', to: 'ikke-en-adresse', subject: 'x', body: 'y' }), /e-postadresse/);
   const outcome = await executeAction(current, { type: 'email', to: 'innbyggerservice@demo.sok-en-gang.example', subject: 'Flytting (redigert)', body: 'Hei, jeg flytter 2026-10-01.' });
   assert.equal(outcome.kind, 'email');
-  assert.match(outcome.reference, /^EPOST-[A-Z0-9]{8}$/);
+  assert.match(outcome.reference, /^DEMO-EPOST-[A-Z0-9]{8}$/);
   assert.equal(outcome.localOnly, true);
   assert.equal(outcome.payload.subject, 'Flytting (redigert)');
   assert.equal(current.status, 'acted');
   assert.equal(current.step ?? null, null);
-  await assert.rejects(executeAction(current, { type: 'contact' }), /ingen foreslått handling/);
+  await assert.rejects(executeAction(current, { type: 'contact' }), /samsvarer ikke/);
 
   assert.equal(continueFlow(current), 'action-done');
   await planNextStep(current, 'action-done', planner(context => {
@@ -166,7 +183,7 @@ test('an e-mail action uses the contact catalogue, checks the draft against the 
 });
 
 test('a form is filled from confirmed facts, confirmed fields cannot be edited, and the SFO form is submitted to the KS sandbox through the adapter', async () => {
-  const current = session(); bumpRevision(current);
+  const current = createFlowCase(); bumpRevision(current);
   addInput(current, 'Jeg bruker SFO og vil betale mindre.');
   await planNextStep(current, 'input', planner(() => ({ kind: 'ask', questions: [{ key: 'household', label: 'Husstand', kind: 'text' }, { key: 'household_income_annual', label: 'Årsinntekt', kind: 'number' }, { key: 'sfo_place', label: 'SFO-plass', kind: 'text' }] })), keep);
   answerQuestions(current, [{ key: 'household', value: '2 voksne, 1 barn' }, { key: 'household_income_annual', value: '320 000' }, { key: 'sfo_place', value: 'Full plass, 2. trinn' }], '');
@@ -182,7 +199,7 @@ test('a form is filled from confirmed facts, confirmed fields cannot be edited, 
   assert.deepEqual([field('municipality').value, field('municipality').origin, field('municipality').editable], ['Oslo', 'suggested', true]);
   assert.equal(field('situation').value, 'Jeg bruker SFO og vil betale mindre.');
 
-  await assert.rejects(executeAction(current, { type: 'form', fields: { household_income_annual: '1' } }), /bekreftet opplysning/);
+  await assert.rejects(executeAction(current, { type: 'form', fields: { household_income_annual: '1' } }), /opplysningskontrollen/);
   await assert.rejects(executeAction(current, { type: 'form', fields: { unknown: 'x' } }), /ukjent felt/);
   const calls: unknown[] = [];
   const fake = { createApplication: async (input: { prosessId: string; prosessNavn: string; caseId: string }) => {
@@ -190,7 +207,7 @@ test('a form is filled from confirmed facts, confirmed fields cannot be edited, 
     return { value: { soknadId: 'soknad-test-1', personId: 'person-022', prosessId: input.prosessId, status: 'SENDT_INN', opprettet: new Date().toISOString(), sporingsId: input.caseId, syntetisk: true, oppgave: { oppgaveId: 'oppgave-test-1' } } };
   } } as unknown as KsClient;
   const outcome = await executeAction(current, { type: 'form', fields: { message: 'Takk for hjelpen.', municipality: 'Oslo' } }, fake);
-  assert.deepEqual(calls, [{ prosessId: 'sfo-moderasjon', prosessNavn: 'Redusert betaling i SFO', caseId: CASE_ID }]);
+  assert.deepEqual(calls, [{ prosessId: 'sfo-moderasjon', prosessNavn: 'Redusert betaling i SFO', caseId: current.id }]);
   assert.equal(outcome.reference, 'soknad-test-1');
   assert.equal(outcome.localOnly, false);
   assert.equal(outcome.payload.ksOppgaveId, 'oppgave-test-1');
@@ -211,14 +228,14 @@ test('a form is filled from confirmed facts, confirmed fields cannot be edited, 
   await planNextStep(another, 'answers', planner(() => ({ kind: 'action', action: { type: 'form', templateId: 'sfo-reduced-payment' } })), keep);
   assert.equal(another.step?.by, 'model');
   assert.ok(proposalOf(another, 'form').fields.filter(field => field.required).every(field => !field.editable && field.origin === 'confirmed'));
-  await assert.rejects(executeAction(another, { type: 'form', fields: { message: 'x'.repeat(1001) } }, unavailable), /1000 tegn/);
+  await assert.rejects(executeAction(another, { type: 'form', fields: { message: 'x'.repeat(1001) } }, unavailable), /for lang/);
   await assert.rejects(executeAction(another, { type: 'form', fields: {} }, unavailable), /KS nede/);
   assert.equal(another.outcomes.length, 0);
   assert.equal(another.status, 'step', 'A failed sandbox submission keeps the proposal so the citizen can retry.');
 });
 
 test('a reminder with an ungrounded date or note becomes an editable default, and the executed reminder exports as a calendar entry', async () => {
-  const current = session(); bumpRevision(current);
+  const current = createFlowCase(); bumpRevision(current);
   addInput(current, 'Jeg må huske å sende flyttemelding etter at jeg har flyttet.');
   await planNextStep(current, 'input', planner(() => ({ kind: 'action', action: { type: 'reminder', subject: 'Send flyttemelding', date: '2020-01-01', time: '25:99', note: 'Fristen er 8 dager etter flytting.' } })), keep);
   const reminder = proposalOf(current, 'reminder');
@@ -315,4 +332,72 @@ test('a failed KS source keeps the approval, records the failure and lets the ci
   assert.match(current.notice ?? '', /kunne ikke hentes/);
   assert.ok(current.events.some(event => event.type === 'failed' && /Husstandsopplysninger/.test(event.detail)));
   assert.equal(current.step ?? null, null);
+});
+
+test('review approval cannot confirm an unseen fact, an omitted fact, or an unoffered source', async () => {
+  const current = session();
+  addInput(current, 'Husleien er 12000 kroner. Vi er 3 personer.');
+  const sourceId = current.sources[0].id;
+  await planNextStep(current, 'input', planner(() => ({ kind: 'review', facts: [
+    { key: 'monthly_rent', label: 'Husleie', value: '12000', sourceId, quote: 'Husleien er 12000 kroner.' },
+    { key: 'household_size', label: 'Personer', value: '3', sourceId, quote: 'Vi er 3 personer.' },
+  ] })), keep);
+  const [rent, size] = current.facts;
+  current.step!.factIds = [rent.id];
+  const before = structuredClone(current);
+  await assert.rejects(approveReview(current, { facts: [{ id: size.id, value: '3' }], remove: [], fetch: [], note: '' }), /ikke ble vist/);
+  await assert.rejects(approveReview(current, { facts: [], remove: [], fetch: ['inntekt'], note: '' }), /ikke ble vist/);
+  assert.deepEqual(current, before);
+  await approveReview(current, { facts: [], remove: [], fetch: [], note: '' });
+  assert.equal(rent.status, 'proposed', 'Omission never stands in for explicit approval.');
+  assert.equal(size.status, 'proposed', 'Unseen evidence stays unconfirmed.');
+});
+
+test('informational completion does not require an action and mismatched components fall back safely', async () => {
+  const current = session();
+  addInput(current, 'Hvor kan jeg finne generell informasjon?');
+  await planNextStep(current, 'input', planner(() => ({ kind: 'done', component: 'completion-summary' })), keep);
+  assert.equal(current.step?.kind, 'done');
+  assert.equal(current.step?.by, 'model');
+  assert.equal(current.outcomes.length, 0);
+  await planNextStep(current, 'input', planner(() => ({ kind: 'ask', component: 'email-draft', questions: [{ key: 'need', label: 'Hva trenger du?', kind: 'text' }] })), keep);
+  assert.equal(current.step?.component, 'question-form');
+  assert.ok(current.events.some(event => event.type === 'blocked' && /komponent/.test(event.detail)));
+});
+
+test('fallback for generic and housing questions offers local review without unrelated register access', async () => {
+  for (const situation of ['Hvor kan jeg få hjelp?', 'Jeg trenger hjelp med bolig og husleie.']) {
+    const current = session();
+    addInput(current, situation);
+    await planNextStep(current, 'input', failing, keep);
+    assert.equal(current.step?.by, 'rule');
+    assert.equal(current.step?.proposal?.type, 'contact');
+    assert.deepEqual(current.step?.fetch, []);
+    assert.deepEqual(current.step?.questions, []);
+    assert.deepEqual(current.ks.fetched, []);
+    assert.match(current.step?.message ?? '', /lokale vurderingskø/);
+    const skipped = skipProposal(current);
+    await planNextStep(current, skipped, failing, keep);
+    assert.equal(current.step?.kind, 'done');
+    assert.equal(current.outcomes.length, 0);
+    assert.deepEqual(current.step?.fetch, []);
+    assert.match(current.step?.message ?? '', /Ingen ny handling er utført/);
+  }
+});
+
+test('fallback after a mock email completes truthfully without claiming a KS submission', async () => {
+  const current = createFlowCase();
+  addInput(current, 'Jeg trenger hjelp med SFO.');
+  await planNextStep(current, 'input', planner(() => ({ kind: 'action', action: { type: 'email' } })), keep);
+  const outcome = await executeAction(current, { type: 'email', to: 'review@example.org', subject: 'Hjelp med SFO', body: 'Kan dere hjelpe meg videre?' });
+  assert.equal(outcome.status, 'mocked');
+  await planNextStep(current, continueFlow(current), failing, keep);
+  assert.equal(current.step?.kind, 'done');
+  assert.equal(current.step?.by, 'rule');
+  assert.deepEqual(current.step?.fetch, []);
+  assert.match(current.step?.message ?? '', /ikke en offentlig innsending/);
+  assert.doesNotMatch(current.step?.message ?? '', /registrert i KS|søknaden er sendt/i);
+  assert.equal(current.outcomes.length, 1);
+  assert.equal(current.outcomes[0].status, 'mocked');
+  assert.equal(current.outcomes[0].payload.ksSoknadId, undefined);
 });

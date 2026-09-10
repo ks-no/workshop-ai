@@ -22,12 +22,12 @@ function expectRecordedRoleModels(response: AssistantResponse) {
   expect(response.model.models).toBeDefined();
   const models = response.model.models!;
   const runs = response.session?.runs ?? [];
-  const coordinators = runs.filter(run => run.agent === 'Koordinator');
-  const specialists = runs.filter(run => run.agent !== 'Koordinator');
-  expect(coordinators.length, response.session?.error || 'The coordinator must have a recorded run.').toBeGreaterThan(0);
-  expect(specialists.length, response.session?.error || 'At least one specialist must have a recorded run.').toBeGreaterThan(0);
-  for (const run of coordinators) expect(run.model, 'Recorded coordinator model must match its configured role.').toBe(models.coordinator);
-  for (const run of specialists) expect(run.model, `Recorded ${run.agent} model must match the specialist role.`).toBe(models.specialist);
+  const triageRuns = runs.filter(run => run.stage === 'triage');
+  const draftRuns = runs.filter(run => run.stage === 'draft');
+  expect(triageRuns.length, response.session?.error || 'The triage step must have a recorded run.').toBeGreaterThan(0);
+  expect(draftRuns.length, response.session?.error || 'At least one draft specialist must have a recorded run.').toBeGreaterThan(0);
+  for (const run of triageRuns) expect(run.model, 'Recorded triage model must match its configured role.').toBe(models.triage);
+  for (const run of draftRuns) expect(run.model, `Recorded ${run.agent} model must match the draft role.`).toBe(models.draft);
 }
 
 function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: string): Buffer {
@@ -56,9 +56,9 @@ function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: strin
   return Buffer.from(document);
 }
 
-test('citizen assistant starts with an honest connection state and no invented case', async ({ page }) => {
+test('citizen assistant starts with an honest connection state and no invented case', async ({ page, baseURL }) => {
   const remoteRequests: string[] = [];
-  page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:3210/')) remoteRequests.push(request.url()); });
+  page.on('request', request => { if (new URL(request.url()).origin !== new URL(baseURL!).origin) remoteRequests.push(request.url()); });
   await page.goto('/assistent');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   const initial = await snapshot(page);
@@ -409,7 +409,7 @@ test('agent task disclosure opens a selected run in the right activity panel', a
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   const state = (await started.json() as AssistantResponse).session!;
   const startedAt = new Date().toISOString();
-  state.runs = [{ id: 'test-run', agent: 'Koordinator', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
+  state.runs = [{ id: 'test-run', agent: 'Koordinator', stage: 'triage', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
   state.events = [
     { id: 'test-start', runId: 'test-run', agent: 'Koordinator', type: 'started', at: startedAt, detail: 'Modellanalysen er startet.' },
     { id: 'test-complete', runId: 'test-run', agent: 'Koordinator', type: 'completed', at: startedAt, detail: 'Strukturert svar mottatt og kontrollert.' },
@@ -419,7 +419,7 @@ test('agent task disclosure opens a selected run in the right activity panel', a
   finally { database.close(); }
   await page.reload();
   await page.locator('.assistant-task-disclosure > summary').click();
-  const task = page.getByRole('button', { name: /Vis detaljer for Koordinator/ });
+  const task = page.getByRole('button', { name: /Vis detaljer for Triage/ });
   await expect(task).toBeVisible();
   await task.click();
   await expect(page.getByRole('tab', { name: 'Aktivitet', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -524,6 +524,9 @@ test('the agent routes a personal SFO request to contextual KS consent and suppo
   await page.getByLabel('Hva er situasjonen din?').fill('Jeg bruker SFO og vil vite om familien min kan betale mindre.');
   await page.getByRole('button', { name: 'Send melding', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Kan jeg hente opplysninger for deg?' })).toBeVisible({ timeout: 200000 });
+  // Consent is visible after triage; the reply is appended only after critic/polish completes.
+  await expect.poll(async () => (await snapshot(page)).session?.status, { timeout: 200000 }).not.toBe('analyzing');
+  expect((await snapshot(page)).session?.error).toBeNull();
   await expect(page.locator('.assistant-message.is-assistant').last()).toContainText('Vil du at jeg henter opplysninger for deg?');
   expect((await snapshot(page)).session?.pendingConsents?.map(consent => consent.toolId)).toEqual(['ks_connect', 'ks_income']);
   const state = (await snapshot(page)).session!;

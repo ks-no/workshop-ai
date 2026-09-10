@@ -67,3 +67,15 @@
 .actionList { display: flex; flex-direction: column; gap: var(--ds-size-2); }
 .actionButton { width: 100%; justify-content: space-between; }
 .footerNote { text-align: center; }
+
+.stageLabel { padding: var(--ds-size-2) var(--ds-size-6); margin: 0; color: var(--ds-color-neutral-text-subtle); }
+.preservedText { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 30rem) {
+  .fieldGrid { grid-template-columns: minmax(0, 1fr); }
+  .content { padding: var(--ds-size-6) var(--ds-size-4); }
+  .topBar { padding-inline: var(--ds-size-4); }
+  .navRow > button { max-width: 100%; white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progressBar, .taskProgressBar { transition: none; }
+}

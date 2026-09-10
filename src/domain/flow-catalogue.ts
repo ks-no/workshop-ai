@@ -165,6 +165,14 @@ export function rulePlan(session: Pick<FlowCase, 'facts' | 'sources' | 'situatio
   const facts = activeFacts(session);
   const base = { questions: [], factIds: facts.map(fact => fact.id), fetch: [] as FlowFetchable[], next: null, proposal: null };
   const rationale = 'Regelbasert forslag: språkmodellen var ikke tilgjengelig eller ga et svar som ikke kunne kontrolleres, så flyten følger den faste SFO-sjekken.';
+  if (lastEvent === 'action-done' && session.outcomes.length) return { ...base, kind: 'done', title: 'Se resultatene og velg neste steg', rationale: 'Resultatene er lagret i saken.', message: 'Se kvitteringene og statusene under. Du kan velge en ny handling eller legge til informasjon. En lokal forberedelse eller testmelding er ikke en offentlig innsending.' };
+  // The fallback must not collect SFO/income data for an unrelated question.
+  if (!/\b(sfo|aks|skolefritidsordning)\b/i.test(session.situation)) {
+    const rationale = 'Språkmodellen kunne ikke foreslå et kontrollert svar. Du kan velge en handling selv eller be om lokal menneskelig vurdering.';
+    if (lastEvent === 'action-skipped') return { ...base, kind: 'done', title: 'Du velger hvordan du vil fortsette', rationale, message: 'Ingen ny handling er utført. Velg en handling nedenfor eller legg til mer informasjon.' };
+    const contact = flowContact('citizen-service');
+    return { ...base, kind: 'action', title: 'Få hjelp av et menneske', rationale, message: 'Kontroller sammendraget før du deler det med demoens lokale vurderingskø. Du kan også velge en annen handling nedenfor.', proposal: { type: 'contact', contact, reason: 'Behovet må vurderes av et menneske.', summary: [session.situation, ...confirmedFacts(session).map(fact => `${fact.label}: ${fact.value}`)].join('\n').slice(0, 4000) } };
+  }
   const fetchable = flowFetchables.filter(source => !session.ks.fetched.includes(source) && !session.ks.declined.includes(source));
   const has = (keys: string[]) => facts.some(fact => keys.includes(fact.key)) || keys.some(key => session.skipped.includes(key));
   if (fetchable.length && !session.outcomes.length && lastEvent !== 'review-approved' && lastEvent !== 'questions-skipped') {

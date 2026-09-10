@@ -215,8 +215,11 @@ test('consent for an earlier analysis cannot hand off a newly generated plan wit
   saveAssistantCase(current);
   const reviewedRevision = current.revision;
   const analyzed = await withAssistantLock(current.id, reviewedRevision, async session => {
-    await analyzeCase(session, async (_system, context, schema) => {
+    await analyzeCase(session, async (_system, context, schema, role) => {
       modelCalls++;
+      if (context !== null && typeof context === 'object' && 'draft' in context) {
+        return schema.parse(role === 'critic' ? { verdict: 'PASS', gaps: [], notes: '' } : { answer: (context as { draft: string }).draft });
+      }
       const input = context as { service?: unknown };
       return schema.parse(input.service
         ? { summary: 'Ny spesialistplan.', findings: [], questions: [] }
@@ -236,7 +239,7 @@ test('consent for an earlier analysis cannot hand off a newly generated plan wit
   const consent = await POST(request('POST', { action: 'handoff', caseId: current.id, revision: analyzed.revision, confirmed: true }, current));
   assert.equal(consent.status, 200);
   assert.equal((await consent.json()).session.handoff.revision, analyzed.revision);
-  assert.equal(modelCalls, 2);
+  assert.equal(modelCalls, 4); // triage + one specialist (moving) + critic + polish
 });
 
 test('end actions run under the case lock, and receipts download only for the cookie case', async () => {

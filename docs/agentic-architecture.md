@@ -1,5 +1,8 @@
 # Arkitektur for innbyggerassistenten
 
+Forsidens stegvise veiviser og handlingsutførelse beskrives i
+[interaktiv flyt](interactive-flow.md). Denne siden beskriver samtalevisningen `/assistent`.
+
 Assistenten forbereder familie/SFO, bolig og flytting fra én samtale. En AI-modell
 velger relevante tjenester og lager separate spesialistanalyser.
 Microsoft Agent Framework i en lokal Python-prosess styrer agentflyten.

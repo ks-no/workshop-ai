@@ -204,6 +204,12 @@
 .assistant-raw-source pre { padding: var(--s3); margin: 0; max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; border: var(--assistant-border); border-radius: var(--radius); }
 .assistant-history-facts { border-top: var(--assistant-border); font-size: var(--text-small); padding-top: var(--s3); }
 .assistant-historic-fact { padding: var(--s4) 0; }
+.assistant-critique-round { padding: var(--s4) 0; }
+.assistant-critique-round + .assistant-critique-round { border-top: var(--assistant-border); }
+.assistant-critique-round-heading { display: flex; align-items: center; gap: var(--s3); }
+.assistant-critique-gaps { margin: var(--s3) 0 0; padding-left: var(--s5); }
+.assistant-critique-gaps li + li { margin-top: var(--s3); }
+.assistant-critique-quote { margin: 0 0 var(--s2); border-left: 3px solid var(--line); padding-left: var(--s3); font-style: italic; overflow-wrap: anywhere; }
 .assistant-demo-data { margin-top: var(--s4); font-size: var(--text-small); }
 .assistant-demo-data > summary { align-content: center; }
 .assistant-demo-data > p { margin: var(--s2) 0; }

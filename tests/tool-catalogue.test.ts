@@ -17,13 +17,17 @@ afterEach(() => { for (const [key, value] of previousModelEnv) { if (value === u
 const now = '2026-09-10T08:00:00.000Z';
 function session(): AssistantCase {
   return { id: 'b6fb9368-38ca-4ec9-94a8-967bde10ded6', createdAt: now, updatedAt: now, expiresAt: '2026-09-11T08:00:00.000Z', revision: 1, status: 'collecting', language: 'nb',
-    messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', analyzedRevision: null, handoff: null, error: null, ksData: null, pendingConsents: [] };
+    messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null, pendingConsents: [] };
 }
 function plan(services: ServiceId[], toolRequests?: ModelPlan['toolRequests'], intent: ModelPlan['intent'] = 'personalized'): ModelPlan {
   return { intent, summary: 'Det kan være du har krav på redusert SFO-betaling.', services: services.map(id => ({ id, reason: 'Mistet jobb og har barn' })), facts: [], questions: [], unsupported: [], toolRequests };
 }
 function model(response: ModelPlan, specialist: SpecialistOutput = { summary: 'Sjekklisten er klar.', findings: [], questions: [] }): ModelCall {
-  return async (_system, context, schema) => schema.parse(context && typeof context === 'object' && 'service' in context ? specialist : response);
+  return async (_system, context, schema, role) => {
+    if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+    if (role === 'polish') return schema.parse({ answer: (context as { draft: string }).draft });
+    return schema.parse(context && typeof context === 'object' && 'service' in context ? specialist : response);
+  };
 }
 const discard = () => {};
 /** The planner proposes the stated fact; screening may use proposals, the form only confirmed values. */

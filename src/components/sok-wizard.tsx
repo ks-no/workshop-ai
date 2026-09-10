@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type Ref } from 'react';
-import { ArrowLeft, ArrowRight, CalendarBlank, CaretRight, CheckCircle, Circle, EnvelopeSimple, FileText, Phone, Sparkle } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, CaretRight, EnvelopeSimple, Phone, Sparkle } from '@phosphor-icons/react';
 import {
-  Alert, Button, Card, CardBlock, Checkbox, ChipButton, ChipRemovable, Details, DetailsContent, DetailsSummary, Divider,
+  Alert, Button, Card, CardBlock, Checkbox, ChipButton, ChipRemovable, Details, DetailsContent, DetailsSummary, Divider, ErrorSummary,
   EXPERIMENTAL_FileUpload, Field, FieldDescription, Fieldset, FieldsetLegend, Heading, Label, Link as DsLink, ListItem, ListUnordered, Paragraph, Radio, Select, SelectOption, Spinner, Tag, Textfield, ValidationMessage,
 } from '@digdir/designsystemet-react';
+import { componentForStep, type FlowComponentId } from '../domain/flow-components';
+import { FlowActivityPanel } from './flow-activity-panel';
 import { dateTime } from '../domain/format';
-import { ACTION_LABELS, FLOW_SOURCES, reminderCalendar, SANDBOX_NOTE, STEP_LABELS } from '../domain/flow-catalogue';
+import { ACTION_LABELS, FLOW_SOURCES, SANDBOX_NOTE, STEP_LABELS } from '../domain/flow-catalogue';
 import type { FlowCase, FlowCommand, FlowExecution, FlowFact, FlowFetchable, FlowOutcome, FlowProposal, FlowQuestion, FlowResponse, FlowStep } from '../domain/flow-types';
 import type { ContactPoint, ModelStatus } from '../domain/assistant-types';
 import styles from './sok-wizard.module.css';
@@ -47,14 +49,6 @@ function modelLabel(model: ModelStatus | null) {
   if (!model.available) return 'Regelbasert forslag – språkmodellen er ikke tilgjengelig';
   return `modellen ${model.model} via AI Factory`;
 }
-function mailtoFor(outcome: FlowOutcome) {
-  return `mailto:${encodeURIComponent(outcome.payload.to ?? '')}?subject=${encodeURIComponent(outcome.payload.subject ?? '')}&body=${encodeURIComponent(outcome.payload.body ?? '')}`;
-}
-function downloadText(filename: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 function activeFacts(session: FlowCase, step?: FlowStep | null) {
   return session.facts.filter(fact => (fact.status === 'proposed' || fact.status === 'confirmed') && (!step || !step.factIds.length || step.factIds.includes(fact.id)));
 }
@@ -72,6 +66,7 @@ export function SokWizard() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [summaryView, setSummaryView] = useState(false);
+  const [showDraft, setShowDraft] = useState(true);
   const [situation, setSituation] = useState('');
   const [uploads, setUploads] = useState<File[]>([]);
   const latest = useRef<FlowCase | null>(null);
@@ -105,8 +100,14 @@ export function SokWizard() {
           : session.status === 'acted' ? 'acted'
             : step ? step.kind
               : 'error';
-  const stepCount = session?.stepCount ?? 0;
-  const progress = phase === 'start' ? 0 : phase === 'done' || phase === 'summary' ? 1 : Math.min(0.9, 0.15 + 0.15 * stepCount + (phase === 'acted' ? 0.1 : 0));
+  const component = step ? componentForStep(step) : null;
+  const storedDraft = snapshot?.activity?.draft;
+  const draft = storedDraft?.status === 'prepared' && storedDraft.stepId === step?.id && storedDraft.revision === session?.revision ? storedDraft : null;
+  useEffect(() => {
+    if (!session || busy) return;
+    const timer = setInterval(() => { void refresh().catch(() => {}); }, 15000);
+    return () => clearInterval(timer);
+  }, [session, busy, refresh]);
 
   // A reload while the server is still planning: keep asking until the step arrives.
   useEffect(() => {
@@ -171,12 +172,24 @@ export function SokWizard() {
     if (body) await command(body, { heading: input.fetch.length ? 'Henter KS-opplysninger med samtykke' : 'Vi bruker det du godkjente', hint: input.fetch.length ? 'Bare det du valgte hentes. Du kontrollerer alt før det brukes.' : 'Opplysningene er nå bekreftet av deg.',
       tasks: thinkingTasks({ title: 'Registrerer godkjenningen', detail: `${input.facts.length} opplysninger er bekreftet av deg.` }, input.fetch.map(key => ({ title: `Henter ${FLOW_SOURCES[key].lower}`, detail: `${FLOW_SOURCES[key].api} · ${SANDBOX_NOTE}` }))) });
   }
-  async function execute(execution: FlowExecution, ks: boolean) {
-    const body = withCase({ action: 'execute', execution });
+  async function prepare(execution: FlowExecution) {
+    const body = withCase({ action: 'prepare', execution });
     if (!body) return;
-    const next = await command(body, { heading: 'Utfører handlingen', hint: 'Bare det du har godkjent utføres.', tasks: [{ title: 'Registrerer valget ditt', detail: 'Handlingen lagres i saken med referanse.' }, ks ? { title: 'Sender testsøknaden til KS-sandkassen', detail: `POST /api/soknader · ${SANDBOX_NOTE}` } : { title: 'Lager kvittering', detail: 'Ingenting sendes til en virkelig kommune.' }] });
-    const outcome = next?.session?.outcomes.at(-1);
-    if (outcome?.kind === 'email' && execution.type === 'email') window.location.href = mailtoFor(outcome);
+    const next = await command(body, { heading: 'Lagrer utkastet', hint: 'Du får kontrollere det nøyaktige innholdet før du godkjenner.', tasks: [{ title: 'Lagrer utkast', detail: 'Ingen handling er utført ennå.' }] });
+    if (next) setShowDraft(true);
+  }
+  async function executeDraft() {
+    if (!draft) return;
+    const body = withCase({ action: 'execute', draftId: draft.id });
+    if (body) await command(body, { heading: 'Utfører det godkjente utkastet', hint: 'Resultatet vises når serveren har svart.', tasks: [{ title: 'Venter på resultat', detail: 'Ikke send samme handling på nytt mens du venter.' }] });
+  }
+  async function choose(type: 'email' | 'form' | 'reminder' | 'contact') {
+    const body = withCase({ action: 'choose', type });
+    if (body) { setSummaryView(false); setShowDraft(false); await command(body, { heading: 'Forbereder valgt handling', hint: 'Du kan redigere før du godkjenner.', tasks: [{ title: 'Lager forslag', detail: 'Bruker opplysningene i saken.' }] }); }
+  }
+  async function reviewFacts() {
+    const body = withCase({ action: 'review-facts' });
+    if (body) { setShowDraft(false); await command(body, { heading: 'Henter opplysningene', hint: 'Rett opplysningene før du fortsetter.', tasks: [{ title: 'Åpner opplysningene', detail: 'Utkastet må godkjennes på nytt etter endringer.' }] }); }
   }
   async function simple(action: 'skip' | 'continue' | 'retry') {
     const body = withCase({ action });
@@ -189,8 +202,8 @@ export function SokWizard() {
   async function reset() {
     const active = latest.current;
     if (active) {
-      try { await fetch('/api/flow', { method: 'DELETE', headers, body: JSON.stringify({ caseId: active.id, revision: active.revision }) }); }
-      catch { /* A stale case expires on its own. */ }
+      try { const response = await fetch('/api/flow', { method: 'DELETE', headers, body: JSON.stringify({ caseId: active.id, revision: active.revision }) }); if (!response.ok) throw new Error('Kunne ikke slette saken. Prøv igjen.'); }
+      catch (reason) { setError(reason instanceof Error ? reason.message : 'Kunne ikke slette saken.'); return; }
     }
     latest.current = null;
     setSnapshot(current => current ? { ...current, session: null } : current);
@@ -209,9 +222,7 @@ export function SokWizard() {
       <div className={styles.brand}><span className={styles.brandMark} aria-hidden="true">é</span><span>Søk én gang</span></div>
       {phase !== 'start' && <Button variant="tertiary" data-size="sm" disabled={!!busy} onClick={() => void reset()}>Start på nytt</Button>}
     </header>
-    <div className={styles.progress} role="progressbar" aria-label="Fremdrift" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
-      <div className={styles.progressBar} style={{ width: `${progress * 100}%` }} />
-    </div>
+    {session && <Paragraph data-size="sm" className={styles.stageLabel}>Steg {session.stepCount} · {phase === 'thinking' ? 'Arbeider med saken' : 'Du styrer hva som skjer videre'}</Paragraph>}
 
     <main id="main" className={styles.content}><div className={styles.container}>
       {notice && phase !== 'thinking' && <Alert data-color="info" role="status" className={styles.stackSm}>{notice}</Alert>}
@@ -223,6 +234,7 @@ export function SokWizard() {
           placeholder="F.eks: Jeg mistet jobben forrige måned og har et barn på SFO …" autoFocus suppressHydrationWarning />
         <NavRow onNext={() => void begin()} nextDisabled={loading || (!situation.trim() && uploads.length === 0)} nextLabel="Gå videre" />
         {!loading && <Paragraph data-size="xs" className={`${styles.subtle} ${styles.modelLine}`}><Sparkle size={16} aria-hidden="true" />{model?.available ? `Neste steg foreslås av ${modelLabel(model)}. Du godkjenner alt før det brukes.` : `${model?.message ?? 'Språkmodellen er ikke tilgjengelig.'} Flyten bruker faste regler inntil modellen svarer.`}</Paragraph>}
+        <Paragraph data-size="xs" className={styles.subtle}>Saken og tilknyttede påminnelser slettes etter 90 dager. Varsler vises i denne appen.</Paragraph>
         <Divider />
         <div className={styles.stackSm}>
           <Paragraph data-size="sm" className={styles.subtle}>Trenger du inspirasjon? Trykk på et eksempel for å bruke det som utgangspunkt.</Paragraph>
@@ -239,15 +251,33 @@ export function SokWizard() {
       {phase === 'thinking' && <ThinkingScreen heading={busy?.heading ?? 'Assistenten arbeider med saken'} hint={busy?.hint ?? 'Vi henter fremdriften. Dette kan ta opptil ett minutt.'}
         tasks={busy?.tasks ?? thinkingTasks({ title: 'Leser saken', detail: 'Planleggingen pågår på serveren.' })} headingRef={heading} />}
 
-      {phase === 'ask' && session && step && <AskScreen key={step.id} session={session} step={step} onSubmit={answer} onSkip={() => void answer([], '')} headingRef={heading} />}
-      {phase === 'review' && session && step && <ReviewScreen key={step.id} session={session} step={step} onApprove={approve} headingRef={heading} />}
-      {phase === 'action' && session && step?.proposal && <ActionScreen key={step.id} session={session} step={step} proposal={step.proposal} onExecute={execute} onSkip={() => void simple('skip')} headingRef={heading} />}
+      {phase === 'ask' && component === 'question-form' && session && step && <AskScreen key={step.id} session={session} step={step} onSubmit={answer} onSkip={() => void answer([], '')} headingRef={heading} />}
+      {phase === 'review' && component === 'evidence-review' && session && step && <ReviewScreen key={step.id} session={session} step={step} onApprove={approve} headingRef={heading} />}
+      {session && step?.proposal && step.kind === 'action' && component && ['email-draft', 'application-draft', 'reminder-editor', 'human-review'].includes(component) && session.status !== 'acted' && <div hidden={phase === 'thinking' || summaryView}>
+        <div hidden={!!draft && showDraft}>
+          <ActionScreen key={step.id} component={component} session={session} step={step} proposal={step.proposal} onExecute={prepare} onSkip={() => void simple('skip')} headingRef={heading} />
+          <Button variant="tertiary" onClick={() => void reviewFacts()}>Rett opplysninger</Button>
+        </div>
+        {draft && showDraft && <Screen kind="approval" eyebrow="Godkjenn utkast" heading="Kontroller før du godkjenner" hint="Dette er innholdet som brukes. Endringer krever et nytt utkast." headingRef={heading}>
+          <DraftPreview execution={draft.execution} proposal={draft.proposal} />
+          <NavRow onNext={() => void executeDraft()} nextLabel="Godkjenn og utfør" nextDisabled={draft.status !== 'prepared'} onBack={() => setShowDraft(false)} backLabel="Rediger utkast" />
+        </Screen>}
+      </div>}
       {phase === 'acted' && session && <ActedScreen session={session} onContinue={() => void simple('continue')} onSummary={() => setSummaryView(true)} headingRef={heading} />}
-      {(phase === 'done' || phase === 'summary') && session && <SummaryScreen session={session} step={phase === 'done' ? step : null} onMore={addMore} onContinue={phase === 'summary' ? () => setSummaryView(false) : () => void simple('continue')} onReset={() => void reset()} headingRef={heading} />}
+      {((phase === 'done' && component === 'completion-summary') || phase === 'summary') && session && <SummaryScreen session={session} step={phase === 'done' ? step : null} onMore={addMore} onContinue={phase === 'summary' ? () => setSummaryView(false) : () => void simple('continue')} onReset={() => void reset()} headingRef={heading} />}
       {phase === 'error' && session && <Screen kind="error" eyebrow="Noe stoppet" heading="Assistenten kunne ikke fullføre steget" hint={session.error ?? 'Det finnes ikke noe aktivt steg. Prøv igjen, eller start på nytt.'} headingRef={heading}>
         <NavRow onNext={() => void simple('retry')} nextLabel="Prøv igjen" onBack={() => void reset()} backLabel="Start på nytt" />
         <ActivityLog session={session} />
       </Screen>}
+      {session && phase !== 'start' && phase !== 'thinking' && <>
+        <Details><DetailsSummary>Velg en handling</DetailsSummary><DetailsContent className={styles.stackSm}>
+          <Button variant="secondary" onClick={() => void choose('form')}>Forbered skjema</Button>
+          <Button variant="secondary" onClick={() => void choose('email')}>Forbered e-post</Button>
+          <Button variant="secondary" onClick={() => void choose('reminder')}>Lag påminnelse</Button>
+          <Button variant="secondary" onClick={() => void choose('contact')}>Be om menneskelig vurdering</Button>
+        </DetailsContent></Details>
+        {snapshot?.activity && <FlowActivityPanel activity={snapshot.activity} outcomes={session.outcomes} onRefresh={refresh} />}
+      </>}
     </div></main>
   </div>;
 }
@@ -267,49 +297,13 @@ function Screen({ kind, eyebrow, heading, hint, headingRef, children }: {
 
 /** Model and fetch work shown as a running task. The last task stays open until the server answers. */
 function ThinkingScreen({ heading, hint, tasks, headingRef }: { heading: string; hint: string; tasks: Task[]; headingRef: Ref<HTMLHeadingElement> }) {
-  const [done, setDone] = useState(0);
-  useEffect(() => {
-    if (done >= tasks.length - 1) return;
-    const timer = setTimeout(() => setDone(current => current + 1), 1400);
-    return () => clearTimeout(timer);
-  }, [done, tasks.length]);
-  const current = tasks[Math.min(done, tasks.length - 1)];
-  return <Screen kind="thinking" eyebrow="Kunstig intelligens jobber" heading={heading} hint={hint} headingRef={headingRef}>
-    <Card data-color="neutral" aria-busy="true">
-      <CardBlock className={styles.cardStack}>
-        <Paragraph data-size="xs"><strong>Pågående oppgave</strong></Paragraph>
-        <div className={styles.taskTitle}>
-          <FileText size={26} aria-hidden="true" />
-          <Heading level={2} data-size="xs" aria-live="polite">{current.title}</Heading>
-        </div>
-        <Paragraph data-size="sm" className={styles.subtle}>{current.detail}</Paragraph>
-        <div className={styles.taskProgress} role="progressbar" aria-label="Oppgavefremdrift" aria-valuemin={0} aria-valuemax={tasks.length} aria-valuenow={done}>
-          <div className={styles.taskProgressBar} style={{ width: `${((done + 0.5) / tasks.length) * 100}%` }} />
-        </div>
-        <Paragraph data-size="xs" className={styles.subtle}>En lokal språkmodell kan bruke opptil ett minutt. Opplysningene er bevart hvis du venter.</Paragraph>
-      </CardBlock>
-      <Details defaultOpen>
-        <DetailsSummary>Alle steg</DetailsSummary>
-        <DetailsContent>
-          <ol className={styles.taskList}>
-            {tasks.map((task, index) => {
-              const status = index < done ? 'Ferdig' : index === done ? 'Pågår' : 'Venter';
-              return <li key={task.title} className={styles.taskItem}>
-                <span className={styles.taskIcon}>
-                  {status === 'Ferdig' && <span data-color="success" className={styles.consentIcon}><CheckCircle size={22} weight="fill" aria-hidden="true" /></span>}
-                  {status === 'Pågår' && <Spinner data-size="xs" aria-hidden="true" />}
-                  {status === 'Venter' && <Circle size={22} aria-hidden="true" className={styles.subtle} />}
-                </span>
-                <div>
-                  <Paragraph data-size="sm"><strong>{task.title}</strong> <span className="ds-sr-only">{status}</span></Paragraph>
-                  <Paragraph data-size="xs" className={styles.subtle}>{task.detail}</Paragraph>
-                </div>
-              </li>;
-            })}
-          </ol>
-        </DetailsContent>
-      </Details>
-    </Card>
+  return <Screen kind="thinking" eyebrow="Arbeider med saken" heading={heading} hint={hint} headingRef={headingRef}>
+    <Card data-color="neutral" aria-busy="true"><CardBlock className={styles.cardStack}>
+      <div className={styles.taskTitle}><Spinner data-size="sm" aria-hidden="true" /><Paragraph role="status">Venter på svar fra serveren</Paragraph></div>
+      <Details><DetailsSummary>Hva forespørselen gjelder</DetailsSummary><DetailsContent>
+        <ListUnordered>{tasks.map(task => <ListItem key={task.title}>{task.title}. {task.detail}</ListItem>)}</ListUnordered>
+      </DetailsContent></Details>
+    </CardBlock></Card>
   </Screen>;
 }
 
@@ -385,6 +379,7 @@ function AskScreen({ session, step, onSubmit, onSkip, headingRef }: { session: F
   return <Screen kind="ask" eyebrow={`Steg ${session.stepCount} · Vi trenger mer`} heading={step.title} hint={step.message} headingRef={headingRef}>
     <StepMeta step={step} />
     <form className={styles.stack} onSubmit={submit} noValidate>
+      <FieldErrors errors={errors} prefix="question-" />
       {step.questions.map(question => <QuestionField key={question.key} question={question} value={values[question.key] ?? ''} error={errors[question.key]}
         onChange={value => { setValues(current => ({ ...current, [question.key]: value })); setErrors(current => (current[question.key] ? { ...current, [question.key]: '' } : current)); }} />)}
       <MoreInfo value={note} onChange={setNote} />
@@ -440,7 +435,7 @@ function ContactCard({ contact, reason }: { contact: ContactPoint; reason?: stri
     <Paragraph data-size="sm">{contact.role} · {contact.organisation}</Paragraph>
     {reason && <Paragraph data-size="sm">{reason}</Paragraph>}
     <dl className={styles.sourceList}>
-      {contact.phone && <div><dt>Telefon</dt><dd><Phone size={16} aria-hidden="true" /> {contact.phone}{contact.hours ? ` · ${contact.hours}` : ''}</dd></div>}
+      {contact.phone && <div><dt>Telefon</dt><dd><Phone size={16} aria-hidden="true" /> <DsLink href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</DsLink>{contact.hours ? ` · ${contact.hours}` : ''}</dd></div>}
       {contact.email && <div><dt>E-post</dt><dd><EnvelopeSimple size={16} aria-hidden="true" /> {contact.email}</dd></div>}
       {contact.url && <div><dt>Nettside</dt><dd><DsLink href={contact.url} target="_blank" rel="noreferrer">{contact.url}</DsLink></dd></div>}
     </dl>
@@ -448,49 +443,51 @@ function ContactCard({ contact, reason }: { contact: ContactPoint; reason?: stri
   </CardBlock></Card>;
 }
 
-function ActionScreen({ session, step, proposal, onExecute, onSkip, headingRef }: { session: FlowCase; step: FlowStep; proposal: FlowProposal; onExecute: (execution: FlowExecution, ks: boolean) => void; onSkip: () => void; headingRef: Ref<HTMLHeadingElement> }) {
+function ActionScreen({ component, session, step, proposal, onExecute, onSkip, headingRef }: { component: FlowComponentId; session: FlowCase; step: FlowStep; proposal: FlowProposal; onExecute: (execution: FlowExecution) => void; onSkip: () => void; headingRef: Ref<HTMLHeadingElement> }) {
   const [to, setTo] = useState(proposal.type === 'email' ? proposal.contact.email ?? '' : '');
   const [subject, setSubject] = useState(proposal.type === 'email' ? proposal.subject : proposal.type === 'reminder' ? proposal.title : '');
-  const [body, setBody] = useState(proposal.type === 'email' ? proposal.body : proposal.type === 'reminder' ? proposal.note : '');
+  const [body, setBody] = useState(proposal.type === 'email' ? proposal.body : proposal.type === 'reminder' ? proposal.note : proposal.type === 'contact' ? proposal.summary ?? proposal.reason : '');
   const [date, setDate] = useState(proposal.type === 'reminder' ? proposal.date : '');
   const [time, setTime] = useState(proposal.type === 'reminder' ? proposal.time ?? '' : '');
   const [fields, setFields] = useState<Record<string, string>>(() => proposal.type === 'form' ? Object.fromEntries(proposal.fields.filter(field => field.editable).map(field => [field.id, field.value])) : {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const eyebrow = `Steg ${session.stepCount} · ${ACTION_LABELS[proposal.type]}`;
 
-  if (proposal.type === 'email') {
+  if (component === 'email-draft' && proposal.type === 'email') {
     const submit = () => {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) { setErrors({ to: 'Oppgi én gyldig e-postadresse.' }); return; }
       if (!subject.trim() || !body.trim()) { setErrors({ body: 'E-posten må ha et emne og en tekst.' }); return; }
-      onExecute({ type: 'email', to: to.trim(), subject: subject.trim(), body: body.trim() }, false);
+      onExecute({ type: 'email', to: to.trim(), subject: subject.trim(), body: body.trim() });
     };
     return <Screen kind="action" eyebrow={eyebrow} heading={step.title} hint={step.message} headingRef={headingRef}>
       <StepMeta step={step} />
+      <FieldErrors errors={errors} prefix="email-" />
       <ContactCard contact={proposal.contact} />
-      <Alert data-color={proposal.aiDrafted ? 'info' : 'warning'}>{proposal.aiDrafted ? 'Utkastet er skrevet av KI og kontrollert mot opplysningene dine: ingen tall uten grunnlag, ingen påstand om vedtak. Les over og rett før du sender.' : 'KI-utkastet ble avvist i kontrollen eller var utilgjengelig, så dette er et fast utkast fra opplysningene dine. Rett det før du sender.'}</Alert>
+      <Alert data-color={proposal.aiDrafted ? 'info' : 'warning'}>{proposal.aiDrafted ? 'Utkastet er skrevet av KI og kontrollert mot opplysningene dine: ingen tall uten grunnlag, ingen påstand om vedtak. Les over og rett før du lagrer i testutboksen.' : 'KI-utkastet ble avvist i kontrollen eller var utilgjengelig, så dette er et fast utkast fra opplysningene dine. Rett det før du lagrer i testutboksen.'}</Alert>
       <div className={styles.stack}>
         <Textfield id="email-to" label="Til" description="Mottakeradressen er en plassholder for demoen og kan endres." type="email" value={to} onChange={event => setTo(event.target.value)} error={errors.to} />
         <Textfield id="email-subject" label="Emne" value={subject} onChange={event => setSubject(event.target.value)} />
         <Textfield multiline id="email-body" label="E-post" rows={12} value={body} onChange={event => setBody(event.target.value)} error={errors.body} suppressHydrationWarning />
       </div>
-      <Paragraph data-size="xs" className={styles.subtle}>Appen sender ingenting selv. Når du godkjenner, lagres en kvittering, og e-posten åpnes i ditt eget e-postprogram.</Paragraph>
-      <NavRow onNext={submit} nextLabel="Godkjenn og åpne i e-postprogrammet" onBack={onSkip} backLabel="Foreslå noe annet" />
+      <Paragraph data-size="xs" className={styles.subtle}>Godkjenningen lagrer e-posten i en lokal testutboks. Ingen e-post sendes til mottakeren.</Paragraph>
+      <NavRow onNext={submit} nextLabel="Kontroller e-postutkast" onBack={onSkip} backLabel="Foreslå noe annet" />
       <ActivityLog session={session} />
     </Screen>;
   }
-  if (proposal.type === 'form') {
+  if (component === 'application-draft' && proposal.type === 'form') {
     const ks = proposal.submission === 'ks-sandbox';
     const submit = () => {
       const missing = proposal.fields.filter(field => field.required && !((field.editable ? fields[field.id] : field.value) ?? '').trim());
       if (missing.length) { setErrors(Object.fromEntries(missing.map(field => [field.id, field.editable ? 'Feltet må fylles ut.' : 'Opplysningen mangler. Gå tilbake og legg den til.']))); return; }
-      onExecute({ type: 'form', fields }, ks);
+      onExecute({ type: 'form', fields });
     };
     return <Screen kind="action" eyebrow={eyebrow} heading={step.title} hint={step.message} headingRef={headingRef}>
       <StepMeta step={step} />
+      <FieldErrors errors={errors} prefix="field-" />
       <Card data-color="neutral" variant="tinted"><CardBlock className={styles.cardStack}>
         <Heading level={2} data-size="2xs">{proposal.title}</Heading>
         <Paragraph data-size="sm">Mottaker: {proposal.recipient.name} · {proposal.recipient.organisation}</Paragraph>
-        <Paragraph data-size="xs" className={styles.subtle}>{ks ? `Sendes som testsøknad til KS-sandkassen (POST /api/soknader). ${SANDBOX_NOTE}.` : 'Klargjøres lokalt. Selve innsendingen gjør du i den offisielle tjenesten.'} Bekreftede opplysninger kan ikke redigeres her; rett dem ved å legge til mer informasjon.</Paragraph>
+        <Paragraph data-size="xs" className={styles.subtle}>{ks ? `KS registrerer en testsøknad. Skjemafeltene og dokumentene lagres bare i denne appen. ${SANDBOX_NOTE}.` : 'Klargjøres lokalt. Selve innsendingen gjør du i den offisielle tjenesten.'} Bekreftede opplysninger kan ikke redigeres her; rett dem ved å legge til mer informasjon.</Paragraph>
       </CardBlock></Card>
       <div className={styles.stack}>
         {proposal.fields.map(field => {
@@ -504,20 +501,21 @@ function ActionScreen({ session, step, proposal, onExecute, onSkip, headingRef }
         <DetailsSummary>Dokumentasjon du bør ha klar</DetailsSummary>
         <DetailsContent><ListUnordered data-size="sm">{proposal.attachments.map(item => <ListItem key={item}>{item}</ListItem>)}</ListUnordered></DetailsContent>
       </Details>}
-      <NavRow onNext={submit} nextLabel={ks ? 'Send testsøknad til KS-sandkassen' : `Klargjør skjemaet til ${proposal.recipient.name}`} onBack={onSkip} backLabel="Foreslå noe annet" />
+      <NavRow onNext={submit} nextLabel="Kontroller skjemautkast" onBack={onSkip} backLabel="Foreslå noe annet" />
       <ActivityLog session={session} />
     </Screen>;
   }
-  if (proposal.type === 'reminder') {
+  if (component === 'reminder-editor' && proposal.type === 'reminder') {
     const today = new Date().toISOString().slice(0, 10);
     const submit = () => {
       if (!subject.trim()) { setErrors({ title: 'Påminnelsen må ha en tittel.' }); return; }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today) { setErrors({ date: 'Velg en dato som er i dag eller senere.' }); return; }
-      onExecute({ type: 'reminder', title: subject.trim(), date, time: /^\d{2}:\d{2}$/.test(time) ? time : null, note: body.trim() }, false);
+      onExecute({ type: 'reminder', title: subject.trim(), date, time: /^\d{2}:\d{2}$/.test(time) ? time : null, note: body.trim() });
     };
     return <Screen kind="action" eyebrow={eyebrow} heading={step.title} hint={step.message} headingRef={headingRef}>
       <StepMeta step={step} />
       <div className={styles.stack}>
+        <FieldErrors errors={errors} prefix="reminder-" />
         <Textfield id="reminder-title" label="Påminnelse" value={subject} onChange={event => setSubject(event.target.value)} error={errors.title} />
         <div className={styles.fieldGrid}>
           <Textfield id="reminder-date" label="Dato" type="date" min={today} value={date} onChange={event => setDate(event.target.value)} error={errors.date} />
@@ -525,43 +523,45 @@ function ActionScreen({ session, step, proposal, onExecute, onSkip, headingRef }
         </div>
         <Textfield multiline id="reminder-note" label="Merknad" rows={3} value={body} onChange={event => setBody(event.target.value)} suppressHydrationWarning />
       </div>
-      <Paragraph data-size="xs" className={styles.subtle}>Påminnelsen lagres i saken. Etterpå kan du laste den ned som kalenderfil og legge den i din egen kalender.</Paragraph>
-      <NavRow onNext={submit} nextLabel="Legg til påminnelsen" onBack={onSkip} backLabel="Foreslå noe annet" />
+      <Paragraph data-size="xs" className={styles.subtle}>Påminnelsen lagres i saken. Du får et varsel her når den forfaller. Du kan endre eller avbryte den i saken. Tidssone: Europe/Oslo.</Paragraph>
+      <NavRow onNext={submit} nextLabel="Kontroller påminnelsen" onBack={onSkip} backLabel="Foreslå noe annet" />
       <ActivityLog session={session} />
     </Screen>;
   }
+  if (component !== 'human-review' || proposal.type !== 'contact') return <Alert data-color="danger">Forslaget passer ikke til en registrert komponent. Last inn saken på nytt.</Alert>;
   return <Screen kind="action" eyebrow={eyebrow} heading={step.title} hint={step.message} headingRef={headingRef}>
     <StepMeta step={step} />
     <ContactCard contact={proposal.contact} reason={proposal.reason} />
-    <NavRow onNext={() => onExecute({ type: 'contact' }, false)} nextLabel="Jeg tar kontakt selv – gå videre" onBack={onSkip} backLabel="Foreslå noe annet" />
+    <Textfield multiline label="Oppsummering til menneskelig vurdering" value={body} onChange={event => setBody(event.target.value)} rows={8} />
+    <Paragraph>Oppsummeringen legges i den lokale køen for menneskelig vurdering. Den sendes ikke til en virkelig offentlig tjeneste.</Paragraph>
+    <NavRow onNext={() => onExecute({ type: 'contact', summary: body.trim() })} nextDisabled={!body.trim()} nextLabel="Kontroller oppsummeringen" onBack={onSkip} backLabel="Foreslå noe annet" />
     <ActivityLog session={session} />
   </Screen>;
 }
 
 function OutcomeCard({ session, outcome }: { session: FlowCase; outcome: FlowOutcome }) {
   return <Card data-color={outcome.localOnly ? 'neutral' : 'success'} variant="tinted"><CardBlock className={styles.cardStack}>
-    <div className={styles.chips}><Tag data-size="sm" data-color="success">{ACTION_LABELS[outcome.kind]}</Tag><Tag data-size="sm" data-color="neutral">{outcome.reference}</Tag></div>
+    <div className={styles.chips}><Tag data-size="sm" data-color={outcome.localOnly ? 'neutral' : 'success'}>{ACTION_LABELS[outcome.kind]}</Tag><Tag data-size="sm" data-color="neutral">{outcome.reference}</Tag></div>
     <Heading level={2} data-size="2xs">{outcome.title}</Heading>
-    <Paragraph data-size="sm">{outcome.detail}</Paragraph>
+    <Paragraph data-size="sm">{outcome.kind === 'reminder' ? 'Påminnelsen ble opprettet i saken. Se gjeldende status nedenfor.' : outcome.kind === 'contact' && outcome.status === 'queued' ? 'Oppsummeringen ble lagt i den lokale vurderingskøen. Se gjeldende status nedenfor.' : outcome.detail}</Paragraph>
     {outcome.recipient && <Paragraph data-size="xs" className={styles.subtle}>Mottaker: {outcome.recipient.name} · {outcome.recipient.organisation}</Paragraph>}
     {outcome.kind === 'form' && outcome.payload.ksSoknadId && <dl className={styles.sourceList}>
       <div><dt>KS søknads-ID</dt><dd>{outcome.payload.ksSoknadId}</dd></div>
       <div><dt>Saksbehandleroppgave i Fiks</dt><dd>{outcome.payload.ksOppgaveId ?? 'ikke opprettet'}</dd></div>
       {outcome.payload.ksWarning && <div><dt>Merknad fra KS</dt><dd>{outcome.payload.ksWarning}</dd></div>}
     </dl>}
-    {outcome.kind === 'reminder' && <Paragraph data-size="sm"><CalendarBlank size={16} aria-hidden="true" /> {outcome.payload.date}{outcome.payload.time ? ` kl. ${outcome.payload.time}` : ''}{outcome.payload.note ? ` · ${outcome.payload.note}` : ''}</Paragraph>}
+    {outcome.kind === 'reminder' && <Paragraph data-size="sm">Gjeldende dato og status vises under Påminnelser. Kvitteringen beskriver den opprinnelige opprettelsen.</Paragraph>}
     <div className={styles.navRow}>
-      {outcome.kind === 'email' && <Button asChild variant="secondary" data-size="sm"><a href={mailtoFor(outcome)}>Åpne e-posten på nytt</a></Button>}
-      {outcome.kind === 'reminder' && <Button variant="secondary" data-size="sm" onClick={() => downloadText(`paaminnelse-${outcome.reference.toLowerCase()}.ics`, reminderCalendar(outcome), 'text/calendar;charset=utf-8')}>Last ned kalenderfil (.ics)</Button>}
+      {outcome.kind === 'form' && outcome.localOnly && outcome.recipient?.url && <Button asChild variant="secondary"><a href={outcome.recipient.url} target="_blank" rel="noreferrer">Åpne den offisielle tjenesten</a></Button>}
       <Button asChild variant="tertiary" data-size="sm"><a href={`/api/flow/outcome?caseId=${encodeURIComponent(session.id)}&outcomeId=${encodeURIComponent(outcome.id)}`} download>Last ned kvittering</a></Button>
     </div>
-    <Paragraph data-size="xs" className={styles.subtle}>{outcome.localOnly ? 'Lokal forberedelse med testopplysninger. Ingen søknad er sendt til en offentlig tjeneste.' : 'Sendt til KS sin workshop-sandkasse. Dette er ikke en søknad til en virkelig kommune.'}</Paragraph>
+    <Paragraph data-size="xs" className={styles.subtle}>{outcome.localOnly ? 'Lagret lokalt med testopplysninger. Ingenting er sendt til en offentlig tjeneste.' : 'KS har registrert en testsøknad. Skjemafeltene og dokumentene lagres bare i denne appen. Dette er ikke en søknad til en virkelig kommune.'}</Paragraph>
   </CardBlock></Card>;
 }
 
 function ActedScreen({ session, onContinue, onSummary, headingRef }: { session: FlowCase; onContinue: () => void; onSummary: () => void; headingRef: Ref<HTMLHeadingElement> }) {
   const outcome = session.outcomes.at(-1);
-  return <Screen kind="acted" eyebrow="Utført" heading={outcome ? `${ACTION_LABELS[outcome.kind]} er registrert` : 'Handlingen er registrert'} hint="Kvitteringen ligger i saken. Assistenten kan se om det er mer som bør gjøres, eller du kan avslutte med en oppsummering." headingRef={headingRef}>
+  return <Screen kind="acted" eyebrow="Resultat" heading={outcome ? outcome.status === 'mocked' ? 'E-posten er lagret i testutboksen' : outcome.status === 'queued' ? 'Vurderingen er lagt i lokal kø' : outcome.status === 'prepared' ? 'Skjemaet er klart til videre bruk' : outcome.status === 'scheduled' ? 'Påminnelsen ble opprettet' : outcome.localOnly ? 'Forberedelsen er registrert' : 'KS har registrert testsøknaden' : 'Resultatet er registrert'} hint="Kvitteringen ligger i saken. Assistenten kan se om det er mer som bør gjøres, eller du kan avslutte med en oppsummering." headingRef={headingRef}>
     {outcome && <OutcomeCard session={session} outcome={outcome} />}
     <NavRow onNext={onContinue} nextLabel="Hva mer kan vi gjøre?" onBack={onSummary} backLabel="Se oppsummering" />
     <ActivityLog session={session} />
@@ -575,7 +575,7 @@ function SummaryScreen({ session, step, onMore, onContinue, onReset, headingRef 
   return <Screen kind={step ? 'done' : 'summary'} eyebrow={step ? 'Ferdig' : 'Oppsummering'} heading={step?.title ?? 'Oppsummering av saken'} hint={step?.message ?? 'Dette er det som er samlet og utført i saken. Kommunen gjør vedtak; ingen søknad er sendt til en virkelig kommune.'} headingRef={headingRef}>
     {step && <StepMeta step={step} />}
     {session.outcomes.length > 0 && <div className={styles.stack}>
-      <Heading level={2} data-size="xs">Utførte handlinger</Heading>
+      <Heading level={2} data-size="xs">Resultater og forberedelser</Heading>
       {session.outcomes.map(outcome => <OutcomeCard key={outcome.id} session={session} outcome={outcome} />)}
     </div>}
     <Card data-color="neutral"><CardBlock className={styles.cardStack}>
@@ -604,7 +604,7 @@ function SummaryScreen({ session, step, onMore, onContinue, onReset, headingRef 
       </div>
     </CardBlock></Card>
     <ActivityLog session={session} />
-    <Paragraph data-size="xs" className={`${styles.subtle} ${styles.footerNote}`}>Syntetiske testopplysninger · KS Digital Hackathon 2026 · Ingen ekte søknad sendes</Paragraph>
+    <Paragraph data-size="xs" className={`${styles.subtle} ${styles.footerNote}`}>Syntetiske testopplysninger · Saken og tilknyttede påminnelser slettes etter 90 dager · Ingen ekte søknad sendes</Paragraph>
   </Screen>;
 }
 
@@ -634,4 +634,22 @@ function UploadField({ label, description, uploads, onChange, onRemove }: {
       {uploads.map(file => <ChipRemovable key={file.name} aria-label={`Fjern ${file.name}`} onClick={() => onRemove(file.name)}>{file.name} · {formatSize(file.size)}</ChipRemovable>)}
     </div>}
   </div>;
+}
+
+function DraftPreview({ execution, proposal }: { execution: FlowExecution; proposal: FlowProposal }) {
+  return <Card data-color="neutral"><CardBlock className={styles.cardStack}>
+    {proposal.type === 'form' && <Paragraph>Mottaker: {proposal.recipient.name}. {proposal.submission === 'ks-sandbox' ? 'KS registrerer en testsøknad. Skjemafeltene og dokumentene lagres bare i denne appen.' : 'Forberedes lokalt; du sender selv i den offisielle tjenesten.'}</Paragraph>}
+    {execution.type === 'email' && <><Alert data-color="info">Lokal testutboks. Ingen e-post sendes.</Alert><Paragraph>Til: {execution.to}</Paragraph><Heading level={2} data-size="xs">{execution.subject}</Heading><Paragraph className={styles.preservedText}>{execution.body}</Paragraph></>}
+    {execution.type === 'form' && proposal.type === 'form' && <><dl className={styles.sourceList}>{proposal.fields.map(field => <div key={field.id}><dt>{field.label}</dt><dd className={styles.preservedText}>{execution.fields[field.id] ?? field.value}</dd></div>)}</dl><Paragraph data-size="sm">Ingen dokumentvedlegg sendes fra dette skjemaet.</Paragraph></>}
+    {execution.type === 'reminder' && <><Heading level={2} data-size="xs">{execution.title}</Heading><Paragraph>{execution.date} {execution.time ?? ''} · Europe/Oslo</Paragraph><Paragraph className={styles.preservedText}>{execution.note}</Paragraph><Paragraph>Påminnelsen vises i denne appen når den forfaller.</Paragraph></>}
+    {execution.type === 'contact' && <><Alert data-color="info">Legges i en lokal kø for menneskelig vurdering.</Alert><Paragraph className={styles.preservedText}>{execution.summary}</Paragraph></>}
+  </CardBlock></Card>;
+}
+
+function FieldErrors({ errors, prefix }: { errors: Record<string, string>; prefix: string }) {
+  const entries = Object.entries(errors).filter(([, message]) => message);
+  if (!entries.length) return null;
+  return <ErrorSummary role="alert"><ErrorSummary.Heading>Kontroller disse feltene</ErrorSummary.Heading><ErrorSummary.List>
+    {entries.map(([key, message]) => <ErrorSummary.Item key={key}><ErrorSummary.Link href={`#${prefix}${key}`}>{message}</ErrorSummary.Link></ErrorSummary.Item>)}
+  </ErrorSummary.List></ErrorSummary>;
 }

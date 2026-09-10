@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { componentForStep, FLOW_COMPONENTS } from '../domain/flow-components';
+import { createReminder, createReview, recordMockEmail } from './flow-action-store';
 import type { EvidenceSource } from '../domain/assistant-types';
 import { CONTACT_POINTS } from '../domain/assistant-actions';
 import { narrativeWithinEvidence } from '../domain/assistant-verification';
@@ -6,9 +8,9 @@ import { ACTION_LABELS, activeFacts, buildFlowForm, fallbackFlowEmail, FLOW_FORM
 import { flowFetchables, type FlowCase, type FlowExecution, type FlowFact, type FlowFetchable, type FlowHistoryEntry, type FlowOutcome, type FlowProposal, type FlowQuestion, type FlowSource, type FlowStep } from '../domain/flow-types';
 import { KsDemoError, KS_DEMO_INCOME_PURPOSE } from '../providers/ks-demo-client';
 import { withoutIdentities } from './assistant-ks';
-import { callModel, type ModelCall } from './assistant-model';
+import { type ModelCall } from './assistant-model';
 import { CaseError } from './case-service';
-import { FLOW_PLANNER_PROMPT, flowModelName, flowStepSchema, type FlowPlannerOutput } from './flow-model';
+import { callFlowModel, FLOW_PLANNER_PROMPT, flowModelName, flowStepSchema, type FlowPlannerOutput } from './flow-model';
 import { saveFlowCase } from './flow-store';
 import { ksClient, ksPersonId } from './ks-runtime';
 
@@ -128,7 +130,9 @@ export function answerQuestions(session: FlowCase, answers: { key: string; value
 export async function approveReview(session: FlowCase, input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string }, client?: KsClient) {
   const step = session.step;
   if (!step || step.kind !== 'review') throw new CaseError('Det er ingen opplysninger å godkjenne nå.', 409);
-  const active = activeFacts(session);
+  const active = activeFacts(session).filter(fact => step.factIds.includes(fact.id));
+  const ids = [...input.facts.map(fact => fact.id), ...input.remove];
+  if (new Set(ids).size !== ids.length || ids.some(id => !active.some(fact => fact.id === id)) || input.fetch.some(source => !step.fetch.includes(source))) throw new CaseError('Godkjenningen inneholder opplysninger eller kilder som ikke ble vist.', 409);
   for (const id of input.remove) {
     const fact = active.find(item => item.id === id);
     if (fact) { fact.status = 'rejected'; event(session, 'Innbygger', 'human', `${fact.label}: fjernet av deg.`); }
@@ -145,7 +149,6 @@ export async function approveReview(session: FlowCase, input: { facts: { id: str
     }
     fact.status = 'confirmed';
   }
-  for (const fact of activeFacts(session)) if (fact.status === 'proposed') fact.status = 'confirmed';
   const latestByKey = new Map<string, FlowFact>();
   for (const fact of session.facts.filter(item => item.status === 'confirmed')) {
     const previous = latestByKey.get(fact.key);
@@ -231,8 +234,46 @@ export async function fetchKsSource(session: FlowCase, source: FlowFetchable, cl
   }
 }
 
-/** Execute the proposed action exactly as the citizen approved it. Nothing runs without a matching current proposal. */
+function reviewSummary(session: FlowCase) {
+  return [session.situation, ...session.facts.filter(fact => fact.status === 'confirmed').map(fact => `${fact.label}: ${fact.value}`)].join('\n').slice(0, 4000);
+}
+
+/** Validate before storing a draft, and again before dispatch. No side effects here. */
+export function validateExecution(session: FlowCase, execution: FlowExecution): FlowExecution {
+  const proposal = session.step?.kind === 'action' ? session.step.proposal : null;
+  if (!proposal || proposal.type !== execution.type) throw new CaseError('Handlingen samsvarer ikke med det gjeldende forslaget.', 409);
+  if (execution.type === 'email') {
+    const to = execution.to.trim(), subject = execution.subject.trim(), body = execution.body.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 200) throw new CaseError('Oppgi én gyldig e-postadresse til mottakeren.');
+    if (!subject || subject.length > 160 || /[\r\n]/.test(subject) || !body || body.length > 4000) throw new CaseError('Kontroller e-postens emne og tekst.');
+    return { type: 'email', to, subject, body };
+  }
+  if (execution.type === 'form' && proposal.type === 'form') {
+    if (Object.keys(execution.fields).some(id => !proposal.fields.some(field => field.id === id))) throw new CaseError('Skjemaet inneholdt et ukjent felt.');
+    return { type: 'form', fields: Object.fromEntries(proposal.fields.map(field => {
+      const value = (execution.fields[field.id] ?? field.value).trim();
+      if (!field.editable && value !== field.value) throw new CaseError(`«${field.label}» må rettes i opplysningskontrollen.`, 409);
+      if (field.required && !value) throw new CaseError(`«${field.label}» må fylles ut.`);
+      if (value.length > 1000) throw new CaseError(`«${field.label}» er for lang.`);
+      return [field.id, value];
+    })) };
+  }
+  if (execution.type === 'reminder') {
+    if (!validDateString(execution.date) || (execution.time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(execution.time))) throw new CaseError('Velg en gyldig dato og klokkeslett.');
+    if (!execution.title.trim() || execution.title.length > 120 || execution.note.length > 400) throw new CaseError('Kontroller påminnelsens tittel og merknad.');
+    return { ...execution, title: execution.title.trim(), note: execution.note.trim(), time: execution.time || '09:00' };
+  }
+  if (execution.type === 'contact') {
+    const summary = (execution.summary ?? (proposal.type === 'contact' ? proposal.summary : '') ?? reviewSummary(session)).trim();
+    if (!summary || summary.length > 4000) throw new CaseError('Sammendraget må ha mellom ett og 4000 tegn.');
+    return { type: 'contact', summary };
+  }
+  throw new CaseError('Handlingen kunne ikke kontrolleres.');
+}
+
+/** Called only by the approval executor after its durable dispatch claim. */
 export async function executeAction(session: FlowCase, execution: FlowExecution, client?: KsClient): Promise<FlowOutcome> {
+  execution = validateExecution(session, execution);
   const step = session.step;
   if (!step || step.kind !== 'action' || !step.proposal) throw new CaseError('Det er ingen foreslått handling å utføre nå.', 409);
   if (step.proposal.type !== execution.type) throw new CaseError('Handlingen samsvarer ikke med forslaget. Last inn siden på nytt.', 409);
@@ -243,8 +284,9 @@ export async function executeAction(session: FlowCase, execution: FlowExecution,
     const to = execution.to.trim(); const subject = execution.subject.trim(); const body = execution.body.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 200) throw new CaseError('Oppgi én gyldig e-postadresse til mottakeren.');
     if (!subject || subject.length > 160 || !body || body.length > 4000) throw new CaseError('E-posten må ha et emne og en tekst på inntil 4000 tegn.');
-    outcome = { ...base, kind: 'email', title: subject, reference: reference('EPOST'), localOnly: true, recipient: step.proposal.contact,
-      detail: 'E-posten er lest gjennom av deg og overlevert til ditt e-postprogram. Selve sendingen skjer der.', payload: { to, subject, body } };
+    const saved = recordMockEmail(session.id, base.id, { to, subject, body });
+    outcome = { ...base, kind: 'email', status: 'mocked', resourceId: saved.id, title: subject, reference: reference('DEMO-EPOST'), localOnly: true, recipient: step.proposal.contact,
+      detail: 'Godkjent melding er lagret i demoens utboks. Dette er en simulert e-post; ingenting er sendt til mottakeren.', payload: { to, subject, body } };
   } else if (execution.type === 'form' && step.proposal.type === 'form') {
     const proposal = step.proposal;
     if (Object.keys(execution.fields).some(id => !proposal.fields.some(field => field.id === id))) throw new CaseError('Skjemaet inneholdt et ukjent felt.');
@@ -269,11 +311,11 @@ export async function executeAction(session: FlowCase, execution: FlowExecution,
         oppgaveId: created.value.oppgave?.oppgaveId ?? null, advarsel: created.value.oppgave?.advarsel ?? null, syntetisk: true };
       if (session.sources.length < 60) addSource(session, 'register', 'KS API · Kvittering for testsøknad', JSON.stringify(receipt, null, 2));
       event(session, 'KS API', 'source-read', `Sendte testsøknaden «${template.ksProcess.prosessNavn}» til KS workshop API. Søknads-ID ${receipt.soknadId}${receipt.oppgaveId ? `, saksbehandleroppgave ${receipt.oppgaveId}` : ''}.`);
-      outcome = { ...base, kind: 'form', title: proposal.title, reference: receipt.soknadId, localOnly: false, recipient: proposal.recipient,
+      outcome = { ...base, kind: 'form', status: 'submitted', title: proposal.title, reference: receipt.soknadId, localOnly: false, recipient: proposal.recipient,
         detail: receipt.oppgaveId ? 'Testsøknaden er registrert i KS-sandkassen, og en saksbehandleroppgave er opprettet i Fiks-simulatoren.' : 'Testsøknaden er registrert i KS-sandkassen. Saksbehandleroppgaven kunne ikke opprettes.',
         payload: { fields: filled, ksSoknadId: receipt.soknadId, ksOppgaveId: receipt.oppgaveId, ksWarning: receipt.advarsel } };
     } else {
-      outcome = { ...base, kind: 'form', title: proposal.title, reference: reference('SKJEMA'), localOnly: true, recipient: proposal.recipient,
+      outcome = { ...base, kind: 'form', status: 'prepared', title: proposal.title, reference: reference('SKJEMA'), localOnly: true, recipient: proposal.recipient,
         detail: `Skjemaet er kontrollert av deg og klargjort lokalt. Selve innsendingen gjør du hos ${proposal.recipient.name}.`, payload: { fields: filled } };
     }
   } else if (execution.type === 'reminder' && step.proposal.type === 'reminder') {
@@ -281,11 +323,13 @@ export async function executeAction(session: FlowCase, execution: FlowExecution,
     if (!validDateString(execution.date) || execution.date < today) throw new CaseError('Påminnelsen må ha en dato som er i dag eller senere.');
     const title = execution.title.trim();
     if (!title) throw new CaseError('Påminnelsen må ha en tittel.');
-    outcome = { ...base, kind: 'reminder', title, reference: reference('PAAMINNELSE'), localOnly: true, recipient: null,
-      detail: 'Påminnelsen er lagret i saken. Last ned kalenderfilen for å legge den i din egen kalender.', payload: { date: execution.date, time: execution.time, note: execution.note.trim() } };
+    const reminder = createReminder(session.id, base.id, execution, session.expiresAt);
+    outcome = { ...base, kind: 'reminder', status: 'scheduled', resourceId: reminder.id, title, reference: reference('PAAMINNELSE'), localOnly: true, recipient: null,
+      detail: 'Påminnelsen er planlagt i Europe/Oslo. Varslet vises i denne appen når tiden er inne. Bakgrunnsarbeideren må kjøre; saken kan gjenåpnes etter at nettleseren er lukket.', payload: { date: execution.date, time: execution.time, note: execution.note.trim() } };
   } else if (execution.type === 'contact' && step.proposal.type === 'contact') {
-    outcome = { ...base, kind: 'contact', title: `Kontakt ${step.proposal.contact.name}`, reference: reference('KONTAKT'), localOnly: true, recipient: step.proposal.contact,
-      detail: 'Kontaktpunktet er notert i saken. Du tar kontakt selv; ingenting er sendt.', payload: {} };
+    const review = createReview(session.id, base.id, { title: `Vurdering: ${step.proposal.contact.name}`, summary: execution.summary!, recipient: step.proposal.contact });
+    outcome = { ...base, kind: 'contact', status: 'queued', resourceId: review.id, title: `Menneskelig vurdering`, reference: reference('VURDERING'), localOnly: true, recipient: step.proposal.contact,
+      detail: 'Det godkjente sammendraget ligger i demoens lokale kø for menneskelig vurdering. Det er ikke sendt til en kommune eller NAV.', payload: { body: execution.summary } };
   } else throw new CaseError('Handlingen samsvarer ikke med forslaget.', 409);
   session.outcomes.push(outcome);
   closeStep(session, `Utført: ${outcome.title}`);
@@ -310,6 +354,34 @@ export function retryFlow(session: FlowCase) {
   return 'retry';
 }
 
+/** Citizen corrections invalidate an action rather than changing an approved payload. */
+export function reviewFlowFacts(session: FlowCase) {
+  closeStep(session, 'Rett opplysninger');
+  const step: PlannedStep = { kind: 'review', title: 'Kontroller opplysningene dine', message: 'Rett eller fjern opplysninger. Et nytt handlingsutkast må godkjennes etterpå.', rationale: 'Du ba om å rette saken.', questions: [], factIds: activeFacts(session).map(fact => fact.id), fetch: [], next: null, proposal: null };
+  session.step = { ...step, component: componentForStep(step), id: randomUUID(), createdAt: now(), revision: session.revision, durationMs: 0, model: null, by: 'rule' };
+  session.status = 'step'; session.stepCount++;
+}
+
+/** Explicit user intent can select a capability even when model inference is unavailable. */
+export function chooseFlowAction(session: FlowCase, type: FlowExecution['type']) {
+  if (!session.situation) throw new CaseError('Beskriv situasjonen først.');
+  const contact = flowContact('citizen-service');
+  let proposal: FlowProposal;
+  if (type === 'email') proposal = { type, contact, ...fallbackFlowEmail(session, contact), aiDrafted: false };
+  else if (type === 'contact') proposal = { type, contact, reason: 'Du ønsker hjelp fra et menneske.', summary: reviewSummary(session) };
+  else if (type === 'reminder') proposal = normalizeReminder(session, {}, 'Følg opp saken').proposal;
+  else {
+    const forms = FLOW_FORMS.map(template => buildFlowForm(session, template));
+    proposal = forms.find(form => form.fields.every(field => !field.required || !!field.value)) ?? buildFlowForm(session, FLOW_FORMS.at(-1)!);
+    // The generic citizen-authored request is editable, including its subject.
+    if (proposal.templateId === 'general-request') proposal.fields = proposal.fields.map(field => ({ ...field, editable: true }));
+  }
+  closeStep(session, 'Du valgte neste handling');
+  const step: PlannedStep = { kind: 'action', title: ACTION_LABELS[type], message: 'Kontroller innholdet. Deretter får du se det lagrede utkastet før du godkjenner.', rationale: 'Du valgte denne handlingen.', questions: [], factIds: activeFacts(session).map(fact => fact.id), fetch: [], next: null, proposal };
+  session.step = { ...step, component: componentForStep(step), id: randomUUID(), createdAt: now(), revision: session.revision, durationMs: 0, model: null, by: 'rule' };
+  session.status = 'step'; session.stepCount++;
+}
+
 /** The bounded, identity-free case view the planner sees. Register snapshots stay server-side; only their facts travel. */
 export function buildFlowContext(session: FlowCase, lastEvent: string, previous: FlowHistoryEntry | null) {
   return {
@@ -323,11 +395,12 @@ export function buildFlowContext(session: FlowCase, lastEvent: string, previous:
       fetched: session.ks.fetched, declined: session.ks.declined,
     },
     catalogue: {
+      components: FLOW_COMPONENTS,
       forms: FLOW_FORMS.map(form => ({ id: form.id, title: form.title, recipient: CONTACT_POINTS[form.recipientId].name, submission: form.submission, description: form.description, fields: form.fields.map(({ id, label, kind, required }) => ({ id, label, kind, required })) })),
       contacts: Object.values(CONTACT_POINTS).map(({ id, name, role, organisation }) => ({ id, name, role, organisation })),
     },
     previousStep: previous, history: session.history.slice(-8),
-    outcomes: session.outcomes.map(({ kind, title, reference, createdAt }) => ({ kind, title, reference, createdAt })),
+    outcomes: session.outcomes.map(({ kind, title, reference, createdAt, status, detail }) => ({ kind, title, reference, createdAt, status, detail })),
   };
 }
 
@@ -373,7 +446,7 @@ function buildProposal(session: FlowCase, action: NonNullable<FlowPlannerOutput[
   }
   const contact = flowContact(action.contactId);
   const reason = (action.reason ?? '').trim();
-  return { type: 'contact', contact, reason: reason && narrativeOk(reason, session) ? reason : 'En person kan hjelpe deg videre med saken.' };
+  return { type: 'contact', contact, reason: reason && narrativeOk(reason, session) ? reason : 'En person kan hjelpe deg videre med saken.', summary: reviewSummary(session) };
 }
 /** Turn a schema-valid model output into a step, or null when nothing verifiable remains. */
 function normalizeStep(session: FlowCase, output: FlowPlannerOutput, lastEvent: string): PlannedStep | null {
@@ -412,19 +485,18 @@ function normalizeStep(session: FlowCase, output: FlowPlannerOutput, lastEvent: 
     if (!proposal) return null;
     return { ...base, kind: 'action', factIds: activeFacts(session).map(fact => fact.id), proposal };
   }
-  if (!session.outcomes.length) { event(session, 'Kontroll', 'blocked', 'Modellen ville avslutte før noen handling var utført.'); return null; }
   return { ...base, kind: 'done', factIds: activeFacts(session).map(fact => fact.id) };
 }
 
 /** One planner call per citizen command. The model proposes; validation and the rule fallback keep the flow moving. */
-export async function planNextStep(session: FlowCase, lastEvent: string, infer: ModelCall = callModel, persist: Persist = saveFlowCase) {
+export async function planNextStep(session: FlowCase, lastEvent: string, infer: ModelCall = callFlowModel, persist: Persist = saveFlowCase) {
   const previous = session.history.at(-1) ?? null;
   session.step = null; session.status = 'thinking'; session.error = null;
   const revision = session.revision; const startedAt = Date.now();
   event(session, 'Planlegger', 'started', 'Leser saken og vurderer neste steg.');
   persist(session);
   let output: FlowPlannerOutput | null = null; let failure: string | null = null;
-  try { output = await infer(FLOW_PLANNER_PROMPT, buildFlowContext(session, lastEvent, previous), flowStepSchema, 'coordinator'); }
+  try { output = await infer(FLOW_PLANNER_PROMPT, buildFlowContext(session, lastEvent, previous), flowStepSchema, 'triage'); }
   catch (error) { failure = error instanceof Error ? error.message : 'Modellen svarte ikke.'; }
   if (session.revision !== revision) throw new CaseError('Opplysningene er endret. Prøv igjen.', 409);
   let by: FlowStep['by'] = 'model';
@@ -434,7 +506,10 @@ export async function planNextStep(session: FlowCase, lastEvent: string, infer: 
     step = rulePlan(session, lastEvent);
     event(session, 'Kontroll', failure ? 'failed' : 'blocked', failure ? `Modellen kunne ikke brukes: ${failure} Et regelbasert forslag brukes i stedet.` : 'Modellforslaget kunne ikke kontrolleres mot kildene. Et regelbasert forslag brukes i stedet.');
   }
-  session.step = { ...step, id: randomUUID(), by, model: by === 'model' ? flowModelName() : null, createdAt: now(), revision, durationMs: Date.now() - startedAt };
+  if (output?.component && by === 'model' && output.component !== componentForStep(step)) {
+    event(session, 'Kontroll', 'blocked', 'Modellen valgte en komponent som ikke passer til steget. Den registrerte komponenten brukes.');
+  }
+  session.step = { ...step, component: componentForStep(step), id: randomUUID(), by, model: by === 'model' ? flowModelName() : null, createdAt: now(), revision, durationMs: Date.now() - startedAt };
   session.status = 'step'; session.stepCount++;
   event(session, by === 'model' ? 'Planlegger' : 'Regler', 'completed', `Neste steg: ${STEP_LABELS[step.kind]} – ${step.title}.`);
   persist(session);

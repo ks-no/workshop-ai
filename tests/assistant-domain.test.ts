@@ -9,7 +9,7 @@ function source(text: string): EvidenceSource {
   return { id: 'citizen-message', kind: 'conversation', title: 'Innbyggerens melding', text, url: null, retrievedAt: '2026-09-03T12:00:00.000Z', purpose: 'Opplysning gitt av innbygger', period: 'Oppgitt nå' };
 }
 function session(): AssistantCase {
-  return { id: 'case', createdAt: '', updatedAt: '', expiresAt: '', revision: 1, status: 'collecting', messages: [], facts: [], sources: guidanceSources(), services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', analyzedRevision: null, handoff: null, error: null, ksData: null };
+  return { id: 'case', createdAt: '', updatedAt: '', expiresAt: '', revision: 1, status: 'collecting', messages: [], facts: [], sources: guidanceSources(), services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null };
 }
 function fact(key: FactKey, value: string, status: MemoryFact['status'] = 'confirmed'): MemoryFact {
   return { id: `${key}-${value}`, key, value, label: key, status, citation: { sourceId: 'citizen-message', quote: value, lineStart: 1, lineEnd: 1, page: null }, createdAt: '', confirmedAt: status === 'confirmed' ? '2026-09-03T12:00:00.000Z' : null };
