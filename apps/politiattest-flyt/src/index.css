@@ -502,6 +502,9 @@ button {
 
 .innboks-page__mapper ul {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
 }
@@ -577,13 +580,13 @@ button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.3rem;
+  gap: 0.45rem;
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
   border-bottom: 1px solid #eee9e6;
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 1.25rem;
   cursor: pointer;
 }
 
@@ -680,17 +683,17 @@ button {
 .innboks-page__brevhode > div {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
 }
 
 .innboks-page__bekreftet {
+  margin-bottom: 0.25rem;
   color: var(--suksess);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .innboks-page__brevhode h2 {
-  margin: 0.35rem 0 0;
+  margin: 0.75rem 0 0.4rem;
   color: var(--digipost-mork);
   font-size: 1.35rem;
   line-height: 1.25;
@@ -702,25 +705,43 @@ button {
 }
 
 .innboks-page__brevinnhold {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   max-width: 680px;
-  padding: 1.5rem 2rem 2.5rem;
+  padding: 2rem 2rem 3rem;
 }
 
-.innboks-page__brevinnhold > p:first-child {
-  margin-top: 0;
+.innboks-page__brevinnhold > p {
+  margin: 0;
 }
 
 .innboks-page__brevinnhold .metadata-table {
-  margin: 1.25rem 0;
+  width: 100%;
+  margin: 1.5rem 0 0;
   background: #faf8f7;
 }
 
-.innboks-page__brevinnhold .qr-panel {
-  margin: 1.25rem 0;
+.innboks-page__brevinnhold .metadata-table__rad {
+  padding: 0.55rem 0;
 }
 
-.innboks-page__meldingstekst {
+.innboks-page__brevinnhold .qr-panel {
+  margin: 1.5rem 0 0;
+  padding: 1.25rem;
+}
+
+.innboks-page__brevinnhold .status-badge {
+  margin: 1.5rem 0 0;
+}
+
+.innboks-page__brevinnhold > .btn {
+  margin-top: 1rem;
+}
+
+.innboks-page__brevinnhold > .innboks-page__meldingstekst {
   max-width: 65ch;
+  margin-top: 0.75rem;
   color: var(--tekst);
   line-height: 1.6;
 }
@@ -739,7 +760,7 @@ button {
     border-bottom: 1px solid var(--kant);
   }
   .innboks-page__mapper ul {
-    display: flex;
+    flex-direction: row;
     gap: 0.5rem;
   }
   .innboks-page__mapper h2,
