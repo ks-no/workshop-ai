@@ -1,0 +1,7 @@
+{
+  "name": "@innbyggerdialog/innbyggerportal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Min side for Stavanger kommune, bygget på KS Digital designsystem og sandkassens testdata.",
+  "type": "module"
+}

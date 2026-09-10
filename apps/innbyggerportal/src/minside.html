@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="nb" data-color-scheme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Min side | Stavanger kommune</title>
+
+    <!--
+      No /assets/felles.css here. That stylesheet has no @layer, and unlayered rules
+      beat every layer in the cascade, so it would silently override @layer ds and
+      @layer ksd. See docs/designsystem.md.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://static.fiks.ks.no/googlefonts/googleapis/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/assets/ds-base.css" />
+    <link rel="stylesheet" href="/assets/ds-ksdigital.css" />
+
+    <style>
+      /*
+       * Page layout only. `side` is declared after ksd, so these rules win without
+       * !important and without specificity tricks. Every value is a --ds-* token:
+       * a hardcoded colour would survive a change of data-color-scheme and break it.
+       */
+      @layer side;
+
+      @layer side {
+        /*
+         * The hidden attribute is a UA rule, and every author rule beats it -
+         * including .stablet { display: grid } two blocks down. Panels toggled
+         * with element.hidden stayed open until this rule outranked them.
+         */
+        .side [hidden] {
+          display: none;
+        }
+
+        body {
+          margin: 0;
+          background: var(--ds-color-background-tinted);
+          color: var(--ds-color-text-default);
+          font-family: var(--ds-font-family);
+        }
+
+        /* Toppfelt */
+
+        .toppfelt {
+          background: var(--ds-color-surface-default);
+          border-bottom: 1px solid var(--ds-color-border-subtle);
+        }
+
+        .toppfelt__innhold,
+        .side,
+        .bunnfelt__innhold {
+          max-width: 76rem;
+          margin: 0 auto;
+          padding-inline: var(--ds-size-4);
+        }
+
+        .toppfelt__innhold {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-4);
+          padding-block: var(--ds-size-3);
+        }
+
+        .merkevare {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-3);
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .merkevare img {
+          height: var(--ds-size-11);
+          width: auto;
+        }
+
+        .merkevare__tekst {
+          display: grid;
+        }
+
+        .toppfelt__hoyre {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-3);
+        }
+
+        /* Sidekropp */
+
+        .side {
+          display: grid;
+          gap: var(--ds-size-5);
+          padding-block: var(--ds-size-5) var(--ds-size-12);
+        }
+
+        .kolonner {
+          display: grid;
+          grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+          gap: var(--ds-size-5);
+          align-items: start;
+        }
+
+        .kolonne {
+          display: grid;
+          gap: var(--ds-size-5);
+          align-content: start;
+        }
+
+        .ds-card {
+          --dsc-card-padding: var(--ds-size-6);
+        }
+
+        .korttittel {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: var(--ds-size-4);
+        }
+
+        .korttittel__tekst {
+          display: grid;
+          gap: var(--ds-size-1);
+        }
+
+        .stablet {
+          display: grid;
+          gap: var(--ds-size-2);
+        }
+
+        /* Profilkortet */
+
+        .opplysning {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: var(--ds-size-2);
+          padding-block: var(--ds-size-2);
+          border-bottom: 1px solid var(--ds-color-border-subtle);
+        }
+
+        .opplysning:last-child {
+          border-bottom: 0;
+        }
+
+        .eiendomsboks {
+          display: flex;
+          gap: var(--ds-size-4);
+          padding: var(--ds-size-4);
+          border: 1px solid var(--ds-color-border-subtle);
+          border-radius: var(--ds-border-radius-lg);
+          background: var(--ds-color-surface-tinted);
+        }
+
+        /* Merkelappen til venstre, kartlenken helt ut mot kanten. */
+        .eiendomsboks__topp {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-3);
+        }
+
+        .eiendomsboks__innhold {
+          display: grid;
+          gap: var(--ds-size-1);
+          flex: 1;
+        }
+
+        .knapperad {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ds-size-3);
+        }
+
+        .knapperad > * {
+          flex: 1 1 12rem;
+        }
+
+        /* Saksstigen */
+
+        .steg {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-3);
+          padding-block: var(--ds-size-2);
+        }
+
+        .steg__merke {
+          display: grid;
+          place-items: center;
+          flex: none;
+          width: var(--ds-size-8);
+          height: var(--ds-size-8);
+          border-radius: var(--ds-border-radius-sm);
+          font-size: var(--ds-font-size-1);
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        .steg__merke[data-status="fullfoert"],
+        .steg__merke[data-status="godkjent"] {
+          background: var(--ds-color-success-base-default);
+          color: var(--ds-color-success-base-contrast-default);
+        }
+
+        .steg__merke[data-status="paagaar"] {
+          background: var(--ds-color-accent-base-default);
+          color: var(--ds-color-accent-base-contrast-default);
+        }
+
+        .steg__merke[data-status="venter"] {
+          border: 1px dashed var(--ds-color-border-strong);
+          color: var(--ds-color-text-subtle);
+        }
+
+        .steg__tittel {
+          flex: 1;
+        }
+
+        .steg[data-status="venter"] .steg__tittel {
+          color: var(--ds-color-text-subtle);
+        }
+
+        .steg[data-status="paagaar"] .steg__tittel {
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        /* Tjenestelisten */
+
+        .tjeneste > summary {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-4);
+        }
+
+        .tjeneste__tekst {
+          display: grid;
+          gap: var(--ds-size-1);
+          flex: 1;
+          min-width: 0;
+        }
+
+        .tjeneste__topp {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ds-size-2);
+        }
+
+        .ikonflate {
+          display: grid;
+          place-items: center;
+          flex: none;
+          width: var(--ds-size-11);
+          height: var(--ds-size-11);
+          border-radius: var(--ds-border-radius-md);
+          background: var(--ds-color-accent-surface-tinted);
+          color: var(--ds-color-accent-icon-default);
+        }
+
+        /* Kalenderen */
+
+        .hendelser {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+          gap: var(--ds-size-3);
+        }
+
+        .hendelse {
+          display: flex;
+          gap: var(--ds-size-3);
+          padding: var(--ds-size-3);
+          border: 1px solid var(--ds-color-border-subtle);
+          border-radius: var(--ds-border-radius-lg);
+          background: var(--ds-color-surface-default);
+        }
+
+        .hendelse[data-passert="ja"] {
+          background: var(--ds-color-surface-tinted);
+        }
+
+        .datoboks {
+          display: grid;
+          place-items: center;
+          flex: none;
+          width: var(--ds-size-12);
+          padding-block: var(--ds-size-1);
+          border: 1px solid var(--ds-color-border-subtle);
+          border-radius: var(--ds-border-radius-md);
+          background: var(--ds-color-surface-default);
+          line-height: var(--ds-line-height-sm);
+        }
+
+        .hendelse__tekst {
+          display: grid;
+          gap: var(--ds-size-1);
+          min-width: 0;
+        }
+
+        /* Ikoner. Maske framfor <img>, slik at fargen følger currentColor og
+           dermed temaet. Alle er dekorative og har aria-hidden i markupen. */
+
+        .ikon {
+          display: block;
+          width: var(--ds-size-6);
+          height: var(--ds-size-6);
+          background: currentColor;
+          -webkit-mask: var(--ikon) center / contain no-repeat;
+          mask: var(--ikon) center / contain no-repeat;
+        }
+
+        .ikon[data-ikon="postkasse"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7.5l9 6 9-6'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="saker"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="eiendom"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='16' height='18' rx='1.5'/%3E%3Cpath d='M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="betaling"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 3v5h5M9 13h6M9 17h4'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="oppvekst"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3.5 19.5a5.5 5.5 0 0 1 11 0'/%3E%3Cpath d='M16 5.6a3 3 0 0 1 0 4.8M17.5 14.4a5.5 5.5 0 0 1 3 5.1'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="eiendomsboks"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 11l8-7 8 7'/%3E%3Cpath d='M6 10v10h12V10'/%3E%3Cpath d='M10 20v-5h4v5'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="kalender"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E");
+        }
+
+        .ikon[data-ikon="sjekk"] {
+          --ikon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4 10-10'/%3E%3C/svg%3E");
+          width: var(--ds-size-4);
+          height: var(--ds-size-4);
+        }
+
+        /* Bunnfelt */
+
+        .bunnfelt {
+          border-top: 1px solid var(--ds-color-border-subtle);
+          background: var(--ds-color-surface-default);
+        }
+
+        .bunnfelt__innhold {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-3);
+          padding-block: var(--ds-size-5);
+        }
+
+        .bunnfelt__lenker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ds-size-4);
+        }
+
+        @media (max-width: 60rem) {
+          .kolonner {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="ds-skip-link" href="#hovedinnhold">Hopp til hovedinnholdet</a>
+
+    <header class="toppfelt">
+      <div class="toppfelt__innhold">
+        <!--
+          Våpenet og navnet er ferdig utfylt her bare for at toppfeltet skal stå
+          riktig før scriptet har kjørt. Sannheten er KOMMUNENUMMER i
+          src/minside.ts, og klienten skriver begge om fra API-svaret.
+        -->
+        <a class="merkevare" href="/">
+          <img
+            id="kommunevaapen"
+            src="https://static.fiks.ks.no/img/kommunevaapen/1103.png"
+            alt="Stavanger kommunes våpen"
+          />
+          <span class="merkevare__tekst">
+            <span class="ds-heading" data-size="2xs" id="kommunenavn">Stavanger kommune</span>
+            <span class="ds-paragraph" data-size="sm">Min side</span>
+          </span>
+        </a>
+
+        <div class="toppfelt__hoyre">
+          <div class="ds-field" data-size="sm">
+            <label class="ds-label" data-size="sm" for="innbygger">Vis siden for</label>
+            <select class="ds-input" data-size="sm" id="innbygger">
+              <option value="">Laster innbyggere …</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="side" id="hovedinnhold">
+      <div class="ds-alert" data-color="info">
+        <p class="ds-paragraph" data-size="sm">
+          Sandkasse. Alle opplysningene på siden er syntetiske og hentet fra
+          <code>data/</code> og <code>state/</code> i dette repoet. Hvert kort sier
+          nederst hvilken fil tallene kommer fra.
+        </p>
+      </div>
+
+      <div class="ds-alert" data-color="danger" id="feil" hidden>
+        <p class="ds-paragraph" id="feiltekst"></p>
+      </div>
+
+      <div class="kolonner">
+        <div class="kolonne">
+          <section class="ds-card" aria-labelledby="profil-tittel" id="profil"></section>
+          <div class="kolonne" id="saker"></div>
+        </div>
+
+        <div class="kolonne">
+          <section class="ds-card" aria-labelledby="tjenester-tittel" id="tjenester"></section>
+          <section class="ds-card" aria-labelledby="kalender-tittel" id="kalender"></section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bunnfelt">
+      <div class="bunnfelt__innhold">
+        <div class="bunnfelt__lenker">
+          <a class="ds-link" data-size="sm" href="/api/innbyggere">Datagrunnlaget som JSON</a>
+          <a class="ds-link" data-size="sm" href="http://localhost:3001/">Sandkassens demo-GUI</a>
+          <a class="ds-link" data-size="sm" href="https://designsystemet.no/no">Designsystemet</a>
+        </div>
+        <p class="ds-paragraph" data-size="sm" id="bunntekst">Stavanger kommune, syntetisk demo</p>
+      </div>
+    </footer>
+
+    <script type="module" src="/client/minside.ts"></script>
+  </body>
+</html>

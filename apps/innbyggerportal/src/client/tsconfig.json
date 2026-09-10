@@ -1,0 +1,7 @@
+{
+  // Sidescriptet her, alene i sitt eget program. Det låner ikke felles.ts slik
+  // demo-gui gjør: felles.ts hører sammen med felles.css, og den stilen kan ikke
+  // lastes på en side som bruker designsystemet. Se docs/designsystem.md.
+  "extends": "../../../../tsconfig.client-base.json",
+  "include": ["./**/*.ts"]
+}
