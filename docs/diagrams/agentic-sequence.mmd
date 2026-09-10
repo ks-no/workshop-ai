@@ -1,0 +1,46 @@
+sequenceDiagram
+  accTitle: Søk én gang – naturlig samtale med kontekstuelt samtykke
+  accDescr: Agenten velger tjeneste og hensikt fra fritekst. Generelle spørsmål besvares uten personoppslag. En personlig SFO-vurdering stopper ved en menneskelig port før KS-data hentes.
+  actor U as Innbygger
+  participant W as Punkt-grensesnitt
+  participant N as Node / sakstjeneste
+  participant D as SQLite
+  participant P as Python / Agent Framework
+  participant M as AI model
+  participant K as Offisiell KS workshop
+  U->>W: Beskriv behov med egne ord
+  W->>N: Melding, saks-ID og revisjon
+  N->>D: Lagre melding og kilde
+  N->>P: Start eid prosess
+  P->>M: Koordiner språk, hensikt og tjenester
+  M-->>P: Informasjon eller personlig plan
+  P-->>N: Kildebundet plan via JSONL
+  alt Generelt informasjonsspørsmål
+    N-->>P: Valgte veiledningskilder, ingen persondata
+    P->>M: Spesialistagent analyserer
+    M-->>P: Forklaring med kilder
+    P-->>N: Kontrollert svar
+    N-->>W: Svar og kilder
+  else Personlig SFO-vurdering uten KS-grunnlag
+    N-->>W: Handling kreves i samtalen
+    alt Innbygger samtykker
+      U->>W: Samtykk, hent og fortsett
+      W->>N: Ett valg med saks-ID og revisjon
+      N->>K: Testtoken, husstand, SFO og satser
+      N->>K: Registrer og kontroller inntektssamtykke
+      N->>K: Les inntekt og SFO-regelvurdering
+      K-->>N: Syntetiske svar og deterministisk resultat
+      N->>D: Minimerte kilder og samtykkekvittering
+      N->>P: Start ny analyse automatisk
+      P->>M: Koordinator og valgte spesialistagenter
+      M-->>P: Oppdatert analyse
+      P-->>N: Kontrollerte funn og spørsmål
+      N-->>W: Oppdatert samtale og plan
+    else Innbygger avslår
+      U->>W: Fortsett uten KS
+      W->>N: Avslag med saks-ID og revisjon
+      N->>D: Lagre menneskelig valg
+      N-->>W: Vis manuelle spørsmål
+    end
+  end
+  Note over W,N: KI velger neste relevante steg.<br/>Node håndhever samtykke, revisjon og fakta.

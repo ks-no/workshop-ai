@@ -1,0 +1,108 @@
+{
+  "at": "2026-09-03T14:02:08.006Z",
+  "syntheticOnly": true,
+  "models": {
+    "coordinator": "@cf/qwen/qwen3.8-27b",
+    "specialist": "@cf/google/gemma-4-26b-a4b-it"
+  },
+  "report": [
+    {
+      "passed": false,
+      "error": "Vietnamese reply must contain Vietnamese prose",
+      "evidence": {
+        "language": "vi",
+        "summary": "Kontroller forslagene og kildene i oversikten. Demoen kan bare forberede en sak for videre hjelp.",
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "Tổng thu nhập hàng năm của hộ gia đình bạn là bao nhiêu (tính bằng NOK)?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Con số thu nhập bạn cung cấp là thu nhập của cả hộ gia đình hay chỉ của cá nhân bạn?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Hva betaler du i husleie per måned?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "Hvor mange personer inngår i husholdningen?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "housing",
+            "summary": "Brukeren har uttrykt behov for støtte til husleie og har oppgitt en foreslått månedlig leiepris. Det mangler informasjon om husholdningens størrelse, samlet årsinntekt og hva inntekten gjelder for å kunne gå videre i prosessen.",
+            "findings": [
+              {
+                "text": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Brukeren oppgir at den månedlige husleien er 13 500 kr.",
+                "citation": {
+                  "sourceId": "message-64005663-b365-46be-bd05-3fe250bc2b8d",
+                  "quote": "Tiền thuê hàng tháng của tôi là 13500 kr.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "d3116914-cb22-4423-9b74-c97ca994de74",
+            "agent": "Koordinator",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:01:07.120Z",
+            "completedAt": "2026-09-03T14:01:56.503Z",
+            "model": "@cf/qwen/qwen3.8-27b",
+            "durationMs": 49383
+          },
+          {
+            "id": "a14fe316-6a0f-4d4a-a0b3-a497c12f4c80",
+            "agent": "Bolig og bostøtte",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:01:56.507Z",
+            "completedAt": "2026-09-03T14:02:08.002Z",
+            "model": "@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 11495
+          }
+        ]
+      }
+    }
+  ]
+}

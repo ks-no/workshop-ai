@@ -1,0 +1,4 @@
+agent-framework-core==1.17.0
+agent-framework-openai==1.14.2
+openai==3.7.0
+jsonschema==4.26.0

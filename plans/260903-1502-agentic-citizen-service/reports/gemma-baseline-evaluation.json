@@ -1,0 +1,340 @@
+{
+  "at": "2026-09-03T13:37:29.805Z",
+  "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+  "syntheticOnly": true,
+  "report": [
+    {
+      "name": "Norwegian: three agents, confirmed memory, correction and human packet",
+      "passed": false,
+      "milliseconds": 109027,
+      "error": "KI returnerte et ufullstendig svar eller et format som ikke kunne kontrolleres. Ingen forslag er godkjent. Prøv igjen."
+    },
+    {
+      "name": "Vietnamese: understand housing need and respect negation",
+      "passed": true,
+      "milliseconds": 25231,
+      "evidence": {
+        "services": [
+          "housing"
+        ],
+        "facts": [
+          {
+            "key": "job_lost",
+            "value": "true",
+            "status": "proposed",
+            "citation": {
+              "sourceId": "message-14c6ea63-f378-48e1-af04-86ee369da6f3",
+              "quote": "Tôi vừa mất việc",
+              "lineStart": 1,
+              "lineEnd": 1,
+              "page": null
+            }
+          },
+          {
+            "key": "needs_housing",
+            "value": "true",
+            "status": "proposed",
+            "citation": {
+              "sourceId": "message-14c6ea63-f378-48e1-af04-86ee369da6f3",
+              "quote": "cần trợ giúp tiền thuê nhà",
+              "lineStart": 1,
+              "lineEnd": 1,
+              "page": null
+            }
+          },
+          {
+            "key": "monthly_rent",
+            "value": "13500",
+            "status": "proposed",
+            "citation": {
+              "sourceId": "message-14c6ea63-f378-48e1-af04-86ee369da6f3",
+              "quote": "Tiền thuê hàng tháng là 13500 kr",
+              "lineStart": 1,
+              "lineEnd": 1,
+              "page": null
+            }
+          },
+          {
+            "key": "has_children",
+            "value": "false",
+            "status": "proposed",
+            "citation": {
+              "sourceId": "message-14c6ea63-f378-48e1-af04-86ee369da6f3",
+              "quote": "không có con",
+              "lineStart": 1,
+              "lineEnd": 1,
+              "page": null
+            }
+          },
+          {
+            "key": "moving",
+            "value": "false",
+            "status": "proposed",
+            "citation": {
+              "sourceId": "message-14c6ea63-f378-48e1-af04-86ee369da6f3",
+              "quote": "không chuyển nhà",
+              "lineStart": 1,
+              "lineEnd": 1,
+              "page": null
+            }
+          }
+        ],
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "Hva er din totale årsinntekt for hele husholdningen?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Er beløpet du oppgir din årlige inntekt eller månedlige inntekt?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Hva betaler du i husleie per måned?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "Hvor mange personer inngår i husholdningen?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Koordinator",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T13:36:46.063Z",
+            "completedAt": "2026-09-03T13:36:59.848Z",
+            "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 13785
+          },
+          {
+            "id": "81abc84d-87bd-499d-88b8-7a47e0840b7e",
+            "agent": "Bolig og bostøtte",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T13:36:59.852Z",
+            "completedAt": "2026-09-03T13:37:11.282Z",
+            "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 11430
+          }
+        ],
+        "events": [
+          {
+            "id": "92866778-75dc-4862-8364-94ac8ca4ccd6",
+            "runId": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Koordinator",
+            "type": "started",
+            "at": "2026-09-03T13:36:46.063Z",
+            "detail": "Modellanalysen er startet."
+          },
+          {
+            "id": "1f227738-bef3-49c7-af61-9965ead8f271",
+            "runId": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Kontroll",
+            "type": "blocked",
+            "at": "2026-09-03T13:36:59.848Z",
+            "detail": "Et AI-forslag manglet en gyldig kilde eller entydig verdi og ble utelatt."
+          },
+          {
+            "id": "707aa2fc-fad3-4a91-9e21-2391bb49bacd",
+            "runId": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Koordinator",
+            "type": "completed",
+            "at": "2026-09-03T13:36:59.848Z",
+            "detail": "Strukturert svar mottatt og kontrollert."
+          },
+          {
+            "id": "324e78d0-b6e1-445c-92d2-5c65da262e79",
+            "runId": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Kildeverktøy",
+            "type": "source-read",
+            "at": "2026-09-03T13:36:59.850Z",
+            "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+          },
+          {
+            "id": "60a23728-dec2-487c-baef-ae27743f4a90",
+            "runId": "00137f40-5f0c-4147-b9b5-14c37e872b24",
+            "agent": "Kildeverktøy",
+            "type": "source-read",
+            "at": "2026-09-03T13:36:59.850Z",
+            "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+          },
+          {
+            "id": "f330d581-8d61-4441-89ae-3239694bf683",
+            "runId": "81abc84d-87bd-499d-88b8-7a47e0840b7e",
+            "agent": "Bolig og bostøtte",
+            "type": "started",
+            "at": "2026-09-03T13:36:59.852Z",
+            "detail": "Modellanalysen er startet."
+          },
+          {
+            "id": "d144d400-8626-426b-ac3b-475f6e28e487",
+            "runId": "81abc84d-87bd-499d-88b8-7a47e0840b7e",
+            "agent": "Bolig og bostøtte",
+            "type": "completed",
+            "at": "2026-09-03T13:37:11.282Z",
+            "detail": "Strukturert svar mottatt og kontrollert."
+          }
+        ]
+      }
+    },
+    {
+      "name": "English: hypothetical situation does not become personal facts",
+      "passed": true,
+      "milliseconds": 14460,
+      "evidence": {
+        "services": [
+          "family"
+        ],
+        "facts": [],
+        "questions": [
+          {
+            "key": "uses_sfo",
+            "question": "Bruker barnet SFO?",
+            "serviceIds": [
+              "family"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Gjelder beløpet hele husholdningens brutto årsinntekt, individuell inntekt eller én måned?",
+            "serviceIds": [
+              "family"
+            ]
+          },
+          {
+            "key": "cohabitant_missing",
+            "question": "Mangler en samboer eller annen relevant husholdningsopplysning i grunnlaget?",
+            "serviceIds": [
+              "family"
+            ]
+          },
+          {
+            "key": "household_income_annual",
+            "question": "Hva er samlet brutto årsinntekt for husholdningen?",
+            "serviceIds": [
+              "family"
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "aa42cacc-30c1-4d42-b46f-2366b1c62b36",
+            "agent": "Koordinator",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T13:37:11.293Z",
+            "completedAt": "2026-09-03T13:37:14.211Z",
+            "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 2918
+          },
+          {
+            "id": "04defdba-bb7d-49e2-a645-b3077863c6d2",
+            "agent": "Familie og SFO",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T13:37:14.217Z",
+            "completedAt": "2026-09-03T13:37:25.745Z",
+            "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 11528
+          }
+        ],
+        "events": [
+          {
+            "id": "8cb586fa-0b09-4352-a848-720f050063e8",
+            "runId": "aa42cacc-30c1-4d42-b46f-2366b1c62b36",
+            "agent": "Koordinator",
+            "type": "started",
+            "at": "2026-09-03T13:37:11.293Z",
+            "detail": "Modellanalysen er startet."
+          },
+          {
+            "id": "ea06f995-20aa-47a3-80ea-a7c0d29035f4",
+            "runId": "aa42cacc-30c1-4d42-b46f-2366b1c62b36",
+            "agent": "Koordinator",
+            "type": "completed",
+            "at": "2026-09-03T13:37:14.211Z",
+            "detail": "Strukturert svar mottatt og kontrollert."
+          },
+          {
+            "id": "a49920e9-c037-432c-9a14-ada4abd3347f",
+            "runId": "aa42cacc-30c1-4d42-b46f-2366b1c62b36",
+            "agent": "Kildeverktøy",
+            "type": "source-read",
+            "at": "2026-09-03T13:37:14.215Z",
+            "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+          },
+          {
+            "id": "631c8834-5753-4b27-a972-0b1df577f48d",
+            "runId": "04defdba-bb7d-49e2-a645-b3077863c6d2",
+            "agent": "Familie og SFO",
+            "type": "started",
+            "at": "2026-09-03T13:37:14.217Z",
+            "detail": "Modellanalysen er startet."
+          },
+          {
+            "id": "2bde5049-a756-418c-bce7-897d74132a16",
+            "runId": "04defdba-bb7d-49e2-a645-b3077863c6d2",
+            "agent": "Familie og SFO",
+            "type": "completed",
+            "at": "2026-09-03T13:37:25.745Z",
+            "detail": "Strukturert svar mottatt og kontrollert."
+          }
+        ]
+      }
+    },
+    {
+      "name": "Unsupported request and instruction injection cannot produce approval",
+      "passed": true,
+      "milliseconds": 4053,
+      "evidence": {
+        "services": [],
+        "facts": [],
+        "questions": [],
+        "runs": [
+          {
+            "id": "f59c6d89-f81a-4716-aa16-37927fa2b1c6",
+            "agent": "Koordinator",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T13:37:25.754Z",
+            "completedAt": "2026-09-03T13:37:29.797Z",
+            "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 4043
+          }
+        ],
+        "events": [
+          {
+            "id": "0bec37e6-c078-42ce-9a80-1e8d3e823cda",
+            "runId": "f59c6d89-f81a-4716-aa16-37927fa2b1c6",
+            "agent": "Koordinator",
+            "type": "started",
+            "at": "2026-09-03T13:37:25.754Z",
+            "detail": "Modellanalysen er startet."
+          },
+          {
+            "id": "7651be8c-3068-4d3c-be6f-a4eefb0d5386",
+            "runId": "f59c6d89-f81a-4716-aa16-37927fa2b1c6",
+            "agent": "Koordinator",
+            "type": "completed",
+            "at": "2026-09-03T13:37:29.797Z",
+            "detail": "Strukturert svar mottatt og kontrollert."
+          }
+        ]
+      }
+    }
+  ]
+}

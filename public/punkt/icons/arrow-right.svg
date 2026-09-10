@@ -1,0 +1,6 @@
+<svg id="arrow-right" data-category="navigation" viewBox="0 0 32 32" fill="none"
+  xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M17.8789 23L24.1719 16.707L4 16.707L4 14.707L24.1719 14.707L17.8789 8.41406L19.293 7L28 15.707L19.293 24.4141L17.8789 23Z"
+    fill="var(--fg-color, #2A2859)" />
+</svg>

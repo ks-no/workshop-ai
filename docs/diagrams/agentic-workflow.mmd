@@ -1,0 +1,37 @@
+flowchart TB
+  accTitle: Søk én gang – agenten finner behovet og ber om data ved behov
+  accDescr: Innbyggeren skriver fritt. Koordinatoren skiller informasjon fra personlig forberedelse, velger tjenester og viser en menneskelig port bare når KS-data er nødvendig.
+  A["Innbygger beskriver behovet<br/>ingen kategori velges"]
+  N["Node: lagre kilde, ny revisjon<br/>og start Python-prosess"]
+  P["AI model · koordinator<br/>språk · hensikt · tjenester"]
+  VALID{"Gyldig og kildebundet plan?"}
+  ERROR["Bevar saken og vis nytt forsøk"]
+  INTENT{"Hensikt"}
+  INFO["Offentlig informasjon<br/>ingen personoppslag"]
+  PERSONAL["Personlig forberedelse"]
+  FAMILY{"Familie / SFO valgt<br/>og KS-grunnlag mangler?"}
+  ACTION["Handling kreves i samtalen<br/>forklar data, kilde og formål"]
+  CHOICE{"Innbyggerens valg"}
+  KS["Samtykk: hent husstand, SFO,<br/>inntekt og KS-resultat"]
+  MANUAL["Avslå: ingen KS-kall<br/>vis manuelle spørsmål"]
+  REANALYZE["Ny analyse starter automatisk"]
+  FAN["Framework fordeler valgte tjenester<br/>spesialistagenter kjører parallelt"]
+  SAVE["Node kontrollerer og lagrer<br/>fakta · kilder · sjekklister"]
+  REVIEW["Innbygger retter og avklarer<br/>KI-forslag og konflikter"]
+  READY["Lokal pakke etter siste<br/>menneskelige gjennomgang"]
+  A --> N --> P --> VALID
+  VALID -->|Nei| ERROR --> N
+  VALID -->|Ja| INTENT
+  INTENT -->|Informasjon| INFO --> FAN
+  INTENT -->|Personlig| PERSONAL --> FAMILY
+  FAMILY -->|Ja| ACTION --> CHOICE
+  CHOICE -->|Ja| KS --> REANALYZE --> N
+  CHOICE -->|Nei| MANUAL --> A
+  FAMILY -->|Nei| FAN
+  FAN --> SAVE --> REVIEW --> READY
+  classDef human fill:#fff1d6,stroke:#946000,color:#362a0e
+  classDef model fill:#ece9ff,stroke:#6654b4,color:#252040
+  classDef error fill:#fff0ed,stroke:#ac4934,color:#54271d
+  class ACTION,CHOICE,REVIEW human
+  class P,INTENT,FAN model
+  class ERROR error

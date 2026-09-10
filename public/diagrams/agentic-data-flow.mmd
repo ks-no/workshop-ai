@@ -1,0 +1,33 @@
+flowchart TB
+  accTitle: Søk én gang – minst mulig data gjennom hvert steg
+  accDescr: Offentlig veiledning kan brukes uten persondata. Personlige KS-data passerer bare etter et uttrykkelig, kontekstuelt valg og lagres med kilde og formål.
+  INPUT["Fritekst · skjemasvar<br/>TXT / tekst-PDF"]
+  SRC[("SQLite-kilder<br/>originaltekst · side · formål · tid")]
+  PREP["Node avgrenser kontekst<br/>språk · hensikt · faktaminne"]
+  PY["Python / Agent Framework<br/>planlegger · spesialister · join"]
+  MODEL["AI model<br/>koordinator · spesialistagenter"]
+  PUBLIC["Offentlig veiledning<br/>ingen personoppslag"]
+  ACTION["Handling kreves<br/>forklar data, kilde og formål"]
+  CONSENT["Innbygger samtykker<br/>saks-ID og revisjon kontrolleres"]
+  DECLINE["Innbygger avslår<br/>ingen KS-forespørsel"]
+  KS["KS workshop<br/>husstand · SFO · satser"]
+  INCOME["Fiks-samtykke<br/>inntekt · SFO-resultat"]
+  VERIFY["Node: Zod og kildekontroll<br/>sitat · linjer · verdi"]
+  FACT[("Faktaminne<br/>foreslått · konflikt · bekreftet")]
+  VIEW["Samtale · spørsmål · plan<br/>svar og kilder"]
+  INPUT --> SRC --> PREP --> PY
+  PY <-->|Utvalgt kontekst og strukturert resultat| MODEL
+  PUBLIC --> PREP
+  PY -->|Personlig SFO trenger data| ACTION
+  ACTION -->|Ja| CONSENT --> KS --> SRC
+  CONSENT --> INCOME --> SRC
+  ACTION -->|Nei| DECLINE --> VIEW
+  SRC --> VERIFY
+  PY --> VERIFY --> FACT --> VIEW
+  FACT -->|Menneskelig retting og avklaring| FACT
+  classDef human fill:#fff1d6,stroke:#946000,color:#362a0e
+  classDef model fill:#ece9ff,stroke:#6654b4,color:#252040
+  classDef storage fill:#e2f2ec,stroke:#287460,color:#163b31
+  class ACTION,CONSENT,DECLINE human
+  class PY,MODEL model
+  class SRC,FACT storage

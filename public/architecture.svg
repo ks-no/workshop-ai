@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Søk én gang: Data, regler, forklaring og prosess</title>
+  <desc id="desc">Innbyggeren velger å hente data. Adaptere leser familie, SFO og inntekt. En separat regelmotor vurderer grunnlaget. Forklaringstjenesten forklarer resultatet og kan ikke endre det. Innbyggeren bekrefter før en lokal prosesshendelse. Fiks og kommunal prosess er simulerte i MVP-en.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#315752" /></marker>
+    <style>
+      text { font-family: 'Schibsted Grotesk Variable', 'Helvetica Neue', sans-serif; fill: #213833; }
+      .body { font-family: 'Source Sans 3 Variable', 'Helvetica Neue', sans-serif; font-size: 22px; }
+      .muted { fill: #50635f; }
+      .heading { font-size: 30px; font-weight: 600; }
+      .label { font-size: 19px; font-weight: 650; letter-spacing: 1px; fill: #275a52; }
+      .small { font-size: 18px; }
+      .line { fill: none; stroke: #315752; stroke-width: 2; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#f8faf9" />
+  <text x="64" y="78" font-size="26" font-weight="600">Søk én gang</text>
+  <text x="1536" y="78" text-anchor="end" class="body muted">Fra skjema til samtale.</text>
+  <path d="M64 108 H1536" stroke="#becdc8" />
+  <text x="64" y="178" font-size="46" font-weight="550">Regler vurderer. KI forklarer. Du har kontroll.</text>
+  <text x="64" y="219" class="body muted">En innbyggertjeneste med tydelig ansvar i hvert ledd.</text>
+
+  <rect x="64" y="270" width="325" height="300" rx="8" fill="#e8f0ed" />
+  <text x="88" y="310" class="label">DATA</text>
+  <text x="88" y="356" class="heading">Hent det vi vet</text>
+  <text x="88" y="397" class="body">Innbygger velger henting</text>
+  <text x="88" y="437" class="body">Folkeregister / familie</text>
+  <text x="88" y="472" class="body">Skatt og inntekt via Fiks</text>
+  <text x="88" y="507" class="body">Kommunal SFO-plass</text>
+  <text x="88" y="548" class="small muted">MVP: lokale, syntetiske adaptere</text>
+
+  <path d="M397 420 H440" class="line" />
+  <rect x="451" y="270" width="325" height="300" rx="8" fill="#edf0f0" />
+  <text x="475" y="310" class="label">REGLER</text>
+  <text x="475" y="356" class="heading">Vurder grunnlaget</text>
+  <text x="475" y="397" class="body">Faste, testbare beregninger</text>
+  <text x="475" y="437" class="body">Spør om manglende data</text>
+  <text x="475" y="472" class="body">Bevar meldte endringer</text>
+  <text x="475" y="507" class="body">Manuell vurdering ved tvil</text>
+  <text x="475" y="548" class="small muted">Ingen språkmodell i regelmotoren</text>
+
+  <path d="M784 420 H827" class="line" />
+  <rect x="838" y="270" width="325" height="300" rx="8" fill="#e8f0ed" />
+  <text x="862" y="310" class="label">KI / FORKLARING</text>
+  <text x="862" y="356" class="heading">Gjør det forståelig</text>
+  <text x="862" y="397" class="body">Data, beregning, neste steg</text>
+  <text x="862" y="437" class="body">Kontrollert svartekst</text>
+  <text x="862" y="472" class="body">Valgfri lokal KI velger tema</text>
+  <text x="862" y="507" class="body">Kan ikke endre resultatet</text>
+  <text x="862" y="548" class="small muted">MVP: virker også uten modell</text>
+
+  <path d="M1171 420 H1214" class="line" />
+  <rect x="1225" y="270" width="311" height="300" rx="8" fill="#edf0f0" />
+  <text x="1249" y="310" class="label">PROSESS</text>
+  <text x="1249" y="356" class="heading">Bekreft saken</text>
+  <text x="1249" y="397" class="body">Innbyggeren har siste ord</text>
+  <text x="1249" y="437" class="body">Lokal prosesshendelse</text>
+  <text x="1249" y="472" class="body">Nedlastbar demokvittering</text>
+  <text x="1249" y="507" class="body">Klar for videre behandling</text>
+  <text x="1249" y="548" class="small muted">MVP: lokal kvittering</text>
+
+  <path d="M226 590 V630 H1380 V590" fill="none" stroke="#8aaba2" stroke-width="2" />
+  <rect x="501" y="611" width="598" height="40" fill="#f8faf9" />
+  <text x="800" y="638" text-anchor="middle" class="body" font-weight="600">Kilde · formål · hentetid · innbyggerkontroll</text>
+
+  <path d="M64 701 H1536" stroke="#becdc8" />
+  <text x="64" y="751" font-size="28" font-weight="600">Neste skoleår: spør bare om det som har endret seg.</text>
+  <text x="64" y="789" class="body muted">Visjon innenfor gyldig søknadsperiode, lovlig datatilgang og tilstrekkelig grunnlag.</text>
+  <text x="64" y="845" class="small muted">Hackathondemo · Syntetiske data og priser · Foreløpig vurdering, ikke et vedtak</text>
+  <text x="1536" y="845" class="small muted" text-anchor="end">KS Digital hackathon · Bergen 2026</text>
+</svg>

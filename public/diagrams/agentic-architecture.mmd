@@ -1,0 +1,33 @@
+flowchart TB
+  accTitle: Søk én gang – Node, Python og modellansvar
+  accDescr: Next.js eier sak og menneskelige porter. En eid Python-prosess bruker Microsoft Agent Framework til planlegging, parallell fordeling og samling. Private JSONL-meldinger kobler til Node-verktøy.
+  U["Innbygger<br/>fritt spørsmål · dokument · samtykke"]
+  subgraph LOCAL["På appens maskin"]
+    UI["Punkt-grensesnitt · NO / EN<br/>samtale · kontekstuell handling · plan"]
+    subgraph NODE["Next.js / Node"]
+      HOST["Assistant-API og sakstjeneste<br/>hensikt · saks-ID · revisjon · porter"]
+      DOMAIN["Kildekontroll og domeneverktøy<br/>KS-vurdering · bolig · flytting"]
+      DB[("SQLite<br/>kilder · fakta · samtale · spor")]
+    end
+    PY["Én eid Python-prosess per analyse<br/>Microsoft Agent Framework<br/>Agent · WorkflowBuilder"]
+  end
+  subgraph KS["Offisiell KS workshop · lokale syntetiske API-er"]
+    KSB["sandbox-backend · 8080<br/>husstand · SFO · satser<br/>inntekt og SFO-regelvurdering"]
+    KSF["Fiks-simulator · 8081<br/>uttrykkelig inntektssamtykke"]
+    KSD["Digdir-simulator · 8086<br/>signerte testtoken"]
+  end
+  MODEL["AI model<br/>koordinerer behov og tjenester<br/>spesialistagenter analyserer"]
+  U --> UI --> HOST
+  HOST -->|Bare etter kontekstuelt ja| KSB
+  HOST -->|Registrer og kontroller samtykke| KSF
+  HOST -->|Testautentisering| KSD
+  HOST <--> DOMAIN
+  HOST <--> DB
+  HOST <-->|Privat JSONL via standard inn og ut| PY
+  PY <-->|Avgrenset kontekst og JSON-svar| MODEL
+  classDef human fill:#fff1d6,stroke:#946000,color:#362a0e
+  classDef model fill:#ece9ff,stroke:#6654b4,color:#252040
+  classDef storage fill:#e2f2ec,stroke:#287460,color:#163b31
+  class U human
+  class PY,MODEL model
+  class DB storage

@@ -1,0 +1,477 @@
+{
+  "at": "2026-09-03T14:18:18.564Z",
+  "syntheticOnly": true,
+  "models": {
+    "coordinator": "@cf/qwen/qwen3.8-27b",
+    "specialist": "@cf/google/gemma-4-26b-a4b-it"
+  },
+  "report": [
+    {
+      "name": "Vietnamese question selects Vietnamese coordinator and specialist replies",
+      "passed": true,
+      "milliseconds": 35145,
+      "evidence": {
+        "language": "vi",
+        "summary": "Công dân cần hỗ trợ tiền thuê nhà. Người này sống một mình, không có con và không có kế hoạch chuyển nhà. Tiền thuê hàng tháng là 13.500 kr. Cần xác minh thêm thông tin về thu nhập để đánh giá điều kiện hỗ trợ.",
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "Tổng thu nhập hàng năm của hộ gia đình bạn là bao nhiêu (NOK)?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Con số thu nhập bạn cung cấp là thu nhập hàng năm của cả hộ gia đình, thu nhập cá nhân hàng năm, hay thu nhập hàng tháng?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "Có bao nhiêu người trong hộ gia đình?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Hva betaler du i husleie per måned?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "housing",
+            "summary": "Công dân đang chuẩn bị thông tin để xin hỗ trợ tiền thuê nhà. Hiện tại, mức tiền thuê nhà hàng tháng đã được đề xuất, nhưng các thông tin quan trọng khác về quy mô hộ gia đình và thu nhập vẫn còn thiếu.",
+            "findings": [
+              {
+                "text": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Mức tiền thuê nhà hàng tháng được đề xuất là 13500 kr.",
+                "citation": {
+                  "sourceId": "message-3dc229ef-d387-4bbf-a433-0b43b1dda847",
+                  "quote": "Tiền thuê hàng tháng của tôi là 13500 kr.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Bostøtte là một chương trình hỗ trợ dành cho những người có thu nhập thấp và chi phí nhà ở cao.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Có thể bạn sẽ cần phải tải lên các tài liệu đính kèm cho đơn đăng ký của mình.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "b6de8ec4-40b1-4f43-94bd-219d2811e5af",
+            "agent": "Koordinator",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:16:15.027Z",
+            "completedAt": "2026-09-03T14:16:32.352Z",
+            "model": "@cf/qwen/qwen3.8-27b",
+            "durationMs": 17325
+          },
+          {
+            "id": "63cb5881-ba53-4988-83ef-f925450d738b",
+            "agent": "Bolig og bostøtte",
+            "revision": 3,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:16:32.415Z",
+            "completedAt": "2026-09-03T14:16:48.932Z",
+            "model": "@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 16517
+          }
+        ]
+      }
+    },
+    {
+      "name": "Short follow-up and Norwegian attachment preserve Vietnamese",
+      "passed": true,
+      "milliseconds": 26954,
+      "evidence": {
+        "language": "vi",
+        "summary": "Công dân cần hỗ trợ tiền thuê nhà. Người này sống một mình, không có con và không có kế hoạch chuyển nhà. Tiền thuê hàng tháng là 13.500 kr. Cần xác minh thêm thông tin về thu nhập để đánh giá điều kiện hỗ trợ.",
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "Tổng thu nhập hàng năm của hộ gia đình là bao nhiêu?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Thu nhập này là của cả hộ gia đình hay chỉ của cá nhân?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Bạn trả bao nhiêu tiền thuê nhà mỗi tháng?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "Có bao nhiêu người trong hộ gia đình của bạn?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "housing",
+            "summary": "Công dân đã cung cấp thông tin về mức tiền thuê nhà hàng tháng. Tuy nhiên, để chuẩn bị cho việc nộp đơn lên Husbanken hoặc chính quyền địa phương, cần phải thu thập thêm các thông tin quan trọng khác về quy mô hộ gia đình và thu nhập.",
+            "findings": [
+              {
+                "text": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Công dân cho biết mức tiền thuê nhà hàng tháng là 13500 kr.",
+                "citation": {
+                  "sourceId": "message-3dc229ef-d387-4bbf-a433-0b43b1dda847",
+                  "quote": "Tiền thuê hàng tháng của tôi là 13500 kr.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Bostøtte là một chương trình hỗ trợ dành cho những người có thu nhập thấp và chi phí nhà ở cao.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Có thể bạn sẽ cần phải tải lên các tài liệu đính kèm cho đơn đăng ký của mình.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "0bc2de11-f0b8-41f3-b8a0-6108d41bc93c",
+            "agent": "Koordinator",
+            "revision": 6,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:16:50.076Z",
+            "completedAt": "2026-09-03T14:16:59.963Z",
+            "model": "@cf/qwen/qwen3.8-27b",
+            "durationMs": 9887
+          },
+          {
+            "id": "b013b0c0-b382-4b43-be43-b110cf1251da",
+            "agent": "Bolig og bostøtte",
+            "revision": 6,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:17:00.022Z",
+            "completedAt": "2026-09-03T14:17:15.885Z",
+            "model": "@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 15863
+          }
+        ]
+      }
+    },
+    {
+      "name": "New English question changes reply language",
+      "passed": true,
+      "milliseconds": 18892,
+      "evidence": {
+        "language": "en",
+        "summary": "The citizen is seeking assistance with rent and has provided their monthly rent and household size. To prepare the housing support assessment, we still need to confirm their annual household income and the basis for that income.",
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "What is your total annual household income in NOK?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Is the income you provide the total annual income for the entire household?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "How many people are included in the household?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Hva betaler du i husleie per måned?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "housing",
+            "summary": "The citizen has provided information regarding their monthly rent. To proceed with gathering the necessary basis for housing support, additional information regarding household size, annual income, and the nature of the income is required.",
+            "findings": [
+              {
+                "text": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "The citizen stated their monthly rent is 13500 kr.",
+                "citation": {
+                  "sourceId": "message-3dc229ef-d387-4bbf-a433-0b43b1dda847",
+                  "quote": "Tiền thuê hàng tháng của tôi là 13500 kr.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Housing support is a scheme for those with low incomes and high housing costs.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "dd371b09-ce34-4ee4-8760-e823887c5369",
+            "agent": "Koordinator",
+            "revision": 8,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:17:17.177Z",
+            "completedAt": "2026-09-03T14:17:24.123Z",
+            "model": "@cf/qwen/qwen3.8-27b",
+            "durationMs": 6946
+          },
+          {
+            "id": "b4d4f0d9-12be-47dc-8c7c-f1b041a96809",
+            "agent": "Bolig og bostøtte",
+            "revision": 8,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:17:24.178Z",
+            "completedAt": "2026-09-03T14:17:34.773Z",
+            "model": "@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 10595
+          }
+        ]
+      }
+    },
+    {
+      "name": "Explicit Bokmål preference restores Norwegian",
+      "passed": true,
+      "milliseconds": 43497,
+      "evidence": {
+        "language": "nb",
+        "summary": "Borgeren ber om hjelp med husleie og har bedt om svar på norsk bokmål. Vi har allerede registrert at borgeren bor alene, ikke har barn og ikke flytter, samt at den månedlige husleien er 13 500 kroner. For å forberede vurdering av bostøtte mangler vi fortsatt årets husstandsinntekt og grunnlaget for denne inntekten.",
+        "questions": [
+          {
+            "key": "household_income_annual",
+            "question": "Hva er husstandens totale inntekt for siste fullt år?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "income_basis",
+            "question": "Er inntekten oppgitt som husstandens samlede årsinntekt, eller gjelder den kun én person i husstanden?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "household_size",
+            "question": "Hvor mange personer inngår i husholdningen?",
+            "serviceIds": [
+              "housing"
+            ]
+          },
+          {
+            "key": "monthly_rent",
+            "question": "Hva betaler du i husleie per måned?",
+            "serviceIds": [
+              "housing"
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "housing",
+            "summary": "Borgeren har oppgitt månedlig husleie, men det mangler nødvendig informasjon om husholdningens størrelse og inntekt for å kunne ferdigstille grunnlaget for bostøtte.",
+            "findings": [
+              {
+                "text": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Borgeren har oppgitt en foreslått månedlig husleie.",
+                "citation": {
+                  "sourceId": "message-3dc229ef-d387-4bbf-a433-0b43b1dda847",
+                  "quote": "Tiền thuê hàng tháng của tôi là 13500 kr.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Bostøtte er en ordning rettet mot personer med lave inntekter og høye boutgifter.",
+                "citation": {
+                  "sourceId": "guidance-housing",
+                  "quote": "Bostøtte er en støtteordning for deg som har lave inntekter og høye boutgifter.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              },
+              {
+                "text": "Det kan være behov for å laste opp vedlegg til søknaden.",
+                "citation": {
+                  "sourceId": "guidance-housing-apply",
+                  "quote": "Det kan hende du må laste opp vedlegg til søknaden din.",
+                  "lineStart": 1,
+                  "lineEnd": 1,
+                  "page": null
+                }
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "id": "0dd6c71e-19a1-4a71-903e-5e8a49c9ff1f",
+            "agent": "Koordinator",
+            "revision": 10,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:17:35.819Z",
+            "completedAt": "2026-09-03T14:17:44.861Z",
+            "model": "@cf/qwen/qwen3.8-27b",
+            "durationMs": 9042
+          },
+          {
+            "id": "68d9ff5a-8442-40ca-972e-a61d787cd390",
+            "agent": "Bolig og bostøtte",
+            "revision": 10,
+            "status": "completed",
+            "startedAt": "2026-09-03T14:17:44.917Z",
+            "completedAt": "2026-09-03T14:18:18.290Z",
+            "model": "@cf/google/gemma-4-26b-a4b-it",
+            "durationMs": 33373
+          }
+        ]
+      }
+    }
+  ],
+  "runtime": "Microsoft Agent Framework Python"
+}

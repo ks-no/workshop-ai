@@ -1,0 +1,229 @@
+<svg
+  id="loader"
+  data-category="animations"
+  role="img"
+  viewBox="-20 -20 600 165"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- This is the letter "O" -->
+  <circle cx="60" cy="60" r="52" fill="#2A2859">
+    <animateTransform
+      attributeName="transform"
+      type="scale"
+      begin="0s"
+      calcMode="spline"
+      dur="2s"
+      values="1; 1.5; 1; 1"
+      keyTimes="0; 0.2; 0.8; 1"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      additive="sum"
+      repeatCount="indefinite"></animateTransform>
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      begin="0s"
+      dur="2s"
+      values="0 0; -20 -20;  0 0; 0 0;"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+    <animate
+      attributeName="fill"
+      attributeType="XML"
+      begin="0s"
+      dur="2s"
+      values="#2A2859; #6FE9FF;  #2A2859;  #2A2859"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+        0.5 0 0.5 1;
+        0.5 0 0.5 1;
+        0.5 0 0.5 1"
+      repeatCount="indefinite"></animate>
+  </circle>
+
+  <!-- This is the letter "S" (which consists of two 'L's - which is why we group them together with
+  a <g>-tag) -->
+  <g transform-origin="center">
+    <animateTransform
+      attributeName="transform"
+      type="scale"
+      begin="0.2s"
+      calcMode="spline"
+      dur="2s"
+      values="1; 1.5; 1; 1"
+      keyTimes="0; 0.2; 0.8; 1"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      begin="0.2s"
+      dur="2s"
+      values="0 0; 40 15; 0 0;  0 0;"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+
+    <path d="m273.57 3h-104v104h52v-52h52v-52z" fill="#2A2859">
+      <!-- TODO: To avoid redundant code, figure out how to change colors of 2 paths at the same
+      time by using animate -->
+      <animate
+        attributeName="fill"
+        attributeType="XML"
+        begin="0.2s"
+        dur="2s"
+        values="#2A2859; #43F8B6; #2A2859; #2A2859"
+        keyTimes="0; 0.2; 0.8; 1"
+        calcMode="spline"
+        keySplines="
+        0.5 0 0.5 1;
+        0.5 0 0.5 1;
+        0.5 0 0.5 1"
+        fill="freeze"
+        repeatCount="indefinite"></animate>
+    </path>
+    <path d="m118.43 107h104v-104l-52 1e-5v52h-52v52z" fill="#2A2859">
+      <animate
+        attributeName="fill"
+        attributeType="XML"
+        begin="0.2s"
+        dur="2s"
+        values="#2A2859; #43F8B6; #2A2859; #2A2859"
+        keyTimes="0; 0.2; 0.8; 1"
+        calcMode="spline"
+        keySplines="
+        0.5 0 0.5 1;
+        0.5 0 0.5 1;
+        0.5 0 0.5 1"
+        fill="freeze"
+        repeatCount="indefinite"></animate>
+    </path>
+  </g>
+
+  <!-- This is the letter "L" -->
+  <path
+    d="m388.57 107h-104v-104l52 1e-5v52h52v52z"
+    fill="#2A2859"
+    transform-origin="center"
+  >
+    <animateTransform
+      attributeName="transform"
+      type="scale"
+      begin="0.4s"
+      calcMode="spline"
+      dur="2s"
+      values="1; 1.5; 1; 1"
+      keyTimes="0; 0.2; 0.8; 1"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      additive="sum"
+      repeatCount="indefinite"></animateTransform>
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      begin="0.4s"
+      dur="2s"
+      values="0 0; 0 15; 0 0; 0 0;"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+        0.5 0 0.5 1;
+        0.5 0 0.5 1;
+        0.5 0 0.5 1"
+      fill="freeze"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+    <animate
+      attributeName="fill"
+      attributeType="XML"
+      begin="0.4s"
+      dur="2s"
+      values="#2A2859; #F9C66B; #2A2859; #2A2859"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      repeatCount="indefinite"></animate>
+  </path>
+
+  <!-- This is the letter "O" -->
+
+  <circle
+    cx="455"
+    cy="60"
+    r="52"
+    fill="#2A2859"
+    transform-origin="center"
+  >
+    <animateTransform
+      attributeName="transform"
+      type="scale"
+      begin="0.6s"
+      calcMode="spline"
+      dur="2s"
+      values="1; 1.5; 1; 1"
+      keyTimes="0; 0.2; 0.8; 1"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      begin="0.6s"
+      dur="2s"
+      values="0 0; -50 10; 0 0; 0 0;"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      repeatCount="indefinite"
+      additive="sum"></animateTransform>
+    <animate
+      attributeName="fill"
+      attributeType="XML"
+      begin="0.6s"
+      dur="2s"
+      values="#2A2859; #FF8274;  #2A2859; #2A2859"
+      keyTimes="0; 0.2; 0.8; 1"
+      calcMode="spline"
+      keySplines="
+      0.5 0 0.5 1;
+      0.5 0 0.5 1;
+      0.5 0 0.5 1"
+      fill="freeze"
+      repeatCount="indefinite"></animate>
+  </circle>
+</svg>

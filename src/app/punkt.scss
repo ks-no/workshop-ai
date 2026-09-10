@@ -1,0 +1,19 @@
+@use 'sass:meta';
+@use '@oslokommune/punkt-css/dist/scss/abstracts/variables' with ($font-path: '/punkt', $icon-path: '/punkt/icons');
+@use '@oslokommune/punkt-css/dist/scss/base/oslo-sans';
+@use '@oslokommune/punkt-css/dist/scss/base/colors-tokens';
+
+// Official Punkt styles scoped to the assistant; the earlier SFO demo stays intact.
+.assistant-app {
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/elements/button');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/elements/form');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/elements/checkbox-radio');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/elements/input');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/elements/table');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/icon');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/alert');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/inputwrapper');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/textarea');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/tabs');
+  @include meta.load-css('@oslokommune/punkt-css/dist/scss/components/tag');
+}

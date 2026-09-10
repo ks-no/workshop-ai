@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "description": "Forfattet testfamilie. Ingen reelle innbyggere eller registeroppslag.",
+  "family": {
+    "applicant": { "id": "demo-sofia", "name": "Sofia Berg" },
+    "child": { "id": "demo-emil", "name": "Emil Berg", "age": 7 },
+    "municipality": "Eksempel kommune",
+    "registeredAdults": 1
+  },
+  "sfo": {
+    "school": "Solbakken skole",
+    "grade": 2,
+    "placePercent": 100,
+    "hoursPerWeek": 25,
+    "monthlyPriceNok": 4500,
+    "paymentMonths": 11,
+    "monthlyFoodNok": 250
+  },
+  "income": { "annualNok": 612000, "year": 2025 }
+}

@@ -1,0 +1,1811 @@
+{
+  "at": "2026-09-03T13:46:10.695Z",
+  "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+  "syntheticOnly": true,
+  "report": [
+    {
+      "name": "Norwegian: three agents, confirmed memory, correction and human packet",
+      "passed": true,
+      "milliseconds": 245257,
+      "evidence": {
+        "beforeCorrection": {
+          "services": [
+            "family",
+            "housing",
+            "moving"
+          ],
+          "facts": [
+            {
+              "key": "job_lost",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har mistet jobben.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "has_children",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har barn som bruker SFO",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "uses_sfo",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har barn som bruker SFO",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "needs_housing",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "trenger hjelp med husleien",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "household_income_annual",
+              "value": "390000",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Hele husholdningens forventede årsinntekt er 390000 kr.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "income_basis",
+              "value": "household_year",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Hele husholdningens forventede årsinntekt er 390000 kr.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "monthly_rent",
+              "value": "14000",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Husleien er 14000 kr per måned.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "household_size",
+              "value": "4",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi er 4 personer i husholdningen.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "cohabitant_missing",
+              "value": "false",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Ingen samboer mangler i grunnlaget.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "moving",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "new_municipality",
+              "value": "Bergen",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "move_date",
+              "value": "2026-10-01",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            }
+          ],
+          "questions": [],
+          "runs": [
+            {
+              "id": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:05.443Z",
+              "completedAt": "2026-09-03T13:42:44.891Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 39448
+            },
+            {
+              "id": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.921Z",
+              "completedAt": "2026-09-03T13:43:05.552Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 20631
+            },
+            {
+              "id": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.925Z",
+              "completedAt": "2026-09-03T13:42:58.945Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 14020
+            },
+            {
+              "id": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.929Z",
+              "completedAt": "2026-09-03T13:42:57.846Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 12917
+            },
+            {
+              "id": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:05.575Z",
+              "completedAt": "2026-09-03T13:43:43.112Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 37537
+            },
+            {
+              "id": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.129Z",
+              "completedAt": "2026-09-03T13:44:05.720Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 22591
+            },
+            {
+              "id": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.146Z",
+              "completedAt": "2026-09-03T13:44:00.251Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 17105
+            },
+            {
+              "id": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.151Z",
+              "completedAt": "2026-09-03T13:43:55.370Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 12219
+            }
+          ],
+          "events": [
+            {
+              "id": "f1e84da0-1145-4d98-b0c4-f429e52e0ef4",
+              "runId": "",
+              "agent": "Dataverktøy",
+              "type": "human",
+              "at": "2026-09-03T13:42:05.442Z",
+              "detail": "Innbygger valgte syntetiske familie-, SFO- og inntektsdata. Ingen offentlige registre er kontaktet."
+            },
+            {
+              "id": "f3131605-6367-4284-8a85-304e94a9d6e1",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:42:05.443Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "b2c6a478-c59b-4cad-973f-0bd20be43fdf",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:42:44.890Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt."
+            },
+            {
+              "id": "b5924be9-405a-440c-911e-d6edd759fbf3",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:42:44.891Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "1d5b7c66-ecf5-476e-8c13-8fa6d1a004d9",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "caf14815-e355-4a1e-a40a-788b411f4b62",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "565d78d4-6fab-4b23-88fe-67357ceb6b54",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "6b52cc0e-a1d6-43e5-8511-471c98590b15",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "75885635-11c8-49d3-953e-f549041644ed",
+              "runId": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.921Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "0f077b2d-28c7-4a6b-a808-c5a43166456c",
+              "runId": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.925Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "a2f5c6c1-cf3e-40e5-abfa-67a3bc5b56a0",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.929Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "249929e7-f68a-4ddf-a1a6-d5cc514f42d1",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:42:57.846Z",
+              "detail": "En spesialistpåstand manglet eksakt kilde og ble utelatt."
+            },
+            {
+              "id": "9ffca304-0570-427b-b2e5-6931a3362e43",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:42:57.846Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "187f69c6-9155-4ed2-b338-5eb98e997eeb",
+              "runId": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:42:58.945Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "97680f18-94fb-4d08-8540-51a44677c064",
+              "runId": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:43:05.552Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "667f993a-7058-453c-9fc7-f35f2278ca55",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Har mistet jobben: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "414d3b0b-b428-456a-9a73-a280f38e6bdc",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Har barn: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "53f27b2c-3843-4577-84e9-c83b6d7fcc91",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Bruker SFO: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "6604e9ff-e0ac-48fe-809f-542148309b42",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Ønsker hjelp med bolig: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "2535a6e5-b6a0-47cc-b19d-636ff61decb9",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Husholdningens årsinntekt (kr): bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "5b900265-83c8-4f6f-be22-74a2130e9d62",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Hva inntekten gjelder: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "0725be50-7b9e-4906-9d98-0336e50cf0ec",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Månedlig husleie (kr): bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "9fc9c422-3347-450b-807b-49be387966f6",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Antall personer i husholdningen: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "5c3b9544-5f6a-471e-80a2-1c830cc2512a",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Samboer mangler i grunnlaget: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "46177b5e-1cbc-4856-b19d-a6fcbffd2a8b",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Skal flytte: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "4ec12d69-5f9e-4d43-8438-a28646fec04c",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Ny kommune: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "0e872279-6870-4776-9f1c-fc54c13a7d68",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Flyttedato: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "f0ec0902-5565-4197-9009-8b1f049f5275",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:43:05.575Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "f5908a50-0be8-4885-8ac0-70297e772d64",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:43:43.112Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "471b7123-36aa-4d7a-89ed-03eb5afe98ea",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "991aac4c-49a2-44fd-b157-12cc6221bfd7",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "1308cd55-502a-43c3-8b3b-f2e41c738886",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "23cd611a-fa66-432f-a1f2-cf6febd36be5",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "27d5ec86-6a72-4551-948f-7edbb02762cc",
+              "runId": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.129Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "b901cbe8-9d60-47e1-890f-6a5699639fd9",
+              "runId": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.146Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "fe8f71af-5908-4680-ac07-c8d5e7bbc1dc",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.151Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "0778f283-8238-46b4-9441-4a40112f5d0a",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt. Se den faste sjekklisten."
+            },
+            {
+              "id": "e43e43a9-15f1-453b-8abe-56ae88989ccc",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "En spesialistpåstand manglet eksakt kilde og ble utelatt."
+            },
+            {
+              "id": "5c59e40a-c420-4db8-974c-6d0e85bafbb9",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "c23c8c4e-00e8-4643-bb46-a2251e06af38",
+              "runId": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:44:00.251Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "42f7158a-071b-4924-bedc-cd61df4e03b6",
+              "runId": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:44:05.720Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            }
+          ]
+        },
+        "afterCorrection": {
+          "services": [
+            "family",
+            "housing",
+            "moving"
+          ],
+          "facts": [
+            {
+              "key": "job_lost",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har mistet jobben.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "has_children",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har barn som bruker SFO",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "uses_sfo",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Jeg har barn som bruker SFO",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "needs_housing",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "trenger hjelp med husleien",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "household_income_annual",
+              "value": "390000",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Hele husholdningens forventede årsinntekt er 390000 kr.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "income_basis",
+              "value": "household_year",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Hele husholdningens forventede årsinntekt er 390000 kr.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "monthly_rent",
+              "value": "14000",
+              "status": "superseded",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Husleien er 14000 kr per måned.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "household_size",
+              "value": "4",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi er 4 personer i husholdningen.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "cohabitant_missing",
+              "value": "false",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Ingen samboer mangler i grunnlaget.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "moving",
+              "value": "true",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "new_municipality",
+              "value": "Bergen",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "move_date",
+              "value": "2026-10-01",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-fec4e198-448d-4d2d-986d-2d6c6addf47a",
+                "quote": "Vi skal flytte til Bergen den 2026-10-01.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            },
+            {
+              "key": "monthly_rent",
+              "value": "12500",
+              "status": "confirmed",
+              "citation": {
+                "sourceId": "message-51c5b37a-f5a2-4af3-a726-2582e9f75827",
+                "quote": "Jeg retter husleien: Den er 12500 kr per måned, ikke beløpet jeg oppga tidligere.",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "page": null
+              }
+            }
+          ],
+          "questions": [],
+          "runs": [
+            {
+              "id": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:05.443Z",
+              "completedAt": "2026-09-03T13:42:44.891Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 39448
+            },
+            {
+              "id": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.921Z",
+              "completedAt": "2026-09-03T13:43:05.552Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 20631
+            },
+            {
+              "id": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.925Z",
+              "completedAt": "2026-09-03T13:42:58.945Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 14020
+            },
+            {
+              "id": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "revision": 4,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:42:44.929Z",
+              "completedAt": "2026-09-03T13:42:57.846Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 12917
+            },
+            {
+              "id": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:05.575Z",
+              "completedAt": "2026-09-03T13:43:43.112Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 37537
+            },
+            {
+              "id": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.129Z",
+              "completedAt": "2026-09-03T13:44:05.720Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 22591
+            },
+            {
+              "id": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.146Z",
+              "completedAt": "2026-09-03T13:44:00.251Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 17105
+            },
+            {
+              "id": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "revision": 17,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:43:43.151Z",
+              "completedAt": "2026-09-03T13:43:55.370Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 12219
+            },
+            {
+              "id": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Koordinator",
+              "revision": 19,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:44:05.730Z",
+              "completedAt": "2026-09-03T13:44:14.368Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 8638
+            },
+            {
+              "id": "4c5b0345-7e83-4055-9b46-a9d53c2e844f",
+              "agent": "Familie og SFO",
+              "revision": 19,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:44:14.373Z",
+              "completedAt": "2026-09-03T13:44:39.496Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 25123
+            },
+            {
+              "id": "9046a9dc-17f6-4f67-a7ca-603ed97e3a85",
+              "agent": "Bolig og bostøtte",
+              "revision": 19,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:44:14.376Z",
+              "completedAt": "2026-09-03T13:44:32.875Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 18499
+            },
+            {
+              "id": "d22003ee-5b49-427b-8b9a-78f3100a7f99",
+              "agent": "Flytting",
+              "revision": 19,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:44:14.379Z",
+              "completedAt": "2026-09-03T13:44:31.984Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 17605
+            },
+            {
+              "id": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Koordinator",
+              "revision": 21,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:44:39.509Z",
+              "completedAt": "2026-09-03T13:45:10.356Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 30847
+            },
+            {
+              "id": "0b34af75-39bd-4276-b888-e1a1eac4c9ca",
+              "agent": "Familie og SFO",
+              "revision": 21,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:45:10.362Z",
+              "completedAt": "2026-09-03T13:45:25.877Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 15515
+            },
+            {
+              "id": "1342c269-0850-4946-982a-a23f0dfa5f00",
+              "agent": "Bolig og bostøtte",
+              "revision": 21,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:45:10.383Z",
+              "completedAt": "2026-09-03T13:45:24.543Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 14160
+            },
+            {
+              "id": "74dcbef7-9027-4d7c-a0f3-cad243250bf0",
+              "agent": "Flytting",
+              "revision": 21,
+              "status": "completed",
+              "startedAt": "2026-09-03T13:45:10.393Z",
+              "completedAt": "2026-09-03T13:46:10.636Z",
+              "model": "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+              "durationMs": 60243
+            }
+          ],
+          "events": [
+            {
+              "id": "f1e84da0-1145-4d98-b0c4-f429e52e0ef4",
+              "runId": "",
+              "agent": "Dataverktøy",
+              "type": "human",
+              "at": "2026-09-03T13:42:05.442Z",
+              "detail": "Innbygger valgte syntetiske familie-, SFO- og inntektsdata. Ingen offentlige registre er kontaktet."
+            },
+            {
+              "id": "f3131605-6367-4284-8a85-304e94a9d6e1",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:42:05.443Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "b2c6a478-c59b-4cad-973f-0bd20be43fdf",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:42:44.890Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt."
+            },
+            {
+              "id": "b5924be9-405a-440c-911e-d6edd759fbf3",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:42:44.891Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "1d5b7c66-ecf5-476e-8c13-8fa6d1a004d9",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "caf14815-e355-4a1e-a40a-788b411f4b62",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "565d78d4-6fab-4b23-88fe-67357ceb6b54",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "6b52cc0e-a1d6-43e5-8511-471c98590b15",
+              "runId": "a92dbe3a-fec0-4412-af7f-58aaa96bc069",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:42:44.901Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "75885635-11c8-49d3-953e-f549041644ed",
+              "runId": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.921Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "0f077b2d-28c7-4a6b-a808-c5a43166456c",
+              "runId": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.925Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "a2f5c6c1-cf3e-40e5-abfa-67a3bc5b56a0",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:42:44.929Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "249929e7-f68a-4ddf-a1a6-d5cc514f42d1",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:42:57.846Z",
+              "detail": "En spesialistpåstand manglet eksakt kilde og ble utelatt."
+            },
+            {
+              "id": "9ffca304-0570-427b-b2e5-6931a3362e43",
+              "runId": "f6ff63fa-cc59-4a46-b0e2-64202b8835be",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:42:57.846Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "187f69c6-9155-4ed2-b338-5eb98e997eeb",
+              "runId": "46749c51-7391-4016-830c-a7efe281af43",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:42:58.945Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "97680f18-94fb-4d08-8540-51a44677c064",
+              "runId": "5b463967-5f7d-4712-9ca1-56d2a8af5304",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:43:05.552Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "667f993a-7058-453c-9fc7-f35f2278ca55",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Har mistet jobben: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "414d3b0b-b428-456a-9a73-a280f38e6bdc",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Har barn: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "53f27b2c-3843-4577-84e9-c83b6d7fcc91",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Bruker SFO: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "6604e9ff-e0ac-48fe-809f-542148309b42",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Ønsker hjelp med bolig: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "2535a6e5-b6a0-47cc-b19d-636ff61decb9",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Husholdningens årsinntekt (kr): bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "5b900265-83c8-4f6f-be22-74a2130e9d62",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Hva inntekten gjelder: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "0725be50-7b9e-4906-9d98-0336e50cf0ec",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Månedlig husleie (kr): bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "9fc9c422-3347-450b-807b-49be387966f6",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Antall personer i husholdningen: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "5c3b9544-5f6a-471e-80a2-1c830cc2512a",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Samboer mangler i grunnlaget: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "46177b5e-1cbc-4856-b19d-a6fcbffd2a8b",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Skal flytte: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "4ec12d69-5f9e-4d43-8438-a28646fec04c",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Ny kommune: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "0e872279-6870-4776-9f1c-fc54c13a7d68",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:43:05.563Z",
+              "detail": "Flyttedato: bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "f0ec0902-5565-4197-9009-8b1f049f5275",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:43:05.575Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "f5908a50-0be8-4885-8ac0-70297e772d64",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:43:43.112Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "471b7123-36aa-4d7a-89ed-03eb5afe98ea",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "991aac4c-49a2-44fd-b157-12cc6221bfd7",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "1308cd55-502a-43c3-8b3b-f2e41c738886",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "23cd611a-fa66-432f-a1f2-cf6febd36be5",
+              "runId": "33d1f523-a282-4baf-a48b-170cb2cdc40f",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:43:43.115Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "27d5ec86-6a72-4551-948f-7edbb02762cc",
+              "runId": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.129Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "b901cbe8-9d60-47e1-890f-6a5699639fd9",
+              "runId": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.146Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "fe8f71af-5908-4680-ac07-c8d5e7bbc1dc",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:43:43.151Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "0778f283-8238-46b4-9441-4a40112f5d0a",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt. Se den faste sjekklisten."
+            },
+            {
+              "id": "e43e43a9-15f1-453b-8abe-56ae88989ccc",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "En spesialistpåstand manglet eksakt kilde og ble utelatt."
+            },
+            {
+              "id": "5c59e40a-c420-4db8-974c-6d0e85bafbb9",
+              "runId": "7eb9cc0c-0e46-4e93-883d-531220cbe73b",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:43:55.370Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "c23c8c4e-00e8-4643-bb46-a2251e06af38",
+              "runId": "670d88fd-cfb9-46d1-9b32-ea32e6019100",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:44:00.251Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "42f7158a-071b-4924-bedc-cd61df4e03b6",
+              "runId": "ea728aea-2954-4a72-8f4e-7590946e25cf",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:44:05.720Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "8380324d-c489-41fe-82ef-bf12fc7c0405",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:44:05.730Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "40f8b560-a451-4b23-a801-4b9eb00c4033",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:44:14.368Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt."
+            },
+            {
+              "id": "e0a98f50-120c-4cc6-ba02-8e969b727713",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:44:14.368Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "a87fe48a-d5af-41d9-a1ab-744ce8ea8c08",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:44:14.370Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "2fece9aa-0ab2-4441-8a70-7f14e0bd9a73",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:44:14.370Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "d567624f-4475-4678-b957-f4d492ac5e24",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:44:14.370Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "51607709-54cb-44da-852a-6d7c87e62641",
+              "runId": "ba7f34b0-39a6-42cd-a793-4166fd1c216a",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:44:14.370Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "085370d9-f960-4ac6-aa3a-26e523ccb89a",
+              "runId": "4c5b0345-7e83-4055-9b46-a9d53c2e844f",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:44:14.373Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "433db35b-e32e-4e0c-9522-a0d2b6e785a9",
+              "runId": "9046a9dc-17f6-4f67-a7ca-603ed97e3a85",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:44:14.376Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "4b8981cc-3d97-4dc9-a158-2144ed6337ee",
+              "runId": "d22003ee-5b49-427b-8b9a-78f3100a7f99",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:44:14.379Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "9ea678c7-6951-45bb-9869-9e17bf409540",
+              "runId": "d22003ee-5b49-427b-8b9a-78f3100a7f99",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:44:31.983Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt. Se den faste sjekklisten."
+            },
+            {
+              "id": "77d50c75-e8b8-470b-b1bd-16e966306cb5",
+              "runId": "d22003ee-5b49-427b-8b9a-78f3100a7f99",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:44:31.984Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "0d47347f-d13a-44d8-a759-76a7eed7cdc9",
+              "runId": "9046a9dc-17f6-4f67-a7ca-603ed97e3a85",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:44:32.875Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "40ff25dc-d6a4-42cc-941d-85b6812603c8",
+              "runId": "4c5b0345-7e83-4055-9b46-a9d53c2e844f",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:44:39.496Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "936f7629-43e3-4ffe-9c37-84160b4f67ed",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:44:39.503Z",
+              "detail": "Månedlig husleie (kr): bekreftet. Tidligere analyse er ugyldig."
+            },
+            {
+              "id": "7939bc2c-e4af-4715-9c94-f3206f09b6d7",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Koordinator",
+              "type": "started",
+              "at": "2026-09-03T13:44:39.509Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "7479332b-d59c-4e44-aac1-d1eeb93a63fb",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:45:10.356Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt."
+            },
+            {
+              "id": "fccee34e-1d28-409f-8aed-c8a6bf2ba738",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Koordinator",
+              "type": "completed",
+              "at": "2026-09-03T13:45:10.356Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "fae967bc-06b2-4756-b632-e3a3d1b866b8",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:45:10.359Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-sfo. Ikke et live registeroppslag."
+            },
+            {
+              "id": "277c0f1c-d982-4873-a82f-29d243a4a6dc",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:45:10.359Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing. Ikke et live registeroppslag."
+            },
+            {
+              "id": "460fc89e-24c3-4239-b314-1beb7231d39c",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:45:10.359Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-housing-apply. Ikke et live registeroppslag."
+            },
+            {
+              "id": "fe292098-194f-43d6-b2ca-66022f0b065e",
+              "runId": "677ef87d-860c-4782-95ec-d25777354114",
+              "agent": "Kildeverktøy",
+              "type": "source-read",
+              "at": "2026-09-03T13:45:10.359Z",
+              "detail": "Leste kontrollert veiledningsutdrag: guidance-moving. Ikke et live registeroppslag."
+            },
+            {
+              "id": "4fd57c67-54e5-4a06-80f9-1b3efa261e5e",
+              "runId": "0b34af75-39bd-4276-b888-e1a1eac4c9ca",
+              "agent": "Familie og SFO",
+              "type": "started",
+              "at": "2026-09-03T13:45:10.362Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "c8726a1e-e283-48d9-b899-fae80f4045ab",
+              "runId": "1342c269-0850-4946-982a-a23f0dfa5f00",
+              "agent": "Bolig og bostøtte",
+              "type": "started",
+              "at": "2026-09-03T13:45:10.383Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "5e68c989-a55e-45be-851d-48b698144da9",
+              "runId": "74dcbef7-9027-4d7c-a0f3-cad243250bf0",
+              "agent": "Flytting",
+              "type": "started",
+              "at": "2026-09-03T13:45:10.393Z",
+              "detail": "Modellanalysen er startet."
+            },
+            {
+              "id": "feaf8c49-7516-4a7d-a491-7856c9776aa3",
+              "runId": "1342c269-0850-4946-982a-a23f0dfa5f00",
+              "agent": "Bolig og bostøtte",
+              "type": "completed",
+              "at": "2026-09-03T13:45:24.543Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "3c8cc9a8-3f92-4a2e-8495-d4d754b8c0b8",
+              "runId": "0b34af75-39bd-4276-b888-e1a1eac4c9ca",
+              "agent": "Familie og SFO",
+              "type": "completed",
+              "at": "2026-09-03T13:45:25.877Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "c0d98001-569e-47e9-b170-4cfcc05b436c",
+              "runId": "74dcbef7-9027-4d7c-a0f3-cad243250bf0",
+              "agent": "Kontroll",
+              "type": "blocked",
+              "at": "2026-09-03T13:46:10.636Z",
+              "detail": "En KI-oppsummering med ubekreftede tall eller påstand om vedtak/innsending ble utelatt. Se den faste sjekklisten."
+            },
+            {
+              "id": "76749fd4-1522-4d5d-a912-c16a45292a65",
+              "runId": "74dcbef7-9027-4d7c-a0f3-cad243250bf0",
+              "agent": "Flytting",
+              "type": "completed",
+              "at": "2026-09-03T13:46:10.636Z",
+              "detail": "Strukturert svar mottatt og kontrollert."
+            },
+            {
+              "id": "e1e16c10-6aeb-4141-ba03-8af7c05c41fa",
+              "runId": "",
+              "agent": "Innbygger",
+              "type": "human",
+              "at": "2026-09-03T13:46:10.645Z",
+              "detail": "Gjeldende plan bekreftet. Lokal dokumentpakke opprettet for menneskelig oppfølging; ingenting sendt til kommunen."
+            }
+          ]
+        },
+        "handoff": {
+          "id": "PLAN-2CFA21FE",
+          "createdAt": "2026-09-03T13:46:10.645Z",
+          "revision": 21,
+          "serviceIds": [
+            "family",
+            "housing",
+            "moving"
+          ],
+          "localOnly": true,
+          "status": "prepared-for-human-review"
+        }
+      }
+    }
+  ],
+  "responses": [
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 2885,
+      "usage": {
+        "prompt_tokens": 1475,
+        "completion_tokens": 1292,
+        "total_tokens": 2767,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 48.64545440673828
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 992,
+      "usage": {
+        "prompt_tokens": 936,
+        "completion_tokens": 380,
+        "total_tokens": 1316,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 18.872726440429688
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 894,
+      "usage": {
+        "prompt_tokens": 1217,
+        "completion_tokens": 392,
+        "total_tokens": 1609,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 21.754545211791992
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1449,
+      "usage": {
+        "prompt_tokens": 976,
+        "completion_tokens": 544,
+        "total_tokens": 1520,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 23.709091186523438
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 2892,
+      "usage": {
+        "prompt_tokens": 2239,
+        "completion_tokens": 1287,
+        "total_tokens": 3526,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 55.45454406738281
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1489,
+      "usage": {
+        "prompt_tokens": 1508,
+        "completion_tokens": 568,
+        "total_tokens": 2076,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 29.200000762939453
+      },
+      "valid": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "path": []
+        }
+      ]
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1131,
+      "usage": {
+        "prompt_tokens": 972,
+        "completion_tokens": 404,
+        "total_tokens": 1376,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 19.85454559326172
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1556,
+      "usage": {
+        "prompt_tokens": 1288,
+        "completion_tokens": 596,
+        "total_tokens": 1884,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 27.963634490966797
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1428,
+      "usage": {
+        "prompt_tokens": 2141,
+        "completion_tokens": 542,
+        "total_tokens": 2683,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 34.245452880859375
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 861,
+      "usage": {
+        "prompt_tokens": 2613,
+        "completion_tokens": 327,
+        "total_tokens": 2940,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 32.672725677490234
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1299,
+      "usage": {
+        "prompt_tokens": 1509,
+        "completion_tokens": 525,
+        "total_tokens": 2034,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 28.03636360168457
+      },
+      "valid": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "path": []
+        }
+      ]
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1145,
+      "usage": {
+        "prompt_tokens": 969,
+        "completion_tokens": 443,
+        "total_tokens": 1412,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 20.89090919494629
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1100,
+      "usage": {
+        "prompt_tokens": 1373,
+        "completion_tokens": 464,
+        "total_tokens": 1837,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 25.136363983154297
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1238,
+      "usage": {
+        "prompt_tokens": 2100,
+        "completion_tokens": 499,
+        "total_tokens": 2599,
+        "prompt_tokens_details": {
+          "cached_tokens": 1472
+        },
+        "neurons": 32.70000076293945
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 2923,
+      "usage": {
+        "prompt_tokens": 2775,
+        "completion_tokens": 1298,
+        "total_tokens": 4073,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664
+        },
+        "neurons": 60.62727355957031
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1093,
+      "usage": {
+        "prompt_tokens": 1510,
+        "completion_tokens": 453,
+        "total_tokens": 1963,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 26.081817626953125
+      },
+      "valid": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "path": []
+        }
+      ]
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1520,
+      "usage": {
+        "prompt_tokens": 1357,
+        "completion_tokens": 583,
+        "total_tokens": 1940,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 28.23636245727539
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1032,
+      "usage": {
+        "prompt_tokens": 2028,
+        "completion_tokens": 427,
+        "total_tokens": 2455,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        },
+        "neurons": 30.081817626953125
+      },
+      "valid": true,
+      "issues": []
+    },
+    {
+      "status": 200,
+      "finish": "stop",
+      "characters": 1253,
+      "usage": {
+        "prompt_tokens": 969,
+        "completion_tokens": 474,
+        "total_tokens": 1443,
+        "prompt_tokens_details": {
+          "cached_tokens": 960
+        },
+        "neurons": 21.73636245727539
+      },
+      "valid": true,
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+flowchart TB
+  accTitle: Søk én gang – varig saksminne og kortlevd agentprosess
+  accDescr: Node lagrer saken i SQLite med absolutt 24 timers levetid. Hver analyse bruker en ny Python-prosess. Ingen separat framework-hukommelse eller checkpoint erstatter menneskelig bekreftelse.
+  subgraph FACTS["Faktumets livsløp · Node bevarer kilde og historie"]
+    direction TB
+    A["Kildekontrollert kandidat"]
+    P["Foreslått eller konflikt"]
+    H["Menneskelig avklaring"]
+    OK["Bekreftet<br/>brukes på tvers av tjenester"]
+    NO["Avvist · beholdes i historikken"]
+    OLD["Erstattet etter bekreftet ny verdi"]
+    A --> P --> H
+    H -->|Bekreft| OK
+    H -->|Avvis| NO
+    OK -->|Ny verdi bekreftes| OLD
+  end
+  subgraph CASE["Sakens levetid · autoritativt minne i Node"]
+    direction TB
+    NEW["Ny sak"]
+    DB[("SQLite<br/>24 timer fra opprettelse<br/>inkludert kilder og samtykkekvittering")]
+    LOAD["Reload eller serverrestart<br/>samme cookie og datakatalog"]
+    DEL["Slettet ved brukerhandling<br/>eller opprydding etter utløp"]
+    NEW --> DB --> LOAD
+    LOAD -->|Gyldig sak| DB
+    DB --> DEL
+    KEEP["KS sin historikk og nedlastede filer<br/>slettes ikke av lokal sletting"]
+    DEL -.-> KEEP
+  end
+  subgraph RUN["Én analyse · ingen varige framework-checkpoints"]
+    direction TB
+    START["Node starter Python<br/>under lås og ny revisjon"]
+    WORK["Agent Framework<br/>planlegger · grener · join"]
+    END["Resultat lagres i Node<br/>Python avsluttes"]
+    FAIL["Avbrudd eller feil<br/>bevar saksdata og analyser på nytt"]
+    START --> WORK --> END
+    WORK --> FAIL
+  end
+  classDef human fill:#fff1d6,stroke:#946000,color:#362a0e
+  classDef storage fill:#e2f2ec,stroke:#287460,color:#163b31
+  classDef model fill:#ece9ff,stroke:#6654b4,color:#252040
+  class H human
+  class DB,OK storage
+  class WORK model
