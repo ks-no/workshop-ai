@@ -672,6 +672,8 @@ type Tilgangsstatus =
   | "ikke-aktuell"
   | "tilgjengelig";
 
+type Datakilde = "inntekt" | "kontaktinfo" | "helseopplysninger" | "politiattest";
+
 type TilgangAlternativ = {
   verdi: string;
   label: string;
@@ -683,6 +685,8 @@ type TilgangPerCase = {
   prosessId: string;
   status: Tilgangsstatus;
   manglerSamtykke?: string[];
+  /** Kildene saken leser bak samtykkeporten, enten samtykket er gitt eller ikke. */
+  samtykkekilder?: Datakilde[];
   soknadId?: string;
   alternativer?: TilgangAlternativ[];
 };
@@ -731,7 +735,103 @@ function forklaringFor(rad: TilgangPerCase | TilgangAlternativ): string {
   return kilder ? `${visning.forklaring} ${kilder}.` : "Vi mangler et samtykke for denne.";
 }
 
-async function tegnTilganger(personId: string): Promise<void> {
+/* Samtykkebryteren */
+
+/*
+ * Kodeverket skrives ut ordrett ellers på siden - se samtykkeliste over - men
+ * en bryter er en setning innbyggeren sier ja til, og «inntekt» er ikke en
+ * setning. Derfor ett navn per kilde her, og bare her.
+ */
+const KILDENAVN: Record<Datakilde, string> = {
+  inntekt: "inntekten din",
+  kontaktinfo: "kontaktopplysningene dine",
+  helseopplysninger: "helseopplysningene dine",
+  politiattest: "politiattesten din"
+};
+
+function kildesetning(kilder: Datakilde[]): string {
+  const navn = kilder.map((kilde) => KILDENAVN[kilde] ?? kilde);
+  if (navn.length < 2) return navn[0] ?? "opplysningene dine";
+  return `${navn.slice(0, -1).join(", ")} og ${navn[navn.length - 1]}`;
+}
+
+/**
+ * Bryteren som gir og trekker samtykket saken trenger.
+ *
+ * Den står på saken fordi det er der innbyggeren møter behovet, men det den
+ * skrur på er datakilden: et samtykke gjelder inntekt, ikke barnehagesøknaden,
+ * og to saker som leser inntekt deler det samme jaet. Derfor leses av-eller-på
+ * fra `harSamtykke` for hele personen og ikke fra radens egen status - og
+ * derfor tegnes hele kortet på nytt etterpå, slik at de andre radene følger med.
+ */
+function samtykkebryter(
+  post: TilgangPerCase,
+  kilder: Datakilde[],
+  harSamtykke: Datakilde[],
+  personId: string
+): HTMLElement {
+  const bryterId = `samtykke-${post.prosessId}`;
+  const beholder = lag("div", "stablet samtykke");
+
+  const felt = lag("div", "ds-field");
+  const bryter = lag("input", "ds-input");
+  attributter(bryter, { type: "checkbox", role: "switch", id: bryterId });
+  bryter.checked = kilder.every((kilde) => harSamtykke.includes(kilde));
+  const etikett = lag("label", "ds-label", `Kommunen kan se ${kildesetning(kilder)}`);
+  attributter(etikett, { for: bryterId, "data-weight": "regular", "data-size": "sm" });
+  felt.append(bryter, etikett);
+
+  // Designsystemets egen feiltekst, ikke et avsnitt med farge: den kommer med
+  // ikonet og danger-tokenet ferdig. aria-live fordi den dukker opp etter at
+  // bryteren ble trykket, og da er den svaret på trykket.
+  const feil = lag("p", "ds-validation-message");
+  attributter(feil, { "data-size": "sm", "aria-live": "polite" });
+  feil.hidden = true;
+
+  bryter.addEventListener("change", async () => {
+    const skalPaa = bryter.checked;
+    bryter.disabled = true;
+    feil.hidden = true;
+    const base = `${BACKEND_BASE}/api/personer/${encodeURIComponent(personId)}/samtykker`;
+    try {
+      if (skalPaa) {
+        // Prosessen og ikke kilden: formålet samtykket skal bære står i
+        // prosessens CONSENT_REQUEST-steg, og skal ikke finnes på her.
+        await hentJson(base, {
+          method: "POST",
+          headers: withToken({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ prosessId: post.prosessId })
+        });
+      } else {
+        for (const kilde of kilder) {
+          await hentJson(`${base}/${encodeURIComponent(kilde)}/trekk`, {
+            method: "PUT",
+            headers: withToken()
+          });
+        }
+      }
+    } catch (svarfeil) {
+      // Bryteren står der brukeren satte den til vi vet at den gjelder. Slår vi
+      // den ikke tilbake, viser siden et samtykke som aldri ble gitt.
+      bryter.checked = !skalPaa;
+      bryter.disabled = false;
+      feil.textContent = `Klarte ikke å endre samtykket: ${feilmelding(svarfeil)}`;
+      feil.hidden = false;
+      return;
+    }
+    await tegnTilganger(personId, bryterId);
+  });
+
+  beholder.append(felt, feil);
+  return beholder;
+}
+
+/**
+ * `fokusId` er bryteren som utløste tegningen. Kortet bygges helt om, så
+ * elementet den innloggede sto i er borte når det er ferdig, og uten dette
+ * havner tastaturfokus på toppen av siden midt i en handling.
+ */
+async function tegnTilganger(personId: string, fokusId?: string): Promise<void> {
   const kort = krevEl("tilganger");
   kort.replaceChildren();
 
@@ -747,6 +847,7 @@ async function tegnTilganger(personId: string): Promise<void> {
   kort.append(topp);
 
   let tilganger: TilgangPerCase[];
+  let harSamtykke: Datakilde[];
   let navn: Map<string, string>;
   try {
     const [svar, prosesser] = await Promise.all([
@@ -758,6 +859,7 @@ async function tegnTilganger(personId: string): Promise<void> {
       hentJson(`${BACKEND_BASE}/api/prosesser`)
     ]);
     tilganger = svar.tilganger ?? [];
+    harSamtykke = svar.harSamtykke ?? [];
     navn = new Map((prosesser as Prosess[]).map((prosess) => [prosess.id, prosess.navn]));
   } catch (feil) {
     // Kortet feiler for seg selv. Resten av Min side leses fra disk, og skal stå
@@ -773,16 +875,29 @@ async function tegnTilganger(personId: string): Promise<void> {
 
   const blokk = kortblokk();
   for (const post of tilganger) {
-    blokk.append(tegnTilgang(post, navn.get(post.prosessId) ?? post.prosessId));
+    blokk.append(tegnTilgang(post, navn.get(post.prosessId) ?? post.prosessId, harSamtykke, personId));
   }
   kort.append(blokk);
   kort.append(kortblokk(
+    avsnitt(
+      "Bryterne gir samtykke til datakilden, ikke til saken. Skrur du av inntekt, " +
+      "gjelder det alle sakene som leser den - og du kan skru den på igjen når du vil.",
+      "xs",
+      "long"
+    ),
     avsnitt("Selve søknaden ligger i det stegvise grensesnittet på :3001.", "xs"),
     kildelinje("GET /api/personer/{personId}/tilganger i sandbox-backend")
   ));
+
+  if (fokusId) document.getElementById(fokusId)?.focus();
 }
 
-function tegnTilgang(post: TilgangPerCase, prosessnavn: string): HTMLElement {
+function tegnTilgang(
+  post: TilgangPerCase,
+  prosessnavn: string,
+  harSamtykke: Datakilde[],
+  personId: string
+): HTMLElement {
   const visning = TILGANGSVISNING[post.status];
   const rute = lag("div", "tjeneste__tekst");
 
@@ -807,6 +922,13 @@ function tegnTilgang(post: TilgangPerCase, prosessnavn: string): HTMLElement {
       liste.append(punkt);
     }
     rute.append(liste);
+  }
+
+  // Ingen kilder betyr at saken ikke leser noe bak porten - eller at en ferdig
+  // behandlet søknad gjorde at regelen ikke ble kjørt. Ingen av delene er noe en
+  // bryter kan gjøre noe med.
+  if (post.samtykkekilder?.length) {
+    rute.append(samtykkebryter(post, post.samtykkekilder, harSamtykke, personId));
   }
 
   return rute;
