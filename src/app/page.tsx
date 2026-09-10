@@ -1,2 +1,2 @@
-import { AssistantWorkspace } from '../components/assistant-workspace';
-export default function Home() { return <AssistantWorkspace />; }
+import { SokWizard } from '../components/sok-wizard';
+export default function Home() { return <SokWizard />; }

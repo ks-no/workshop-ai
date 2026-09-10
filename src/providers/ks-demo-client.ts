@@ -47,6 +47,11 @@ const sfoAssessmentSchema = z.object({
   godkjent: z.boolean(), melding: label,
   grunnlag: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
+const applicationSchema = z.object({
+  soknadId: identifier, personId, prosessId: z.string().min(1).max(160), status: z.literal('SENDT_INN'),
+  opprettet: z.iso.datetime(), sporingsId: identifier, syntetisk: z.literal(true),
+  oppgave: z.object({ oppgaveId: z.string().max(160).optional(), advarsel: z.string().max(1000).optional(), detalj: z.string().max(2000).optional(), syntetisk: z.boolean().optional() }).passthrough().optional(),
+}).passthrough();
 const consentSchema = z.object({
   samtykkeId: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/), personId, formaal: label,
   dataKilder: z.array(z.string().min(1).max(160)).max(20),
@@ -63,6 +68,7 @@ export type KsDemoCatalogueEntry = z.infer<typeof catalogueSchema>[number];
 export type KsDemoIncome = z.infer<typeof incomeSchema>;
 export type KsDemoConsent = z.infer<typeof consentSchema>;
 export type KsDemoSfoAssessment = z.infer<typeof sfoAssessmentSchema>;
+export type KsDemoApplication = z.infer<typeof applicationSchema>;
 export type KsDemoSnapshot<T> = {
   value: T;
   source: { url: string; retrievedAt: string; text: string; synthetic: true; resource: string };
@@ -195,6 +201,16 @@ export function createKsDemoClient(config: KsDemoConfig, fetchImpl: typeof fetch
       validConsent(granted.value);
       if (granted.value.samtykkeId !== pending.samtykkeId || granted.value.sporingsId !== parsed.data.caseId) throw invalidResponse();
       return granted;
+    },
+    /** Submit a test application for the configured test citizen. The sandbox also creates a Fiks casework task, best effort. */
+    async createApplication(input: { prosessId: string; prosessNavn: string; caseId: string }): Promise<KsDemoSnapshot<KsDemoApplication>> {
+      const parsed = z.object({ prosessId: z.string().regex(/^[a-z0-9-]{1,80}$/), prosessNavn: z.string().min(1).max(160), caseId: z.uuid() }).strict().safeParse(input);
+      if (!parsed.success) throw new KsDemoError('configuration', 'Skjemaet mangler en gyldig prosessidentitet for KS-sandkassen.');
+      const created = await request(backend, '/api/soknader', 'soknad', applicationSchema, config.getCitizenToken, 'POST', {
+        personId: subject, prosessId: parsed.data.prosessId, prosessNavn: parsed.data.prosessNavn, sporingsId: parsed.data.caseId,
+      });
+      if (created.value.personId !== subject || created.value.sporingsId !== parsed.data.caseId || created.value.prosessId !== parsed.data.prosessId) throw invalidResponse();
+      return created;
     },
     async readSfoAssessment(receipt: KsDemoConsent): Promise<KsDemoSnapshot<KsDemoSfoAssessment>> {
       const consent = validConsent(receipt);

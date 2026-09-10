@@ -59,7 +59,7 @@ function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: strin
 test('citizen assistant starts with an honest connection state and no invented case', async ({ page }) => {
   const remoteRequests: string[] = [];
   page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:3210/')) remoteRequests.push(request.url()); });
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   const initial = await snapshot(page);
   expect(initial.session).toBeNull();
@@ -82,7 +82,7 @@ test('citizen assistant starts with an honest connection state and no invented c
 });
 
 test('a real API case resumes and can be explicitly deleted', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   expect((await snapshot(page)).session).toBeNull();
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   expect(started.ok()).toBe(true);
@@ -102,7 +102,7 @@ test('a real API case resumes and can be explicitly deleted', async ({ page }) =
 
 test('mobile conversation and shared case remain usable at 375 pixels', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Samtale' })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'Din oversikt' }).click();
@@ -122,11 +122,11 @@ test('a stale tab cannot delete a replacement case with the same revision', asyn
     await target.reload();
     await expect(target.getByRole('button', { name: 'Avslutt og slett', exact: true })).toBeVisible();
   }
-  await page.goto('/');
+  await page.goto('/assistent');
   await startCase(page);
   const previous = (await snapshot(page)).session!;
   const other = await context.newPage();
-  await other.goto('/');
+  await other.goto('/assistent');
   await other.getByRole('button', { name: 'Avslutt og slett', exact: true }).click();
   await other.getByRole('button', { name: 'Slett saken', exact: true }).click();
   await expect(other.getByRole('status').filter({ hasText: 'Samtalen, opplysningene og dokumentene er slettet.' })).toBeVisible();
@@ -147,7 +147,7 @@ test('a stale tab cannot delete a replacement case with the same revision', asyn
 test('real model document flow shares confirmed memory and creates an explicit local packet', async ({ page }) => {
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Opt in to a real configured model with ASSISTANT_LIVE_E2E=1; no browser-side AI simulation.');
   test.setTimeout(420000);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByText('Språkmodellen er konfigurert', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Legg ved dokument' }).click();
   await page.getByLabel('Velg et dokument').setInputFiles({ name: 'test-situasjon.txt', mimeType: 'text/plain', buffer: Buffer.from('Dette er testopplysninger. Jeg har barn og bruker SFO. Jeg har mistet jobben og trenger hjelp med boligutgifter. Hele husholdningens samlede årsinntekt er 320000 kroner. Husleien er 12000 kroner per måned. Vi er 3 personer i husholdningen. Jeg har ingen samboer som mangler i oversikten. Jeg skal flytte til Bergen 2026-11-01.') });
@@ -205,7 +205,7 @@ test('real two-page PDF keeps page-two evidence without storing original bytes',
   test.setTimeout(420000);
   const metadataMarker = 'PDF_ORIGINAL_BYTES_ONLY_METADATA_SENTINEL';
   const pdf = twoPagePdf('This is a synthetic test case. I am moving.', 'My move date is 2026-12-04. My new municipality is Trondheim.', metadataMarker);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByText('Språkmodellen er konfigurert', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Legg ved dokument' }).click();
   await page.getByLabel('Velg et dokument').setInputFiles({ name: 'test-moving-two-pages.pdf', mimeType: 'application/pdf', buffer: pdf });
@@ -266,7 +266,7 @@ test('real two-page PDF keeps page-two evidence without storing original bytes',
 test('real replies follow the question language while Norwegian controls and original quotes remain', async ({ page }) => {
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Opt in to the real configured model with ASSISTANT_LIVE_E2E=1.');
   test.setTimeout(420000);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.locator('html')).toHaveAttribute('lang', 'nb');
   await expect(page.getByText('Svar følger språket du skriver på. Norsk er standard.', { exact: false })).toBeVisible();
   await page.getByLabel('Hva er situasjonen din?').fill('OK');
@@ -313,7 +313,7 @@ test('real replies follow the question language while Norwegian controls and ori
 
 
 test('the compact plan tabs remain usable on desktop and mobile', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByLabel('Grensesnittspråk')).toHaveValue('nb');
   await expect(page.locator('.assistant-locale .pkt-inputwrapper__label')).toHaveCount(0);
   await expect(page.locator('.assistant-locale .pkt-sr-only')).toHaveText('Grensesnittspråk');
@@ -405,7 +405,7 @@ test('presentation flows use generic AI labels and provide PNG exports', async (
 });
 
 test('agent task disclosure opens a selected run in the right activity panel', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   const state = (await started.json() as AssistantResponse).session!;
   const startedAt = new Date().toISOString();
@@ -458,7 +458,7 @@ test('real typed questions send a citizen message and board corrections retain c
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Requires actual configured Python agents and model transport.');
   test.setTimeout(600000);
   await page.addInitScript(() => localStorage.setItem('sok-assistant-ui-language', 'en'));
-  await page.goto('/');
+  await page.goto('/assistent');
   await page.getByLabel('What is your situation?').fill('I am planning to move within Norway. Help me prepare. I have not provided a date or new municipality yet.');
   await page.getByRole('button', { name: 'Send message', exact: true }).click();
   await expect(page.locator('.assistant-message.is-assistant')).toHaveCount(1, { timeout: 200000 });
@@ -519,7 +519,7 @@ test('the agent routes a personal SFO request to contextual KS consent and suppo
   page.on('request', request => {
     if (request.url().endsWith('/api/assistant') && request.method() === 'POST') mutations.push(request.postDataJSON());
   });
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByRole('button', { name: 'Hent fra KS', exact: true })).toHaveCount(0);
   await page.getByLabel('Hva er situasjonen din?').fill('Jeg bruker SFO og vil vite om familien min kan betale mindre.');
   await page.getByRole('button', { name: 'Send melding', exact: true }).click();

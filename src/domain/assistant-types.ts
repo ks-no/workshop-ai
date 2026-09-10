@@ -37,6 +37,7 @@ export type SpecialistOutput = {
   summary: string;
   findings: { text: string; sourceId: string; quote: string }[];
   questions: { key: string; question: string }[];
+  nextAction?: { kind: ActionKind; reason: string };
 };
 export type ServiceCheck = { id: string; label: string; status: 'ready' | 'missing' | 'human'; detail: string; factKeys: FactKey[] };
 export type ServiceResult = {
@@ -48,6 +49,36 @@ export type ServiceResult = {
   assessment: Assessment | null; error: string | null;
   applicationDraft?: ApplicationDraft | null;
   formFlow?: FormFlow | null;
+  recommendedAction?: ActionRecommendation | null;
+};
+/** End actions the pipeline can resolve into. Node decides availability; the agent may only recommend. */
+export const actionKinds = ['clarify', 'contact', 'email', 'form', 'self-service', 'summary'] as const;
+export type ActionKind = typeof actionKinds[number];
+export type ActionRecommendation = { kind: ActionKind; reason: string; by: 'agent' | 'rule' };
+export type ContactPoint = {
+  id: string; name: string; role: string; organisation: string;
+  email: string | null; phone: string | null; url: string | null; hours: string | null; note: string;
+};
+export type NextAction = {
+  id: string; kind: ActionKind; serviceId: ServiceId | null; title: string; detail: string;
+  available: boolean; blockers: string[]; recommended: boolean; reason: string | null;
+  contact: ContactPoint | null; url: string | null; done: boolean;
+};
+export type FormFieldKind = 'boolean' | 'number' | 'date' | 'select' | 'text' | 'textarea';
+export type FormField = {
+  id: string; label: string; kind: FormFieldKind; required: boolean; factKey: FactKey | null;
+  value: string; origin: 'confirmed' | 'register' | 'citizen' | 'empty'; editable: boolean;
+};
+export type FormDraft = {
+  id: string; formId: string; serviceId: ServiceId; title: string; recipient: ContactPoint; fields: FormField[];
+  attachments: string[]; submission: 'ks-sandbox' | 'local'; revision: number; createdAt: string;
+};
+export type EmailDraft = { id: string; serviceId: ServiceId; to: ContactPoint; subject: string; body: string; revision: number; createdAt: string; aiDrafted: boolean };
+export type Outcome = {
+  id: string; kind: 'email' | 'form'; serviceId: ServiceId; createdAt: string; revision: number; reference: string;
+  status: 'sent-to-mail-client' | 'submitted-to-ks-sandbox' | 'prepared-locally';
+  recipient: ContactPoint; title: string; detail: string; localOnly: boolean;
+  payload: { to?: string; subject?: string; body?: string; fields?: { id: string; label: string; value: string }[]; ksSoknadId?: string; ksOppgaveId?: string | null; ksWarning?: string | null };
 };
 export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked' | 'tool-requested'; at: string; detail: string };
 export type AgentRun = { id: string; agent: string; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };
@@ -65,8 +96,12 @@ export type AssistantCase = {
   ksData: { personId: string; connectedAt: string; incomeReadAt: string | null; consent: KsDemoConsent | null } | null;
   ksAccessDecision?: KsAccessDecision | null;
   pendingConsents?: PendingConsent[];
+  drafts?: { email: EmailDraft | null; form: FormDraft | null };
+  outcomes?: Outcome[];
 };
-export type ModelStatus = { available: boolean; provider: 'litellm'; model: string; models?: { coordinator: string; specialist: string }; message: string };
+/** One OpenAI-compatible endpoint (the AI Factory LiteLLM proxy, or any loopback server such as Ollama) configured through LLM_BASE_URL. */
+export type ModelProvider = 'litellm';
+export type ModelStatus = { available: boolean; provider: ModelProvider; model: string; models?: { coordinator: string; specialist: string }; message: string };
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 export type AssistantCommand =
   | { action: 'start' }
@@ -78,4 +113,9 @@ export type AssistantCommand =
   | { action: 'income-consent'; approved: true; revision: number; caseId: string }
   | { action: 'ks-access'; approved: boolean; revision: number; caseId: string }
   | { action: 'tool-consent'; toolIds: ToolId[]; approved: boolean; revision: number; caseId: string }
-  | { action: 'handoff'; confirmed: true; revision: number; caseId: string };
+  | { action: 'handoff'; confirmed: true; revision: number; caseId: string }
+  | { action: 'draft-email'; serviceId: ServiceId; revision: number; caseId: string }
+  | { action: 'send-email'; serviceId: ServiceId; to: string; subject: string; body: string; revision: number; caseId: string }
+  | { action: 'fill-form'; serviceId: ServiceId; revision: number; caseId: string }
+  | { action: 'submit-form'; serviceId: ServiceId; fields: Record<string, string>; revision: number; caseId: string }
+  | { action: 'discard-draft'; kind: 'email' | 'form'; revision: number; caseId: string };

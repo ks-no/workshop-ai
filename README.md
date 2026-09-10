@@ -6,12 +6,13 @@ Hackathondemo for én samtale som kan forberede familie/SFO, bolig og flytting. 
 
 ## Arkitektur
 
-- Next.js/React med Oslo kommunes Punkt-designsystem og NO/EN-grensesnitt.
+- Next.js/React. Forsiden er en veiviser bygget med Designsystemet (designsystemet.no); samtaleassistenten på `/assistent` bruker Oslo kommunes Punkt-designsystem og har NO/EN-grensesnitt.
 - Python og Microsoft Agent Framework: en AI-modell koordinerer og kjører faglige delanalyser gjennom spesialistagenter.
 - SQLite-minne i 24 timer, kildeutdrag, revisjoner og eksplisitt bekreftelse av fakta.
 - Agenten finner relevante tjenester fra friteksten. Generelle spørsmål besvares uten personoppslag; når en personlig SFO-vurdering trenger KS-data, vises et samtykke som neste steg i samtalen.
 - Offisielle KS workshop-API-er kjøres lokalt. Ett uttrykkelig ja henter syntetisk husstand, SFO, inntekt og regelvurdering og fortsetter analysen automatisk. Et nei åpner manuelle spørsmål.
 - KI kan forklare og foreslå. Den kan ikke bekrefte fakta, gi vedtak eller sende en søknad.
+- Hver tjeneste ender i en sluttaksjon: svar på det som mangler, kontakt riktig person, e-postutkast du leser over og sender selv, eller et skjema fylt fra bekreftede opplysninger. SFO-skjemaet sendes som testsøknad til KS-sandkassen og får søknads-ID og saksbehandleroppgave. Agenten anbefaler, appen kontrollerer, du utfører.
 - Modellkontekst er dataminimert og merket privat/ubetrodd; agentkjøringen stopper dersom den får en tool- eller handlingskapasitet utover analyse.
 
 ## Kjør lokalt
@@ -36,7 +37,7 @@ Start appen i en annen:
 npm run dev
 ```
 
-Åpne <http://127.0.0.1:3210/>. Dokumentasjonen og de fem diagrammene ligger på <http://127.0.0.1:3210/dokumentasjon>.
+Åpne <http://127.0.0.1:3210/> for veiviseren «Søk én gang» (grensesnittet fra Figma-prototypen). Samtaleassistenten ligger på <http://127.0.0.1:3210/assistent>. Dokumentasjonen og de fem diagrammene ligger på <http://127.0.0.1:3210/dokumentasjon>.
 
 For å dele demoen med en tester på samme VPN, bygg appen og bind den til alle lokale nettverksgrensesnitt:
 

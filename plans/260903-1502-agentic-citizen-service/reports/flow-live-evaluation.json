@@ -1,0 +1,123 @@
+{
+  "at": "2026-09-10T14:04:31.444Z",
+  "model": "qwen2.5:14b",
+  "provider": "ollama",
+  "syntheticOnly": true,
+  "situation": "Jeg mistet jobben forrige måned og har et barn i 2. trinn på SFO. Husholdningen har en samlet årsinntekt på 152 000 kr nå, og jeg lurer på om jeg kan få billigere SFO.",
+  "rounds": [
+    {
+      "round": 1,
+      "lastEvent": "input",
+      "elapsedMs": 45031,
+      "step": {
+        "kind": "review",
+        "by": "rule",
+        "model": null,
+        "durationMs": 45031,
+        "title": "Kontroller det vi har, og velg hva vi kan hente",
+        "message": "Med ditt samtykke kan vi hente husstand, inntektsgrunnlag og SFO-plass fra KS-sandkassen. Huk vekk det du ikke vil dele, så fyller du det inn selv.",
+        "rationale": "Regelbasert forslag: språkmodellen var ikke tilgjengelig eller ga et svar som ikke kunne kontrolleres, så flyten følger den faste SFO-sjekken.",
+        "questions": [],
+        "fetch": [
+          "husstand",
+          "inntekt",
+          "sfo"
+        ],
+        "proposal": null
+      },
+      "facts": [],
+      "events": [
+        "human: Ny beskrivelse lagret som kilde. Teksten er ubetrodd data for modellen, ikke instruksjoner.",
+        "started: Leser saken og vurderer neste steg.",
+        "failed: Modellen kunne ikke brukes: KI returnerte et ufullstendig svar eller et format som ikke kunne kontrolleres. Ingen forslag er godkjent. Prøv igjen. Et regelbasert forslag brukes i stedet.",
+        "completed: Neste steg: Kontroller og godkjenn – Kontroller det vi har, og velg hva vi kan hente."
+      ]
+    },
+    {
+      "round": 2,
+      "lastEvent": "review-approved",
+      "elapsedMs": 23416,
+      "step": {
+        "kind": "ask",
+        "by": "rule",
+        "model": null,
+        "durationMs": 23416,
+        "title": "Vi trenger noen opplysninger fra deg",
+        "message": "Svar på det du kan. Det du oppgir lagres som «oppgitt av deg» og må kontrolleres av kommunen.",
+        "rationale": "Regelbasert forslag: språkmodellen var ikke tilgjengelig eller ga et svar som ikke kunne kontrolleres, så flyten følger den faste SFO-sjekken.",
+        "questions": [
+          "household (text)",
+          "household_income_annual (number)",
+          "sfo_place (text)"
+        ],
+        "fetch": [],
+        "proposal": null
+      },
+      "facts": [],
+      "events": [
+        "human: Opplysningene er kontrollert og godkjent.",
+        "started: Leser saken og vurderer neste steg.",
+        "blocked: Skjemaet manglet bekreftede opplysninger for Husstand, Husholdningens årsinntekt (kr), SFO-plass. Opplysningene må bekreftes eller hentes først.",
+        "blocked: Modellforslaget kunne ikke kontrolleres mot kildene. Et regelbasert forslag brukes i stedet.",
+        "completed: Neste steg: Spør om mer – Vi trenger noen opplysninger fra deg."
+      ]
+    },
+    {
+      "round": 3,
+      "lastEvent": "answers",
+      "elapsedMs": 43218,
+      "step": {
+        "kind": "action",
+        "by": "rule",
+        "model": null,
+        "durationMs": 43218,
+        "title": "Vi har fylt ut søknaden om redusert SFO-betaling",
+        "message": "Skjemaet er fylt ut fra opplysningene du har bekreftet. Les over, rett det som er redigerbart, og send testsøknaden til KS-sandkassen når du er klar.",
+        "rationale": "Regelbasert forslag: språkmodellen var ikke tilgjengelig eller ga et svar som ikke kunne kontrolleres, så flyten følger den faste SFO-sjekken.",
+        "questions": [],
+        "fetch": [],
+        "proposal": {
+          "type": "form",
+          "templateId": "sfo-reduced-payment",
+          "fields": [
+            "household=Borgund SFO, 2. trinn [confirmed]",
+            "household_income_annual=152000 [confirmed]",
+            "sfo_place=Borgund SFO, 2. trinn [confirmed]",
+            "municipality=∅ [empty]",
+            "situation=Jeg mistet jobben forrige måned og har et barn i 2. trinn på SFO. Husholdningen har en samlet årsinntekt på 152 000 kr nå, og jeg lurer på om jeg kan få billigere SFO. [suggested]",
+            "message=∅ [empty]"
+          ]
+        }
+      },
+      "facts": [
+        "household=Borgund SFO, 2. trinn [citizen/confirmed]",
+        "household_income_annual=152000 [citizen/confirmed]",
+        "sfo_place=Borgund SFO, 2. trinn [citizen/confirmed]"
+      ],
+      "events": [
+        "completed: Neste steg: Spør om mer – Vi trenger noen opplysninger fra deg.",
+        "human: 3 svar lagret som bekreftede opplysninger.",
+        "started: Leser saken og vurderer neste steg.",
+        "failed: Modellen kunne ikke brukes: KI returnerte et ufullstendig svar eller et format som ikke kunne kontrolleres. Ingen forslag er godkjent. Prøv igjen. Et regelbasert forslag brukes i stedet.",
+        "completed: Neste steg: Foreslått handling – Vi har fylt ut søknaden om redusert SFO-betaling."
+      ]
+    }
+  ],
+  "directRequest": {
+    "elapsedMs": 28391,
+    "status": 200,
+    "usage": {
+      "prompt_tokens": 2734,
+      "prompt_tokens_details": {
+        "cached_tokens": 287
+      },
+      "completion_tokens": 243,
+      "total_tokens": 2977
+    },
+    "finishReason": "stop",
+    "outputChars": 653,
+    "schemaValid": true,
+    "systemChars": 5743,
+    "userChars": 4492
+  }
+}

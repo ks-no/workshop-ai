@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { AssistantCase, EvidenceSource, FactKey } from '../domain/assistant-types';
+import type { AssistantCase, EvidenceSource, FactKey, FormDraft } from '../domain/assistant-types';
+import { formFor } from '../domain/assistant-actions';
 import { citationFor, FACT_LABELS } from '../domain/assistant-verification';
 import { KsDemoError, KS_DEMO_INCOME_PURPOSE, type KsDemoSnapshot } from '../providers/ks-demo-client';
 import { ksClient, ksPersonId } from './ks-runtime';
@@ -50,7 +51,7 @@ export async function connectKs(session: AssistantCase, client: Client = ksClien
   } catch (error) { report(error); }
 }
 /** Keep response values and exact excerpts, but remove register identities before storage/model context. */
-function withoutIdentities(value: unknown): unknown {
+export function withoutIdentities(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(withoutIdentities);
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).filter(([key]) => !/personId|husstandId|foedselsnummer|fodselsnummer|^pid$|^navn$|^adresse$/i.test(key)).map(([key, item]) => [key, withoutIdentities(item)]));
   return value;
@@ -79,6 +80,21 @@ export async function consentAndReadIncome(session: AssistantCase, approved: boo
     session.ksData.incomeReadAt = income.source.retrievedAt;
     session.ksAccessDecision = { status: 'approved', decidedAt: income.source.retrievedAt };
     record(session, 'Leste inntektsgrunnlag og deterministisk SFO-vurdering fra KS etter kontrollert samtykke. Resultatet gjelder registerøyeblikksbildet.');
+  } catch (error) { report(error); }
+}
+/** Submit the filled form as a test application. The sandbox receipt becomes a register source so the outcome stays traceable. */
+export async function submitKsApplication(session: AssistantCase, draft: FormDraft, client: Client = ksClient()) {
+  const definition = formFor(draft.serviceId);
+  if (!definition?.ksProcess || definition.id !== draft.formId || draft.submission !== 'ks-sandbox') throw new CaseError('Dette skjemaet kan ikke sendes til KS-sandkassen.', 409);
+  try {
+    const created = await client.createApplication({ ...definition.ksProcess, caseId: session.id });
+    const receipt = { soknadId: created.value.soknadId, prosessId: created.value.prosessId, status: created.value.status, opprettet: created.value.opprettet,
+      oppgaveId: created.value.oppgave?.oppgaveId ?? null, advarsel: created.value.oppgave?.advarsel ?? null, syntetisk: true };
+    if (session.sources.length < 80) {
+      session.sources.push(source(`ks-soknad-${created.value.soknadId}`, 'Kvittering for testsøknad', created, receipt, 'Dokumentere at skjemaet ble sendt inn til KS-sandkassen.'));
+    }
+    record(session, `Sendte testsøknaden «${definition.ksProcess.prosessNavn}» til KS workshop API. Søknads-ID ${created.value.soknadId}${receipt.oppgaveId ? `, saksbehandleroppgave ${receipt.oppgaveId}` : ''}.`);
+    return receipt;
   } catch (error) { report(error); }
 }
 export function declineKsAccess(session: AssistantCase) {

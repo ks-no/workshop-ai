@@ -7,6 +7,7 @@ import { PktProgressbar, PktSelect, PktTextarea, PktTabs } from './punkt-react';
 import { AssistantMarkdown } from './assistant-markdown';
 import { AssistantQuestionForm } from './assistant-question-form';
 import { AssistantKsAction } from './assistant-ks-connection';
+import { AssistantEmailDraftPanel, AssistantFormDraftPanel, AssistantNextActions, AssistantOutcomes } from './assistant-actions';
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
@@ -231,16 +232,19 @@ function Workspace() {
       <div className="assistant-mobile-tabs" aria-label={t('Velg visning')}><PktTabs tabs={[{ text: t('Samtale'), active: tab === 'conversation', controls: 'conversation-panel' }, { text: t('Din oversikt'), active: tab === 'case', controls: 'case-panel', ...(waitingFacts > 0 ? { tag: { text: `${waitingFacts}`, skin: 'blue-light' as const } } : {}) }]} onTabSelected={index => setTab(index === 0 ? 'conversation' : 'case')} /></div>
       <div className="assistant-workspace">
         <section id="conversation-panel" className={`assistant-conversation ${tab === 'conversation' ? 'is-mobile-active' : ''}`} aria-labelledby="conversation-heading">
-          <div className="assistant-conversation-scroll">
+          <div className="assistant-conversation-scroll" role="region" aria-label={t('Samtale og neste steg')} tabIndex={0}>
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
           {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
           {(busy || analyzing || !!session?.events.length) && <AssistantActivity session={session} pendingLabel={busy || (analyzing ? 'Arbeider med saken din' : '')} pollError={pollError} selectedTaskId={selectedActivityId} onTaskSelect={openActivity} />}
           {session?.error && session.error !== error && <div className="assistant-error" role="alert"><AssistantIcon name="alert-warning" aria-hidden="true"  /><p>{t(session.error)}</p></div>}
           {session?.intent === 'personalized' && <AssistantKsAction session={session} busy={locked} act={act} />}
-          {session && <AssistantConversationNextStep session={session} busy={locked} modelAvailable={modelAvailable} hasActiveQuestions={editingQuestions.length > 0 || session.questions.length > 0} act={act} onOpen={openCaseSection} />}
+          {session?.drafts?.email && !session.handoff && <AssistantEmailDraftPanel key={session.drafts.email.id} session={session} draft={session.drafts.email} busy={locked} act={act} />}
+          {session?.drafts?.form && !session.handoff && <AssistantFormDraftPanel key={session.drafts.form.id} session={session} draft={session.drafts.form} busy={locked} act={act} onQuestions={editQuestions} />}
+          {session && !session.handoff && !session.drafts?.email && !session.drafts?.form && <AssistantOutcomes session={session} latestOnly />}
+          {session && !session.drafts?.email && !session.drafts?.form && <AssistantConversationNextStep session={session} busy={locked} modelAvailable={modelAvailable} hasActiveQuestions={editingQuestions.length > 0 || session.questions.length > 0} ksActionRequired={ksActionRequired} act={act} onOpen={openCaseSection} onQuestions={editQuestions} />}
           {!!session && !session.handoff && !ksActionRequired && (editingQuestions.length > 0 || session.questions.length > 0) && <AssistantQuestionForm key={`${session.id}:${editingQuestions.map(question => question.key).join(',')}`} questions={editingQuestions.length ? editingQuestions : session.questions} busy={locked || !modelAvailable} replyLanguage={session.language || 'nb'} onSend={sendAnswers} />}
-          {session?.handoff && <div className="assistant-conversation-finished"><AssistantIcon name="check" aria-hidden="true"  /><h2>{t("Gjennomgangen er fullført.")}</h2><AssistantSfoAnswer session={session} /><p>{t("Ingen søknad er sendt. Åpne Neste steg for å laste ned oppsummeringen og se hva du kan gjøre videre.")}</p><AssistantButton skin="secondary" onClick={() => openCaseSection('handoff-heading')}>{t("Se neste steg")}</AssistantButton></div>}
+          {session?.handoff && <div className="assistant-conversation-finished"><AssistantIcon name="check" aria-hidden="true"  /><h2>{t("Gjennomgangen er fullført.")}</h2><AssistantSfoAnswer session={session} /><AssistantOutcomes session={session} /><p>{t(session.outcomes?.length ? "Handlingene over er utført. Åpne Neste steg for å laste ned oppsummeringen og kvitteringene." : "Ingen søknad er sendt. Åpne Neste steg for å laste ned oppsummeringen og se hva du kan gjøre videre.")}</p><AssistantButton skin="secondary" onClick={() => openCaseSection('handoff-heading')}>{t("Se neste steg")}</AssistantButton></div>}
           {session && !session.handoff && !session.services.length && (session.messages.length > 0 || session.facts.length > 0 || !!session.ksData) && !analyzing && <AssistantButton skin="tertiary" disabled={locked || !modelAvailable} onClick={() => void act({ action: 'analyze', revision: session.revision, caseId: session.id }, 'Oppdaterer planen')}><AssistantIcon name="arrow-circle" aria-hidden="true"  />{t("Oppdater planen")}</AssistantButton>}
           <div ref={conversationEnd} className="assistant-conversation-end" aria-hidden="true" />
           </div>
@@ -270,16 +274,21 @@ function AssistantMessageSources({ message, sources, onOpen }: { message: Assist
   </details>;
 }
 
-function AssistantConversationNextStep({ session, busy, modelAvailable, hasActiveQuestions, act, onOpen }: {
+function AssistantConversationNextStep({ session, busy, modelAvailable, hasActiveQuestions, ksActionRequired, act, onOpen, onQuestions }: {
   session: AssistantCase;
   busy: boolean;
   modelAvailable: boolean;
   hasActiveQuestions: boolean;
+  ksActionRequired: boolean;
   act: (command: AssistantCommand, label: string) => Promise<boolean>;
   onOpen: (id: 'case-heading' | 'services-heading' | 'handoff-heading') => void;
+  onQuestions: (questions: FollowUp[]) => void;
 }) {
   const { t } = useAssistantLocale();
-  if (session.intent === 'information' || session.handoff || !session.services.length || hasActiveQuestions) return null;
+  if (session.handoff || !session.services.length || ksActionRequired) return null;
+  // A general question still ends in a route to a person; a personal case gets the full set of actions.
+  if (session.intent === 'information') return session.analyzedRevision === session.revision ? <AssistantNextActions session={session} busy={busy} modelAvailable={modelAvailable} act={act} onQuestions={onQuestions} onOpen={onOpen} /> : null;
+  if (hasActiveQuestions) return null;
 
   const facts = session.facts.filter(fact => !['rejected', 'superseded'].includes(fact.status));
   const unresolved = facts.filter(fact => ['proposed', 'conflict'].includes(fact.status));
@@ -297,15 +306,9 @@ function AssistantConversationNextStep({ session, busy, modelAvailable, hasActiv
     <AssistantButton skin="primary" disabled={busy || !modelAvailable} onClick={() => void act({ action: 'analyze', revision: session.revision, caseId: session.id }, 'Oppdaterer planen')}>{t(session.status === 'error' ? 'Prøv planen på nytt' : 'Oppdater planen')}<AssistantIcon name="arrow-right" aria-hidden="true" /></AssistantButton>
   </section>;
 
-  if (completed) return <section className="assistant-next-step is-ready" aria-labelledby="assistant-next-step-heading">
-    <div><span className="assistant-next-step-kicker">{t('Neste steg')}</span><h2 id="assistant-next-step-heading">{t('Planen er klar for gjennomgang')}</h2><p>{remaining.length ? <>{t('Vi har samlet planen.')} <strong>{remaining.length} {t('punkter')}</strong> {t('må følges opp av deg eller en saksbehandler.')}</> : t('Vi har samlet planen og opplysningene den bygger på.')}</p></div>
-    <div className="assistant-next-step-actions"><AssistantButton skin="primary" onClick={() => onOpen('services-heading')}>{t('Se planen')}<AssistantIcon name="arrow-right" aria-hidden="true" /></AssistantButton><AssistantButton skin="tertiary" onClick={() => onOpen('handoff-heading')}>{t('Gå til siste gjennomgang')}</AssistantButton></div>
-  </section>;
-
-  return <section className="assistant-next-step" aria-labelledby="assistant-next-step-heading">
-    <div><span className="assistant-next-step-kicker">{t('Neste steg')}</span><h2 id="assistant-next-step-heading">{t('Se hva planen fortsatt trenger')}</h2><p>{t('Åpne planen for å se hva som må avklares videre.')}</p></div>
-    <AssistantButton skin="secondary" onClick={() => onOpen('services-heading')}>{t('Se planen')}<AssistantIcon name="arrow-right" aria-hidden="true" /></AssistantButton>
-  </section>;
+  // Ready or still missing information: the end actions decide what the citizen can do now.
+  void completed; void remaining;
+  return <AssistantNextActions session={session} busy={busy} modelAvailable={modelAvailable} act={act} onQuestions={onQuestions} onOpen={onOpen} />;
 }
 
 function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, onTaskSelect }: { session: AssistantCase | null; pendingLabel: string; pollError: boolean; selectedTaskId: string | null; onTaskSelect: (runId: string) => void }) {

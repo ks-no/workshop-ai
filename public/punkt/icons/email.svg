@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="email" fill="none" data-category="social" viewBox="0 0 32 32">
+  <g fill="var(--fg-color, #2A2859)">
+    <path d="m24.3 9.876 1.4 1.429L16 20.81l-9.7-9.505 1.4-1.429 8.3 8.133z"/>
+    <path d="M2 27V5h28v22zM4 7v18h24V7z"/>
+  </g>
+</svg>
