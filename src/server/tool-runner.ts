@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AssistantCase, ToolId } from '../domain/assistant-types';
 import { TOOL_CATALOGUE, toolFetched } from '../domain/tool-catalogue';
+import { formFlowFor } from '../domain/form-catalogue';
 import { connectKs, consentAndReadIncome, declineKsAccess } from './assistant-ks';
 import { ksClient } from './ks-runtime';
 import { CaseError } from './case-service';
@@ -27,7 +28,13 @@ export async function decideToolConsent(session: AssistantCase, toolIds: ToolId[
   if (!approved) {
     declineKsAccess(session);
     session.pendingConsents = [];
-    record(session, 'human', `Innbyggeren avslo: ${pending.map(consent => consent.title).join(', ')}. Ingen integrasjon ble kalt.`);
+    // No re-analysis runs on a decline, so move the form to manual collection and expose its questions now.
+    for (const service of session.services) {
+      if (!service.formFlow) continue;
+      service.formFlow = formFlowFor(service, session, service.formFlow.eligibility);
+      for (const question of service.formFlow?.questions ?? []) if (!session.questions.some(item => item.key === question.key)) session.questions.push(question);
+    }
+    record(session, 'human', `Innbyggeren avslo: ${pending.map(consent => consent.title).join(', ')}. Ingen integrasjon ble kalt; skjemaet fylles manuelt.`);
     return { executed: [] };
   }
   const executed: ToolId[] = [];

@@ -58,10 +58,10 @@ export function screenEligibility(session: Pick<AssistantCase, 'facts'>, form: F
 export function formFlowFor(service: ServiceResult, session: AssistantCase, eligibility: FormFlow['eligibility']): FormFlow | null {
   const form = formFor(service.id);
   if (!form) return null;
-  const awaiting = new Set(session.facts.filter(fact => ['proposed', 'conflict'].includes(fact.status)).map(fact => fact.key));
-  const missing = (service.applicationDraft?.fields ?? [])
-    .filter(field => field.status === 'missing' && (factKeys as readonly string[]).includes(field.key) && !awaiting.has(field.key as FactKey))
-    .map(field => field.key as FactKey);
+  const factFields = (service.applicationDraft?.fields ?? []).filter(field => (factKeys as readonly string[]).includes(field.key));
+  const relevant = new Set(factFields.map(field => field.key));
+  const awaiting = new Set(session.facts.filter(fact => ['proposed', 'conflict'].includes(fact.status) && relevant.has(fact.key)).map(fact => fact.key));
+  const missing = factFields.filter(field => field.status === 'missing' && !awaiting.has(field.key as FactKey)).map(field => field.key as FactKey);
   const pending = (session.pendingConsents ?? []).some(consent => consent.serviceIds.includes(service.id));
   const stage: FormFlow['stage'] = eligibility === 'unlikely' ? 'not-applicable' : eligibility === 'unknown' ? 'screening'
     : pending ? 'consent' : missing.length || awaiting.size ? 'collecting' : 'ready';
@@ -76,7 +76,8 @@ export function stageParagraph(flow: FormFlow, service: ServiceResult, session: 
   const title = form.title[lang];
   const draft = service.applicationDraft;
   const filled = draft ? `${draft.filled}/${draft.fields.length}` : '';
-  const awaiting = session.facts.some(fact => ['proposed', 'conflict'].includes(fact.status));
+  const awaiting = session.facts.some(fact => ['proposed', 'conflict'].includes(fact.status) && (draft?.fields ?? []).some(field => field.key === fact.key));
+  const unfetched = (draft?.fields ?? []).filter(field => field.status === 'missing' && !(factKeys as readonly string[]).includes(field.key)).length;
   const labels = flow.missing.map(key => FACT_LABELS[key].toLocaleLowerCase()).join(lang === 'en' ? ', ' : ', ');
   switch (flow.stage) {
     case 'screening': {
@@ -90,8 +91,8 @@ export function stageParagraph(flow: FormFlow, service: ServiceResult, session: 
       ? `**The draft application for ${title} has ${filled} fields filled.**${labels ? ` I still need: ${labels}.` : ''}${awaiting ? ' Please also confirm the proposed details in your overview.' : ''} Answer below and I will update the draft.`
       : `**Søknadsutkastet for ${title} har ${filled} felt fylt.**${labels ? ` Jeg mangler fortsatt: ${labels}.` : ''}${awaiting ? ' Bekreft også forslagene i oversikten.' : ''} Svar under, så oppdaterer jeg utkastet.`;
     case 'ready': return lang === 'en'
-      ? `**The draft application for ${title} is filled in (${filled} fields).** Check the fields on the plan board. Nothing has been submitted; you confirm the plan and submit it yourself.`
-      : `**Søknadsutkastet for ${title} er fylt ut (${filled} felt).** Kontroller feltene i tavlen. Ingenting er sendt; du bekrefter planen og sender selv.`;
+      ? `**The draft application for ${title} is filled in (${filled} fields).**${unfetched ? ` ${unfetched} register fields were not fetched and are left for the municipality.` : ''} Check the fields on the plan board. Nothing has been submitted; you confirm the plan and submit it yourself.`
+      : `**Søknadsutkastet for ${title} er fylt ut (${filled} felt).**${unfetched ? ` ${unfetched} registerfelt ble ikke hentet og overlates til kommunen.` : ''} Kontroller feltene i tavlen. Ingenting er sendt; du bekrefter planen og sender selv.`;
     case 'not-applicable': return lang === 'en'
       ? `Based on what you have told me, ${title} does not seem relevant right now. Tell me if something is wrong.`
       : `Ut fra det du har oppgitt ser ${title} ikke ut til å være aktuelt nå. Si fra hvis noe er feil.`;

@@ -122,7 +122,6 @@ test('one consent click runs the integrations in dependency order and the draft 
   assert.deepEqual(family.formFlow?.missing, ['job_lost']);
   assert.ok(current.questions.some(question => question.key === 'job_lost'), 'missing draft fields become follow-up questions');
   assert.match(current.messages.at(-1)!.text, /Søknadsutkastet for redusert SFO-betaling har \d+\/\d+ felt fylt/);
-  assert.match(current.messages.at(-1)!.text, /Bekreft også forslagene/);
 });
 
 test('declining clears the pending consents and calls no integration; stale or invented ids are rejected', async () => {
@@ -209,4 +208,47 @@ test('a disqualifying screening answer stops the form without consent, and state
   assert.ok(routed.services.some(service => service.id === 'family'), 'a proposed has_children fact adds the family service for screening');
   assert.ok(routed.events.some(event => event.agent === 'Ruting' && /redusert SFO-betaling/.test(event.detail)));
   assert.equal(routed.services.find(service => service.id === 'family')?.formFlow?.stage, 'consent');
+});
+
+test('an information question never produces an application draft or a form stage', async () => {
+  const info = session();
+  addMessage(info, 'Hva er reglene for redusert SFO?');
+  await analyzeCase(info, model(plan(['family'], undefined, 'information')), discard);
+  const family = info.services.find(service => service.id === 'family')!;
+  assert.equal(family.applicationDraft, null);
+  assert.equal(family.formFlow, null);
+  assert.doesNotMatch(info.messages.at(-1)!.text, /Søknadsutkast|henter opplysninger/);
+});
+
+test('declining consent moves the form to manual collection with its questions, without a model call', async () => {
+  const current = session();
+  addMessage(current, 'Jeg mistet jobben og har barn');
+  await analyzeCase(current, model(withChildren(current, plan(['family']))), discard);
+  assert.equal(current.services[0].formFlow?.stage, 'consent');
+  const revision = current.revision;
+  await decideToolConsent(current, ['ks_connect', 'ks_income'], false, { ks_connect: async () => assert.fail('no integration on decline') });
+  assert.equal(current.revision, revision, 'a decline does not invalidate the analysis');
+  assert.equal(current.services[0].formFlow?.stage, 'collecting');
+  assert.ok(current.services[0].formFlow!.missing.includes('household_income_annual'));
+  assert.ok(current.questions.some(question => question.key === 'household_income_annual'));
+  assert.ok(current.questions.some(question => question.key === 'uses_sfo'));
+});
+
+test('an unrelated pending proposal does not keep the SFO form in collecting', async () => {
+  const current = session();
+  addMessage(current, 'Jeg mistet jobben og har barn i SFO. Husleien er 12000 kroner.');
+  addConfirmedAnswers(current, 'Bruker SFO: Ja.\nHar mistet jobben: Ja.\nHusholdningens årsinntekt (kr): 300000 NOK.\nHva inntekten gjelder: Hele husholdningens årsinntekt.\nSamboer mangler i grunnlaget: Nei.', [
+    { key: 'uses_sfo', value: 'true', quote: 'Bruker SFO: Ja.' }, { key: 'job_lost', value: 'true', quote: 'Har mistet jobben: Ja.' },
+    { key: 'household_income_annual', value: '300000', quote: 'Husholdningens årsinntekt (kr): 300000 NOK.' },
+    { key: 'income_basis', value: 'household_year', quote: 'Hva inntekten gjelder: Hele husholdningens årsinntekt.' },
+    { key: 'cohabitant_missing', value: 'false', quote: 'Samboer mangler i grunnlaget: Nei.' },
+  ]);
+  const response = plan(['family', 'housing']);
+  response.facts = [{ key: 'monthly_rent', value: '12000', sourceId: current.sources[0].id, quote: 'Husleien er 12000 kroner.' }];
+  await analyzeCase(current, model(response), discard);
+  assert.equal(current.facts.find(fact => fact.key === 'monthly_rent')?.status, 'proposed');
+  await decideToolConsent(current, ['ks_connect', 'ks_income'], false, {});
+  const family = current.services.find(service => service.id === 'family')!;
+  assert.deepEqual(family.formFlow?.missing, []);
+  assert.equal(family.formFlow?.stage, 'ready');
 });

@@ -214,7 +214,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
           const screen = screenEligibility(session, form, latestText);
           service.formFlow = { formId: form.id, title: form.title.nb, eligibility: screen.eligibility, stage: 'screening', missing: [], questions: screen.questions };
           if (screen.questions.length) session.questions = mergeQuestions([...screen.questions, ...session.questions], session);
-          event(session, coordinator.id, 'Skjemakatalog', screen.eligibility === 'unknown' ? 'human' : 'completed', `${form.title.nb}: ${screen.eligibility === 'possible' ? 'kan være aktuelt; ber om samtykke til å hente opplysninger' : screen.eligibility === 'unknown' ? 'uavklart; spør innbyggeren før noe hentes' : 'ikke aktuelt ut fra oppgitte opplysninger'}.`);
+          event(session, coordinator.id, 'Skjemakatalog', 'completed', `${form.title.nb}: ${screen.eligibility === 'possible' ? 'kan være aktuelt; ber om samtykke til å hente opplysninger' : screen.eligibility === 'unknown' ? 'uavklart; spør innbyggeren før noe hentes' : 'ikke aktuelt ut fra oppgitte opplysninger'}.`);
         }
         const eligible = selected.map(service => service.id).filter(id => { const flow = session.services.find(service => service.id === id)?.formFlow; return !flow || flow.eligibility === 'possible'; });
         const resolved = pendingConsentsFor(session, eligible, requested, revision);
@@ -274,7 +274,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
     session.status = session.services.some(service => service.status === 'error') ? 'error' : pending || !session.services.length ? 'awaiting-human' : 'ready';
     session.error = session.status === 'error' ? 'En spesialist kunne ikke fullføre. De andre resultatene er bevart. Prøv analysen på nytt.' : null;
     for (const service of session.services) {
-      service.applicationDraft = applicationDraftFor(service.id, session);
+      service.applicationDraft = session.intent === 'personalized' ? applicationDraftFor(service.id, session) : null;
       if (service.applicationDraft?.filled) event(session, '', 'Verktøykatalog', 'completed', `Fylte ut «${service.applicationDraft.title}»: ${service.applicationDraft.filled} av ${service.applicationDraft.fields.length} felt fra bekreftede opplysninger og hentede kilder. Ingenting er sendt.`);
     }
     for (const service of session.services) {
