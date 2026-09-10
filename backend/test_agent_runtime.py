@@ -38,11 +38,11 @@ SCHEMA = {
 VALID_OUTPUT = {"summary": "Tôi có thể giúp bạn chuẩn bị hồ sơ.", "findings": [{"sourceId": "citizen", "quote": "Husleien er 13500 kroner."}]}
 
 
-def job(role="specialist", service_id="housing"):
+def job(role="draft", service_id="housing"):
     return {
-        "id": "coordinator" if role == "coordinator" else service_id,
+        "id": "triage" if role == "triage" else service_id,
         "name": role, "role": role,
-        "model": "workers-ai/@cf/qwen/qwen3.8-27b" if role == "coordinator" else "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+        "model": "workers-ai/@cf/qwen/qwen3.8-27b" if role == "triage" else "workers-ai/@cf/google/gemma-4-26b-a4b-it",
         "prompt": "Controlled instruction. Preserve exact Norwegian quotes.",
         "context": {"_security": copy.deepcopy(runtime.SECURITY_CONTRACT), "responseLanguage": "Vietnamese", "quote": "Husleien er 13500 kroner."},
         "schema": copy.deepcopy(SCHEMA),
@@ -93,7 +93,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
         return message
 
     async def test_real_agent_sdk_uses_cloudflare_endpoint_private_headers_and_role_models(self):
-        for role in ("coordinator", "specialist"):
+        for role in ("triage", "draft"):
             with self.subTest(role=role):
                 selected_job = job(role)
                 output = await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
@@ -272,6 +272,17 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.requests), 1)
         self.assert_safe_error(caught.exception)
 
+    async def test_telenor_provider_401_error_names_telenor_ai_factory_not_cloudflare(self):
+        telenor_env = {"AI_PROVIDER": "telenor", "TELENOR_AI_FACTORY_BASE_URL": "https://abc123.execute-api.eu-north-1.amazonaws.com/prod",
+                       "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"}
+        with patch.dict(os.environ, telenor_env):
+            response = lambda *_: httpx2.Response(401, json={"error": {"message": PRIVATE_DETAIL, "type": "test_error"}})
+            with self.assertRaises(Exception) as caught:
+                await runtime.run_agent(job(), self.factory(response))
+            message = self.assert_safe_error(caught.exception, "avviste tilgangen")
+            self.assertIn("Telenor AI Factory", message)
+            self.assertNotIn("Cloudflare", message)
+
 
 class InMemoryBridge:
     """Only model inference/host effects are controlled; framework executors run normally."""
@@ -288,7 +299,7 @@ class InMemoryBridge:
         if method == "started":
             return None
         if method == "model":
-            if data["role"] == "coordinator":
+            if data["role"] == "triage":
                 return {"output": {"services": [{"id": item["id"]} for item in self.jobs]}}
             self.inference_started.add(data["id"])
             if len(self.inference_started) == len(self.jobs):
@@ -302,14 +313,54 @@ class InMemoryBridge:
             return {"jobs": self.jobs}
         if method == "specialist":
             return None
+        if method == "stage":
+            return None
         raise AssertionError(f"Unexpected host method: {method}")
+
+
+class StagedReviewBridge(InMemoryBridge):
+    """Hands out a critic then a polish stage job, proving the Reviewer tail loop runs in order."""
+    def __init__(self):
+        super().__init__(["housing"])
+        self.stage_calls = []
+        self.stage_step = 0
+
+    async def request(self, method, data):
+        if method != "stage":
+            return await super().request(method, data)
+        self.stage_calls.append(copy.deepcopy(data))
+        self.stage_step += 1
+        if self.stage_step == 1:
+            return {"job": job(role="critic", service_id="critic")}
+        if self.stage_step == 2:
+            return {"job": job(role="polish", service_id="polish")}
+        return None
+
+
+class FailingStageBridge(InMemoryBridge):
+    """The one stage job it hands out fails at the model call; the tail must still end cleanly."""
+    def __init__(self):
+        super().__init__(["housing"])
+        self.stage_calls = []
+        self.served = False
+
+    async def request(self, method, data):
+        if method == "stage":
+            self.stage_calls.append(copy.deepcopy(data))
+            if self.served:
+                return None
+            self.served = True
+            return {"job": job(role="critic", service_id="critic")}
+        if method == "model" and data.get("id") == "critic":
+            raise ValueError(f"{PRIVATE_DETAIL} upstream failure")
+        return await super().request(method, data)
 
 
 class WorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def run_graph(self, bridge):
         graph = runtime.build_workflow(bridge, host_models=True)
         self.assertEqual(type(graph).__module__.split(".")[0], "agent_framework")
-        result = await asyncio.wait_for(graph.run({"planner": job("coordinator")}), timeout=5)
+        result = await asyncio.wait_for(graph.run({"triage": job("triage")}), timeout=5)
         outputs = result.get_outputs()
         self.assertEqual(len(outputs), 1)
         self.assertEqual(outputs[0]["framework"], runtime.FRAMEWORK)
@@ -319,8 +370,8 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         bridge = InMemoryBridge(["housing"])
         self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "completed", "moving": "skipped"})
         model_jobs = [data for method, data in bridge.calls if method == "model"]
-        self.assertEqual([item["id"] for item in model_jobs], ["coordinator", "housing"])
-        self.assertEqual([item["role"] for item in model_jobs], ["coordinator", "specialist"])
+        self.assertEqual([item["id"] for item in model_jobs], ["triage", "housing"])
+        self.assertEqual([item["role"] for item in model_jobs], ["triage", "draft"])
         self.assertEqual([data["id"] for method, data in bridge.calls if method == "specialist"], ["housing"])
 
     async def test_three_selected_specialists_start_concurrently_before_any_finishes(self):
@@ -329,7 +380,7 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bridge.inference_started, {"family", "housing", "moving"})
         first_finished = next(index for index, (method, _) in enumerate(bridge.calls) if method == "specialist")
         started_before_finish = {data["id"] for method, data in bridge.calls[:first_finished] if method == "started"}
-        self.assertEqual(started_before_finish, {"coordinator", "family", "housing", "moving"})
+        self.assertEqual(started_before_finish, {"triage", "family", "housing", "moving"})
 
     async def test_failed_specialist_is_redacted_and_still_joins_other_parallel_results(self):
         bridge = InMemoryBridge(["family", "housing", "moving"], failed="housing", require_parallel=True)
@@ -344,7 +395,81 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def test_empty_selection_joins_without_any_specialist_inference(self):
         bridge = InMemoryBridge([])
         self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "skipped", "moving": "skipped"})
-        self.assertEqual([data["id"] for method, data in bridge.calls if method == "model"], ["coordinator"])
+        self.assertEqual([data["id"] for method, data in bridge.calls if method == "model"], ["triage"])
+
+    async def test_reviewer_runs_critic_then_polish_stage_jobs_in_order(self):
+        bridge = StagedReviewBridge()
+        self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "completed", "moving": "skipped"})
+        self.assertEqual(len(bridge.stage_calls), 3)
+        self.assertEqual(bridge.stage_calls[0], {})
+        self.assertEqual(bridge.stage_calls[1], {"id": "critic", "output": VALID_OUTPUT})
+        self.assertEqual(bridge.stage_calls[2], {"id": "polish", "output": VALID_OUTPUT})
+
+    async def test_failing_stage_job_is_redacted_and_still_ends_the_tail(self):
+        bridge = FailingStageBridge()
+        statuses = await self.run_graph(bridge)
+        self.assertEqual(set(statuses), {"family", "housing", "moving"})
+        self.assertEqual(len(bridge.stage_calls), 2)
+        reported = bridge.stage_calls[1]
+        self.assertEqual(reported["id"], "critic")
+        self.assertNotIn("output", reported)
+        self.assertNotIn(PRIVATE_DETAIL, reported["error"])
+
+
+class ProviderConfigurationTests(unittest.TestCase):
+    TELENOR_BASE = "https://abc123.execute-api.eu-north-1.amazonaws.com/prod"
+
+    def test_telenor_configuration_appends_v1_and_carries_no_cloudflare_headers(self):
+        with patch.dict(os.environ, {"AI_PROVIDER": "telenor", "TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE,
+                                      "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"}):
+            configuration = runtime.provider_configuration()
+        self.assertEqual(configuration["base_url"], self.TELENOR_BASE + "/v1")
+        self.assertEqual(configuration["api_key"], "telenor-test-key")
+        self.assertEqual(configuration["max_retries"], 0)
+        self.assertNotIn("default_headers", configuration)
+
+    def test_invalid_telenor_configuration_fails_closed_without_echoing_values(self):
+        cases = [
+            {"TELENOR_AI_FACTORY_BASE_URL": "", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE.replace("https", "http"), "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": "https://evil.example.com/prod", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE + "?x=1", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE, "TELENOR_AI_FACTORY_API_KEY": ""},
+        ]
+        for values in cases:
+            with self.subTest(base=values["TELENOR_AI_FACTORY_BASE_URL"], key=values["TELENOR_AI_FACTORY_API_KEY"]):
+                with patch.dict(os.environ, {"AI_PROVIDER": "telenor", **values}):
+                    with self.assertRaises(ValueError) as caught:
+                        runtime.provider_configuration()
+                self.assertEqual(str(caught.exception), "Invalid server configuration")
+                for value in values.values():
+                    if value:
+                        self.assertNotIn(value, str(caught.exception))
+
+
+class ResponseContentTests(unittest.TestCase):
+    def test_plain_text_wins_over_reasoning_content(self):
+        response = SimpleNamespace(text="answer", messages=None)
+        self.assertEqual(runtime.response_content(response), "answer")
+
+    def test_empty_text_falls_back_to_reasoning_content_on_a_content_object(self):
+        content = SimpleNamespace(reasoning_content="chain of thought", raw_representation=None)
+        response = SimpleNamespace(text="", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "chain of thought")
+
+    def test_empty_text_falls_back_to_reasoning_content_on_raw_representation(self):
+        content = SimpleNamespace(raw_representation=SimpleNamespace(reasoning_content="raw chain"))
+        response = SimpleNamespace(text="", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "raw chain")
+
+    def test_nothing_anywhere_returns_empty_string(self):
+        content = SimpleNamespace(raw_representation=None)
+        response = SimpleNamespace(text="  ", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "")
+
+    def test_malformed_response_with_no_messages_returns_empty_string_without_raising(self):
+        response = SimpleNamespace(text="", messages=None)
+        self.assertEqual(runtime.response_content(response), "")
 
 
 if __name__ == "__main__":

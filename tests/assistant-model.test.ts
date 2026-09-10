@@ -2,7 +2,7 @@ import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { callModel, modelName, modelStatus, planSchema, PLANNER_PROMPT, responseLanguageName, specialistPrompt, specialistSchema } from '../src/server/assistant-model';
+import { aiProvider, callModel, maxRevisions, modelName, modelStatus, planSchema, responseLanguageName, specialistPrompt, specialistSchema, TRIAGE_PROMPT } from '../src/server/assistant-model';
 import { runtimeInstalled } from '../src/server/assistant-runtime';
 import type { ModelPlan } from '../src/domain/assistant-types';
 
@@ -15,13 +15,22 @@ const fixtureConfig = {
   ASSISTANT_MODEL_TIMEOUT_MS: '10000',
   ASSISTANT_PYTHON: resolve(process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python'),
 };
+const telenorFixture = {
+  TELENOR_AI_FACTORY_BASE_URL: 'https://abc123.execute-api.eu-north-1.amazonaws.com/prod',
+  TELENOR_AI_FACTORY_API_KEY: 'test-only-not-a-real-telenor-key',
+};
+// Every key a test in this file might set gets a clean slate here and an automatic restore in
+// afterEach, so a test only has to set what it needs and never has to remember to unset it.
+const volatileKeys = ['LLM_TRIAGE_MODEL', 'LLM_DRAFT_MODEL', 'LLM_CRITIC_MODEL', 'LLM_POLISH_MODEL',
+  'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'AI_PROVIDER',
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS'];
 const previousEnv = new Map<string, string | undefined>();
 beforeEach(() => {
   for (const [key, value] of Object.entries(fixtureConfig)) {
     previousEnv.set(key, process.env[key]);
     process.env[key] = value;
   }
-  for (const key of ['LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL']) {
+  for (const key of volatileKeys) {
     previousEnv.set(key, process.env[key]);
     delete process.env[key];
   }
@@ -41,7 +50,8 @@ const validPlan: ModelPlan = {
 };
 function assertSanitized(value: unknown) {
   const serialized = value instanceof Error ? value.message : JSON.stringify(value);
-  for (const privateValue of [fixtureConfig.CF_AI_GATEWAY_TOKEN, fixtureConfig.CF_ACCOUNT_ID, fixtureConfig.CF_AI_GATEWAY_ID, 'PRIVATE-UPSTREAM-DETAIL']) {
+  for (const privateValue of [fixtureConfig.CF_AI_GATEWAY_TOKEN, fixtureConfig.CF_ACCOUNT_ID, fixtureConfig.CF_AI_GATEWAY_ID,
+    telenorFixture.TELENOR_AI_FACTORY_API_KEY, telenorFixture.TELENOR_AI_FACTORY_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
     assert.ok(!serialized.includes(privateValue));
   }
 }
@@ -52,18 +62,20 @@ test('configured status reports local runtime availability and model metadata wi
   assert.equal(status.available, true);
   assert.equal(status.provider, 'cloudflare');
   assert.equal(status.model, fixtureConfig.LLM_MODEL);
-  assert.deepEqual(status.models, { coordinator: fixtureConfig.LLM_MODEL, specialist: fixtureConfig.LLM_MODEL });
+  assert.deepEqual(status.models, { triage: fixtureConfig.LLM_MODEL, draft: fixtureConfig.LLM_MODEL, critic: fixtureConfig.LLM_MODEL, polish: fixtureConfig.LLM_MODEL });
   assertSanitized(status);
 });
 
-test('role defaults use Qwen for coordination and Gemma for specialists and appear in status', async () => {
+test('role defaults use Qwen for triage/critic/polish and Gemma for draft, and appear in status', async () => {
   delete process.env.LLM_MODEL;
-  const expected = { coordinator: '@cf/qwen/qwen3.8-27b', specialist: '@cf/google/gemma-4-26b-a4b-it' };
-  assert.equal(modelName(), expected.coordinator);
-  assert.equal(modelName('coordinator'), expected.coordinator);
-  assert.equal(modelName('specialist'), expected.specialist);
+  const expected = { triage: '@cf/qwen/qwen3.8-27b', draft: '@cf/google/gemma-4-26b-a4b-it', critic: '@cf/qwen/qwen3.8-27b', polish: '@cf/qwen/qwen3.8-27b' };
+  assert.equal(modelName(), expected.triage);
+  assert.equal(modelName('triage'), expected.triage);
+  assert.equal(modelName('draft'), expected.draft);
+  assert.equal(modelName('critic'), expected.critic);
+  assert.equal(modelName('polish'), expected.polish);
   const configured = await modelStatus();
-  assert.equal(configured.model, expected.coordinator);
+  assert.equal(configured.model, expected.triage);
   assert.deepEqual(configured.models, expected);
   delete process.env.CF_AI_GATEWAY_TOKEN;
   const unavailable = await modelStatus();
@@ -71,16 +83,96 @@ test('role defaults use Qwen for coordination and Gemma for specialists and appe
   assert.deepEqual(unavailable.models, expected);
 });
 
-test('role overrides take precedence independently while the legacy model remains the fallback', () => {
-  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-override';
-  process.env.LLM_SPECIALIST_MODEL = 'workers-ai/@cf/test/specialist-override';
-  assert.equal(modelName(), process.env.LLM_COORDINATOR_MODEL);
-  assert.equal(modelName('specialist'), process.env.LLM_SPECIALIST_MODEL);
+test('per-role env overrides take precedence independently for all four roles', () => {
+  process.env.LLM_TRIAGE_MODEL = 'workers-ai/@cf/test/triage-override';
+  process.env.LLM_DRAFT_MODEL = 'workers-ai/@cf/test/draft-override';
+  process.env.LLM_CRITIC_MODEL = 'workers-ai/@cf/test/critic-override';
+  process.env.LLM_POLISH_MODEL = 'workers-ai/@cf/test/polish-override';
+  assert.equal(modelName('triage'), process.env.LLM_TRIAGE_MODEL);
+  assert.equal(modelName('draft'), process.env.LLM_DRAFT_MODEL);
+  assert.equal(modelName('critic'), process.env.LLM_CRITIC_MODEL);
+  assert.equal(modelName('polish'), process.env.LLM_POLISH_MODEL);
+});
+
+test('the legacy coordinator/specialist env vars still work as the fallback under the new roles', () => {
+  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-legacy';
+  process.env.LLM_SPECIALIST_MODEL = 'workers-ai/@cf/test/specialist-legacy';
+  assert.equal(modelName('triage'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('critic'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('polish'), process.env.LLM_COORDINATOR_MODEL);
+  assert.equal(modelName('draft'), process.env.LLM_SPECIALIST_MODEL);
+  // A per-role override still wins over the legacy fallback.
+  process.env.LLM_TRIAGE_MODEL = 'workers-ai/@cf/test/triage-override';
+  assert.equal(modelName('triage'), process.env.LLM_TRIAGE_MODEL);
+});
+
+test('LLM_MODEL is the last fallback before the provider default, below both legacy and per-role vars', () => {
+  assert.equal(modelName('triage'), fixtureConfig.LLM_MODEL);
+  assert.equal(modelName('draft'), fixtureConfig.LLM_MODEL);
+  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-legacy';
+  assert.equal(modelName('triage'), process.env.LLM_COORDINATOR_MODEL);
   delete process.env.LLM_COORDINATOR_MODEL;
-  assert.equal(modelName('coordinator'), fixtureConfig.LLM_MODEL);
-  assert.equal(modelName('specialist'), 'workers-ai/@cf/test/specialist-override');
-  delete process.env.LLM_SPECIALIST_MODEL;
-  assert.equal(modelName('specialist'), fixtureConfig.LLM_MODEL);
+  assert.equal(modelName('triage'), fixtureConfig.LLM_MODEL);
+  delete process.env.LLM_MODEL;
+  assert.equal(modelName('triage'), '@cf/qwen/qwen3.8-27b');
+  assert.equal(modelName('draft'), '@cf/google/gemma-4-26b-a4b-it');
+});
+
+test('aiProvider defaults to cloudflare, accepts telenor case-insensitively and with surrounding whitespace, and treats anything else as cloudflare', () => {
+  assert.equal(aiProvider(), 'cloudflare');
+  for (const value of ['telenor', 'TELENOR', 'Telenor', ' telenor ', '\ttelenor\n']) {
+    process.env.AI_PROVIDER = value;
+    assert.equal(aiProvider(), 'telenor', `expected ${JSON.stringify(value)} to select telenor`);
+  }
+  for (const value of ['cloudflare', 'openai', 'unknown-provider', '']) {
+    process.env.AI_PROVIDER = value;
+    assert.equal(aiProvider(), 'cloudflare', `expected ${JSON.stringify(value)} to fall back to cloudflare`);
+  }
+});
+
+test('Telenor defaults appear in modelStatus when AI_PROVIDER=telenor', async () => {
+  delete process.env.LLM_MODEL;
+  process.env.AI_PROVIDER = 'telenor';
+  const expected = { triage: 'Qwen3-Coder-Next-FP8', draft: 'GLM-5.2-FP8', critic: 'Qwen3-Coder-Next-FP8', polish: 'Qwen3-Coder-Next-FP8' };
+  const status = await modelStatus();
+  assert.equal(status.provider, 'telenor');
+  assert.equal(status.model, expected.triage);
+  assert.deepEqual(status.models, expected);
+  assertSanitized(status);
+});
+
+test('maxRevisions defaults to 2, clamps to 1..5, falls back on non-numeric input and truncates a float', () => {
+  delete process.env.ASSISTANT_MAX_REVISIONS;
+  assert.equal(maxRevisions(), 2);
+  for (const [input, expected] of [['1', 1], ['5', 5], ['0', 1], ['-3', 1], ['9', 5], ['not-a-number', 2], ['2.7', 2]] as const) {
+    process.env.ASSISTANT_MAX_REVISIONS = input;
+    assert.equal(maxRevisions(), expected, `expected ASSISTANT_MAX_REVISIONS=${input} to resolve to ${expected}`);
+  }
+});
+
+test('Telenor configuration is fail-closed: only an https execute-api/telenor host with a non-empty key is available', async () => {
+  process.env.AI_PROVIDER = 'telenor';
+  process.env.TELENOR_AI_FACTORY_BASE_URL = telenorFixture.TELENOR_AI_FACTORY_BASE_URL;
+  process.env.TELENOR_AI_FACTORY_API_KEY = telenorFixture.TELENOR_AI_FACTORY_API_KEY;
+  const valid = await modelStatus();
+  assert.equal(valid.available, true);
+  assert.equal(valid.provider, 'telenor');
+  assertSanitized(valid);
+
+  for (const [key, value] of [
+    ['TELENOR_AI_FACTORY_BASE_URL', ''],
+    ['TELENOR_AI_FACTORY_BASE_URL', telenorFixture.TELENOR_AI_FACTORY_BASE_URL.replace('https://', 'http://')],
+    ['TELENOR_AI_FACTORY_BASE_URL', 'https://evil.example.com/prod'],
+    ['TELENOR_AI_FACTORY_BASE_URL', `${telenorFixture.TELENOR_AI_FACTORY_BASE_URL}?token=x`],
+    ['TELENOR_AI_FACTORY_API_KEY', ''],
+  ] as const) {
+    process.env.TELENOR_AI_FACTORY_BASE_URL = telenorFixture.TELENOR_AI_FACTORY_BASE_URL;
+    process.env.TELENOR_AI_FACTORY_API_KEY = telenorFixture.TELENOR_AI_FACTORY_API_KEY;
+    process.env[key] = value;
+    const status = await modelStatus();
+    assert.equal(status.available, false, `expected ${key}=${JSON.stringify(value)} to be rejected`);
+    assertSanitized(status);
+  }
 });
 
 test('missing or invalid configuration fails before starting Python and redacts values', async () => {
@@ -185,8 +277,8 @@ test('language prompts require translated prose while preserving quotations and 
   assert.ok((prompt.match(/Vietnamese/g) ?? []).length >= 2);
   assert.match(prompt, /Keep quotations in their original language/);
   assert.match(prompt, /Do not repeat numeric amounts in the summary/);
-  assert.match(PLANNER_PROMPT, /latest citizen-authored conversation source/);
-  assert.match(PLANNER_PROMPT, /keep currentLanguage/);
-  assert.match(PLANNER_PROMPT, /summary, describe the need without repeating numeric amounts/);
-  assert.match(PLANNER_PROMPT, /No model assertion is a confirmed fact/);
+  assert.match(TRIAGE_PROMPT, /latest citizen-authored conversation source/);
+  assert.match(TRIAGE_PROMPT, /keep currentLanguage/);
+  assert.match(TRIAGE_PROMPT, /summary, describe the need without repeating numeric amounts/);
+  assert.match(TRIAGE_PROMPT, /No model assertion is a confirmed fact/);
 });

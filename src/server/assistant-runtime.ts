@@ -2,10 +2,21 @@ import { spawn } from 'node:child_process';
 import { accessSync, constants } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import type { ModelRole } from '../domain/assistant-types';
 
-export type AgentJob = { id: string; name: string; role: 'coordinator' | 'specialist'; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
+export type AgentJob = { id: string; name: string; role: ModelRole; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
 type RequestHandler = (method: string, data: Record<string, unknown>) => Promise<unknown>;
-const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
+const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'stage', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
+
+/** Explicit allowlist, as in ks-runtime.ts: an agent process inherits its own settings and no other server secret. */
+const runtimeEnvKeys = ['AI_PROVIDER', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID',
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MODEL_TIMEOUT_MS',
+  'PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'SystemRoot', 'TEMP', 'TMP', 'USERPROFILE'];
+function runtimeEnv(): NodeJS.ProcessEnv {
+  const env = { NODE_ENV: process.env.NODE_ENV } as NodeJS.ProcessEnv;
+  for (const key of runtimeEnvKeys) if (process.env[key]) env[key] = process.env[key];
+  return env;
+}
 
 function runtimePaths() {
   return { python: resolve(/* turbopackIgnore: true */ process.env.ASSISTANT_PYTHON || (process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python')),
@@ -22,7 +33,7 @@ export async function runPythonRuntime(payload: Record<string, unknown>, handler
   if (!runtimeInstalled()) throw new Error('Python-agentene er ikke installert. Kjør npm run setup:backend og prøv igjen.');
   const budget = Math.min(180000, Math.max(10000, Number(process.env.ASSISTANT_MODEL_TIMEOUT_MS) || 90000));
   return new Promise((resolveResult, reject) => {
-    const child = spawn(paths.python, ['-u', paths.script], { stdio: ['pipe', 'pipe', 'pipe'], env: process.env });
+    const child = spawn(paths.python, ['-u', paths.script], { stdio: ['pipe', 'pipe', 'pipe'], env: runtimeEnv() });
     child.stdout.setEncoding('utf8');
     let buffer = ''; let settled = false; let complete: Record<string, unknown> | null = null;
     let pending = 0; let closed = false;

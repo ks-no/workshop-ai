@@ -22,12 +22,12 @@ function expectRecordedRoleModels(response: AssistantResponse) {
   expect(response.model.models).toBeDefined();
   const models = response.model.models!;
   const runs = response.session?.runs ?? [];
-  const coordinators = runs.filter(run => run.agent === 'Koordinator');
-  const specialists = runs.filter(run => run.agent !== 'Koordinator');
-  expect(coordinators.length, response.session?.error || 'The coordinator must have a recorded run.').toBeGreaterThan(0);
-  expect(specialists.length, response.session?.error || 'At least one specialist must have a recorded run.').toBeGreaterThan(0);
-  for (const run of coordinators) expect(run.model, 'Recorded coordinator model must match its configured role.').toBe(models.coordinator);
-  for (const run of specialists) expect(run.model, `Recorded ${run.agent} model must match the specialist role.`).toBe(models.specialist);
+  const triageRuns = runs.filter(run => run.stage === 'triage');
+  const draftRuns = runs.filter(run => run.stage === 'draft');
+  expect(triageRuns.length, response.session?.error || 'The triage step must have a recorded run.').toBeGreaterThan(0);
+  expect(draftRuns.length, response.session?.error || 'At least one draft specialist must have a recorded run.').toBeGreaterThan(0);
+  for (const run of triageRuns) expect(run.model, 'Recorded triage model must match its configured role.').toBe(models.triage);
+  for (const run of draftRuns) expect(run.model, `Recorded ${run.agent} model must match the draft role.`).toBe(models.draft);
 }
 
 function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: string): Buffer {
@@ -409,7 +409,7 @@ test('agent task disclosure opens a selected run in the right activity panel', a
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   const state = (await started.json() as AssistantResponse).session!;
   const startedAt = new Date().toISOString();
-  state.runs = [{ id: 'test-run', agent: 'Koordinator', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
+  state.runs = [{ id: 'test-run', agent: 'Koordinator', stage: 'triage', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
   state.events = [
     { id: 'test-start', runId: 'test-run', agent: 'Koordinator', type: 'started', at: startedAt, detail: 'Modellanalysen er startet.' },
     { id: 'test-complete', runId: 'test-run', agent: 'Koordinator', type: 'completed', at: startedAt, detail: 'Strukturert svar mottatt og kontrollert.' },

@@ -7,7 +7,7 @@ const now = '2026-09-04T08:00:00.000Z';
 function session(): AssistantCase {
   return { id: 'b6fb9368-38ca-4ec9-94a8-967bde10ded6', createdAt: now, updatedAt: now, expiresAt: '2026-09-05T08:00:00.000Z', revision: 1,
     status: 'collecting', language: 'nb', messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [],
-    summary: '', analyzedRevision: null, handoff: null, error: null, ksData: { personId: 'person-022', connectedAt: now, incomeReadAt: null, consent: null } };
+    summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: { personId: 'person-022', connectedAt: now, incomeReadAt: null, consent: null } };
 }
 function snapshot<T>(value: T, resource: string) {
   return { value, source: { url: `http://127.0.0.1/${resource}`, retrievedAt: now, text: JSON.stringify(value), synthetic: true as const, resource } };
