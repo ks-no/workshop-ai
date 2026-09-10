@@ -14,8 +14,9 @@ flowchart LR
   O["oppdraget.md<br/>hva dere skal lage"]
   D["deltakerstart.md<br/>få det til å kjøre"]
   B["bygg-selv.md<br/>bygg noe eget"]
+  I["innlevering.md<br/>lever det dere lagde"]
 
-  O --> D --> B
+  O --> D --> B --> I
 
   D -.- F["feilsoking.md<br/>når noe ryker"]
   D -.- T["testpersoner.md<br/>hvem du kan bruke"]
@@ -27,13 +28,14 @@ flowchart LR
 Heltrukket linje er rekkefølgen. Stiplet linje er noe du slår opp når du trenger det,
 ikke noe du leser først.
 
-## Er du deltaker? Les disse tre, i rekkefølge
+## Er du deltaker? Les disse fire, i rekkefølge
 
 | # | Fil | Hva du får, og hva det koster |
 |---|---|---|
 | 1 | [`docs/oppdraget.md`](oppdraget.md) | Hva dere skal lage, hva som er gitt og hva som er fritt. To minutter |
 | 2 | [`docs/deltakerstart.md`](deltakerstart.md) | Én kommando, URL-ene, hvilken testbruker som hører til hvilken case, ditt første eget API-kall. Den første timen |
 | 3 | [`docs/bygg-selv.md`](bygg-selv.md) | Egen frontend på egen port, egne testdata, hva som er frosset. Når demoen kjører og du vil lage noe selv |
+| 4 | [`docs/innlevering.md`](innlevering.md) | Hva som må ligge i forken før fristen, og hvordan dere registrerer teamet. Fem minutter, når som helst før fredag |
 
 Og [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) gjelder alle som er med, i lokalet, i repoet og på nett.
 
@@ -57,6 +59,7 @@ Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 | Vite hva sandkassen logger, og hvordan du sletter det | [`docs/hva-logges.md`](hva-logges.md) |
 | Vite hva som forlater maskinen din før du demonstrerer | [`docs/sikkerhet-og-personvern.md`](sikkerhet-og-personvern.md) |
 | Vite hva som forventes av deg, hvordan KI skal brukes, og hvor du sier fra | [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) |
+| Levere det dere lagde, uten pull request | [`docs/innlevering.md`](innlevering.md) |
 | Slå opp et forvaltningsord | [`docs/ordliste.md`](ordliste.md) |
 
 > [!TIP]

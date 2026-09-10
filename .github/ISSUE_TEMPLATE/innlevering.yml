@@ -1,0 +1,49 @@
+# The registration form for a hackathon team. scripts/hent-innleveringer.ts reads the
+# rendered issue body by the `label` text of each field, so a label here is an
+# identifier: renaming one breaks the parser. docs/innlevering.md is what a participant
+# reads before filling this in.
+name: Innlevering
+description: Registrer teamet og forken vi skal hente fra. Ett issue per team.
+title: "Innlevering: <teamnavn>"
+labels: ["innlevering"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hva som skal ligge i forken før fristen, står i
+        [docs/innlevering.md](https://github.com/ks-no/workshop-ai/blob/main/docs/innlevering.md).
+        Bytter dere fork eller branch senere, rediger dette issuet i stedet for å lage et nytt.
+  - type: input
+    id: teamnavn
+    attributes:
+      label: Teamnavn
+      description: Blir navnet på branchen i ks-no/workshop-ai, som team/<teamnavn>.
+      placeholder: Team Bergen
+    validations:
+      required: true
+  - type: input
+    id: fork
+    attributes:
+      label: Fork
+      description: URL til forken vi skal hente fra.
+      placeholder: https://github.com/<bruker>/workshop-ai
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Branch
+      description: Branchen i forken vi skal hente. Tomt betyr main.
+      placeholder: main
+  - type: textarea
+    id: andre-repoer
+    attributes:
+      label: Andre repoer
+      description: Frontend eller annet utenfor forken. Én URL per linje. Repoene må være offentlige.
+      placeholder: https://github.com/<bruker>/<repo>
+  - type: input
+    id: kontakt
+    attributes:
+      label: Kontaktperson
+      description: GitHub-bruker vi kan spørre hvis noe ikke henger sammen.
+      placeholder: "@brukernavn"

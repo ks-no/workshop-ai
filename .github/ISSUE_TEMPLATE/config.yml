@@ -1,0 +1,7 @@
+# With one template in this directory GitHub shows a chooser. Blank issues stay on so a
+# participant can still report a bug in the sandbox without picking the registration form.
+blank_issues_enabled: true
+contact_links:
+  - name: Slik leverer dere
+    url: https://github.com/ks-no/workshop-ai/blob/main/docs/innlevering.md
+    about: Hva som skal ligge i forken før fristen, og hva som skjer etterpå.

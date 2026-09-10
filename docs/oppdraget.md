@@ -112,6 +112,10 @@ Tre priser deles ut fredag:
 Hvert team har 15 minutter fredag formiddag. Målet er at alle demonstrerer noe som
 kjører. Det er ikke det samme som at alt er ferdig.
 
+Det dere lager, skal også leveres inn, så det overlever hackathonet. Dere trenger ikke
+lage en pull request: vi henter fra forken. Hva som må ligge der, og hvordan dere
+registrerer teamet, står i [`docs/innlevering.md`](innlevering.md). Fem minutter.
+
 ## Utenfor sandkassen
 
 Sandkassen etterligner ekte tjenester. Vil du vite hva originalene faktisk kan, eller
