@@ -9,6 +9,76 @@ Siden er en **demo av en flate**, ikke en tvungen klient. Skal du bygge din egen
 frontend, hører den hjemme i ditt eget prosjekt mot de dokumenterte API-ene -
 oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 
+## Tjenestene løsningen bruker
+
+Åtte av sandkassens tolv tjenester er med når en innbygger logger inn, fyller ut et
+skjema og sender det. Fire er ikke.
+
+```mermaid
+flowchart LR
+  IB["Innbygger i nettleseren"]
+
+  subgraph loesningen["I løsningen"]
+    direction LR
+    IP["innbyggerportal 3002"]
+    DISK("data/ og state/")
+    DM["digdir-mock 8086"]
+    SB["sandbox-backend 8080"]
+
+    subgraph oppstroems["Kalt av sandbox-backend"]
+      direction TB
+      FS["fiks-simulator 8081"]
+      AG["ai-gateway 8082"]
+      MM["matrikkel-mock 8085"]
+      PJ["pasientjournal-mock 8087"]
+      PT["politiattest-mock 8088"]
+    end
+  end
+
+  subgraph utenfor["Ikke i løsningen"]
+    direction TB
+    PB["process-builder 3000"]
+    DG["demo-gui 3001"]
+    TA["tools-api 8083"]
+    PAG["process-agent 8084"]
+  end
+
+  IB -->|"sidene"| IP
+  IB -->|"innlogging"| DM
+  IB -->|"data og samtykke"| SB
+  IP -->|"testbrukere"| DM
+  IP -.->|"leser"| DISK
+  DM -.->|"nøkler"| SB
+  SB -->|"samtykke, inntekt"| FS
+  SB -->|"oppsummering"| AG
+  SB -->|"gater"| MM
+  SB -->|"legeerklæring"| PJ
+  SB -->|"politiattest"| PT
+  PB -.->|"prosessdefinisjoner"| DISK
+  DG -.->|"samme motor"| SB
+```
+
+**Nettleseren snakker med tre av dem.** Portalen serverer bare sider og sitt eget
+`/api/minside`; alt som er samtykkegatet går fra nettleseren rett til sandbox-backend
+med innbyggerens eget ID-porten-token. Portalen har aldri tokenet, og kan derfor ikke
+lese noe på innbyggerens vegne.
+
+| Tjeneste | Hva den gjør her | Hvor i portalen |
+| --- | --- | --- |
+| `innbyggerportal` | Sidene, og `/api/minside` som leser `data/` og `state/` | Alle tre sidene |
+| `digdir-mock` | ID-porten: velgeren, koden, tokenet. Og listen over hvem som kan logge inn | Innloggingen og forsiden |
+| `sandbox-backend` | Prosesskatalogen, tilgangsoversikten, samtykkene, prosessøkten | «Hva du kan søke på» og skjemaet |
+| `fiks-simulator` | Samtykkeraden skrives hit, og inntektsgrunnlaget beregnes her | Bryteren og inntektsblokken |
+| `ai-gateway` | Oppsummeringen `SUMMARY`-steget lager før innsending | Send-knappen |
+| `matrikkel-mock` | Gateoppslaget | Skjemaet for fartsdempende tiltak |
+| `pasientjournal-mock` | Legeerklæringen | Skjemaet for TT-kort |
+| `politiattest-mock` | Politiattesten, minimert | Skjemaet for politiattest |
+
+De fire utenfor henger likevel sammen med løsningen: `process-builder` skriver
+prosessdefinisjonene skjemaet tegnes fra, `demo-gui` er en annen flate på den samme
+motoren, og `tools-api` og `process-agent` er agentveien inn - ingen av dem kalles av
+portalen.
+
 ## Hva den viser
 
 | Kort | Hva som står der | Hvor tallene kommer fra |
