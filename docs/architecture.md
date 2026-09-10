@@ -85,6 +85,7 @@ flowchart LR
   subgraph klienter["Klienter"]
     PB["process-builder"]
     DG["demo-gui"]
+    IP["innbyggerportal"]
     PAG["process-agent"]
   end
 
@@ -104,6 +105,7 @@ flowchart LR
 
   PB --> SB
   DG --> SB
+  IP --> SB
   PAG --> TA
   TA --> SB
   TA --> AG
@@ -113,6 +115,7 @@ flowchart LR
   SB -->|"samtykke og beregning"| FS
   SB -->|"bak samtykkeporten"| PJ
   SB -->|"bak samtykkeporten"| PA
+  DM -.->|"ID-porten i nettleseren"| IP
   DM -.->|"token"| SB
   DM -.->|"token"| FS
   DM -.->|"Maskinporten"| PJ
@@ -151,7 +154,7 @@ Det betyr at:
 
 ## Status og kjente avvik
 
-Alle elleve tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+Alle tolv tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og sju demo-case er på plass. Det som følger er
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.

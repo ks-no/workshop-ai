@@ -6,7 +6,13 @@
  *
  * Ingen klassenavn er funnet på. Alt som begynner med ds- står i
  * apps/shared/ds-base.css, resten er sidens eget oppsett i minside.html.
+ *
+ * felles.ts lastes som klassisk skript foran denne og gir requireLogin,
+ * withToken og loggedInPid globalt. export {} under gjør denne filen til en
+ * modul, slik den allerede er ved kjøring: uten den ville krevEl og Tjeneste
+ * her kollidere med de globale i felles.ts.
  */
+export {};
 
 type Stegstatus = "fullfoert" | "godkjent" | "paagaar" | "venter";
 
@@ -92,10 +98,8 @@ type Minside = {
   hendelser: Hendelse[];
 };
 
-type Innbygger = { personId: string; navn: string; adresse: string };
-
-/* Fem voksne bor i Stavanger i seeden. Denne har husstand, plasser og eiendom. */
-const STANDARD_PERSON = "person-008";
+/* Sandbox-backend. Portalens egne ruter ligger på samme opphav og trenger ingen base. */
+const BACKEND_BASE = "http://localhost:8080";
 
 function krevEl<T extends HTMLElement>(id: string): T {
   const funnet = document.getElementById(id);
@@ -204,8 +208,13 @@ function opplysning(etikett: string, verdi: string): HTMLElement {
 
 function tegnKommune(minside: Minside): void {
   const vaapen = krevEl<HTMLImageElement>("kommunevaapen");
-  vaapen.src = minside.kommune.vaapen;
-  vaapen.alt = `${minside.kommune.navn} kommunes våpen`;
+  // En innbygger uten registrert bostedsadresse har ingen kommune å hente våpen
+  // for. Da står feltet tomt i stedet for å be om en fil som ikke finnes.
+  vaapen.hidden = !minside.kommune.vaapen;
+  if (minside.kommune.vaapen) {
+    vaapen.src = minside.kommune.vaapen;
+    vaapen.alt = `${minside.kommune.navn} kommunes våpen`;
+  }
   krevEl("kommunenavn").textContent = `${minside.kommune.navn} kommune`;
   krevEl("bunntekst").textContent = `${minside.kommune.navn} kommune, syntetisk demo`;
 }
@@ -477,6 +486,161 @@ function statusfarge(status: Stegstatus): string {
   return "neutral";
 }
 
+/* Tilgangsoversikten - hva innbyggeren kan søke på nå */
+
+/*
+ * Formene under er sandbox-backend sine, se Tilgangsoversikt i
+ * openapi/sandbox-backend.yaml. Statusverdiene er wire-format og skrives ut
+ * ordrett; teksten ved siden av dem er vår.
+ */
+type Tilgangsstatus =
+  | "allerede-godkjent"
+  | "allerede-avvist"
+  | "til-manuell-vurdering"
+  | "krever-samtykke"
+  | "ikke-aktuell"
+  | "tilgjengelig";
+
+type TilgangAlternativ = {
+  verdi: string;
+  label: string;
+  status: Tilgangsstatus;
+  manglerSamtykke?: string[];
+};
+
+type TilgangPerCase = {
+  prosessId: string;
+  status: Tilgangsstatus;
+  manglerSamtykke?: string[];
+  soknadId?: string;
+  alternativer?: TilgangAlternativ[];
+};
+
+/*
+ * «tilgjengelig» er accent og ikke success: den er en oppfordring om å gjøre noe,
+ * mens success er noe som alt er i havn. Å gi dem samme farge gjorde et avslag og
+ * en åpen mulighet like grønne.
+ */
+const TILGANGSVISNING: Record<Tilgangsstatus, { merke: string; farge: string; forklaring: string }> = {
+  "allerede-godkjent": {
+    merke: "Innvilget", farge: "success",
+    forklaring: "Søknaden er behandlet og innvilget."
+  },
+  "allerede-avvist": {
+    merke: "Avslått", farge: "danger",
+    forklaring: "Søknaden er behandlet og avslått."
+  },
+  "til-manuell-vurdering": {
+    merke: "Til behandling", farge: "info",
+    forklaring: "En saksbehandler ser på søknaden."
+  },
+  "krever-samtykke": {
+    merke: "Krever samtykke", farge: "warning",
+    forklaring: "Vi kan ikke si om du har rett på dette før vi får se på"
+  },
+  "ikke-aktuell": {
+    merke: "Ikke aktuell nå", farge: "neutral",
+    forklaring: "Reglene gir ikke rett på dette med det kommunen vet i dag."
+  },
+  "tilgjengelig": {
+    merke: "Du kan søke", farge: "accent",
+    forklaring: "Ingenting stopper en søknad nå."
+  }
+};
+
+/** «inntekt, politiattest» - datakildene slik de leses i en setning. */
+function samtykkeliste(kilder: string[] | undefined): string {
+  return (kilder ?? []).join(", ");
+}
+
+function forklaringFor(rad: TilgangPerCase | TilgangAlternativ): string {
+  const visning = TILGANGSVISNING[rad.status];
+  if (rad.status !== "krever-samtykke") return visning.forklaring;
+  const kilder = samtykkeliste(rad.manglerSamtykke);
+  return kilder ? `${visning.forklaring} ${kilder}.` : "Vi mangler et samtykke for denne.";
+}
+
+async function tegnTilganger(personId: string): Promise<void> {
+  const kort = krevEl("tilganger");
+  kort.replaceChildren();
+
+  const topp = kortblokk();
+  const rad = lag("div", "korttittel");
+  const tekst = lag("div", "korttittel__tekst");
+  const tittel = overskrift("Hva du kan søke på", "sm");
+  tittel.id = "tilganger-tittel";
+  tekst.append(tittel);
+  tekst.append(avsnitt("Reglene er kjørt på forhånd med det kommunen alt vet om deg", "sm"));
+  rad.append(tekst);
+  topp.append(rad);
+  kort.append(topp);
+
+  let tilganger: TilgangPerCase[];
+  let navn: Map<string, string>;
+  try {
+    const [svar, prosesser] = await Promise.all([
+      hentJson(`${BACKEND_BASE}/api/personer/${encodeURIComponent(personId)}/tilganger`, {
+        headers: withToken()
+      }),
+      // Åpen rute, og den eneste kilden til hva en prosess heter. Navnene hører
+      // hjemme i katalogen, ikke i en kopi her.
+      hentJson(`${BACKEND_BASE}/api/prosesser`)
+    ]);
+    tilganger = svar.tilganger ?? [];
+    navn = new Map((prosesser as Prosess[]).map((prosess) => [prosess.id, prosess.navn]));
+  } catch (feil) {
+    // Kortet feiler for seg selv. Resten av Min side leses fra disk, og skal stå
+    // igjen selv om sandbox-backend er nede.
+    kort.append(kortblokk(avsnitt(
+      `Fikk ikke tilgangsoversikten fra sandbox-backend: ${feilmelding(feil)}`, "sm"
+    )));
+    return;
+  }
+
+  const kanSoke = tilganger.filter((post) => post.status === "tilgjengelig").length;
+  rad.append(lag("span", "ds-chip", `${kanSoke} av ${tilganger.length} kan søkes nå`));
+
+  const blokk = kortblokk();
+  for (const post of tilganger) {
+    blokk.append(tegnTilgang(post, navn.get(post.prosessId) ?? post.prosessId));
+  }
+  kort.append(blokk);
+  kort.append(kortblokk(
+    avsnitt("Selve søknaden ligger i det stegvise grensesnittet på :3001.", "xs"),
+    kildelinje("GET /api/personer/{personId}/tilganger i sandbox-backend")
+  ));
+}
+
+function tegnTilgang(post: TilgangPerCase, prosessnavn: string): HTMLElement {
+  const visning = TILGANGSVISNING[post.status];
+  const rute = lag("div", "tjeneste__tekst");
+
+  const topp = lag("div", "tjeneste__topp");
+  topp.append(overskrift(prosessnavn, "2xs", "h3"));
+  topp.append(merkelapp(visning.merke, visning.farge));
+  rute.append(topp);
+  rute.append(avsnitt(forklaringFor(post), "sm"));
+
+  // Et lukket sett svaralternativer gir én status per alternativ - en rolle kan
+  // være grei og en annen ikke. Da er saksstatusen over en oppsummering, og
+  // radene her er det som faktisk gjelder.
+  if (post.alternativer?.length) {
+    const liste = lag("ul", "ds-list");
+    for (const alternativ of post.alternativer) {
+      const punkt = lag("li");
+      punkt.append(document.createTextNode(`${alternativ.label}: `));
+      punkt.append(merkelapp(
+        TILGANGSVISNING[alternativ.status].merke,
+        TILGANGSVISNING[alternativ.status].farge
+      ));
+      liste.append(punkt);
+    }
+    rute.append(liste);
+  }
+
+  return rute;
+}
+
 /* Tjenestelisten */
 
 function tegnTjenester(minside: Minside): void {
@@ -634,8 +798,8 @@ function skjulFeil(): void {
   krevEl("feil").hidden = true;
 }
 
-async function hentJson(url: string): Promise<any> {
-  const svar = await fetch(url);
+async function hentJson(url: string, init?: RequestInit): Promise<any> {
+  const svar = await fetch(url, init);
   const kropp = await svar.json().catch(() => null);
   if (!svar.ok) {
     throw new Error(kropp?.feil || `${svar.status} ${svar.statusText}`);
@@ -655,9 +819,6 @@ async function visInnbygger(personId: string): Promise<void> {
     tegnTjenester(minside);
     tegnKalender(minside);
     document.title = `Min side for ${minside.person.navn} | ${minside.kommune.navn} kommune`;
-    const url = new URL(window.location.href);
-    url.searchParams.set("person", personId);
-    window.history.replaceState(null, "", url);
   } catch (feil) {
     visFeil(`Klarte ikke å hente Min side: ${feil instanceof Error ? feil.message : String(feil)}`);
   } finally {
@@ -665,33 +826,51 @@ async function visInnbygger(personId: string): Promise<void> {
   }
 }
 
-async function start(): Promise<void> {
-  const velger = krevEl<HTMLSelectElement>("innbygger");
-  const oensket = new URL(window.location.href).searchParams.get("person") || STANDARD_PERSON;
+/*
+ * Hvem er vi logget inn som? Tokenet bærer et fødselsnummer i `pid`, ikke en
+ * personId, så oppslaget må gå via sandbox-backend. GET /api/personer svarer med
+ * nøyaktig én rad for et innbyggertoken - den narrowingen er hele grunnen til at
+ * ruten kan være åpen for innbyggere uten å bli en befolkningsliste.
+ */
+async function finnMeg(): Promise<Person> {
+  const personer: Person[] = await hentJson(`${BACKEND_BASE}/api/personer`, {
+    headers: withToken()
+  });
+  const pid = loggedInPid();
+  const meg = personer.find((person) => person.syntetiskFodselsnummer === pid);
+  if (!meg) {
+    throw new Error(`Innlogget som ${pid}, men sandkassen kjenner ingen slik person.`);
+  }
+  return meg;
+}
 
+async function start(): Promise<void> {
+  // Ingen token, ingen side. requireLogin sender nettleseren til ID-porten og
+  // svarer false mens den navigerer bort - da skal vi ikke tegne noe.
+  if (!(await requireLogin())) return;
+
+  // Logg ut og bytt bruker er samme handling: utstederen har ingen sesjon å
+  // avslutte, så veien tilbake er en ny runde gjennom velgeren på :8086.
+  krevEl<HTMLButtonElement>("loggUt").addEventListener("click", () => switchUser());
+
+  let meg: Person;
   try {
-    const svar = await hentJson("/api/innbyggere");
-    const innbyggere: Innbygger[] = svar.innbyggere ?? [];
-    velger.replaceChildren();
-    for (const innbygger of innbyggere) {
-      const valg = document.createElement("option");
-      valg.value = innbygger.personId;
-      valg.textContent = `${innbygger.navn}, ${innbygger.adresse}`;
-      velger.append(valg);
-    }
-    velger.value = innbyggere.some((innbygger) => innbygger.personId === oensket)
-      ? oensket
-      : (innbyggere[0]?.personId ?? "");
+    meg = await finnMeg();
   } catch (feil) {
-    visFeil(`Klarte ikke å hente innbyggerne: ${feil instanceof Error ? feil.message : String(feil)}`);
+    visFeil(
+      `Klarte ikke å slå opp hvem du er logget inn som: ${feilmelding(feil)}. `
+      + "Kjører sandbox-backend på :8080?"
+    );
     return;
   }
 
-  velger.addEventListener("change", () => {
-    void visInnbygger(velger.value);
-  });
+  krevEl("innlogget").textContent = `${meg.visningsnavn} (${loggedInPid()})`;
+  krevEl("loggUt").hidden = false;
 
-  if (velger.value) await visInnbygger(velger.value);
+  // De to kildene er uavhengige: Min side leses fra disk, tilgangsoversikten
+  // kommer fra sandbox-backend. Derfor tegnes de hver for seg, og et kort som
+  // ikke svarer tar ikke med seg det andre.
+  await Promise.all([visInnbygger(meg.personId), tegnTilganger(meg.personId)]);
 }
 
 void start();

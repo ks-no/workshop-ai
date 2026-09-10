@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Min side | Stavanger kommune</title>
+    <title>Min side</title>
 
     <!--
       No /assets/felles.css here. That stylesheet has no @layer, and unlayered rules
@@ -389,24 +389,37 @@
           src/minside.ts, og klienten skriver begge om fra API-svaret.
         -->
         <a class="merkevare" href="/">
-          <img
-            id="kommunevaapen"
-            src="https://static.fiks.ks.no/img/kommunevaapen/1103.png"
-            alt="Stavanger kommunes våpen"
-          />
+          <!--
+            Tomt til klienten vet hvem som er logget inn. Kommunen følger
+            innbyggeren, så det finnes ingen riktig kommune å fylle inn her på
+            forhånd - og et Stavanger-våpen over en innbygger fra Bergen ville
+            vært verre enn et tomt felt.
+          -->
+          <img id="kommunevaapen" src="" alt="" hidden />
           <span class="merkevare__tekst">
-            <span class="ds-heading" data-size="2xs" id="kommunenavn">Stavanger kommune</span>
+            <span class="ds-heading" data-size="2xs" id="kommunenavn">Min side</span>
             <span class="ds-paragraph" data-size="sm">Min side</span>
           </span>
         </a>
 
+        <!--
+          Ingen personvelger. Under ID-porten velger du ikke hvem du er i
+          applikasjonen, du beviser det hos utstederen - velgeren ligger på
+          :8086/idporten/authorize. «Logg ut» derfra er samme handling som
+          «bytt bruker».
+        -->
         <div class="toppfelt__hoyre">
-          <div class="ds-field" data-size="sm">
-            <label class="ds-label" data-size="sm" for="innbygger">Vis siden for</label>
-            <select class="ds-input" data-size="sm" id="innbygger">
-              <option value="">Laster innbyggere …</option>
-            </select>
-          </div>
+          <span class="ds-paragraph" data-size="sm" id="innlogget">Logger inn …</span>
+          <button
+            class="ds-button"
+            data-variant="tertiary"
+            data-size="sm"
+            type="button"
+            id="loggUt"
+            hidden
+          >
+            Logg ut
+          </button>
         </div>
       </div>
     </header>
@@ -427,6 +440,7 @@
       <div class="kolonner">
         <div class="kolonne">
           <section class="ds-card" aria-labelledby="profil-tittel" id="profil"></section>
+          <section class="ds-card" aria-labelledby="tilganger-tittel" id="tilganger"></section>
           <div class="kolonne" id="saker"></div>
         </div>
 
@@ -440,14 +454,14 @@
     <footer class="bunnfelt">
       <div class="bunnfelt__innhold">
         <div class="bunnfelt__lenker">
-          <a class="ds-link" data-size="sm" href="/api/innbyggere">Datagrunnlaget som JSON</a>
           <a class="ds-link" data-size="sm" href="http://localhost:3001/">Sandkassens demo-GUI</a>
           <a class="ds-link" data-size="sm" href="https://designsystemet.no/no">Designsystemet</a>
         </div>
-        <p class="ds-paragraph" data-size="sm" id="bunntekst">Stavanger kommune, syntetisk demo</p>
+        <p class="ds-paragraph" data-size="sm" id="bunntekst">Syntetisk demo</p>
       </div>
     </footer>
 
+    <script src="/delt/felles.ts"></script>
     <script type="module" src="/client/minside.ts"></script>
   </body>
 </html>

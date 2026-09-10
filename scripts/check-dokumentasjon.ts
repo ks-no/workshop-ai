@@ -297,7 +297,9 @@ const EXCEPTIONS: { file: string; text: string; reason: string }[] = [
   { file: "docs/syntetiske-data.md", text: "18 kuraterte husstandene",
     reason: "terskelfixturene i data/kuratert.json - verifisert delmengde av de 200" },
   { file: "AGENTS.md", text: "25 tool endpoints",
-    reason: "verktøykatalogen i tools-api, ikke ruter i en spesifikasjon" }
+    reason: "verktøykatalogen i tools-api, ikke ruter i en spesifikasjon" },
+  { file: "apps/innbyggerportal/README.md", text: "18 personer",
+    reason: "de uten registrert bostedsadresse - verifisert delmengde av de 394" }
 ];
 
 // --- check 1: numbers in prose --------------------------------------------

@@ -69,6 +69,23 @@ chat, or that every service is a søknad.
   with `process-builder`. The stylesheet is served at `/assets/*`; `felles.ts` is at
   `/delt/felles.ts`, type-stripped on the way out, because it is code rather than a
   static asset.
+- `apps/innbyggerportal` (`3002`): a "Min side" for one kommune, behind ID-porten. It is
+  the third frontend and deliberately unlike the other two: it loads the KS Digital design
+  system rather than `felles.css` (the two must never share a page - see
+  [Frontend](#frontend-the-ks-digital-design-system)), and it serves `felles.ts` itself at
+  `/delt/felles.ts` so it does not depend on `demo-gui` running. **The kommune follows the
+  logged-in citizen** - `kommuneFor()` reads it off `bostedsadresse`, so there is no
+  kommune configured anywhere and all 304 loggable test users get their own page. It was
+  two constants once, and that forced the page to refuse everyone else: 299 of 304
+  logins ended in a 404. `skjerming.ts` deliberately keeps `kommunenummer` and `kommune`
+  through masking, which is why a kode 6 citizen still gets their own crest. Its own data still
+  comes off disk through `readJson`, so those cards are **not** behind the samtykke gate.
+  The exception is the tilgangsoversikt card, which calls
+  `GET /api/personer/:personId/tilganger` with the citizen's own token and therefore does
+  pass the gate and the revisjonslogg - note that a page load there runs one `runRessurs`
+  per case, so it writes a batch of audit rows every refresh. Converting the remaining
+  samtykkepliktige cards (inntekt, legeerklæring, politiattest, kontaktinfo) to
+  token-authenticated calls is outstanding work, not a design.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.
 - `apps/fiks-simulator` (`8081`): mock external integrations (consent/tasks/register-like endpoints).
 - `apps/matrikkel-mock` (`8085`): mock of Kartverket Matrikkel Geointegrasjon BasisService (SOAP + REST helpers). Runs from the shared `node:24-alpine` image on the same `./:/workspace` bind mount as every other service; `apps/matrikkel-mock/Dockerfile` exists only for running it standalone.
@@ -647,9 +664,9 @@ pnpm test:matrikkel-mock   # starts its own matrikkel-mock
 docker compose restart sandbox-backend demo-gui   # targeted restart if you only changed those two
 ```
   Source files are volume-mounted (`./:/workspace`), so no image rebuild is needed - a restart is enough.
-- All eleven Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
+- All twelve Node services (`sandbox-backend`, `demo-gui`, `ai-gateway`, `tools-api`,
   `process-agent`, `fiks-simulator`, `process-builder`, `matrikkel-mock`, `digdir-mock`,
-  `pasientjournal-mock`, `politiattest-mock`) are volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
+  `pasientjournal-mock`, `politiattest-mock`, `innbyggerportal`) are volume-mounted and run via `scripts/dev.sh`, which selects the right watcher automatically:
   - **Linux** and **macOS with Docker Desktop 4.15+** (VirtioFS default): `node --watch` - inotify
     events propagate natively; restarts are immediate.
   - **Windows** (Docker Desktop with project on Windows filesystem, `C:\...`): `nodemon --legacy-watch`
@@ -691,7 +708,7 @@ pnpm test:bergen-matrikkel
   actual submission. Running `test:agent` or `test:agent:nl` on its own needs the
   stack. `test:tools-matrikkel`, `test:agent:matrikkel` and `test:matrikkel-mock` start their own
   services; they need neither a running stack nor a model.
-- All eleven services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
+- All twelve services have a `healthcheck` in `docker-compose.yml`, and `tools-api`
   and `process-agent` wait on `condition: service_healthy`. `./start.sh` still polls
   `/helse` itself, since the macOS path uses `--no-deps`.
 

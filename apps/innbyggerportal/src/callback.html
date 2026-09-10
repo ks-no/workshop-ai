@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="nb" data-color-scheme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Logger inn … | Min side</title>
+
+    <!--
+      No /assets/felles.css here, for the same reason as minside.html: it has no
+      @layer, and unlayered rules beat every layer in the cascade. See
+      docs/designsystem.md.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://static.fiks.ks.no/googlefonts/googleapis/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/assets/ds-base.css" />
+    <link rel="stylesheet" href="/assets/ds-ksdigital.css" />
+
+    <style>
+      /* Samme lag som minside.html, deklarert etter ksd. Ingen !important trengs. */
+      @layer side;
+
+      @layer side {
+        body {
+          margin: 0;
+          background: var(--ds-color-background-tinted);
+          color: var(--ds-color-text-default);
+          font-family: var(--ds-font-family);
+        }
+
+        .innlogging {
+          max-width: 34rem;
+          margin: 4rem auto;
+          padding-inline: var(--ds-size-4);
+          display: grid;
+          gap: var(--ds-size-3);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="innlogging">
+      <h1 class="ds-heading" data-size="md" id="tittel">Logger inn …</h1>
+      <p class="ds-paragraph" id="melding">
+        Veksler engangskoden fra ID-porten mot et token.
+      </p>
+      <p class="ds-paragraph" id="tilbake" hidden>
+        <a class="ds-link" href="/">Tilbake til Min side</a>
+      </p>
+    </main>
+
+    <script src="/delt/felles.ts"></script>
+    <script type="module" src="/client/callback.ts"></script>
+  </body>
+</html>

@@ -20,13 +20,34 @@ import { TREMAANEDSGRENSEN } from "../../shared/politiattest.ts";
 import { maskKrr, maskPerson } from "../../shared/skjerming.ts";
 
 /*
- * Kommunen siden er for. Ett sted, fordi alt annet leser den herfra: hvem som
- * står i velgeren, hvilke tilbud som telles, hva som står i toppfeltet og hvilket
- * kommunevåpen som hentes. Filnavnet på våpenet er kommunenummeret, se
+ * Kommunen siden er for, lest ut av innbyggeren som er logget inn. Alt annet
+ * leser den herfra: hvilke tilbud som telles, hva som står i toppfeltet og
+ * hvilket kommunevåpen som hentes. Filnavnet på våpenet er kommunenummeret, se
  * docs/designsystem.md.
+ *
+ * Den satt som en konstant før, og da måtte siden avvise alle som ikke bodde i
+ * den ene kommunen. ID-porten lar deg logge inn som hvem som helst av
+ * testbrukerne, så den sperren gjorde 299 av 304 innlogginger til en 404.
+ *
+ * skjerming.ts beholder både kommunenummer og kommune for en adressebeskyttet
+ * person - se listen i filhodet der - så en skjermet innbygger får sin egen
+ * kommune i toppfeltet, ikke en standardverdi.
  */
-export const KOMMUNENUMMER = "1103";
-export const KOMMUNENAVN = "Stavanger";
+export type Kommune = { nummer: string; navn: string; vaapen: string };
+
+/** For en person uten registrert bostedsadresse. Klienten skjuler et tomt våpen. */
+const UKJENT_KOMMUNE: Kommune = { nummer: "", navn: "Kommunen", vaapen: "" };
+
+function kommuneFor(person: Person): Kommune {
+  const nummer = person.bostedsadresse?.kommunenummer;
+  const navn = person.bostedsadresse?.kommune;
+  if (!nummer || !navn) return UKJENT_KOMMUNE;
+  return {
+    nummer,
+    navn,
+    vaapen: `https://static.fiks.ks.no/img/kommunevaapen/${nummer}.png`
+  };
+}
 
 export type Eiendom = {
   matrikkelId: string;
@@ -89,11 +110,6 @@ export type Samtykkerad = {
   utloper: string | null;
 };
 
-export type Innbygger = {
-  personId: string;
-  navn: string;
-  adresse: string;
-};
 
 export type Minside = {
   kommune: { nummer: string; navn: string; vaapen: string };
@@ -188,21 +204,6 @@ function antall(tall: number, entall: string, flertall: string): string {
   return `${tall} ${tall === 1 ? entall : flertall}`;
 }
 
-/** Innbyggerne siden kan vises for: de voksne i kommunen, sortert på navn. */
-export async function listInnbyggere(): Promise<Innbygger[]> {
-  const personer: Person[] = await readJson("personer.json");
-  return personer
-    .filter((person) => person.bostedsadresse?.kommunenummer === KOMMUNENUMMER)
-    .filter((person) => person.rolle !== "barn")
-    .map(maskPerson)
-    .map((person) => ({
-      personId: person.personId,
-      navn: helnavn(person),
-      adresse: gateadresse(person)
-    }))
-    .sort((a, b) => a.navn.localeCompare(b.navn, "nb"));
-}
-
 /**
  * Eiendommen personen bor på, slått opp på matrikkel-iden folkeregisteret bærer.
  * Eierskapet står i grunnboken og ikke i matrikkelen, så eierformen kommer fra
@@ -263,7 +264,7 @@ function byggSteg(definisjonssteg: any[], ferdigTilOgMed: number): Saksteg[] {
  * innbyggeren fortsetter hos saksbehandleren. Oppgaven i state/oppgaver.json er
  * det leddet, og vedtaket er steget etter.
  */
-async function byggSaker(personId: string): Promise<Sak[]> {
+async function byggSaker(personId: string, kommunenavn: string): Promise<Sak[]> {
   const katalog = await readJson("prosessdefinisjoner.json");
   const definisjoner: any[] = katalog.prosesser ?? [];
   const finnDefinisjon = (prosessId: string) => definisjoner.find((post) => post.id === prosessId);
@@ -296,7 +297,7 @@ async function byggSaker(personId: string): Promise<Sak[]> {
       saksId: soknad.soknadId,
       prosessId: soknad.prosessId,
       navn: definisjon?.navn ?? soknad.prosessId,
-      enhet: `${KOMMUNENAVN} kommune ${definisjon?.redigering?.eier ?? "Innbyggerservice"}`,
+      enhet: `${kommunenavn} kommune ${definisjon?.redigering?.eier ?? "Innbyggerservice"}`,
       status: "AKTIV",
       statustekst: "Aktiv",
       sistOppdatert: oppgave?.opprettet ?? soknad.opprettet,
@@ -315,7 +316,7 @@ async function byggSaker(personId: string): Promise<Sak[]> {
       saksId: oekt.oektsId,
       prosessId: oekt.prosessId,
       navn: definisjon?.navn ?? oekt.prosessId,
-      enhet: `${KOMMUNENAVN} kommune ${definisjon?.redigering?.eier ?? "Innbyggerservice"}`,
+      enhet: `${kommunenavn} kommune ${definisjon?.redigering?.eier ?? "Innbyggerservice"}`,
       status: oekt.status,
       statustekst: oekt.status === "AKTIV" ? "Påbegynt" : "Avsluttet",
       sistOppdatert: oekt.oppdatert,
@@ -380,7 +381,9 @@ async function byggTjenester(
   const plasser = betalinger.filter((post) => post.type !== "fritid");
 
   const tilbud: any[] = await readJson("tjenestetilbud.json");
-  const iKommunen = tilbud.filter((post) => post.kommunenummer === KOMMUNENUMMER);
+  const iKommunen = tilbud.filter(
+    (post) => post.kommunenummer === person.bostedsadresse?.kommunenummer
+  );
 
   return [
     {
@@ -568,11 +571,9 @@ export async function byggMinside(personId: string): Promise<Minside | null> {
   const personer: Person[] = await readJson("personer.json");
   const raa = personer.find((post) => post.personId === personId);
   if (!raa) return null;
-  // Kommunen har ingen Min side for en som ikke bor her. Uten denne sperren
-  // svarte en håndskrevet URL med en Bergen-adresse under Stavanger sitt våpen.
-  if (raa.bostedsadresse?.kommunenummer !== KOMMUNENUMMER) return null;
 
   const person = maskPerson(raa);
+  const kommune = kommuneFor(person);
   const husstander: Husstand[] = await readJson("husstander.json");
   const husstand = husstander.find((post) => post.husstandId === person.husstandId) ?? null;
 
@@ -593,14 +594,10 @@ export async function byggMinside(personId: string): Promise<Minside | null> {
 
   const husstandsIder = medlemmer.map((medlem) => medlem.personId);
   const betalinger = await finnBetalinger(husstandsIder);
-  const saker = await byggSaker(person.personId);
+  const saker = await byggSaker(person.personId, kommune.navn);
 
   return {
-    kommune: {
-      nummer: KOMMUNENUMMER,
-      navn: KOMMUNENAVN,
-      vaapen: `https://static.fiks.ks.no/img/kommunevaapen/${KOMMUNENUMMER}.png`
-    },
+    kommune,
     person: {
       personId: person.personId,
       navn: helnavn(person),
@@ -609,8 +606,8 @@ export async function byggMinside(personId: string): Promise<Minside | null> {
       foedselsdato: person.foedselsdato ?? null,
       alder: person.foedselsdato ? alderVed(person.foedselsdato, idag()) : null,
       adresse: gateadresse(person),
-      kommune: person.bostedsadresse?.kommune ?? KOMMUNENAVN,
-      kommunenummer: person.bostedsadresse?.kommunenummer ?? KOMMUNENUMMER,
+      kommune: kommune.navn,
+      kommunenummer: kommune.nummer,
       skjermet: person.skjermet,
       adressebeskyttelse: person.adressebeskyttelse
     },

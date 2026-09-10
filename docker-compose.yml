@@ -99,6 +99,25 @@ services:
     volumes:
       - ./:/workspace
 
+  innbyggerportal:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["/bin/sh", "scripts/dev.sh", "apps/innbyggerportal/src/server.ts"]
+    environment:
+      - PORT=3002
+      - WATCH_POLL=${WATCH_POLL:-0}
+      # Portalen serverer felles.ts og sitt eget sidescript som .ts, type-strippet
+      # ved servering. Det er den samme eksperimentelle API-en demo-gui og
+      # prosessbyggeren demper advarselen for, og av samme grunn.
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:3002:3002"
+    volumes:
+      - ./:/workspace
+
   digdir-mock:
     healthcheck:
       <<: *helsesjekk

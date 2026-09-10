@@ -21,8 +21,8 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # digdir-mock must stay in this list for the same reason as matrikkel-mock: on
 # macOS we start only these by name, and everything that needs a token dials it.
 # Leave it out and every authenticated call fails while the stack looks healthy.
-NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder)
-SERVICE_PORTS=(8080 8081 8082 8083 8084 8085 8086 8087 8088 3000 3001)
+NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder innbyggerportal)
+SERVICE_PORTS=(8080 8081 8082 8083 8084 8085 8086 8087 8088 3000 3001 3002)
 OLLAMA_PORT=11434
 
 MODEL=""
@@ -554,6 +554,7 @@ printf '   📝 Stegvis grensesnitt: http://localhost:3001/stegvis\n'
 printf '   🌐 Chat:                http://localhost:3001/chat\n'
 printf '   🧠 Agent:               http://localhost:3001/agent\n'
 printf '   🔧 Prosessbygger:       http://localhost:3000\n'
+printf '   🏠 Min side:            http://localhost:3002\n'
 printf '\n   Når KI-en ser feil ut:\n'
 printf '   🔍 KI-spor:           http://localhost:8082/trace\n'
 printf '   🔀 KI-leverandør:     http://localhost:8082/admin\n'
