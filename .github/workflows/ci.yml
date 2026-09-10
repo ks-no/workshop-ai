@@ -118,6 +118,14 @@ jobs:
       # had drifted into four separate readings.
       - name: Oppstrømssvar
         run: pnpm test:upstream
+      # The rules hent-innleveringer.ts force-pushes team branches by, as pure
+      # functions: the slug, the URL shapes, the issue form, and which change to a
+      # workflow file is refused. The last one is what stands between a pushed
+      # branch and a workflow running with this repository's token, and it also
+      # pins that every trigger on main fires on main alone - the premise the
+      # «unchanged on: block is safe» rule rests on.
+      - name: Innleveringsregler
+        run: pnpm test:innlevering
 
       # The lost update on prosessoekter.json. Every handler used to write the whole
       # array from its own request-scoped copy, so two requests on different økter

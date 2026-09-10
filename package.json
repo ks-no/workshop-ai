@@ -34,6 +34,7 @@
     "test:samtykke": "node scripts/test-samtykke.ts",
     "test:forsendelse": "node scripts/test-forsendelse.ts",
     "test:upstream": "node scripts/test-upstream.ts",
+    "test:innlevering": "node scripts/test-innlevering.ts",
     "test:revisjon": "node scripts/test-revisjonsspor.ts",
     "test:concurrency": "node scripts/test-concurrency.ts",
     "test:imports": "node scripts/test-imports.ts",

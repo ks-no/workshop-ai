@@ -30,18 +30,32 @@
  * fetch are an argument error and two teams whose names slug to the same branch,
  * because there the second push would silently overwrite the first.
  *
+ * One thing is refused per source: a new file under .github/workflows, or one whose
+ * `on:` block differs from the version the team forked from. The push is an ordinary
+ * `push` event by the organiser, so a workflow on that branch whose trigger matches
+ * would run with this repository's token and the secrets it can see, and no approval
+ * step exists the way it does for a fork PR. A test step added to ci.yml passes: the
+ * trigger still says main. The rule is vurderWorkflow in innlevering-regler.ts. The
+ * source is fetched locally either way, and --godta-workflows pushes it anyway, with
+ * the files listed as a warning, for the organiser who has read them.
+ *
  * Usage:
- *   node scripts/hent-innleveringer.ts [--ikke-push] [--liste fil.json | --alle-forker]
+ *   node scripts/hent-innleveringer.ts [--ikke-push] [--godta-workflows]
+ *                                      [--liste fil.json | --alle-forker]
  *                                      [--repo ks-no/workshop-ai] [--remote origin]
  */
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { feilmelding } from "../apps/shared/errors.ts";
+import {
+  beskrivWorkflowvurdering, parseIssueBody, parseRepoUrl, qualifyRef, slug, teamSlug, vurderWorkflow,
+  type Workflowvurdering
+} from "./innlevering-regler.ts";
 
 // --- arguments --------------------------------------------------------------
 
-const FLAGS = new Set(["--ikke-push", "--alle-forker"]);
+const FLAGS = new Set(["--ikke-push", "--alle-forker", "--godta-workflows"]);
 const OPTIONS = new Set(["--liste", "--repo", "--remote"]);
 
 /**
@@ -82,6 +96,7 @@ try {
 
 const pushEnabled = !parsed.flags.has("--ikke-push");
 const fromAllForks = parsed.flags.has("--alle-forker");
+const acceptWorkflows = parsed.flags.has("--godta-workflows");
 const listFile = parsed.options.get("--liste");
 const repo = parsed.options.get("--repo") ?? "ks-no/workshop-ai";
 const remote = parsed.options.get("--remote") ?? "origin";
@@ -118,13 +133,21 @@ type Rapport = {
   storeFiler: string[];
   /** --alle-forker only: the fork has nothing ahead of main, so nothing was pushed. */
   hoppet: boolean;
+  /** A report column that could not be computed. The source was still pushed. */
+  advarsel?: string;
   feil?: string;
 };
 
 function run(cmd: string, cmdArgs: string[]): string {
-  return execFileSync(cmd, cmdArgs, {
+  // git quotes a path with æ/ø/å as "data/KpSt\303\270ySone.geojson" unless told not
+  // to, and the report is read by a person.
+  const args = cmd === "git" ? ["-c", "core.quotePath=false", ...cmdArgs] : cmdArgs;
+  return execFileSync(cmd, args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // `git ls-tree -r -l` on a tree with node_modules committed is several MB; the
+    // 1 MB default made that throw ENOBUFS and cost the team its push.
+    maxBuffer: 256 * 1024 * 1024,
     // A private or misspelled fork makes git ask for a username on the tty, which
     // stdin: "ignore" does not cover. Fail instead, so the team lands in «Feilet».
     env: { ...process.env, GIT_TERMINAL_PROMPT: "0" }
@@ -145,61 +168,11 @@ function shortError(error: unknown): string {
   return lines[lines.length - 1] ?? "ukjent feil";
 }
 
-// --- names ------------------------------------------------------------------
-
-/** Team name to a branch segment: ascii, lowercase, hyphens. A leading «team» is noise. */
-function slug(name: string): string {
-  const ascii = name
-    .toLowerCase()
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "oe")
-    .replace(/å/g, "aa")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  // Only the word: «Teamwork» keeps its name, «Team Bergen» loses the prefix.
-  const stripped = ascii.replace(/^team(?:-|$)/, "");
-  return stripped || ascii || "uten-navn";
-}
-
-/** Accepts `owner/repo`, a github.com URL, with or without .git or /tree/<branch>. */
-function parseRepoUrl(text: string): { owner: string; name: string; branch?: string } {
-  // What a browser address bar adds: a trailing slash, `?tab=readme`, a `#fragment`.
-  const trimmed = text.trim().replace(/^<|>$/g, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
-  const match = trimmed.match(
-    /^(?:https?:\/\/github\.com\/|git@github\.com:)?([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/(\S+))?$/
-  );
-  if (!match) throw new Error(`«${text}» er ikke en GitHub-repo-URL eller eier/repo`);
-  return { owner: match[1], name: match[2], branch: match[3] };
-}
-
 function cloneUrl(owner: string, name: string): string {
   return `https://github.com/${owner}/${name}.git`;
 }
 
-/**
- * An unqualified source like `+v1:...` resolves tags before heads, so a team that
- * tagged its branch with the branch's own name would have the tag fetched and the
- * push rejected. HEAD and anything already under refs/ pass through.
- */
-function qualifyRef(ref: string): string {
-  return ref === "HEAD" || ref.startsWith("refs/") ? ref : `refs/heads/${ref}`;
-}
-
 // --- registrations ----------------------------------------------------------
-
-/** GitHub renders an issue form as `### <label>` followed by the value, one block per field. */
-function parseIssueBody(body: string): Map<string, string> {
-  const fields = new Map<string, string>();
-  for (const block of body.replace(/\r\n/g, "\n").split(/^###\s+/m).slice(1)) {
-    const newline = block.indexOf("\n");
-    const label = (newline < 0 ? block : block.slice(0, newline)).trim();
-    const value = (newline < 0 ? "" : block.slice(newline + 1)).trim();
-    fields.set(label, value === "_No response_" ? "" : value);
-  }
-  return fields;
-}
 
 function fromIssues(): Registrering[] {
   const pages = gh(`repos/${repo}/issues?labels=${LABEL}&state=open&per_page=100`) as unknown[][];
@@ -245,7 +218,7 @@ function describe(reg: Registrering): string {
 
 /** Throws on a URL that does not parse; the caller reports it for this team alone. */
 function kilderFor(reg: Registrering): Kilde[] {
-  const teamSlug = slug(reg.team);
+  const team = teamSlug(reg.team);
   const fork = parseRepoUrl(reg.fork);
   let ref = reg.branch ?? fork.branch ?? "main";
   if (reg.branch && fork.branch && reg.branch !== fork.branch) {
@@ -256,7 +229,7 @@ function kilderFor(reg: Registrering): Kilde[] {
   }
   const kilder: Kilde[] = [{
     team: reg.team,
-    branch: `team/${teamSlug}`,
+    branch: `team/${team}`,
     url: cloneUrl(fork.owner, fork.name),
     ref
   }];
@@ -265,7 +238,7 @@ function kilderFor(reg: Registrering): Kilde[] {
     kilder.push({
       team: reg.team,
       // A slash would make team/<slug> both a branch and a directory, which git refuses.
-      branch: `team/${teamSlug}-${slug(other.name)}`,
+      branch: `team/${team}-${slug(other.name)}`,
       url: cloneUrl(other.owner, other.name),
       ref: other.branch ?? "HEAD"
     });
@@ -342,6 +315,41 @@ function largeFiles(ref: string): string[] {
     .map(({ path, size }) => `${path} (${(size / 1024 / 1024).toFixed(1)} MB)`);
 }
 
+type Workflowendring = { path: string; vurdering: Workflowvurdering };
+
+/**
+ * Every workflow file the team added or changed, each with vurderWorkflow's verdict.
+ * The base is the merge-base with main, not the tip of main: a fork that has not
+ * pulled since main touched ci.yml differs from the tip without the team having done
+ * anything, and the first run against the real forks flagged two of five that way.
+ * Only an unrelated history has no merge-base, and there the tip of main is the only
+ * base there is. Deletions are fine: a file that is gone cannot run. `--no-renames`
+ * so a moved workflow counts as added.
+ */
+function changedWorkflows(ref: string): Workflowendring[] {
+  const main = `refs/remotes/${remote}/main`;
+  let base: string;
+  try {
+    base = run("git", ["merge-base", main, ref]);
+  } catch {
+    base = main;
+  }
+  // `git diff --name-status`: status<TAB>path, status A or M after the filter.
+  return run("git", ["diff", "--name-status", "--no-renames", "--diff-filter=d", base, ref, "--", ".github/workflows"])
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [status, path] = line.split("\t");
+      const tip = run("git", ["show", `${ref}:${path}`]);
+      const before = status === "A" ? undefined : run("git", ["show", `${base}:${path}`]);
+      return { path, vurdering: vurderWorkflow(before, tip) };
+    });
+}
+
+function describeWorkflows(endringer: Workflowendring[]): string {
+  return endringer.map((e) => `${e.path} (${beskrivWorkflowvurdering(e.vurdering)})`).join(", ");
+}
+
 function pushKilde(kilde: Kilde): void {
   run("git", ["push", "--quiet", remote, `+${localRef(kilde)}:refs/heads/${kilde.branch}`]);
 }
@@ -372,7 +380,7 @@ try {
       try {
         kilder.push(...kilderFor(reg));
       } catch (error) {
-        const rapport = newRapport(reg.team, `team/${slug(reg.team)}`);
+        const rapport = newRapport(reg.team, `team/${teamSlug(reg.team)}`);
         rapport.feil = shortError(error);
         rapporter.push(rapport);
         console.error(`  ${describe(reg)}: ${rapport.feil}`);
@@ -404,11 +412,32 @@ for (const kilde of kilder) {
     const ref = localRef(kilde);
     rapport.foranMain = commitsAheadOfMain(ref);
     rapport.harInnlevering = hasFile(ref, "INNLEVERING.md");
-    rapport.storeFiler = largeFiles(ref);
     if (fromAllForks && rapport.foranMain === 0) {
       console.log(`  ${kilde.team}: ingen commits foran main, hoppet over.`);
       rapport.hoppet = true;
       continue;
+    }
+    const workflows = changedWorkflows(ref);
+    const harmless = workflows.filter((w) => w.vurdering === "ok");
+    const refused = workflows.filter((w) => w.vurdering !== "ok");
+    if (harmless.length > 0) {
+      console.log(`  ${kilde.team}: endrer ${harmless.map((w) => w.path).join(", ")} uten å endre triggerne.`);
+    }
+    if (refused.length > 0 && !acceptWorkflows) {
+      throw new Error(
+        `endrer ${describeWorkflows(refused)}. Ikke pushet. Les filene under ${ref}, og kjør med --godta-workflows hvis de er ufarlige.`
+      );
+    }
+    if (refused.length > 0) {
+      rapport.advarsel = `workflows godtatt med --godta-workflows: ${describeWorkflows(refused)}`;
+    }
+    // The large-file column is advice, and advice must not cost a team its push.
+    try {
+      rapport.storeFiler = largeFiles(ref);
+    } catch (error) {
+      rapport.advarsel = [rapport.advarsel, `fikk ikke sjekket filstørrelser: ${shortError(error)}`]
+        .filter(Boolean)
+        .join("; ");
     }
     if (pushEnabled) pushKilde(kilde);
     console.log(`  ${kilde.team} -> ${kilde.branch} @ ${rapport.commit}${pushEnabled ? "" : " (ikke pushet)"}`);
@@ -440,6 +469,11 @@ if (medStoreFiler.length > 0) {
   for (const r of medStoreFiler) {
     for (const file of r.storeFiler) console.log(`  ${r.branch}: ${file}`);
   }
+}
+const medAdvarsel = hentet.filter((r) => r.advarsel);
+if (medAdvarsel.length > 0) {
+  console.log("\nAdvarsler:");
+  for (const r of medAdvarsel) console.log(`  ${r.branch}: ${r.advarsel}`);
 }
 if (!pushEnabled) {
   console.log("\nDryrun. Kildene ligger under refs/innleveringer/ lokalt; kjør uten --ikke-push for å pushe.");

@@ -630,6 +630,7 @@ pnpm test:imports         # the import graph between apps is a DAG, pure text an
 pnpm test:startup         # launcher lifecycle with fake Docker/curl, no running stack
 pnpm test:parametere      # required query parameters per route, read off the specs
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
+pnpm test:innlevering     # the rules hent-innleveringer.ts pushes team branches by, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 pnpm test:agent:dialog     # starts isolated services with the AI mock, through actual submission
@@ -677,7 +678,7 @@ pnpm test:bergen-matrikkel
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
   `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
+  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:innlevering`, `test:concurrency`,
   `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:startup`, `test:kodeverk`,
   `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog`, `test:tools-matrikkel`,
   `test:agent:matrikkel`, `test:matrikkel-mock` and `test:kontrakt` on every PR

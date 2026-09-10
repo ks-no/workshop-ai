@@ -12,7 +12,7 @@ Dette tar fem minutter, og dere kan gjøre det når som helst før fristen.
 - [1. Alt skal ligge i forken](#1-alt-skal-ligge-i-forken)
 - [2. Skriv INNLEVERING.md](#2-skriv-innleveringmd)
 - [3. Registrer teamet](#3-registrer-teamet)
-- [Tre ting dere ikke skal gjøre](#tre-ting-dere-ikke-skal-gjøre)
+- [Fire ting dere ikke skal gjøre](#fire-ting-dere-ikke-skal-gjøre)
 - [Hva som skjer etterpå](#hva-som-skjer-etterpå)
 - [For arrangøren](#for-arrangøren)
 
@@ -80,18 +80,23 @@ stedet for å lage et nytt.
 
 Det er registreringen som avgjør hva vi henter. En fork uten issue blir ikke hentet.
 
-## Tre ting dere ikke skal gjøre
+## Fire ting dere ikke skal gjøre
 
 - **Ikke åpne pull request mot `ks-no/workshop-ai`.** GitHub foreslår det når dere
   pusher til forken, og det er lett å trykke. Skjer det, gjør det ingen skade, men den
   blir lukket med en lenke hit. Finner dere en feil i sandkassen som andre team bør få
   rettet, meld fra i et issue.
-- **Ikke commit tokens, nøkler eller `.env`-filer.** Det står i
-  [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) alt, og gjelder like mye for det som
+- **Ikke commit tokens, nøkler eller `.env`-filer.** Det står allerede i
+  [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md), og gjelder like mye for det som
   hentes inn her. Alt vi henter, blir liggende i et offentlig repo.
 - **Ikke commit store genererte datafiler.** Et datasett på flere megabyte blir en
   permanent del av historikken til et repo alle team kloner. Skriv heller i
   `INNLEVERING.md` hvordan filen lages, eller legg den et annet sted og lenk.
+- **Ikke legg til nye workflow-filer, og ikke endre `on:` i dem som finnes.** En
+  branch vi pusher inn, kan starte GitHub Actions i `ks-no/workshop-ai` med repoets
+  tilganger, så en ny workflow eller en endret trigger blir ikke hentet automatisk. Å
+  legge til et teststeg i `ci.yml` er greit; det er `on:`-blokken vi ser på. Trenger dere
+  en egen workflow i forken, legg den i en annen branch enn den dere registrerer.
 
 ## Hva som skjer etterpå
 
@@ -99,7 +104,8 @@ Ved fristen kjører arrangøren et skript som henter branchen fra hver registrer
 pusher den inn i `ks-no/workshop-ai` som `team/<slug>`. Slug er teamnavnet med små
 bokstaver, bindestrek i stedet for mellomrom og tegn, og æ/ø/å skrevet ae/oe/aa. Et
 innledende «Team» faller bort: «Team Bergen» blir `team/bergen`, «Lag Ålesund» blir
-`team/lag-aalesund`. Et ekstra repo blir `team/<slug>-<reponavn>`.
+`team/lag-aalesund`. Et ekstra repo blir `team/<slug>-<reponavn>`, med reponavnet
+skrevet på samme måte.
 
 Diffen mot sandkassen slik den kom, ser dere så her, med sluggen deres på slutten:
 `https://github.com/ks-no/workshop-ai/compare/main...team/<slug>`
@@ -119,6 +125,7 @@ pnpm innlevering:hent --ikke-push     # dryrun: hent og rapporter, push ingentin
 pnpm innlevering:hent                 # registreringene fra issues med label «innlevering»
 pnpm innlevering:hent --alle-forker   # sikkerhetsnett: hver fork med commits foran main, som fork/<eier>
 pnpm innlevering:hent --liste fil.json  # registreringene fra en fil i stedet for issues
+pnpm innlevering:hent --godta-workflows # push også kilder med ny workflow eller endret on:
 ```
 
 Skriptet leser issue-skjemaet i `.github/ISSUE_TEMPLATE/innlevering.yml`, henter hver
@@ -131,6 +138,17 @@ ikke lar seg hente, en feil URL, en branch som ikke finnes eller en fork som er 
 privat, står under «Feilet» og stopper heller ikke de andre. Det eneste som stopper
 kjøringen før første fetch, er to team hvis navn gir samme slug, fordi den siste pushen
 ellers hadde skrevet over den første i stillhet.
+
+Én ting nekter skriptet å pushe: en kilde med en ny fil under `.github/workflows`, eller
+en fil der `on:`-blokken er endret siden teamet forket. Pushen er et vanlig push-event fra
+deg, så en workflow i den branchen med en trigger som treffer, ville kjørt med repoets
+token og de secrets repoet ser, uten godkjenningssteget en PR fra en fork har. Et teststeg
+lagt til i `ci.yml` passerer, fordi triggeren fortsatt sier `main`; skriptet skriver en
+linje om det. Kilden som nektes, er hentet lokalt likevel. Les filene under
+`refs/innleveringer/<slug>`, og kjør med `--godta-workflows` hvis de er ufarlige. Da
+pushes alt, og de berørte filene står under «Advarsler» i rapporten. Regelen er
+`vurderWorkflow` i `scripts/innlevering-regler.ts`, og `pnpm test:innlevering` pinner
+den.
 
 Kjøreplan:
 
