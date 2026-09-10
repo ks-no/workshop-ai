@@ -10,6 +10,7 @@ import type { Caller } from "./autentisering.ts";
 import { effektivtUtfall, replaceParametere } from "./prosess.ts";
 import { hasGyldigSamtykke } from "./regler.ts";
 import { findRessurs, runRessurs, samtykkekildeFor, type RessursContext } from "./ressurser.ts";
+import { kilderMedSamtykke } from "./samtykke.ts";
 import { finnSisteSoknad, getProsesserForVisning, newId } from "./state.ts";
 import { kombinerAlternativstatuser, velgTilgangsstatus, type Tilgangsstatus } from "./tilgangsstatus.ts";
 import { alternativLabel, alternativVerdi } from "./types.ts";
@@ -27,6 +28,15 @@ export type TilgangPerCase = {
   prosessId: string;
   status: Tilgangsstatus;
   manglerSamtykke?: Datakilde[];
+  /**
+   * Datakildene forhåndssjekken leser bak samtykkeporten, enten samtykket er
+   * gitt eller ikke - `manglerSamtykke` er de av dem som mangler nå.
+   *
+   * Begge trengs. En flate som bare har `manglerSamtykke` mister saken av syne
+   * i det samtykket blir gitt, og kan da verken si hva den leser eller la
+   * innbyggeren trekke det igjen.
+   */
+  samtykkekilder?: Datakilde[];
   soknadId?: string;
   /**
    * Bare til stede når SJEKK-steget avhenger av et spørsmålssvar med et lukket
@@ -38,6 +48,15 @@ export type TilgangPerCase = {
 
 export type TilgangsoversiktSvar = {
   tilganger: TilgangPerCase[];
+  /**
+   * Datakildene personen har et gyldig samtykke for nå, på tvers av saker.
+   *
+   * Hører til svaret og ikke til hver rad, fordi et samtykke gjør det: det
+   * gjelder datakilden, ikke saken som spurte. To saker som leser inntekt deler
+   * det samme jaet, og en flate som viser dem som to uavhengige brytere lyver om
+   * hva den ene skrur av.
+   */
+  harSamtykke: Datakilde[];
 };
 
 export async function byggTilgangsoversikt(
@@ -50,7 +69,7 @@ export async function byggTilgangsoversikt(
   for (const prosess of caser) {
     tilganger.push(await vurderCase(tilstand, personId, kaller, prosess.id, prosess.steg));
   }
-  return { tilganger };
+  return { tilganger, harSamtykke: kilderMedSamtykke(tilstand, personId) };
 }
 
 const SVAR_PLASSHOLDER = /\{svar\.([^.}]+)(?:\.([^}]+))?\}/;
@@ -77,7 +96,12 @@ function finnAlternativer(steg: ProsessSteg[], stegId: string, feltId?: string) 
   return felt.alternativer;
 }
 
-type EvalueringResultat = { status: Tilgangsstatus; manglerSamtykke?: Datakilde[] };
+type EvalueringResultat = {
+  status: Tilgangsstatus;
+  manglerSamtykke?: Datakilde[];
+  /** Kilden ressursen krever samtykke til, uavhengig av om det er gitt. */
+  samtykkekilde?: Datakilde;
+};
 
 /** Kjører samtykkesjekken og selve regelen for én ferdig utfylt SJEKK-URL. */
 async function evaluerUrl(
@@ -102,17 +126,18 @@ async function evaluerUrl(
     kaller
   };
   const kreverSamtykke = samtykkekildeFor(treff.ressurs, kontekst);
+  const kilde = kreverSamtykke ? { samtykkekilde: kreverSamtykke } : {};
   if (kreverSamtykke && !hasGyldigSamtykke(tilstand, personId, kreverSamtykke)) {
-    return { status: "krever-samtykke", manglerSamtykke: [kreverSamtykke] };
+    return { status: "krever-samtykke", manglerSamtykke: [kreverSamtykke], ...kilde };
   }
 
   try {
     const resultat = await runRessurs(tilstand, metode, url, { sporingsId, kaller, personId }) as SjekkResultat;
-    return { status: velgTilgangsstatus({ sjekkutfall: effektivtUtfall(resultat) }) };
+    return { status: velgTilgangsstatus({ sjekkutfall: effektivtUtfall(resultat) }), ...kilde };
   } catch {
     // En domenefeil her (f.eks. "fant ingen husstand") betyr at saken ikke passer
     // akkurat nå - ikke at selve oversikten har feilet.
-    return { status: "ikke-aktuell" };
+    return { status: "ikke-aktuell", ...kilde };
   }
 }
 
@@ -151,12 +176,16 @@ async function vurderCase(
     }
 
     const perAlternativ: TilgangAlternativ[] = [];
+    // Unionen over alternativene: hvert svar kan lede til sin egen regel, og et
+    // samtykke ett av dem trenger hører saken til uansett hvilket som velges.
+    const kilder = new Set<Datakilde>();
     for (const alternativ of alternativer) {
       const verdi = alternativVerdi(alternativ);
       const svarUrl = replaceParametere(sjekksteg.api.url, { personId, svar: { [uresolvert.stegId]: verdi } });
       const evaluering = await evaluerUrl(
         tilstand, personId, kaller, metode, new URL(`http://localhost${svarUrl}`)
       );
+      if (evaluering.samtykkekilde) kilder.add(evaluering.samtykkekilde);
       perAlternativ.push({
         verdi,
         label: alternativLabel(alternativ),
@@ -173,6 +202,7 @@ async function vurderCase(
       prosessId,
       status,
       ...(manglerSamtykke ? { manglerSamtykke } : {}),
+      ...(kilder.size > 0 ? { samtykkekilder: [...kilder] } : {}),
       alternativer: perAlternativ
     };
   }
@@ -182,6 +212,7 @@ async function vurderCase(
   return {
     prosessId,
     status: evaluering.status,
-    ...(evaluering.manglerSamtykke ? { manglerSamtykke: evaluering.manglerSamtykke } : {})
+    ...(evaluering.manglerSamtykke ? { manglerSamtykke: evaluering.manglerSamtykke } : {}),
+    ...(evaluering.samtykkekilde ? { samtykkekilder: [evaluering.samtykkekilde] } : {})
   };
 }

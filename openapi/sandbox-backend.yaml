@@ -696,6 +696,105 @@ paths:
         "403":
           $ref: "#/components/responses/ManglerHjemmel"
 
+  /api/personer/{personId}/samtykker:
+    post:
+      summary: Gi samtykket en sak trenger, uten å starte flyten
+      description: >
+        Samme samtykke som CONSENT_REQUEST-steget ber om, gitt fra en oversikt
+        over hva innbyggeren kan søke på. Både formålet og datakildene tas fra
+        prosessens eget CONSENT_REQUEST-steg - derfor navngir kroppen prosessen
+        og ikke kilden. Skriver samme vei som flyten, POST /fiks/samtykke og
+        PUT /fiks/samtykke/{samtykkeId}/svar hos fiks-simulator, så raden i
+        state/samtykker.json og de to hendelsene i revisjonsloggen er de samme.
+
+
+        Et behov som alt er dekket av et gyldig samtykke hoppes over, så to trykk
+        ikke gir to rader for samme kilde. `samtykker` er da tom.
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prosessId]
+              properties:
+                prosessId:
+                  type: string
+                  description: Prosessen samtykket gjelder. Se GET /api/prosesser.
+                  example: redusert-foreldrebetaling-barnehage
+      responses:
+        "200":
+          description: >
+            Ingenting ble opprettet, fordi et gyldig samtykke alt dekket det
+            saken trenger. `samtykker` er tom.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykkesvar"
+        "201":
+          description: Samtykkene som ble gitt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykkesvar"
+        "400":
+          description: >
+            Kroppen mangler prosessId, eller prosessen har ingen
+            CONSENT_REQUEST-steg - og da finnes hverken formål eller datakilder
+            å bære, og de skal ikke finnes på her.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "404":
+          $ref: "#/components/responses/IkkeFunnet"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
+
+  /api/personer/{personId}/samtykker/{datakilde}/trekk:
+    put:
+      summary: Trekk hvert gyldig samtykke som dekker datakilden
+      description: >
+        Datakilden og ikke samtykke-id-en, fordi det er datakilden innbyggeren
+        sier nei til. Flere gyldige samtykker kan dekke den samme kilden - de er
+        gitt til hvert sitt formål - og porten åpner på et hvilket som helst av
+        dem, så alle trekkes. Et tomt svar betyr at ingen gyldige fantes, og det
+        er ikke en feil: bryteren står da alt der innbyggeren vil ha den.
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+        - name: datakilde
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/Datakilde"
+      responses:
+        "200":
+          description: Samtykkene som ble trukket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Samtykkesvar"
+        "400":
+          description: Datakilden står ikke i kodeverket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+        "502":
+          $ref: "#/components/responses/OppstroemsFeil"
+
   /api/soknader:
     post:
       summary: Opprett en søknad
@@ -1744,8 +1843,19 @@ components:
           type: array
           description: Bare til stede når status er krever-samtykke.
           items:
-            type: string
-            enum: [inntekt, kontaktinfo, helseopplysninger, politiattest]
+            $ref: "#/components/schemas/Datakilde"
+        samtykkekilder:
+          type: array
+          description: >
+            Datakildene forhåndssjekken leser bak samtykkeporten, enten
+            samtykket er gitt eller ikke - `manglerSamtykke` er de av dem som
+            mangler nå. En flate som bare har `manglerSamtykke` mister saken av
+            syne i det samtykket blir gitt, og kan da verken si hva den leser
+            eller la innbyggeren trekke det igjen. Utelatt når saken ikke leser
+            noe bak porten, og når en ferdig behandlet søknad gjør at regelen
+            ikke kjøres.
+          items:
+            $ref: "#/components/schemas/Datakilde"
         soknadId:
           type: string
           description: Bare til stede når status er en av de tre allerede-*.
@@ -1773,16 +1883,75 @@ components:
               manglerSamtykke:
                 type: array
                 items:
-                  type: string
-                  enum: [inntekt, kontaktinfo, helseopplysninger, politiattest]
+                  $ref: "#/components/schemas/Datakilde"
+
+    Datakilde:
+      type: string
+      description: >-
+        Kodeverket ligger i apps/shared/samtykke.ts. Et samtykke dekker
+        datakilder, ikke saker, så to saker som leser inntekt deler det samme
+        jaet.
+      enum: [inntekt, kontaktinfo, helseopplysninger, politiattest]
+
     Tilgangsoversikt:
       type: object
-      required: [tilganger]
+      required: [tilganger, harSamtykke]
       properties:
         tilganger:
           type: array
           items:
             $ref: "#/components/schemas/TilgangPerCase"
+        harSamtykke:
+          type: array
+          description: >
+            Datakildene personen har et gyldig samtykke for nå, på tvers av
+            saker. Hører til svaret og ikke til hver rad, fordi et samtykke gjør
+            det: en flate som viser to inntektssaker som to uavhengige brytere
+            lyver om hva den ene skrur av.
+          items:
+            $ref: "#/components/schemas/Datakilde"
+
+    Samtykkestatus:
+      type: string
+      description: >-
+        Kodeverket ligger i apps/shared/samtykke.ts, og står også i
+        openapi/fiks-simulator.yaml - to tjenester svarer med det, og begge
+        kopiene måles mot den ene listen i koden. `IKKE_SAMTYKKET`, `TRUKKET` og
+        `UTLOEPT` er endelige. `UTLOEPT` utledes av `utloper` og skrives aldri.
+      enum: [VENTER_PAA_SVAR, SAMTYKKET, IKKE_SAMTYKKET, TRUKKET, UTLOEPT]
+
+    Samtykkesvar:
+      type: object
+      required: [samtykker]
+      properties:
+        samtykker:
+          type: array
+          description: >
+            Radene fiks-simulator svarte med, uendret. Hele formen står i
+            openapi/fiks-simulator.yaml, som eier den; feltene her er de en
+            flate trenger for å vise hva innbyggeren sa ja eller nei til.
+          items:
+            type: object
+            properties:
+              samtykkeId:
+                type: string
+              personId:
+                type: string
+              formaal:
+                type: string
+                description: Fra prosessens CONSENT_REQUEST-steg, ikke fra kalleren.
+              dataKilder:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Datakilde"
+              status:
+                $ref: "#/components/schemas/Samtykkestatus"
+              opprettet:
+                type: string
+                format: date-time
+              utloper:
+                type: string
+                format: date-time
 
     Forsendelsesstatus:
       type: string

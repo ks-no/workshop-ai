@@ -404,6 +404,59 @@ async function fritidskortflyt(personId: string, merkelapp: string, forventetGru
   }
 }
 
+/**
+ * Tilgangsoversikten og samtykkebryteren over den, hele veien rundt.
+ *
+ * Kortet «Hva du kan søke på» i innbyggerportalen er den ene flaten som gir
+ * samtykke uten å starte en flyt, og de tre kallene her er nøyaktig de tre den
+ * gjør. Dumpen pinner det oversikten lover: at raden sier hvilken kilde den
+ * leser (`samtykkekilder`) også etter at samtykket er gitt, at `harSamtykke`
+ * gjelder personen og ikke saken - så barnehage og SFO snur sammen på ett ja
+ * til inntekt - og at et trekk fører alle radene tilbake.
+ *
+ * person-012 er ikke brukt av noen annen flyt i dumpen, så «før» her er en
+ * person uten samtykker og ikke restene av et kall lenger oppe.
+ */
+async function samtykkebryter(personId: string, merkelapp: string) {
+  await call(`${merkelapp}-foer`, `/api/personer/${personId}/tilganger`);
+  await call(`${merkelapp}-gi`, `/api/personer/${personId}/samtykker`, {
+    method: "POST",
+    body: { prosessId: "redusert-foreldrebetaling-barnehage" }
+  });
+  // Samme kall igjen: behovet er dekket, så svaret er tomt framfor en rad til.
+  await call(`${merkelapp}-gi-igjen`, `/api/personer/${personId}/samtykker`, {
+    method: "POST",
+    body: { prosessId: "redusert-foreldrebetaling-barnehage" }
+  });
+  // SFO leser den samme kilden, og har derfor allerede fått sitt ja.
+  await call(`${merkelapp}-gi-sfo`, `/api/personer/${personId}/samtykker`, {
+    method: "POST",
+    body: { prosessId: "sfo-moderasjon" }
+  });
+  await call(`${merkelapp}-etter`, `/api/personer/${personId}/tilganger`);
+  await call(`${merkelapp}-trekk`, `/api/personer/${personId}/samtykker/inntekt/trekk`, {
+    method: "PUT",
+    somPerson: personId
+  });
+  await call(`${merkelapp}-etter-trekk`, `/api/personer/${personId}/tilganger`);
+  // Trukket er endelig, så et nytt trekk har ingenting å ta - og det er et svar,
+  // ikke en feil.
+  await call(`${merkelapp}-trekk-igjen`, `/api/personer/${personId}/samtykker/inntekt/trekk`, {
+    method: "PUT",
+    somPerson: personId
+  });
+  // Prosessen uten CONSENT_REQUEST-steg: formålet finnes ikke, og da finnes det
+  // ikke noe å samtykke til heller.
+  await call(`${merkelapp}-uten-steg`, `/api/personer/${personId}/samtykker`, {
+    method: "POST",
+    body: { prosessId: "fartsdempende-tiltak" }
+  });
+  await call(`${merkelapp}-ukjent-kilde`, `/api/personer/${personId}/samtykker/finnes-ikke/trekk`, {
+    method: "PUT",
+    somPerson: personId
+  });
+}
+
 async function manglendeInntektsaar(stateDir: string) {
   const personer = JSON.parse(await readFile(path.join(repoRoot, "data/personer.json"), "utf8"));
   const inntekter = JSON.parse(await readFile(path.join(repoRoot, "data/inntekter.json"), "utf8"));
@@ -1095,6 +1148,7 @@ async function run() {
     ] as const) {
       await fritidskortflyt(personId, `fritidskort-utkast-${personId}`, grunnlag);
     }
+    await samtykkebryter("person-012", "tilganger-bryter");
     await manglendeInntektsaar(stateDir);
     await stottekontaktflyt("person-001", "stottekontakt-innvilget", true);
     await stottekontaktflyt("person-003", "stottekontakt-fullt");

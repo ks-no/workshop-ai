@@ -368,15 +368,23 @@ const tjenester: Tjeneste[] = [
     navn: "sandbox-backend",
     spesifikasjon: "openapi/sandbox-backend.yaml",
     ruter: backendRuter,
-    // Forsendelsesstatus står i to spesifikasjoner fordi to tjenester svarer med
-    // det: fiks-simulator utleder statusen, og sandbox-backend proxer den videre
-    // til søknadens eier. Kopien er greit så lenge den er portet - begge måles mot
-    // den ene kodeverkslisten i koden.
+    // Tre kodeverk står i to spesifikasjoner hver, fordi to tjenester svarer med
+    // dem: fiks-simulator utleder forsendelsesstatusen og eier samtykkeraden,
+    // sandbox-backend proxer begge videre til søknadens eier. Kopien er grei så
+    // lenge den er portet - begge måles mot den ene listen i koden.
     kodeverk: [
       {
         skjema: "Forsendelsesstatus",
         verdier: async () =>
           (await import("../apps/fiks-simulator/src/forsendelse.ts")).FORSENDELSESSTATUSER
+      },
+      {
+        skjema: "Samtykkestatus",
+        verdier: async () => (await import("../apps/shared/samtykke.ts")).SAMTYKKESTATUSER
+      },
+      {
+        skjema: "Datakilde",
+        verdier: async () => (await import("../apps/shared/samtykke.ts")).DATAKILDER
       }
     ],
     // Kodeverk som bare finnes i dataene, ikke som en konstant i koden. Sjekk 7

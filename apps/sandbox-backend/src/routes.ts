@@ -35,8 +35,10 @@ import {
 } from "./prosess.ts";
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
+import { giSamtykker, trekkSamtykker } from "./samtykke.ts";
 import { byggTilgangsoversikt } from "./tilgangsoversikt.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
+import { isDatakilde } from "../../shared/samtykke.ts";
 import { readForsendelsesstatus } from "./svarut.ts";
 import type { ProsessDefinisjon, Prosessoekt, State } from "./types.ts";
 import {
@@ -472,6 +474,52 @@ const ruter: Rute[] = [
     finnPersonId: ({ parametere }) => parametere.personId,
     handter: async ({ response, parametere, tilstand, kaller }) => {
       jsonResponse(response, 200, await byggTilgangsoversikt(tilstand, parametere.personId, kaller));
+    }
+  },
+  {
+    // Samtykket en sak trenger, gitt utenfor flyten. Prosessen navngis i kroppen
+    // framfor at kilden og formålet gjør det: begge deler står i prosessens eget
+    // CONSENT_REQUEST-steg, og et samtykke der kalleren skriver formålet selv er
+    // ikke det samme samtykket som flyten ber om. Se samtykke.ts.
+    metode: "POST",
+    sti: "/api/personer/:personId/samtykker",
+    finnPersonId: ({ parametere }) => parametere.personId,
+    handter: async ({ request, response, url, parametere, tilstand, kaller }) => {
+      const body = await readBodyOnce(request);
+      const prosessId = body?.prosessId;
+      if (!prosessId) {
+        throw new HttpError("Kroppen må ha prosessId - samtykket hentes fra prosessens CONSENT_REQUEST-steg.", 400);
+      }
+      const prosess = findProsess(tilstand, prosessId);
+      if (!prosess) {
+        throw new HttpError("Fant ikke prosess.", 404);
+      }
+      const samtykker = await giSamtykker(
+        tilstand, parametere.personId, prosess, kaller, getSporingsId(url)
+      );
+      // 201 sier at noe ble opprettet, og et behov som alt var dekket opprettet
+      // ingenting. Å svare 201 på begge ville gjort statusen til en kvittering
+      // for at kallet kom fram, ikke for hva det gjorde.
+      jsonResponse(response, samtykker.length > 0 ? 201 : 200, { samtykker });
+    }
+  },
+  {
+    // Datakilden og ikke samtykke-id-en, fordi det er datakilden innbyggeren sier
+    // nei til. Flere gyldige samtykker kan dekke den samme kilden, og porten
+    // åpner på et hvilket som helst av dem - så et halvt tilbaketrekk ville sett
+    // ut som ingenting skjedde.
+    metode: "PUT",
+    sti: "/api/personer/:personId/samtykker/:datakilde/trekk",
+    finnPersonId: ({ parametere }) => parametere.personId,
+    handter: async ({ response, url, parametere, tilstand, kaller }) => {
+      const datakilde = parametere.datakilde;
+      if (!isDatakilde(datakilde)) {
+        throw new HttpError(`${datakilde} er ingen kjent datakilde. Se GET /api/katalog/ressurser.`, 400);
+      }
+      const samtykker = await trekkSamtykker(
+        tilstand, parametere.personId, datakilde, kaller, getSporingsId(url)
+      );
+      jsonResponse(response, 200, { samtykker });
     }
   },
   {
