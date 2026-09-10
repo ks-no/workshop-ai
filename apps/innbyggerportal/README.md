@@ -79,6 +79,87 @@ prosessdefinisjonene skjemaet tegnes fra, `demo-gui` er en annen flate på den s
 motoren, og `tools-api` og `process-agent` er agentveien inn - ingen av dem kalles av
 portalen.
 
+## Frontend og backend
+
+Portalen er to ting som lett forveksles: en **sidetjener** og en **klient**. Tjeneren
+på `:3002` serverer HTML og sidescript, og har én egen API-rute, `/api/minside`, som
+leser `data/` og `state/` rett fra disken. Klienten er sidescriptene som kjører i
+nettleseren, og de snakker med `sandbox-backend` på `:8080` **uten å gå via tjeneren**.
+
+```
+nettleser ──► innbyggerportal :3002   sider og /api/minside (leser disk)
+    │
+    └───────► sandbox-backend :8080   alt som er samtykkegatet, med token
+```
+
+**Hvorfor nettleseren kaller backend selv.** Tokenet er innbyggerens, utstedt til hen
+av ID-porten. Portalen får det aldri. Et samtykkegatet oppslag blir dermed
+autentisert som innbyggeren, havner i revisjonsloggen med hen som aktør, og avvises
+når samtykket mangler. Hadde portalen stått i midten og hentet på vegne av
+innbyggeren, måtte den hatt tokenet, og sporet ville pekt på portalen framfor på den
+som faktisk ba om opplysningen.
+
+**Derfor har Min side to kilder på én side:**
+
+| Kort | Hvor det kommer fra | Trenger token |
+| --- | --- | --- |
+| Aktuelt for deg, profil, sak, tjenester, kalender | `/api/minside` i portalen, lest fra disk | Nei |
+| Hva du kan søke på | `sandbox-backend`, med innbyggerens token | Ja |
+| Søknadsskjemaet, inkludert innsending | `sandbox-backend`, med innbyggerens token | Ja |
+
+Det er også hvorfor tilgangskortet feiler for seg selv: er backend nede, melder det
+fra i sitt eget kort, og resten av siden står fordi den ble lest fra disk.
+
+### Snarveien, og hva den koster
+
+`/api/minside` er **ikke** autentisert, og den leser filer backend ville nektet å
+utlevere uten samtykke:
+
+```
+GET :3002/api/minside/person-008              -> 200, med e-post og telefon i svaret
+GET :8080/api/personer/person-008/kontaktinfo -> 401
+```
+
+| Filen portalen leser | Datakilden backend gater den som |
+| --- | --- |
+| `data/inntekter.json` | `inntekt` |
+| `data/krr.json` | `kontaktinfo` |
+| `data/legeerklaeringer.json` | `helseopplysninger` |
+| `data/politiattester.json` | `politiattest` |
+
+Samme opplysning, to dører, to forskjellige svar. I sandkassen er dataene syntetiske
+og portene bundet til `127.0.0.1`, så dette lekker ingenting ekte. Men **mønsteret er
+det motsatte av det sandkassen ellers lærer bort**, og AGENTS.md er tydelig på at
+sperrer og samtykke håndheves i backend: frontenden viser tilstanden, den lager den
+ikke.
+
+Skal portalen bli mer enn en demo, er det to veier ut, og valget er ikke tatt:
+
+1. **Flytt de gatede kortene over på backend.** Kalenderen og kontaktblokken hentes da
+   med token som resten, og forsvinner når samtykket mangler - slik de skal.
+2. **La `/api/minside` kreve token og sjekke samtykke selv.** Da får sandkassen to
+   implementasjoner av den samme porten, og det er nettopp det `apps/shared/` finnes
+   for å unngå.
+
+Den første er den riktige. Den er ikke gjort fordi kortene ble skrevet før
+tilgangskortet fantes, og fordi en side som leser fra disk virker uten at hele stakken
+kjører - som er en ekte fordel på et hackathon, og en dårlig unnskyldning etterpå.
+
+### Ingen delte typer
+
+Klienten erklærer formene fra backend på nytt, lokalt: `Tilgangsstatus` og
+`TilgangPerCase` i `src/client/minside.ts`, `Prosess`, `Steg` og `Felt` i
+`src/client/soknad.ts`. `minside.ts` bruker på sin side den globale `Prosess` fra
+`felles.ts`, så delingen er ikke konsekvent. Det lokale er med vilje. Tjenestene her
+snakker HTTP og deler ikke interne biblioteker, så en `import` fra `sandbox-backend`
+ville gjort en frontend til en kompileringsavhengighet av en tjeneste den bare kaller.
+
+Wire-formatet er frosset, så feltnavnene kan ikke gli fra hverandre i stillhet. Det
+som kan gli, er dekningen: en ny status eller en ny felttype i backend blir ikke en
+kompileringsfeil her, den blir en tom rute i grensesnittet. `TILGANGSVISNING` er
+derfor en `Record<Tilgangsstatus, ...>` - legges en status til i den lokale unionen,
+krever kompilatoren en visning for den.
+
 ## Hva den viser
 
 | Kort | Hva som står der | Hvor tallene kommer fra |
@@ -315,3 +396,9 @@ Så <http://localhost:3002>.
 Vil du bygge videre: legg til et kort, ikke en side. Datagrunnlaget samles ett sted, i
 `src/minside.ts`, og klienten tegner det den får. Et nytt kort er en ny nøkkel i
 `Minside` og en ny `tegn`-funksjon.
+
+**Før du bygger videre, les [`apps/innbyggerportal/gjennomgang.md`](gjennomgang.md).** Den har
+sikkerhetstesten, en kvalitetsvurdering og anbefalingene for veien videre - blant
+annet at `/api/minside` er uautentisert og leser fire filer backend gater bak
+samtykke. Det er det første som bør rettes, og det er verdt å vite om før du kopierer
+mønsteret inn i din egen frontend.
