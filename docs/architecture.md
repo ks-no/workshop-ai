@@ -85,6 +85,7 @@ flowchart LR
   subgraph klienter["Klienter"]
     PB["process-builder"]
     DG["demo-gui"]
+    IP["innbyggerportal"]
     PAG["process-agent"]
   end
 
@@ -120,7 +121,9 @@ flowchart LR
 ```
 
 Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
-en flyt: den utsteder tokenene de fire beskyttede API-ene krever.
+en flyt: den utsteder tokenene de fire beskyttede API-ene krever. `innbyggerportal`
+står for seg av motsatt grunn: den kaller ingen av de andre, men leser `data/` og
+`state/` rett fra disken slik `tools-api` gjør med brreg- og folkeregisterseeden.
 
 
 ## Dynamisk verktøyoppdagelse i agenten
@@ -151,7 +154,7 @@ Det betyr at:
 
 ## Status og kjente avvik
 
-Alle elleve tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+Alle tolv tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og sju demo-case er på plass. Det som følger er
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.

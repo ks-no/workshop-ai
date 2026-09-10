@@ -24,8 +24,8 @@ set RECREATE=
 rem The eleven Node services. Naming them explicitly keeps the ~4 GB ollama image
 rem out of the pull: it has no compose profile, so a bare "up -d" would start it
 rem even though this script never downloads a model for it to serve.
-set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder
-set SERVICE_PORTS=3000 3001 8080 8081 8082 8083 8084 8085 8086 8087 8088
+set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder innbyggerportal
+set SERVICE_PORTS=3000 3001 3002 8080 8081 8082 8083 8084 8085 8086 8087 8088
 
 :parse_args
 if "%~1"=="--reload" (set "RELOAD=1" & shift & goto parse_args)

@@ -99,6 +99,26 @@ services:
     volumes:
       - ./:/workspace
 
+  innbyggerportal:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["/bin/sh", "scripts/dev.sh", "apps/innbyggerportal/src/server.ts"]
+    environment:
+      - PORT=3002
+      - WATCH_POLL=${WATCH_POLL:-0}
+      # Sidescriptet er .ts og strippes ved servering med
+      # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en
+      # advarsel per kall. Bare frontendene demper den - en global demping ville
+      # skjult ekte advarsler andre steder.
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:3002:3002"
+    volumes:
+      - ./:/workspace
+
   digdir-mock:
     healthcheck:
       <<: *helsesjekk

@@ -12,6 +12,7 @@
     "start:tools": "node apps/tools-api/src/server.ts",
     "start:agent": "node apps/process-agent/src/server.ts",
     "start:demo": "node apps/demo-gui/src/server.ts",
+    "start:innbyggerportal": "node apps/innbyggerportal/src/server.ts",
     "start:prosessbygger": "node apps/process-builder/src/server.ts",
     "start:matrikkel": "node apps/matrikkel-mock/src/server.ts",
     "start:digdir": "node apps/digdir-mock/src/server.ts",
@@ -55,7 +56,7 @@
     "test:tools-matrikkel": "node scripts/test-tools-matrikkel.ts",
     "test:agent:matrikkel": "node scripts/test-process-agent-matrikkel.ts",
     "lint": "tsc --noEmit && pnpm lint:klient",
-    "lint:klient": "tsc -p apps/shared/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client",
+    "lint:klient": "tsc -p apps/shared/client && tsc -p apps/demo-gui/src/client && tsc -p apps/process-builder/src/client && tsc -p apps/innbyggerportal/src/client",
     "format": "echo \"Ingen formatter konfigurert ennå\""
   },
   "engines": {

@@ -56,7 +56,7 @@ Sjekk at du har det:
 docker --version && node --version && git --version
 ```
 
-**Portene `3000`, `3001` og `8080`–`8088` må være ledige.** Med modell trengs også
+**Portene `3000`–`3002` og `8080`–`8088` må være ledige.** Med modell trengs også
 `11434` til Ollama. Er en av dem
 opptatt, står det i `docs/feilsoking.md` hvordan du finner ut hvilken.
 
@@ -97,7 +97,7 @@ Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles AP
 
 ## Status
 
-Elleve kjørende tjenester, én valgfri avhengighet i kjøretid, sju komplette demo-case. På plass:
+Tolv kjørende tjenester, én valgfri avhengighet i kjøretid, sju komplette demo-case. På plass:
 
 - samtykkeflyt med sperre på inntektsdata uten samtykke, håndhevet ett sted
 - revisjonslogg over all datatilgang
@@ -160,7 +160,7 @@ faktisk svarer.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
 ekvivalent. `start.bat` sjekker portene, lager `.env` hvis den mangler, og venter til alle
-elleve tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
+tolv tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
 `--help`, men ingen modellflagg. **Den kjører alltid uten
 språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
 ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
@@ -271,7 +271,7 @@ ollama pull qwen2.5:14b
 cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
 docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
   tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock \
-  politiattest-mock demo-gui process-builder
+  politiattest-mock demo-gui process-builder innbyggerportal
 ```
 
 **Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
