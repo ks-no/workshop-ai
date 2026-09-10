@@ -2,7 +2,10 @@ import React, { useEffect, useState } from "react";
 import type { Person } from "../../types";
 import { hentPersoner } from "../../integrations/lommebokApi";
 
-const FORETRUKKET_PERSON_ID = "person-215";
+const TESTPERSONER = [
+  { personId: "person-215", scenario: "Ingen anmerkninger" },
+  { personId: "person-004", scenario: "Har anmerkning" }
+] as const;
 
 function harGyldigSkoleattest(person: Person): boolean {
   const attest = person.politiattest;
@@ -15,19 +18,26 @@ function harGyldigSkoleattest(person: Person): boolean {
 
 interface Props {
   onVelgPerson: (person: Person) => void;
+  onSimulerFullfortSak: (person: Person) => void;
 }
 
-export const StartPage: React.FC<Props> = ({ onVelgPerson }) => {
-  const [personer, setPersoner] = useState<Person[]>([]);
+export const StartPage: React.FC<Props> = ({ onVelgPerson, onSimulerFullfortSak }) => {
+  const [personer, setPersoner] = useState<Array<{ person: Person; scenario: string }>>([]);
   const [laster, setLaster] = useState(true);
   const [feil, setFeil] = useState<string | null>(null);
+  const [simuleringPersonId, setSimuleringPersonId] = useState("person-215");
 
   useEffect(() => {
     let aktiv = true;
     hentPersoner()
       .then((alle) => {
         if (!aktiv) return;
-        setPersoner(alle.filter(harGyldigSkoleattest));
+        setPersoner(
+          TESTPERSONER.flatMap(({ personId, scenario }) => {
+            const person = alle.find((kandidat) => kandidat.personId === personId);
+            return person && harGyldigSkoleattest(person) ? [{ person, scenario }] : [];
+          })
+        );
       })
       .catch((err) => {
         if (!aktiv) return;
@@ -41,7 +51,7 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson }) => {
     };
   }, []);
 
-  const foretrukket = personer.find((p) => p.personId === FORETRUKKET_PERSON_ID) ?? null;
+  const simuleringPerson = personer.find(({ person }) => person.personId === simuleringPersonId)?.person;
 
   return (
     <main className="start-page">
@@ -50,12 +60,13 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson }) => {
         <p>
           Denne demoen viser hvordan en søker på en skolejobb i Drammen kommune kan bruke en
           digital lommebok til å hente en formålsbekreftelse fra kommunen, legge den fram for
-          politiet, og levere den ferdige politiattesten tilbake til kommunen - uten papir.
+          politiet, og levere den ferdige politiattesten til riktig mottaker, Drammen kommune -
+          uten papir. Formålet er ansettelse i skolen.
         </p>
         <p className="start-page__merknad">
-          Velg en testperson under for å starte en ny sak. Personutvalget er begrenset til
-          syntetiske personer som allerede har en politiattest med formål «skole» i
-          sandkassedataene.
+          Velg én av to testpersoner for å prøve hele flyten. Den ene har ingen
+          anmerkninger, den andre har en anmerkning. Du kan også åpne en ferdigbehandlet
+          sak uten å gå gjennom stegene.
         </p>
       </div>
 
@@ -69,29 +80,43 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson }) => {
 
       {!laster && !feil && (
         <div className="start-page__personvelger">
-          {foretrukket && (
-            <button
-              type="button"
-              className="start-page__person start-page__person--anbefalt"
-              onClick={() => onVelgPerson(foretrukket)}
-            >
-              <span className="start-page__person-merke">Anbefalt eksempel</span>
-              <strong>{foretrukket.visningsnavn}</strong>
-              <span>{foretrukket.personId}</span>
-            </button>
-          )}
-          {personer.filter((p) => p.personId !== FORETRUKKET_PERSON_ID).map((person) => (
+          {personer.map(({ person, scenario }) => (
             <button
               type="button"
               key={person.personId}
               className="start-page__person"
               onClick={() => onVelgPerson(person)}
             >
+              <span className="start-page__person-merke">{scenario}</span>
               <strong>{person.visningsnavn}</strong>
               <span>{person.personId}</span>
             </button>
           ))}
-          {personer.length === 0 && <p>Fant ingen testpersoner med skole-politiattest.</p>}
+          {personer.length > 0 && (
+            <div className="start-page__simulering">
+              <span className="start-page__person-merke">Simulering</span>
+              <strong>Ferdigbehandlet sak</strong>
+              <label htmlFor="simulering-anmerkninger">Velg scenario</label>
+              <select
+                id="simulering-anmerkninger"
+                value={simuleringPersonId}
+                onChange={(event) => setSimuleringPersonId(event.target.value)}
+              >
+                {personer.map(({ person, scenario }) => (
+                  <option key={person.personId} value={person.personId}>{scenario}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => simuleringPerson && onSimulerFullfortSak(simuleringPerson)}
+                disabled={!simuleringPerson}
+              >
+                Åpne ferdigbehandlet sak
+              </button>
+            </div>
+          )}
+          {personer.length === 0 && <p>Fant ikke testpersonene for politiattestflyten.</p>}
         </div>
       )}
     </main>

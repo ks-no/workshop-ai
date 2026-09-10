@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CredentialKind, Person } from "../types";
+import type { CredentialKind, Person, VerificationRecord } from "../types";
 import {
   hentVerifiseringsresultat,
   hentVerifiseringsstatus,
@@ -19,17 +19,41 @@ export interface VerifiseringController {
 export function useVerifisering(
   kind: CredentialKind,
   person: Person | null,
-  dispatch: React.Dispatch<SakHandling>
+  dispatch: React.Dispatch<SakHandling>,
+  verification: VerificationRecord | null
 ): VerifiseringController {
   const [starter, setStarter] = useState(false);
   const pollingRef = useRef<number | null>(null);
   const gjeldendeTxRef = useRef<string | null>(null);
+  const statusfeilRef = useRef(0);
 
   useEffect(() => {
     return () => {
       if (pollingRef.current) window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
+      gjeldendeTxRef.current = null;
+      statusfeilRef.current = 0;
     };
   }, []);
+
+  useEffect(() => {
+    const transactionId =
+      verification?.stage === "venter_paa_presentasjon"
+        ? verification.transactionId
+        : null;
+
+    if (!transactionId) {
+      if (pollingRef.current) window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
+      gjeldendeTxRef.current = null;
+      statusfeilRef.current = 0;
+      return;
+    }
+
+    if (gjeldendeTxRef.current !== transactionId) {
+      void startPolling(transactionId);
+    }
+  }, [verification?.stage, verification?.transactionId, person?.personId]);
 
   function vurderOgAvgjor(claims: Record<string, unknown> | null) {
     if (!person) return;
@@ -53,13 +77,30 @@ export function useVerifisering(
       // Forkast svar fra en tidligere (avsluttet/nullstilt) transaksjon.
       if (gjeldendeTxRef.current !== transactionId) return;
 
+      if (status == null) {
+        statusfeilRef.current += 1;
+        if (statusfeilRef.current >= 3) {
+          if (pollingRef.current) window.clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          dispatch({ type: "VERIFISERING_FEILET", kind });
+        }
+        return;
+      }
+
+      statusfeilRef.current = 0;
       if (status === "AVAILABLE") {
         if (pollingRef.current) window.clearInterval(pollingRef.current);
+        pollingRef.current = null;
         const resultat = await hentVerifiseringsresultat(transactionId, kind);
         if (gjeldendeTxRef.current !== transactionId) return;
-        vurderOgAvgjor(resultat?.claims ?? null);
+        if (resultat) {
+          vurderOgAvgjor(resultat.claims);
+        } else {
+          dispatch({ type: "VERIFISERING_FEILET", kind });
+        }
       } else if (status === "FAILED" || status === "EXPIRED") {
         if (pollingRef.current) window.clearInterval(pollingRef.current);
+        pollingRef.current = null;
         dispatch({ type: "VERIFISERING_FEILET", kind });
       }
     }, 2000);

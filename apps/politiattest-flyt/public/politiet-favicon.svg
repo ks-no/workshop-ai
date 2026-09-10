@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Politiet">
+  <rect width="64" height="64" rx="14" fill="#002e5b"/>
+  <path d="M32 8 50 15v15c0 12-7.2 21.1-18 26C21.2 51.1 14 42 14 30V15l18-7Z" fill="#fff"/>
+  <path d="M32 13 45 18v12c0 8.8-4.8 15.8-13 20-8.2-4.2-13-11.2-13-20V18l13-5Z" fill="#002e5b"/>
+  <path d="M25 22h8.5c5.1 0 8.5 2.8 8.5 7.2 0 4.5-3.4 7.3-8.5 7.3H30V43h-5V22Zm5 4v6.5h3.1c2.5 0 3.9-1.1 3.9-3.3 0-2.1-1.4-3.2-3.9-3.2H30Z" fill="#fff"/>
+</svg>

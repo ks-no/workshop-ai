@@ -1,4 +1,5 @@
 import type { CaseState, CredentialKind, InboxMessage, IssuanceRecord, Person, VerificationRecord } from "../types";
+import { byggFormalsbevisClaims, byggPolitiattestClaims } from "../integrations/credentialDefinitions";
 
 const LAGRINGSNOEKKEL = "politiattest-flyt-case-v2";
 
@@ -25,10 +26,17 @@ export function tomSak(): CaseState {
 
 export function lastLagretSak(): CaseState {
   try {
-    const raw = sessionStorage.getItem(LAGRINGSNOEKKEL);
+    const erVerifiseringsretur = window.location.pathname === "/verifisering-fullfort";
+    const raw =
+      sessionStorage.getItem(LAGRINGSNOEKKEL) ??
+      (erVerifiseringsretur ? localStorage.getItem(LAGRINGSNOEKKEL) : null);
     if (!raw) return tomSak();
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || !("kommuneSaksstatus" in parsed)) return tomSak();
+    sessionStorage.setItem(LAGRINGSNOEKKEL, raw);
+    if (erVerifiseringsretur) {
+      localStorage.removeItem(LAGRINGSNOEKKEL);
+    }
     return parsed as CaseState;
   } catch {
     return tomSak();
@@ -37,11 +45,25 @@ export function lastLagretSak(): CaseState {
 
 export function lagreSak(state: CaseState): void {
   try {
-    sessionStorage.setItem(LAGRINGSNOEKKEL, JSON.stringify(state));
+    const serialized = JSON.stringify(state);
+    sessionStorage.setItem(LAGRINGSNOEKKEL, serialized);
+    const venterPaaRetur =
+      state.formalsbevis.verification?.stage === "venter_paa_presentasjon" ||
+      state.politiattest.verification?.stage === "venter_paa_presentasjon";
+    if (venterPaaRetur) {
+      localStorage.setItem(LAGRINGSNOEKKEL, serialized);
+    } else {
+      localStorage.removeItem(LAGRINGSNOEKKEL);
+    }
   } catch {
-    // sessionStorage kan være utilgjengelig (privat modus e.l.) - da mister vi bare
+    // Nettleserlagring kan være utilgjengelig (privat modus e.l.) - da mister vi bare
     // persistering ved refresh, resten av demoen fungerer fortsatt.
   }
+}
+
+export function slettLagretSak(): void {
+  sessionStorage.removeItem(LAGRINGSNOEKKEL);
+  localStorage.removeItem(LAGRINGSNOEKKEL);
 }
 
 export type SakHandling =
@@ -54,6 +76,8 @@ export type SakHandling =
   | { type: "VERIFISERING_GODKJENT"; kind: CredentialKind }
   | { type: "VERIFISERING_AVVIST"; kind: CredentialKind; aarsak: string }
   | { type: "VERIFISERING_FEILET"; kind: CredentialKind }
+  | { type: "POLITIATTEST_KONTROLL_FULLFORT" }
+  | { type: "SIMULER_FULLFORT_SAK"; person: Person }
   | { type: "NULLSTILL" };
 
 function bevisNoekkel(kind: CredentialKind): "formalsbevis" | "politiattest" {
@@ -68,6 +92,46 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
       neste.soknadsdato = new Date().toISOString().slice(0, 10);
       neste.kommuneSaksstatus = "venter_paa_politiattest";
       return neste;
+    }
+
+    case "SIMULER_FULLFORT_SAK": {
+      const tidspunkt = new Date().toISOString();
+      const formalsClaims = byggFormalsbevisClaims(handling.person);
+      const politiattestClaims = byggPolitiattestClaims(handling.person);
+      const utstedtBevis: IssuanceRecord = {
+        status: "tilbud_klart",
+        transactionId: null,
+        credentialOfferUri: null,
+        qrCodeDataUri: null,
+        issuedAt: tidspunkt,
+        simulated: true
+      };
+      return {
+        ...tomSak(),
+        person: handling.person,
+        soknadsdato: tidspunkt.slice(0, 10),
+        kommuneSaksstatus: "avsluttet",
+        formalsbevis: {
+          issuance: utstedtBevis,
+          verification: {
+            ...TOM_VERIFIKASJON,
+            stage: "godkjent",
+            claims: formalsClaims,
+            simulated: true,
+            verifiedAt: tidspunkt
+          }
+        },
+        politiattest: {
+          issuance: utstedtBevis,
+          verification: {
+            ...TOM_VERIFIKASJON,
+            stage: "godkjent",
+            claims: politiattestClaims,
+            simulated: true,
+            verifiedAt: tidspunkt
+          }
+        }
+      };
     }
 
     case "UTSTEDELSE_FULLFORT": {
@@ -165,6 +229,15 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
         }
       };
     }
+
+    case "POLITIATTEST_KONTROLL_FULLFORT":
+      if (
+        state.kommuneSaksstatus !== "politiattest_mottatt" ||
+        state.politiattest.verification?.stage !== "godkjent"
+      ) {
+        return state;
+      }
+      return { ...state, kommuneSaksstatus: "avsluttet" };
 
     case "NULLSTILL":
       return tomSak();

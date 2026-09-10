@@ -5,8 +5,7 @@ import { useVerifisering } from "../../state/useVerifisering";
 import type { VerifiseringController } from "../../state/useVerifisering";
 import { utstedBevis } from "../../integrations/lommebokApi";
 import {
-  formalsbevisRaderFraClaims,
-  politiattestInnholdRader
+  formalsbevisRaderFraClaims
 } from "../../integrations/credentialPresentation";
 import { StatusBadge } from "../shared/StatusBadge";
 import { QrPanel } from "../shared/QrPanel";
@@ -23,8 +22,14 @@ interface Props {
 export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifisering }) => {
   const person = sak.person;
   const formalsbevis = sak.formalsbevis;
-  const formalsverifisering = useVerifisering("formalsbekreftelse", person, dispatch);
+  const formalsverifisering = useVerifisering(
+    "formalsbekreftelse",
+    person,
+    dispatch,
+    formalsbevis.verification
+  );
   const automatiskStartet = React.useRef(false);
+  const politiattestUtstedelseStartet = React.useRef(false);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
 
@@ -37,6 +42,20 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
       automatiskStartet.current = false;
     });
   }, [person?.personId, formalsbevis.verification?.stage]);
+
+  React.useEffect(() => {
+    if (
+      !person ||
+      formalsbevis.verification?.stage !== "godkjent" ||
+      sak.politiattest.issuance ||
+      politiattestUtstedelseStartet.current
+    ) {
+      return;
+    }
+
+    politiattestUtstedelseStartet.current = true;
+    void utstedPolitiattest();
+  }, [person?.personId, formalsbevis.verification?.stage, sak.politiattest.issuance]);
 
   if (!person) {
     return (
@@ -83,10 +102,10 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
       </header>
 
       <section className="politiet-page__kort">
-        <h2>Kontroll av formålsbekreftelse</h2>
+        <h2>1. Bekreft formålet for søknaden</h2>
         <p>
-          Skann QR-koden med den digitale lommeboken for å vise formålsbekreftelsen fra
-          Drammen kommune.
+          Du er i gang med å søke om politiattest for jobb i skolen. Før søknaden kan
+          behandles, må du vise formålsbekreftelsen i den digitale lommeboken.
         </p>
 
         {formalsverifisering.starter && (
@@ -95,7 +114,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
 
         {formalsbevis.verification?.stage === "venter_paa_presentasjon" && formalsbevis.verification.transactionId && (
           <div className="verifisering-panel">
-            <StatusBadge tekst="Venter på at søkeren viser fram beviset" tone="venter" />
+            <StatusBadge tekst="Venter på at søkeren viser formålsbekreftelsen for søknaden" tone="venter" />
             <QrPanel
               verdi={formalsbevis.verification.authorizationRequest || ""}
             />
@@ -104,7 +123,6 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
 
         {formalsbevis.verification?.stage === "godkjent" && (
           <>
-            <StatusBadge tekst="Formål bekreftet: skole" tone="suksess" />
             <MetadataTable
               tittel="Opplysninger Politiet hentet fra beviset"
               rader={formalsbevisRaderFraClaims(
@@ -134,46 +152,21 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
 
       {formalsbevis.verification?.stage === "godkjent" && (
         <section className="politiet-page__kort">
-          <h2>2. Utstedelse av politiattest</h2>
-          <p>Vandelskontrollen er gjennomført. Politiattesten kan nå utstedes til søkerens lommebok.</p>
-          <MetadataTable
-            tittel="Opplysninger Politiet legger i politiattesten"
-            rader={politiattestInnholdRader(person)}
-          />
-          {sak.politiattest.issuance == null && (
-            <button type="button" className="btn btn-primary" onClick={utstedPolitiattest} disabled={utstederLaster}>
-              {utstederLaster ? "Utsteder…" : "Utsted politiattest"}
-            </button>
-          )}
+          <h2>Politiattesten din</h2>
+          <StatusBadge tekst="Formålet er verifisert som gyldig" tone="suksess" />
+          <p>
+            Formålsbekreftelsen er kontrollert og godkjent. Legg politiattesten i den
+            digitale lommeboken. Når den er lagret, kan du vise den til Drammen kommune.
+          </p>
+          {utstederLaster && <p>Gjør klar politiattesten…</p>}
           {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
-          {sak.politiattest.issuance && (
-            <>
-              <StatusBadge
-                tekst={
-                  sak.politiattest.issuance.status === "tilbud_klart"
-                    ? "Politiattesten er klar til henting"
-                    : "Utstedelsen feilet"
-                }
-                tone={sak.politiattest.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
+          {sak.politiattest.issuance?.status === "tilbud_klart" &&
+            sak.politiattest.issuance.credentialOfferUri && (
+              <QrPanel
+                verdi={sak.politiattest.issuance.credentialOfferUri}
+                bildeUrl={sak.politiattest.issuance.qrCodeDataUri}
               />
-              {sak.politiattest.issuance.status === "tilbud_klart" &&
-                sak.politiattest.issuance.credentialOfferUri && (
-                  <div className="verifisering-panel">
-                    <p>Skann QR-koden med lommeboken for å hente politiattesten.</p>
-                    <QrPanel
-                      verdi={sak.politiattest.issuance.credentialOfferUri}
-                      bildeUrl={sak.politiattest.issuance.qrCodeDataUri}
-                    />
-                    <a
-                      href={sak.politiattest.issuance.credentialOfferUri}
-                      className="btn btn-secondary"
-                    >
-                      Åpne i lommebok på denne enheten
-                    </a>
-                  </div>
-                )}
-            </>
-          )}
+            )}
         </section>
       )}
 

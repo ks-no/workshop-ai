@@ -82,8 +82,7 @@ export interface VerifiseringStartResultat {
 // POST /api/v1/bevisgenerator-login/verify/start/ - starter OpenID4VP-presentasjon.
 export async function startVerifisering(kind: CredentialKind): Promise<VerifiseringStartResultat> {
   const requestBody = {
-    dcql_query: dcqlQueryFor(kind),
-    redirect_uri: `${window.location.origin}/verifisering-fullfort`
+    dcql_query: dcqlQueryFor(kind)
   };
 
   const res = await fetch(`/api/v1/${VERIFIER_CLIENT_APP}/verify/start/`, {

@@ -39,6 +39,13 @@ button {
   flex-direction: column;
 }
 
+.start-page,
+.politiet-page,
+.kommune-page,
+.innboks-page {
+  width: 100%;
+}
+
 /* --- Admin-navigasjon (testverktøy, ikke del av noen av de simulerte systemene) --- */
 .admin-nav {
   display: flex;
@@ -119,6 +126,12 @@ button {
   color: #fff;
 }
 
+.admin-nav__lenke:focus-visible,
+.admin-nav__nullstill:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* --- Delte komponenter --- */
 .status-badge {
   display: inline-block;
@@ -152,6 +165,17 @@ button {
   color: var(--venter);
   text-align: center;
   margin: 0;
+}
+
+.qr-panel__kode {
+  max-width: 100%;
+}
+
+.qr-panel__kode img,
+.qr-panel__kode svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 .metadata-table {
@@ -207,6 +231,12 @@ button {
   cursor: not-allowed;
 }
 
+.btn:focus-visible,
+.start-page__person:focus-visible {
+  outline: 3px solid #1c4ed8;
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background: #1c4ed8;
   color: #fff;
@@ -256,6 +286,7 @@ button {
 
 .start-page__intro h1 {
   font-size: 1.6rem;
+  margin-top: 0;
 }
 
 .start-page__merknad {
@@ -297,6 +328,33 @@ button {
   letter-spacing: 0.05em;
   color: #1c4ed8;
   font-weight: 700;
+}
+
+.start-page__simulering {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid #1c4ed8;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #eef2ff;
+}
+
+.start-page__simulering select {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--tekst);
+  font: inherit;
+}
+
+.start-page__simulering select:focus-visible {
+  outline: 3px solid #1c4ed8;
+  outline-offset: 2px;
 }
 
 /* --- Politiet-siden: mørkeblå myndighetsdrakt, inspirert av politiet.no --- */
@@ -341,6 +399,7 @@ button {
 .politiet-page__kort h2 {
   color: var(--politiet-bla);
   font-size: 1.05rem;
+  margin-top: 0;
 }
 
 .politiet-page__hjelpetekst {
@@ -387,9 +446,44 @@ button {
   opacity: 0.85;
 }
 
+.kommune-page__sakshode {
+  min-width: 0;
+}
+
 .kommune-page__header h1 {
   margin: 0.15rem 0 0;
   font-size: 1.3rem;
+}
+
+.kommune-page__stilling {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+}
+
+.kommune-page__saksstatus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.7rem;
+  font-size: 0.8rem;
+}
+
+.kommune-page__saksstatus span:first-child {
+  font-weight: 700;
+}
+
+.kommune-page__innlogget {
+  display: flex;
+  flex-direction: column;
+  margin-left: auto;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 0.8rem;
+}
+
+.kommune-page__innlogget small {
+  margin-top: 0.15rem;
+  opacity: 0.85;
 }
 
 .kommune-page__saksinfo,
@@ -404,10 +498,16 @@ button {
 .kommune-page__kort h2 {
   color: var(--drammen-groenn);
   font-size: 1.05rem;
+  margin-top: 0;
 }
 
 .kommune-page__venteboks {
   text-align: center;
+}
+
+.politiet-page__kort > .btn,
+.kommune-page__kort > .btn {
+  margin-top: 1rem;
 }
 
 /* --- Innboks: Digipost-inspirert digital postkasse --- */
@@ -426,10 +526,12 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   min-height: 76px;
   padding: 0.75rem 1.5rem;
   background: var(--digipost-rod);
   color: #fff;
+  flex-wrap: wrap;
 }
 
 .innboks-page__merke,
@@ -460,6 +562,7 @@ button {
 
 .innboks-page__bruker {
   gap: 0.65rem;
+  margin-left: auto;
 }
 
 .innboks-page__bruker > span:last-child {
@@ -751,6 +854,11 @@ button {
   color: var(--tekst-lys);
 }
 
+.innboks-page__tom--visning {
+  margin: 0;
+  padding: 2rem;
+}
+
 @media (max-width: 960px) {
   .innboks-page__layout {
     grid-template-columns: 1fr;
@@ -773,6 +881,18 @@ button {
 }
 
 @media (max-width: 720px) {
+  .kommune-page__header {
+    align-items: flex-start;
+  }
+
+  .kommune-page__innlogget {
+    width: 100%;
+    margin-left: 0;
+    padding: 0.75rem 0 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.35);
+    border-left: none;
+  }
+
   .innboks-page__post {
     grid-template-columns: 1fr;
   }
@@ -790,5 +910,16 @@ button {
   .innboks-page__brevinnhold {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .metadata-table__rad {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .metadata-table__rad dd {
+    text-align: left;
   }
 }

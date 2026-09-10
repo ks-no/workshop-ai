@@ -12,7 +12,7 @@ interface Props {
 const SIDER: Array<{ id: SystemPage; label: string }> = [
   { id: "start", label: "Start" },
   { id: "kommune", label: "Drammen kommune (saksbehandler)" },
-  { id: "politiet", label: "Politiet" },
+  { id: "politiet", label: "Politiet (bruker)" },
   { id: "innboks", label: "Innboks (bruker)" }
 ];
 

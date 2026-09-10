@@ -1,12 +1,16 @@
 export const INGEN_ANMERKNINGER_MARKOER = "ingen_anmerkninger" as const;
+export const HAR_ANMERKNING_MARKOER = "har_anmerkning" as const;
 
 /**
  * Testutstederens politiattest-konfigurasjon krever en ikke-tom liste selv når
- * attesten ikke har anmerkninger. Antallet er fortsatt null; markøren finnes bare
- * for å representere den tomme listen i det eksterne bevisformatet.
+ * attesten ikke har anmerkninger, men lommeboken kan ikke utstede beviset når
+ * listen inneholder strukturerte objekter. Antallet er autoritativt; markørene
+ * representerer bare listen i det eksterne bevisformatet uten lovbruddsdetaljer.
  */
-export function anmerkningerForLommebok<T>(
-  anmerkninger: T[]
-): Array<T | typeof INGEN_ANMERKNINGER_MARKOER> {
-  return anmerkninger.length > 0 ? anmerkninger : [INGEN_ANMERKNINGER_MARKOER];
+export function anmerkningerForLommebok(
+  antallAnmerkninger: number
+): Array<typeof INGEN_ANMERKNINGER_MARKOER | typeof HAR_ANMERKNING_MARKOER> {
+  return antallAnmerkninger > 0
+    ? Array.from({ length: antallAnmerkninger }, () => HAR_ANMERKNING_MARKOER)
+    : [INGEN_ANMERKNINGER_MARKOER];
 }
