@@ -29,6 +29,7 @@
     "test:oppsummering": "node scripts/test-fartsdempende-oppsummering.ts",
     "test:skjerming": "node scripts/test-skjerming.ts",
     "test:vilkaar": "node scripts/test-vilkaar.ts",
+    "test:tilgangsstatus": "node scripts/test-tilgangsstatus.ts",
     "test:foedselsnummer": "node scripts/test-foedselsnummer.ts",
     "test:handleevne": "node scripts/test-handleevne.ts",
     "test:samtykke": "node scripts/test-samtykke.ts",

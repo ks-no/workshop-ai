@@ -624,6 +624,7 @@ pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.ts: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
+pnpm test:tilgangsstatus  # the classifier behind GET /api/personer/:personId/tilganger, pure functions
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
 pnpm test:imports         # the import graph between apps is a DAG, pure text analysis
@@ -676,8 +677,8 @@ pnpm test:bergen-matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
-  `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
+  `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:tilgangsstatus`, `test:foedselsnummer`,
+  `test:handleevne`, `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:concurrency`,
   `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:startup`, `test:kodeverk`,
   `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog`, `test:tools-matrikkel`,
   `test:agent:matrikkel`, `test:matrikkel-mock` and `test:kontrakt` on every PR

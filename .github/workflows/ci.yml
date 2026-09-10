@@ -82,6 +82,13 @@ jobs:
       - name: Vilkårsvurderingen
         run: pnpm test:vilkaar
 
+      # Klassifiseringen bak GET /api/personer/:personId/tilganger, som ren
+      # funksjon. I/O-halvparten (tilgangsoversikt.ts) gjenbruker de samme
+      # ressursene og samtykkesjekkene som resten av motoren, og dekkes derfor av
+      # de eksisterende samtykke- og revisjonstestene i stedet for en egen kopi her.
+      - name: Tilgangsstatus
+        run: pnpm test:tilgangsstatus
+
       # Modulus 11 and Skatteetaten's +80 marker, as pure functions. The seed only
       # contains numbers we generate, so every *rejection* - an ordinary month, a
       # wrong second control digit, an individual number whose mod-11 rest is 10 -

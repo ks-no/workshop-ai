@@ -669,6 +669,33 @@ paths:
         "403":
           $ref: "#/components/responses/ManglerHjemmel"
 
+  /api/personer/{personId}/tilganger:
+    get:
+      summary: Tilgangsoversikt - hvilke saker personen kan søke på nå
+      description: >
+        For hver publiserte prosess: er det allerede sendt en søknad, og med
+        hvilket utfall - eller, om ikke, mangler samtykke til noe regelen
+        trenger, eller kan regelen kjøres på forhånd med det vi vet nå. Feiler
+        aldri på manglende samtykke: det er selve poenget med endepunktet at
+        `krever-samtykke` er et gyldig svar, ikke en 403. Bygger på GET
+        /api/regler/sjekk/ordning og GET /api/regler/sjekk/vandel - de samme
+        SJEKK-ressursene en prosessøkt selv ville kalt - så samtykkesperren og
+        revisjonsloggen er nøyaktig de samme.
+      security:
+        - idporten: []
+        - maskinporten: [ks:innbyggerdialog:les]
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Tilgangsoversikten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tilgangsoversikt"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+
   /api/soknader:
     post:
       summary: Opprett en søknad
@@ -1630,6 +1657,16 @@ components:
             utsendingen gikk gjennom - feilet den, står advarselen i `forsendelse`
             på SUBMIT-svaret og raden har ingen id. Nøkkelen
             GET /api/soknader/{soknadId}/forsendelse slår opp på.
+        utfall:
+          type: string
+          enum: [godkjent, avvist, til_manuell]
+          description: >
+            Utfallet fra SJEKK-steget da søknaden ble sendt inn, se `utfall` på
+            SjekkResultat. Bare til stede når søknaden kom fra et SUBMIT-steg i en
+            prosessøkt, og bare når samtykket bak SJEKK-resultatet fortsatt var
+            gyldig på det tidspunktet - POST /api/soknader direkte har det aldri.
+            GET /api/personer/{personId}/tilganger leser dette feltet for å svare
+            "allerede godkjent/avvist" uten å kjøre regelen på nytt.
     SoknadMedOppgave:
       allOf:
         - $ref: "#/components/schemas/Soknad"
@@ -1676,6 +1713,77 @@ components:
                   type: string
                 syntetisk:
                   type: boolean
+
+    Tilgangsstatus:
+      type: string
+      enum:
+        - allerede-godkjent
+        - allerede-avvist
+        - til-manuell-vurdering
+        - krever-samtykke
+        - ikke-aktuell
+        - tilgjengelig
+      description: >
+        apps/sandbox-backend/src/tilgangsstatus.ts har den fullstendige
+        rekkefølgen reglene avgjøres i. De tre "allerede-*" kommer fra en
+        tidligere innsendt søknad. `krever-samtykke` betyr ingen søknad ennå og
+        regelen mangler samtykke til noe den trenger. `ikke-aktuell` betyr
+        regelen er kjørt på forhånd og svarer nei. `tilgjengelig` er både et ja
+        og "vi vet ikke ennå, men utelukker deg ikke" - blant annet for en sak
+        der SJEKK-steget avhenger av et spørsmålssvar som ikke finnes før
+        søknaden er påbegynt.
+    TilgangPerCase:
+      type: object
+      required: [prosessId, status]
+      properties:
+        prosessId:
+          type: string
+        status:
+          $ref: "#/components/schemas/Tilgangsstatus"
+        manglerSamtykke:
+          type: array
+          description: Bare til stede når status er krever-samtykke.
+          items:
+            type: string
+            enum: [inntekt, kontaktinfo, helseopplysninger, politiattest]
+        soknadId:
+          type: string
+          description: Bare til stede når status er en av de tre allerede-*.
+        alternativer:
+          type: array
+          description: >
+            Bare til stede når SJEKK-steget for saken avhenger av et
+            spørsmålssvar med et lukket sett alternativer, som hvilken rolle en
+            vandelskontroll gjelder - da er `status` denne listen kombinert
+            (tilgjengelig om ett alternativ er det, ellers krever-samtykke om
+            ett er det, ellers ikke-aktuell), ikke ett enkelt regelresultat. Et
+            spørsmål med et fritt tekstsvar, som hvilken gate en søknad om
+            fartsdempende tiltak gjelder, har ingenting å prøve og gir ikke
+            denne listen.
+          items:
+            type: object
+            required: [verdi, label, status]
+            properties:
+              verdi:
+                type: string
+              label:
+                type: string
+              status:
+                $ref: "#/components/schemas/Tilgangsstatus"
+              manglerSamtykke:
+                type: array
+                items:
+                  type: string
+                  enum: [inntekt, kontaktinfo, helseopplysninger, politiattest]
+    Tilgangsoversikt:
+      type: object
+      required: [tilganger]
+      properties:
+        tilganger:
+          type: array
+          items:
+            $ref: "#/components/schemas/TilgangPerCase"
+
     Forsendelsesstatus:
       type: string
       description: >-

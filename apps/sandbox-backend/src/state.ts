@@ -231,6 +231,16 @@ export function findProsessoekt(tilstand: State, oektsId: string) {
   return normalizeProsessoekt(oekt);
 }
 
+/** Den siste søknaden en person har sendt inn for en gitt prosess, eller null. */
+export function finnSisteSoknad(tilstand: State, personId: string, prosessId: string) {
+  const treff = tilstand.soknader.filter(
+    (soknad: any) => soknad.personId === personId && soknad.prosessId === prosessId
+  );
+  if (treff.length === 0) return null;
+  return treff.reduce((nyest: any, kandidat: any) =>
+    kandidat.opprettet > nyest.opprettet ? kandidat : nyest);
+}
+
 export function normalizeProsessoekt(oekt: Prosessoekt): Prosessoekt {
   // Feltet het `resultater` før samtykkeporten ble strammet. state/ er gitignorert og
   // `./start.sh --reset` tømmer det, men `--reload` gjør ikke, og en økt som lå der

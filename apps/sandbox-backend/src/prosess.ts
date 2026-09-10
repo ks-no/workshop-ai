@@ -22,6 +22,7 @@ import type {
   SpoersmaalsFelt,
   Prosessoekt,
   SjekkResultat,
+  Sjekkutfall,
   Stegtype,
   State
 } from "./types.ts";
@@ -160,7 +161,11 @@ export function invalidateStegOgSenere(
   return endret;
 }
 
-function replaceParametere(url: string, oekt: Prosessoekt) {
+/**
+ * Bare de to feltene den faktisk leser: tilgangsoversikt.ts har ingen ekte økt å
+ * gi den, bare en person og et tomt svar-sett.
+ */
+export function replaceParametere(url: string, oekt: Pick<Prosessoekt, "personId" | "svar">) {
   let result = url;
   result = result.replace(/{personId}/g, encodeURIComponent(oekt.personId));
   for (const [stegId, svarVerdi] of Object.entries(oekt.svar || {})) {
@@ -191,6 +196,16 @@ function replaceParametere(url: string, oekt: Prosessoekt) {
     }
   }
   return result;
+}
+
+/**
+ * Bare `vandel()` i vilkaar.ts setter `utfall` selv - de andre regeltypene svarer
+ * bare med `godkjent`. Denne utleder den samme tredelingen for dem, slik at en
+ * søknadsrad og en forhåndsvisning i tilgangsoversikt.ts kan lese ett felt uansett
+ * regeltype.
+ */
+export function effektivtUtfall(resultat: SjekkResultat): Sjekkutfall {
+  return resultat.utfall ?? (resultat.godkjent ? "godkjent" : "avvist");
 }
 
 type Samtykkekildeoppslag =
@@ -557,6 +572,12 @@ export async function createSoknad(
     opprettet: new Date().toISOString(),
     sporingsId: body.sporingsId || newId("flyt"),
     syntetisk: true,
+    // Utfallet fra SJEKK-steget, hentet av SUBMIT-håndteringen under - ikke av
+    // denne funksjonen. Uten det forsvinner vedtaket ut av syne i det søknaden er
+    // sendt inn: raden ville da bare vise SENDT_INN, som ingenting sier om
+    // resultatet. tilgangsoversikt.ts leser feltet for å svare "allerede godkjent"
+    // uten å måtte kjøre regelen på nytt.
+    ...(body.utfall ? { utfall: body.utfall } : {}),
     ...(dokumentInfo ? { soknadsdokument: dokumentInfo.dokument } : {})
   };
 
@@ -849,11 +870,18 @@ export const stegHandlers: { [T in Stegtype]: (k: StegContextFor<T>) => unknown 
     // Dokumentet lagres på søknadsraden og går til SvarUt, så det som står i det
     // kommer ikke ut igjen. Derfor samme port som svaret på økten.
     const dokument = buildSoknadsdokument(prosess, oekt, person, resultater);
+    // Kan mangle: hvis samtykket bak SJEKK-steget ble trukket før SUBMIT, er
+    // resultatet filtrert bort av resultaterNaa, og søknaden lagres uten utfall
+    // framfor å late som vi vet et vi ikke lenger har grunnlag for.
+    const sjekksteg = prosess.steg.find((s: ProsessSteg) => s.type === "SJEKK");
+    const sjekkresultat = sjekksteg ? resultater[sjekksteg.id] as SjekkResultat | undefined : undefined;
+    const utfall = sjekkresultat ? effektivtUtfall(sjekkresultat) : undefined;
     const data = await createSoknad({
       personId: oekt.personId,
       prosessId: oekt.prosessId,
       prosessNavn: prosess.navn,
-      sporingsId: oekt.sporingsId
+      sporingsId: oekt.sporingsId,
+      ...(utfall ? { utfall } : {})
     }, kaller, { dokument, person });
     lagreResultat(oekt, steg.id, data, samtykkekilder);
     oekt.status = "FULLFORT";

@@ -35,6 +35,7 @@ import {
 } from "./prosess.ts";
 import { findRessurs, ressurskatalog, runRessurs } from "./ressurser.ts";
 import { addRevisjon } from "./revisjon.ts";
+import { byggTilgangsoversikt } from "./tilgangsoversikt.ts";
 import { compilePathPattern, matchPath, type PathParams } from "./routing.ts";
 import { readForsendelsesstatus } from "./svarut.ts";
 import type { ProsessDefinisjon, Prosessoekt, State } from "./types.ts";
@@ -463,6 +464,14 @@ const ruter: Rute[] = [
     finnPersonId: ({ parametere }) => parametere.personId,
     handter: ({ response, parametere, tilstand }) => {
       jsonResponse(response, 200, tilstand.soknader.filter((soknad: any) => soknad.personId === parametere.personId));
+    }
+  },
+  {
+    metode: "GET",
+    sti: "/api/personer/:personId/tilganger",
+    finnPersonId: ({ parametere }) => parametere.personId,
+    handter: async ({ response, parametere, tilstand, kaller }) => {
+      jsonResponse(response, 200, await byggTilgangsoversikt(tilstand, parametere.personId, kaller));
     }
   },
   {
