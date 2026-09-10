@@ -1,9 +1,9 @@
 # Innbyggerportal
 
 **For deg som vil se hvordan en «Min side» for Stavanger kommune kan se ut når den
-bare får lov til å vise det sandkassen faktisk har.** Én side på `:3002`, bygget på KS
-Digital sitt designsystem, med profil, saksstatus, tjenester og kalender for én
-innbygger om gangen.
+bare får lov til å vise det sandkassen faktisk har.** To sider på `:3002`: en forside
+som hermer stavanger.kommune.no og har én knapp på seg, og Min side bak innlogging med
+profil, saksstatus, tjenester og kalender for den som logget inn.
 
 Siden er en **demo av en flate**, ikke en tvungen klient. Skal du bygge din egen
 frontend, hører den hjemme i ditt eget prosjekt mot de dokumenterte API-ene -
@@ -78,32 +78,88 @@ feiing og eiendomsskatt. Sandkassen har ingen datoer for noe av det, så de stå
 her. Kalenderen er kortere enn en ekte, og det er hele poenget: den viser hva
 datagrunnlaget rekker til.
 
+## Innlogging
+
+Forsiden har én knapp, og den går til ID-porten. Ikke den ekte: sandkassens mock i
+[`apps/digdir-mock`](../digdir-mock/README.md) på `:8086`, som viser en liste over
+testpersoner og signerer et token med sine egne nøkler.
+
+```
+/  ->  digdir-mock /idporten/authorize  ->  /callback  ->  /minside
+       (velg testperson)                   (code -> token)
+```
+
+Flyten er ikke skrevet på nytt her. Den bor i `apps/shared/client/felles.ts`, deles med
+demo-gui, og denne portalen er den andre kalleren: PKCE, `state` som bærer returstien,
+og tokenet i `sessionStorage` framfor `localStorage`, fordi det ikke skal overleve fanen
+på en delt maskin. Det eneste som skilte seg var navnet ID-porten viser innbyggeren, så
+`requireLogin` fikk en valgfri `clientId`. Standarden er uendret for de to andre
+frontendene.
+
+**Min side har ingen personvelger.** Under ID-porten velger man ikke hvem man er inne i
+applikasjonen, man beviser det hos utstederen. `pid`-kravet i tokenet er
+fødselsnummeret, og siden slår det opp. Vil du se en annen innbygger, logger du inn på
+nytt - velgeren står i ID-porten-mocken.
+
+Logger du inn som noen som bor i en annen kommune, svarer API-et `403` og siden sier
+hvilken kommune du hører til, framfor å vise en tom eller feil Min side. Hvem som kan
+logge inn i det hele tatt avgjøres av `apps/shared/handleevne.ts`, som digdir-mock
+leser: under 13 år, død, utflyttet eller D-nummer står ikke i listen.
+
 ## Ruter
 
 | Rute | Hva den gjør |
 | --- | --- |
-| `GET /` | Siden. Tar `?person=<personId>` |
-| `GET /api/innbyggere` | De voksne innbyggerne i kommunen, til velgeren øverst |
-| `GET /api/minside/{personId}` | Datagrunnlaget siden tegnes fra |
+| `GET /` | Forsiden, etter stavanger.kommune.no. Ingen andre lenker enn innloggingen |
+| `GET /minside` | Min side. Krever token, ellers sendes du til ID-porten |
+| `GET /callback` | Returadressen fra ID-porten. Bytter engangskoden i et token |
+| `GET /api/testbrukere` | Testpersonene i kommunen som kan logge inn, hentet fra digdir-mock |
+| `GET /api/minside/pid/{pid}` | Datagrunnlaget for den innloggede, slått opp på fødselsnummer |
+| `GET /api/minside/{personId}` | Samme, slått opp på personId |
+| `GET /api/innbyggere` | De voksne innbyggerne i kommunen |
 | `GET /helse` | `{ "status": "ok", "tjeneste": "innbyggerportal" }` |
 
-Portalen kaller ingen av de andre tjenestene. Den leser `data/` og `state/` rett fra
-disken gjennom `readJson` i `apps/shared/jsonstore.ts`, som ser i `state/` først. Kjører
-du en flyt i demo-GUI-et på `:3001`, dukker søknaden opp her ved neste sidelasting.
+Bortsett fra innloggingen kaller portalen ingen andre tjenester. Den leser `data/` og
+`state/` rett fra disken gjennom `readJson` i `apps/shared/jsonstore.ts`, som ser i
+`state/` først. Kjører du en flyt i demo-GUI-et på `:3001`, dukker søknaden opp her ved
+neste sidelasting.
+
+`DIGDIR_BASE_URL` er adressen tjeneren ringer ID-porten-mocken på, standard
+`http://localhost:8086`. Nettleseren bruker `localhost:8086` uansett, siden redirecten
+skjer der.
 
 ## Kjøring
 
 ```bash
 pnpm start:innbyggerportal      # eller: docker compose up -d innbyggerportal
+pnpm start:digdir               # innloggingen trenger denne
 ```
 
 Så <http://localhost:3002>.
 
 ## Teknisk
 
-- Statisk HTML og ett sidescript, null avhengigheter og ingen byggesteg.
-  `apps/innbyggerportal/src/client/minside.ts` serveres som `.ts` og type-strippes
-  ved servering, slik demo-gui gjør det.
+- Statisk HTML og ett sidescript per side, null avhengigheter og ingen byggesteg.
+  Scriptene under `src/client/` serveres som `.ts` og type-strippes ved servering, slik
+  demo-gui gjør det. Hver av dem starter med `export {}` og er dermed en modul, mens
+  den delte `felles.ts` er et klassisk skript hvis funksjoner er globale.
+- **Forsiden er det ene stedet som ikke bruker `--ds-*`-fargene.** Den skal se ut som
+  Stavanger kommune sin egen side, og KS Digital sitt tema bærer KS Digital sine farger.
+  Paletten og målene er lest av stavanger.kommune.no og står som `--sk-*` øverst i
+  `forside.html`, med en kommentar som sier hvorfor: lilla `#452b75`, gul strek på 3 px,
+  kontroller 50 px høye, innhold i en 1250 px kolonne, overskrifter 30 px i vekt 500 og
+  brødtekst 18 px. Fonten deres, TT Norms Pro, er lisensiert og ligger ikke i
+  sandkassen, så Inter står i stedet. Min side bruker designsystemet uendret.
+- **Bølgen og klattene er en SVG, ikke et bilde.** Den ekte siden legger dem som én PNG
+  med `background-size: 100% auto` forankret i toppen. SVG-en her har samme mål
+  (1940x635) og samme oppførsel, så ingenting lastes fra kommunens servere og formene
+  følger tekststørrelsen.
+- **De to knappene til venstre for «Min side» virker.** Månen slår på mørk modus, `AA`
+  gjør teksten større. Begge lagres i `sessionStorage` og leses av et kort skript i
+  `<head>` på hver side, før første maling - ellers blinker siden lys før valget slår
+  inn. Fargemodusen settes som `data-color-scheme`, designsystemets eget attributt, så
+  Min side blir mørk av samme valg uten en linje ekstra der. Det er betalingen for at
+  hver farge på Min side er et token og ingen hardkodet heksverdi.
 - Designsystemet lastes fra `/assets/ds-base.css` og `/assets/ds-ksdigital.css`.
   Siden laster med vilje **ikke** `felles.css`: den har ingen `@layer` og ville
   overstyrt hele designsystemet. Se [`docs/designsystem.md`](../../docs/designsystem.md).

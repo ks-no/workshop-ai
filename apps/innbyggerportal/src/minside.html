@@ -1,9 +1,25 @@
 <!doctype html>
-<html lang="nb" data-color-scheme="light">
+<html lang="nb">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Min side | Stavanger kommune</title>
+
+    <!--
+      Fargemodus og tekststørrelse settes før første maling, ellers blinker siden
+      lys før scriptet rekker å slå om. Valget gjøres i toppfeltet på forsiden,
+      og data-color-scheme er designsystemets eget attributt.
+    -->
+    <script>
+      try {
+        const tema = sessionStorage.getItem("sk-tema");
+        if (tema) document.documentElement.setAttribute("data-color-scheme", tema);
+        const tekst = sessionStorage.getItem("sk-tekst");
+        if (tekst) document.documentElement.setAttribute("data-tekst", tekst);
+      } catch (feil) {
+        /* Privat vindu uten sessionStorage. Standardvisningen er riktig nok. */
+      }
+    </script>
 
     <!--
       No /assets/felles.css here. That stylesheet has no @layer, and unlayered rules
@@ -26,6 +42,10 @@
       @layer side;
 
       @layer side {
+        :root[data-tekst="stor"] {
+          font-size: 118%;
+        }
+
         /*
          * The hidden attribute is a UA rule, and every author rule beats it -
          * including .stablet { display: grid } two blocks down. Panels toggled

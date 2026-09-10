@@ -6,6 +6,23 @@
     <title>Stavanger kommune</title>
 
     <!--
+      Fargemodus og tekststørrelse settes før første maling, ellers blinker siden
+      lys før scriptet rekker å slå om. Derfor står disse linjene i HTML-en og
+      ikke i client/forside.ts, som lastes etterpå. Valget deles med Min side:
+      data-color-scheme er designsystemets eget attributt.
+    -->
+    <script>
+      try {
+        const tema = sessionStorage.getItem("sk-tema");
+        if (tema) document.documentElement.setAttribute("data-color-scheme", tema);
+        const tekst = sessionStorage.getItem("sk-tekst");
+        if (tekst) document.documentElement.setAttribute("data-tekst", tekst);
+      } catch (feil) {
+        /* Privat vindu uten sessionStorage. Standardvisningen er riktig nok. */
+      }
+    </script>
+
+    <!--
       No /assets/felles.css here either. See docs/designsystem.md: it has no
       @layer and would override the design system further down the stack.
     -->
@@ -21,45 +38,97 @@
 
       @layer side {
         /*
-         * Stavanger kommune sin egen palett, lest av www.stavanger.kommune.no.
+         * Stavanger kommune sin egen palett og sine egne mål, lest av
+         * www.stavanger.kommune.no: lilla #452b75, gul strek 3 px, kontroller
+         * 50 px høye, innhold i en 1250 px bred kolonne, overskrifter 30 px i
+         * vekt 500 og brødtekst 18 px.
          *
          * Dette er det ene stedet i appen som ikke bruker --ds-*-fargene, og det
          * er med vilje: forsiden skal se ut som kommunen sin, og KS Digital sitt
-         * tema bærer KS Digital sine farger. Avstand, radius og skygge er
-         * fortsatt tokens, så siden ligger i samme rutenett som resten.
-         * Min side bak innloggingen bruker designsystemet uendret.
+         * tema bærer KS Digital sine farger. Min side bak innloggingen bruker
+         * designsystemet uendret.
          *
          * Den ekte siden setter TT Norms Pro. Den fonten er lisensiert og ligger
-         * ikke i sandkassen, så Inter står i stedet - samme grunnform, fri.
+         * ikke i sandkassen, så Inter står i stedet.
          */
         :root {
           --sk-lilla: #452b75;
           --sk-lilla-moerk: #33205a;
           --sk-blaa: #98d2e9;
-          --sk-blaa-lys: #d6ecf6;
           --sk-groenn: #acee95;
           --sk-korall: #fe5645;
           --sk-gul: #ffe651;
           --sk-oransje: #ff7101;
+          --sk-lavendel: #dad4e3;
+
+          --sk-flate: #fff;
+          --sk-tekst: #111;
+          --sk-overskrift: var(--sk-lilla);
+          --sk-kant: var(--sk-lilla);
+          --sk-kort: #fff;
+          --sk-blaa-svak: rgba(152, 210, 233, 0.5);
+
+          --sk-bredde: 78.125rem; /* 1250 px */
+        }
+
+        /*
+         * Mørk modus. Kommunens egen dekkes av et tema vi ikke har tilgang til,
+         * så dette er sandkassens tolkning: samme aksenter på mørk grunn, med
+         * kontrast nok til at teksten holder WCAG AA.
+         */
+        :root[data-color-scheme="dark"] {
+          --sk-lilla: #c3aee6;
+          --sk-lilla-moerk: #d6c8ef;
+          --sk-blaa: #2a4f61;
+          --sk-groenn: #2f4a26;
+          --sk-korall: #b3392e;
+          --sk-oransje: #8a3d00;
+          --sk-lavendel: #3a3050;
+
+          --sk-flate: #16121f;
+          --sk-tekst: #f2f0f6;
+          --sk-overskrift: #d9c9f5;
+          --sk-kant: #c3aee6;
+          --sk-kort: #201a2d;
+          --sk-blaa-svak: rgba(42, 79, 97, 0.5);
+        }
+
+        :root[data-tekst="stor"] {
+          font-size: 118%;
         }
 
         body {
           margin: 0;
-          background: #fff;
-          color: #1a1a1a;
+          background: var(--sk-flate);
+          color: var(--sk-tekst);
           font-family: var(--ds-font-family);
+          font-size: 1.125rem; /* 18 px, som på den ekte siden */
+          line-height: 1.55;
         }
 
         .midtstilt {
-          max-width: 76rem;
+          max-width: var(--sk-bredde);
           margin: 0 auto;
-          padding-inline: var(--ds-size-5);
+          padding-inline: 1.25rem;
+        }
+
+        h1,
+        h2 {
+          margin: 0;
+          color: var(--sk-overskrift);
+          font-size: 1.875rem; /* 30 px */
+          font-weight: 500;
+          line-height: 1.25;
+        }
+
+        p {
+          margin: 0;
         }
 
         /* Toppfelt */
 
         .toppfelt {
-          background: #fff;
+          background: var(--sk-flate);
           border-bottom: 3px solid var(--sk-gul);
         }
 
@@ -68,46 +137,70 @@
           flex-wrap: wrap;
           align-items: center;
           justify-content: space-between;
-          gap: var(--ds-size-4);
-          padding-block: var(--ds-size-3);
+          gap: 1rem;
+          min-height: 95px;
         }
 
         .merkevare {
           display: flex;
           align-items: center;
-          gap: var(--ds-size-3);
+          gap: 0.75rem;
           color: var(--sk-lilla);
           text-decoration: none;
         }
 
         .merkevare img {
-          height: var(--ds-size-13);
+          height: 75px;
           width: auto;
         }
 
         .merkevare__navn {
           display: grid;
-          font-weight: var(--ds-font-weight-semibold);
-          font-size: var(--ds-font-size-4);
-          line-height: var(--ds-line-height-sm);
+          font-weight: 600;
+          font-size: 1.375rem;
+          line-height: 1.15;
         }
 
-        /* Knappen. Firkantet og lilla, slik den er på kommunens egen side. */
-        .sk-knapp {
+        .kontroller {
+          display: flex;
+          align-items: center;
+          gap: 0.9375rem;
+        }
+
+        /* Alle knappene i toppfeltet er 50 px høye og firkantede, som på den
+           ekte siden. */
+        .sk-knapp,
+        .sk-chip {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: var(--ds-size-2);
-          padding: var(--ds-size-3) var(--ds-size-5);
-          border: 2px solid var(--sk-lilla);
+          gap: 0.5rem;
+          height: 50px;
+          border: 2px solid transparent;
           border-radius: 0;
-          background: var(--sk-lilla);
-          color: #fff;
           font-family: inherit;
-          font-size: var(--ds-font-size-3);
-          font-weight: var(--ds-font-weight-medium);
+          font-size: 1rem;
+          font-weight: 400;
           text-decoration: none;
           cursor: pointer;
+        }
+
+        .sk-chip {
+          width: 50px;
+          background: var(--sk-lavendel);
+          color: var(--sk-lilla);
+        }
+
+        .sk-chip:hover {
+          background: var(--sk-lilla);
+          color: var(--sk-kort);
+        }
+
+        .sk-knapp {
+          padding-inline: 1.25rem;
+          background: var(--sk-lilla);
+          border-color: var(--sk-lilla);
+          color: var(--sk-flate);
         }
 
         .sk-knapp:hover {
@@ -115,18 +208,20 @@
           border-color: var(--sk-lilla-moerk);
         }
 
+        .sk-chip:focus-visible,
         .sk-knapp:focus-visible {
-          outline: 3px solid var(--sk-lilla);
+          outline: 3px solid var(--sk-kant);
           outline-offset: 3px;
         }
 
         .sk-knapp--stor {
-          padding: var(--ds-size-4) var(--ds-size-7);
-          font-size: var(--ds-font-size-5);
+          height: auto;
+          padding: 0.9375rem 1.75rem;
+          font-size: 1.25rem;
         }
 
         .sk-knapp[disabled] {
-          opacity: 0.6;
+          opacity: 0.65;
           cursor: progress;
         }
 
@@ -135,72 +230,121 @@
         .helt {
           position: relative;
           overflow: hidden;
-          background: #fff;
         }
 
-        /* Bølgen. En SVG i bakgrunnen, ikke et bilde, slik at den skalerer og
-           ikke laster noe utenfra. */
-        .helt__boelge {
+        /*
+         * Bølgen og klattene. Den ekte siden legger dem som én PNG med
+         * background-size: 100% auto, forankret i toppen. Her er de en SVG med
+         * samme mål (1940x635) og samme oppførsel, så ingenting lastes utenfra
+         * og formene følger tekststørrelsen.
+         */
+        .helt__former {
           position: absolute;
-          inset: 0;
+          top: 0;
+          left: 0;
           width: 100%;
-          height: 100%;
+          height: auto;
           z-index: 0;
         }
 
         .helt__innhold {
           position: relative;
           z-index: 1;
-          padding-block: var(--ds-size-15) var(--ds-size-18);
           display: grid;
-          gap: var(--ds-size-6);
-          max-width: 40rem;
+          grid-template-columns: minmax(0, 535fr) minmax(0, 625fr);
+          gap: 4.375rem;
+          align-items: start;
+          padding-block: 4.625rem 5rem;
         }
 
-        .helt h1 {
+        .helt__venstre {
+          display: grid;
+          gap: 1.75rem;
+          align-content: start;
+        }
+
+        .helt__venstre p {
+          max-width: 33rem;
+        }
+
+        /* Meldingskortet. 2 px lilla ramme, ingen radius, 50/40/40 i luft. */
+        .melding {
+          background: var(--sk-kort);
+          border: 2px solid var(--sk-kant);
+          padding: 3.125rem 2.5rem 2.5rem;
+          display: grid;
+          gap: 1rem;
+        }
+
+        .melding__pre {
+          font-size: 1rem;
+        }
+
+        .melding h2 {
+          font-size: 1.625rem; /* 26 px */
+          font-weight: 600;
+        }
+
+        .melding ul {
           margin: 0;
-          color: var(--sk-lilla);
-          font-size: clamp(2rem, 5vw, 3.25rem);
-          font-weight: var(--ds-font-weight-medium);
-          line-height: 1.1;
+          padding-left: 1.25rem;
         }
 
-        .helt p {
-          margin: 0;
-          font-size: var(--ds-font-size-5);
-          line-height: var(--ds-line-height-lg);
-          max-width: 34rem;
+        .melding li + li {
+          margin-top: 0.25rem;
         }
 
-        /* Den grønne seksjonen, med de organiske klattene kommunen bruker */
+        .melding__fot {
+          border-top: 2px solid var(--sk-kant);
+          padding-top: 1rem;
+          font-size: 1rem;
+        }
 
-        .groenn {
+        .feil {
+          padding: 1rem;
+          border: 2px solid var(--sk-korall);
+          background: var(--sk-kort);
+          font-size: 1rem;
+        }
+
+        /* Grønn seksjon */
+
+        .intro {
           position: relative;
           overflow: hidden;
           background: var(--sk-groenn);
         }
 
-        .groenn__innhold {
+        .intro__innhold {
           position: relative;
           z-index: 1;
           display: grid;
-          gap: var(--ds-size-4);
-          padding-block: var(--ds-size-13);
-          max-width: 46rem;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 4.375rem;
+          align-items: center;
+          padding-block: 3.75rem 3.125rem;
         }
 
-        .groenn h2 {
-          margin: 0;
-          color: var(--sk-lilla);
-          font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-          font-weight: var(--ds-font-weight-medium);
-          line-height: 1.15;
+        .intro__tekst {
+          display: grid;
+          gap: 1.25rem;
         }
 
-        .groenn p {
-          margin: 0;
-          font-size: var(--ds-font-size-4);
-          line-height: var(--ds-line-height-lg);
+        /* Klattformen kommunen setter bildene sine i. Her står våpenet i den,
+           siden sandkassen ikke har fotografier. */
+        .klattbilde {
+          justify-self: center;
+          display: grid;
+          place-items: center;
+          width: min(19rem, 100%);
+          aspect-ratio: 1.15;
+          background: var(--sk-kort);
+          border-radius: 62% 38% 44% 56% / 52% 58% 42% 48%;
+        }
+
+        .klattbilde img {
+          width: 58%;
+          height: auto;
         }
 
         .klatt {
@@ -209,78 +353,111 @@
           pointer-events: none;
         }
 
+        /* Begge klattene flankerer klattbildet, slik de gjør rundt fotografiet
+           på den ekte siden. Ingen av dem skal havne oppå teksten. */
         .klatt--korall {
           top: -3rem;
-          right: 14%;
-          width: 13rem;
-          height: 11rem;
+          right: 32%;
+          width: 10rem;
+          height: 8.5rem;
           background: var(--sk-korall);
           border-radius: 62% 38% 46% 54% / 55% 60% 40% 45%;
         }
 
         .klatt--lilla {
-          bottom: -4rem;
-          right: 5%;
-          width: 17rem;
-          height: 15rem;
+          bottom: -4.5rem;
+          right: 8%;
+          width: 15rem;
+          height: 13rem;
           background: var(--sk-lilla);
           border-radius: 44% 56% 63% 37% / 48% 40% 60% 52%;
+        }
+
+        /* Lyseblå seksjon */
+
+        .kampanje {
+          background: var(--sk-blaa-svak);
+        }
+
+        .kampanje__innhold {
+          display: grid;
+          gap: 1.875rem;
+          padding-block: 3.75rem 2.5rem;
+        }
+
+        .kort-rad {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+          gap: 1.875rem;
+        }
+
+        .kort {
+          background: var(--sk-kort);
+          border: 2px solid var(--sk-kant);
+          padding: 1.5rem;
+          display: grid;
+          gap: 0.375rem;
+          align-content: start;
+        }
+
+        .kort h3 {
+          margin: 0;
+          color: var(--sk-overskrift);
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+
+        .kort p {
+          font-size: 1rem;
         }
 
         /* Bunnfelt */
 
         .bunnfelt {
           background: var(--sk-oransje);
-          color: #1a1a1a;
+          color: #111;
+        }
+
+        :root[data-color-scheme="dark"] .bunnfelt {
+          color: #f6f1ec;
         }
 
         .bunnfelt__innhold {
           display: grid;
-          gap: var(--ds-size-2);
-          padding-block: var(--ds-size-9);
+          grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+          gap: 2.5rem;
+          padding-block: 2.5rem 3.75rem;
         }
 
-        .bunnfelt strong {
-          font-size: var(--ds-font-size-4);
+        .bunnfelt h2 {
+          color: inherit;
+          font-size: 1.125rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
         }
 
-        /* Sandkasseruten. Den er ikke Stavanger sin, og skal ikke se ut som det. */
-        .sandkasse {
-          border-left: 6px solid var(--sk-lilla);
-          background: #fff;
-          padding: var(--ds-size-4) var(--ds-size-5);
-          display: grid;
-          gap: var(--ds-size-2);
-          max-width: 46rem;
+        .bunnfelt p {
+          font-size: 1.125rem;
         }
 
-        .sandkasse p {
-          margin: 0;
-          font-size: var(--ds-font-size-2);
-          line-height: var(--ds-line-height-md);
-        }
-
-        .sandkasse ul {
-          margin: 0;
-          padding-left: var(--ds-size-5);
-          font-size: var(--ds-font-size-2);
-        }
-
-        .feil {
-          margin: 0;
-          padding: var(--ds-size-4);
-          border: 2px solid var(--sk-korall);
-          background: #fff;
-          font-size: var(--ds-font-size-3);
+        .bunnfelt p + p {
+          margin-top: 0.375rem;
         }
 
         [hidden] {
           display: none;
         }
 
-        @media (max-width: 48rem) {
-          .helt__innhold {
-            padding-block: var(--ds-size-10) var(--ds-size-12);
+        @media (max-width: 62rem) {
+          .helt__innhold,
+          .intro__innhold {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 2.5rem;
+          }
+
+          .helt__former {
+            height: 100%;
+            object-fit: cover;
           }
 
           .klatt--korall,
@@ -308,85 +485,146 @@
           </span>
         </a>
 
-        <button class="sk-knapp" type="button" id="logg-inn-topp">
-          Min side
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="11" fill="#fff" />
-            <circle cx="12" cy="9.5" r="3.4" fill="#452b75" />
-            <path d="M5.6 19.6a6.8 6.8 0 0 1 12.8 0z" fill="#452b75" />
-          </svg>
-        </button>
+        <div class="kontroller">
+          <button
+            class="sk-chip"
+            type="button"
+            id="tema"
+            aria-pressed="false"
+            aria-label="Skru på mørk modus"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              <path
+                d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            class="sk-chip"
+            type="button"
+            id="tekst"
+            aria-pressed="false"
+            aria-label="Større tekst"
+          >
+            <span aria-hidden="true"
+              ><span style="font-size: 1.25rem; font-weight: 600">A</span
+              ><span style="font-size: 0.875rem; font-weight: 600">A</span></span
+            >
+          </button>
+
+          <button class="sk-knapp" type="button" id="logg-inn-topp">
+            Min side
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="11" fill="currentColor" />
+              <circle cx="12" cy="9.5" r="3.4" fill="var(--sk-lilla)" />
+              <path d="M5.6 19.6a6.8 6.8 0 0 1 12.8 0z" fill="var(--sk-lilla)" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
     <main id="hovedinnhold">
       <section class="helt">
         <svg
-          class="helt__boelge"
-          viewBox="0 0 1200 520"
-          preserveAspectRatio="none"
+          class="helt__former"
+          viewBox="0 0 1940 635"
+          preserveAspectRatio="xMidYMin meet"
           aria-hidden="true"
           focusable="false"
         >
-          <!--
-            Høyre kant er en S, aldri lenger inn enn x=820. Teksten er maks 40rem
-            og lander innenfor det ved alle bredder, så overskriften står på blått
-            uansett vindu.
-          -->
           <path
-            fill="#98d2e9"
-            d="M0 0h950c-30 130-130 150-130 260 0 110 120 140 180 260H0z"
+            fill="var(--sk-blaa)"
+            d="M0 0H1690C1600 110 1500 230 1390 330 1290 420 1150 505 990 540 880 564 800 520 740 470 690 428 650 372 590 385 540 396 515 445 470 447 400 450 330 375 270 300 195 206 110 185 0 180Z"
+          />
+          <path
+            fill="var(--sk-oransje)"
+            d="M1600 90c130-25 250 10 300 90 45 75 20 165-45 215-55 42-70 75-85 135-15 60-75 85-140 55-95-45-190-125-215-215-25-95 35-215 185-280Z"
+          />
+          <path
+            fill="var(--sk-gul)"
+            d="M1345 345c35-30 70-15 80 30 8 38 30 45 60 55 40 13 55 55 25 80-25 20-15 40 5 55 25 20 15 55-25 62-70 12-140-20-165-85-18-47 5-70-5-105-12-42-10-70 25-92Z"
           />
         </svg>
 
         <div class="helt__innhold midtstilt">
-          <h1>Hva kan vi hjelpe deg med i dag?</h1>
-          <p>
-            Logg inn på Min side for å se opplysningene kommunen har om deg,
-            hvor sakene dine står og hvilke frister som gjelder for husstanden din.
-          </p>
-          <div>
-            <button class="sk-knapp sk-knapp--stor" type="button" id="logg-inn">
-              Logg inn på Min side
-              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-                <path
-                  d="M4 12h15M13 6l6 6-6 6"
-                  fill="none"
-                  stroke="#fff"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
+          <div class="helt__venstre">
+            <h1>Hva kan vi hjelpe deg med i dag?</h1>
+            <p>
+              Logg inn på Min side for å se opplysningene kommunen har om deg, hvor
+              sakene dine står og hvilke frister som gjelder for husstanden din.
+            </p>
+            <div>
+              <button class="sk-knapp sk-knapp--stor" type="button" id="logg-inn">
+                Logg inn på Min side
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M4 12h15M13 6l6 6-6 6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <p class="feil" id="feil" hidden></p>
           </div>
-          <p class="feil" id="feil" hidden></p>
+
+          <div class="melding">
+            <p class="melding__pre">Melding</p>
+            <h2>Dette er en sandkasse, ikke Stavanger kommune</h2>
+            <p>
+              Siden er bygget for et hackathon og hermer forsiden til
+              stavanger.kommune.no. Den er ikke drevet av kommunen, og alle
+              opplysningene bak innloggingen er syntetiske.
+            </p>
+            <p>
+              Innloggingen går til sandkassens egen ID-porten-mock på
+              <code>localhost:8086</code>, der du velger en testperson fra en liste.
+            </p>
+            <p class="melding__fot" id="melding-fot">Sist oppdatert i dag.</p>
+          </div>
         </div>
       </section>
 
-      <section class="groenn">
+      <section class="intro">
         <div class="klatt klatt--korall"></div>
         <div class="klatt klatt--lilla"></div>
-        <div class="groenn__innhold midtstilt">
-          <h2>Dette er en sandkasse, ikke Stavanger kommune</h2>
-          <p>
-            Siden er bygget for et hackathon og hermer forsiden til
-            stavanger.kommune.no. Den er ikke drevet av kommunen, og har ingen andre
-            lenker enn innloggingen. Alle opplysningene bak den er syntetiske.
-          </p>
-          <div class="sandkasse">
+        <div class="intro__innhold midtstilt">
+          <div class="intro__tekst">
+            <h2>Fem innbyggere bor i Stavanger i dette datasettet</h2>
             <p>
-              <strong>Innloggingen går til sandkassens egen ID-porten-mock</strong>
-              på <code>localhost:8086</code>, ikke til den ekte ID-porten. Der velger du
-              en testperson fra en liste. Fem av dem er folkeregistrert i Stavanger:
+              Sandkassen har en syntetisk befolkning. Fem av de voksne er
+              folkeregistrert her, og bare de får se en Min side i denne kommunen.
+              Logger du inn som noen andre, sier siden fra framfor å vise deg noe som
+              ikke er ditt.
             </p>
-            <ul id="testbrukere">
-              <li>Laster testpersoner …</li>
-            </ul>
             <p>
-              Logger du inn som noen som bor i en annen kommune, sier Min side fra
-              framfor å vise deg en side som ikke er din.
+              Hvem som i det hele tatt kan logge inn avgjøres av alder og
+              folkeregisterstatus, og det er ID-porten-mocken som holder styr på det.
             </p>
+          </div>
+          <div class="klattbilde">
+            <img
+              src="https://static.fiks.ks.no/img/kommunevaapen/1103.png"
+              alt=""
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="kampanje">
+        <div class="kampanje__innhold midtstilt">
+          <h2>Testpersonene du kan logge inn som</h2>
+          <div class="kort-rad" id="testbrukere">
+            <p>Laster testpersoner …</p>
           </div>
         </div>
       </section>
@@ -394,8 +632,21 @@
 
     <footer class="bunnfelt">
       <div class="bunnfelt__innhold midtstilt">
-        <strong>Stavanger kommune</strong>
-        <p style="margin: 0">Syntetisk demo i innbyggerdialog-sandkassen.</p>
+        <div>
+          <h2>Om denne siden</h2>
+          <p>Innbyggerportal i innbyggerdialog-sandkassen.</p>
+          <p>Syntetisk demo, ikke en kommunal tjeneste.</p>
+        </div>
+        <div>
+          <h2>Kjører på</h2>
+          <p>Portalen: localhost:3002</p>
+          <p>ID-porten-mock: localhost:8086</p>
+        </div>
+        <div>
+          <h2>Data</h2>
+          <p>Folkeregister, matrikkel og inntekt er syntetiske.</p>
+          <p>Hvert kort på Min side sier hvilken fil tallene kommer fra.</p>
+        </div>
       </div>
     </footer>
 

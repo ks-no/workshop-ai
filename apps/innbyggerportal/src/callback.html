@@ -4,6 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Logger deg inn | Stavanger kommune</title>
+
+    <!--
+      Fargemodus og tekststørrelse settes før første maling, ellers blinker siden
+      lys før scriptet rekker å slå om. Valget gjøres i toppfeltet på forsiden,
+      og data-color-scheme er designsystemets eget attributt.
+    -->
+    <script>
+      try {
+        const tema = sessionStorage.getItem("sk-tema");
+        if (tema) document.documentElement.setAttribute("data-color-scheme", tema);
+        const tekst = sessionStorage.getItem("sk-tekst");
+        if (tekst) document.documentElement.setAttribute("data-tekst", tekst);
+      } catch (feil) {
+        /* Privat vindu uten sessionStorage. Standardvisningen er riktig nok. */
+      }
+    </script>
     <link
       rel="stylesheet"
       href="https://static.fiks.ks.no/googlefonts/googleapis/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -14,6 +30,10 @@
       @layer side;
 
       @layer side {
+        :root[data-tekst="stor"] {
+          font-size: 118%;
+        }
+
         body {
           margin: 0;
           background: var(--ds-color-background-tinted);
