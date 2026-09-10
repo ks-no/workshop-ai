@@ -105,7 +105,7 @@ flowchart LR
 
   PB --> SB
   DG --> SB
-  IP --> SB
+  IP -->|"tilgangsoversikt og samtykke"| SB
   PAG --> TA
   TA --> SB
   TA --> AG
@@ -124,6 +124,23 @@ flowchart LR
 
 Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
 en flyt: den utsteder tokenene de fire beskyttede API-ene krever.
+
+`innbyggerportal` leser det meste av Min side rett fra `data/` og `state/`, slik
+`tools-api` gjør med brreg- og folkeregisterseeden. Kortet «Hva du kan søke på» er
+unntaket, og går begge veier over pilen til `sandbox-backend`. Det **leser**
+tilgangsoversikten med innbyggerens eget ID-porten-token, fordi det er backend som
+kjenner vilkårene og samtykkene, og det feiler for seg selv så resten av siden står
+igjen om backend er nede.
+
+Det **skriver** også, og er det eneste stedet portalen gjør det. En rad som mangler
+et samtykke har en bryter, og den gir og trekker samtykket uten at noen flyt startes.
+Kallet navngir prosessen, og `sandbox-backend` henter formålet og datakildene fra
+prosessens eget `CONSENT_REQUEST`-steg før den skriver samme vei som flyten gjør -
+`fiks-simulator` eier fortsatt samtykkeraden, og revisjonsloggen får de samme to
+hendelsene. Det er verdt å merke seg at et samtykke gjelder datakilden og ikke saken:
+`hasGyldigSamtykke` slår opp på kilde, så ett ja til inntekt åpner porten for hver sak
+som leser inntekt. Derfor svarer tilgangsoversikten med `harSamtykke` for hele
+personen ved siden av radene.
 
 
 ## Dynamisk verktøyoppdagelse i agenten

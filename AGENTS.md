@@ -83,7 +83,12 @@ chat, or that every service is a søknad.
   The exception is the tilgangsoversikt card, which calls
   `GET /api/personer/:personId/tilganger` with the citizen's own token and therefore does
   pass the gate and the revisjonslogg - note that a page load there runs one `runRessurs`
-  per case, so it writes a batch of audit rows every refresh. Converting the remaining
+  per case, so it writes a batch of audit rows every refresh. That card is also the one
+  place the portal *writes*: each row carrying a samtykkekilde gets a switch that posts to
+  `/api/personer/:personId/samtykker` and withdraws over
+  `/api/personer/:personId/samtykker/:datakilde/trekk`, and it redraws the whole card
+  afterwards because a samtykke covers a datakilde rather than a case - see
+  `samtykke.ts` in the backend. Converting the remaining
   samtykkepliktige cards (inntekt, legeerklæring, politiattest, kontaktinfo) to
   token-authenticated calls is outstanding work, not a design.
 - `apps/sandbox-backend` (`8080`): core process/session engine, data access, policy + audit.

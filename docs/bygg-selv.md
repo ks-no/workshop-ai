@@ -13,6 +13,7 @@ sandkassen ennå, start med [`docs/deltakerstart.md`](deltakerstart.md).
 
 - [Egen frontend, egen port](#egen-frontend-egen-port)
 - [Token, kort fortalt](#token-kort-fortalt)
+- [Samtykke uten å starte en flyt](#samtykke-uten-å-starte-en-flyt)
 - [Finn ut hva som finnes, uten å lese spesifikasjonene](#finn-ut-hva-som-finnes-uten-å-lese-spesifikasjonene)
 - [Ting du ikke skal døpe om](#ting-du-ikke-skal-døpe-om)
 - [Utvide sandkassen innenfra](#utvide-sandkassen-innenfra)
@@ -123,6 +124,42 @@ node scripts/token.ts --maskinporten ks:fiks:samtykke --resource fiks-simulator
 kall uten `Authorization` i det hele tatt - spesifikasjonene deres sier `security: []`.
 Bygger du mot dem, trenger du ikke token. Hjemmelslaget er noe sandkassen *viser fram*
 på persondata, ikke noe som gjelder overalt.
+
+---
+
+## Samtykke uten å starte en flyt
+
+Første gangen du kaller en beskyttet ressurs får du `403` med `grunn: mangler_samtykke`.
+Det er sperren som virker, ikke en feil. Veien forbi har vært å kjøre en hel
+prosessøkt fram til `CONSENT_REQUEST`-steget, og den veien finnes fortsatt. Men skal
+du bygge en oversikt over hva innbyggeren kan søke på - der samtykket er noe hen sier
+ja til før noen søknad er påbegynt - er det en kortere vei inn:
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"prosessId":"redusert-foreldrebetaling-barnehage"}' \
+  http://localhost:8080/api/personer/person-001/samtykker
+
+curl -X PUT -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8080/api/personer/person-001/samtykker/inntekt/trekk
+```
+
+**Kroppen navngir prosessen, ikke datakilden.** Formålet et samtykke bærer står i
+prosessens `CONSENT_REQUEST`-steg, og det er ikke noe en klient skal finne på - det
+formålet er det revisjonsloggen fører når dataene siden leses. Backend henter både
+formål og datakilder derfra, så raden blir den samme som når innbyggeren svarer inne i
+flyten.
+
+To ting det er verdt å vite før du tegner en bryter av dette:
+
+- **Et samtykke gjelder datakilden, ikke saken.** `hasGyldigSamtykke` slår opp på
+  kilde, så ett ja til inntekt åpner porten for hver sak som leser inntekt - og et
+  trekk lukker den for alle sammen. Derfor svarer
+  `GET /api/personer/{personId}/tilganger` med `harSamtykke` for hele personen ved
+  siden av radene, og hver rad sier i `samtykkekilder` hva den selv leser.
+- **Å trekke er endelig for den raden.** `TRUKKET`, `IKKE_SAMTYKKET` og `UTLOEPT` har
+  ingen vei ut av tilstandsmaskinen i `apps/shared/samtykke.ts`. Slår brukeren på
+  igjen, er det et nytt samtykke med ny id og eget spor - som det skal være.
 
 ---
 

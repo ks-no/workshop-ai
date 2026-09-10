@@ -15,7 +15,7 @@ oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 | --- | --- | --- |
 | Aktuelt for deg | Karusellen øverst: frister som nærmer seg, søknader hos saksbehandler, ulest post, og plasser husstanden betaler for uten å ha søkt om ordningen | `data/satser.json`, `state/oppgaver.json`, `state/forsendelser.json`, `data/prosessdefinisjoner.json` |
 | Min profil | Navn, adresse, kommune, maskert fødselsnummer, husstand og fast eiendom | `data/personer.json`, `data/husstander.json`, `data/matrikkel.json`, `data/eierforhold.json` |
-| Hva du kan søke på | Hver publiserte prosess med status: innvilget, avslått, til behandling, krever samtykke, ikke aktuell eller kan søkes nå | `GET /api/personer/{personId}/tilganger` i sandbox-backend |
+| Hva du kan søke på | Hver publiserte prosess med status: innvilget, avslått, til behandling, krever samtykke, ikke aktuell eller kan søkes nå, og en bryter for samtykket raden trenger | `GET /api/personer/{personId}/tilganger` i sandbox-backend |
 | Pågående sak | Søknaden eller den påbegynte prosessen, med stegene fra prosessdefinisjonen | `state/soknader.json`, `state/oppgaver.json`, `state/prosessoekter.json`, `data/prosessdefinisjoner.json` |
 | Tjenester | Fem snarveier som folder seg ut med det innbyggeren faktisk har | `state/forsendelser.json`, `data/eierforhold.json`, `data/barnehageplasser.json`, `data/sfoplasser.json`, `data/fritidsdeltakelse.json`, `data/tjenestetilbud.json` |
 | Kalender | Frister og datoer som allerede står i dataene | `data/satser.json`, `state/samtykker.json`, `data/inntekter.json`, `data/legeerklaeringer.json`, `data/politiattester.json`, `data/krr.json` |
@@ -72,6 +72,38 @@ feiing og eiendomsskatt. Sandkassen har ingen datoer for noe av det, så de stå
 her. Kalenderen er kortere enn en ekte, og det er hele poenget: den viser hva
 datagrunnlaget rekker til.
 
+## Hva du kan søke på
+
+Det ene kortet som ikke leses fra disk. Det kaller
+`GET /api/personer/{personId}/tilganger` med innbyggerens eget ID-porten-token, og
+backend kjører da forhåndssjekken for hver publiserte prosess: er søknaden alt sendt
+og avgjort, mangler det et samtykke til noe regelen leser, eller kan regelen kjøres
+med det kommunen vet nå. Statusene skrives ut som de kommer på tråden. Er backend
+nede, melder kortet det for seg selv - resten av Min side står igjen.
+
+**Bryteren er samtykket.** «Krever samtykke» er ikke en blindvei: raden sier hvilken
+kilde som mangler, og under den står bryteren som gir den. Slår du den på, oppretter
+backend samtykket prosessens `CONSENT_REQUEST`-steg ber om, svarer ja på det, og
+kortet tegnes på nytt - da har regelen grunnlaget sitt, og raden sier hva svaret
+faktisk ble. Slår du den av, trekkes samtykket og raden går tilbake til «Krever
+samtykke».
+
+To ting er verdt å vite, og kortet sier begge nederst:
+
+- **Bryteren gir samtykke til datakilden, ikke til saken.** Et samtykke til inntekt
+  er ett ja, og barnehage, SFO og fritidskort leser alle den samme kilden - så alle
+  tre bryterne følger hverandre. Å vise dem som uavhengige ville løyet om hva den ene
+  skrur av.
+- **Formålet er prosessens, ikke frontendens.** Kallet navngir prosessen, og backend
+  henter både formålet og datakildene fra `CONSENT_REQUEST`-steget. Raden i
+  `state/samtykker.json` og de to hendelsene i revisjonsloggen blir dermed nøyaktig de
+  samme som når innbyggeren svarer inne i flyten på `:3001`.
+
+Å trekke tilbake er endelig for den raden: statusene `TRUKKET`, `IKKE_SAMTYKKET` og
+`UTLOEPT` har ingen vei ut, så en bryter som slås på igjen gir et nytt samtykke med ny
+id og eget spor. Det er tilstandsmaskinen i `apps/shared/samtykke.ts`, ikke noe denne
+siden bestemmer.
+
 ## Ruter
 
 | Rute | Hva den gjør |
@@ -83,9 +115,14 @@ datagrunnlaget rekker til.
 | `GET /api/minside/{personId}` | Datagrunnlaget Min side tegnes fra |
 | `GET /helse` | `{ "status": "ok", "tjeneste": "innbyggerportal" }` |
 
-Datagrunnlaget leser portalen fra `data/` og `state/` rett fra disken gjennom `readJson`
-i `apps/shared/jsonstore.ts`, som ser i `state/` først. Kjører du en flyt i demo-GUI-et
-på `:3001`, dukker søknaden opp her ved neste sidelasting.
+Portalen kaller ingen andre tjenester enn disse: ID-porten-mocken ved innlogging, og
+sandbox-backend fra tilgangskortet - `GET /api/personer/{personId}/tilganger`,
+`POST /api/personer/{personId}/samtykker` og
+`PUT /api/personer/{personId}/samtykker/{datakilde}/trekk`, alle tre fra nettleseren
+med innbyggerens eget token. Resten leser portalen fra `data/` og `state/` rett fra
+disken gjennom `readJson` i `apps/shared/jsonstore.ts`, som ser i `state/` først.
+Kjører du en flyt i demo-GUI-et på `:3001`, dukker søknaden opp her ved neste
+sidelasting.
 
 ## Innlogging
 
