@@ -82,32 +82,35 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         <span className="kommune-page__kommunevaapen" aria-hidden="true">DK</span>
         <div>
           <span className="kommune-page__etat">Drammen kommune</span>
-          <h1>Saksbehandling - ansettelse i skole</h1>
+          <h1>Jobbtilbud - skoleassistent</h1>
         </div>
       </header>
 
       <section className="kommune-page__saksinfo">
         <MetadataTable
+          tittel="Jobbtilbud"
           rader={[
-            { label: "Søker", verdi: person.visningsnavn },
-            { label: "Søknadsdato", verdi: sak.soknadsdato },
+            { label: "Kandidat", verdi: person.visningsnavn },
+            { label: "Tilbud sendt", verdi: sak.soknadsdato },
             { label: "Stilling", verdi: "Skoleassistent (demo)" },
             {
-              label: "Saksstatus",
+              label: "Status",
               verdi:
                 sak.kommuneSaksstatus === "politiattest_mottatt"
-                  ? "Politiattest mottatt og kontrollert"
-                  : "Venter på politiattest"
+                  ? "Politiattest kontrollert - klar for ansettelse"
+                  : "Jobbtilbud sendt - venter på politiattest"
             }
           ]}
         />
       </section>
 
       <section className="kommune-page__kort">
-        <h2>1. Utsted formålsbekreftelse</h2>
+        <h2>1. Politiattest før ansettelse</h2>
         <p>
-          Før søkeren kan bestille politiattest hos politiet, må kommunen bekrefte formålet med
-          attesten - denne bekreftelsen sendes til søkerens digitale lommebok.
+          Kandidaten har fått tilbud om jobb som skoleassistent. Før kandidaten kan
+          ansettes, må Drammen kommune kontrollere en gyldig politiattest. Kommunen
+          utsteder derfor et formålsbevis som kandidaten bruker når politiattesten
+          bestilles hos Politiet.
         </p>
         <MetadataTable
           tittel="Opplysninger kommunen legger i formålsbeviset"
@@ -123,7 +126,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           <StatusBadge
             tekst={
               sak.formalsbevis.issuance.status === "tilbud_klart"
-                ? "Formålsbevis sendt til søkerens innboks"
+                ? "Formålsbevis sendt til kandidatens innboks"
                 : "Utstedelsen feilet"
             }
             tone={sak.formalsbevis.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
@@ -133,11 +136,11 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
 
       {sak.formalsbevis.issuance && (
         <section className="kommune-page__kort kommune-page__venteboks" aria-live="polite">
-          <h2>2. Venter på innsendt politiattest</h2>
+          <h2>2. Kontroller politiattesten</h2>
           {!politiattestGodkjent ? (
-            <StatusBadge tekst="Venter på innsendt politiattest" tone="venter" />
+            <StatusBadge tekst="Venter på politiattest fra kandidaten" tone="venter" />
           ) : (
-            <StatusBadge tekst="Politiattest mottatt og godkjent" tone="suksess" />
+            <StatusBadge tekst="Politiattest kontrollert - kandidaten kan ansettes" tone="suksess" />
           )}
         </section>
       )}
