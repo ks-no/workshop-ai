@@ -29,3 +29,5 @@ data/soknader.json
 data/meldinger.json
 
 .claude/settings.local.json
+
+*.iml
