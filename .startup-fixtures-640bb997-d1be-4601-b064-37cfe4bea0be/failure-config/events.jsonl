@@ -1,0 +1,5 @@
+{"command":"uname","args":["-s"],"state":true,"running":true}
+{"command":"docker","args":["info"],"state":true,"running":true}
+{"command":"docker","args":["info"],"state":true,"running":true,"provider":"mock"}
+{"command":"docker","args":["compose","version"],"state":true,"running":true,"provider":"mock"}
+{"command":"docker","args":["compose","-f","docker-compose.yml","config","--quiet"],"state":true,"running":true,"provider":"mock"}

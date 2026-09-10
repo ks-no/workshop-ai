@@ -418,7 +418,16 @@ function logOut(): void {
  * PKCE uses crypto.subtle, which browsers only expose in a secure context. That
  * covers localhost, which is where the sandbox runs.
  */
-type LoginValg = { resource?: string };
+/*
+ * `clientId` er navnet ID-porten viser innbyggeren på innloggingssiden. Det er
+ * ikke et hemmelig felt og ingen ting henger på det her - mocken har ikke noe
+ * klientregister - men en portal som heter noe annet enn demo-gui skal ikke be om
+ * innlogging i demo-guis navn. Standarden er uendret, så de to eldre
+ * frontendene merker ingenting.
+ */
+type LoginValg = { resource?: string; clientId?: string };
+
+const STANDARD_CLIENT_ID = "demo-gui";
 
 async function requireLogin(valg: LoginValg = {}): Promise<boolean> {
   const audience = valg.resource || STANDARD_AUDIENCE;
@@ -433,7 +442,7 @@ async function requireLogin(valg: LoginValg = {}): Promise<boolean> {
 
   const parametere = new URLSearchParams({
     response_type: "code",
-    client_id: "demo-gui",
+    client_id: valg.clientId || STANDARD_CLIENT_ID,
     redirect_uri: `${location.origin}/callback`,
     scope: "openid profile",
     // resource blir tokenets aud. Uten den får man alltid sandbox-backend, og et
@@ -449,7 +458,7 @@ async function requireLogin(valg: LoginValg = {}): Promise<boolean> {
 }
 
 /** Called by /callback only: swaps the code for a token and returns where to go. */
-async function completeLogin(): Promise<string> {
+async function completeLogin(valg: LoginValg = {}): Promise<string> {
   const parametere = new URLSearchParams(location.search);
   const feil = parametere.get("error");
   if (feil) {
@@ -466,7 +475,7 @@ async function completeLogin(): Promise<string> {
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      client_id: "demo-gui",
+      client_id: valg.clientId || STANDARD_CLIENT_ID,
       redirect_uri: `${location.origin}/callback`,
       code_verifier: verifier
     })

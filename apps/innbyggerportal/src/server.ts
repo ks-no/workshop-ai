@@ -12,6 +12,11 @@ const sharedDir = path.join(__dirname, "..", "..", "shared");
 const klientDir = path.join(__dirname, "client");
 const deltKlientDir = path.join(sharedDir, "client");
 const port = Number(process.env.PORT || 3002);
+// Samme standard som resten av stakken. Portalen snakker med mocken bare for å
+// telle hvem som kan logge inn; selve innloggingen skjer i nettleseren.
+const digdirBaseUrl = process.env.DIGDIR_BASE_URL || "http://digdir-mock:8086";
+/** Så mange testpersoner vises på forsiden. Velgeren i ID-porten har søkefeltet. */
+const FORSIDE_UTVALG = 8;
 
 const { jsonResponse } = svarhjelpere();
 
@@ -25,6 +30,7 @@ const ASSETS: Record<string, string> = {
 
 const KLIENTFILER: Record<string, string> = {
   "minside.ts": KLIENTSKRIPT,
+  "forside.ts": KLIENTSKRIPT,
   "callback.ts": KLIENTSKRIPT
 };
 
@@ -40,6 +46,30 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
   if (sti === "/helse") {
     jsonResponse(response, 200, { status: "ok", tjeneste: "innbyggerportal" });
+    return;
+  }
+
+  // Hvem som kan logge inn. Listen kommer fra ID-porten-mocken framfor herfra:
+  // aldersgrensene bor i apps/shared/handleevne.ts, som den tjenesten leser.
+  if (sti === "/api/testbrukere") {
+    try {
+      const svar = await fetch(`${digdirBaseUrl}/idporten/testbrukere`);
+      if (!svar.ok) throw new Error(`ID-porten-mocken svarte ${svar.status}.`);
+      const kropp = (await svar.json()) as any;
+      const alle: any[] = Array.isArray(kropp) ? kropp : (kropp.testbrukere ?? []);
+      jsonResponse(response, 200, {
+        antall: alle.length,
+        testbrukere: alle.slice(0, FORSIDE_UTVALG).map((bruker) => ({
+          pid: bruker.pid,
+          personId: bruker.personId,
+          navn: bruker.visningsnavn
+        }))
+      });
+    } catch (feil) {
+      jsonResponse(response, 502, {
+        feil: `Nådde ikke ID-porten-mocken på ${digdirBaseUrl}: ${feilmelding(feil)}`
+      });
+    }
     return;
   }
 
@@ -81,7 +111,14 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
     return;
   }
 
-  if (sti === "/" || sti === "/minside") {
+  // Forsiden er forhåndsinnlogging og «/minside» er bak den. Klienten på
+  // forsiden sender deg videre selv når tokenet alt ligger i fanen.
+  if (sti === "/") {
+    await sendFil(response, path.join(__dirname, "forside.html"), "text/html; charset=utf-8");
+    return;
+  }
+
+  if (sti === "/minside") {
     await sendFil(response, path.join(__dirname, "minside.html"), "text/html; charset=utf-8");
     return;
   }

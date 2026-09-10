@@ -13,6 +13,7 @@ oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 
 | Kort | Hva som står der | Hvor tallene kommer fra |
 | --- | --- | --- |
+| Aktuelt for deg | Karusellen øverst: frister som nærmer seg, søknader hos saksbehandler, ulest post, og plasser husstanden betaler for uten å ha søkt om ordningen | `data/satser.json`, `state/oppgaver.json`, `state/forsendelser.json`, `data/prosessdefinisjoner.json` |
 | Min profil | Navn, adresse, kommune, maskert fødselsnummer, husstand og fast eiendom | `data/personer.json`, `data/husstander.json`, `data/matrikkel.json`, `data/eierforhold.json` |
 | Hva du kan søke på | Hver publiserte prosess med status: innvilget, avslått, til behandling, krever samtykke, ikke aktuell eller kan søkes nå | `GET /api/personer/{personId}/tilganger` i sandbox-backend |
 | Pågående sak | Søknaden eller den påbegynte prosessen, med stegene fra prosessdefinisjonen | `state/soknader.json`, `state/oppgaver.json`, `state/prosessoekter.json`, `data/prosessdefinisjoner.json` |
@@ -21,6 +22,12 @@ oppskriften står i [`docs/bygg-selv.md`](../../docs/bygg-selv.md).
 
 Hvert kort skriver kilden sin nederst, så et tall på skjermen kan følges tilbake til
 raden det står i.
+
+**«Aktuelt for deg» utløses av fakta, ikke av vurderinger.** At husstanden har en
+barnehageplass og ingen søknad om redusert foreldrebetaling sier at søknaden ikke er
+sendt, ikke at den ville blitt innvilget. Den vurderingen hører i backend, og teksten i
+påminnelsen sier det. Vil du se hva reglene faktisk svarer, står det i kortet under -
+«Hva du kan søke på» kjører dem.
 
 ## Kommunen følger innbyggeren
 
@@ -69,9 +76,11 @@ datagrunnlaget rekker til.
 
 | Rute | Hva den gjør |
 | --- | --- |
-| `GET /` | Siden. Krever innlogging |
+| `GET /` | Forsiden. Forhåndsinnlogging, med knappen inn til ID-porten |
+| `GET /minside` | Min side. Krever innlogging |
 | `GET /callback` | Der ID-porten sender nettleseren tilbake |
-| `GET /api/minside/{personId}` | Datagrunnlaget siden tegnes fra |
+| `GET /api/testbrukere` | Et utvalg av dem som kan logge inn, og hvor mange de er |
+| `GET /api/minside/{personId}` | Datagrunnlaget Min side tegnes fra |
 | `GET /helse` | `{ "status": "ok", "tjeneste": "innbyggerportal" }` |
 
 Datagrunnlaget leser portalen fra `data/` og `state/` rett fra disken gjennom `readJson`
@@ -80,7 +89,10 @@ på `:3001`, dukker søknaden opp her ved neste sidelasting.
 
 ## Innlogging
 
-Siden krever et ID-porten-token, og velgeren er ID-porten sin egen. `requireLogin()` i
+Forsiden på `/` er det eneste som står åpent. Den forteller hva siden er, viser et
+utvalg av testpersonene og har én knapp: logg inn. Alt annet ligger bak `/minside`.
+
+Selve velgeren er ID-porten sin egen. `requireLogin()` i
 `apps/shared/client/felles.ts` sender nettleseren til
 <http://localhost:8086/idporten/authorize>, der du søker opp en testbruker blant de 304
 som kan ha en elektronisk ID. Runden er en ekte authorization_code-flyt med PKCE, og
@@ -98,8 +110,13 @@ derfor er det ingen personvelger her, og derfor kan ruten være åpen for innbyg
 Alle de 304 som kan logge inn får sin egen side. `/api/minside` svarer `404` bare på en
 personId som ikke finnes i det hele tatt.
 
-Portalen snakker ellers bare med `sandbox-backend`. Den er ikke avhengig av at demo-GUI-et
-kjører: `felles.ts` serveres av portalen selv på `/delt/felles.ts`.
+Portalen ber om innlogging i sitt eget navn. `requireLogin({ clientId: "innbyggerportal" })`
+avgjør hva ID-porten viser innbyggeren på innloggingssiden; standarden i `felles.ts` er
+fortsatt `demo-gui`, så de to eldre frontendene merker ingenting.
+
+Portalen snakker ellers bare med `sandbox-backend`, og med ID-porten-mocken for å telle
+testpersoner til forsiden. Den er ikke avhengig av at demo-GUI-et kjører: `felles.ts`
+serveres av portalen selv på `/delt/felles.ts`.
 
 ## Kjøring
 

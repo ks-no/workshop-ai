@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "/usr/local/Cellar/node/25.8.1_1/bin/node" "$(dirname "$0")/fixture.ts" uname "$@"

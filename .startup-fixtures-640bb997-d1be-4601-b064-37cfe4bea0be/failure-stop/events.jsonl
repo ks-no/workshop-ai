@@ -1,0 +1,8 @@
+{"command":"uname","args":["-s"],"state":true,"running":true}
+{"command":"docker","args":["info"],"state":true,"running":true}
+{"command":"docker","args":["info"],"state":true,"running":true,"provider":"mock"}
+{"command":"docker","args":["compose","version"],"state":true,"running":true,"provider":"mock"}
+{"command":"docker","args":["compose","-f","docker-compose.yml","config","--quiet"],"state":true,"running":true,"provider":"mock"}
+{"command":"curl","args":["-fsS","-m","2","http://localhost:8080/helse"],"state":true,"running":true,"provider":"mock"}
+{"command":"curl","args":["-fsS","-m","2","http://localhost:8081/helse"],"state":true,"running":true,"provider":"mock"}
+{"command":"curl","args":["-fsS","-m","2","http://localhost:8085/helse"],"state":true,"running":true,"provider":"mock"}

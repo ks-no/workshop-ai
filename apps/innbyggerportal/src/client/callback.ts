@@ -5,11 +5,13 @@
  */
 export {};
 
+const KLIENT_ID = "innbyggerportal";
+
 // Der ID-porten sender nettleseren tilbake. Den eneste jobben er å veksle koden
 // mot et token og sende brukeren dit hun kom fra - returveien lå i `state`.
 (async () => {
   try {
-    const tilbakeTil = await completeLogin();
+    const tilbakeTil = await completeLogin({ clientId: KLIENT_ID });
     location.replace(tilbakeTil);
   } catch (feil) {
     krevEl("tittel").textContent = "Innloggingen gikk ikke gjennom";
