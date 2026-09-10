@@ -96,11 +96,13 @@ Det er registreringen som avgjør hva vi henter. En fork uten issue blir ikke he
 ## Hva som skjer etterpå
 
 Ved fristen kjører arrangøren et skript som henter branchen fra hver registrert fork og
-pusher den inn i `ks-no/workshop-ai` som `team/<teamnavn>`. Et ekstra repo blir
-`team/<teamnavn>-<reponavn>`.
+pusher den inn i `ks-no/workshop-ai` som `team/<slug>`. Slug er teamnavnet med små
+bokstaver, bindestrek i stedet for mellomrom og tegn, og æ/ø/å skrevet ae/oe/aa. Et
+innledende «Team» faller bort: «Team Bergen» blir `team/bergen`, «Lag Ålesund» blir
+`team/lag-aalesund`. Et ekstra repo blir `team/<slug>-<reponavn>`.
 
-Diffen mot sandkassen slik den kom, ser dere så her, med teamnavnet deres på slutten:
-`https://github.com/ks-no/workshop-ai/compare/main...team/<teamnavn>`
+Diffen mot sandkassen slik den kom, ser dere så her, med sluggen deres på slutten:
+`https://github.com/ks-no/workshop-ai/compare/main...team/<slug>`
 
 Forken kan bli stående, og dere kan jobbe videre i den. Det vi hentet, ligger trygt
 uansett.
@@ -113,7 +115,7 @@ Skriptet er `scripts/hent-innleveringer.ts`, og det krever `git` med push-tilgan
 `origin` og `gh` som er logget inn.
 
 ```bash
-pnpm innlevering:hent --ikke-push     # tørrkjøring: hent og rapporter, push ingenting
+pnpm innlevering:hent --ikke-push     # dryrun: hent og rapporter, push ingenting
 pnpm innlevering:hent                 # registreringene fra issues med label «innlevering»
 pnpm innlevering:hent --alle-forker   # sikkerhetsnett: hver fork med commits foran main, som fork/<eier>
 pnpm innlevering:hent --liste fil.json  # registreringene fra en fil i stedet for issues
@@ -124,7 +126,11 @@ kilde til en lokal ref under `refs/innleveringer/`, og pusher den med `+` til
 `team/<slug>` i `origin`. Force er riktig: branchene er våre, og en ny kjøring skal
 overskrive forrige. Rapporten på slutten sier per team hvor mange commits kilden ligger
 foran `main`, om `INNLEVERING.md` finnes, og hvilke filer som er over 5 MB. Begge de
-siste er advarsler og stopper ingenting: vi vil ha koden uansett.
+siste er advarsler og stopper ingenting: vi vil ha koden uansett. En registrering som
+ikke lar seg hente, en feil URL, en branch som ikke finnes eller en fork som er gjort
+privat, står under «Feilet» og stopper heller ikke de andre. Det eneste som stopper
+kjøringen før første fetch, er to team hvis navn gir samme slug, fordi den siste pushen
+ellers hadde skrevet over den første i stillhet.
 
 Kjøreplan:
 
@@ -137,6 +143,9 @@ Kjøreplan:
    mangler `INNLEVERING.md` før demoene. Kjør én gang til etter demoene.
 4. **PR-er som likevel kommer mot `main`:** lukk med en kommentar som peker hit. Vil
    teamet ha PR-en merget i sin branch, går det også:
-   `gh pr edit <nr> --base team/<slug>` og merge.
+   `gh pr edit <nr> --base team/<slug>` og merge. Men husk at neste kjøring pusher med
+   `+` og erstatter `team/<slug>` med det som ligger i forken. Ligger ikke merge-commiten
+   i forken, er den borte. Gjør derfor slike merger etter siste kjøring, eller be teamet
+   pushe det samme til forken.
 5. **Valgfritt etterpå:** tagg hver team-branch, eller flytt dem til et eget
    arkivrepo. Ingenting av det trengs nå.

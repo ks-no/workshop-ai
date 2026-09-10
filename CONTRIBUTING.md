@@ -17,7 +17,7 @@ Takk for at du bidrar til `innbyggerdialog-sandbox`. Alle som bidrar følger
 ## Innlevering fra hackathon-team
 
 Team leverer ikke gjennom pull requests. Arrangøren henter fra forkene med
-`pnpm innlevering:hent` og legger hvert team på `team/<navn>`. Hvordan, og hva du gjør
+`pnpm innlevering:hent` og legger hvert team på `team/<slug>`. Hvordan, og hva du gjør
 med en PR som likevel kommer fra en fork, står i
 [`docs/innlevering.md`](docs/innlevering.md#for-arrangøren).
 

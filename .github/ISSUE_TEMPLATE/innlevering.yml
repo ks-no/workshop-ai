@@ -17,7 +17,7 @@ body:
     id: teamnavn
     attributes:
       label: Teamnavn
-      description: Blir navnet på branchen i ks-no/workshop-ai, som team/<teamnavn>.
+      description: Blir branchen i ks-no/workshop-ai, med små bokstaver, bindestrek og ae/oe/aa for æ/ø/å. «Team Bergen» blir team/bergen.
       placeholder: Team Bergen
     validations:
       required: true

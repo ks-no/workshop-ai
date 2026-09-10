@@ -67,13 +67,15 @@ til 9 GB avhengig av hvor mye minne maskinen har. Senere oppstarter tar sekunder
 På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https://learn.microsoft.com/windows/wsl/install) - se [«På Windows»](#på-windows) lenger ned.
 
 > [!NOTE]
-> **Deltaker på hackathon? Denne filen er ikke inngangen din.** Tre sider, i rekkefølge:
+> **Deltaker på hackathon? Denne filen er ikke inngangen din.** Fire sider, i rekkefølge:
 >
 > 1. [`docs/oppdraget.md`](docs/oppdraget.md) - hva dere skal lage, og hva som er fritt
 > 2. [`docs/deltakerstart.md`](docs/deltakerstart.md) - én kommando, URL-ene, hvilken
 >    demobruker som hører til hvilken case, første eget API-kall, og feilsøking
 > 3. [`docs/bygg-selv.md`](docs/bygg-selv.md) - egen frontend på egen port, egne
 >    tjenester, og hva som er frosset
+> 4. [`docs/innlevering.md`](docs/innlevering.md) - hva som må ligge i forken før fristen,
+>    og hvordan dere registrerer teamet
 >
 > Og før du begynner: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) gjelder alle, i lokalet og i repoet.
 >

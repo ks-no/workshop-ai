@@ -24,6 +24,12 @@
  * with `+` to team/<slug> on the remote. Force is right here: the branches belong to
  * the organiser, and the run at the deadline must overwrite the backup from day one.
  *
+ * One registration must never take the others down with it. A URL that does not
+ * parse, a branch that does not exist or a fork that went private is reported for
+ * that team and the loop goes on. The only things that stop the run before the first
+ * fetch are an argument error and two teams whose names slug to the same branch,
+ * because there the second push would silently overwrite the first.
+ *
  * Usage:
  *   node scripts/hent-innleveringer.ts [--ikke-push] [--liste fil.json | --alle-forker]
  *                                      [--repo ks-no/workshop-ai] [--remote origin]
@@ -33,18 +39,52 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { feilmelding } from "../apps/shared/errors.ts";
 
-const args = process.argv.slice(2);
-const flag = (name: string): boolean => args.includes(name);
-const option = (name: string): string | undefined => {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-};
+// --- arguments --------------------------------------------------------------
 
-const pushEnabled = !flag("--ikke-push");
-const fromAllForks = flag("--alle-forker");
-const listFile = option("--liste");
-const repo = option("--repo") ?? "ks-no/workshop-ai";
-const remote = option("--remote") ?? "origin";
+const FLAGS = new Set(["--ikke-push", "--alle-forker"]);
+const OPTIONS = new Set(["--liste", "--repo", "--remote"]);
+
+/**
+ * Strict on purpose. An unknown flag or an option without a value must not fall
+ * through to the default path, because the default path force-pushes to origin:
+ * `--ikke-pusj` would have pushed, and `--liste` without a file would have read
+ * the issues and pushed.
+ */
+function parseArgs(argv: string[]): { flags: Set<string>; options: Map<string, string> } {
+  const flags = new Set<string>();
+  const options = new Map<string, string>();
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (FLAGS.has(arg)) {
+      flags.add(arg);
+    } else if (OPTIONS.has(arg)) {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) throw new Error(`${arg} trenger en verdi`);
+      options.set(arg, value);
+      i++;
+    } else {
+      throw new Error(`Ukjent argument «${arg}». Kjente: ${[...FLAGS, ...OPTIONS].join(", ")}`);
+    }
+  }
+  if (flags.has("--alle-forker") && options.has("--liste")) {
+    throw new Error("--alle-forker og --liste kan ikke brukes sammen");
+  }
+  return { flags, options };
+}
+
+let parsed: ReturnType<typeof parseArgs>;
+try {
+  parsed = parseArgs(process.argv.slice(2));
+} catch (error) {
+  console.error(feilmelding(error));
+  process.exit(2);
+}
+
+const pushEnabled = !parsed.flags.has("--ikke-push");
+const fromAllForks = parsed.flags.has("--alle-forker");
+const listFile = parsed.options.get("--liste");
+const repo = parsed.options.get("--repo") ?? "ks-no/workshop-ai";
+const remote = parsed.options.get("--remote") ?? "origin";
 
 /** Files above this size are reported: they become permanent history for every clone. */
 const LARGE_FILE_BYTES = 5 * 1024 * 1024;
@@ -55,7 +95,8 @@ const FIELDS = { team: "Teamnavn", fork: "Fork", branch: "Branch", andreRepoer: 
 type Registrering = {
   team: string;
   fork: string;
-  branch: string;
+  /** Undefined when the field was left empty; the fork URL may carry the branch instead. */
+  branch?: string;
   andreRepoer: string[];
   issue?: number;
 };
@@ -75,15 +116,33 @@ type Rapport = {
   foranMain: number;
   harInnlevering: boolean;
   storeFiler: string[];
+  /** --alle-forker only: the fork has nothing ahead of main, so nothing was pushed. */
+  hoppet: boolean;
   feil?: string;
 };
 
 function run(cmd: string, cmdArgs: string[]): string {
-  return execFileSync(cmd, cmdArgs, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  return execFileSync(cmd, cmdArgs, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    // A private or misspelled fork makes git ask for a username on the tty, which
+    // stdin: "ignore" does not cover. Fail instead, so the team lands in «Feilet».
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" }
+  }).trim();
 }
 
 function gh(path: string): unknown {
   return JSON.parse(run("gh", ["api", "--paginate", "--slurp", path]));
+}
+
+/**
+ * execFileSync's message is `Command failed: <cmd>` followed by stderr, so the first
+ * line only echoes what was run. The reason is the last one: «couldn't find remote
+ * ref», «Repository not found».
+ */
+function shortError(error: unknown): string {
+  const lines = feilmelding(error).split("\n").map((l) => l.trim()).filter(Boolean);
+  return lines[lines.length - 1] ?? "ukjent feil";
 }
 
 // --- names ------------------------------------------------------------------
@@ -99,15 +158,17 @@ function slug(name: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const stripped = ascii.replace(/^team-?/, "").replace(/^-+/, "");
+  // Only the word: «Teamwork» keeps its name, «Team Bergen» loses the prefix.
+  const stripped = ascii.replace(/^team(?:-|$)/, "");
   return stripped || ascii || "uten-navn";
 }
 
 /** Accepts `owner/repo`, a github.com URL, with or without .git or /tree/<branch>. */
 function parseRepoUrl(text: string): { owner: string; name: string; branch?: string } {
-  const trimmed = text.trim().replace(/^<|>$/g, "");
+  // What a browser address bar adds: a trailing slash, `?tab=readme`, a `#fragment`.
+  const trimmed = text.trim().replace(/^<|>$/g, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
   const match = trimmed.match(
-    /^(?:https?:\/\/github\.com\/|git@github\.com:)?([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([^\s]+))?\/?$/
+    /^(?:https?:\/\/github\.com\/|git@github\.com:)?([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/(\S+))?$/
   );
   if (!match) throw new Error(`«${text}» er ikke en GitHub-repo-URL eller eier/repo`);
   return { owner: match[1], name: match[2], branch: match[3] };
@@ -115,6 +176,15 @@ function parseRepoUrl(text: string): { owner: string; name: string; branch?: str
 
 function cloneUrl(owner: string, name: string): string {
   return `https://github.com/${owner}/${name}.git`;
+}
+
+/**
+ * An unqualified source like `+v1:...` resolves tags before heads, so a team that
+ * tagged its branch with the branch's own name would have the tag fetched and the
+ * push rejected. HEAD and anything already under refs/ pass through.
+ */
+function qualifyRef(ref: string): string {
+  return ref === "HEAD" || ref.startsWith("refs/") ? ref : `refs/heads/${ref}`;
 }
 
 // --- registrations ----------------------------------------------------------
@@ -147,7 +217,7 @@ function fromIssues(): Registrering[] {
     result.push({
       team,
       fork,
-      branch: fields.get(FIELDS.branch) || "main",
+      branch: fields.get(FIELDS.branch) || undefined,
       andreRepoer: (fields.get(FIELDS.andreRepoer) ?? "").split("\n").map((l) => l.trim()).filter(Boolean),
       issue: issue.number
     });
@@ -163,20 +233,32 @@ function fromFile(file: string): Registrering[] {
     return {
       team: row.team,
       fork: row.fork,
-      branch: row.branch || "main",
+      branch: row.branch || undefined,
       andreRepoer: row.andreRepoer ?? []
     };
   });
 }
 
+function describe(reg: Registrering): string {
+  return reg.issue ? `${reg.team} (issue #${reg.issue})` : reg.team;
+}
+
+/** Throws on a URL that does not parse; the caller reports it for this team alone. */
 function kilderFor(reg: Registrering): Kilde[] {
   const teamSlug = slug(reg.team);
   const fork = parseRepoUrl(reg.fork);
+  let ref = reg.branch ?? fork.branch ?? "main";
+  if (reg.branch && fork.branch && reg.branch !== fork.branch) {
+    console.warn(
+      `  ${describe(reg)}: fork-URL-en peker på «${fork.branch}», feltet «${FIELDS.branch}» sier «${reg.branch}». Bruker feltet.`
+    );
+    ref = reg.branch;
+  }
   const kilder: Kilde[] = [{
     team: reg.team,
     branch: `team/${teamSlug}`,
     url: cloneUrl(fork.owner, fork.name),
-    ref: fork.branch ?? reg.branch
+    ref
   }];
   for (const extra of reg.andreRepoer) {
     const other = parseRepoUrl(extra);
@@ -202,6 +284,15 @@ function fromAllForksOnGitHub(): Kilde[] {
   }));
 }
 
+/** Two sources on one branch means the second push erases the first. Stop before either. */
+function findDuplicateBranches(kilder: Kilde[]): string[] {
+  const byBranch = new Map<string, string[]>();
+  for (const k of kilder) byBranch.set(k.branch, [...(byBranch.get(k.branch) ?? []), k.team]);
+  return [...byBranch.entries()]
+    .filter(([, teams]) => teams.length > 1)
+    .map(([branch, teams]) => `${branch}: ${teams.map((t) => `«${t}»`).join(" og ")}`);
+}
+
 // --- git --------------------------------------------------------------------
 
 function localRef(kilde: Kilde): string {
@@ -210,7 +301,7 @@ function localRef(kilde: Kilde): string {
 
 function fetchKilde(kilde: Kilde): string {
   const ref = localRef(kilde);
-  run("git", ["fetch", "--no-tags", "--quiet", kilde.url, `+${kilde.ref}:${ref}`]);
+  run("git", ["fetch", "--no-tags", "--quiet", kilde.url, `+${qualifyRef(kilde.ref)}:${ref}`]);
   return run("git", ["rev-parse", "--short", ref]);
 }
 
@@ -257,34 +348,56 @@ function pushKilde(kilde: Kilde): void {
 
 // --- main -------------------------------------------------------------------
 
-let kilder: Kilde[];
+function newRapport(team: string, branch: string): Rapport {
+  return { team, branch, commit: "", foranMain: 0, harInnlevering: false, storeFiler: [], hoppet: false };
+}
+
+const rapporter: Rapport[] = [];
+const kilder: Kilde[] = [];
 try {
   run("git", ["fetch", "--no-tags", "--quiet", remote, "main"]);
   if (fromAllForks) {
     console.log(`Henter alle forker av ${repo} ...`);
-    kilder = fromAllForksOnGitHub();
-  } else if (listFile) {
-    console.log(`Leser registreringer fra ${listFile} ...`);
-    kilder = fromFile(listFile).flatMap(kilderFor);
+    kilder.push(...fromAllForksOnGitHub());
   } else {
-    console.log(`Leser åpne issues i ${repo} med label «${LABEL}» ...`);
-    kilder = fromIssues().flatMap(kilderFor);
+    let registreringer: Registrering[];
+    if (listFile) {
+      console.log(`Leser registreringer fra ${listFile} ...`);
+      registreringer = fromFile(listFile);
+    } else {
+      console.log(`Leser åpne issues i ${repo} med label «${LABEL}» ...`);
+      registreringer = fromIssues();
+    }
+    for (const reg of registreringer) {
+      try {
+        kilder.push(...kilderFor(reg));
+      } catch (error) {
+        const rapport = newRapport(reg.team, `team/${slug(reg.team)}`);
+        rapport.feil = shortError(error);
+        rapporter.push(rapport);
+        console.error(`  ${describe(reg)}: ${rapport.feil}`);
+      }
+    }
   }
 } catch (error) {
-  console.error(`Kom ikke i gang: ${feilmelding(error)}`);
+  console.error(`Kom ikke i gang: ${shortError(error)}`);
   process.exit(2);
 }
 
-if (kilder.length === 0) {
+const duplicates = findDuplicateBranches(kilder);
+if (duplicates.length > 0) {
+  console.error("Flere kilder gir samme branch. Ingenting hentet. Rediger den ene registreringen:");
+  for (const d of duplicates) console.error(`  ${d}`);
+  process.exit(2);
+}
+
+if (kilder.length === 0 && rapporter.length === 0) {
   console.log("Ingen kilder å hente. Ingenting gjort.");
   process.exit(0);
 }
 
-const rapporter: Rapport[] = [];
 for (const kilde of kilder) {
-  const rapport: Rapport = {
-    team: kilde.team, branch: kilde.branch, commit: "", foranMain: 0, harInnlevering: false, storeFiler: []
-  };
+  const rapport = newRapport(kilde.team, kilde.branch);
   rapporter.push(rapport);
   try {
     rapport.commit = fetchKilde(kilde);
@@ -294,22 +407,22 @@ for (const kilde of kilder) {
     rapport.storeFiler = largeFiles(ref);
     if (fromAllForks && rapport.foranMain === 0) {
       console.log(`  ${kilde.team}: ingen commits foran main, hoppet over.`);
-      rapport.feil = "ingen commits foran main";
+      rapport.hoppet = true;
       continue;
     }
     if (pushEnabled) pushKilde(kilde);
     console.log(`  ${kilde.team} -> ${kilde.branch} @ ${rapport.commit}${pushEnabled ? "" : " (ikke pushet)"}`);
   } catch (error) {
-    rapport.feil = feilmelding(error).split("\n")[0];
+    rapport.feil = shortError(error);
     console.error(`  ${kilde.team}: ${rapport.feil}`);
   }
 }
 
 // --- report -----------------------------------------------------------------
 
-const hentet = rapporter.filter((r) => !r.feil);
-const hoppet = rapporter.filter((r) => r.feil === "ingen commits foran main");
-const feilet = rapporter.filter((r) => r.feil && !hoppet.includes(r));
+const hentet = rapporter.filter((r) => !r.feil && !r.hoppet);
+const hoppet = rapporter.filter((r) => r.hoppet);
+const feilet = rapporter.filter((r) => r.feil);
 
 console.log(`\n${hentet.length} hentet, ${hoppet.length} uten endringer, ${feilet.length} feilet.`);
 if (hentet.length > 0) {
@@ -328,11 +441,11 @@ if (medStoreFiler.length > 0) {
     for (const file of r.storeFiler) console.log(`  ${r.branch}: ${file}`);
   }
 }
+if (!pushEnabled) {
+  console.log("\nDryrun. Kildene ligger under refs/innleveringer/ lokalt; kjør uten --ikke-push for å pushe.");
+}
 if (feilet.length > 0) {
   console.error("\nFeilet:");
   for (const r of feilet) console.error(`  ${r.team}: ${r.feil}`);
   process.exit(1);
-}
-if (!pushEnabled) {
-  console.log("\nTørrkjøring. Kildene ligger under refs/innleveringer/ lokalt; kjør uten --ikke-push for å pushe.");
 }
