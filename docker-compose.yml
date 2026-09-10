@@ -108,6 +108,10 @@ services:
     command: ["/bin/sh", "scripts/dev.sh", "apps/innbyggerportal/src/server.ts"]
     environment:
       - PORT=3002
+      # Adressen tjeneren ringer ID-porten-mocken på, for å liste hvem som kan
+      # logge inn. Nettleseren bruker localhost:8086 uansett: den står utenfor
+      # dette nettet, og redirecten skjer i den.
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
       - WATCH_POLL=${WATCH_POLL:-0}
       # Sidescriptet er .ts og strippes ved servering med
       # module.stripTypeScriptTypes(), som er merket eksperimentell og skriver en

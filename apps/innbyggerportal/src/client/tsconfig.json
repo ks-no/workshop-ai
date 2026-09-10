@@ -1,7 +1,15 @@
 {
-  // Sidescriptet her, alene i sitt eget program. Det låner ikke felles.ts slik
-  // demo-gui gjør: felles.ts hører sammen med felles.css, og den stilen kan ikke
-  // lastes på en side som bruker designsystemet. Se docs/designsystem.md.
+  // Sidescriptene her, sammen med den delte felles.ts. Begge må ligge i samme
+  // program: felles.ts er et klassisk skript, så ID-porten-funksjonene den
+  // erklærer er globale og importeres ikke. Uten den i include-listen blir hver
+  // bruk av requireLogin og completeLogin en TS2304.
+  //
+  // Hver fil her starter med `export {}` og er dermed en modul. Da bor navnene
+  // lokalt, og de kolliderer ikke med felles.ts sine globale - to av dem heter
+  // det samme.
   "extends": "../../../../tsconfig.client-base.json",
-  "include": ["./**/*.ts"]
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
+  "include": ["./**/*.ts", "../../../shared/client/**/*.ts"]
 }

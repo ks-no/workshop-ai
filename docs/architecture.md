@@ -114,6 +114,7 @@ flowchart LR
   SB -->|"samtykke og beregning"| FS
   SB -->|"bak samtykkeporten"| PJ
   SB -->|"bak samtykkeporten"| PA
+  DM -.->|"ID-porten"| IP
   DM -.->|"token"| SB
   DM -.->|"token"| FS
   DM -.->|"Maskinporten"| PJ
@@ -122,8 +123,9 @@ flowchart LR
 
 Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
 en flyt: den utsteder tokenene de fire beskyttede API-ene krever. `innbyggerportal`
-står for seg av motsatt grunn: den kaller ingen av de andre, men leser `data/` og
-`state/` rett fra disken slik `tools-api` gjør med brreg- og folkeregisterseeden.
+henter tokenet sitt fra `digdir-mock` som de andre klientene, men resten leser den
+`data/` og `state/` rett fra disken, slik `tools-api` gjør med brreg- og
+folkeregisterseeden. Den kaller altså ingen av kjernetjenestene.
 
 
 ## Dynamisk verktøyoppdagelse i agenten

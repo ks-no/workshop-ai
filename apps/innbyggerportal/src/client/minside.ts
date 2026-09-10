@@ -6,7 +6,13 @@
  *
  * Ingen klassenavn er funnet på. Alt som begynner med ds- står i
  * apps/shared/ds-base.css, resten er sidens eget oppsett i minside.html.
+ *
+ * `export {}` gjør filen til en modul, slik demo-guis sidescript gjør. Navnene
+ * her bor da lokalt, mens de globale fra felles.ts - ID-porten-flyten - fortsatt
+ * er synlige.
  */
+export {};
+
 
 type Stegstatus = "fullfoert" | "godkjent" | "paagaar" | "venter";
 
@@ -106,11 +112,6 @@ type Minside = {
   tjenester: Tjeneste[];
   hendelser: Hendelse[];
 };
-
-type Innbygger = { personId: string; navn: string; adresse: string };
-
-/* Fem voksne bor i Stavanger i seeden. Denne har husstand, plasser og eiendom. */
-const STANDARD_PERSON = "person-008";
 
 function krevEl<T extends HTMLElement>(id: string): T {
   const funnet = document.getElementById(id);
@@ -792,6 +793,8 @@ function tegnHendelse(hendelse: Hendelse, passert: boolean): HTMLElement {
 
 /* Oppstart */
 
+const KLIENT_ID = "innbyggerportal";
+
 function visFeil(melding: string): void {
   const boks = krevEl("feil");
   krevEl("feiltekst").textContent = melding;
@@ -802,65 +805,103 @@ function skjulFeil(): void {
   krevEl("feil").hidden = true;
 }
 
+/**
+ * Siden er stengt for denne innloggede. Kortene skjules, og i stedet står det
+ * hvorfor, med veien videre. Brukes både når personen bor i en annen kommune og
+ * når fødselsnummeret ikke finnes i befolkningen.
+ */
+function visSperre(tittel: string, forklaring: string): void {
+  krevEl("kolonner").hidden = true;
+  const kort = krevEl("sperre");
+  kort.hidden = false;
+  kort.replaceChildren();
+  kort.append(kortblokk(overskrift(tittel, "sm")));
+  kort.append(kortblokk(avsnitt(forklaring, "md", "long")));
+
+  const rad = lag("div", "knapperad");
+  const bytt = attributter(lag("button", "ds-button", "Logg inn som en annen"), { type: "button" });
+  bytt.addEventListener("click", () => {
+    logOut();
+    location.assign("/");
+  });
+  const forside = lag("a", "ds-button", "Til forsiden") as HTMLAnchorElement;
+  forside.href = "/";
+  forside.setAttribute("data-variant", "secondary");
+  rad.append(bytt, forside);
+  kort.append(kortblokk(rad));
+}
+
+/** Feilen bærer med seg både status og svarkroppen: en 403 herfra sier hvem den
+ * innloggede er, og det skal fram i toppfeltet framfor å gå tapt i en streng. */
+type Svarfeil = Error & { status?: number; kropp?: any };
+
 async function hentJson(url: string): Promise<any> {
   const svar = await fetch(url);
   const kropp = await svar.json().catch(() => null);
   if (!svar.ok) {
-    throw new Error(kropp?.feil || `${svar.status} ${svar.statusText}`);
+    const feil: Svarfeil = new Error(kropp?.feil || `${svar.status} ${svar.statusText}`);
+    feil.status = svar.status;
+    feil.kropp = kropp;
+    throw feil;
   }
   return kropp;
 }
 
-async function visInnbygger(personId: string): Promise<void> {
+function tegnInnlogget(minside: Minside): void {
+  krevEl("innlogget-navn").textContent = minside.person.navn;
+}
+
+async function visInnbygger(pid: string): Promise<void> {
   const hoved = krevEl("hovedinnhold");
   hoved.setAttribute("aria-busy", "true");
   try {
-    const minside: Minside = await hentJson(`/api/minside/${encodeURIComponent(personId)}`);
+    const minside: Minside = await hentJson(`/api/minside/pid/${encodeURIComponent(pid)}`);
     skjulFeil();
     tegnKommune(minside);
+    tegnInnlogget(minside);
     tegnAktuelt(minside);
     tegnProfil(minside);
     tegnSaker(minside);
     tegnTjenester(minside);
     tegnKalender(minside);
     document.title = `Min side for ${minside.person.navn} | ${minside.kommune.navn} kommune`;
-    const url = new URL(window.location.href);
-    url.searchParams.set("person", personId);
-    window.history.replaceState(null, "", url);
   } catch (feil) {
-    visFeil(`Klarte ikke å hente Min side: ${feil instanceof Error ? feil.message : String(feil)}`);
+    const svarfeil = feil as Svarfeil;
+    const melding = feil instanceof Error ? feil.message : String(feil);
+    if (svarfeil.status === 403 || svarfeil.status === 404) {
+      krevEl("innlogget-navn").textContent = svarfeil.kropp?.navn || "ukjent person";
+      visSperre(
+        svarfeil.status === 403
+          ? "Du hører til en annen kommune"
+          : "Vi fant deg ikke i folkeregisteret",
+        `${melding} Min side her viser bare opplysninger for innbyggere i denne kommunen.`
+      );
+      return;
+    }
+    visFeil(`Klarte ikke å hente Min side: ${melding}`);
   } finally {
     hoved.setAttribute("aria-busy", "false");
   }
 }
 
 async function start(): Promise<void> {
-  const velger = krevEl<HTMLSelectElement>("innbygger");
-  const oensket = new URL(window.location.href).searchParams.get("person") || STANDARD_PERSON;
-
-  try {
-    const svar = await hentJson("/api/innbyggere");
-    const innbyggere: Innbygger[] = svar.innbyggere ?? [];
-    velger.replaceChildren();
-    for (const innbygger of innbyggere) {
-      const valg = document.createElement("option");
-      valg.value = innbygger.personId;
-      valg.textContent = `${innbygger.navn}, ${innbygger.adresse}`;
-      velger.append(valg);
-    }
-    velger.value = innbyggere.some((innbygger) => innbygger.personId === oensket)
-      ? oensket
-      : (innbyggere[0]?.personId ?? "");
-  } catch (feil) {
-    visFeil(`Klarte ikke å hente innbyggerne: ${feil instanceof Error ? feil.message : String(feil)}`);
-    return;
-  }
-
-  velger.addEventListener("change", () => {
-    void visInnbygger(velger.value);
+  // Kobles opp før innloggingen, ikke etter: knappen skal virke også når siden
+  // ender på sperren og aldri tegner et profilkort.
+  krevEl<HTMLButtonElement>("logg-ut").addEventListener("click", () => {
+    logOut();
+    location.assign("/");
   });
 
-  if (velger.value) await visInnbygger(velger.value);
+  // Ingen personvelger å falle tilbake på: uten gyldig token vet siden ikke hvem
+  // den er for, og da hører innbyggeren hjemme på forsiden.
+  if (!(await requireLogin({ clientId: KLIENT_ID }))) return;
+
+  const pid = loggedInPid();
+  if (!pid) {
+    visFeil("Tokenet fra ID-porten bar ingen pid. Logg inn på nytt fra forsiden.");
+    return;
+  }
+  await visInnbygger(pid);
 }
 
 void start();
