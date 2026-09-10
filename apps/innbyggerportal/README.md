@@ -104,22 +104,58 @@ To ting er verdt å vite, og kortet sier begge nederst:
 id og eget spor. Det er tilstandsmaskinen i `apps/shared/samtykke.ts`, ikke noe denne
 siden bestemmer.
 
+## Søknadsskjemaet
+
+`GET /soknad?prosess=<prosessId>`, med en «Start søknad»-knapp fra hver rad i kortet
+over. Skjemaet er prosessdefinisjonen tegnet ut som **ett skjema** framfor sju steg:
+`QUESTION`-stegene blir feltene innbyggeren fyller, `DATA_FETCH`-stegene blir
+opplysningene kommunen fyller ut selv, og `INFO`-teksten blir ingressen.
+
+**Samtykket avgjør hva som er utfylt.** Hver `DATA_FETCH`-blokk kaller den samme
+ressursen steget ville kalt, med innbyggerens eget token:
+
+| Svar fra ressursen | Blokken viser |
+| --- | --- |
+| `200` | Feltene ferdig utfylt, merket «Fylt ut automatisk» |
+| `403` med `grunn: mangler_samtykke` | «Krever samtykke», backends egen begrunnelse, og bryteren som gir det |
+| URL med `{svar.…}` som ennå ikke er besvart | «Venter på svar», og den fylles ut i det svaret kommer |
+
+Bryteren går samme vei som den på Min side, så et ja her er det samme jaet der. Skrus
+den på, hentes opplysningene med én gang og blokken fylles uten at siden lastes om.
+
+Formene per ressurs står i `radeneFor` i `src/client/soknad.ts`. Hvilke av
+opplysningene et skjema viser er en beslutning om denne flaten, ikke om backend, og en
+ukjent ressurs faller til en generisk utflating framfor å vise ingenting.
+
+**Innsendingen er en ekte prosessøkt.** Skjemaet er en annen inngang til den samme
+motoren, ikke en motor til: `POST /api/prosessoekter`, så `/svar` for hvert
+spørsmålssteg og `/handling` for resten, fram til `SUBMIT`. Søknaden som kommer ut er
+den samme som den stegvise flyten på `:3001` lager, den dukker opp under «Pågående
+sak» på Min side, og revisjonssporet ser likedan ut. Kvitteringen viser saksnummeret
+backend ga.
+
+`CONSENT_REQUEST`-steget besvares som en del av innsendingen, og teksten over
+send-knappen sier hvilke kilder det gjelder. Bryteren lenger oppe er til for å se hva
+kommunen vil hente **før** man sier ja til at den gjør det.
+
 ## Ruter
 
 | Rute | Hva den gjør |
 | --- | --- |
 | `GET /` | Forsiden. Forhåndsinnlogging, med knappen inn til ID-porten |
 | `GET /minside` | Min side. Krever innlogging |
+| `GET /soknad?prosess=…` | Søknadsskjemaet for én prosess. Krever innlogging |
 | `GET /callback` | Der ID-porten sender nettleseren tilbake |
 | `GET /api/testbrukere` | Et utvalg av dem som kan logge inn, og hvor mange de er |
 | `GET /api/minside/{personId}` | Datagrunnlaget Min side tegnes fra |
 | `GET /helse` | `{ "status": "ok", "tjeneste": "innbyggerportal" }` |
 
 Portalen kaller ingen andre tjenester enn disse: ID-porten-mocken ved innlogging, og
-sandbox-backend fra tilgangskortet - `GET /api/personer/{personId}/tilganger`,
-`POST /api/personer/{personId}/samtykker` og
-`PUT /api/personer/{personId}/samtykker/{datakilde}/trekk`, alle tre fra nettleseren
-med innbyggerens eget token. Resten leser portalen fra `data/` og `state/` rett fra
+sandbox-backend fra tilgangskortet og søknadsskjemaet - `GET /api/personer`,
+`GET /api/personer/{personId}/tilganger`, `POST /api/personer/{personId}/samtykker`,
+`PUT /api/personer/{personId}/samtykker/{datakilde}/trekk`, `GET /api/prosesser/{id}`,
+ressursene `DATA_FETCH`-stegene peker på, og prosessøkt-rutene ved innsending. Alle
+går fra nettleseren med innbyggerens eget token. Resten leser portalen fra `data/` og `state/` rett fra
 disken gjennom `readJson` i `apps/shared/jsonstore.ts`, som ser i `state/` først.
 Kjører du en flyt i demo-GUI-et på `:3001`, dukker søknaden opp her ved neste
 sidelasting.

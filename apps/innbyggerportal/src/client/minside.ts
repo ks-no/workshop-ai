@@ -885,7 +885,7 @@ async function tegnTilganger(personId: string, fokusId?: string): Promise<void> 
       "xs",
       "long"
     ),
-    avsnitt("Selve søknaden ligger i det stegvise grensesnittet på :3001.", "xs"),
+    avsnitt("Søknadsskjemaet fyller ut det kommunen alt har, så langt samtykkene rekker.", "xs"),
     kildelinje("GET /api/personer/{personId}/tilganger i sandbox-backend")
   ));
 
@@ -929,6 +929,19 @@ function tegnTilgang(
   // bryter kan gjøre noe med.
   if (post.samtykkekilder?.length) {
     rute.append(samtykkebryter(post, post.samtykkekilder, harSamtykke, personId));
+  }
+
+  // En ferdig behandlet søknad har ingen ny søknad å starte. De øvrige har det,
+  // også «ikke-aktuell»: reglene sier hva kommunen vet i dag, ikke at søknaden
+  // er stengt. Retten til å søke og få et vedtak er innbyggerens, ikke skjemaets.
+  if (post.status !== "allerede-godkjent" && post.status !== "allerede-avvist") {
+    const lenke = lag("a", "ds-button", "Start søknad") as HTMLAnchorElement;
+    lenke.href = `/soknad?prosess=${encodeURIComponent(post.prosessId)}`;
+    lenke.setAttribute("data-size", "sm");
+    lenke.setAttribute("data-variant", post.status === "tilgjengelig" ? "primary" : "secondary");
+    const rad = lag("div", "startknapp");
+    rad.append(lenke);
+    rute.append(rad);
   }
 
   return rute;

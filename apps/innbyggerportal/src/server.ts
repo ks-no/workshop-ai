@@ -31,6 +31,7 @@ const ASSETS: Record<string, string> = {
 const KLIENTFILER: Record<string, string> = {
   "minside.ts": KLIENTSKRIPT,
   "forside.ts": KLIENTSKRIPT,
+  "soknad.ts": KLIENTSKRIPT,
   "callback.ts": KLIENTSKRIPT
 };
 
@@ -120,6 +121,13 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 
   if (sti === "/minside") {
     await sendFil(response, path.join(__dirname, "minside.html"), "text/html; charset=utf-8");
+    return;
+  }
+
+  // Søknadsskjemaet. Hvilken søknad står i ?prosess=, ikke i stien: siden er den
+  // samme for alle, og prosessdefinisjonen avgjør hvilke felter den tegner.
+  if (sti === "/soknad") {
+    await sendFil(response, path.join(__dirname, "soknad.html"), "text/html; charset=utf-8");
     return;
   }
 

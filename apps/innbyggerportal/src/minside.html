@@ -315,6 +315,12 @@
           flex: 1;
         }
 
+        /* En enslig knapp i en tjenesterad skal holde sin egen bredde. Radene
+           er grid, så uten dette strekkes den over hele kolonnen. */
+        .startknapp {
+          display: flex;
+        }
+
         .knapperad {
           display: flex;
           flex-wrap: wrap;
