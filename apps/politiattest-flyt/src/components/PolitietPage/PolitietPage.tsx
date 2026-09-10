@@ -1,7 +1,8 @@
 import React from "react";
-import type { CaseState, InboxMessage } from "../../types";
+import type { CaseState, IssuanceRecord } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
 import { useVerifisering } from "../../state/useVerifisering";
+import type { VerifiseringController } from "../../state/useVerifisering";
 import { utstedBevis } from "../../integrations/lommebokApi";
 import { StatusBadge } from "../shared/StatusBadge";
 import { QrPanel } from "../shared/QrPanel";
@@ -10,14 +11,15 @@ import { MetadataTable } from "../shared/MetadataTable";
 interface Props {
   sak: CaseState;
   dispatch: React.Dispatch<SakHandling>;
+  politiattestVerifisering: VerifiseringController;
 }
 
 // Stilen her er inspirert av politiet.no sin fargebruk og struktur (mørkeblå
 // myndighetsheader, saksspråk i kort) - ikke en pikselkopi. Se README for hvorfor.
-export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
+export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifisering }) => {
   const person = sak.person;
   const formalsbevis = sak.formalsbevis;
-  const verifisering = useVerifisering("formalsbekreftelse", person, dispatch);
+  const formalsverifisering = useVerifisering("formalsbekreftelse", person, dispatch);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
 
@@ -41,23 +43,17 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
     setUtstedelsesfeil(null);
     try {
       const resultat = await utstedBevis("politiattest", person);
-      const message: InboxMessage = {
-        id: `msg-politiattest-${Date.now()}`,
-        kind: "politiattest",
-        title: "Politiattesten din er klar til henting",
-        createdAt: new Date().toISOString(),
-        status: "ulest",
-        issuance: {
-          status: resultat.suksess ? "tilbud_klart" : "feilet",
-          transactionId: resultat.transactionId,
-          credentialOfferUri: resultat.credentialOfferUri,
-          qrCodeDataUri: resultat.qrCodeDataUri,
-          issuedAt: new Date().toISOString(),
-          simulated: resultat.simulert,
-          feilmelding: resultat.feilmelding
-        }
+      const issuance: IssuanceRecord = {
+        status: resultat.suksess ? "tilbud_klart" : "feilet",
+        transactionId: resultat.transactionId,
+        credentialOfferUri: resultat.credentialOfferUri,
+        qrCodeDataUri: resultat.qrCodeDataUri,
+        issuedAt: new Date().toISOString(),
+        simulated: resultat.simulert,
+        feilmelding: resultat.feilmelding
       };
-      dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "politiattest", issuance: message.issuance, message });
+      dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "politiattest", issuance, messages: [] });
+      await politiattestVerifisering.start();
     } catch (err) {
       setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
     } finally {
@@ -81,8 +77,8 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
         </p>
 
         {kanStarteFormalsverifisering && (
-          <button type="button" className="btn btn-primary" onClick={verifisering.start} disabled={verifisering.starter}>
-            {verifisering.starter
+          <button type="button" className="btn btn-primary" onClick={formalsverifisering.start} disabled={formalsverifisering.starter}>
+            {formalsverifisering.starter
               ? "Starter…"
               : formalsbevis.verification?.stage === "ikke_startet"
                 ? "Be om å få se formålsbekreftelsen"
@@ -95,15 +91,7 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
             <StatusBadge tekst="Venter på at søkeren viser fram beviset" tone="venter" />
             <QrPanel
               verdi={formalsbevis.verification.authorizationRequest || ""}
-              simulert={formalsbevis.verification.simulated}
             />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => verifisering.simuler(formalsbevis.verification!.transactionId!)}
-            >
-              Simuler at søkeren viser fram beviset
-            </button>
           </div>
         )}
 
@@ -140,14 +128,32 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch }) => {
           )}
           {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
           {sak.politiattest.issuance && (
-            <StatusBadge
-              tekst={
-                sak.politiattest.issuance.status === "tilbud_klart"
-                  ? "Politiattest sendt til innboks - se der for QR-kode"
-                  : "Utstedelsen feilet"
-              }
-              tone={sak.politiattest.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
-            />
+            <>
+              <StatusBadge
+                tekst={
+                  sak.politiattest.issuance.status === "tilbud_klart"
+                    ? "Politiattesten er klar til henting"
+                    : "Utstedelsen feilet"
+                }
+                tone={sak.politiattest.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
+              />
+              {sak.politiattest.issuance.status === "tilbud_klart" &&
+                sak.politiattest.issuance.credentialOfferUri && (
+                  <div className="verifisering-panel">
+                    <p>Skann QR-koden med lommeboken for å hente politiattesten.</p>
+                    <QrPanel
+                      verdi={sak.politiattest.issuance.credentialOfferUri}
+                      bildeUrl={sak.politiattest.issuance.qrCodeDataUri}
+                    />
+                    <a
+                      href={sak.politiattest.issuance.credentialOfferUri}
+                      className="btn btn-secondary"
+                    >
+                      Åpne i lommebok på denne enheten
+                    </a>
+                  </div>
+                )}
+            </>
           )}
         </section>
       )}

@@ -12,6 +12,7 @@
 // om personen.
 
 import type { Person } from "../types";
+import { anmerkningerForLommebok } from "../../../shared/lommebokbevis";
 
 export const CREDENTIAL_CONFIGURATION_IDS = {
   formalsbekreftelse: "net.eidas2sandkasse:ks_hackathon_formalsbekreftelse_sd_jwt_vc",
@@ -115,7 +116,7 @@ export function byggPolitiattestClaims(person: Person): Record<string, unknown> 
     attesttype: attest.attesttype,
     formaal: attest.formaal,
     antall_anmerkninger: antallAnmerkninger,
-    anmerkninger: attest.anmerkninger,
+    anmerkninger: anmerkningerForLommebok(attest.anmerkninger),
     expiry_date: maanedereEtter(attest.utstedt, 3),
     hjemmel: hjemmelSomUri(attest.hjemmel),
     utsteder: {

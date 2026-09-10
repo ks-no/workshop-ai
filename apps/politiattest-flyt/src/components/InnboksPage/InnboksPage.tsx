@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
+import type { VerifiseringController } from "../../state/useVerifisering";
 import { QrPanel } from "../shared/QrPanel";
 import { StatusBadge } from "../shared/StatusBadge";
 
 interface Props {
   sak: CaseState;
   dispatch: React.Dispatch<SakHandling>;
+  politiattestVerifisering: VerifiseringController;
 }
 
 // Forenklet, Gmail-inspirert kontovisning - mappeliste, meldingsliste, meldingsvisning.
 // Poenget er ikke å etterligne Gmail nøyaktig, men å gjøre det gjenkjennelig som "en
 // e-postkonto" for demoformål.
-export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
+export const InnboksPage: React.FC<Props> = ({ sak, dispatch, politiattestVerifisering }) => {
   const [valgtMeldingId, setValgtMeldingId] = useState<string | null>(sak.inboxMessages[0]?.id ?? null);
 
   if (!sak.person) {
@@ -64,7 +66,7 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
               ].join(" ").trim()}
               onClick={() => velgMelding(melding)}
             >
-              <span className="innboks-page__avsender">Drammen kommune / Politiet</span>
+              <span className="innboks-page__avsender">Drammen kommune</span>
               <span className="innboks-page__emne">{melding.title}</span>
               <span className="innboks-page__tid">
                 {new Date(melding.createdAt).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}
@@ -79,12 +81,12 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
             <>
               <h2>{valgtMelding.title}</h2>
               <p className="innboks-page__meldingstekst">
-                {valgtMelding.kind === "formalsbekreftelse"
+                {valgtMelding.type === "utstedelse"
                   ? "Vedlagt finner du en formålsbekreftelse du kan vise fram til politiet når du søker om politiattest."
-                  : "Vedlagt finner du politiattesten din. Vis den fram til Drammen kommune for å fullføre ansettelsessaken."}
+                  : "Vi venter fortsatt på politiattesten din. Når du har hentet den fra politiet, kan du vise den fram til Drammen kommune med QR-koden under."}
               </p>
 
-              {valgtMelding.issuance.status === "tilbud_klart" ? (
+              {valgtMelding.type === "utstedelse" && valgtMelding.issuance.status === "tilbud_klart" ? (
                 <>
                   <StatusBadge tekst="Tilbud klart - ikke bekreftet mottatt i lommebok" tone="venter" />
                   <QrPanel
@@ -98,8 +100,40 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
                     </a>
                   )}
                 </>
-              ) : (
+              ) : valgtMelding.type === "utstedelse" ? (
                 <StatusBadge tekst={`Utstedelsen feilet: ${valgtMelding.issuance.feilmelding ?? "ukjent feil"}`} tone="feil" />
+              ) : sak.politiattest.verification?.stage === "venter_paa_presentasjon" &&
+                sak.politiattest.verification.transactionId ? (
+                <>
+                  <StatusBadge tekst="Venter på at du viser fram politiattesten" tone="venter" />
+                  <QrPanel
+                    verdi={sak.politiattest.verification.authorizationRequest || ""}
+                  />
+                </>
+              ) : sak.politiattest.verification?.stage === "godkjent" ? (
+                <StatusBadge tekst="Politiattesten er mottatt av Drammen kommune" tone="suksess" />
+              ) : sak.politiattest.verification?.stage === "avvist" ||
+                sak.politiattest.verification?.stage === "feilet" ? (
+                <>
+                  <StatusBadge
+                    tekst={
+                      sak.politiattest.verification.stage === "avvist"
+                        ? `Kunne ikke godkjenne attesten: ${sak.politiattest.verification.rejectionReason}`
+                        : "Verifiseringen feilet."
+                    }
+                    tone="feil"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={politiattestVerifisering.start}
+                    disabled={politiattestVerifisering.starter}
+                  >
+                    {politiattestVerifisering.starter ? "Starter…" : "Prøv verifisering på nytt"}
+                  </button>
+                </>
+              ) : (
+                <StatusBadge tekst="Venter på at politiet utsteder attesten" tone="venter" />
               )}
             </>
           )}

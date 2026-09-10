@@ -4,11 +4,11 @@ Demo av digital lommebok-flyt for en skolejobbsøknad som krever politiattest. B
 den samme utstedelses- og verifiseringsmekanismen som [apps/lommebok](../lommebok),
 men viser den fram som fire ulike systemer:
 
-- **Drammen kommune** (saksbehandlingssystem) - utsteder formålsbevis, venter på og
-  kontrollerer den ferdige politiattesten.
+- **Drammen kommune** (saksbehandlingssystem) - utsteder formålsbevis, sender en
+  etterspørsel etter politiattesten, og viser den ferdig kontrollerte metadataen.
 - **Politiet** - kontrollerer formålsbeviset, utsteder politiattest.
-- **Innboks** - en forenklet, Gmail-lignende visning av søkerens digitale lommebok:
-  her dukker QR-kodene for henting av bevis opp.
+- **Innboks** - en forenklet, Gmail-lignende visning av kommunens e-poster til
+  søkeren, med QR-koder for å hente formålsbeviset og vise fram politiattesten.
 - **Start** - velg en syntetisk testperson med en politiattest for formål «skole».
 
 ## Hvorfor en egen app, og ikke en del av lommebok
@@ -23,32 +23,30 @@ den eneste over HTTP, gjennom `src/integrations/lommebokApi.ts`.
 
 1. **Start**: velg en testperson med gyldig skole-politiattest i sandkassedataene
    (standard: `person-215`).
-2. **Drammen kommune**: saksbehandler trykker «Utsted formålsbevis». Dette legger en
-   ny, ulest melding med QR-kode i **Innboks**.
-3. **Innboks**: åpne meldingen, se QR-koden (eller «Åpne i lommebok på denne
-   enheten»). Naviger deretter manuelt til **Politiet**.
+2. **Drammen kommune**: saksbehandler trykker «Utsted formålsbevis». Dette legger to
+   nye meldinger fra kommunen i **Innboks**: én med formålsbeviset og én som ber
+   søkeren vise fram politiattesten når den er klar.
+3. **Innboks**: åpne meldingen med formålsbeviset og hent det med QR-koden (eller
+   «Åpne i lommebok på denne enheten»). Naviger deretter manuelt til **Politiet**.
 4. **Politiet**: trykk «Be om å få se formålsbekreftelsen», skann/simuler
-   presentasjons-QR-koden. Går gjennom en eksplisitt akseptgate (riktig formål,
-   riktig person) før den godkjennes. Deretter kan politiet «Utsted politiattest» -
-   igjen en ny meldig i **Innboks**.
-5. **Innboks**: åpne den nye meldingen. Naviger manuelt tilbake til **Drammen
-   kommune**.
-6. **Drammen kommune**: trykk «Be om å få se politiattesten», skann/simuler.
-   Akseptgaten sjekker formål, person og at attesten ikke er utløpt. Ved godkjenning
-   vises attestens minimale metadata, og saksstatusen går fra «venter på politiattest»
-   til «politiattest mottatt».
+   presentasjons-QR-koden med en fysisk lommebok. Går gjennom en eksplisitt akseptgate (riktig formål,
+   riktig person) før den godkjennes. Deretter utsteder politiet politiattesten, som
+   hentes med QR-koden på politiets side.
+5. **Innboks**: åpne kommunens melding «Vi venter fortsatt på politiattesten din» og
+   vis fram politiattesten med presentasjons-QR-koden.
+6. **Drammen kommune**: naviger manuelt tilbake. Saksstatusen er oppdatert til
+   «politiattest mottatt», og attesttype, formål, datoer og antall anmerkninger vises.
 
 Utstedelse har alltid status «tilbud klart» i denne demoen - det finnes ingen måte å
 bekrefte at lommeboken faktisk har hentet beviset før neste presentasjon lykkes.
 
-## Simulert modus
+## Testmiljø
 
 Utstedelse og verifisering går mot to eksterne testtjenester
 (`bevisgenerator.test.eidas2sandkasse.net` og
 `verifier-service.test.eidas2sandkasse.net`) på samme måte som `apps/lommebok`.
 Utstedelsesfeil vises som feil og lager aldri en QR-kode som ser ekte ut.
-Verifisering har en tydelig merket, manuell «Simuler»-knapp for testing uten en fysisk
-lommebok.
+Presentasjon må fullføres manuelt med en fysisk lommebok.
 
 ## Kjøring
 

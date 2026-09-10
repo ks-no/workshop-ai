@@ -1,11 +1,8 @@
 // Eneste sted i denne appen som kjenner til apps/lommebok sitt API. Sidene kaller
 // funksjonene her; de kjenner verken URL-er, request-formen eller feilhåndteringen.
-// Alt går gjennom /api/* som vite.config.ts proxyer videre til lommebok (se der).
-//
-// Utstedelse og verifisering har begge en simulert reserve: testmiljøet
-// (bevisgenerator/verifier-service) er en ekstern tjeneste vi ikke kontrollerer, og
-// denne demoen skal fungere også uten nett. Simulert resultat er alltid tydelig
-// merket `simulert: true` i tilstanden - se komponentene som viser det fram.
+// Vite proxyer utstedelse og data til lommebok, og verifisering direkte til den samme
+// verifier-tjenesten som lommebok bruker. Feil vises fram; ingen av protokollstegene
+// erstattes med simulerte QR-koder.
 
 import type { CredentialKind, Person } from "../types";
 import { extractVerifiedClaims } from "../../../shared/openid4vp";
@@ -18,8 +15,6 @@ import {
 } from "./credentialDefinitions";
 
 const VERIFIER_CLIENT_APP = "bevisgenerator-login";
-const VERIFIER_BASE_URL = "https://verifier-service.test.eidas2sandkasse.net";
-const FALLBACK_CLIENT_ID = "abr.vc.local";
 
 function claimsFor(kind: CredentialKind, person: Person): Record<string, unknown> {
   return kind === "formalsbekreftelse" ? byggFormalsbevisClaims(person) : byggPolitiattestClaims(person);
@@ -91,32 +86,18 @@ export async function startVerifisering(kind: CredentialKind): Promise<Verifiser
     redirect_uri: `${window.location.origin}/verifisering-fullfort`
   };
 
-  try {
-    const res = await fetch(`/api/v1/${VERIFIER_CLIENT_APP}/verify/start/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-KEY": "KS-HACKATHON" },
-      body: JSON.stringify(requestBody)
-    });
-    if (!res.ok) throw new Error(`Verifier-tjenesten svarte HTTP ${res.status}`);
-    const data = await res.json();
-    return {
-      simulert: false,
-      transactionId: data.verifier_transaction_id,
-      authorizationRequest: data.authorization_request
-    };
-  } catch (err) {
-    console.warn("Klarte ikke starte verifisering mot testmiljøet, simulerer i stedet:", err);
-    const transactionId = `sim-verify-${kind}-${Date.now().toString(36)}`;
-    const requestUri = `${VERIFIER_BASE_URL}/api/v1/${VERIFIER_CLIENT_APP}/openid4vp/${transactionId}`;
-    return {
-      simulert: true,
-      transactionId,
-      authorizationRequest:
-        `eudi-openid4vp://${VERIFIER_BASE_URL.replace(/^https?:\/\//, "")}` +
-        `?client_id=${encodeURIComponent(FALLBACK_CLIENT_ID)}` +
-        `&request_uri=${encodeURIComponent(requestUri)}`
-    };
-  }
+  const res = await fetch(`/api/v1/${VERIFIER_CLIENT_APP}/verify/start/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-KEY": "KS-HACKATHON" },
+    body: JSON.stringify(requestBody)
+  });
+  if (!res.ok) throw new Error(`Verifier-tjenesten svarte HTTP ${res.status}`);
+  const data = await res.json();
+  return {
+    simulert: false,
+    transactionId: data.verifier_transaction_id,
+    authorizationRequest: data.authorization_request
+  };
 }
 
 export type VerifiseringsstatusSvar = "WAIT" | "AVAILABLE" | "FAILED" | "EXPIRED";
@@ -152,34 +133,4 @@ export async function hentVerifiseringsresultat(
   } catch {
     return null;
   }
-}
-
-// «Simuler fullført skanning» - samme mekanisme som apps/lommebok/src/components/Verifiserer.tsx,
-// men bygget på personen den faktiske saken gjelder, ikke en fast testperson.
-export async function simulerVerifisering(
-  kind: CredentialKind,
-  person: Person,
-  transactionId: string
-): Promise<Record<string, unknown>> {
-  const simulertResultat = {
-    status: "SUCCESS",
-    verifier_transaction_id: transactionId,
-    verified_at: new Date().toISOString(),
-    credential_configuration_id: CREDENTIAL_CONFIGURATION_IDS[kind],
-    format: "dc+sd-jwt",
-    claims: claimsFor(kind, person)
-  };
-
-  try {
-    await fetch("/api/verifikasjon/lagre", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transactionId, result: simulertResultat })
-    });
-  } catch {
-    // Lagring i lommebokens minne-cache er best-effort - den simulerte visningen her
-    // trenger den ikke for å fungere i denne appen.
-  }
-
-  return simulertResultat;
 }

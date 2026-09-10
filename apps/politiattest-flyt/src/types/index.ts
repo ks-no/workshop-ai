@@ -64,14 +64,25 @@ export interface VerificationRecord {
 
 export type MessageStatus = "ulest" | "lest";
 
-export interface InboxMessage {
+interface BaseInboxMessage {
   id: string;
-  kind: CredentialKind;
   title: string;
   createdAt: string;
   status: MessageStatus;
+}
+
+export interface IssuanceInboxMessage extends BaseInboxMessage {
+  type: "utstedelse";
+  kind: CredentialKind;
   issuance: IssuanceRecord;
 }
+
+export interface VerificationRequestInboxMessage extends BaseInboxMessage {
+  type: "ettersporsel";
+  kind: "politiattest";
+}
+
+export type InboxMessage = IssuanceInboxMessage | VerificationRequestInboxMessage;
 
 // Kommunesakens egen tilstand - det saksbehandleren ser.
 export type KommuneSaksstatus =

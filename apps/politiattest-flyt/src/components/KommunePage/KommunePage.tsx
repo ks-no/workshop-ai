@@ -1,10 +1,8 @@
 import React from "react";
 import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
-import { useVerifisering } from "../../state/useVerifisering";
 import { utstedBevis } from "../../integrations/lommebokApi";
 import { StatusBadge } from "../shared/StatusBadge";
-import { QrPanel } from "../shared/QrPanel";
 import { MetadataTable } from "../shared/MetadataTable";
 
 interface Props {
@@ -16,7 +14,6 @@ interface Props {
 // dato for søknaden) - ikke en pikselkopi. Se README for hvorfor.
 export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
   const person = sak.person;
-  const verifisering = useVerifisering("politiattest", person, dispatch);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
 
@@ -35,6 +32,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
     try {
       const resultat = await utstedBevis("formalsbekreftelse", person);
       const message: InboxMessage = {
+        type: "utstedelse",
         id: `msg-formalsbevis-${Date.now()}`,
         kind: "formalsbekreftelse",
         title: "Formålsbekreftelsen din fra Drammen kommune er klar",
@@ -50,7 +48,20 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           feilmelding: resultat.feilmelding
         }
       };
-      dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "formalsbekreftelse", issuance: message.issuance, message });
+      const ettersporsel: InboxMessage = {
+        type: "ettersporsel",
+        id: `msg-ettersporsel-${Date.now()}`,
+        kind: "politiattest",
+        title: "Vi venter fortsatt på politiattesten din",
+        createdAt: new Date().toISOString(),
+        status: "ulest"
+      };
+      dispatch({
+        type: "UTSTEDELSE_FULLFORT",
+        kind: "formalsbekreftelse",
+        issuance: message.issuance,
+        messages: [message, ettersporsel]
+      });
     } catch (err) {
       setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
     } finally {
@@ -60,9 +71,6 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
 
   const politiattestGodkjent = sak.politiattest.verification?.stage === "godkjent";
   const claims = sak.politiattest.verification?.claims;
-  const kanStartePolitiattestverifisering = ["ikke_startet", "avvist", "feilet"].includes(
-    sak.politiattest.verification?.stage ?? "ikke_startet"
-  );
 
   return (
     <main className="kommune-page">
@@ -122,48 +130,6 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
             <StatusBadge tekst="Venter på innsendt politiattest" tone="venter" />
           ) : (
             <StatusBadge tekst="Politiattest mottatt og godkjent" tone="suksess" />
-          )}
-        </section>
-      )}
-
-      {sak.politiattest.issuance && !politiattestGodkjent && (
-        <section className="kommune-page__kort">
-          <h2>3. Kontroll av innsendt politiattest</h2>
-          <p>Søkeren har fått politiattesten fra politiet og kan nå legge den fram for kommunen.</p>
-
-          {kanStartePolitiattestverifisering && (
-            <button type="button" className="btn btn-primary" onClick={verifisering.start} disabled={verifisering.starter}>
-              {verifisering.starter
-                ? "Starter…"
-                : sak.politiattest.verification?.stage === "ikke_startet"
-                  ? "Be om å få se politiattesten"
-                  : "Prøv verifisering på nytt"}
-            </button>
-          )}
-
-          {sak.politiattest.verification?.stage === "venter_paa_presentasjon" &&
-            sak.politiattest.verification.transactionId && (
-              <div className="verifisering-panel">
-                <StatusBadge tekst="Venter på at søkeren viser fram attesten" tone="venter" />
-                <QrPanel
-                  verdi={sak.politiattest.verification.authorizationRequest || ""}
-                  simulert={sak.politiattest.verification.simulated}
-                />
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => verifisering.simuler(sak.politiattest.verification!.transactionId!)}
-                >
-                  Simuler at søkeren viser fram attesten
-                </button>
-              </div>
-            )}
-
-          {sak.politiattest.verification?.stage === "avvist" && (
-            <StatusBadge tekst={`Avvist: ${sak.politiattest.verification.rejectionReason}`} tone="feil" />
-          )}
-          {sak.politiattest.verification?.stage === "feilet" && (
-            <StatusBadge tekst="Verifiseringen feilet. Prøv igjen." tone="feil" />
           )}
         </section>
       )}
