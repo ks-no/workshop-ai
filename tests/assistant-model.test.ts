@@ -8,10 +8,9 @@ import type { ModelPlan } from '../src/domain/assistant-types';
 
 // HTTP behavior is exercised through the real Python Agent/SDK in test_agent_runtime.py.
 const fixtureConfig = {
-  CF_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
-  CF_AI_GATEWAY_TOKEN: 'test-only-not-a-real-cloudflare-token',
-  CF_AI_GATEWAY_ID: 'adapter-tests',
-  LLM_MODEL: 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
+  LLM_BASE_URL: 'https://litellm.test.invalid/v1',
+  LLM_API_KEY: 'test-only-not-a-real-api-key',
+  LLM_MODEL: 'controlled-model',
   ASSISTANT_MODEL_TIMEOUT_MS: '10000',
   ASSISTANT_PYTHON: resolve(process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python'),
 };
@@ -41,7 +40,7 @@ const validPlan: ModelPlan = {
 };
 function assertSanitized(value: unknown) {
   const serialized = value instanceof Error ? value.message : JSON.stringify(value);
-  for (const privateValue of [fixtureConfig.CF_AI_GATEWAY_TOKEN, fixtureConfig.CF_ACCOUNT_ID, fixtureConfig.CF_AI_GATEWAY_ID, 'PRIVATE-UPSTREAM-DETAIL']) {
+  for (const privateValue of [fixtureConfig.LLM_API_KEY, fixtureConfig.LLM_BASE_URL, 'PRIVATE-UPSTREAM-DETAIL']) {
     assert.ok(!serialized.includes(privateValue));
   }
 }
@@ -50,35 +49,40 @@ test('configured status reports local runtime availability and model metadata wi
   assert.equal(runtimeInstalled(), true, 'Install the Python backend before running the suite');
   const status = await modelStatus();
   assert.equal(status.available, true);
-  assert.equal(status.provider, 'cloudflare');
+  assert.equal(status.provider, 'litellm');
   assert.equal(status.model, fixtureConfig.LLM_MODEL);
   assert.deepEqual(status.models, { coordinator: fixtureConfig.LLM_MODEL, specialist: fixtureConfig.LLM_MODEL });
   assertSanitized(status);
 });
 
-test('role defaults use Qwen for coordination and Gemma for specialists and appear in status', async () => {
+test('there is no built-in model default: both roles must be named before status reports availability', async () => {
   delete process.env.LLM_MODEL;
-  const expected = { coordinator: '@cf/qwen/qwen3.8-27b', specialist: '@cf/google/gemma-4-26b-a4b-it' };
-  assert.equal(modelName(), expected.coordinator);
-  assert.equal(modelName('coordinator'), expected.coordinator);
-  assert.equal(modelName('specialist'), expected.specialist);
+  assert.equal(modelName(), '');
+  assert.equal(modelName('specialist'), '');
+  const unnamed = await modelStatus();
+  assert.equal(unnamed.available, false);
+  assert.deepEqual(unnamed.models, { coordinator: '', specialist: '' });
+  process.env.LLM_COORDINATOR_MODEL = 'coordinator-only';
+  assert.equal((await modelStatus()).available, false, 'a specialist model is still missing');
+  process.env.LLM_SPECIALIST_MODEL = 'specialist-only';
   const configured = await modelStatus();
-  assert.equal(configured.model, expected.coordinator);
-  assert.deepEqual(configured.models, expected);
-  delete process.env.CF_AI_GATEWAY_TOKEN;
+  assert.equal(configured.available, true);
+  assert.equal(configured.model, 'coordinator-only');
+  assert.deepEqual(configured.models, { coordinator: 'coordinator-only', specialist: 'specialist-only' });
+  delete process.env.LLM_API_KEY;
   const unavailable = await modelStatus();
   assert.equal(unavailable.available, false);
-  assert.deepEqual(unavailable.models, expected);
+  assert.deepEqual(unavailable.models, configured.models);
 });
 
 test('role overrides take precedence independently while the legacy model remains the fallback', () => {
-  process.env.LLM_COORDINATOR_MODEL = 'workers-ai/@cf/test/coordinator-override';
-  process.env.LLM_SPECIALIST_MODEL = 'workers-ai/@cf/test/specialist-override';
+  process.env.LLM_COORDINATOR_MODEL = 'openai/coordinator-override';
+  process.env.LLM_SPECIALIST_MODEL = 'openai/specialist-override';
   assert.equal(modelName(), process.env.LLM_COORDINATOR_MODEL);
   assert.equal(modelName('specialist'), process.env.LLM_SPECIALIST_MODEL);
   delete process.env.LLM_COORDINATOR_MODEL;
   assert.equal(modelName('coordinator'), fixtureConfig.LLM_MODEL);
-  assert.equal(modelName('specialist'), 'workers-ai/@cf/test/specialist-override');
+  assert.equal(modelName('specialist'), 'openai/specialist-override');
   delete process.env.LLM_SPECIALIST_MODEL;
   assert.equal(modelName('specialist'), fixtureConfig.LLM_MODEL);
 });
@@ -86,10 +90,11 @@ test('role overrides take precedence independently while the legacy model remain
 test('missing or invalid configuration fails before starting Python and redacts values', async () => {
   process.env.ASSISTANT_PYTHON = resolve('backend/PRIVATE-UPSTREAM-DETAIL-missing-python');
   for (const [key, value] of [
-    ['CF_ACCOUNT_ID', ''], ['CF_ACCOUNT_ID', 'PRIVATE-UPSTREAM-DETAIL/invalid-account'],
-    ['CF_AI_GATEWAY_TOKEN', ''], ['CF_AI_GATEWAY_ID', '../PRIVATE-UPSTREAM-DETAIL'],
+    ['LLM_BASE_URL', ''], ['LLM_BASE_URL', 'PRIVATE-UPSTREAM-DETAIL'],
+    ['LLM_BASE_URL', 'http://PRIVATE-UPSTREAM-DETAIL.example/v1'], ['LLM_BASE_URL', 'https://user:PRIVATE-UPSTREAM-DETAIL@litellm.test.invalid/v1'],
+    ['LLM_API_KEY', ''], ['LLM_MODEL', ''],
   ]) {
-    for (const configKey of ['CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'] as const) process.env[configKey] = fixtureConfig[configKey];
+    for (const configKey of ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'] as const) process.env[configKey] = fixtureConfig[configKey];
     process.env[key] = value;
     const status = await modelStatus();
     assert.equal(status.available, false);
@@ -165,7 +170,7 @@ test('specialist schema keeps strict finding citations and local length limits',
 test('schemas exported to Python retain strict properties, language defaults and local maximums', () => {
   const planner = z.toJSONSchema(planSchema);
   assert.equal(planner.additionalProperties, false);
-  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported']);
+  assert.deepEqual(Object.keys(planner.properties ?? {}), ['language', 'intent', 'summary', 'services', 'facts', 'questions', 'unsupported', 'toolRequests']);
   assert.equal((planner.properties?.language as Record<string, unknown>).default, 'nb');
   assert.equal((planner.properties?.intent as Record<string, unknown>).default, 'personalized');
   assert.equal((planner.properties?.summary as Record<string, unknown>).maxLength, 1600);

@@ -11,6 +11,7 @@ import re
 import sys
 import uuid
 from typing import Any
+from urllib.parse import urlparse
 
 from agent_framework import Agent, Executor, WorkflowBuilder, WorkflowContext, agent_middleware, handler
 from agent_framework.openai import OpenAIChatCompletionClient
@@ -40,25 +41,29 @@ def safe_error(error: Exception) -> str:
         error = cause
     if isinstance(error, APIStatusError):
         if error.status_code in (401, 403):
-            return "Cloudflare avviste tilgangen. Kontroller serverens token og Workers AI-tilgang."
+            return "Modelltjenesten avviste tilgangen. Kontroller serverens API-nøkkel og modelltilgang."
         if error.status_code in (402, 429):
-            return "Cloudflare har nådd en bruksgrense. Kontroller saldo eller vent før du prøver igjen."
-        return f"Cloudflare kunne ikke fullføre modellkallet (HTTP {error.status_code})."
+            return "Modelltjenesten har nådd en bruksgrense. Kontroller kvoten eller vent før du prøver igjen."
+        return f"Modelltjenesten kunne ikke fullføre modellkallet (HTTP {error.status_code})."
     if isinstance(error, (TimeoutError, APIConnectionError, APITimeoutError)):
-        return "Cloudflare kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
+        return "Modelltjenesten kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
     if isinstance(error, ValueError) and str(error).startswith("KI returnerte"):
         return str(error)
     return "Agentkjøringen kunne ikke fullføres. Opplysningene er bevart; kontroller Python-oppsettet og prøv igjen."
 
 
+LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
 def provider_configuration() -> dict[str, Any]:
-    account = os.environ.get("CF_ACCOUNT_ID", "")
-    token = os.environ.get("CF_AI_GATEWAY_TOKEN", "")
-    gateway = os.environ.get("CF_AI_GATEWAY_ID", "default")
-    if not re.fullmatch(r"[a-fA-F0-9]{32}", account) or not token or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", gateway):
+    """OpenAI-compatible endpoint such as a LiteLLM proxy. Plain HTTP is allowed only on loopback."""
+    base_url = os.environ.get("LLM_BASE_URL", "").strip()
+    api_key = os.environ.get("LLM_API_KEY", "")
+    url = urlparse(base_url)
+    secure = url.scheme == "https" or (url.scheme == "http" and url.hostname in LOOPBACK_HOSTS)
+    if not url.hostname or not secure or url.username or url.password or url.query or url.fragment or not api_key:
         raise ValueError("Invalid server configuration")
-    return {"api_key": token, "base_url": f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1",
-            "max_retries": 0, "default_headers": {"cf-aig-gateway-id": gateway, "cf-aig-skip-cache": "true", "cf-aig-collect-log": "false"}}
+    return {"api_key": api_key, "base_url": base_url.rstrip("/"), "max_retries": 0}
 
 
 async def host_agent(bridge, job):
@@ -110,11 +115,10 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
     async with asyncio.timeout(timeout):
         async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
-            chat = OpenAIChatCompletionClient(model=job["model"].removeprefix("workers-ai/"), async_client=sdk)
+            chat = OpenAIChatCompletionClient(model=job["model"], async_client=sdk)
             agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
                           middleware=[analysis_only_middleware],
-                          default_options={"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"},
-                                           "store": False, "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}})
+                          default_options={"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}})
             for attempt in range(2):
                 response = await agent.run(messages)
                 content = response.text

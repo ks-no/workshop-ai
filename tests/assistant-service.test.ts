@@ -173,8 +173,8 @@ test('selected specialists start separately, receive bounded evidence, and canno
 });
 
 test('analysis passes explicit model roles and records the coordinator and specialist models separately', async () => {
-  process.env.LLM_COORDINATOR_MODEL = '@cf/qwen/qwen3.8-27b';
-  process.env.LLM_SPECIALIST_MODEL = '@cf/google/gemma-4-26b-a4b-it';
+  process.env.LLM_COORDINATOR_MODEL = 'coordinator-model';
+  process.env.LLM_SPECIALIST_MODEL = 'specialist-model';
   const current = session();
   addMessage(current, 'Jeg trenger hjelp med familie, bolig og flytting.');
   const roles: (string | undefined)[] = [];
@@ -188,8 +188,8 @@ test('analysis passes explicit model roles and records the coordinator and speci
   assert.deepEqual(roles, ['coordinator', 'specialist', 'specialist', 'specialist']);
   assert.equal(current.runs.length, 4);
   assert.ok(current.runs.every(run => run.status === 'completed'));
-  assert.equal(current.runs[0].model, '@cf/qwen/qwen3.8-27b');
-  assert.ok(current.runs.slice(1).every(run => run.model === '@cf/google/gemma-4-26b-a4b-it'));
+  assert.equal(current.runs[0].model, 'coordinator-model');
+  assert.ok(current.runs.slice(1).every(run => run.model === 'specialist-model'));
   assert.equal(current.error, null);
 });
 

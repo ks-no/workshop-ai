@@ -5,6 +5,13 @@ export const serviceIds = ['family', 'housing', 'moving'] as const;
 export type ServiceId = typeof serviceIds[number];
 export const factKeys = ['job_lost', 'has_children', 'uses_sfo', 'needs_housing', 'moving', 'household_income_annual', 'income_basis', 'monthly_rent', 'household_size', 'move_date', 'new_municipality', 'cohabitant_missing'] as const;
 export type FactKey = typeof factKeys[number];
+/** Tool catalogue ids. The model may only nominate these; Node validates, gates and executes. */
+export const toolIds = ['read_guidance', 'ks_connect', 'ks_income', 'prepare_sfo_application'] as const;
+export type ToolId = typeof toolIds[number];
+export type PendingConsent = { toolId: ToolId; title: string; integration: string; purpose: string; serviceIds: ServiceId[]; requestedBy: 'model' | 'catalogue'; revision: number };
+export type ApplicationField = { key: string; label: string; value: string | null; sourceId: string | null; status: 'filled' | 'missing' | 'review'; detail: string };
+export type ApplicationDraft = { title: string; fields: ApplicationField[]; filled: number; note: string };
+export type FormFlow = { formId: string; title: string; eligibility: 'unknown' | 'possible' | 'unlikely'; stage: 'screening' | 'consent' | 'collecting' | 'ready' | 'not-applicable'; missing: FactKey[]; questions: FollowUp[] };
 export type Citation = { sourceId: string; quote: string; lineStart: number; lineEnd: number; page: number | null };
 export type EvidenceSource = {
   id: string; kind: 'conversation' | 'document' | 'register' | 'guidance';
@@ -24,6 +31,7 @@ export type ModelPlan = { language?: string;
   intent?: 'information' | 'personalized';
   summary: string; services: { id: ServiceId; reason: string }[];
   facts: ProposedFact[]; questions: FollowUp[]; unsupported: string[];
+  toolRequests?: { tool: ToolId; reason: string }[];
 };
 export type SpecialistOutput = {
   summary: string;
@@ -38,8 +46,10 @@ export type ServiceResult = {
   findings: { text: string; citation: Citation }[];
   sourceIds: string[]; questions: FollowUp[];
   assessment: Assessment | null; error: string | null;
+  applicationDraft?: ApplicationDraft | null;
+  formFlow?: FormFlow | null;
 };
-export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked'; at: string; detail: string };
+export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked' | 'tool-requested'; at: string; detail: string };
 export type AgentRun = { id: string; agent: string; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };
 export type Handoff = { id: string; createdAt: string; revision: number; serviceIds: ServiceId[]; localOnly: true; status: 'prepared-for-human-review' };
 export type KsAccessDecision = { status: 'approved' | 'declined'; decidedAt: string };
@@ -54,8 +64,9 @@ export type AssistantCase = {
   analyzedRevision: number | null; handoff: Handoff | null; error: string | null;
   ksData: { personId: string; connectedAt: string; incomeReadAt: string | null; consent: KsDemoConsent | null } | null;
   ksAccessDecision?: KsAccessDecision | null;
+  pendingConsents?: PendingConsent[];
 };
-export type ModelStatus = { available: boolean; provider: 'cloudflare'; model: string; models?: { coordinator: string; specialist: string }; message: string };
+export type ModelStatus = { available: boolean; provider: 'litellm'; model: string; models?: { coordinator: string; specialist: string }; message: string };
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 export type AssistantCommand =
   | { action: 'start' }
@@ -66,4 +77,5 @@ export type AssistantCommand =
   | { action: 'connect-ks'; revision: number; caseId: string }
   | { action: 'income-consent'; approved: true; revision: number; caseId: string }
   | { action: 'ks-access'; approved: boolean; revision: number; caseId: string }
+  | { action: 'tool-consent'; toolIds: ToolId[]; approved: boolean; revision: number; caseId: string }
   | { action: 'handoff'; confirmed: true; revision: number; caseId: string };

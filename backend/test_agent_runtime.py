@@ -14,9 +14,8 @@ import agent_runtime as runtime
 
 
 CONFIG = {
-    "CF_ACCOUNT_ID": "0123456789abcdef0123456789abcdef",
-    "CF_AI_GATEWAY_TOKEN": "test-only-not-a-real-cloudflare-token",
-    "CF_AI_GATEWAY_ID": "adapter-tests",
+    "LLM_BASE_URL": "https://litellm.test.invalid/v1",
+    "LLM_API_KEY": "test-only-not-a-real-api-key",
     "ASSISTANT_MODEL_TIMEOUT_MS": "10000",
 }
 PRIVATE_DETAIL = "PRIVATE-UPSTREAM-DETAIL"
@@ -42,7 +41,7 @@ def job(role="specialist", service_id="housing"):
     return {
         "id": "coordinator" if role == "coordinator" else service_id,
         "name": role, "role": role,
-        "model": "workers-ai/@cf/qwen/qwen3.8-27b" if role == "coordinator" else "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+        "model": "controlled-coordinator" if role == "coordinator" else "controlled-specialist",
         "prompt": "Controlled instruction. Preserve exact Norwegian quotes.",
         "context": {"_security": copy.deepcopy(runtime.SECURITY_CONTRACT), "responseLanguage": "Vietnamese", "quote": "Husleien er 13500 kroner."},
         "schema": copy.deepcopy(SCHEMA),
@@ -60,7 +59,7 @@ def completion(output=VALID_OUTPUT, finish_reason="stop", raw_content=None):
 
 class InterruptedBody(httpx2.AsyncByteStream):
     async def __aiter__(self):
-        raise httpx2.ReadError(f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}")
+        raise httpx2.ReadError(f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}")
         yield b""  # Makes this an async iterator whose body fails after headers.
 
 
@@ -92,7 +91,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(value, message)
         return message
 
-    async def test_real_agent_sdk_uses_cloudflare_endpoint_private_headers_and_role_models(self):
+    async def test_real_agent_sdk_uses_configured_endpoint_bearer_key_and_role_models(self):
         for role in ("coordinator", "specialist"):
             with self.subTest(role=role):
                 selected_job = job(role)
@@ -100,17 +99,15 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(output, VALID_OUTPUT)
                 request = self.requests[-1]
                 self.assertEqual(request.method, "POST")
-                self.assertEqual(str(request.url), f"https://api.cloudflare.com/client/v4/accounts/{CONFIG['CF_ACCOUNT_ID']}/ai/v1/chat/completions")
-                self.assertEqual(request.headers["authorization"], f"Bearer {CONFIG['CF_AI_GATEWAY_TOKEN']}")
+                self.assertEqual(str(request.url), f"{CONFIG['LLM_BASE_URL']}/chat/completions")
+                self.assertEqual(request.headers["authorization"], f"Bearer {CONFIG['LLM_API_KEY']}")
                 self.assertEqual(request.headers["content-type"], "application/json")
-                self.assertEqual(request.headers["cf-aig-gateway-id"], CONFIG["CF_AI_GATEWAY_ID"])
-                self.assertEqual(request.headers["cf-aig-skip-cache"], "true")
-                self.assertEqual(request.headers["cf-aig-collect-log"], "false")
+                self.assertFalse([name for name in request.headers if name.lower().startswith("cf-aig-")])
                 body = json.loads(request.content)
-                self.assertEqual(body["model"], selected_job["model"].removeprefix("workers-ai/"))
+                self.assertEqual(body["model"], selected_job["model"])
                 self.assertEqual(body["response_format"], {"type": "json_object"})
-                self.assertEqual(body["chat_template_kwargs"], {"enable_thinking": False})
-                self.assertFalse(body["store"])
+                self.assertNotIn("chat_template_kwargs", body)
+                self.assertFalse(body.get("store", False))
                 self.assertFalse(body["stream"])
                 self.assertNotIn("tools", body)
                 self.assertEqual(body["temperature"], 0)
@@ -152,18 +149,21 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             await runtime.analysis_only_middleware(context, call_next)
         self.assertFalse(called)
 
-    async def test_default_gateway_and_native_model_identifier_are_preserved(self):
-        with patch.dict(os.environ):
-            os.environ.pop("CF_AI_GATEWAY_ID", None)
-            selected_job = job()
-            selected_job["model"] = "@cf/google/gemma-4-26b-a4b-it"
-            await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
-        self.assertEqual(self.requests[0].headers["cf-aig-gateway-id"], "default")
-        self.assertEqual(json.loads(self.requests[0].content)["model"], selected_job["model"])
+    async def test_trailing_slash_and_loopback_http_base_urls_are_accepted_and_model_identifier_is_preserved(self):
+        for base_url, expected in [(CONFIG["LLM_BASE_URL"] + "/", CONFIG["LLM_BASE_URL"]), ("http://127.0.0.1:4000", "http://127.0.0.1:4000")]:
+            with self.subTest(base_url=base_url), patch.dict(os.environ, {"LLM_BASE_URL": base_url}):
+                selected_job = job()
+                selected_job["model"] = "openai/gpt-4o-mini"
+                await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
+                self.assertEqual(str(self.requests[-1].url), f"{expected}/chat/completions")
+                self.assertEqual(json.loads(self.requests[-1].content)["model"], selected_job["model"])
 
     async def test_invalid_configuration_fails_before_any_http_client_is_created(self):
-        for key, value in [("CF_ACCOUNT_ID", ""), ("CF_ACCOUNT_ID", PRIVATE_DETAIL),
-                           ("CF_AI_GATEWAY_TOKEN", ""), ("CF_AI_GATEWAY_ID", "../" + PRIVATE_DETAIL)]:
+        for key, value in [("LLM_BASE_URL", ""), ("LLM_BASE_URL", PRIVATE_DETAIL),
+                           ("LLM_BASE_URL", f"http://{PRIVATE_DETAIL}.example/v1"),
+                           ("LLM_BASE_URL", f"https://user:{PRIVATE_DETAIL}@litellm.test.invalid/v1"),
+                           ("LLM_BASE_URL", f"ftp://litellm.test.invalid/{PRIVATE_DETAIL}"),
+                           ("LLM_API_KEY", "")]:
             with self.subTest(key=key, value=value), patch.dict(os.environ, {key: value}):
                 with self.assertRaises(ValueError) as caught:
                     await runtime.run_agent(job(), self.factory(lambda *_: completion()))
@@ -242,7 +242,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
         for status in [401, 403, 402, 429, 500, 503]:
             with self.subTest(status=status):
                 before = len(self.requests)
-                response = lambda *_: httpx2.Response(status, json={"error": {"message": f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}", "type": "test_error"}})
+                response = lambda *_: httpx2.Response(status, json={"error": {"message": f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}", "type": "test_error"}})
                 with self.assertRaises(Exception) as caught:
                     await runtime.run_agent(job(), self.factory(response))
                 self.assertEqual(len(self.requests) - before, 1)
@@ -254,7 +254,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(failure_type=failure_type):
                 before = len(self.requests)
                 def fail(request, _):
-                    raise failure_type(f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}", request=request)
+                    raise failure_type(f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}", request=request)
                 with self.assertRaises(Exception) as caught:
                     await runtime.run_agent(job(), self.factory(fail))
                 self.assertEqual(len(self.requests) - before, 1)
