@@ -195,21 +195,21 @@ export async function fetchKsSource(session: FlowCase, source: FlowFetchable, cl
       const adults = members.filter(member => member.rolle !== 'barn').length;
       const children = members.filter(member => member.rolle === 'barn').length;
       const type = household.value.type;
-      const stored = addSource(session, 'register', `${FLOW_SOURCES.husstand.api} (syntetiske testopplysninger)`,
+      const stored = addSource(session, 'register', FLOW_SOURCES.husstand.title,
         JSON.stringify(withoutIdentities({ type, kommune: household.value.kommune, kommunenummer: household.value.kommunenummer, medlemmer: members.map(({ rolle }) => ({ rolle })), syntetisk: true }), null, 2));
       registerFact(session, stored, 'household', 'Husstand', `${adults} ${adults === 1 ? 'voksen' : 'voksne'}, ${children} barn (${HOUSEHOLD_TYPES[type] ?? type.toLocaleLowerCase('nb-NO').replace(/_/g, ' ')})`, `"type": ${JSON.stringify(type)}`);
       registerFact(session, stored, 'municipality', 'Kommune', household.value.kommune, `"kommune": ${JSON.stringify(household.value.kommune)}`);
     } else if (source === 'sfo') {
       const [places, rates] = await Promise.all([ks.readSfo(), ks.readRates()]);
-      const placeSource = addSource(session, 'register', `${FLOW_SOURCES.sfo.api} (syntetiske testopplysninger)`,
+      const placeSource = addSource(session, 'register', FLOW_SOURCES.sfo.title,
         JSON.stringify(places.value.map(({ sfonavn, kommune, trinn, manedspris, syntetisk }) => ({ sfonavn, kommune, trinn, manedspris, syntetisk })), null, 2));
       const place = places.value[0];
       if (place) {
         registerFact(session, placeSource, 'sfo_place', 'SFO-plass', `${place.sfonavn}, ${place.trinn}. trinn`, `"sfonavn": ${JSON.stringify(place.sfonavn)}`);
         registerFact(session, placeSource, 'sfo_monthly_price', 'Månedspris for SFO-plassen (kr)', String(place.manedspris), `"manedspris": ${place.manedspris}`);
-      } else registerFact(session, placeSource, 'sfo_place', 'SFO-plass', 'Ingen registrert SFO-plass i KS-sandkassen', '[]');
+      } else registerFact(session, placeSource, 'sfo_place', 'SFO-plass', 'Ingen registrert SFO-plass', '[]');
       const schemes = rates.value.ordninger.filter(item => item.tjeneste === 'sfo');
-      const ratesSource = addSource(session, 'register', 'KS API · Regler og satser (åpne data)',
+      const ratesSource = addSource(session, 'register', 'Satser for SFO i kommunen',
         JSON.stringify({ gjelderFra: rates.value.gjelderFra, kilde: rates.value.kilde, maksAndelAvInntekt: rates.value.maksAndelAvInntekt, maanederMedBetaling: rates.value.maanederMedBetaling, ordninger: schemes }, null, 2));
       registerFact(session, ratesSource, 'sfo_rates', 'Satser for SFO', `Maks ${Math.round(rates.value.maksAndelAvInntekt * 100)} % av husholdningens inntekt. ${schemes.map(item => `${item.navn}${item.inntektsgrense ? ` (inntektsgrense ${item.inntektsgrense} kr)` : ''}`).join('; ')}`, `"maksAndelAvInntekt": ${rates.value.maksAndelAvInntekt}`);
     } else {
@@ -218,11 +218,11 @@ export async function fetchKsSource(session: FlowCase, source: FlowFetchable, cl
       event(session, 'Innbygger', 'human', `Samtykke registrert hos KS Fiks: ${KS_DEMO_INCOME_PURPOSE}.`);
       const income = await ks.readIncome(granted.value);
       const assessment = await ks.readSfoAssessment(granted.value);
-      const incomeSource = addSource(session, 'register', `${FLOW_SOURCES.inntekt.api} (syntetiske testopplysninger)`,
+      const incomeSource = addSource(session, 'register', 'Inntektsgrunnlag',
         JSON.stringify({ inntektsaar: income.value.inntektsaar, stadie: income.value.stadie, beregningsbeloep: income.value.beregningsbeloep, beregningstype: income.value.beregningstype, feilmeldinger: income.value.feilmeldinger, syntetisk: income.value.syntetisk }, null, 2));
       registerFact(session, incomeSource, 'household_income_annual', 'Husholdningens årsinntekt (kr)', String(income.value.beregningsbeloep), `"beregningsbeloep": ${income.value.beregningsbeloep}`);
       registerFact(session, incomeSource, 'income_year', 'Inntektsår', String(income.value.inntektsaar), `"inntektsaar": ${income.value.inntektsaar}`);
-      const assessmentSource = addSource(session, 'register', 'KS API · Regelvurdering for SFO (syntetiske testopplysninger)', JSON.stringify(withoutIdentities(assessment.value), null, 2));
+      const assessmentSource = addSource(session, 'register', 'Regelvurdering for redusert SFO-betaling', JSON.stringify(withoutIdentities(assessment.value), null, 2));
       registerFact(session, assessmentSource, 'ks_sfo_assessment', 'KS regelvurdering for redusert SFO-betaling', `${assessment.value.godkjent ? 'Vilkår oppfylt' : 'Vilkår ikke oppfylt'}: ${assessment.value.melding}`, `"godkjent": ${assessment.value.godkjent}`);
     }
     session.ks.fetched.push(source); session.ks.fetchedAt = at; session.ks.personId = ksPersonId();

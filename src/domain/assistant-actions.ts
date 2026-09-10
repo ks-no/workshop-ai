@@ -13,12 +13,12 @@ export const CONTACT_POINTS: Record<string, ContactPoint> = {
   'sfo-office': {
     id: 'sfo-office', name: 'Aktivitetsskolen (AKS) – foreldrebetaling', role: 'Saksbehandler for redusert foreldrebetaling i SFO/AKS', organisation: 'Oslo kommune · Utdanningsetaten',
     email: 'aks-foreldrebetaling@demo.sok-en-gang.example', phone: '21 80 21 80', url: 'https://www.oslo.kommune.no/skole-og-utdanning/aktivitetsskolen/', hours: 'Mandag–fredag 08.00–15.30',
-    note: 'Demo-kontaktpunkt. Telefonnummeret er Oslo kommunes publikumstelefon; e-postadressen er en plassholder for demoen.',
+    note: 'Saksbehandlerne svarer på telefon i åpningstiden, eller du kan skrive til dem direkte.',
   },
   'housing-office': {
     id: 'housing-office', name: 'Boligkontoret i bydelen', role: 'Veileder for bostøtte og kommunal bolig', organisation: 'Oslo kommune · bydelens NAV-kontor',
     email: 'boligkontoret@demo.sok-en-gang.example', phone: '21 80 21 80', url: 'https://www.oslo.kommune.no/bolig-og-sosiale-tjenester/', hours: 'Mandag–fredag 09.00–15.00',
-    note: 'Demo-kontaktpunkt. Bostøtte vedtas av Husbanken; bydelen veileder og tar imot søknaden.',
+    note: 'Bydelen veileder deg og tar imot søknaden; selve vedtaket gjøres av Husbanken.',
   },
   husbanken: {
     id: 'husbanken', name: 'Husbanken – bostøtte', role: 'Statlig bostøtteordning', organisation: 'Husbanken',
@@ -33,7 +33,7 @@ export const CONTACT_POINTS: Record<string, ContactPoint> = {
   'citizen-service': {
     id: 'citizen-service', name: 'Innbyggerservice', role: 'Veiledning om kommunale tjenester', organisation: 'Oslo kommune',
     email: 'innbyggerservice@demo.sok-en-gang.example', phone: '21 80 21 80', url: 'https://www.oslo.kommune.no/kontakt-oss/', hours: 'Mandag–fredag 08.00–15.30',
-    note: 'Demo-kontaktpunkt for spørsmål som ikke hører til én bestemt tjeneste.',
+    note: 'For deg som lurer på noe som ikke hører til én bestemt tjeneste.',
   },
 };
 const SERVICE_CONTACTS: Record<ServiceId, { primary: string; selfService: string | null }> = {

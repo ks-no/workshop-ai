@@ -10,7 +10,7 @@ import { componentForStep, type FlowComponentId } from '../domain/flow-component
 import { FamilyOverview } from './family-overview';
 import { FlowActivityPanel } from './flow-activity-panel';
 import { dateTime } from '../domain/format';
-import { ACTION_LABELS, FLOW_SOURCES, SANDBOX_NOTE, STEP_LABELS } from '../domain/flow-catalogue';
+import { ACTION_LABELS, FLOW_SOURCES } from '../domain/flow-catalogue';
 import type { FlowCase, FlowCommand, FlowExecution, FlowFact, FlowFetchable, FlowOutcome, FlowProposal, FlowQuestion, FlowResponse, FlowStep } from '../domain/flow-types';
 import type { ContactPoint, ModelStatus } from '../domain/assistant-types';
 import styles from './sok-wizard.module.css';
@@ -54,10 +54,11 @@ function activeFacts(session: FlowCase, step?: FlowStep | null) {
   return session.facts.filter(fact => (fact.status === 'proposed' || fact.status === 'confirmed') && (!step || !step.factIds.length || step.factIds.includes(fact.id)));
 }
 function factSource(session: FlowCase, fact: FlowFact) {
+  if (fact.status === 'proposed') return fact.quote ? `KI-forslag fra det du skrev: «${fact.quote}». Sjekk før du godkjenner.` : 'KI-forslag. Sjekk før du godkjenner.';
   const source = session.sources.find(item => item.id === fact.sourceId);
-  const base = fact.origin === 'ks' ? `Kilde: ${source?.title ?? 'KS API'}${source ? `, hentet ${dateTime(source.at)}` : ''}`
-    : fact.origin === 'document' ? `Kilde: dokumentet «${source?.title ?? 'dokument'}»` : `Kilde: ${CITIZEN_SOURCE.toLocaleLowerCase('nb-NO')}`;
-  return fact.status === 'proposed' && fact.quote ? `${base}. KI-forslag fra sitatet «${fact.quote}». Kontroller før du godkjenner.` : `${base}. ${fact.detail}`;
+  if (fact.origin === 'ks') return `Hentet fra ${source?.title ?? 'kommunens registre'}${source ? `, ${dateTime(source.at)}` : ''}.`;
+  if (fact.origin === 'document') return `Fra dokumentet «${source?.title ?? 'dokumentet'}».`;
+  return '';
 }
 
 export function SokWizard() {
@@ -172,7 +173,7 @@ export function SokWizard() {
   async function approve(input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string }) {
     const body = withCase({ action: 'approve', ...input });
     if (body) await command(body, { heading: input.fetch.length ? 'Henter KS-opplysninger med samtykke' : 'Vi bruker det du godkjente', hint: input.fetch.length ? 'Bare det du valgte hentes. Du kontrollerer alt før det brukes.' : 'Opplysningene er nå bekreftet av deg.',
-      tasks: thinkingTasks({ title: 'Registrerer godkjenningen', detail: `${input.facts.length} opplysninger er bekreftet av deg.` }, input.fetch.map(key => ({ title: `Henter ${FLOW_SOURCES[key].lower}`, detail: `${FLOW_SOURCES[key].api} · ${SANDBOX_NOTE}` }))) });
+      tasks: thinkingTasks({ title: 'Registrerer godkjenningen', detail: `${input.facts.length} opplysninger er bekreftet av deg.` }, input.fetch.map(key => ({ title: `Henter ${FLOW_SOURCES[key].lower}`, detail: 'Henter fra kommunens registre.' }))) });
   }
   async function prepare(execution: FlowExecution) {
     const body = withCase({ action: 'prepare', execution });
@@ -320,14 +321,12 @@ function StepMeta({ step }: { step: FlowStep }) {
   return <div className={styles.stackSm}>
     <div className={styles.chips}>
       <Tag data-size="sm" data-color={step.by === 'model' ? 'accent' : 'warning'}>{step.by === 'model' ? `KI-forslag · ${step.model}` : 'Regelbasert forslag'}</Tag>
-      <Tag data-size="sm" data-color="neutral">{STEP_LABELS[step.kind]}</Tag>
-      {step.durationMs > 0 && <Tag data-size="sm" data-color="neutral">{(step.durationMs / 1000).toFixed(1).replace('.', ',')} s</Tag>}
     </div>
     <Details>
       <DetailsSummary>Slik tenkte assistenten</DetailsSummary>
       <DetailsContent className={styles.stackSm}>
         <Paragraph data-size="sm">{step.rationale}</Paragraph>
-        <Paragraph data-size="xs" className={styles.subtle}>Forslaget er kontrollert mot kildene i saken: sitater må finnes ordrett, tall må ha grunnlag, og skjemaer og kontaktpunkter kommer fra en fast katalog. Du bestemmer hva som brukes og hva som utføres.</Paragraph>
+        <Paragraph data-size="xs" className={styles.subtle}>Forslaget er sjekket mot opplysningene i saken før du ser det. Du bestemmer selv hva som brukes.</Paragraph>
       </DetailsContent>
     </Details>
   </div>;
@@ -343,7 +342,12 @@ function ActivityLog({ session }: { session: FlowCase }) {
   </Details>;
 }
 function MoreInfo({ value, onChange, id = 'more-info' }: { value: string; onChange: (value: string) => void; id?: string }) {
-  return <Textfield multiline id={id} label="Er det noe mer vi bør vite?" description={`Valgfritt. Lagres som «${CITIZEN_SOURCE.toLocaleLowerCase('nb-NO')}» og leses av assistenten i neste steg.`} rows={3} value={value} onChange={event => onChange(event.target.value)} placeholder="F.eks: Inntekten min går ned fra neste måned." suppressHydrationWarning />;
+  return <Details defaultOpen={!!value.trim()}>
+    <DetailsSummary>Er det noe mer vi bør vite?</DetailsSummary>
+    <DetailsContent>
+      <Textfield multiline id={id} label="Legg til" description="Lagres som noe du selv har oppgitt." rows={3} value={value} onChange={event => onChange(event.target.value)} placeholder="F.eks: Inntekten min går ned fra neste måned." suppressHydrationWarning />
+    </DetailsContent>
+  </Details>;
 }
 
 function QuestionField({ question, value, error, onChange }: { question: FlowQuestion; value: string; error?: string; onChange: (value: string) => void }) {
@@ -413,7 +417,7 @@ function ReviewScreen({ session, step, onApprove, headingRef }: { session: FlowC
       <Paragraph data-size="sm" className={styles.subtle}>{proposedCount ? `${proposedCount} av opplysningene er KI-forslag fra det du skrev eller la ved. ` : ''}Rett det som ikke stemmer, eller fjern opplysningen. Alt du godkjenner merkes som bekreftet av deg.</Paragraph>
       <div className={styles.stack}>
         {visible.map(fact => <div key={fact.id} className={styles.factRow}>
-          <Textfield id={`fact-${fact.id}`} label={fact.label} description={factSource(session, fact)} value={values[fact.id] ?? ''} onChange={event => { const value = event.target.value; setValues(current => ({ ...current, [fact.id]: value })); }} />
+          <Textfield id={`fact-${fact.id}`} label={fact.label} description={factSource(session, fact) || undefined} value={values[fact.id] ?? ''} onChange={event => { const value = event.target.value; setValues(current => ({ ...current, [fact.id]: value })); }} />
           <div className={styles.factMeta}>
             <Tag data-size="sm" data-color={fact.status === 'proposed' ? 'warning' : fact.origin === 'ks' ? 'info' : 'success'}>{fact.status === 'proposed' ? 'KI-forslag – kontroller' : fact.origin === 'ks' ? 'Hentet fra KS' : CITIZEN_SOURCE}</Tag>
             <Button variant="tertiary" data-size="sm" onClick={() => setRemoved(current => [...current, fact.id])}>Fjern {fact.label.toLocaleLowerCase('nb-NO')}</Button>
@@ -422,10 +426,10 @@ function ReviewScreen({ session, step, onApprove, headingRef }: { session: FlowC
       </div>
     </CardBlock></Card> : <Alert data-color="info">Vi har ingen bekreftede opplysninger ennå.</Alert>}
     {step.fetch.length > 0 && <Fieldset>
-      <FieldsetLegend>Vi foreslår å hente fra KS-sandkassen</FieldsetLegend>
-      <FieldDescription>Ved å hente samtykker du til at de valgte opplysningene brukes i denne saken. Huk vekk det du ikke vil dele, så fyller du det inn selv. {SANDBOX_NOTE}.</FieldDescription>
+      <FieldsetLegend>Vi foreslår å hente fra kommunens registre</FieldsetLegend>
+      <FieldDescription>Ved å hente samtykker du til at opplysningene brukes i saken. Huk vekk det du ikke vil dele – da fyller du det inn selv.</FieldDescription>
       <div className={styles.stackSm}>
-        {step.fetch.map(key => <Checkbox key={key} value={key} label={FLOW_SOURCES[key].title} description={`${FLOW_SOURCES[key].description} Kilde: ${FLOW_SOURCES[key].api}.`}
+        {step.fetch.map(key => <Checkbox key={key} value={key} label={FLOW_SOURCES[key].title} description={FLOW_SOURCES[key].description}
           checked={!!selected[key]} onChange={event => { const checked = event.target.checked; setSelected(current => ({ ...current, [key]: checked })); }} />)}
       </div>
     </Fieldset>}
@@ -473,7 +477,7 @@ function ActionScreen({ component, session, step, proposal, onExecute, onSkip, h
       <ContactCard contact={proposal.contact} />
       <Alert data-color={proposal.aiDrafted ? 'info' : 'warning'}>{proposal.aiDrafted ? 'Utkastet er skrevet av KI og kontrollert mot opplysningene dine: ingen tall uten grunnlag, ingen påstand om vedtak. Les over og rett før du lagrer i testutboksen.' : 'KI-utkastet ble avvist i kontrollen eller var utilgjengelig, så dette er et fast utkast fra opplysningene dine. Rett det før du lagrer i testutboksen.'}</Alert>
       <div className={styles.stack}>
-        <Textfield id="email-to" label="Til" description="Mottakeradressen er en plassholder for demoen og kan endres." type="email" value={to} onChange={event => setTo(event.target.value)} error={errors.to} />
+        <Textfield id="email-to" label="Til" description="Du kan endre mottakeren før du sender." type="email" value={to} onChange={event => setTo(event.target.value)} error={errors.to} />
         <Textfield id="email-subject" label="Emne" value={subject} onChange={event => setSubject(event.target.value)} />
         <Textfield multiline id="email-body" label="E-post" rows={12} value={body} onChange={event => setBody(event.target.value)} error={errors.body} suppressHydrationWarning />
       </div>
@@ -495,7 +499,7 @@ function ActionScreen({ component, session, step, proposal, onExecute, onSkip, h
       <Card data-color="neutral" variant="tinted"><CardBlock className={styles.cardStack}>
         <Heading level={2} data-size="2xs">{proposal.title}</Heading>
         <Paragraph data-size="sm">Mottaker: {proposal.recipient.name} · {proposal.recipient.organisation}</Paragraph>
-        <Paragraph data-size="xs" className={styles.subtle}>{ks ? `KS registrerer en testsøknad. Skjemafeltene og dokumentene lagres bare i denne appen. ${SANDBOX_NOTE}.` : 'Klargjøres lokalt. Selve innsendingen gjør du i den offisielle tjenesten.'} Bekreftede opplysninger kan ikke redigeres her; rett dem ved å legge til mer informasjon.</Paragraph>
+        <Paragraph data-size="xs" className={styles.subtle}>{ks ? 'Kommunen registrerer søknaden. Skjemafeltene og dokumentene lagres i denne appen.' : 'Klargjøres lokalt. Selve innsendingen gjør du i den offisielle tjenesten.'} Bekreftede opplysninger kan ikke redigeres her; rett dem ved å legge til mer informasjon.</Paragraph>
       </CardBlock></Card>
       <div className={styles.stack}>
         {proposal.fields.map(field => {
@@ -596,7 +600,7 @@ function SummaryScreen({ session, step, onMore, onContinue, onReset, headingRef 
         <dl className={styles.sourceList}>
           <div><dt>Din beskrivelse og svar</dt><dd>{CITIZEN_SOURCE}. Kommunen må kontrollere det du oppgir.</dd></div>
           {documents.length > 0 && <div><dt>Dokumenter</dt><dd>{documents.map(source => source.title).join(', ')}. Ubetrodd tekst; tall og påstander er forslag du har kontrollert.</dd></div>}
-          {session.ks.fetched.length > 0 && <div><dt>KS-sandkassen</dt><dd>{session.ks.fetched.map(key => FLOW_SOURCES[key].api).join(', ')}{session.ks.fetchedAt ? `, hentet ${dateTime(session.ks.fetchedAt)}` : ''}. {SANDBOX_NOTE}.</dd></div>}
+          {session.ks.fetched.length > 0 && <div><dt>Kommunens registre</dt><dd>{session.ks.fetched.map(key => FLOW_SOURCES[key].title).join(', ')}{session.ks.fetchedAt ? `, hentet ${dateTime(session.ks.fetchedAt)}` : ''}. Testmiljø med syntetiske opplysninger.</dd></div>}
           {session.ks.declined.length > 0 && <div><dt>Ikke hentet</dt><dd>{session.ks.declined.map(key => FLOW_SOURCES[key].lower).join(', ')} – valgt bort av deg.</dd></div>}
           <div><dt>Neste steg og forslag</dt><dd>Språkmodell i demoen, kontrollert mot kildene. Kommunen gjør vedtak.</dd></div>
         </dl>
