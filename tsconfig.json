@@ -26,5 +26,5 @@
   // scripts/ må stå her, ellers er et skript usjekket: token.ts og
   // sjekk-openapi-dekning.ts falt utenfor til 21.08.2026.
   "include": ["apps/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "**/client/**", "apps/lommebok/**"]
+  "exclude": ["node_modules", "**/client/**", "apps/lommebok/**", "apps/politiattest-flyt/**"]
 }

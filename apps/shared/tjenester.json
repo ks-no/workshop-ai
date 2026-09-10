@@ -10,5 +10,6 @@
   { "navn": "politiattest-mock", "port": 8088, "rolle": "Mock av politiattest", "spesifikasjon": true },
   { "navn": "demo-gui", "port": 3001, "rolle": "Sidene du er på nå", "spesifikasjon": false },
   { "navn": "lommebok", "port": 3002, "rolle": "Digital lommebok sandkasse (utsted og verifiser)", "spesifikasjon": false },
+  { "navn": "politiattest-flyt", "port": 3003, "rolle": "Demo av lommebok-flyt for skole-politiattest", "spesifikasjon": false },
   { "navn": "process-builder", "port": 3000, "rolle": "Prosessbygger", "spesifikasjon": false }
 ]

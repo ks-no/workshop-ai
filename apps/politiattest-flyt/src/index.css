@@ -1,0 +1,529 @@
+/* Politiattest-flyt - demo av digital lommebok-flyt for skole-politiattest.
+   Egen CSS, ikke KS Digital-designsystemet (se AGENTS.md om hvorfor de to ikke skal
+   lastes sammen). Hver side har en egen visuell drakt for å synliggjøre at dette er
+   fire ulike systemer - se README for hvilke offentlige sider som har inspirert hver. */
+
+:root {
+  --skrift: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --tekst: #1b1b1f;
+  --tekst-lys: #5b5f66;
+  --bakgrunn: #f4f5f7;
+  --kant: #d7dae0;
+  --suksess: #0f7b3c;
+  --suksess-bg: #e5f6ec;
+  --venter: #8a5a00;
+  --venter-bg: #fdf1dc;
+  --feil: #b3261e;
+  --feil-bg: #fbe8e6;
+  --noytral-bg: #e8eaee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--skrift);
+  background: var(--bakgrunn);
+  color: var(--tekst);
+}
+
+button {
+  font-family: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Admin-navigasjon (testverktøy, ikke del av noen av de simulerte systemene) --- */
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background: #1b1b1f;
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.admin-nav__merkelapp {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b8bcc4;
+  border: 1px solid #444;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.admin-nav__liste {
+  list-style: none;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.admin-nav__lenke {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #d8dae0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  font-size: 0.9rem;
+}
+
+.admin-nav__lenke:hover:not(:disabled) {
+  border-color: #666;
+}
+
+.admin-nav__lenke--aktiv {
+  background: #fff;
+  color: #1b1b1f;
+  font-weight: 600;
+}
+
+.admin-nav__lenke:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-nav__badge {
+  margin-left: 0.4rem;
+  background: #d32f2f;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.admin-nav__nullstill {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #666;
+  color: #d8dae0;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.admin-nav__nullstill:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* --- Delte komponenter --- */
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.status-badge--noytral { background: var(--noytral-bg); color: var(--tekst); }
+.status-badge--venter { background: var(--venter-bg); color: var(--venter); }
+.status-badge--suksess { background: var(--suksess-bg); color: var(--suksess); }
+.status-badge--advarsel { background: var(--venter-bg); color: var(--venter); }
+.status-badge--feil { background: var(--feil-bg); color: var(--feil); }
+
+.qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  max-width: 320px;
+}
+
+.qr-panel__simulert-varsel {
+  font-size: 0.85rem;
+  color: var(--venter);
+  text-align: center;
+  margin: 0;
+}
+
+.metadata-table {
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.metadata-table__tittel {
+  margin-top: 0;
+}
+
+.metadata-table dl {
+  margin: 0;
+}
+
+.metadata-table__rad {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.metadata-table__rad:last-child {
+  border-bottom: none;
+}
+
+.metadata-table__rad dt {
+  color: var(--tekst-lys);
+  font-weight: 600;
+}
+
+.metadata-table__rad dd {
+  margin: 0;
+  text-align: right;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #1c4ed8;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #fff;
+  border-color: #1c4ed8;
+  color: #1c4ed8;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--kant);
+  color: var(--tekst);
+}
+
+.alert {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.alert-feil {
+  background: var(--feil-bg);
+  color: var(--feil);
+}
+
+.alert-info {
+  background: var(--noytral-bg);
+}
+
+.verifisering-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* --- Startside --- */
+.start-page {
+  max-width: 720px;
+  margin: 2.5rem auto;
+  padding: 0 1.25rem;
+}
+
+.start-page__intro h1 {
+  font-size: 1.6rem;
+}
+
+.start-page__merknad {
+  color: var(--tekst-lys);
+  font-size: 0.9rem;
+}
+
+.start-page__personvelger {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.start-page__person {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.start-page__person:hover {
+  border-color: #1c4ed8;
+}
+
+.start-page__person--anbefalt {
+  border-color: #1c4ed8;
+  background: #eef2ff;
+}
+
+.start-page__person-merke {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1c4ed8;
+  font-weight: 700;
+}
+
+/* --- Politiet-siden: mørkeblå myndighetsdrakt, inspirert av politiet.no --- */
+.politiet-page {
+  --politiet-bla: #002e5b;
+  max-width: 780px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+
+.politiet-page__header {
+  background: var(--politiet-bla);
+  color: #fff;
+  padding: 2rem 1.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.politiet-page__etat {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: #ffcd00;
+  color: var(--politiet-bla);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  margin-bottom: 0.6rem;
+}
+
+.politiet-page__header h1 {
+  margin: 0.2rem 0;
+}
+
+.politiet-page__kort {
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin: 0 1.25rem 1.25rem;
+}
+
+.politiet-page__kort h2 {
+  color: var(--politiet-bla);
+  font-size: 1.05rem;
+}
+
+.politiet-page__hjelpetekst {
+  color: var(--tekst-lys);
+  padding: 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* --- Kommune-siden: saksbehandlingssystem inspirert av drammen.kommune.no --- */
+.kommune-page {
+  --drammen-groenn: #00594f;
+  max-width: 780px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+
+.kommune-page__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--drammen-groenn);
+  color: #fff;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.kommune-page__kommunevaapen {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--drammen-groenn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.kommune-page__etat {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.kommune-page__header h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.3rem;
+}
+
+.kommune-page__saksinfo,
+.kommune-page__kort {
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin: 0 1.25rem 1.25rem;
+}
+
+.kommune-page__kort h2 {
+  color: var(--drammen-groenn);
+  font-size: 1.05rem;
+}
+
+.kommune-page__venteboks {
+  text-align: center;
+}
+
+/* --- Innboks: forenklet Gmail-lignende kontovisning --- */
+.innboks-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+.innboks-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1.25rem 0;
+}
+
+.innboks-page__layout {
+  display: grid;
+  grid-template-columns: 160px 280px 1fr;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 420px;
+}
+
+.innboks-page__mapper {
+  background: #f8f5f2;
+  border-right: 1px solid var(--kant);
+  padding: 1rem 0.5rem;
+}
+
+.innboks-page__mapper ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.innboks-page__mappe {
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.innboks-page__mappe--aktiv {
+  background: #fde9e7;
+  font-weight: 700;
+}
+
+.innboks-page__telling {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+.innboks-page__meldingsliste {
+  border-right: 1px solid var(--kant);
+  padding: 0.5rem 0;
+  overflow-y: auto;
+}
+
+.innboks-page__melding {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+}
+
+.innboks-page__melding--ulest {
+  font-weight: 700;
+  background: #fafafa;
+}
+
+.innboks-page__melding--valgt {
+  background: #eef2ff;
+}
+
+.innboks-page__avsender {
+  font-size: 0.75rem;
+  color: var(--tekst-lys);
+}
+
+.innboks-page__tid {
+  font-size: 0.7rem;
+  color: var(--tekst-lys);
+}
+
+.innboks-page__meldingsvisning {
+  padding: 1.5rem;
+}
+
+.innboks-page__meldingstekst {
+  color: var(--tekst-lys);
+}
+
+.innboks-page__tom {
+  padding: 1rem;
+  color: var(--tekst-lys);
+}
+
+@media (max-width: 720px) {
+  .innboks-page__layout {
+    grid-template-columns: 1fr;
+  }
+  .innboks-page__mapper,
+  .innboks-page__meldingsliste {
+    border-right: none;
+    border-bottom: 1px solid var(--kant);
+  }
+}

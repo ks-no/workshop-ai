@@ -105,6 +105,37 @@ services:
       - lommebok-root-node-modules:/workspace/node_modules
       - lommebok-package-node-modules:/workspace/apps/lommebok/node_modules
 
+  politiattest-flyt:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3003/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    depends_on:
+      lommebok:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ ! -x /workspace/node_modules/.bin/vite ]; then
+          corepack pnpm install --frozen-lockfile --filter @innbyggerdialog/politiattest-flyt
+        fi
+        exec corepack pnpm --filter @innbyggerdialog/politiattest-flyt dev
+    environment:
+      - CI=true
+      - WATCH_POLL=${WATCH_POLL:-0}
+      - NODE_OPTIONS=--disable-warning=ExperimentalWarning
+      # Eneste avhengighet til apps/lommebok: dens fungerende OpenID4VCI/OpenID4VP-API,
+      # nådd gjennom denne appens egen vite-proxy (se vite.config.ts).
+      - LOMMEBOK_BASE_URL=http://lommebok:3002
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:3003:3003"
+    volumes:
+      - ./:/workspace
+      - politiattest-flyt-root-node-modules:/workspace/node_modules
+      - politiattest-flyt-package-node-modules:/workspace/apps/politiattest-flyt/node_modules
+
   demo-gui:
     healthcheck:
       <<: *helsesjekk
@@ -373,3 +404,5 @@ volumes:
   ollama-data:
   lommebok-root-node-modules:
   lommebok-package-node-modules:
+  politiattest-flyt-root-node-modules:
+  politiattest-flyt-package-node-modules:
