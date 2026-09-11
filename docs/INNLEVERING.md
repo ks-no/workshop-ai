@@ -21,7 +21,7 @@ Løsningen er beskrevet i [apps/innbyggerportal/README.md](/apps/innbyggerportal
 
 ## Slik kjører du det
 
-Kjører opp med `./start.sh`<br/>
+Kjører opp med `../start.sh`<br/>
 Løsningen kjører med flere testbrukere ut fra hvilke rettigheter den enkelte har for å søke om tjenester. 
 Et utgangspunkt er [deltakerstart.md 3c](/docs/deltakerstart.md#3c-startpunkter-så-demoene-ikke-kolliderer)
 <br/>Løsningen kjører på [localhost:3002](http://localhost:3002/minside)
