@@ -8,6 +8,7 @@ import { AssistantPlanBoard } from './assistant-plan-board';
 import { AssistantSfoAnswer } from './assistant-sfo-answer';
 import { AssistantActionList, AssistantOutcomes } from './assistant-actions';
 import { AssistantWalletCredential } from './assistant-wallet-credential';
+import { AssistantInnsyn } from './assistant-innsyn';
 
 import { useState } from 'react';
 import type { AgentRun, AssistantCase, AssistantCommand, MemoryFact, ServiceResult, FollowUp, EvidenceSource } from '../domain/assistant-types';
@@ -15,7 +16,7 @@ import { ore } from '../domain/format';
 import { AssistantEvidence, AssistantSource } from './assistant-evidence';
 
 type CaseAction = (command: AssistantCommand, label: string) => Promise<boolean>;
-export type AssistantCaseView = 'overview' | 'board' | 'review' | 'activity' | 'sources';
+export type AssistantCaseView = 'overview' | 'board' | 'review' | 'activity' | 'sources' | 'innsyn';
 const factStatuses: Record<MemoryFact['status'], string> = { proposed: 'Til bekreftelse', confirmed: 'Bekreftet av deg', rejected: 'Avvist av deg', superseded: 'Erstattet', conflict: 'Motstridende opplysning' };
 const serviceStatuses: Record<ServiceResult['status'], string> = { ready: 'Forberedt', 'needs-information': 'Trenger opplysninger', 'needs-review': 'Kontroller før du går videre', error: 'Kunne ikke fullføres' };
 
@@ -41,6 +42,7 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
     { id: 'review', text: t('Neste steg'), controls: 'assistant-review' },
     ...(session?.runs.length ? [{ id: 'activity' as const, text: t('Aktivitet'), controls: 'assistant-activity-panel' }] : []),
     { id: 'sources', text: t('Kilder'), controls: 'assistant-sources', tag: session?.sources.length ? { text: String(session.sources.length), skin: 'blue-light' } : undefined },
+    ...(session ? [{ id: 'innsyn' as const, text: t('Forvaltningsinnsyn'), controls: 'assistant-innsyn' }] : []),
   ];
   const selectedRun = session?.runs.find(run => run.id === selectedActivityId) ?? session?.runs.at(-1) ?? null;
   const selectedEvents = selectedRun ? session?.events.filter(item => item.runId === selectedRun.id) ?? [] : [];
@@ -148,6 +150,10 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
         <p className="assistant-section-intro">{t('Her finner du kildene agentene faktisk brukte. Åpne en kilde for å se type, tidspunkt, lagret tekst og lenke til originalen når den finnes.')}</p>
         {!session?.sources.length ? <div className="assistant-empty"><AssistantIcon name="document-text" aria-hidden="true" /><p>{t('Ingen kilder er brukt ennå. Kilder vises her når agentene har analysert spørsmålet ditt.')}</p></div> : <div className="assistant-source-list">{session.sources.map(source => <AssistantSource key={source.id} source={source} />)}</div>}
       </section>
+    </div>
+
+    <div id="assistant-innsyn" role="tabpanel" aria-label={t('Forvaltningsinnsyn')} hidden={view !== 'innsyn'}>
+      <AssistantInnsyn session={session} active={view === 'innsyn'} />
     </div>
   </div>;
 }

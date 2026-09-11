@@ -7,7 +7,7 @@ import { CaseError } from './case-service';
 import { saveFlowCase } from './flow-store';
 import { ksClient } from './ks-runtime';
 
-export async function checkActionReceipt(session: FlowCase, attemptId: string, client = ksClient()) {
+export async function checkActionReceipt(session: FlowCase, attemptId: string, client = ksClient(session.id)) {
   const { attempt, draft, competing } = actionRecoveryContext(session.id, attemptId);
   const proposal = draft.proposal;
   if (proposal.type !== 'form' || proposal.submission !== 'ks-sandbox' || draft.execution.type !== 'form') throw new CaseError('Kontroller denne handlingen i den lokale oversikten før du avklarer den.');

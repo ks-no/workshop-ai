@@ -22,6 +22,10 @@ export type EvidenceSource = {
   id: string; kind: 'conversation' | 'document' | 'register' | 'guidance';
   title: string; text: string; url: string | null; retrievedAt: string;
   purpose: string; period: string; pages?: { page: number; text: string }[];
+  /** Maskinporten/ID-porten scope the token had for this register read, shown in forvaltningsinnsyn. */
+  scope?: string;
+  /** Field names removed by withoutIdentities before this snapshot was stored. */
+  strippedFields?: string[];
 };
 export type ProposedFact = { key: FactKey; value: string; sourceId: string; quote: string };
 export type MemoryFact = {
@@ -86,7 +90,7 @@ export type Outcome = {
   payload: { to?: string; subject?: string; body?: string; fields?: { id: string; label: string; value: string }[]; ksSoknadId?: string; ksOppgaveId?: string | null; ksWarning?: string | null };
 };
 export type AgentEvent = { id: string; runId: string; agent: string; type: 'started' | 'source-read' | 'completed' | 'failed' | 'human' | 'blocked' | 'tool-requested'; at: string; detail: string };
-export type AgentRun = { id: string; agent: string; stage: ModelRole; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string };
+export type AgentRun = { id: string; agent: string; stage: ModelRole; revision: number; status: 'running' | 'completed' | 'failed'; startedAt: string; completedAt: string | null; model: string; durationMs: number | null; framework?: string; strippedFields?: string[] };
 export type CritiqueGap = { point: string; quote: string };
 /** Full critic output per round. Never truncate for display; the UI shows all of it. */
 export type CritiqueRound = { round: number; verdict: 'PASS' | 'REVISE'; gaps: CritiqueGap[]; notes: string; at: string };

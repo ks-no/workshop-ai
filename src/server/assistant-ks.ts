@@ -3,16 +3,16 @@ import type { AssistantCase, EvidenceSource, FactKey, FormDraft } from '../domai
 import { formFor } from '../domain/assistant-actions';
 import { citationFor, FACT_LABELS } from '../domain/assistant-verification';
 import { KsDemoError, KS_DEMO_INCOME_PURPOSE, type KsDemoSnapshot } from '../providers/ks-demo-client';
-import { ksClient, ksPersonId } from './ks-runtime';
+import { ksClient, ksPersonId, KS_TOKEN_SCOPE } from './ks-runtime';
 import { CaseError } from './case-service';
 import { invalidateAnalysis } from './assistant-service';
 import { saveAssistantCase } from './assistant-store';
 
 type Client = ReturnType<typeof ksClient>;
-function source(id: string, title: string, snapshot: KsDemoSnapshot<unknown>, fields: unknown, purpose: string): EvidenceSource {
+function source(id: string, title: string, snapshot: KsDemoSnapshot<unknown>, fields: unknown, purpose: string, scope = KS_TOKEN_SCOPE.citizen): EvidenceSource {
   return { id, kind: 'register', title: `KS API · ${title} (syntetiske testopplysninger)`,
     text: JSON.stringify(fields, null, 2), url: snapshot.source.url, retrievedAt: snapshot.source.retrievedAt,
-    purpose, period: 'Øyeblikksbilde fra KS workshop. Et utvalg av API-feltene; identifikatorer er utelatt.' };
+    purpose, period: 'Øyeblikksbilde fra KS workshop. Et utvalg av API-feltene; identifikatorer er utelatt.', scope };
 }
 function record(session: AssistantCase, detail: string) {
   session.events.push({ id: randomUUID(), runId: '', agent: 'KS API', type: 'source-read', at: new Date().toISOString(), detail });
@@ -31,7 +31,7 @@ function report(error: unknown): never {
   if (error instanceof KsDemoError) throw new CaseError(error.message, error.code.startsWith('consent') ? 409 : 502);
   throw new CaseError('KS-tjenesten kunne ikke fullføre forespørselen. Kontroller tilkoblingen og prøv igjen.', 502);
 }
-export async function connectKs(session: AssistantCase, client: Client = ksClient()) {
+export async function connectKs(session: AssistantCase, client: Client = ksClient(session.id)) {
   if (session.ksData) throw new CaseError('KS-opplysningene er allerede hentet i denne samtalen.', 409);
   try {
     const [household, sfo, rates] = await Promise.all([client.readHousehold(), client.readSfo(), client.readRates()]);
@@ -50,13 +50,18 @@ export async function connectKs(session: AssistantCase, client: Client = ksClien
     record(session, 'Hentet husstand, SFO-plasser og satser fra KS workshop API. Inntekt er ikke hentet.');
   } catch (error) { report(error); }
 }
+const IDENTITY_FIELD_PATTERN = /personId|husstandId|foedselsnummer|fodselsnummer|^pid$|^navn$|^adresse$/i;
 /** Keep response values and exact excerpts, but remove register identities before storage/model context. */
-export function withoutIdentities(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(withoutIdentities);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).filter(([key]) => !/personId|husstandId|foedselsnummer|fodselsnummer|^pid$|^navn$|^adresse$/i.test(key)).map(([key, item]) => [key, withoutIdentities(item)]));
+export function withoutIdentities(value: unknown, stripped: Set<string> = new Set()): unknown {
+  if (Array.isArray(value)) return value.map(item => withoutIdentities(item, stripped));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value)
+      .filter(([key]) => IDENTITY_FIELD_PATTERN.test(key) ? (stripped.add(key), false) : true)
+      .map(([key, item]) => [key, withoutIdentities(item, stripped)]));
+  }
   return value;
 }
-export async function consentAndReadIncome(session: AssistantCase, approved: boolean, client: Client = ksClient(), persist = saveAssistantCase) {
+export async function consentAndReadIncome(session: AssistantCase, approved: boolean, client: Client = ksClient(session.id), persist = saveAssistantCase) {
   if (!approved || !session.ksData || session.ksData.personId !== ksPersonId()) throw new CaseError('Hent KS-opplysningene og velg samtykke før inntekt kan leses.', 409);
   try {
     const granted = await client.grantIncomeConsent({ approved: true, caseId: session.id });
@@ -74,7 +79,11 @@ export async function consentAndReadIncome(session: AssistantCase, approved: boo
       beregningstype: income.value.beregningstype, feilmeldinger: income.value.feilmeldinger, syntetisk: income.value.syntetisk,
     }, KS_DEMO_INCOME_PURPOSE);
     session.sources.push(incomeSource);
-    session.sources.push(source('ks-assessment', 'Regelvurdering for SFO', assessment, withoutIdentities(assessment.value), KS_DEMO_INCOME_PURPOSE));
+    const stripped = new Set<string>();
+    const assessmentFields = withoutIdentities(assessment.value, stripped);
+    const assessmentSource = source('ks-assessment', 'Regelvurdering for SFO', assessment, assessmentFields, KS_DEMO_INCOME_PURPOSE);
+    assessmentSource.strippedFields = [...stripped];
+    session.sources.push(assessmentSource);
     addRegisterFact(session, incomeSource, 'household_income_annual', String(income.value.beregningsbeloep), `"beregningsbeloep": ${income.value.beregningsbeloep}`);
     addRegisterFact(session, incomeSource, 'income_basis', 'household_year', `"beregningstype": "${income.value.beregningstype}"`);
     session.ksData.incomeReadAt = income.source.retrievedAt;
@@ -83,7 +92,7 @@ export async function consentAndReadIncome(session: AssistantCase, approved: boo
   } catch (error) { report(error); }
 }
 /** Submit the filled form as a test application. The sandbox receipt becomes a register source so the outcome stays traceable. */
-export async function submitKsApplication(session: AssistantCase, draft: FormDraft, client: Client = ksClient()) {
+export async function submitKsApplication(session: AssistantCase, draft: FormDraft, client: Client = ksClient(session.id)) {
   const definition = formFor(draft.serviceId);
   if (!definition?.ksProcess || definition.id !== draft.formId || draft.submission !== 'ks-sandbox') throw new CaseError('Dette skjemaet kan ikke sendes til KS-sandkassen.', 409);
   try {

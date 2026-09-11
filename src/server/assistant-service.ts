@@ -15,6 +15,7 @@ import { emailPrompt, emailSchema, answerSchema, callModel, criticAlwaysPass, cr
 import { democacheTimeoutMs, lookupDemocache, type DemocacheEntry } from './assistant-democache';
 import { ksPersonId } from './ks-runtime';
 import { walletCredentialPackage } from './wallet-credential';
+import { logModelCall } from './model-call-log';
 
 type Persist = (session: AssistantCase) => void;
 /** Live step visibility for the SSE route; the polling-based JSON path passes no hooks. */
@@ -197,12 +198,13 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
   const revision = session.revision;
   session.status = 'analyzing'; session.error = null; session.analyzedRevision = null; session.services = [];
   const run = (agent: string, stage: ModelRole): AgentRun => {
-    const value: AgentRun = { id: randomUUID(), agent, stage, revision, status: 'running', startedAt: new Date().toISOString(), completedAt: null, model: modelName(stage), durationMs: null, framework: 'Microsoft Agent Framework 1.17.0 · Python' };
+    const value: AgentRun = { id: randomUUID(), agent, stage, revision, status: 'running', startedAt: new Date().toISOString(), completedAt: null, model: modelName(stage), durationMs: null, framework: 'Microsoft Agent Framework 1.17.0 · Python', strippedFields: [] };
     session.runs.push(value); event(session, value.id, agent, 'started', 'Modellanalysen er startet.'); persist(session); return value;
   };
   const finish = (item: AgentRun, error?: string) => {
     item.status = error ? 'failed' : 'completed'; item.completedAt = new Date().toISOString(); item.durationMs = Date.now() - Date.parse(item.startedAt);
     event(session, item.id, item.agent, error ? 'failed' : 'completed', error || 'Strukturert svar mottatt og kontrollert.'); persist(session);
+    logModelCall({ sporingsId: session.id, at: item.completedAt, agent: item.agent, role: item.stage, model: item.model, durationMs: item.durationMs, status: item.status === 'failed' ? 'failed' : 'completed', strippedFields: item.strippedFields || [] });
   };
   let triageRun: AgentRun | undefined;
   const running = new Map<string, AgentRun>();
@@ -236,6 +238,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
         citizenQuestion: latestUser?.text || '', draft: answer, review,
         openQuestions: session.questions.map(({ key, question }) => ({ key, question })), sources: tailSources() } };
   };
+  const strippedFieldsByService = new Map<string, string[]>();
   try {
     const evidence = session.sources.filter(source => ['conversation', 'document'].includes(source.kind)).slice(-12);
     const context = {
@@ -259,6 +262,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
       if (method === 'started') {
         const role = stageRole(data.role);
         const item = run(String(data.name), role);
+        item.strippedFields = role === 'draft' ? strippedFieldsByService.get(String(data.id)) || [] : [];
         running.set(String(data.id), item);
         if (role === 'triage') { triageRun = item; hooks.onStep?.('triage'); }
         return null;
@@ -339,6 +343,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
           // Specialists see public guidance plus exact cited fact excerpts. Register snapshots stay server-side.
           const sources = minimalModelSources(session, sourceIds, facts);
           visibleSources.set(service.id, sources);
+          strippedFieldsByService.set(service.id, [...new Set([...sourceIds].flatMap(id => session.sources.find(item => item.id === id)?.strippedFields || []))]);
           return { id: service.id, name: definition.title, role: 'draft', model: modelName('draft'),
             prompt: specialistPrompt(definition.title, session.language || 'nb'), schema: z.toJSONSchema(specialistSchema),
             context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(session.language), intent: session.intent,

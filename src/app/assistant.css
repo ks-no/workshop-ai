@@ -172,6 +172,11 @@
 .assistant-task-dot { position: relative; z-index: 1; width: .9rem; height: .9rem; margin-top: .3rem; border: 2px solid var(--pkt-color-brand-dark-blue-1000); background: var(--paper); border-radius: 50%; }
 .assistant-task-dot.is-completed { background: var(--pkt-color-brand-dark-blue-1000); }
 .assistant-task-dot.is-failed, .assistant-task-dot.is-blocked { border-color: var(--error); }
+.assistant-innsyn-timeline { list-style: none; margin-top: var(--s4); padding: 0; }
+.assistant-innsyn-timeline li { padding: var(--s4) 0; border-top: var(--assistant-border); }
+.assistant-innsyn-timeline li:first-child { border-top: none; padding-top: 0; }
+.assistant-innsyn-header { display: flex; justify-content: space-between; gap: var(--s4); align-items: baseline; }
+.assistant-innsyn-header time { color: var(--muted); }
 .assistant-case { min-width: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border-left: var(--assistant-border); background: var(--paper); align-self: stretch; }
 .assistant-case-content { padding: var(--s4) var(--s8) var(--s8); }
 .assistant-case-section + .assistant-case-section { border-top: var(--assistant-border); margin-top: var(--s8); padding-top: var(--s8); }

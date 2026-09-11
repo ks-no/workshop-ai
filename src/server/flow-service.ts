@@ -186,7 +186,7 @@ function registerFact(session: FlowCase, source: FlowSource, key: string, label:
 /** One KS source at a time. Register snapshots are stored without identities; facts get an exact quote from the snapshot. */
 export async function fetchKsSource(session: FlowCase, source: FlowFetchable, client?: KsClient) {
   if (session.ks.fetched.includes(source)) return;
-  const ks = client ?? ksClient();
+  const ks = client ?? ksClient(session.id);
   const at = now();
   try {
     if (source === 'husstand') {
@@ -300,7 +300,7 @@ export async function executeAction(session: FlowCase, execution: FlowExecution,
     if (proposal.submission === 'ks-sandbox') {
       const template = templateFor(proposal.templateId);
       if (!template?.ksProcess) throw new CaseError('Dette skjemaet kan ikke sendes til KS-sandkassen.', 409);
-      const ks = client ?? ksClient();
+      const ks = client ?? ksClient(session.id);
       let created: Awaited<ReturnType<KsClient['createApplication']>>;
       try { created = await ks.createApplication({ ...template.ksProcess, caseId: session.id }); }
       catch (error) {

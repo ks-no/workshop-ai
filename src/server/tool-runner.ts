@@ -8,10 +8,10 @@ import { CaseError } from './case-service';
 
 /** Server-side executors per catalogue tool. Injectable so tests never call the KS sandbox. */
 export type ToolExecutors = Partial<Record<ToolId, (session: AssistantCase) => Promise<void>>>;
-export function defaultExecutors(client: ReturnType<typeof ksClient> = ksClient()): ToolExecutors {
+export function defaultExecutors(client?: ReturnType<typeof ksClient>): ToolExecutors {
   return {
-    ks_connect: async session => { if (!session.ksData) await connectKs(session, client); },
-    ks_income: async session => { if (!session.ksData?.incomeReadAt) await consentAndReadIncome(session, true, client); },
+    ks_connect: async session => { if (!session.ksData) await connectKs(session, client ?? ksClient(session.id)); },
+    ks_income: async session => { if (!session.ksData?.incomeReadAt) await consentAndReadIncome(session, true, client ?? ksClient(session.id)); },
   };
 }
 function record(session: AssistantCase, type: 'human' | 'completed' | 'failed', detail: string) {

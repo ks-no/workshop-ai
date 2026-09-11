@@ -6,6 +6,11 @@ import { createKsDemoClient } from '../providers/ks-demo-client';
 const execute = promisify(execFile);
 const tokens = new Map<string, { value: string; expires: number }>();
 export function ksPersonId() { return process.env.KS_PERSON_ID || 'person-022'; }
+/** What each token kind actually authorizes, for the innsyn tab; matches the --maskinporten/--innbygger args below. */
+export const KS_TOKEN_SCOPE: Record<'citizen' | 'consent', string> = {
+  citizen: 'ID-porten (innbygger-token, ingen eget scope; acr idporten-loa-high)',
+  consent: 'Maskinporten ks:fiks:samtykke',
+};
 async function token(kind: 'citizen' | 'consent') {
   const personId = ksPersonId();
   const directory = resolve(/* turbopackIgnore: true */ process.env.KS_WORKSHOP_DIR || '.runtime/ks-workshop');
@@ -27,8 +32,8 @@ async function token(kind: 'citizen' | 'consent') {
   tokens.set(key, { value, expires: claims.exp * 1000 });
   return value;
 }
-export function ksClient() {
+export function ksClient(sporingsId?: string) {
   return createKsDemoClient({ backendBaseUrl: process.env.KS_BACKEND_BASE_URL || 'http://127.0.0.1:8080',
-    fiksBaseUrl: process.env.KS_FIKS_BASE_URL || 'http://127.0.0.1:8081', personId: ksPersonId(),
+    fiksBaseUrl: process.env.KS_FIKS_BASE_URL || 'http://127.0.0.1:8081', personId: ksPersonId(), sporingsId,
     getCitizenToken: () => token('citizen'), getConsentToken: () => token('consent') });
 }
