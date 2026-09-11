@@ -35,7 +35,7 @@
 
   --radius: 8px;
   --radius-stor: 12px;
-  --skygge: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --skygge: 0 6px 20px rgba(23, 35, 47, 0.07);
   --avstand: 12px;
   --sidebredde: 1280px;
   --skrift: Arial, Helvetica, sans-serif;
@@ -70,6 +70,7 @@ h2,
 h3,
 h4 {
   margin-top: 0;
+  line-height: 1.2;
 }
 
 a {
@@ -88,6 +89,7 @@ a {
   background: var(--farge-flate);
   border-radius: var(--radius-stor);
   padding: 20px;
+  border: 1px solid var(--farge-kant-svak);
   box-shadow: var(--skygge);
 }
 
@@ -123,6 +125,9 @@ input {
   padding: 10px 12px;
   border: 1px solid var(--farge-kant);
   border-radius: var(--radius);
+  background: var(--farge-flate);
+  color: var(--farge-tekst);
+  line-height: 1.35;
 }
 
 button {
@@ -130,6 +135,7 @@ button {
   color: #fff;
   border: 0;
   cursor: pointer;
+  min-height: 42px;
 }
 
 button:hover:not(:disabled) {
@@ -143,6 +149,15 @@ button.secondary {
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+select,
+input {
+  min-height: 42px;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 label,
@@ -179,8 +194,8 @@ textarea.dark {
 
 .chat {
   background: var(--farge-flate-dempet);
-  border: 1px solid #dde6f0;
-  border-radius: 10px;
+  border: 1px solid var(--farge-kant-svak);
+  border-radius: var(--radius-stor);
   min-height: 460px;
   max-height: 640px;
   overflow-y: auto;
@@ -194,7 +209,7 @@ textarea.dark {
 }
 
 .bubble {
-  border-radius: 14px;
+  border-radius: var(--radius-stor);
   padding: 11px 14px;
   max-width: 88%;
   white-space: pre-wrap;
@@ -395,5 +410,9 @@ textarea.dark {
   .grid {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  .card {
+    padding: 18px;
   }
 }

@@ -49,8 +49,8 @@ function resultatFra(response: BackendRecord): BackendRecord {
   return resultat as BackendRecord;
 }
 
-function formaalFra(value: BackendRecord): VandelFormaal {
-  const requiredStrings = ["rolle", "ordning", "formaal", "kilde", "hjemmel", "attesttype", "oppbevaring"];
+function formaalFra(value: BackendRecord, rolle: PolitiattestRolle): VandelFormaal {
+  const requiredStrings = ["ordning", "formaal", "kilde", "hjemmel", "attesttype", "oppbevaring"];
   for (const key of requiredStrings) {
     if (typeof value[key] !== "string") {
       throw new Error(`Sandbox-backend svarte uten formålsfeltet ${key}.`);
@@ -60,7 +60,7 @@ function formaalFra(value: BackendRecord): VandelFormaal {
     throw new Error("Sandbox-backend svarte uten maksimal alder på attesten.");
   }
   return {
-    rolle: value.rolle as string,
+    rolle,
     ordning: value.ordning as string,
     formaal: value.formaal as string,
     kilde: value.kilde as string,
@@ -137,7 +137,7 @@ export async function hentVandelvurdering(
   await neste(oektsId, accessToken);
   await svar(oektsId, accessToken, "velg-rolle", { rolle });
   await neste(oektsId, accessToken);
-  const formaal = formaalFra(resultatFra(await handling(oektsId, accessToken)));
+  const formaal = formaalFra(resultatFra(await handling(oektsId, accessToken)), rolle);
   await neste(oektsId, accessToken);
   await svar(oektsId, accessToken, "bekreft-soknad", { harSoekt: "ja" });
   await neste(oektsId, accessToken);
