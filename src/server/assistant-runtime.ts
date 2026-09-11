@@ -51,7 +51,15 @@ export async function runPythonRuntime(payload: Record<string, unknown>, handler
     const timer = setTimeout(() => finish(new Error('Agentanalysen tok for lang tid. Opplysningene er bevart; prøv igjen.')), budget * 2 + 30000);
     child.on('error', () => finish(new Error('Python-agentene kunne ikke startes. Kontroller backend-oppsettet.')));
     child.stdin.on('error', () => { if (!settled && !complete) finish(new Error('Forbindelsen til Python-agentene ble avbrutt. Prøv igjen.')); });
-    child.stderr.on('data', () => { /* Do not leak SDK errors, prompts or credentials into browser/server logs. */ });
+    child.stderr.on('data', chunk => {
+      // Do not leak SDK errors, prompts or credentials into browser/server logs.
+      // The tracing recorder is the one exception: it reports only an exception
+      // class name or an HTTP status, never prompt content, and a dropped trace
+      // has to be visible somewhere.
+      for (const line of String(chunk).split('\n')) {
+        if (line.startsWith('langfuse: ')) console.warn(line);
+      }
+    });
     child.on('close', code => {
       closed = true;
       if (complete && pending === 0 && code === 0) finish();

@@ -25,6 +25,13 @@ forvaltningsinnsyn (#11), democachen (#12), lommebokbeviset (#13), klarspråksko
    20 sekunder). Den skal ikke rekke å slå inn under normal tale — den er
    sikkerhetsnettet, ikke hovedveien (se Reserveplan).
 
+### Demofunksjoner
+
+- **Demobryter (Alt+D / Ctrl+D):** Bytt mellom «Vanlig modell» og «Forhåndsberegnet svar»
+  for å vise hvordan systemet bruker forhåndsberegnede svar som sikkerhetsnett.
+- **Tilgjengelighet:** Systemet er tilpasset skjermlesing med `aria-live`-regioner og
+  språkjustering for innbyggerens foretrukne språk.
+
 ## Hoveddemo, seks faser, omtrent 15 minutter med tale
 
 | Tid | Fase | Hva som gjøres |
@@ -116,6 +123,8 @@ retting i den live demoen.
 
 ## Reserveplan på scenen
 
+- **Nett borte:** Appen trenger ikke internett etter installasjon og bygg. Ikke åpne
+  eksterne kildelenker. Standardforklaringene virker lokalt.
 - **Modellkallet er tregt eller feiler:** Democachen (#12) er sikkerhetsnettet for
   nettopp denne saken (`person-022`/`sfo-moderasjon`). Automatisk fallback slår inn
   etter `ASSISTANT_DEMOCACHE_TIMEOUT_MS` (standard 20 sekunder) hvis den levende
@@ -135,11 +144,26 @@ retting i den live demoen.
 - **Sandkassen svarer ikke:** Sjekk at `npm run start:ks` fortsatt kjører
   (port 8080/8081/8086). Et brutt kall gir en kontrollert norsk feilmelding i
   saksvisningen, ikke et krasj.
+- **Økt utløpt/server startet på nytt:** Start en ny demo. Testdataene er de samme.
 - **Nettleserproblem:** Last siden på nytt. Sesjonen ligger på serveren og gjenopptas så
   lenge den kjører.
 - **Hele maskinen svikter:** Ha skjermbildene fra `assets/screenshots/` og
   `public/architecture.svg` tilgjengelig på presentasjonsmaskinen.
 
+## Tilgjengelighet
+
+Systemet er bygget med WCAG 2.2 AA-sertifiserte mønstre:
+
+- `aria-live="polite"` for konversasjonsområdet og live-step-indikatorer
+- `role="log"` og `aria-atomic="false"` for dynamisk oppdatering av samtaleinnhold
+- `lang`-attributt på html- og elementnivå for riktig språkgyning
+- Tastaturnavigering i konversasjonsområdet (`tabIndex={0}`)
+- Kortcuts: Alt+D (demobryter), Alt+U (engelsk språk)
+
+Du kan verifisere tilgjengeligheten med [axe-core](https://www.deque.com/axe/core/) eller
+[Playwright accessibility testing](https://playwright.dev/python/docs/accessibility-testing).
+
 Behold setningen «Dette er syntetiske testdata og en demo, ikke et vedtak» i alle
-versjoner. Ikke kall det forhåndsberegnede svaret et live modellsvar, og ikke kall
-lommebokbeviset en ekte Digdir-integrasjon.
+versjoner. Ikke kall det forhåndsberegnede svaret et live modellsvar, ikke kall
+standardforklaringen et faktisk språkmodellsvar, og ikke kall lommebokbeviset en ekte
+Digdir-integrasjon.

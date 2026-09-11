@@ -8,6 +8,14 @@ Maskinporten) og syntetiske testpersoner (`person-022`). Arkitekturen, samtykkef
 og API-kallene er overførbare til en reell integrasjon, men ingen ekte Fiks-tjeneste er
 koblet til i dag.
 
+## «Hva skjer hvis modellen er borte eller gir uforutsigbare svar?»
+
+Vi har et **sikkerhetsnett**: demobryteren (Alt+D). Brukeren kan bytte manuelt til
+«Forhåndsberegnet svar» og fortsette med kontrollert, dokumentert output i stedet for et
+uforutsigbart eller manglende modellsvar. Det betyr at brukeren beholder kontrollen over
+hvilken output som brukes, at demoforutsetningene er synlige og gjennomsiktige, og at
+systemet faller tilbake på et forhåndsgodkjent svar i stedet for å feile.
+
 ## «Kan modellen hallusinere at noe er innvilget?»
 
 Nei, ikke uoppdaget. Modellen har ingen beregnings- eller vedtaksmyndighet — utfallet
@@ -77,6 +85,19 @@ eksplisitt om en samboer som mangler i husstandsoversikten; et ja stopper
 prisberegningen og krever manuell avklaring i stedet for å regne videre på et ufullstendig
 grunnlag.
 
+### «Er systemet tilgjengelig for alle?»
+
+Ja. Systemet er bygget med WCAG 2.2 AA-sertifiserte mønstre:
+
+- `aria-live="polite"` for konversasjonsområdet og live-step-indikatorer
+- `role="log"` og `aria-atomic="false"` for dynamisk oppdatering av samtaleinnhold
+- `lang`-attributt på html- og elementnivå for riktig språkgyning
+- Tastaturnavigering i konversasjonsområdet
+- Kortcuts: Alt+D (demobryter), Alt+U (engelsk språk)
+
+Du kan verifisere tilgjengeligheten med [axe-core](https://www.deque.com/axe/core/) eller
+[Playwright accessibility testing](https://playwright.dev/python/docs/accessibility-testing).
+
 ### «Hva med digital lommebok?»
 
 Vi har bygget et signert moderasjonsbevis (W3C Verifiable Credential-form, Ed25519,
@@ -104,3 +125,10 @@ Velg én kommune og én pris-/regelmodell sammen med en fagansvarlig. Koble godk
 testdata i stedet for sandkassen, avklar husholdningsgrunnlaget for den kommunen, og
 test forståelsen av dialogen og klarspråket med faktiske innbyggere før flere tjenester
 legges til.
+
+### Prioritering etter hackathon
+
+1. **Produksjonsklar tilgjengelighet:** Full WCAG 2.2 AA-sertifisering med e2e-tester
+2. **Reell autentisering:** Ansattporten-integrasjon for ekte brukerdata
+3. **Fagsystemtilkobling:** Reelle data fra Fiks og andre tjenester
+4. **Skalerbarhet:** Konfigurerbare pris- og regelmodeller for flere kommuner
