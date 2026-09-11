@@ -274,6 +274,8 @@ const translations: Record<string, string> = {
   'KS API · Inntektsgrunnlag for SFO (syntetiske testopplysninger)': 'KS API · Income basis for SFO (synthetic test information)',
   'KS API · Regelvurdering for SFO (syntetiske testopplysninger)': 'KS API · SFO rules assessment (synthetic test information)',
 
+  'Tolker henvendelsen': 'Interpreting your request', 'Forbereder svar for hver tjeneste': 'Preparing an answer for each service',
+  'Kvalitetssikrer svaret': 'Quality-checking the answer', 'Retter opp basert på tilbakemeldingen': 'Revising based on the feedback', 'Finpusser språket': 'Polishing the language',
 };
 
 const LocaleContext = createContext<{ locale: UiLocale; setLocale: (value: UiLocale) => void }>({ locale: 'nb', setLocale: () => {} });

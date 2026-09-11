@@ -108,6 +108,14 @@ export type AssistantCase = {
 };
 export type ModelStatus = { available: boolean; provider: AiProvider; model: string; models?: Record<ModelRole, string>; message: string };
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
+/** SSE event names sent over the wire during analyzeCase; the UI maps each to a citizen-facing label. */
+export const assistantStepNames = ['triage', 'draft', 'critic', 'revise', 'polish'] as const;
+export type AssistantStepName = typeof assistantStepNames[number];
+export type AssistantStreamEvent =
+  | { event: AssistantStepName; data: Record<string, never> }
+  | { event: 'critic-detail'; data: CritiqueRound }
+  | { event: 'ferdig'; data: AssistantResponse }
+  | { event: 'error'; data: { message: string } };
 export type AssistantCommand =
   | { action: 'start' }
   | { action: 'message'; message: string; revision: number; caseId: string }

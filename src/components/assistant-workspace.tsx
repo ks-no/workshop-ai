@@ -11,13 +11,33 @@ import { AssistantEmailDraftPanel, AssistantFormDraftPanel, AssistantNextActions
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { modelRoles, type AgentRun, type AssistantCase, type AssistantCommand, type AssistantMessage, type AssistantResponse, type EvidenceSource, type FollowUp, type StructuredAnswer } from '../domain/assistant-types';
+import { assistantStepNames, modelRoles, type AgentRun, type AssistantCase, type AssistantCommand, type AssistantMessage, type AssistantResponse, type AssistantStepName, type CritiqueRound, type EvidenceSource, type FollowUp, type StructuredAnswer } from '../domain/assistant-types';
 import { AssistantCasePanel, type AssistantCaseView } from './assistant-case-panel';
 
 async function readResponse(response: Response): Promise<AssistantResponse> {
   const body = await response.json();
   if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : 'Vi fikk ikke fullført handlingen. Prøv igjen.');
   return body as AssistantResponse;
+}
+
+/** Parses the SSE frames from route.ts (event: <name>\ndata: <json>\n\n) as they arrive, without buffering the whole response. */
+async function consumeAssistantStream(response: Response, onEvent: (event: string, data: unknown) => void) {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Vi fikk ikke fullført handlingen. Prøv igjen.');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let index: number;
+    while ((index = buffer.indexOf('\n\n')) >= 0) {
+      const frame = buffer.slice(0, index); buffer = buffer.slice(index + 2);
+      const [eventLine, dataLine] = frame.split('\n');
+      if (!eventLine?.startsWith('event: ') || !dataLine?.startsWith('data: ')) continue;
+      onEvent(eventLine.slice('event: '.length), JSON.parse(dataLine.slice('data: '.length)));
+    }
+  }
 }
 
 export function AssistantWorkspace() {
@@ -45,6 +65,8 @@ function Workspace() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [liveStep, setLiveStep] = useState<AssistantStepName | null>(null);
+  const [liveCritique, setLiveCritique] = useState<CritiqueRound[]>([]);
   const input = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const conversationEnd = useRef<HTMLDivElement>(null);
@@ -109,11 +131,29 @@ function Workspace() {
   }, [messageCount]);
 
   async function commandRequest(command: AssistantCommand, epoch: number) {
-    const next = await readResponse(await fetch('/api/assistant', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command),
-    }));
-    accept(next, epoch);
-    return next;
+    const response = await fetch('/api/assistant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify(command),
+    });
+    if (!(response.headers.get('content-type') || '').includes('text/event-stream')) {
+      const next = await readResponse(response);
+      accept(next, epoch);
+      return next;
+    }
+    let result: AssistantResponse | null = null;
+    let streamError = '';
+    setLiveStep(null); setLiveCritique([]);
+    try {
+      await consumeAssistantStream(response, (event, data) => {
+        if ((assistantStepNames as readonly string[]).includes(event)) setLiveStep(event as AssistantStepName);
+        else if (event === 'critic-detail') setLiveCritique(rounds => [...rounds, data as CritiqueRound]);
+        else if (event === 'ferdig') result = data as AssistantResponse;
+        else if (event === 'error') streamError = (data as { message: string }).message;
+      });
+    } finally { setLiveStep(null); setLiveCritique([]); }
+    if (streamError) throw new Error(streamError);
+    if (!result) throw new Error('Vi fikk ikke fullført handlingen. Prøv igjen.');
+    accept(result, epoch);
+    return result;
   }
 
   async function ensureSession(epoch: number) {
@@ -236,6 +276,7 @@ function Workspace() {
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
           {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
+          {liveStep && <AssistantLiveSteps step={liveStep} critique={liveCritique} />}
           {(busy || analyzing || !!session?.events.length) && <AssistantActivity session={session} pendingLabel={busy || (analyzing ? 'Arbeider med saken din' : '')} pollError={pollError} selectedTaskId={selectedActivityId} onTaskSelect={openActivity} />}
           {session?.error && session.error !== error && <div className="assistant-error" role="alert"><AssistantIcon name="alert-warning" aria-hidden="true"  /><p>{t(session.error)}</p></div>}
           {session?.intent === 'personalized' && <AssistantKsAction session={session} busy={locked} act={act} />}
@@ -309,6 +350,24 @@ function AssistantConversationNextStep({ session, busy, modelAvailable, hasActiv
   // Ready or still missing information: the end actions decide what the citizen can do now.
   void completed; void remaining;
   return <AssistantNextActions session={session} busy={busy} modelAvailable={modelAvailable} act={act} onQuestions={onQuestions} onOpen={onOpen} />;
+}
+
+const liveStepLabels: Record<AssistantStepName, string> = {
+  triage: 'Tolker henvendelsen', draft: 'Forbereder svar for hver tjeneste', critic: 'Kvalitetssikrer svaret',
+  revise: 'Retter opp basert på tilbakemeldingen', polish: 'Finpusser språket',
+};
+
+/** Live view of the pipeline step currently streaming from route.ts; a plain container so #15 can add aria-live="polite" to it. */
+function AssistantLiveSteps({ step, critique }: { step: AssistantStepName; critique: CritiqueRound[] }) {
+  const { t } = useAssistantLocale();
+  return <div className="assistant-live-step">
+    <div className="assistant-live-step-current"><AssistantIcon name={step === 'revise' ? 'arrow-circle' : 'document-text'} aria-hidden="true" /><span>{t(liveStepLabels[step])}</span></div>
+    {critique.map(round => <div key={round.at} className="assistant-live-critique">
+      <strong>{t('Kritikerens gjennomgang')} — {t('Runde')} {round.round}: {t(round.verdict === 'PASS' ? 'Godkjent' : 'Må revideres')}</strong>
+      {round.gaps.length > 0 && <ul>{round.gaps.map((gap, index) => <li key={index}>{gap.point} — «{gap.quote}»</li>)}</ul>}
+      {round.notes && <p>{round.notes}</p>}
+    </div>)}
+  </div>;
 }
 
 function AssistantActivity({ session, pendingLabel, pollError, selectedTaskId, onTaskSelect }: { session: AssistantCase | null; pendingLabel: string; pollError: boolean; selectedTaskId: string | null; onTaskSelect: (runId: string) => void }) {

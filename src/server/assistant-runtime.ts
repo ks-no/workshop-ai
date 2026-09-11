@@ -28,9 +28,10 @@ export function runtimeInstalled() {
 }
 
 /** One owned Python process per bounded workflow. No shell, public port or detached daemon. */
-export async function runPythonRuntime(payload: Record<string, unknown>, handler?: RequestHandler): Promise<Record<string, unknown>> {
+export async function runPythonRuntime(payload: Record<string, unknown>, handler?: RequestHandler, signal?: AbortSignal): Promise<Record<string, unknown>> {
   const paths = runtimePaths();
   if (!runtimeInstalled()) throw new Error('Python-agentene er ikke installert. Kjør npm run setup:backend og prøv igjen.');
+  if (signal?.aborted) throw new Error('Analysen ble avbrutt av brukeren.');
   const budget = Math.min(180000, Math.max(10000, Number(process.env.ASSISTANT_MODEL_TIMEOUT_MS) || 90000));
   return new Promise((resolveResult, reject) => {
     const child = spawn(paths.python, ['-u', paths.script], { stdio: ['pipe', 'pipe', 'pipe'], env: runtimeEnv() });
@@ -40,10 +41,13 @@ export async function runPythonRuntime(payload: Record<string, unknown>, handler
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true; clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       child.stdin.end();
       if (!closed) child.kill('SIGTERM');
       if (error) reject(error); else resolveResult(complete!);
     };
+    const onAbort = () => finish(new Error('Analysen ble avbrutt av brukeren.'));
+    signal?.addEventListener('abort', onAbort);
     const timer = setTimeout(() => finish(new Error('Agentanalysen tok for lang tid. Opplysningene er bevart; prøv igjen.')), budget * 2 + 30000);
     child.on('error', () => finish(new Error('Python-agentene kunne ikke startes. Kontroller backend-oppsettet.')));
     child.stdin.on('error', () => { if (!settled && !complete) finish(new Error('Forbindelsen til Python-agentene ble avbrutt. Prøv igjen.')); });

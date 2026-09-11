@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { runPythonRuntime, type AgentJob } from './assistant-runtime';
 import { modelRoles } from '../domain/assistant-types';
-import type { AssistantCase, AssistantMessage, CritiqueRound, EvidenceSource, MemoryFact, FollowUp, AgentRun, ModelRole, ServiceResult, StructuredAnswer, ServiceId, Outcome } from '../domain/assistant-types';
+import type { AssistantCase, AssistantMessage, AssistantStepName, CritiqueRound, EvidenceSource, MemoryFact, FollowUp, AgentRun, ModelRole, ServiceResult, StructuredAnswer, ServiceId, Outcome } from '../domain/assistant-types';
 import { FACT_LABELS, citationFor, validateProposal, narrativeWithinEvidence } from '../domain/assistant-verification';
 import { SERVICE_CATALOGUE, guidanceSources, prepareService } from '../domain/service-catalogue';
 import { applicationDraftFor, consentParagraph, modelVisibleTools, pendingConsentsFor } from '../domain/tool-catalogue';
@@ -14,6 +14,8 @@ import { submitKsApplication } from './assistant-ks';
 import { emailPrompt, emailSchema, answerSchema, callModel, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
 
 type Persist = (session: AssistantCase) => void;
+/** Live step visibility for the SSE route; the polling-based JSON path passes no hooks. */
+export type AnalyzeHooks = { onStep?: (step: AssistantStepName) => void; onCritique?: (round: CritiqueRound) => void; signal?: AbortSignal };
 const STRUCTURED_ANSWER_PURPOSE = 'Direkte svar fra strukturert spørsmålsskjema; lagret som innbyggerens eget valg.';
 const MODEL_SECURITY = { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] } as const;
 
@@ -97,9 +99,9 @@ export function decideFact(session: AssistantCase, factId: string, decision: 'co
   event(session, '', 'Innbygger', 'human', `${fact.label}: ${decision === 'confirm' ? 'bekreftet' : 'avvist'}. Tidligere analyse er ugyldig.`);
   return { shouldReanalyze };
 }
-export async function decideFactAndContinue(session: AssistantCase, factId: string, decision: 'confirm' | 'reject', infer: ModelCall = callModel, persist: Persist = saveAssistantCase) {
+export async function decideFactAndContinue(session: AssistantCase, factId: string, decision: 'confirm' | 'reject', infer: ModelCall = callModel, persist: Persist = saveAssistantCase, hooks: AnalyzeHooks = {}) {
   const outcome = decideFact(session, factId, decision);
-  if (outcome.shouldReanalyze) await analyzeCase(session, infer, persist);
+  if (outcome.shouldReanalyze) await analyzeCase(session, infer, persist, hooks);
   return outcome;
 }
 export function addDocument(session: AssistantCase, source: EvidenceSource) {
@@ -129,7 +131,7 @@ function jobSchema(id: string, role: ModelRole) {
   if (id === 'draft-revision' || id === 'polish') return answerSchema;
   return role === 'triage' ? planSchema : specialistSchema;
 }
-export async function analyzeCase(session: AssistantCase, infer: ModelCall = callModel, persist: Persist = saveAssistantCase) {
+export async function analyzeCase(session: AssistantCase, infer: ModelCall = callModel, persist: Persist = saveAssistantCase, hooks: AnalyzeHooks = {}) {
   invalidateAnalysis(session);
   const revision = session.revision;
   session.status = 'analyzing'; session.error = null; session.analyzedRevision = null; session.services = [];
@@ -159,6 +161,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
   const tailEvidence = () => [...tailSources().map(source => source.text), assembledAnswer()].join('\n');
   const nextStageJob = (): AgentJob | null => {
     if (nextStage === 'done' || !session.services.length || !answer) return null;
+    hooks.onStep?.(nextStage);
     const language = session.language || 'nb';
     const review = session.critique.at(-1) ?? null;
     const stage: ModelRole = nextStage === 'revise' ? 'draft' : nextStage;
@@ -196,7 +199,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         const role = stageRole(data.role);
         const item = run(String(data.name), role);
         running.set(String(data.id), item);
-        if (role === 'triage') triageRun = item;
+        if (role === 'triage') { triageRun = item; hooks.onStep?.('triage'); }
         return null;
       }
       if (method === 'prepare') {
@@ -282,6 +285,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
               facts: facts.map(({ key, value, status }) => ({ key, value, status })), checks: service.checks,
               questions: service.questions, assessment: service.assessment, sources, allowedActions: allowedActionKinds(session, service) } };
         });
+        if (jobs.length) hooks.onStep?.('draft');
         return { jobs };
       }
       if (method === 'specialist') {
@@ -326,6 +330,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
             criticRound++;
             const round: CritiqueRound = { round: criticRound, verdict: review.verdict, gaps: review.gaps, notes: review.notes, at: new Date().toISOString() };
             session.critique.push(round);
+            hooks.onCritique?.(round);
             finish(previous);
             const revising = review.verdict === 'REVISE' && criticRound < maxRevisions();
             if (review.verdict === 'REVISE' && !revising) event(session, previous.id, 'Kritiker', 'blocked', `Kritikeren ba om endringer, men grensen på ${maxRevisions()} runder er nådd. Utkastet vises som det er.`);
@@ -348,7 +353,7 @@ export async function analyzeCase(session: AssistantCase, infer: ModelCall = cal
         return job ? { job } : null;
       }
       throw new Error('Unknown workflow request');
-    });
+    }, hooks.signal);
     if (session.revision !== revision) throw new CaseError('Opplysningene er endret. Kjør analysen på nytt.', 409);
     session.questions = mergeQuestions([...session.questions, ...session.services.flatMap(service => service.questions)], session);
     for (const service of session.services) service.recommendedAction ??= ruleRecommendation(session, service);
