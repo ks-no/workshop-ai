@@ -45,5 +45,3 @@ I applikasjonen for å søke om TT-kort har vi brukt KI til å lese opp for bruk
 Vi har også brukt KI aktivt under utviklingen av selve applikasjonen.
 
 ## Det som ikke ble ferdig
-
-<Det er lov. Skriv det, så slipper leseren å lete.>
