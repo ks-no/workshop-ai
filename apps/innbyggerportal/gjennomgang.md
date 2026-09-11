@@ -250,10 +250,16 @@ Forvaltningsretten peker den andre veien: et avslag er et enkeltvedtak. Dette er
 beslutning om prosessmotoren, ikke om frontenden, men det er skjemaet som gjør den
 synlig.
 
-**Hvor mange kommuner skal portalen kunne være?** Kommunen er to konstanter i
-`src/minside.ts` i dag, og forsiden har Stavanger sin palett hardkodet i `--sk-*`.
-Skal den kunne kjøre for flere samtidig, må kommunen bli en parameter i ruten framfor
-en konstant, og profilen må hentes framfor å ligge i stilarket.
+**Hvor langt skal «kommunen følger innbyggeren» gå?** Navn og våpen er alt dynamiske:
+`kommuneFor()` i `src/minside.ts:41` leser `bostedsadresse`, og våpenet slås opp på
+kommunenummeret. Forsiden er ryddet for kommuneidentitet og kaller seg «Min side,
+sandkasse» - riktig, siden den står foran innloggingen og ikke vet hvem som kommer.
+
+Men *fargene* følger ikke med. Paletten i `--sk-*` er hentet fra én bestemt kommune, og
+den står fast uansett hvem som logger inn. I dag er det bare farger uten et navn på,
+så ingen blir lurt. Skal portalen se ut som kommunen den betjener, må profilen hentes
+på samme måte som våpenet - og da hører den hjemme et sted per kommune, ikke i
+stilarket.
 
 **Hvor mye skal portalen lese fra disk?** Snarveien i funn 1 er også grunnen til at
 Min side virker uten at hele stakken kjører, som er en ekte fordel når tjue deltakere

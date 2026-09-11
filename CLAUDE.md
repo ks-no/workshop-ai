@@ -18,113 +18,106 @@ AGENTS.md instead. Do not copy the instructions into this file: one canonical so
 
 # Handover: innbyggerportal (`:3002`)
 
-Status as of 2026-09-10. Everything below is on `main` and pushed. This section is
-working state, not instructions - the durable facts live in `AGENTS.md`, and the
-portal's own `README.md` documents the surface. Delete this section once the work
-it describes is finished.
+Status as of 2026-09-11. Everything below is on `main` and pushed. This section is
+working state, not instructions - the durable facts live in `AGENTS.md`. Delete it
+once the work it describes is finished.
 
-## What was done
+**The portal documents itself. Read these before changing it, and update them with
+the code rather than restating them here:**
 
-`apps/innbyggerportal` was merged as a disk-reading demo with no login and no
-wiring. It is now a real client of the sandbox:
+| Document | What it holds |
+| --- | --- |
+| `apps/innbyggerportal/README.md` | The surface: what each card shows and from where, the service map, the login round trip, the application form, and how frontend and backend divide the work |
+| `apps/innbyggerportal/gjennomgang.md` | A security test with evidence, a code-quality review, and prioritised recommendations |
 
-- **ID-porten login.** `requireLogin({ clientId: "innbyggerportal" })` from
-  `apps/shared/client/felles.ts`, real authorization_code + PKCE against
-  `digdir-mock`. `/callback` swaps the code. The portal serves `felles.ts` itself
-  at `/delt/felles.ts`, so it does not depend on `demo-gui` running.
-- **The person comes from the token.** `pid` resolves via `GET /api/personer`,
-  which returns exactly one row for a citizen token. `GET /api/innbyggere` was
-  deleted: it listed every adult in the kommune, which is the surface a citizen
-  token exists to prevent.
-- **The kommune follows the citizen.** `kommuneFor()` reads `bostedsadresse`.
-  There is no kommune configured anywhere any more.
-- **Two cards driven by real calls**: the tilgangsoversikt (below) and the top
-  status box (below).
-- **Front page at `/`**, Min side moved to `/minside`.
+## Where it stands
 
-## The top status box ("Aktuelt for deg")
+`apps/innbyggerportal` is a real client of the sandbox, not a disk-reading demo. It
+has three pages:
 
-`byggPaaminnelser()` in `src/minside.ts`. Four triggers, pushed in this order, so
-the carousel shows deadlines first. Every one is a **fact in the data, never a
-judgement**:
+- **`/`** - pre-login front page. Deliberately carries no kommune identity: it sits
+  in front of the login, so there is no citizen to read a kommune from.
+- **`/minside`** - profile, ongoing case, services, calendar, the "Aktuelt for deg"
+  carousel, and the "Hva du kan søke på" card with consent switches.
+- **`/soknad?prosess=<id>`** - the application form. The process definition drawn as
+  one form: `QUESTION` steps become the fields the citizen fills, `DATA_FETCH` steps
+  become the blocks the kommune fills, `INFO` becomes the ingress.
 
-| # | Trigger | Reads | Colour | Button |
-|---|---|---|---|---|
-| 1 | Deadline approaching | the kalender events | danger/warning | "Se samtykkene dine" (samtykke deadlines only) |
-| 2 | Application with a caseworker | `state/oppgaver.json` | info | "Se saksgangen" |
-| 3 | Unread post | `state/forsendelser.json` | info | "Åpne postkassen" |
-| 4 | A place paid for with no application | betalinger + `data/satser.json` | success | "Start søknaden" |
+**The form fills itself as far as consent reaches.** Each `DATA_FETCH` block calls the
+same resource the step would call, with the citizen's own token. `200` gives filled
+fields, `403 mangler_samtykke` gives a locked block with the switch in it, and a URL
+with an unanswered `{svar.…}` says so and fills in when the answer arrives. Submitting
+runs a real prosessøkt to `SUBMIT`, so the søknad is the one the stepwise flow makes.
 
-1. Takes the kalender list, drops what has passed, keeps only `danger` and
-   `warning`, takes the top two. The list is already sorted nearest-first. Behind
-   it: legeerklæringer, politiattester, samtykker, income deadlines and KRR.
-2. Every row in the oppgave queue with your `personId`. "Les mer" lists one line
-   per oppgave.
-3. Forsendelser where `mottaker.digitalId` is your fødselsnummer.
-4. For each of barnehage, SFO and fritid: does the household pay for such a
-   place, and is there **no** application for the matching prosess?
-   `PROSESS_PER_PLASS` is the three-line mapping. The wording is deliberately
-   careful - "Søknaden avgjør om dere har rett, ikke denne siden" - because
-   having a place and no application says the application was not sent, not that
-   it would be granted.
+**A rejection is an outcome, not an error.** A `SJEKK` that says no sets the økt to
+`AVVIST`, and every further call answers 400. The loop stops there and shows
+`avvistMelding`. It also says no søknad was registered, because the engine decides
+before `SUBMIT`.
 
-It de-duplicates: send an SFO application and the SFO reminder disappears,
-replaced by trigger 2.
+## Verified
 
-`gaaTil()` in the client jumps to the card that answers the reminder, using
-`knapp-samtykker`, `saker` and `tjeneste-postkasse`. Those ids exist because the
-reminder needs them; do not remove them.
+The whole login round trip, in a browser, for several citizens. The form in both
+directions: rejection for `person-009` on redusert foreldrebetaling, and a submitted
+søknad for `person-036` that Min side picks up as "Pågående sak". The consent switch
+unlocking an income block without a page reload. An answer-dependent `DATA_FETCH`
+filling as the street name is typed. Dark mode and larger text carrying from the front
+page into Min side. No horizontal scroll at 400px. Every mermaid diagram rendered, not
+just checked.
 
-## Verified, and not
-
-**Verified against running services**: the whole login round trip; `/tilganger`
-for a real citizen; the page across six kommuner plus an adressebeskyttet person
-(`person-031`, keeps Oslo through masking) and one with no registered address
-(`person-375`, falls back to "Kommunen" with no crest); triggers 1, 2 and 4;
-`/api/testbrukere` (304 eligible, 8 shown); every served client script parses;
-every `krevEl`/`element` id resolves in the markup; `demo-gui` and
-`process-builder` still work after the `felles.ts` change.
-
-**Not verified**: trigger 3 has never fired, because `state/forsendelser.json` is
-only written by a SUBMIT step in a full prosessøkt, which needs the model. The
-code was taken over verbatim and reads the file with the same predicate the
-tjenester card already uses, but nobody has seen it run.
-
-**Nothing has been looked at in a browser.** The front page has a wave SVG, blobs
-and its own palette. That is the kind of thing that looks wrong without anything
-failing.
+The multi-source consent list was verified by injecting a three-source row: no case in
+the seed needs more than one today, but the wire format is a list and the backend
+flattens across alternatives.
 
 ## Outstanding
 
-- **`GET /api/minside/{personId}` does not check the token.** It is currently the
-  way around the pid binding in `sandbox-backend`. The fix is ~15 lines with
-  `createVerifier` from `digdir-mock/src/verify.ts` (the arrow four services
-  already use), comparing `pid` to the subject. Accept `aud: sandbox-backend`
-  rather than minting a second audience, or the browser needs two tokens.
-- **Four cards still read consent-gated data off disk**: inntekt, legeerklæring,
-  politiattest and kontaktinfo, bypassing `runRessurs`. Endpoints exist for all
-  four under `/api/personer/{personId}/...`. A citizen's browser cannot read
-  samtykke directly - `fiks-simulator` refuses ID-porten tokens on all six
-  samtykke surfaces with `KREVER_MASKINPORTEN` - so the kalender's samtykke rows
-  need a new `GET /api/personer/:personId/samtykker` in `sandbox-backend`. It
-  already has `tilstand.samtykker` loaded and `samtykkerFor()` in `regler.ts`,
-  so it is a short route plus the OpenAPI entry.
-- **Triggers 4 and the tilgangsoversikt card overlap.** "Har dere søkt om
-  redusert foreldrebetaling?" sits directly above a card that already says
-  "Krever samtykke" for the same ordning. Two boxes about one thing. They say
-  different things (one that no application was sent, the other what the rules
-  answer), but it reads as noise and is worth merging.
+The two security findings are the top of the list. Both are in
+`apps/innbyggerportal/gjennomgang.md` with reproductions:
 
-## Coordinate before merging
+- **`GET /api/minside/{personId}` does not check the token**, and it reads four files
+  the backend gates behind consent: `inntekter.json`, `krr.json`,
+  `legeerklaeringer.json`, `politiattester.json`. The read leaves no audit row either,
+  which contradicts what `docs/sikkerhet-og-personvern.md` promises. Fix by moving the
+  gated cards onto the backend, the way the tilgang card and the form already work.
+- **`state` is used unvalidated after login** (`apps/shared/client/felles.ts:491`), so
+  a crafted authorize link redirects the citizen off-site right after a successful
+  login. Shared code: this hits `demo-gui` too. One line.
 
-`feat/frontendMinSide` carries parallel work on the same files by another author,
-and has moved several times during this work (latest seen: `0a836dc`). It built
-its own version of the compose/launcher wiring, the login and the callback page,
-and it still has the Stavanger lock and `GET /api/innbyggere` that `main` removed.
-Check what it holds before merging it, and agree who owns which file. The front
-page on `main` had its Stavanger identity removed (crest, name, and the claim to
-imitate stavanger.kommune.no) because the kommune now follows the citizen and the
-front page is pre-login, so there is no citizen to read a kommune from.
+From the code review, verified against the code:
+
+- `TILGANGSVISNING[post.status]` has no fallback and sits outside the `try/catch`, so
+  an unknown status from the backend stops the card with no message.
+- Min side has no `h1` anywhere; `overskrift()` only allows `h2`-`h4`.
+- The consent switches have no sequence guard, so two rapid toggles can paint a stale
+  state over a newer one.
+- `lesSamtykker()` swallows network errors, 401 and 500 into the same empty state.
+- The three page scripts each carry their own copy of `lag`, `avsnitt`, `overskrift`,
+  `merkelapp`, `kortblokk` and `hentJson`, and `soknad.ts` shadows `alternativVerdi`
+  and `alternativLabel` that already exist in `felles.ts`.
+- **The portal has no tests.** The repo has around 25 `scripts/test-*.ts` and none
+  covers it.
+
+Still open from before: "Aktuelt for deg" and the tilgang card can say the same thing
+twice about one ordning.
+
+## The local model
+
+`ai-gateway` is reached at exactly one point: the `SUMMARY` step the engine requires
+before `SUBMIT`. Three things are true about it today, and all three are worth knowing
+before touching it:
+
+- **It fails.** `AI_PROVIDER=ollama` with `qwen2.5:7b`, but the Ollama container holds
+  `qwen2.5-coder:7b` and `qwen2.5:14b`. The call 404s and the gateway falls back to
+  maltekst, marked `modell: "mock-ai-gateway (fallback)"`.
+- **The portal never shows the answer.** Nothing reads `resultater["oppsummering"]`.
+  The step runs because the engine demands it, and the text is discarded.
+- **The portal ignores `advarsel`.** `warnAboutFallback` in `felles.ts` exists for
+  this and all four demo-gui pages call it. The portal does not, so nobody learns the
+  answer was template text.
+
+The prompt carries the whole context as raw JSON - contact details, the rule's
+grunnlag, the citizen's free text, and income figures where the case reads them. With
+`ollama` that stays on the machine. With `openrouter`, `bedrock` or Telenor AI Factory
+it does not.
 
 ## Traps worth knowing
 
@@ -138,3 +131,14 @@ front page is pre-login, so there is no citizen to read a kommune from.
   services that verify tokens when that happens.
 - **A page load of Min side writes a batch of audit rows**, one `runRessurs` per
   case behind `/tilganger`. Correct, but it fills `state/revisjonslogg.json` fast.
+- **`node --watch` reloads a changed `server.ts` inside the running container.** No
+  `docker compose restart` is needed for a code change, and HTML and client `.ts` are
+  read per request, so they need nothing at all. A hard refresh in the browser is the
+  only step.
+- **The doc checker validates mermaid.** Every node label must be quoted, and a
+  diagram naming five or more services must name all twelve. A two-character node
+  shape like `[(...)]` trips the quoting rule - use `("...")`.
+- **`pgrep`/`pkill` on the host matches processes inside the containers.** The
+  containers run `node --watch apps/.../server.ts` on the shared kernel, so a broad
+  `pkill -f "apps/.*/src/server.ts"` kills the service inside Compose, not just a
+  local one.
