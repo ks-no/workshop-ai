@@ -17,9 +17,11 @@ from agent_framework import Agent, Executor, WorkflowBuilder, WorkflowContext, a
 from agent_framework.openai import OpenAIChatCompletionClient
 from agent_framework.security import ConfidentialityLabel, ContentLabel, IntegrityLabel, LabeledMessage
 from jsonschema import Draft202012Validator
+from langfuse_tracing import Recorder, redact, token_usage
 from openai import AsyncOpenAI, APIStatusError, APIConnectionError, APITimeoutError
 
 logging.disable(logging.CRITICAL)  # stdout is a protocol, never a prompt/credential log.
+RECORDER = Recorder()  # One process is one assistant run, so one trace.
 FRAMEWORK = {"name": "Microsoft Agent Framework", "version": "1.17.0", "language": "Python"}
 SECURITY_CONTRACT = {"integrity": "untrusted", "confidentiality": "private", "allowedCapabilities": ["analyze"]}
 TELENOR_HOSTNAME_PATTERN = re.compile(
@@ -94,10 +96,13 @@ def provider_configuration() -> dict[str, Any]:
 
 
 async def host_agent(bridge, job):
-    result = await bridge.request("model", job)
-    if result.get("error"):
-        raise ValueError("Host model failed")
-    return result["output"]
+    async with RECORDER.step(job["name"], role=job.get("id", "agent"), model=job["model"]) as span:
+        span["executor"] = "host"  # Tokens live on the host side of the pipe, out of reach here.
+        result = await bridge.request("model", job)
+        if result.get("error"):
+            raise ValueError("Host model failed")
+        span["output"] = redact(result["output"])
+        return result["output"]
 
 
 async def run_stage(bridge, job: dict[str, Any], host_models: bool) -> Any:
@@ -158,33 +163,39 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     schema = job["schema"]
     validator = Draft202012Validator(schema)
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
-    async with asyncio.timeout(timeout):
-        async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
-            cloudflare = configured_provider() == "cloudflare"
-            model = job["model"].removeprefix("workers-ai/") if cloudflare else job["model"]
-            options = {"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}, "store": False}
-            if cloudflare:
-                options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
-            chat = OpenAIChatCompletionClient(model=model, async_client=sdk)
-            agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
-                          middleware=[analysis_only_middleware],
-                          default_options=options)
-            for attempt in range(2):
-                response = await agent.run(messages)
-                content = response_content(response)
-                issues: list[dict[str, Any]] = []
-                try:
-                    output = json.loads(content)
-                    issues = [{"path": list(error.path), "code": error.validator} for error in validator.iter_errors(output)]
-                    if response.finish_reason != "length" and not issues:
-                        return output
-                except (ValueError, TypeError):
-                    issues = [{"code": "invalid-json"}]
-                if attempt == 0:
-                    messages.extend([secured_message("assistant", content[:12000]), secured_message("user",
-                        "The previous output was rejected. Correct only its format against the schema, preserving grounded values, reply language and exact quotes. "
-                        "Return no extra properties or reasoning. Validation issues: " + json.dumps(issues), trusted=True)])
-            raise ValueError("KI returnerte et ufullstendig svar eller et format som ikke kunne kontrolleres. Ingen forslag er godkjent. Prøv igjen.")
+    async with RECORDER.step(job["name"], role=job.get("id", "agent"), model=job["model"]) as span:
+        span["input"] = redact(job["context"])
+        async with asyncio.timeout(timeout):
+            async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
+                cloudflare = configured_provider() == "cloudflare"
+                model = job["model"].removeprefix("workers-ai/") if cloudflare else job["model"]
+                options = {"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}, "store": False}
+                if cloudflare:
+                    options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+                chat = OpenAIChatCompletionClient(model=model, async_client=sdk)
+                agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
+                              middleware=[analysis_only_middleware],
+                              default_options=options)
+                for attempt in range(2):
+                    response = await agent.run(messages)
+                    content = response_content(response)
+                    # Each attempt overwrites: the span ends up describing the attempt that decided the outcome.
+                    span.update(attempts=attempt + 1, finish_reason=response.finish_reason,
+                                usage=token_usage(response), output=redact(content))
+                    issues: list[dict[str, Any]] = []
+                    try:
+                        output = json.loads(content)
+                        issues = [{"path": list(error.path), "code": error.validator} for error in validator.iter_errors(output)]
+                        if response.finish_reason != "length" and not issues:
+                            return output
+                    except (ValueError, TypeError):
+                        issues = [{"code": "invalid-json"}]
+                    span["validation_issues"] = [issue["code"] for issue in issues]
+                    if attempt == 0:
+                        messages.extend([secured_message("assistant", content[:12000]), secured_message("user",
+                            "The previous output was rejected. Correct only its format against the schema, preserving grounded values, reply language and exact quotes. "
+                            "Return no extra properties or reasoning. Validation issues: " + json.dumps(issues), trusted=True)])
+                raise ValueError("KI returnerte et ufullstendig svar eller et format som ikke kunne kontrolleres. Ingen forslag er godkjent. Prøv igjen.")
 
 
 class HostBridge:
@@ -260,14 +271,16 @@ class Reviewer(Executor):
 
     @handler
     async def review(self, results: list[dict], ctx: WorkflowContext[dict, dict]) -> None:
-        # The host owns stage order and the revision bound; a job of None ends the tail.
-        payload: dict[str, Any] = {}
-        while job := ((await self.bridge.request("stage", payload)) or {}).get("job"):
-            try:
-                payload = {"id": job["id"], "output": await run_stage(self.bridge, job, self.host_models)}
-            except Exception as error:
-                payload = {"id": job["id"], "error": safe_error(error)}
-        await ctx.yield_output({"framework": FRAMEWORK, "branches": results})
+        async with RECORDER.step("join", role="join") as span:
+            span["branches"] = {result["id"]: result["status"] for result in results}
+            # The host owns stage order and the revision bound; a job of None ends the tail.
+            payload: dict[str, Any] = {}
+            while job := ((await self.bridge.request("stage", payload)) or {}).get("job"):
+                try:
+                    payload = {"id": job["id"], "output": await run_stage(self.bridge, job, self.host_models)}
+                except Exception as error:
+                    payload = {"id": job["id"], "error": safe_error(error)}
+            await ctx.yield_output({"framework": FRAMEWORK, "branches": results})
 
 
 def build_workflow(bridge: HostBridge, host_models: bool = False):
@@ -296,16 +309,21 @@ async def main() -> None:
         return result.get_outputs()[0]
 
     task = asyncio.create_task(execute())
+    outcome = "completed"
     try:
         done, _ = await asyncio.wait([task, listener], return_when=asyncio.FIRST_COMPLETED)
         if task in done:
             emit({"type": "complete", **task.result()})
     except Exception as error:
+        outcome = "failed"
         emit({"type": "error", "message": safe_error(error)})
     finally:
         task.cancel()
         listener.cancel()
         await asyncio.gather(task, listener, return_exceptions=True)
+        await RECORDER.flush(name=f"assistent · {payload.get('mode', 'workflow')}",
+                             detail={"mode": payload.get("mode", "workflow"), "outcome": outcome,
+                                     "hostModels": payload.get("hostModels") is True})
 
 
 if __name__ == "__main__":

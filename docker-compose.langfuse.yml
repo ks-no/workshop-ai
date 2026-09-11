@@ -1,0 +1,147 @@
+# Self-hosted Langfuse v3 for assistant traces. Localhost only.
+#
+# Web UI on 3100 because Next.js already owns 3000. Org, project, user and API
+# keys are bootstrapped from LANGFUSE_INIT_* so there is nothing to click
+# through before a demo.
+#
+# Every secret below except ENCRYPTION_KEY/SALT is a development value committed
+# on purpose so the stack comes up with one command. ENCRYPTION_KEY/SALT protect
+# stored provider API keys, so they come from the environment instead; generate
+# them with openssl rand -hex 32 and set LANGFUSE_ENCRYPTION_KEY/LANGFUSE_SALT.
+# Rotate the rest before this reaches anything beyond localhost, and never point
+# the app at a shared Langfuse with these keys.
+#
+#   LANGFUSE_ENCRYPTION_KEY=$(openssl rand -hex 32) LANGFUSE_SALT=$(openssl rand -hex 32) \
+#     docker compose -f docker-compose.langfuse.yml up -d
+#
+# Six long-running services plus a one-shot bucket-init job that exits 0.
+
+x-langfuse-env: &langfuse-env
+  DATABASE_URL: postgresql://langfuse:langfuse@langfuse-postgres:5432/langfuse
+  CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+  CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+  CLICKHOUSE_USER: clickhouse
+  CLICKHOUSE_PASSWORD: clickhouse
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_CONNECTION_STRING: redis://default:redis@langfuse-redis:6379
+  LANGFUSE_S3_EVENT_UPLOAD_ENABLED: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniominio
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_ENABLED: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniominio
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:?sett LANGFUSE_ENCRYPTION_KEY}
+  SALT: ${LANGFUSE_SALT:?sett LANGFUSE_SALT}
+  TELEMETRY_ENABLED: "false"
+
+services:
+  langfuse-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse-clickhouse:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  langfuse-redis:
+    image: redis:7
+    command: --requirepass redis
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a redis ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  langfuse-minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniominio
+    volumes:
+      - langfuse-minio:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-shot. Without this bucket the worker accepts events and then fails to
+  # persist them with "The specified bucket does not exist" -- rerun this job
+  # if that shows up in the worker log.
+  langfuse-bucket-init:
+    image: minio/mc
+    depends_on:
+      langfuse-minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://langfuse-minio:9000 minio miniominio &&
+      mc mb -p local/langfuse &&
+      echo 'bucket ready';
+      "
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    depends_on:
+      langfuse-postgres: { condition: service_healthy }
+      langfuse-clickhouse: { condition: service_healthy }
+      langfuse-redis: { condition: service_healthy }
+      langfuse-minio: { condition: service_healthy }
+    environment:
+      <<: *langfuse-env
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    depends_on:
+      langfuse-postgres: { condition: service_healthy }
+      langfuse-clickhouse: { condition: service_healthy }
+      langfuse-redis: { condition: service_healthy }
+      langfuse-minio: { condition: service_healthy }
+    ports:
+      - "3100:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_URL: http://localhost:3100
+      NEXTAUTH_SECRET: ed8f0cbc2e227ea390224a047e1836d89e7af35da45042d0
+      LANGFUSE_INIT_ORG_ID: team-oslo
+      LANGFUSE_INIT_ORG_NAME: Team Oslo
+      LANGFUSE_INIT_PROJECT_ID: assistent
+      LANGFUSE_INIT_PROJECT_NAME: Agentisk assistent
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-oslo-hackathon-dev
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-oslo-hackathon-dev
+      LANGFUSE_INIT_USER_EMAIL: demo@example.com
+      LANGFUSE_INIT_USER_NAME: Demo
+      LANGFUSE_INIT_USER_PASSWORD: demodemo123
+
+volumes:
+  langfuse-postgres:
+  langfuse-clickhouse:
+  langfuse-minio:

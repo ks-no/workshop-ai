@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented localhost-only dev values, never used beyond docker-compose.langfuse.yml"
+regexTarget = "match"
+regexes = [
+  '''ENCRYPTION_KEY: 461ca6f53f99d21cff82ba9625d841184781b60ac0481839df31b37add17feef''',
+  '''NEXTAUTH_SECRET: ed8f0cbc2e227ea390224a047e1836d89e7af35da45042d0''',
+]
