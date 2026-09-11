@@ -1,75 +1,106 @@
 # Juryspørsmål og svar
 
-## «Er dette bare en chatbot?»
+## «Er dette en reell Fiks-integrasjon?»
 
-Nei. Arbeidsflyten henter kjente opplysninger, avklarer mangler, kjører regler og lar
-innbyggeren bekrefte. Spørsmål og svar er en forklaringsfunksjon inne i tjenesten.
+Nei. Det kjører mot KS' egen workshop-sandkasse: `fiks-simulator` og `digdir-mock`, med
+ekte signerte testtokener utstedt av digdir-mock (en simulert ID-porten og
+Maskinporten) og syntetiske testpersoner (`person-022`). Arkitekturen, samtykkeflyten
+og API-kallene er overførbare til en reell integrasjon, men ingen ekte Fiks-tjeneste er
+koblet til i dag.
 
-## «Hva bruker dere KI til?»
+## «Kan modellen hallusinere at noe er innvilget?»
 
-Arkitekturen gir KI rollen å gjøre en allerede beregnet vurdering forståelig. Den
-kjørbare standarddemoen bruker kontrollert maltekst. En valgfri lokal modell kan
-klassifisere et fritt spørsmål til et godkjent tema; den skriver ikke beslutningen
-eller beløpene. Vi er åpne om at dette er en konservativ KI-demonstrasjon.
+Nei, ikke uoppdaget. Modellen har ingen beregnings- eller vedtaksmyndighet — utfallet
+regnes i TypeScript av regelmotoren, samme 6 %-regel som før. Et beløp fra modellen som
+ikke finnes i regelmotorens egne tall blokkeres av en valideringsport før det når
+skjermen. Dette er dekket av egne tester i eval-gullsettet (`npm run test:eval`,
+kategorien sikkerhet-og-policy), ikke bare en påstand.
 
-## «Hvorfor kan ikke KI bestemme?»
+## «Personvern når Cloudflare er ekstern?»
 
-Denne vurderingen kan uttrykkes med faste regler. Da er samme input og samme regelversjon
-etterprøvbart. KI-klassifiseringen kan byttes ut eller feile uten å endre utfallet.
+Fødselsnummer, navn, adresse og interne person-/husstands-ID-er filtreres bort før noe
+sendes til modellen, uansett om den kjører hos Cloudflare eller Telenor AI Factory. En
+fail-closed middleware stopper kjøringen dersom sikkerhetsmerkingen (FIDES-inspirerte
+konfidensialitets- og integritetsetiketter i Microsoft Agent Framework) mangler på
+meldingen. Ingen matrikkel- eller eiendomsdata inngår i denne saken i det hele tatt —
+den koblingen er ikke bygget. Dette erstatter ikke en DPIA, og en reell pilot må ha en.
 
-## «Er dere faktisk koblet til Fiks?»
+## «Hvorfor Oslos Punkt og ikke det nasjonale Designsystemet?»
 
-Nei. Vi har undersøkt reelle Fiks-tjenester og hackathonets API-kontrakter. Den leverte
-appen har egne syntetiske leverandører. Reell tilkobling krever godkjente tilganger og
-mapping av datamodeller. Timetall og prisgrunnlag må også være entydig før vi regner.
+Se #9. Punkt er Oslo kommunes eget designsystem, produksjonsmodent og i bruk i dag.
+Presentasjonslaget er frikoblet fra resten av appen, så et bytte til det nasjonale
+Designsystemet er et tema- og tokens-spørsmål, ikke en omskriving av logikken.
 
-## «Hvorfor brukte dere ikke bare sandkassens ferdige demo?»
+## «Hvorfor egen agentgraf og ikke sandkassens `ai-gateway`?»
 
-Vår demonstrasjon handler om innbyggerens kontroll over gjenbruk og mangler. En separat
-klient og en liten regelmodell gjør den pålitelig uten Docker eller modellen. Vi kan
-beholde opplevelsen når datakildene senere kobles til.
+En triage-rolle pluss egne draft-, kritiker- og språkvask-roller på to modeller gir
+presisjon og flerspråklighet en generell gateway ikke gir alene. Vi bruker sandkassens
+`/ai/klarsprak`-endepunkt der det er tilgjengelig lokalt (#14) som første ledd i en
+fallback-kjede, foran vår egen modell og til slutt en deterministisk mal — det
+endepunktet var ikke dokumentert fra før, så kontrakten er et forslag vi har definert
+selv, ikke en bekreftet spesifikasjon. Vi leser sandkassens revisjonslogg for å
+krysssjekke mot vår egen sporing på samme `sporingsId`, men skriver ikke til den:
+modellkallene våre logges lokalt, fordi sandkassens kall-logg bare fylles av en
+ai-gateway vi ikke bruker.
 
-## «Er reglene juridisk riktige?»
+## Andre spørsmål
 
-6 %-prinsippet er kildeforankret. Den komplette kommunale beregningen er ikke juridisk
-godkjent: pris, timefordeling og betalingsmåneder er demoforutsetninger. Derfor viser vi
-en foreløpig vurdering, ikke et vedtak. Fagpersoner må validere en faktisk pilot.
+### «Er dette bare en chatbot?»
 
-## «Hva hvis inntekten er utdatert eller feil?»
+Nei. Henvendelsen går gjennom fire eksplisitte steg — triage, utkast, kritiker,
+språkvask — med en revisjonssløyfe hvis kritikeren ber om en retting. Alle fire går
+gjennom samme sikkerhetsmiddleware og skjemakontroll, ikke bare den siste.
 
-Innbyggeren legger til nåværende årsinntekt. Den opprinnelige verdien bevares. Anslaget
-merkes med at grunnlaget kommer fra innbyggeren, og saken går til manuell vurdering.
+### «Hva bruker dere KI til?»
 
-## «Vet Folkeregisteret hvem som hører til husholdningen?»
+Til å forstå fritekst på flere språk, foreslå hvilke tjenester og kilder som er
+relevante, og oversette regelmotorens resultat til klarspråk. Beregningen og alle
+faktiske beløp kommer fra regelmotoren og fra kildene, ikke fra modellen.
 
-Ikke nødvendigvis tilstrekkelig for denne vurderingen. Derfor spør vi eksplisitt om
-en samboer som mangler i oversikten. Et ja stopper prisanslaget og krever avklaring.
+### «Er reglene juridisk riktige?»
 
-## «Kan kommunen bare hente inntektsopplysninger hvert år?»
+6 %-prinsippet er kildeforankret i [Udirs rundskriv om SFO-finansiering](https://www.udir.no/regelverk-og-tilsyn/skole-og-opplaring/rundskriv-om-skolefritidsordninga/finansiering-av-skolefritidsordninga/).
+Den fullstendige kommunale beregningen er ikke juridisk godkjent: prisgrunnlag,
+timefordeling og betalingsmåneder er demoforutsetninger. Vi viser en foreløpig
+vurdering, ikke et vedtak. Fagpersoner må validere en faktisk pilot.
 
-Ikke uten forutsetninger. [Udir beskriver mulighet for nye vurderinger i søknadsperioden](https://www.udir.no/regelverk-og-tilsyn/skole-og-opplaring/rundskriv-om-skolefritidsordninga/finansiering-av-skolefritidsordninga/).
-Vår visjon forutsetter riktig periode, rettslig grunnlag, fortsatt SFO-plass og
-tilstrekkelige opplysninger. Demoen gjør ingen automatisk innhenting neste år.
+### «Hva hvis inntekten er utdatert eller feil?»
 
-## «Hvordan håndterer dere personvern?»
+Innbyggeren kan legge til eller korrigere opplysninger i dialogen. Den opprinnelige
+registerverdien bevares ved siden av, og et avvik mellom oppgitt og registrert inntekt
+merkes tydelig i saken i stedet for å bli overskrevet stille.
 
-Kun syntetiske data, synlig kilde og formål, midlertidig lokal økt og eksplisitt sletting.
-En produksjonspilot må ha reell autentisering, tilgangsstyring, dataminimering,
-lagringsrutiner og vurdering av behandlingsgrunnlag. Demoknappen er ikke dette grunnlaget.
+### «Vet Folkeregisteret hvem som hører til husholdningen?»
 
-## «Hva skalerer på tvers av kommuner?»
+Ikke nødvendigvis tilstrekkelig for denne vurderingen. Assistenten spør derfor
+eksplisitt om en samboer som mangler i husstandsoversikten; et ja stopper
+prisberegningen og krever manuell avklaring i stedet for å regne videre på et ufullstendig
+grunnlag.
 
-Opplevelsen og ansvarsdelingen kan gjenbrukes. Kommunene trenger konfigurerte priser,
-fagsystemtilkoblinger og godkjente prosesser. Vi lover ikke én universell regelmodell.
+### «Hva med digital lommebok?»
 
-## «Hva med digital lommebok?»
+Vi har bygget et signert moderasjonsbevis (W3C Verifiable Credential-form, Ed25519,
+QR-kode via et OpenID4VCI-lignende tilbud), men proof-typen er egendefinert, ikke en
+registrert kryptosuite, og det er ingen ekte lommebok-app eller Digdir-utsteder koblet
+til. Et samarbeid med Digdir må avklare bevistype, utsteder, gyldighet og verifisering
+før dette er reelt.
 
-Den kan bli en ekstra datakilde for nødvendige bevis. Digdir har en separat sandkasse.
-Vi har ikke integrert lommebok eller funnet på en beviskontrakt. Et samarbeid med
-Digdir må avklare type bevis, utsteder, gyldighet og verifisering.
+### «Hvordan håndterer dere personvern?»
 
-## «Hva bygger dere neste uke hvis dere får støtte?»
+Kun syntetiske testdata, samtykke før noe registeroppslag skjer, dataminimering i både
+modellkall og innsynsvisning, og en fail-closed sikkerhetsmiddleware. En
+produksjonspilot må i tillegg ha reell autentisering, tilgangsstyring, lagringsrutiner
+og en vurdering av behandlingsgrunnlag — demoens samtykkeknapp er ikke det grunnlaget.
 
-Velg én kommune og én pris-/regelmodell med en fagansvarlig. Koble godkjente testdata,
-avklar husholdningsgrunnlag og vis bekreftelsen i kommunens prosess. Test forståelsen
-med foreldre før flere tjenester legges til.
+### «Hva skalerer på tvers av kommuner?»
+
+Selve opplevelsen, samtykkeflyten og ansvarsdelingen mellom modell og regelmotor kan
+gjenbrukes. Hver kommune trenger egne konfigurerte priser og regler, egne
+fagsystemtilkoblinger og godkjente prosesser — vi lover ikke én universell regelmodell.
+
+### «Hva bygger dere neste uke hvis dere får støtte?»
+
+Velg én kommune og én pris-/regelmodell sammen med en fagansvarlig. Koble godkjente
+testdata i stedet for sandkassen, avklar husholdningsgrunnlaget for den kommunen, og
+test forståelsen av dialogen og klarspråket med faktiske innbyggere før flere tjenester
+legges til.
