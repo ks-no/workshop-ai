@@ -277,6 +277,13 @@ const translations: Record<string, string> = {
 
   'Tolker henvendelsen': 'Interpreting your request', 'Forbereder svar for hver tjeneste': 'Preparing an answer for each service',
   'Kvalitetssikrer svaret': 'Quality-checking the answer', 'Retter opp basert på tilbakemeldingen': 'Revising based on the feedback', 'Finpusser språket': 'Polishing the language',
+
+  'Forskriftstekst mot klarspråk': 'Regulation text versus plain language', 'Velg språk for klarspråksteksten': 'Choose a language for the plain-language text',
+  'Forskriftstekst og satsgrunnlag': 'Regulation text and rate basis', 'Klarspråk': 'Plain language',
+  'Fast tekst fra regelmotoren, ingen språkmodell er brukt. Beløpene er identiske i begge språk.': 'Fixed text from the rule engine, no language model was used. The amounts are identical in both languages.',
+  'Teksten er skrevet om av KS-sandkassens KI-gateway. Den har bare en forklarende rolle og endrer ingen beløp. Beløpene er identiske i begge språk.': 'The text was rewritten by the KS sandbox AI gateway. It only has an explanatory role and changes no amounts. The amounts are identical in both languages.',
+  'Teksten er skrevet om av vår egen KI-modell. Beløpene er identiske i begge språk.': 'The text was rewritten by our own AI model. The amounts are identical in both languages.',
+
 };
 
 const LocaleContext = createContext<{ locale: UiLocale; setLocale: (value: UiLocale) => void }>({ locale: 'nb', setLocale: () => {} });

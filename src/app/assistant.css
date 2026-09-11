@@ -239,6 +239,12 @@
 .assistant-answer-values dd { margin-top: var(--s1); font-weight: 600; }
 .assistant-answer-conflict { margin: var(--s4) 0; padding: var(--s4); background: var(--warm-tint); border-left: 4px solid var(--warning); }
 .assistant-answer-conflict p { margin-top: var(--s2); }
+.assistant-klarsprak { margin-top: var(--s4); padding-top: var(--s4); border-top: var(--assistant-border); }
+.assistant-klarsprak-heading { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; justify-content: space-between; }
+.assistant-klarsprak-toggle { display: flex; gap: var(--s2); }
+.assistant-klarsprak-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--s4); margin-top: var(--s3); }
+.assistant-klarsprak-column { padding: var(--s4); border: var(--assistant-border); border-radius: var(--radius); }
+.assistant-klarsprak-column p { margin-top: var(--s2); }
 .assistant-conversation-finished .assistant-answer-card { margin-top: var(--s4); text-align: left; }
 .assistant-service + .assistant-service { padding-top: var(--s6); border-top: var(--assistant-border); }
 .assistant-service-heading { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: start; justify-content: space-between; margin-bottom: var(--s3); }
