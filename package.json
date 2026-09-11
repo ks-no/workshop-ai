@@ -21,6 +21,8 @@
     "test:ai": "node --env-file=.env.local --import tsx scripts/evaluate-assistant.mts",
     "test:ai:language": "node --env-file=.env.local --import tsx scripts/evaluate-assistant-language.mts",
     "test:ai:flow": "node --env-file=.env.local --import tsx scripts/evaluate-flow.mts",
+    "test:eval": "node --import tsx scripts/eval-assistant-goldset.mts",
+    "test:eval:live": "ASSISTANT_EVAL_LIVE=1 node --env-file=.env.local --import tsx scripts/eval-assistant-goldset.mts",
     "setup:backend": "node scripts/setup-backend.mjs",
     "test:backend": "backend/.venv/bin/python -m unittest discover -s backend -p \"test_*.py\"",
     "setup:ks": "node scripts/setup-ks.mjs",
