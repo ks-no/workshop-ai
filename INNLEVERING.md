@@ -5,7 +5,7 @@
 - Ronny Birkeli (RonnyB71)
 - Nina Kylstad (nkylstad)
 - David Øvrelid (framitdavid)
-- Erik Jarem
+- Erik Jarem (eriktja)
 - Philip Bruvoll (phlipsterit)
 
 ## Hva vi lagde
