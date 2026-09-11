@@ -14,6 +14,7 @@ import { submitKsApplication } from './assistant-ks';
 import { emailPrompt, emailSchema, answerSchema, callModel, criticAlwaysPass, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
 import { democacheTimeoutMs, lookupDemocache, type DemocacheEntry } from './assistant-democache';
 import { ksPersonId } from './ks-runtime';
+import { walletCredentialPackage } from './wallet-credential';
 
 type Persist = (session: AssistantCase) => void;
 /** Live step visibility for the SSE route; the polling-based JSON path passes no hooks. */
@@ -455,7 +456,7 @@ export function prepareHandoff(session: AssistantCase, confirmed: boolean) {
   if (!confirmed || session.analyzedRevision !== session.revision || !session.services.length || session.status === 'analyzing' || session.services.some(item => ['error', 'needs-information'].includes(item.status)) || session.facts.some(fact => ['proposed', 'conflict'].includes(fact.status))) {
     throw new CaseError('Kontroller alle forslag og oppdater planen før du bekrefter overleveringen.', 409);
   }
-  session.handoff = { id: `PLAN-${randomUUID().slice(0, 8).toUpperCase()}`, createdAt: new Date().toISOString(), revision: session.revision, serviceIds: session.services.map(service => service.id), localOnly: true, status: 'prepared-for-human-review' };
+  session.handoff = { id: `PLAN-${randomUUID().slice(0, 8).toUpperCase()}`, createdAt: new Date().toISOString(), revision: session.revision, serviceIds: session.services.map(service => service.id), localOnly: true, status: 'prepared-for-human-review', credential: walletCredentialPackage(session) };
   session.status = 'handed-off';
   event(session, '', 'Innbygger', 'human', 'Gjeldende plan bekreftet. Lokal dokumentpakke opprettet for menneskelig oppfølging; ingenting sendt til kommunen.');
   return session;

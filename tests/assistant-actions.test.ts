@@ -80,7 +80,7 @@ test('stale analysis or unresolved proposals block e-mail, form and summary but 
     assert.ok(action.blockers.some(blocker => /1 foreslåtte opplysninger/.test(blocker)), kind);
   }
   assert.equal(actions.find(item => item.kind === 'contact')?.available, true);
-  current.handoff = { id: 'PLAN-1', createdAt: now, revision: current.revision, serviceIds: ['moving'], localOnly: true, status: 'prepared-for-human-review' };
+  current.handoff = { id: 'PLAN-1', createdAt: now, revision: current.revision, serviceIds: ['moving'], localOnly: true, status: 'prepared-for-human-review', credential: null };
   const locked = resolveNextActions(current);
   assert.equal(locked.find(item => item.kind === 'summary')?.done, true);
   assert.match(locked.find(item => item.kind === 'email')!.blockers[0], /låst/);

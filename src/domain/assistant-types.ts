@@ -1,5 +1,6 @@
 import type { Assessment } from './types';
 import type { KsDemoConsent } from '../providers/ks-demo-client';
+import type { WalletCredentialPackage } from './wallet-credential';
 
 export const serviceIds = ['family', 'housing', 'moving'] as const;
 export type ServiceId = typeof serviceIds[number];
@@ -89,7 +90,7 @@ export type AgentRun = { id: string; agent: string; stage: ModelRole; revision: 
 export type CritiqueGap = { point: string; quote: string };
 /** Full critic output per round. Never truncate for display; the UI shows all of it. */
 export type CritiqueRound = { round: number; verdict: 'PASS' | 'REVISE'; gaps: CritiqueGap[]; notes: string; at: string };
-export type Handoff = { id: string; createdAt: string; revision: number; serviceIds: ServiceId[]; localOnly: true; status: 'prepared-for-human-review' };
+export type Handoff = { id: string; createdAt: string; revision: number; serviceIds: ServiceId[]; localOnly: true; status: 'prepared-for-human-review'; credential: WalletCredentialPackage | null };
 export type KsAccessDecision = { status: 'approved' | 'declined'; decidedAt: string };
 export type AssistantCase = {
   language?: string;

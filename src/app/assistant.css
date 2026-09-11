@@ -479,3 +479,10 @@
   .assistant-outcome-heading { grid-template-columns: auto minmax(0, 1fr); }
   .assistant-outcome-heading .pkt-tag { grid-column: 2; }
 }
+.assistant-wallet-credential { margin-top: var(--s6); padding: var(--s4); border: var(--assistant-border); border-radius: var(--radius); background: var(--paper); }
+.assistant-wallet-credential-body { display: flex; flex-wrap: wrap; gap: var(--s5); align-items: start; margin-top: var(--s3); }
+.assistant-wallet-qr { flex: 0 0 auto; width: 9rem; }
+.assistant-wallet-qr svg { display: block; width: 100%; height: auto; }
+.assistant-wallet-attributes { flex: 1 1 14rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--s3); }
+.assistant-wallet-attributes dt { color: var(--muted); font-size: var(--text-small); }
+.assistant-wallet-attributes dd { margin-top: var(--s1); font-weight: 600; }

@@ -49,6 +49,7 @@ export function loadAssistantCase(id?: string): AssistantCase {
   session.pendingConsents = (session.pendingConsents ?? []).filter(consent => consent.revision === session.revision);
   session.drafts ??= { email: null, form: null };
   session.outcomes ??= [];
+  if (session.handoff) session.handoff.credential ??= null;
   // Retired authored demo data must never re-enter a current analysis.
   delete (session as AssistantCase & { demoData?: unknown }).demoData;
   session.sources = session.sources.filter(source => !source.id.startsWith('demo-'));

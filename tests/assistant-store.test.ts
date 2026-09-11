@@ -42,7 +42,7 @@ test('stale revisions and completed handoffs reject mutation before its callback
   try {
     await assert.rejects(withAssistantLock(current.id, current.revision - 1, async () => { ran = true; }), /annen fane/);
     assert.equal(ran, false);
-    current.handoff = { id: 'test-handoff', createdAt: current.createdAt, revision: current.revision, serviceIds: ['moving'], localOnly: true, status: 'prepared-for-human-review' };
+    current.handoff = { id: 'test-handoff', createdAt: current.createdAt, revision: current.revision, serviceIds: ['moving'], localOnly: true, status: 'prepared-for-human-review', credential: null };
     current.status = 'handed-off';
     saveAssistantCase(current);
     await assert.rejects(withAssistantLock(current.id, current.revision, async () => { ran = true; }), /allerede bekreftet/);
