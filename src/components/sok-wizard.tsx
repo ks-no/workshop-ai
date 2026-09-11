@@ -279,7 +279,7 @@ export function SokWizard() {
           <NavRow onNext={() => void executeDraft()} nextLabel="Godkjenn og utfør" nextDisabled={draft.status !== 'prepared'} onBack={() => setShowDraft(false)} backLabel="Rediger utkast" />
         </Screen>}
       </div>}
-      {phase === 'acted' && session && <ActedScreen session={session} onContinue={() => void simple('continue')} onSummary={() => setSummaryView(true)} headingRef={heading} />}
+      {phase === 'acted' && session && <ActedScreen session={session} onSummary={() => setSummaryView(true)} headingRef={heading} />}
       {((phase === 'done' && component === 'completion-summary') || phase === 'summary') && session && <SummaryScreen session={session} step={phase === 'done' ? step : null} onMore={addMore} onContinue={phase === 'summary' ? () => setSummaryView(false) : () => void simple('continue')} onReset={() => void reset()} headingRef={heading} />}
       {phase === 'error' && session && <Screen kind="error" eyebrow="Noe stoppet" heading="Assistenten kunne ikke fullføre steget" hint={session.error ?? 'Det finnes ikke noe aktivt steg. Prøv igjen, eller start på nytt.'} headingRef={heading}>
         <NavRow onNext={() => void simple('retry')} nextLabel="Prøv igjen" onBack={() => void reset()} backLabel="Start på nytt" />
@@ -579,11 +579,13 @@ function OutcomeCard({ session, outcome }: { session: FlowCase; outcome: FlowOut
   </CardBlock></Card>;
 }
 
-function ActedScreen({ session, onContinue, onSummary, headingRef }: { session: FlowCase; onContinue: () => void; onSummary: () => void; headingRef: Ref<HTMLHeadingElement> }) {
+function ActedScreen({ session, onSummary, headingRef }: { session: FlowCase; onSummary: () => void; headingRef: Ref<HTMLHeadingElement> }) {
   const outcome = session.outcomes.at(-1);
-  return <Screen kind="acted" eyebrow="Resultat" heading={outcome ? outcome.status === 'mocked' ? 'E-posten er lagret i testutboksen' : outcome.status === 'queued' ? 'Vurderingen er lagt i lokal kø' : outcome.status === 'prepared' ? 'Skjemaet er klart til videre bruk' : outcome.status === 'scheduled' ? 'Påminnelsen ble opprettet' : outcome.localOnly ? 'Forberedelsen er registrert' : 'KS har registrert testsøknaden' : 'Resultatet er registrert'} hint="Kvitteringen ligger i saken. Assistenten kan se om det er mer som bør gjøres, eller du kan avslutte med en oppsummering." headingRef={headingRef}>
+  return <Screen kind="acted" eyebrow="Resultat" heading={outcome ? outcome.status === 'mocked' ? 'E-posten er lagret i testutboksen' : outcome.status === 'queued' ? 'Vurderingen er lagt i lokal kø' : outcome.status === 'prepared' ? 'Skjemaet er klart til videre bruk' : outcome.status === 'scheduled' ? 'Påminnelsen ble opprettet' : outcome.localOnly ? 'Forberedelsen er registrert' : 'KS har registrert testsøknaden' : 'Resultatet er registrert'} hint="Kvitteringen ligger i saken. Du kan avslutte med en oppsummering." headingRef={headingRef}>
     {outcome && <OutcomeCard session={session} outcome={outcome} />}
-    <NavRow onNext={onContinue} nextLabel="Hva mer kan vi gjøre?" onBack={onSummary} backLabel="Se oppsummering" />
+    <div className={styles.navRow}>
+      <Button variant="primary" type="button" onClick={onSummary}>Se oppsummering<ArrowRight aria-hidden="true" /></Button>
+    </div>
     <ActivityLog session={session} />
   </Screen>;
 }
