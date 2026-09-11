@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { consentAndReadIncome, declineKsAccess } from '../src/server/assistant-ks';
+import { consentAndReadIncome, declineKsAccess, submitKsApplication } from '../src/server/assistant-ks';
+import { buildFormDraft } from '../src/domain/assistant-actions';
 import type { AssistantCase, EvidenceSource, MemoryFact } from '../src/domain/assistant-types';
 
 const now = '2026-09-04T08:00:00.000Z';
@@ -57,4 +58,28 @@ test('declining KS access records the human choice without retrieving personal d
   assert.equal(current.ksAccessDecision?.status, 'declined');
   assert.equal(current.ksData, null);
   assert.match(current.events.at(-1)?.detail || '', /fortsette uten/);
+});
+
+test('the SFO form becomes a sandbox application for the configured case, and the receipt is stored as a register source', async () => {
+  const current = session();
+  const draft = buildFormDraft(current, 'family', now, 'draft-1')!;
+  const requests: unknown[] = [];
+  const client = {
+    createApplication: async (input: unknown) => {
+      requests.push(input);
+      return snapshot({ soknadId: 'soknad-42', personId: 'person-022' as const, prosessId: 'sfo-moderasjon', status: 'SENDT_INN' as const, opprettet: now, sporingsId: current.id, syntetisk: true as const,
+        oppgave: { oppgaveId: 'oppgave-42', syntetisk: true } }, 'soknad');
+    },
+  } as unknown as NonNullable<Parameters<typeof submitKsApplication>[2]>;
+  const receipt = await submitKsApplication(current, draft, client);
+  assert.deepEqual(requests, [{ prosessId: 'sfo-moderasjon', prosessNavn: 'Redusert betaling i SFO', caseId: current.id }]);
+  assert.equal(receipt.soknadId, 'soknad-42');
+  assert.equal(receipt.oppgaveId, 'oppgave-42');
+  const source = current.sources.find(item => item.id === 'ks-soknad-soknad-42')!;
+  assert.equal(source.kind, 'register');
+  assert.match(source.text, /"soknadId": "soknad-42"/);
+  assert.ok(!source.text.includes('person-022'), 'The stored receipt excludes the register identity.');
+  assert.match(current.events.at(-1)?.detail || '', /Søknads-ID soknad-42/);
+  const local = buildFormDraft(current, 'moving', now, 'draft-2')!;
+  await assert.rejects(submitKsApplication(current, local, client), /kan ikke sendes til KS-sandkassen/);
 });

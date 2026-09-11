@@ -8,6 +8,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { NextRequest } from 'next/server';
 import { POST, DELETE } from '../src/app/api/assistant/route';
 import { GET as downloadReceipt } from '../src/app/api/assistant/receipt/route';
+import { GET as downloadOutcome } from '../src/app/api/assistant/outcome/route';
 import { POST as uploadDocument } from '../src/app/api/assistant/document/route';
 import { ASSISTANT_COOKIE } from '../src/server/assistant-http';
 import { createAssistantCase, deleteAssistantCase, loadAssistantCase, saveAssistantCase, withAssistantLock } from '../src/server/assistant-store';
@@ -127,6 +128,8 @@ test('every JSON mutation rejects a different case ID even when both case revisi
     { action: 'fact', factId: randomUUID(), decision: 'confirm' },
     { action: 'fact', factId: randomUUID(), decision: 'reject' },
     { action: 'connect-ks' }, { action: 'income-consent', approved: true }, { action: 'ks-access', approved: true }, { action: 'handoff', confirmed: true },
+    { action: 'draft-email', serviceId: 'moving' }, { action: 'send-email', serviceId: 'moving', to: 'test@example.com', subject: 'Test', body: 'Test' },
+    { action: 'fill-form', serviceId: 'moving' }, { action: 'submit-form', serviceId: 'moving', fields: { new_address: 'Testveien 1' } }, { action: 'discard-draft', kind: 'email' },
   ];
   for (const command of commands) {
     const response = await POST(request('POST', { ...command, caseId: other.id, revision: current.revision }, current));
@@ -237,4 +240,44 @@ test('consent for an earlier analysis cannot hand off a newly generated plan wit
   assert.equal(consent.status, 200);
   assert.equal((await consent.json()).session.handoff.revision, analyzed.revision);
   assert.equal(modelCalls, 4); // triage + one specialist (moving) + critic + polish
+});
+
+test('end actions run under the case lock, and receipts download only for the cookie case', async () => {
+  const current = newCase();
+  const quote = 'Flyttedato: 2026-12-09.\nNy kommune: Tromsø.';
+  const answered = await POST(request('POST', { action: 'answers', caseId: current.id, revision: current.revision, message: quote,
+    answers: [{ key: 'move_date', value: '2026-12-09', quote: 'Flyttedato: 2026-12-09.' }, { key: 'new_municipality', value: 'Tromsø', quote: 'Ny kommune: Tromsø.' }] }, current));
+  assert.equal(answered.status, 200);
+  let state = loadAssistantCase(current.id);
+  assert.equal(state.status, 'error', 'No model transport is configured in this suite, so the analysis fails honestly.');
+  const blocked = await POST(request('POST', { action: 'fill-form', serviceId: 'moving', caseId: current.id, revision: state.revision }, current));
+  assert.equal(blocked.status, 409, 'A failed or stale analysis cannot be turned into a form.');
+  // Prepare the analysed plan directly, as the live model is not part of this suite.
+  state.sources.push(...guidanceSources());
+  state.services = [prepareService('moving', state, 'Controlled fixture')];
+  state.status = 'ready'; state.analyzedRevision = state.revision; state.error = null;
+  saveAssistantCase(state);
+  const filled = await POST(request('POST', { action: 'fill-form', serviceId: 'moving', caseId: current.id, revision: state.revision }, current));
+  assert.equal(filled.status, 200);
+  const draft = (await filled.json()).session.drafts.form;
+  assert.equal(draft.fields.find((field: { id: string }) => field.id === 'move_date').value, '2026-12-09');
+  const submitted = await POST(request('POST', { action: 'submit-form', serviceId: 'moving', fields: { new_address: 'Testveien 1, 9008 Tromsø' }, caseId: current.id, revision: state.revision }, current));
+  assert.equal(submitted.status, 200);
+  state = loadAssistantCase(current.id);
+  assert.equal(state.outcomes?.length, 1);
+  assert.equal(state.outcomes?.[0].status, 'prepared-locally');
+  assert.equal(state.drafts?.form, null);
+  const other = newCase();
+  const foreign = await downloadOutcome(new NextRequest(`${origin}/api/assistant/outcome?caseId=${current.id}&outcomeId=${state.outcomes![0].id}`, { headers: { Cookie: `${ASSISTANT_COOKIE}=${other.id}` } }));
+  assert.equal(foreign.status, 409);
+  const missing = await downloadOutcome(new NextRequest(`${origin}/api/assistant/outcome?caseId=${current.id}&outcomeId=${randomUUID()}`, { headers: { Cookie: `${ASSISTANT_COOKIE}=${current.id}` } }));
+  assert.equal(missing.status, 404);
+  const receipt = await downloadOutcome(new NextRequest(`${origin}/api/assistant/outcome?caseId=${current.id}&outcomeId=${state.outcomes![0].id}`, { headers: { Cookie: `${ASSISTANT_COOKIE}=${current.id}` } }));
+  assert.equal(receipt.status, 200);
+  assert.match(receipt.headers.get('content-type')!, /text\/plain/);
+  assert.match(receipt.headers.get('content-disposition')!, /attachment/);
+  const text = await receipt.text();
+  assert.match(text, /Flyttedato: 2026-12-09/);
+  assert.match(text, /Testveien 1, 9008 Tromsø/);
+  assert.equal(modelCalls, 0, 'Filling and preparing a form never calls the model.');
 });

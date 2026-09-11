@@ -2,16 +2,26 @@
 
 [Norsk bokmål](README.md) · **English**
 
-A hackathon demo for preparing family/SFO, housing and moving matters in one conversation. Use synthetic test information only. No application is submitted.
+A hackathon demo for preparing family/SFO, housing and moving matters in one conversation. Use synthetic test information only. Only explicitly approved KS workshop test applications are registered; no production government application is submitted.
 
 ## Architecture
 
-- Next.js/React with Oslo municipality’s Punkt design system and Norwegian/English interfaces.
+- Next.js/React. The front page is a step-by-step guide built with Designsystemet (designsystemet.no); the conversational assistant at `/assistent` uses Oslo municipality’s Punkt design system and has Norwegian/English interfaces.
 - Python and Microsoft Agent Framework: an AI model coordinates specialist analyses.
-- SQLite case memory for 24 hours, source excerpts, revisions and explicit human confirmation of facts.
+- SQLite case memory: 90 days for the front-page flow, 24 hours for `/assistent`, source excerpts, revisions and explicit human confirmation of facts.
 - General questions require no personal lookup. A personalised SFO assessment can request consent to retrieve synthetic data from locally running official KS workshop APIs. Declining opens manual questions.
 - AI can explain and suggest; it cannot confirm facts, make official decisions or submit applications.
+- In the legacy `/assistent` view, services offer an end action: answer what is missing, contact the right person, an e-mail draft you review and send yourself, or a form filled from confirmed information. The SFO form is submitted to the KS sandbox as a test application and receives an application ID and a casework task. The agent recommends, the app checks, you carry it out.
 - Model context is minimised and marked private/untrusted. Analysis stops if the agent receives capabilities beyond analysis.
+
+## Interactive actions on the front page
+
+Use the action selector to prepare email, forms, reminders, or a human review.
+Edit the draft, review its saved contents, then approve execution. Email uses
+a clearly labelled mock outbox. Reminders and the local review queue persist
+in SQLite. Run `npm run start:reminders` alongside the app for in-app alerts.
+See [interactive flow and action setup](docs/interactive-flow.md) for approval
+contracts, operator access, retention and actual KS submission boundaries.
 
 ## Run locally
 
@@ -35,7 +45,7 @@ Start the app in another terminal:
 npm run dev
 ```
 
-Open <http://127.0.0.1:3210/>. The bilingual documentation and diagram viewer are at <http://127.0.0.1:3210/dokumentasjon>.
+Open <http://127.0.0.1:3210/> for the «Søk én gang» step-by-step guide (the interface from the Figma prototype). The conversational assistant is at <http://127.0.0.1:3210/assistent>. The bilingual documentation and diagram viewer are at <http://127.0.0.1:3210/dokumentasjon>.
 
 To share the demo with a tester on the same VPN:
 

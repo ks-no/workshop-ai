@@ -1,5 +1,8 @@
 # Arkitektur for innbyggerassistenten
 
+Forsidens stegvise veiviser og handlingsutførelse beskrives i
+[interaktiv flyt](interactive-flow.md). Denne siden beskriver samtalevisningen `/assistent`.
+
 Assistenten forbereder familie/SFO, bolig og flytting fra én samtale. En AI-modell
 velger relevante tjenester og lager separate spesialistanalyser.
 Microsoft Agent Framework i en lokal Python-prosess styrer agentflyten.
@@ -37,6 +40,7 @@ Den virker offline. Når appen kjører, finnes den på
 | Dokumentuttrekk | [Dokumenttjenesten](../src/server/assistant-documents.ts) | Filinnhold er ubetrodd dokumentasjon; det gir ingen instruksjonsmyndighet. |
 | Lagring og sakslevetid | [SQLite-lageret](../src/server/assistant-store.ts) | Samme sak skal overleve reload og serverrestart innenfor levetiden. |
 | Visning og eksplisitte valg | [Saksoversikten](../src/components/assistant-case-panel.tsx) | Kildegrunnlag, konflikter og gjenstående arbeid må være synlig før bekreftelse. |
+| Sluttaksjoner og kontaktpunkter | [Aksjonskatalogen](../src/domain/assistant-actions.ts) og [aksjonsvisningen](../src/components/assistant-actions.tsx) | Hver tjeneste må ende i noe innbyggeren faktisk kan gjøre. Katalogen eier mottakere, skjemaer og tilgjengelighetsregler; agenten kan bare anbefale. |
 
 ## Hva «agentic» betyr her
 
@@ -249,13 +253,62 @@ Videreføring krever riktig saks-ID, siste saksrevisjon, fullført analyse, avkl
 og en separat avkrysning. Et saksgrunnlag kan fortsatt ha dokumentasjon eller
 faglige vurderinger som gjenstår; disse følger med til menneskelig gjennomgang.
 Kvitteringen er lokal og idempotent. Den bekreftede planen låses for videre
-endringer. Ingen søknad sendes til en offentlig tjeneste.
+endringer. Ingen søknad sendes til en virkelig offentlig tjeneste; se
+[Sluttaksjoner](#sluttaksjoner-fra-analyse-til-handling) for hva som faktisk
+utføres mot KS-sandkassen og e-postprogrammet.
 
 Hver ny analyse får en ny revisjon, selv om innbyggerens fakta er uendret.
 Dermed kan en bekreftelse fra en eldre visning ikke godkjenne et nytt modellresultat.
 Saks-ID hindrer at en gammel fane endrer en annen sak etter at den delte
 informasjonskapselen er byttet. Automatisk oppstart gjenåpner en eksisterende
 gyldig sak; den sletter ikke tidligere saksminne.
+
+## Sluttaksjoner: fra analyse til handling
+
+En analyse er ikke ferdig før hver valgt tjeneste har løst seg til en
+**sluttaksjon** innbyggeren kan utføre. Aksjonstypene er lukket og eies av
+[aksjonskatalogen](../src/domain/assistant-actions.ts):
+
+| Aksjon | Når den er tilgjengelig | Hva som faktisk skjer |
+|---|---|---|
+| `clarify` – svar på det som mangler | Tjenesten har manglende sjekkpunkter eller åpne spørsmål. | Informasjonsløkken: spørsmålsskjemaet åpnes, svaret blir en ny kilde og en ny analyse kjøres. |
+| `contact` – kontakt riktig person | Alltid, også for generelle spørsmål og etter feil. | Et kontaktkort med rolle, organisasjon, telefon, åpningstid og lenke. Ingen modellkall. |
+| `email` – send en e-post | Gjeldende analyse, ingen uavklarte faktakandidater, tjenesten uten feil. | En skribent-agent lager et utkast fra innbyggerens egne ord, bekreftede fakta og åpne punkter. Innbyggeren redigerer, godkjenner og åpner e-posten i sitt eget e-postprogram. Appen sender ingenting selv. |
+| `form` – fyll ut skjemaet | Som `email`, og alle påkrevde skjemafelt har en bekreftet verdi. | Node fyller skjemaet deterministisk fra bekreftede fakta med opprinnelse (bekreftet av deg / hentet fra KS / dine egne ord). Bekreftede verdier kan ikke redigeres i skjemaet; de rettes i oversikten. |
+| `self-service` – gå til offisiell tjeneste | Tjenesten har en statlig selvbetjening (Husbanken, Skatteetaten). | Lenke og klargjort grunnlag. Innsendingen gjør innbyggeren selv med innlogging. |
+| `summary` – fullfør og last ned | Alle tjenestevurderinger fullført, ingen uavklarte kandidater, gjeldende revisjon. | Den eksisterende lokale oppsummeringen, nå med alle kvitteringer. Saken låses. |
+
+Spesialistagentene får listen over tillatte aksjoner i konteksten og kan
+anbefale **én** med en kort begrunnelse (`nextAction`). Node beholder bare
+anbefalinger tjenesten faktisk kan tilby og kontrollerer begrunnelsen med samme
+tekstkontroll som annen KI-tekst; ellers brukes en regelbasert anbefaling.
+Tilgjengeligheten løses alltid av Node fra sakens tilstand, uavhengig av hva
+modellen sa. En stale analyse eller en uavklart faktakandidat blokkerer e-post,
+skjema og oppsummering, men aldri kontaktruten.
+
+**E-post.** Skribenten kjører som et eget agentløp («Skribent») med samme
+sikkerhetskontrakt som spesialistene. Utkastet må bestå tallkontrollen mot
+bekreftede faktaverdier og innbyggerens egne meldinger, og må ikke påstå
+vedtak eller innsending. Feiler modellen eller kontrollen, brukes et fast
+utkast bygget fra de samme kildene; innbyggeren får alltid et utkast. Når
+innbyggeren godkjenner, registreres en lokal kvittering med referanse, og
+teksten overleveres til e-postprogrammet via `mailto:`. Mottakeradressene i
+katalogen er plassholdere for demoen og kan endres før sending.
+
+**Skjema.** For familie/SFO sendes det utfylte skjemaet som **testsøknad til
+KS-sandkassen** (`POST /api/soknader`, prosess `sfo-moderasjon`) for den
+konfigurerte testpersonen. Sandkassen returnerer søknads-ID med status
+`SENDT_INN` og oppretter en saksbehandleroppgave i Fiks-simulatoren. Kvitteringen
+lagres som registerkilde uten identitetsfelt. Bolig og flytting er statlige
+tjenester uten sandkasseprosess; der klargjøres skjemaet lokalt med kvittering,
+og innbyggeren sender selv hos Husbanken eller Skatteetaten. Selve
+skjemainnholdet sendes ikke til sandkassen; det følger kvitteringen lokalt.
+
+Utkast hører til én analysert revisjon og slettes når ny informasjon kommer.
+Utførte handlinger (`outcomes`) er historikk og bevares med revisjon, mottaker,
+referanse og innhold. De vises i samtalen, i fanen Neste steg og i den nedlastbare
+oppsummeringen, og hver kvittering kan lastes ned som tekst. Ingen søknad sendes
+til en virkelig kommune eller statlig tjeneste.
 
 ## Minne og driftsgrense
 

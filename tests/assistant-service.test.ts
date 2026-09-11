@@ -2,7 +2,8 @@ import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AssistantCase, CritiqueRound, ModelPlan, ServiceId, SpecialistOutput } from '../src/domain/assistant-types';
 import type { ModelCall } from '../src/server/assistant-model';
-import { addConfirmedAnswers, addDocument, addMessage, analyzeCase, decideFact, decideFactAndContinue, handoffDocument, prepareHandoff } from '../src/server/assistant-service';
+import { addConfirmedAnswers, addDocument, addMessage, analyzeCase, decideFact, decideFactAndContinue, discardDraft, draftEmail, fillForm, handoffDocument, prepareHandoff, sendEmail, submitForm } from '../src/server/assistant-service';
+import type { submitKsApplication } from '../src/server/assistant-ks';
 
 const previousModelEnv = new Map<string, string | undefined>();
 beforeEach(() => {
@@ -541,6 +542,162 @@ test('prompt injection in a document cannot confirm facts, execute actions, or c
   assert.ok(![current.summary, ...current.services.map(service => service.summary), ...current.services.flatMap(service => service.findings.map(finding => finding.text))]
     .join('\n').toLowerCase().includes('submitted'));
   assert.ok(current.events.some(event => event.type === 'blocked'));
+});
+
+async function movingCase() {
+  const current = session();
+  const quote = 'Flyttedato: 2026-10-01.\nNy kommune: Bergen.';
+  addConfirmedAnswers(current, quote, [{ key: 'move_date', value: '2026-10-01', quote: 'Flyttedato: 2026-10-01.' }, { key: 'new_municipality', value: 'Bergen', quote: 'Ny kommune: Bergen.' }]);
+  addMessage(current, 'Jeg har mistet jobben og skal flytte til Bergen.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.equal(current.services[0].status, 'needs-review');
+  return current;
+}
+const emailModel = (output: { subject: string; body: string }): ModelCall => async (system, _context, schema, role) => {
+  assert.equal(role, 'draft');
+  assert.match(system, /REQUIRED OUTPUT LANGUAGE/);
+  return schema.parse(output);
+};
+
+test('specialists may recommend an end action, but only kinds the service can actually offer survive', async () => {
+  const current = session();
+  addMessage(current, 'Hjelp med bolig og flytting.');
+  await analyzeCase(current, model(plan(['housing', 'moving']), context => ({ summary: 'Sjekklisten er klar.', findings: [], questions: [],
+    nextAction: context.service.id === 'housing' ? { kind: 'contact', reason: 'En veileder kan hjelpe med dokumentasjonen.' } : { kind: 'summary', reason: 'Last ned nå.' } })), discardPersistence);
+  const housing = current.services.find(service => service.id === 'housing')!;
+  const moving = current.services.find(service => service.id === 'moving')!;
+  assert.deepEqual(housing.recommendedAction, { kind: 'contact', reason: 'En veileder kan hjelpe med dokumentasjonen.', by: 'agent' });
+  assert.equal(moving.recommendedAction?.by, 'rule');
+  assert.equal(moving.recommendedAction?.kind, 'clarify');
+  assert.ok(current.events.some(event => event.type === 'blocked' && /anbefalte en handling/.test(event.detail)));
+  const withoutRecommendation = session();
+  addMessage(withoutRecommendation, 'Hjelp med flytting.');
+  await analyzeCase(withoutRecommendation, model(plan(['moving'])), discardPersistence);
+  assert.equal(withoutRecommendation.services[0].recommendedAction?.by, 'rule');
+});
+
+test('an e-mail draft is written by the writer agent, checked against confirmed facts, and falls back to a fixed draft', async () => {
+  const current = await movingCase();
+  const draft = await draftEmail(current, 'moving', emailModel({ subject: 'Spørsmål om flytting til Bergen', body: 'Hei,\n\nJeg flytter 2026-10-01 til Bergen og har mistet jobben. Hvilken dokumentasjon trenger dere?\n\nMed vennlig hilsen' }), discardPersistence);
+  assert.equal(draft.aiDrafted, true);
+  assert.equal(draft.to.id, 'citizen-service');
+  assert.equal(draft.revision, current.revision);
+  assert.equal(current.runs.at(-1)?.agent, 'Skribent');
+  assert.equal(current.runs.at(-1)?.status, 'completed');
+
+  const fabricated = await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Søknaden din er sendt og du får 99999 kroner.' }), discardPersistence);
+  assert.equal(fabricated.aiDrafted, false);
+  assert.match(fabricated.body, /Flyttedato: 2026-10-01/);
+  assert.ok(!fabricated.body.includes('99999'));
+  assert.ok(current.events.some(event => event.type === 'blocked' && /KI-utkastet/.test(event.detail)));
+
+  const failed = await draftEmail(current, 'moving', async () => { throw new Error('Test transport unavailable'); }, discardPersistence);
+  assert.equal(failed.aiDrafted, false);
+  assert.equal(current.runs.at(-1)?.status, 'failed');
+  assert.equal(current.drafts?.email?.id, failed.id, 'A failed writer still leaves the citizen with a usable fixed draft.');
+});
+
+test('sending an e-mail requires the current draft, records a local receipt and hands the text to the mail client', async () => {
+  const current = await movingCase();
+  assert.throws(() => sendEmail(current, 'moving', { to: 'a@b.no', subject: 'x', body: 'y' }), /utkast/);
+  await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Hei, jeg flytter til Bergen 2026-10-01.' }), discardPersistence);
+  assert.throws(() => sendEmail(current, 'moving', { to: 'ikke-en-adresse', subject: 'x', body: 'y' }), /e-postadresse/);
+  assert.throws(() => sendEmail(current, 'housing', { to: 'a@b.no', subject: 'x', body: 'y' }), /utkast/);
+  const outcome = sendEmail(current, 'moving', { to: 'innbyggerservice@demo.sok-en-gang.example', subject: 'Flytting (redigert)', body: 'Hei, jeg flytter til Bergen 2026-10-01. Redigert av meg.' });
+  assert.equal(outcome.status, 'sent-to-mail-client');
+  assert.equal(outcome.localOnly, true);
+  assert.match(outcome.reference, /^EPOST-[A-Z0-9]{8}$/);
+  assert.equal(outcome.payload.subject, 'Flytting (redigert)');
+  assert.equal(current.drafts?.email, null);
+  assert.deepEqual(current.outcomes?.map(item => item.id), [outcome.id]);
+  assert.ok(current.events.at(-1)?.type === 'human');
+  assert.throws(() => prepareHandoff(current, false), /Kontroller/);
+  prepareHandoff(current, true);
+  assert.equal(handoffDocument(current).outcomes.length, 1);
+  assert.ok(handoffDocument(current).nextActions.some(action => action.kind === 'summary' && action.done));
+});
+
+test('forms are filled from confirmed facts only, reject edits to confirmed values and record where the citizen must submit', async () => {
+  const current = await movingCase();
+  const draft = fillForm(current, 'moving');
+  assert.equal(draft.submission, 'local');
+  assert.equal(draft.fields.find(field => field.id === 'move_date')?.value, '2026-10-01');
+  assert.equal(draft.fields.find(field => field.id === 'move_date')?.editable, false);
+  assert.equal(draft.fields.find(field => field.id === 'new_address')?.editable, true);
+  await assert.rejects(submitForm(current, 'moving', { move_date: '2026-12-24' }), /bekreftet opplysning/);
+  await assert.rejects(submitForm(current, 'moving', { unknown_field: 'x' }), /ukjent felt/);
+  await assert.rejects(submitForm(current, 'moving', { new_address: 'x'.repeat(1001) }), /1000 tegn/);
+  const outcome = await submitForm(current, 'moving', { new_address: 'Testveien 1, 5003 Bergen', who_moves: 'Jeg og to barn' });
+  assert.equal(outcome.status, 'prepared-locally');
+  assert.equal(outcome.recipient.id, 'skatteetaten');
+  assert.equal(outcome.payload.fields?.find(field => field.id === 'new_address')?.value, 'Testveien 1, 5003 Bergen');
+  assert.equal(outcome.payload.fields?.find(field => field.id === 'move_date')?.value, '2026-10-01');
+  assert.equal(current.drafts?.form, null);
+  assert.equal(current.facts.filter(fact => fact.status === 'confirmed').length, 2, 'Form text never becomes a confirmed fact.');
+});
+
+test('the SFO form is submitted to the KS sandbox through the adapter and keeps the sandbox receipt', async () => {
+  const current = session();
+  const quote = 'Bruker SFO: Ja.\nHusholdningens årsinntekt (kr): 320000 NOK.\nHva inntekten gjelder: Hele husholdningens årsinntekt.';
+  addConfirmedAnswers(current, quote, [
+    { key: 'uses_sfo', value: 'true', quote: 'Bruker SFO: Ja.' },
+    { key: 'household_income_annual', value: '320000', quote: 'Husholdningens årsinntekt (kr): 320000 NOK.' },
+    { key: 'income_basis', value: 'household_year', quote: 'Hva inntekten gjelder: Hele husholdningens årsinntekt.' },
+  ]);
+  addMessage(current, 'Jeg bruker SFO og vil betale mindre.');
+  await analyzeCase(current, model(plan(['family'])), discardPersistence);
+  assert.equal(current.services[0].recommendedAction?.kind, 'form');
+  const draft = fillForm(current, 'family');
+  assert.equal(draft.submission, 'ks-sandbox');
+  const calls: unknown[] = [];
+  const fakeSubmit: typeof submitKsApplication = async (_session, submitted) => {
+    calls.push(submitted.formId);
+    return { soknadId: 'soknad-test-1', prosessId: 'sfo-moderasjon', status: 'SENDT_INN', opprettet: new Date().toISOString(), oppgaveId: 'oppgave-test-1', advarsel: null, syntetisk: true };
+  };
+  const outcome = await submitForm(current, 'family', { message: 'Takk for hjelpen.' }, fakeSubmit);
+  assert.deepEqual(calls, ['sfo-reduced-payment']);
+  assert.equal(outcome.status, 'submitted-to-ks-sandbox');
+  assert.equal(outcome.reference, 'soknad-test-1');
+  assert.equal(outcome.payload.ksOppgaveId, 'oppgave-test-1');
+  assert.equal(outcome.localOnly, false);
+  await assert.rejects(submitForm(current, 'family', {}, fakeSubmit), /Fyll ut skjemaet/, 'A consumed draft cannot be submitted twice.');
+  const before = current.outcomes!.length;
+  await assert.rejects(submitForm(current, 'family', {}, async () => { throw new Error('KS unavailable'); }), /Fyll ut skjemaet/);
+  assert.equal(current.outcomes!.length, before);
+});
+
+test('new information clears drafts and blocks actions until the plan is refreshed, while outcomes remain history', async () => {
+  const current = await movingCase();
+  await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Hei.' }), discardPersistence);
+  sendEmail(current, 'moving', { to: 'a@b.no', subject: 'Flytting', body: 'Hei.' });
+  fillForm(current, 'moving');
+  assert.ok(current.drafts?.form);
+  addMessage(current, 'Jeg flytter kanskje senere.');
+  assert.equal(current.drafts?.form, null);
+  assert.equal(current.outcomes?.length, 1);
+  await assert.rejects(draftEmail(current, 'moving', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /Oppdater planen/);
+  assert.throws(() => fillForm(current, 'moving'), /Oppdater planen|finnes ikke/);
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  fillForm(current, 'moving');
+  discardDraft(current, 'form');
+  assert.equal(current.drafts?.form, null);
+  assert.throws(() => discardDraft(current, 'form'), /ikke noe utkast/);
+});
+
+test('unresolved proposals and general questions block personal end actions', async () => {
+  const current = session();
+  addMessage(current, 'Husleien er 12000 kroner.');
+  const response = plan(['housing']);
+  response.facts = [{ key: 'monthly_rent', value: '12000', sourceId: current.sources[0].id, quote: current.sources[0].text }];
+  await analyzeCase(current, model(response), discardPersistence);
+  await assert.rejects(draftEmail(current, 'housing', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /Bekreft eller avvis/);
+  assert.throws(() => fillForm(current, 'housing'), /Bekreft eller avvis/);
+  const general = session();
+  addMessage(general, 'Hva er bostøtte?');
+  const info = plan(['housing']); info.intent = 'information';
+  await analyzeCase(general, model(info), discardPersistence);
+  assert.equal(general.services[0].recommendedAction?.kind, 'contact');
+  await assert.rejects(draftEmail(general, 'housing', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /generelt spørsmål/);
 });
 
 test('a critic returning PASS runs polish and never re-drafts', async () => {

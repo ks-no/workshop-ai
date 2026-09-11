@@ -4,8 +4,8 @@ import { CaseError } from '../../../server/case-service';
 import { failure, json, readBody } from '../../../server/http';
 import { createAssistantCase, deleteAssistantCase, loadAssistantCase, saveAssistantCase, withAssistantLock } from '../../../server/assistant-store';
 import { ASSISTANT_COOKIE, assistantFrom, assistantResponse } from '../../../server/assistant-http';
-import { addConfirmedAnswers, addMessage, analyzeCase, decideFactAndContinue, prepareHandoff } from '../../../server/assistant-service';
-import { factKeys, toolIds } from '../../../domain/assistant-types';
+import { addConfirmedAnswers, addMessage, analyzeCase, decideFactAndContinue, discardDraft, draftEmail, fillForm, prepareHandoff, sendEmail, submitForm } from '../../../server/assistant-service';
+import { factKeys, serviceIds, toolIds } from '../../../domain/assistant-types';
 import { decideToolConsent } from '../../../server/tool-runner';
 
 import { connectKs, consentAndReadIncome, declineKsAccess } from '../../../server/assistant-ks';
@@ -24,6 +24,11 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('ks-access'), approved: z.boolean(), revision, caseId }).strict(),
   z.object({ action: z.literal('tool-consent'), toolIds: z.array(z.enum(toolIds)).min(1).max(4), approved: z.boolean(), revision, caseId }).strict(),
   z.object({ action: z.literal('handoff'), confirmed: z.literal(true), revision, caseId }).strict(),
+  z.object({ action: z.literal('draft-email'), serviceId: z.enum(serviceIds), revision, caseId }).strict(),
+  z.object({ action: z.literal('send-email'), serviceId: z.enum(serviceIds), to: z.string().trim().min(3).max(200), subject: z.string().trim().min(1).max(160), body: z.string().trim().min(1).max(4000), revision, caseId }).strict(),
+  z.object({ action: z.literal('fill-form'), serviceId: z.enum(serviceIds), revision, caseId }).strict(),
+  z.object({ action: z.literal('submit-form'), serviceId: z.enum(serviceIds), fields: z.record(z.string().max(80), z.string().max(1000)).refine(value => Object.keys(value).length <= 12), revision, caseId }).strict(),
+  z.object({ action: z.literal('discard-draft'), kind: z.enum(['email', 'form']), revision, caseId }).strict(),
 ]);
 export async function GET(request: NextRequest) {
   try { return await assistantResponse(assistantFrom(request)); }
@@ -63,6 +68,11 @@ export async function POST(request: NextRequest) {
         if (executed.length && session.messages.length) await analyzeCase(session);
       }
       else if (command.action === 'handoff') prepareHandoff(session, command.confirmed);
+      else if (command.action === 'draft-email') await draftEmail(session, command.serviceId);
+      else if (command.action === 'send-email') sendEmail(session, command.serviceId, { to: command.to, subject: command.subject, body: command.body });
+      else if (command.action === 'fill-form') fillForm(session, command.serviceId);
+      else if (command.action === 'submit-form') await submitForm(session, command.serviceId, command.fields);
+      else if (command.action === 'discard-draft') discardDraft(session, command.kind);
       saveAssistantCase(session);
     });
     return assistantResponse(loadAssistantCase(current.id));

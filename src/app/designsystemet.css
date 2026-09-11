@@ -1,0 +1,12 @@
+/*
+ * Designsystemet (designsystemet.no) is loaded globally for the front-page guide.
+ * Its layered body rule must not restyle the assistant pages, so the app defaults
+ * are restored here outside any cascade layer. The guide sets its own typography
+ * and colors on its root element.
+ */
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 var(--text-base) / 1.55 var(--font-body);
+  letter-spacing: normal;
+}

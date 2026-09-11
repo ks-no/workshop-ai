@@ -19,6 +19,8 @@ function db() {
   state.assistantDb.prepare('DELETE FROM cases WHERE expires <= ?').run(Date.now());
   return state.assistantDb;
 }
+/** The shared local SQLite handle; other stores keep their own tables in the same file. */
+export function assistantDatabase() { return db(); }
 export function createAssistantCase(): AssistantCase {
   const database = db();
   const count = database.prepare('SELECT COUNT(*) AS count FROM cases').get() as { count: number };
@@ -28,6 +30,7 @@ export function createAssistantCase(): AssistantCase {
     id: randomUUID(), createdAt: now, updatedAt: now, expiresAt: new Date(Date.now() + TTL).toISOString(), revision: 1,
     language: 'nb', status: 'collecting', messages: [], facts: [], sources: [], intent: null, services: [], questions: [], unsupported: [],
     runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null, ksAccessDecision: null, pendingConsents: [],
+    drafts: { email: null, form: null }, outcomes: [],
   };
   database.prepare('INSERT INTO cases (id, expires, body) VALUES (?, ?, ?)').run(session.id, Date.parse(session.expiresAt), JSON.stringify(session));
   return session;
@@ -42,6 +45,8 @@ export function loadAssistantCase(id?: string): AssistantCase {
   session.ksData ??= null;
   session.ksAccessDecision ??= null;
   session.pendingConsents = (session.pendingConsents ?? []).filter(consent => consent.revision === session.revision);
+  session.drafts ??= { email: null, form: null };
+  session.outcomes ??= [];
   // Retired authored demo data must never re-enter a current analysis.
   delete (session as AssistantCase & { demoData?: unknown }).demoData;
   session.sources = session.sources.filter(source => !source.id.startsWith('demo-'));

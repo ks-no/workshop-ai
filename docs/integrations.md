@@ -6,6 +6,13 @@ Søk én gang bruker KS workshop-tjenestene for syntetisk husstand, SFO,
 inntektsgrunnlag, regelvurdering og samtykke. ID-porten- og Maskinporten-token
 utstedes av `digdir-mock`. Ingen virkelige personopplysninger leses.
 
+## Interaktive handlinger
+
+Forsiden har en eksplisitt mock-utboks, en faktisk lokal vurderingskø og en
+vedvarende påminnelsesarbeider. Se [oppsett og kontrakter](interactive-flow.md).
+KS-søknader registrerer metadata via `/api/soknader`; skjemafeltene og vedlegg
+lagres lokalt og sendes ikke av denne API-kontrakten.
+
 ## Tilgjengelig i hackathon-repoet
 
 | Tjeneste | Port | Relevans |
