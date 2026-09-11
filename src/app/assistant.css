@@ -48,7 +48,16 @@
 .assistant-workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
 .assistant-conversation { display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; }
 .assistant-conversation-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: var(--s12) var(--s12) var(--s6) 0; }
+/* Zero left padding puts this box (and anything flush inside it) against the overflow-hidden ancestor, so an outward focus ring gets clipped; draw it inward instead. */
+.assistant-conversation-scroll:focus-visible, .assistant-conversation-scroll :focus-visible { outline-offset: -3px; }
 .assistant-composer-dock { flex: 0 0 auto; max-height: 55%; overflow-y: auto; overscroll-behavior: contain; background: var(--paper); border-top: var(--assistant-border); box-shadow: 0 -.5rem 1rem rgb(0 0 0 / 4%); padding: var(--s3) var(--s12) var(--s4) 0; }
+/* Same clipping as .assistant-conversation-scroll above: zero left padding puts flush children against this overflow-auto box's edge. */
+.assistant-composer-dock:focus-visible, .assistant-composer-dock :focus-visible { outline-offset: -3px; }
+/* Punkt's own textarea focus ring (pkt-input) sets outline-offset: 0 with higher selector specificity than the rule
+   above, so it wins the cascade and the ring still clips. Repeat its exact selector, scoped under this container,
+   to win on specificity rather than fight it with !important. */
+.assistant-composer-dock :is(.pkt-inputwrapper, .pkt-searchinput):not([data-navtype='pointer']) .pkt-input:focus-visible,
+.assistant-composer-dock .pkt-input:focus-visible { outline-offset: -3px; }
 .assistant-conversation-heading { max-width: var(--assistant-conversation-width); }
 .assistant-conversation-heading h1 { font-size: var(--assistant-title-size); max-width: 15ch; line-height: 1.1; }
 .assistant-conversation-heading p { margin: var(--s6) 0; max-width: 52ch; color: var(--muted); }

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import type { FactKey, ServiceCheck, ServiceId } from '../domain/assistant-types';
 
 export type UiLocale = 'nb' | 'en';
@@ -290,6 +290,7 @@ function subscribeLocale(callback: () => void) {
 }
 export function AssistantLocaleProvider({ children }: { children: ReactNode }) {
   const locale = useSyncExternalStore(subscribeLocale, readLocale, () => 'nb' as const);
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
   function setLocale(value: UiLocale) {
     inMemoryLocale = value;
     try { localStorage.setItem(UI_LOCALE_KEY, value); } catch { /* The selection remains usable when storage is denied. */ }
