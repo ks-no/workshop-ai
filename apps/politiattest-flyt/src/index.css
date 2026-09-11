@@ -135,10 +135,10 @@ button {
 /* --- Delte komponenter --- */
 .status-badge {
   display: inline-block;
-  padding: 0.35rem 0.8rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin: 0.5rem 0;
 }
 
@@ -183,24 +183,21 @@ button {
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  padding: 0.75rem 0.9rem;
-  margin: 0.9rem 0;
-  border: 1px solid #b8d8ed;
-  border-radius: 8px;
-  background: #eef7fd;
-  color: #164d73;
+  padding: 0.65rem 0;
+  margin: 0.75rem 0;
+  color: #315b78;
 }
 
 .wallet-evidence-label__ikon {
   display: grid;
   place-items: center;
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 1.45rem;
+  height: 1.45rem;
   flex: 0 0 auto;
-  border-radius: 0.4rem;
-  background: #146da5;
+  border-radius: 50%;
+  background: #3f82ad;
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -249,9 +246,9 @@ button {
 
 .metadata-table {
   background: #fff;
-  border: 1px solid var(--kant);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--kant);
+  border-bottom: 1px solid var(--kant);
+  padding: 0.85rem 1rem;
 }
 
 .metadata-table__tittel {
@@ -700,11 +697,11 @@ button {
 }
 
 .kommune-page__vurderingskort {
-  margin-top: 1.5rem;
-  padding: 1.1rem;
+  margin-top: 1rem;
+  padding: 1.25rem;
   border: 2px solid var(--drammen-groenn);
-  border-radius: 8px;
-  background: #f4fbf8;
+  border-radius: 10px;
+  background: #f6fbf9;
   text-align: left;
 }
 
@@ -721,9 +718,9 @@ button {
 
 .kommune-page__kortmerke {
   color: var(--drammen-groenn);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .kommune-page__regelikon {
@@ -732,7 +729,7 @@ button {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: var(--drammen-groenn);
+  background: #167568;
   color: #fff;
   font-weight: 800;
 }
@@ -753,6 +750,37 @@ button {
 
 .kommune-page__vurderingskort .btn {
   margin-top: 1rem;
+}
+
+.kommune-page__teknisk {
+  margin-top: 1rem;
+  border-top: 1px solid var(--kant);
+  text-align: left;
+}
+
+.kommune-page__teknisk summary {
+  padding: 0.9rem 0;
+  color: var(--drammen-groenn);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kommune-page__teknisk[open] summary {
+  margin-bottom: 0.75rem;
+}
+
+.kommune-page__teknisk .wallet-evidence-label {
+  margin-top: 0;
+}
+
+.kommune-page__fullfor {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--kant);
+}
+
+.kommune-page__fullfor p {
+  margin: 0;
 }
 
 .politiet-page__kort > .btn,

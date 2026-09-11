@@ -131,7 +131,6 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           rader={[
             { label: "Kandidat", verdi: person.visningsnavn },
             { label: "Tilbud sendt", verdi: sak.soknadsdato },
-            { label: "Stilling", verdi: stilling },
             {
               label: "Status",
               verdi:
@@ -202,9 +201,15 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           ) : (
             <StatusBadge tekst="Politiattest mottatt" tone="suksess" />
           )}
+          {politiattestGodkjent && (
+            <VandelVurderingskort
+              vurdering={sak.vandelvurdering}
+              onRetry={startVandelvurdering}
+            />
+          )}
           {politiattestGodkjent && claims && (
-            <section>
-              <h2>Verifisert politiattest</h2>
+            <details className="kommune-page__teknisk">
+              <summary>Mer teknisk: innholdet i beviset</summary>
               <WalletEvidenceLabel>
                 Politiattesten er hentet fra kandidatens lommebok.
               </WalletEvidenceLabel>
@@ -212,13 +217,13 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
                 tittel="Opplysninger kommunen hentet fra beviset"
                 rader={politiattestRaderFraClaims(claims)}
               />
-            </section>
+            </details>
           )}
           {politiattestGodkjent && sak.kommuneSaksstatus === "politiattest_mottatt" && (
-            <>
+            <div className="kommune-page__fullfor">
               <p>
-                En saksbehandler må kontrollere at politiattesten gjelder riktig formål
-                og vurdere opplysningene før ansettelsen kan fullføres.
+                Kontroller at politiattesten gjelder riktig formål og vurder opplysningene
+                før ansettelsen kan fullføres.
               </p>
               <button
                 type="button"
@@ -227,13 +232,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
               >
                 Registrer kontroll som fullført
               </button>
-            </>
-          )}
-          {politiattestGodkjent && (
-            <VandelVurderingskort
-              vurdering={sak.vandelvurdering}
-              onRetry={startVandelvurdering}
-            />
+            </div>
           )}
         </section>
       )}
