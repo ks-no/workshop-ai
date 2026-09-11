@@ -62,6 +62,30 @@ export interface VerificationRecord {
   verifiedAt: string | null;
 }
 
+export type Vandelutfall = "godkjent" | "krever_manuell_vurdering" | "avvist";
+export type VandelvurderingStatus = "ikke_hentet" | "laster" | "hentet" | "feil";
+
+export interface VandelFormaal {
+  rolle: string;
+  ordning: string;
+  formaal: string;
+  kilde: string;
+  hjemmel: string;
+  attesttype: string;
+  maksAlderMaaneder: number;
+  oppbevaring: string;
+}
+
+export interface Vandelvurdering {
+  status: VandelvurderingStatus;
+  utfall: Vandelutfall | null;
+  regelutfall: string | null;
+  godkjent: boolean | null;
+  melding: string | null;
+  formaal: VandelFormaal | null;
+  feil: string | null;
+}
+
 export type MessageStatus = "ulest" | "lest";
 
 interface BaseInboxMessage {
@@ -94,6 +118,7 @@ export type KommuneSaksstatus =
 export interface CaseState {
   person: Person | null;
   soknadsdato: string | null;
+  idPortenAccessToken: string | null;
   kommuneSaksstatus: KommuneSaksstatus;
   formalsbevis: {
     issuance: IssuanceRecord | null;
@@ -103,6 +128,7 @@ export interface CaseState {
     issuance: IssuanceRecord | null;
     verification: VerificationRecord | null;
   };
+  vandelvurdering: Vandelvurdering;
   inboxMessages: InboxMessage[];
 }
 

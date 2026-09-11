@@ -8,6 +8,11 @@ import {
 } from "../../integrations/credentialPresentation";
 import { StatusBadge } from "../shared/StatusBadge";
 import { MetadataTable } from "../shared/MetadataTable";
+import { WalletEvidenceLabel } from "../shared/WalletEvidenceLabel";
+import { LoadingIndicator } from "../shared/LoadingIndicator";
+import { VandelVurderingskort } from "../shared/VandelVurderingskort";
+import { hentVandelvurdering } from "../../integrations/sandboxApi";
+import { stillingForRolle } from "../../utils/roller";
 
 interface Props {
   sak: CaseState;
@@ -20,6 +25,28 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
   const person = sak.person;
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
+
+  const startVandelvurdering = React.useCallback(() => {
+    if (!person || !sak.idPortenAccessToken || sak.politiattest.verification?.stage !== "godkjent") return;
+    dispatch({ type: "VANDELVURDERING_STARTET" });
+    void hentVandelvurdering(person, sak.idPortenAccessToken)
+      .then((vurdering) => dispatch({ type: "VANDELVURDERING_FULLFORT", vurdering }))
+      .catch((err) =>
+        dispatch({
+          type: "VANDELVURDERING_FEILET",
+          feil: err instanceof Error ? err.message : "Vandelskontrollen feilet."
+        })
+      );
+  }, [dispatch, person, sak.idPortenAccessToken, sak.politiattest.verification?.stage]);
+
+  React.useEffect(() => {
+    if (sak.vandelvurdering.status === "ikke_hentet") {
+      startVandelvurdering();
+    }
+  }, [
+    sak.vandelvurdering.status,
+    startVandelvurdering
+  ]);
 
   if (!person) {
     return (
@@ -39,7 +66,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         type: "utstedelse",
         id: `msg-formalsbevis-${Date.now()}`,
         kind: "formalsbekreftelse",
-        title: "Formålsbekreftelsen din fra Drammen kommune er klar",
+        title: "Formålsbeviset fra Drammen kommune er klart",
         createdAt: new Date().toISOString(),
         status: "ulest",
         issuance: {
@@ -52,19 +79,11 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           feilmelding: resultat.feilmelding
         }
       };
-      const ettersporsel: InboxMessage = {
-        type: "ettersporsel",
-        id: `msg-ettersporsel-${Date.now()}`,
-        kind: "politiattest",
-        title: "Vi venter fortsatt på politiattesten din",
-        createdAt: new Date().toISOString(),
-        status: "ulest"
-      };
       dispatch({
         type: "UTSTEDELSE_FULLFORT",
         kind: "formalsbekreftelse",
         issuance: message.issuance,
-        messages: [message, ettersporsel]
+        messages: [message]
       });
     } catch (err) {
       setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
@@ -73,7 +92,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
     }
   }
 
-  const stilling = "Skoleassistent";
+  const stilling = stillingForRolle(person.politiattest?.formaal || "");
   const politiattestGodkjent = sak.politiattest.verification?.stage === "godkjent";
   const sakErAvsluttet = sak.kommuneSaksstatus === "avsluttet";
   const claims = sak.politiattest.verification?.claims;
@@ -132,10 +151,12 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           <StatusBadge tekst="Formålsbekreftelse brukt i søknaden" tone="suksess" />
         ) : (
           <>
+            <WalletEvidenceLabel>
+              Kommunen utsteder formålsbeviset til kandidatens lommebok.
+            </WalletEvidenceLabel>
             <p>
-              Utsted formålsbekreftelsen for skolejobb. Kandidaten bruker den når hen bestiller
-              politiattest hos Politiet. Når attesten er levert til Drammen kommune, skal du
-              kontrollere den før ansettelsen kan fullføres.
+              Her er formålsbeviset kandidaten trenger for å søke om politiattest hos politiet.
+              Når attesten er levert, kontrollerer du den før ansettelsen kan fullføres.
             </p>
             <MetadataTable
               tittel="Opplysninger kommunen legger i formålsbekreftelsen"
@@ -143,19 +164,29 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
             />
             {sak.formalsbevis.issuance == null && (
               <button type="button" className="btn btn-primary" onClick={utstedFormalsbevis} disabled={utstederLaster}>
-                {utstederLaster ? "Utsteder…" : "Utsted formålsbekreftelse"}
+                Utsted formålsbekreftelse
               </button>
+            )}
+            {utstederLaster && (
+              <LoadingIndicator tekst="Sender formålsbeviset til lommeboken…" />
             )}
             {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
             {sak.formalsbevis.issuance && (
-              <StatusBadge
-                tekst={
-                  sak.formalsbevis.issuance.status === "tilbud_klart"
-                    ? "Formålsbekreftelse sendt til kandidatens innboks"
-                    : "Utstedelsen feilet"
-                }
-                tone={sak.formalsbevis.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
-              />
+              <>
+                {sak.formalsbevis.issuance.status === "tilbud_klart" && (
+                  <WalletEvidenceLabel>
+                    Formålsbeviset ligger klart i kandidatens lommebok.
+                  </WalletEvidenceLabel>
+                )}
+                <StatusBadge
+                  tekst={
+                    sak.formalsbevis.issuance.status === "tilbud_klart"
+                      ? "Formålsbekreftelse sendt til kandidatens innboks"
+                      : "Utstedelsen feilet"
+                  }
+                  tone={sak.formalsbevis.issuance.status === "tilbud_klart" ? "suksess" : "feil"}
+                />
+              </>
             )}
           </>
         )}
@@ -174,6 +205,9 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
           {politiattestGodkjent && claims && (
             <section>
               <h2>Verifisert politiattest</h2>
+              <WalletEvidenceLabel>
+                Politiattesten er hentet fra kandidatens lommebok.
+              </WalletEvidenceLabel>
               <MetadataTable
                 tittel="Opplysninger kommunen hentet fra beviset"
                 rader={politiattestRaderFraClaims(claims)}
@@ -194,6 +228,12 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
                 Registrer kontroll som fullført
               </button>
             </>
+          )}
+          {politiattestGodkjent && (
+            <VandelVurderingskort
+              vurdering={sak.vandelvurdering}
+              onRetry={startVandelvurdering}
+            />
           )}
         </section>
       )}

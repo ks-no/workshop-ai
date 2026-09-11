@@ -3,7 +3,7 @@
 // buildsteg, og et forsøk på å importere over app-grensen ville krevd at Vites
 // dev-server fikk lov til å lese filer utenfor sin egen rot. Denne filen er derfor en
 // bevisst, testet og minimal kopi - begrenset til akkurat de to bevisene denne
-// demoen bruker (formålsbekreftelse og politiattest for formål "skole"), ikke hele
+// demoen bruker (formålsbekreftelse og politiattest), ikke hele
 // katalogen fra lommebok. Endres claim-formen i lommebok, må denne oppdateres i takt.
 //
 // Én forskjell fra originalen: utsteder på formålsbekreftelsen er alltid
@@ -41,6 +41,7 @@ function maanedereEtter(isodato: string, antall: number): string {
 }
 
 const LOVDATA_IDER: Record<string, string> = {
+  "barnehageloven": "2005-06-17-64",
   "opplæringslova": "2023-06-09-30",
   "politiregisterloven": "2010-05-28-16"
 };
@@ -154,7 +155,7 @@ export function byggPolitiattestDcqlQuery() {
 }
 
 // Akseptgaten: en vellykket verifisering er ikke nok alene. Vi sjekker at beviset
-// faktisk gjelder formål "skole", at det tilhører personen saken gjelder, og at det
+// gjelder rollen saken gjelder, at det tilhører personen saken gjelder, og at det
 // ikke er utløpt - før flyten får lov til å gå videre til neste steg.
 export interface AksepttestResultat {
   ok: boolean;
@@ -166,8 +167,9 @@ export function sjekkFormalsbevisAksept(
   forventetPerson: Person
 ): AksepttestResultat {
   if (!claims) return { ok: false, aarsak: "Ingen data mottatt fra beviset." };
-  if (claims["rolle"] !== "skole") {
-    return { ok: false, aarsak: `Feil formål på beviset: forventet «skole», fikk «${String(claims["rolle"])}».` };
+  const forventetRolle = forventetPerson.politiattest?.formaal || "skole";
+  if (claims["rolle"] !== forventetRolle) {
+    return { ok: false, aarsak: `Feil formål på beviset: forventet «${forventetRolle}», fikk «${String(claims["rolle"])}».` };
   }
   const person = claims["person"] as Record<string, unknown> | undefined;
   if (!person || person["foedselsnummer"] !== forventetPerson.syntetiskFodselsnummer) {
@@ -181,8 +183,9 @@ export function sjekkPolitiattestAksept(
   forventetPerson: Person
 ): AksepttestResultat {
   if (!claims) return { ok: false, aarsak: "Ingen data mottatt fra beviset." };
-  if (claims["formaal"] !== "skole") {
-    return { ok: false, aarsak: `Feil formål på attesten: forventet «skole», fikk «${String(claims["formaal"])}».` };
+  const forventetRolle = forventetPerson.politiattest?.formaal || "skole";
+  if (claims["formaal"] !== forventetRolle) {
+    return { ok: false, aarsak: `Feil formål på attesten: forventet «${forventetRolle}», fikk «${String(claims["formaal"])}».` };
   }
   const innehaver = claims["innehaver"] as Record<string, unknown> | undefined;
   if (!innehaver || innehaver["foedselsnummer"] !== forventetPerson.syntetiskFodselsnummer) {

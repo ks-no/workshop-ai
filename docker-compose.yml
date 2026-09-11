@@ -93,7 +93,8 @@ services:
         if [ ! -x /workspace/node_modules/.bin/vite ]; then
           corepack pnpm install --frozen-lockfile --filter @innbyggerdialog/lommebok
         fi
-        exec corepack pnpm --filter @innbyggerdialog/lommebok dev
+        cd /workspace/apps/lommebok
+        exec /workspace/node_modules/.bin/vite --port 3002 --host
     environment:
       - CI=true
       - WATCH_POLL=${WATCH_POLL:-0}
@@ -129,6 +130,8 @@ services:
       # Eneste avhengighet til apps/lommebok: dens fungerende OpenID4VCI/OpenID4VP-API,
       # nådd gjennom denne appens egen vite-proxy (se vite.config.ts).
       - LOMMEBOK_BASE_URL=http://lommebok:3002
+      - BACKEND_BASE_URL=http://sandbox-backend:8080
+      - DIGDIR_BASE_URL=http://digdir-mock:8086
     ports:
       - "${BIND_HOST:-127.0.0.1}:3003:3003"
     volumes:

@@ -3,6 +3,8 @@ import type { CaseState, InboxMessage } from "../../types";
 import type { SakHandling } from "../../state/caseReducer";
 import { QrPanel } from "../shared/QrPanel";
 import { StatusBadge } from "../shared/StatusBadge";
+import { WalletEvidenceLabel } from "../shared/WalletEvidenceLabel";
+import { LoadingIndicator } from "../shared/LoadingIndicator";
 
 interface Props {
   sak: CaseState;
@@ -94,8 +96,8 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
                 <span className="innboks-page__emne">{melding.title}</span>
                 <span className="innboks-page__forhandsvisning">
                   {melding.type === "utstedelse"
-                    ? "Formålsbekreftelsen din er klar for den digitale lommeboken."
-                    : "Vi venter på politiattesten før ansettelsen kan fullføres."}
+                    ? "Formålsbeviset ditt er klart."
+                    : "Vi venter på politiattesten din."}
                 </span>
               </button>
             ))}
@@ -126,7 +128,10 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
                 <div className="innboks-page__brevinnhold">
                   {valgtMelding.type === "utstedelse" && valgtMelding.issuance.status === "tilbud_klart" ? (
                     <>
-                      <p>Du har fått tilbud om stilling som skoleassistent hos Drammen kommune. Før du kan ansettes, trenger vi politiattest. Her er formålsbekreftelsen du bruker når du går inn på politiet.no og søker om politiattest.</p>
+                      <p>Her er formålsbeviset du trenger for å søke om politiattest.</p>
+                      <WalletEvidenceLabel>
+                        Formålsbeviset kan åpnes og lagres i lommeboken.
+                      </WalletEvidenceLabel>
                       <QrPanel
                       verdi={valgtMelding.issuance.credentialOfferUri || ""}
                       bildeUrl={valgtMelding.issuance.qrCodeDataUri}
@@ -136,13 +141,18 @@ export const InnboksPage: React.FC<Props> = ({ sak, dispatch }) => {
                   ) : valgtMelding.type === "ettersporsel" ? (
                     <>
                       <p>
-                        Drammen kommune venter på politiattesten din i forbindelse med
-                        søknaden på stillingen som skoleassistent. Frist for å levere
-                        politiattesten er 20. september 2026.
+                        Drammen kommune venter på politiattesten din. Lever den innen
+                        20. september 2026.
                       </p>
                       {sak.politiattest.verification?.stage === "venter_paa_presentasjon" &&
                         sak.politiattest.verification.transactionId && (
-                          <QrPanel verdi={sak.politiattest.verification.authorizationRequest || ""} />
+                          <>
+                            <WalletEvidenceLabel>
+                              Lommeboken brukes til å levere politiattesten.
+                            </WalletEvidenceLabel>
+                            <LoadingIndicator tekst="Venter på at lommeboken leverer politiattesten…" />
+                            <QrPanel verdi={sak.politiattest.verification.authorizationRequest || ""} />
+                          </>
                         )}
                       {sak.politiattest.verification?.stage === "godkjent" && (
                         <StatusBadge

@@ -6,6 +6,8 @@ import react from "@vitejs/plugin-react";
 // (utstedelse, verifisering, personoppslag). Dette er den eneste plassen den
 // avhengigheten er uttrykt - se src/integrations/lommebokApi.ts for kallene.
 const LOMMEBOK_BASE_URL = process.env.LOMMEBOK_BASE_URL || "http://localhost:3002";
+const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8080";
+const DIGDIR_BASE_URL = process.env.DIGDIR_BASE_URL || "http://localhost:8086";
 const VERIFIER_SERVICE_URL =
   process.env.VERIFIER_SERVICE_URL || "https://verifier-service.test.eidas2sandkasse.net";
 
@@ -39,6 +41,21 @@ export default defineConfig({
         headers: {
           "X-API-KEY": "KS-HACKATHON"
         }
+      },
+      // ID-porten-tokenet brukes av politiattest-flytens backendkall. Klienten
+      // ser bare same-origin-proxyer, slik at demoen ikke trenger å slå av CORS.
+      "/idporten-api": {
+        target: DIGDIR_BASE_URL,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/idporten-api/, "")
+      },
+      // Vandelvurderingen kjøres gjennom sandboxens eksisterende prosessmotor.
+      "/sandbox-api": {
+        target: BACKEND_BASE_URL,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/sandbox-api/, "")
       },
       // Personer, utstedelse og lagrede verifiseringsresultater eies av lommebok.
       "/api": {

@@ -10,6 +10,11 @@ import {
 import { StatusBadge } from "../shared/StatusBadge";
 import { QrPanel } from "../shared/QrPanel";
 import { MetadataTable } from "../shared/MetadataTable";
+import { WalletEvidenceLabel } from "../shared/WalletEvidenceLabel";
+import { LoadingIndicator } from "../shared/LoadingIndicator";
+import { ventMinst } from "../../utils/ventMinst";
+import { loggInnIdPorten as hentIdPortenToken } from "../../integrations/idPortenApi";
+import { navnForRolle } from "../../utils/roller";
 
 interface Props {
   sak: CaseState;
@@ -32,16 +37,19 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
   const politiattestUtstedelseStartet = React.useRef(false);
   const [utstederLaster, setUtstederLaster] = React.useState(false);
   const [utstedelsesfeil, setUtstedelsesfeil] = React.useState<string | null>(null);
+  const [idPortenLoggerInn, setIdPortenLoggerInn] = React.useState(false);
+  const [idPortenFeil, setIdPortenFeil] = React.useState<string | null>(null);
+  const idPortenInnlogget = Boolean(sak.idPortenAccessToken);
 
   React.useEffect(() => {
     const stage = formalsbevis.verification?.stage ?? "ikke_startet";
-    if (!person || stage !== "ikke_startet" || automatiskStartet.current) return;
+    if (!idPortenInnlogget || !person || stage !== "ikke_startet" || automatiskStartet.current) return;
 
     automatiskStartet.current = true;
     void formalsverifisering.start().finally(() => {
       automatiskStartet.current = false;
     });
-  }, [person?.personId, formalsbevis.verification?.stage]);
+  }, [idPortenInnlogget, person?.personId, formalsbevis.verification?.stage]);
 
   React.useEffect(() => {
     if (
@@ -71,10 +79,12 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
 
   async function utstedPolitiattest() {
     if (!person) return;
+    const startet = Date.now();
     setUtstederLaster(true);
     setUtstedelsesfeil(null);
     try {
       const resultat = await utstedBevis("politiattest", person);
+      await ventMinst(startet);
       const issuance: IssuanceRecord = {
         status: resultat.suksess ? "tilbud_klart" : "feilet",
         transactionId: resultat.transactionId,
@@ -87,9 +97,27 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
       dispatch({ type: "UTSTEDELSE_FULLFORT", kind: "politiattest", issuance, messages: [] });
       await politiattestVerifisering.start();
     } catch (err) {
+      await ventMinst(startet);
       setUtstedelsesfeil(err instanceof Error ? err.message : "Ukjent feil ved utstedelse.");
     } finally {
       setUtstederLaster(false);
+    }
+  }
+
+  async function startIdPortenInnlogging() {
+    if (!person) return;
+    const startet = Date.now();
+    setIdPortenLoggerInn(true);
+    setIdPortenFeil(null);
+    try {
+      const accessToken = await hentIdPortenToken(person);
+      await ventMinst(startet, 1200);
+      dispatch({ type: "ID_PORTEN_INNLOGGET", accessToken });
+    } catch (err) {
+      await ventMinst(startet, 1200);
+      setIdPortenFeil(err instanceof Error ? err.message : "ID-porten-innloggingen feilet.");
+    } finally {
+      setIdPortenLoggerInn(false);
     }
   }
 
@@ -101,20 +129,68 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
         <p>Digital søknad (demo)</p>
       </header>
 
-      <section className="politiet-page__kort">
+      {!idPortenInnlogget ? (
+        <section className="politiet-page__kort idporten-kort">
+          <div className="idporten-kort__topp">
+            <span className="idporten-kort__logo" aria-hidden="true">ID</span>
+            <div>
+              <strong>ID-porten</strong>
+              <span>Innlogging til offentlige tjenester</span>
+            </div>
+          </div>
+          <h2>Logg inn for å søke om politiattest</h2>
+          <p>Du sendes tilbake til Politiet etter innlogging.</p>
+          <div className="idporten-kort__profil">
+            <span className="idporten-kort__avatar" aria-hidden="true">
+              {person.navn.fornavn.charAt(0)}{person.navn.etternavn.charAt(0)}
+            </span>
+            <div>
+              <strong>{person.visningsnavn}</strong>
+              <span>Testprofil</span>
+            </div>
+          </div>
+          <dl className="idporten-kort__opplysninger">
+            <div>
+              <dt>Fødselsnummer</dt>
+              <dd>{person.syntetiskFodselsnummer}</dd>
+            </div>
+            <div>
+              <dt>Innloggingsnivå</dt>
+              <dd>Betydelig</dd>
+            </div>
+          </dl>
+          <div className="idporten-kort__trygghet">
+            <span aria-hidden="true">✓</span>
+            <span>Dette er en simulert ID-porten-innlogging med syntetiske data.</span>
+          </div>
+          {idPortenFeil && <StatusBadge tekst={idPortenFeil} tone="feil" />}
+          {idPortenLoggerInn ? (
+            <LoadingIndicator tekst="Logger inn med ID-porten…" />
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={startIdPortenInnlogging}>
+              Logg inn
+            </button>
+          )}
+        </section>
+      ) : (
+        <section className="politiet-page__kort">
+        <StatusBadge tekst={`Innlogget med ID-porten som ${person.visningsnavn}`} tone="suksess" />
         <h2>1. Bekreft formålet for søknaden</h2>
         <p>
-          Du er i gang med å søke om politiattest for jobb i skolen. Før søknaden kan
-          behandles, må du vise formålsbekreftelsen i den digitale lommeboken.
+          Vis formålsbeviset fra Drammen kommune for å søke om politiattest til{" "}
+          {navnForRolle(person.politiattest?.formaal || "")}.
         </p>
 
         {formalsverifisering.starter && (
-          <StatusBadge tekst="Gjør klar QR-koden…" tone="venter" />
+          <LoadingIndicator tekst="Henter formålsbeviset fra lommeboken…" />
         )}
 
         {formalsbevis.verification?.stage === "venter_paa_presentasjon" && formalsbevis.verification.transactionId && (
           <div className="verifisering-panel">
-            <StatusBadge tekst="Venter på at søkeren viser formålsbekreftelsen for søknaden" tone="venter" />
+            <WalletEvidenceLabel>
+              Politiet henter formålsbeviset fra kandidatens lommebok.
+            </WalletEvidenceLabel>
+            <LoadingIndicator tekst="Venter på at lommeboken presenterer beviset…" />
             <QrPanel
               verdi={formalsbevis.verification.authorizationRequest || ""}
             />
@@ -123,6 +199,9 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
 
         {formalsbevis.verification?.stage === "godkjent" && (
           <>
+            <WalletEvidenceLabel>
+              Formålsbeviset er hentet fra lommeboken.
+            </WalletEvidenceLabel>
             <MetadataTable
               tittel="Opplysninger Politiet hentet fra beviset"
               rader={formalsbevisRaderFraClaims(
@@ -148,17 +227,22 @@ export const PolitietPage: React.FC<Props> = ({ sak, dispatch, politiattestVerif
             Opprett ny QR-kode
           </button>
         )}
-      </section>
+        </section>
+      )}
 
-      {formalsbevis.verification?.stage === "godkjent" && (
+      {idPortenInnlogget && formalsbevis.verification?.stage === "godkjent" && (
         <section className="politiet-page__kort">
           <h2>Politiattesten din</h2>
           <StatusBadge tekst="Formålet er verifisert som gyldig" tone="suksess" />
+          <WalletEvidenceLabel>
+            Politiattesten legges i den digitale lommeboken.
+          </WalletEvidenceLabel>
           <p>
-            Formålsbekreftelsen er kontrollert og godkjent. Legg politiattesten i den
-            digitale lommeboken. Når den er lagret, kan du vise den til Drammen kommune.
+            Formålet er godkjent. Legg politiattesten i lommeboken og vis den til Drammen kommune.
           </p>
-          {utstederLaster && <p>Gjør klar politiattesten…</p>}
+          {utstederLaster && (
+            <LoadingIndicator tekst="Lager politiattesten og legger den i lommeboken…" />
+          )}
           {utstedelsesfeil && <StatusBadge tekst={`Utstedelsen feilet: ${utstedelsesfeil}`} tone="feil" />}
           {sak.politiattest.issuance?.status === "tilbud_klart" &&
             sak.politiattest.issuance.credentialOfferUri && (

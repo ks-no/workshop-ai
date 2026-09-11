@@ -148,6 +148,75 @@ button {
 .status-badge--advarsel { background: var(--venter-bg); color: var(--venter); }
 .status-badge--feil { background: var(--feil-bg); color: var(--feil); }
 
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  color: var(--tekst-lys);
+  font-size: 0.9rem;
+}
+
+.loading-indicator__spinner {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  border: 3px solid var(--kant);
+  border-top-color: #146da5;
+  border-radius: 50%;
+  animation: loading-indicator-rotasjon 0.8s linear infinite;
+}
+
+@keyframes loading-indicator-rotasjon {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator__spinner {
+    animation: none;
+  }
+}
+
+.wallet-evidence-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  margin: 0.9rem 0;
+  border: 1px solid #b8d8ed;
+  border-radius: 8px;
+  background: #eef7fd;
+  color: #164d73;
+}
+
+.wallet-evidence-label__ikon {
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  border-radius: 0.4rem;
+  background: #146da5;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.wallet-evidence-label div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.wallet-evidence-label strong {
+  font-size: 0.9rem;
+}
+
+.wallet-evidence-label span:not(.wallet-evidence-label__ikon) {
+  font-size: 0.85rem;
+}
+
 .qr-panel {
   display: flex;
   flex-direction: column;
@@ -408,6 +477,131 @@ button {
   font-size: 0.9rem;
 }
 
+.idporten-kort {
+  max-width: 520px;
+}
+
+.idporten-kort__topp {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--kant);
+  margin-bottom: 1.25rem;
+}
+
+.idporten-kort__logo {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: #0062ba;
+  color: #fff;
+  font-weight: 800;
+}
+
+.idporten-kort__topp div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.idporten-kort__topp span {
+  color: var(--tekst-lys);
+  font-size: 0.85rem;
+}
+
+.idporten-kort__profil {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--kant);
+  border-radius: 4px;
+  background: #f5f6f7;
+  margin: 1rem 0;
+}
+
+.idporten-kort__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #d9eaf7;
+  color: var(--politiet-bla);
+  font-weight: 700;
+}
+
+.idporten-kort__profil div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.idporten-kort__profil span {
+  color: var(--tekst-lys);
+  font-size: 0.85rem;
+}
+
+.idporten-kort__opplysninger {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.idporten-kort__opplysninger div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--kant);
+}
+
+.idporten-kort__opplysninger dt {
+  color: var(--tekst-lys);
+}
+
+.idporten-kort__opplysninger dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.idporten-kort__felt {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+}
+
+.idporten-kort__felt label {
+  font-weight: 600;
+}
+
+.idporten-kort__felt input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--kant);
+  border-radius: 4px;
+  background: #f5f6f7;
+  color: var(--tekst);
+  font: inherit;
+}
+
+.idporten-kort__trygghet {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 1.25rem 0;
+  color: var(--tekst-lys);
+  font-size: 0.85rem;
+}
+
+.idporten-kort__trygghet span:first-child {
+  color: #18794e;
+  font-weight: 800;
+}
+
 /* --- Kommune-siden: saksbehandlingssystem inspirert av drammen.kommune.no --- */
 .kommune-page {
   --drammen-groenn: #00594f;
@@ -503,6 +697,62 @@ button {
 
 .kommune-page__venteboks {
   text-align: center;
+}
+
+.kommune-page__vurderingskort {
+  margin-top: 1.5rem;
+  padding: 1.1rem;
+  border: 2px solid var(--drammen-groenn);
+  border-radius: 8px;
+  background: #f4fbf8;
+  text-align: left;
+}
+
+.kommune-page__vurderingskort-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kommune-page__vurderingskort-header h2 {
+  margin-bottom: 0.75rem;
+}
+
+.kommune-page__kortmerke {
+  color: var(--drammen-groenn);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.kommune-page__regelikon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--drammen-groenn);
+  color: #fff;
+  font-weight: 800;
+}
+
+.kommune-page__nestehandling {
+  margin: 1rem 0 0;
+  padding: 0.8rem;
+  border: 1px solid #d6e9e2;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.kommune-page__ki-merknad {
+  margin: 1rem 0 0;
+  color: #4c5a55;
+  font-size: 0.85rem;
+}
+
+.kommune-page__vurderingskort .btn {
+  margin-top: 1rem;
 }
 
 .politiet-page__kort > .btn,

@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import type { Person } from "../../types";
 import { hentPersoner } from "../../integrations/lommebokApi";
+import { erPolitiattestRolle, navnForRolle } from "../../utils/roller";
 
 const TESTPERSONER = [
-  { personId: "person-215", scenario: "Ingen anmerkninger" },
-  { personId: "person-004", scenario: "Har anmerkning" }
+  { personId: "person-026", scenario: "Godkjent - støttekontakt" },
+  { personId: "person-138", scenario: "Manuell vurdering - støttekontakt" },
+  { personId: "person-137", scenario: "Avvist - barnehage" }
 ] as const;
 
-function harGyldigSkoleattest(person: Person): boolean {
+function harGyldigPolitiattest(person: Person): boolean {
   const attest = person.politiattest;
-  if (!attest || attest.formaal !== "skole") return false;
+  if (!attest || !erPolitiattestRolle(attest.formaal)) return false;
   // Attesten skal ikke framstå som utstedt langt fram i tid heller - datagrunnlaget er
   // syntetisk og kan inneholde datoer som ikke lenger er "nylig" sett fra i dag, men vi
   // krever i det minste at den faktisk er utstedt.
@@ -25,7 +27,7 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson, onSimulerFullfortSak 
   const [personer, setPersoner] = useState<Array<{ person: Person; scenario: string }>>([]);
   const [laster, setLaster] = useState(true);
   const [feil, setFeil] = useState<string | null>(null);
-  const [simuleringPersonId, setSimuleringPersonId] = useState("person-215");
+  const [simuleringPersonId, setSimuleringPersonId] = useState("person-026");
 
   useEffect(() => {
     let aktiv = true;
@@ -35,7 +37,7 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson, onSimulerFullfortSak 
         setPersoner(
           TESTPERSONER.flatMap(({ personId, scenario }) => {
             const person = alle.find((kandidat) => kandidat.personId === personId);
-            return person && harGyldigSkoleattest(person) ? [{ person, scenario }] : [];
+            return person && harGyldigPolitiattest(person) ? [{ person, scenario }] : [];
           })
         );
       })
@@ -56,17 +58,12 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson, onSimulerFullfortSak 
   return (
     <main className="start-page">
       <div className="start-page__intro">
-        <h1>Politiattest for skolejobb - demo av digital lommebok-flyt</h1>
+        <h1>Politiattest til jobb - demo av digital lommebok-flyt</h1>
         <p>
-          Denne demoen viser hvordan en søker på en skolejobb i Drammen kommune kan bruke en
-          digital lommebok til å hente en formålsbekreftelse fra kommunen, legge den fram for
-          politiet, og levere den ferdige politiattesten til riktig mottaker, Drammen kommune -
-          uten papir. Formålet er ansettelse i skolen.
+          Demo av digital søknad om politiattest i Drammen kommune.
         </p>
         <p className="start-page__merknad">
-          Velg én av to testpersoner for å prøve hele flyten. Den ene har ingen
-          anmerkninger, den andre har en anmerkning. Du kan også åpne en ferdigbehandlet
-          sak uten å gå gjennom stegene.
+          Velg en testperson for å prøve flyten, eller åpne en ferdigbehandlet sak.
         </p>
       </div>
 
@@ -89,7 +86,7 @@ export const StartPage: React.FC<Props> = ({ onVelgPerson, onSimulerFullfortSak 
             >
               <span className="start-page__person-merke">{scenario}</span>
               <strong>{person.visningsnavn}</strong>
-              <span>{person.personId}</span>
+              <span>{person.personId} · {navnForRolle(person.politiattest?.formaal || "")}</span>
             </button>
           ))}
           {personer.length > 0 && (
