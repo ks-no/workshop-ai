@@ -395,6 +395,57 @@
           font-weight: var(--ds-font-weight-semibold);
         }
 
+        /* Sakskortet */
+
+        /*
+         * Blaingen er den samme kontrollen som i «Aktuelt for deg», men kan ikke
+         * arve stilen derfra: .aktuelt__blaing henter farge fra --aktuelt-kant og
+         * --aktuelt-tekst, som bare er satt inne i det kortet. Her kommer de fra
+         * designsystemets egne tokens i stedet.
+         */
+        .saker__bunn {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ds-size-4);
+        }
+
+        .saker__teller {
+          display: flex;
+          align-items: center;
+          gap: var(--ds-size-3);
+          color: var(--ds-color-text-subtle);
+          font-weight: var(--ds-font-weight-semibold);
+        }
+
+        .saker__blaing {
+          display: flex;
+          border: 1px solid var(--ds-color-border-subtle);
+          border-radius: var(--ds-border-radius-md);
+          overflow: hidden;
+          background: var(--ds-color-surface-default);
+        }
+
+        .saker__blaing button {
+          display: grid;
+          place-items: center;
+          padding: var(--ds-size-2) var(--ds-size-3);
+          border: 0;
+          background: none;
+          color: var(--ds-color-text-default);
+          cursor: pointer;
+        }
+
+        .saker__blaing button:hover:not(:disabled) {
+          background: var(--ds-color-surface-hover);
+        }
+
+        .saker__blaing button:disabled {
+          color: var(--ds-color-text-subtle);
+          cursor: default;
+        }
+
         /* Tilgangsoversikten */
 
         /*

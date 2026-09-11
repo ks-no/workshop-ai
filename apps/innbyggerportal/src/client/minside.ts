@@ -570,14 +570,26 @@ function tegnProfilknapper(minside: Minside): HTMLElement {
 
 /* Sakskortene */
 
+/**
+ * Ett kort for alle sakene, med blaing, framfor ett kort per sak.
+ *
+ * `person-008` har elleve saker i sandkassen, og elleve kort under hverandre
+ * skjøv resten av venstre kolonne ut av syne. Saken folk er ute etter er nesten
+ * alltid den siste som skjedde noe med, så den står først - rekkefølgen kommer
+ * ferdig sortert fra byggSaker i src/minside.ts, og klienten sorterer ikke om.
+ *
+ * Kontrollen er den samme som i «Aktuelt for deg»: teller, to piler, og bare
+ * den synlige saken i DOM-en. En skjermleser skal ikke lese opp elleve saker
+ * når det står «1 av 11»; byttet annonseres av aria-live.
+ */
 function tegnSaker(minside: Minside): void {
   const beholder = krevEl("saker");
   beholder.replaceChildren();
 
   if (minside.saker.length === 0) {
-    const kort = lag("section", "ds-card");
-    kort.append(kortblokk(merkelapp("Ingen pågående sak", "neutral"), overskrift("Status", "sm")));
-    kort.append(
+    const tomt = lag("section", "ds-card");
+    tomt.append(kortblokk(merkelapp("Ingen pågående sak", "neutral"), overskrift("Status", "sm")));
+    tomt.append(
       kortblokk(
         avsnitt(
           `${minside.person.fornavn} har ingen påbegynte eller innsendte søknader i sandkassen. Kjør en prosess i demo-GUI-et, så dukker saken opp her.`,
@@ -586,35 +598,88 @@ function tegnSaker(minside: Minside): void {
         )
       )
     );
-    kort.append(kortblokk(kildelinje("state/soknader.json og state/prosessoekter.json")));
-    beholder.append(kort);
+    tomt.append(kortblokk(kildelinje("state/soknader.json og state/prosessoekter.json")));
+    beholder.append(tomt);
     return;
   }
 
-  for (const sak of minside.saker) {
-    beholder.append(tegnSak(sak));
-  }
-}
+  const saker = minside.saker;
+  let indeks = 0;
 
-function tegnSak(sak: Sak): HTMLElement {
   const kort = lag("section", "ds-card");
+  kort.setAttribute("aria-labelledby", "saker-tittel");
 
   const topp = kortblokk();
-  const rad = lag("div", "korttittel");
-  const tekst = lag("div", "korttittel__tekst");
-  tekst.append(merkelapp("Pågående sak", "neutral"));
-  tekst.append(overskrift(sak.navn, "sm"));
-  rad.append(tekst);
-  rad.append(merkelapp(sak.statustekst, sak.status === "AKTIV" ? "success" : "neutral"));
-  topp.append(rad);
+  const korttittelrad = lag("div", "korttittel");
+  const korttittel = lag("div", "korttittel__tekst");
+  const tittel = overskrift("Saker", "sm");
+  tittel.id = "saker-tittel";
+  korttittel.append(tittel);
+  korttittel.append(avsnitt("Søknadene og de påbegynte prosessene dine, nyeste først", "sm"));
+  korttittelrad.append(korttittel);
+  korttittelrad.append(lag("span", "ds-chip", `${saker.length} ${saker.length === 1 ? "sak" : "saker"}`));
+  topp.append(korttittelrad);
   kort.append(topp);
 
-  const detaljer = kortblokk();
-  detaljer.append(avsnitt(`Sak ${sak.saksId}`, "sm"));
-  detaljer.append(avsnitt(`${sak.enhet}. Sist oppdatert ${langDato(sak.sistOppdatert.slice(0, 10))}.`, "xs"));
-  kort.append(detaljer);
+  const innhold = attributter(kortblokk(), { "aria-live": "polite" });
+  kort.append(innhold);
 
-  const stigen = kortblokk();
+  const bunn = kortblokk();
+  const bunnrad = lag("div", "saker__bunn");
+  const kilde = kildelinje("");
+  const teller = lag("div", "saker__teller");
+  const tellertekst = lag("span", undefined, "");
+  const blaing = lag("div", "saker__blaing");
+  const forrige = attributter(lag("button"), { type: "button", "aria-label": "Forrige sak" });
+  forrige.append(ikon("forrige"));
+  const neste = attributter(lag("button"), { type: "button", "aria-label": "Neste sak" });
+  neste.append(ikon("neste"));
+  blaing.append(forrige, neste);
+  teller.append(tellertekst, blaing);
+  bunnrad.append(kilde, teller);
+  bunn.append(bunnrad);
+  kort.append(bunn);
+
+  const tegn = () => {
+    const sak = saker[indeks];
+    if (!sak) return;
+
+    innhold.replaceChildren();
+    innhold.append(tegnSak(sak));
+
+    kilde.textContent = `Kilde: ${sak.kilde}`;
+    tellertekst.textContent = `${indeks + 1} av ${saker.length}`;
+    blaing.hidden = saker.length < 2;
+    (forrige as HTMLButtonElement).disabled = indeks === 0;
+    (neste as HTMLButtonElement).disabled = indeks === saker.length - 1;
+  };
+
+  for (const [knapp, retning] of [
+    [forrige, -1],
+    [neste, 1]
+  ] as const) {
+    knapp.addEventListener("click", () => {
+      indeks = Math.min(Math.max(indeks + retning, 0), saker.length - 1);
+      tegn();
+    });
+  }
+
+  tegn();
+  beholder.append(kort);
+}
+
+/** Én sak, slik den ser ut inne i sakskortet. Kortet rundt er tegnSaker sitt. */
+function tegnSak(sak: Sak): HTMLElement {
+  const rute = lag("div", "stablet");
+
+  const topp = lag("div", "tjeneste__topp");
+  topp.append(overskrift(sak.navn, "2xs", "h3"));
+  topp.append(merkelapp(sak.statustekst, sak.status === "AKTIV" ? "success" : "neutral"));
+  rute.append(topp);
+
+  rute.append(avsnitt(`Sak ${sak.saksId}`, "sm"));
+  rute.append(avsnitt(`${sak.enhet}. Sist oppdatert ${langDato(sak.sistOppdatert.slice(0, 10))}.`, "xs"));
+
   const liste = lag("ol", "stablet");
   liste.style.listStyle = "none";
   liste.style.margin = "0";
@@ -638,17 +703,12 @@ function tegnSak(sak: Sak): HTMLElement {
     rad.append(merkelapp(steg.statustekst, statusfarge(steg.status)));
     liste.append(rad);
   }
-  stigen.append(liste);
-  kort.append(stigen);
+  rute.append(liste);
 
   const ferdige = sak.steg.filter((steg) => steg.status !== "venter" && steg.status !== "paagaar").length;
-  kort.append(
-    kortblokk(
-      avsnitt(`${ferdige} av ${sak.steg.length} steg er ferdige.`, "sm"),
-      kildelinje(sak.kilde)
-    )
-  );
-  return kort;
+  rute.append(avsnitt(`${ferdige} av ${sak.steg.length} steg er ferdige.`, "sm"));
+
+  return rute;
 }
 
 function statusfarge(status: Stegstatus): string {
