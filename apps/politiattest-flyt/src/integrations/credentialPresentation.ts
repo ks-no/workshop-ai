@@ -3,6 +3,7 @@ import {
   byggFormalsbevisClaims,
   byggPolitiattestClaims
 } from "./credentialDefinitions";
+import { stillingForRolle } from "../utils/roller";
 
 export interface MetadataRad {
   label: string;
@@ -42,7 +43,7 @@ export function formalsbevisRaderFraClaims(
     { label: "Mottaker", verdi: personName(holder) },
     { label: "Fødselsnummer", verdi: asText(holder["foedselsnummer"]) },
     { label: "Formål", verdi: asText(claims["rolle"]) },
-    { label: "Stilling", verdi: "Skoleassistent" },
+    { label: "Stilling", verdi: stillingForRolle(asText(claims["rolle"], "")) },
     { label: "Attesttype", verdi: asText(rettsligGrunnlag["attesttype"]) },
     { label: "Hjemmel", verdi: asText(rettsligGrunnlag["hjemmel"]) }
   ];

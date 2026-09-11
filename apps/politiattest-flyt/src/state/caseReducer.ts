@@ -1,4 +1,12 @@
-import type { CaseState, CredentialKind, InboxMessage, IssuanceRecord, Person, VerificationRecord } from "../types";
+import type {
+  CaseState,
+  CredentialKind,
+  InboxMessage,
+  IssuanceRecord,
+  Person,
+  Vandelvurdering,
+  VerificationRecord
+} from "../types";
 import { byggFormalsbevisClaims, byggPolitiattestClaims } from "../integrations/credentialDefinitions";
 
 const LAGRINGSNOEKKEL = "politiattest-flyt-case-v2";
@@ -13,13 +21,25 @@ const TOM_VERIFIKASJON: VerificationRecord = {
   verifiedAt: null
 };
 
+const TOM_VANDELVURDERING: Vandelvurdering = {
+  status: "ikke_hentet",
+  utfall: null,
+  regelutfall: null,
+  godkjent: null,
+  melding: null,
+  formaal: null,
+  feil: null
+};
+
 export function tomSak(): CaseState {
   return {
     person: null,
     soknadsdato: null,
+    idPortenAccessToken: null,
     kommuneSaksstatus: "ingen_sak",
     formalsbevis: { issuance: null, verification: { ...TOM_VERIFIKASJON } },
     politiattest: { issuance: null, verification: { ...TOM_VERIFIKASJON } },
+    vandelvurdering: { ...TOM_VANDELVURDERING },
     inboxMessages: []
   };
 }
@@ -33,11 +53,16 @@ export function lastLagretSak(): CaseState {
     if (!raw) return tomSak();
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || !("kommuneSaksstatus" in parsed)) return tomSak();
-    sessionStorage.setItem(LAGRINGSNOEKKEL, raw);
+    const normalisert: CaseState = {
+      ...parsed,
+      idPortenAccessToken: parsed.idPortenAccessToken ?? null,
+      vandelvurdering: parsed.vandelvurdering ?? { ...TOM_VANDELVURDERING }
+    };
+    sessionStorage.setItem(LAGRINGSNOEKKEL, JSON.stringify(normalisert));
     if (erVerifiseringsretur) {
       localStorage.removeItem(LAGRINGSNOEKKEL);
     }
-    return parsed as CaseState;
+    return normalisert;
   } catch {
     return tomSak();
   }
@@ -68,6 +93,7 @@ export function slettLagretSak(): void {
 
 export type SakHandling =
   | { type: "VELG_PERSON"; person: Person }
+  | { type: "ID_PORTEN_INNLOGGET"; accessToken: string }
   | { type: "UTSTEDELSE_STARTET"; kind: CredentialKind }
   | { type: "UTSTEDELSE_FULLFORT"; kind: CredentialKind; issuance: IssuanceRecord; messages: InboxMessage[] }
   | { type: "MELDING_LEST"; messageId: string }
@@ -76,12 +102,40 @@ export type SakHandling =
   | { type: "VERIFISERING_GODKJENT"; kind: CredentialKind }
   | { type: "VERIFISERING_AVVIST"; kind: CredentialKind; aarsak: string }
   | { type: "VERIFISERING_FEILET"; kind: CredentialKind }
+  | { type: "VANDELVURDERING_STARTET" }
+  | { type: "VANDELVURDERING_FULLFORT"; vurdering: Vandelvurdering }
+  | { type: "VANDELVURDERING_FEILET"; feil: string }
   | { type: "POLITIATTEST_KONTROLL_FULLFORT" }
   | { type: "SIMULER_FULLFORT_SAK"; person: Person }
   | { type: "NULLSTILL" };
 
 function bevisNoekkel(kind: CredentialKind): "formalsbevis" | "politiattest" {
   return kind === "formalsbekreftelse" ? "formalsbevis" : "politiattest";
+}
+
+function leggTilPolitiattestEttersporsel(state: CaseState): CaseState {
+  if (
+    state.inboxMessages.some(
+      (melding) => melding.type === "ettersporsel" && melding.kind === "politiattest"
+    )
+  ) {
+    return state;
+  }
+
+  return {
+    ...state,
+    inboxMessages: [
+      ...state.inboxMessages,
+      {
+        type: "ettersporsel",
+        id: `msg-ettersporsel-${state.person?.personId || "sak"}`,
+        kind: "politiattest",
+        title: "Vi venter fortsatt på politiattesten din",
+        createdAt: new Date().toISOString(),
+        status: "ulest"
+      }
+    ]
+  };
 }
 
 export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
@@ -93,6 +147,9 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
       neste.kommuneSaksstatus = "venter_paa_politiattest";
       return neste;
     }
+
+    case "ID_PORTEN_INNLOGGET":
+      return { ...state, idPortenAccessToken: handling.accessToken };
 
     case "SIMULER_FULLFORT_SAK": {
       const tidspunkt = new Date().toISOString();
@@ -130,7 +187,8 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
             simulated: true,
             verifiedAt: tidspunkt
           }
-        }
+        },
+        vandelvurdering: { ...TOM_VANDELVURDERING }
       };
     }
 
@@ -198,6 +256,9 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
           }
         }
       };
+      if (handling.kind === "formalsbekreftelse") {
+        return leggTilPolitiattestEttersporsel(oppdatertSak);
+      }
       if (handling.kind === "politiattest") {
         oppdatertSak.kommuneSaksstatus = "politiattest_mottatt";
       }
@@ -229,6 +290,35 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
         }
       };
     }
+
+    case "VANDELVURDERING_STARTET":
+      return {
+        ...state,
+        vandelvurdering: {
+          ...TOM_VANDELVURDERING,
+          status: "laster"
+        }
+      };
+
+    case "VANDELVURDERING_FULLFORT":
+      return {
+        ...state,
+        vandelvurdering: {
+          ...handling.vurdering,
+          status: "hentet",
+          feil: null
+        }
+      };
+
+    case "VANDELVURDERING_FEILET":
+      return {
+        ...state,
+        vandelvurdering: {
+          ...TOM_VANDELVURDERING,
+          status: "feil",
+          feil: handling.feil
+        }
+      };
 
     case "POLITIATTEST_KONTROLL_FULLFORT":
       if (

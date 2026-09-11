@@ -7,6 +7,7 @@ import {
 } from "../integrations/lommebokApi";
 import { sjekkFormalsbevisAksept, sjekkPolitiattestAksept } from "../integrations/credentialDefinitions";
 import type { SakHandling } from "./caseReducer";
+import { ventMinst } from "../utils/ventMinst";
 
 export interface VerifiseringController {
   start: () => Promise<void>;
@@ -107,9 +108,11 @@ export function useVerifisering(
   }
 
   async function start() {
+    const startet = Date.now();
     setStarter(true);
     try {
       const resultat = await startVerifisering(kind);
+      await ventMinst(startet);
       dispatch({
         type: "VERIFISERING_STARTET",
         kind,
@@ -123,6 +126,7 @@ export function useVerifisering(
         gjeldendeTxRef.current = resultat.transactionId;
       }
     } catch {
+      await ventMinst(startet);
       dispatch({ type: "VERIFISERING_FEILET", kind });
     } finally {
       setStarter(false);
