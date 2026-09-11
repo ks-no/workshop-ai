@@ -52,6 +52,7 @@
 .chips { display: flex; flex-wrap: wrap; gap: var(--ds-size-2); }
 .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-size-4); }
 .navRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-size-3); }
+.choiceRow { display: flex; flex-wrap: wrap; gap: var(--ds-size-2) var(--ds-size-6); }
 
 /* Consent */
 .consentList { display: flex; flex-direction: column; gap: var(--ds-size-3); margin: 0; padding: 0; list-style: none; }

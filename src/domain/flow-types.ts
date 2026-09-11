@@ -79,7 +79,7 @@ export type FlowCommand =
   | { action: 'start' }
   | { action: 'input'; text: string; revision: number; caseId: string }
   | { action: 'answers'; answers: { key: string; value: string }[]; note: string; revision: number; caseId: string }
-  | { action: 'approve'; facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string; revision: number; caseId: string }
+  | { action: 'approve'; facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; wallet: FlowFetchable[]; note: string; revision: number; caseId: string }
   | { action: 'prepare'; execution: FlowExecution; revision: number; caseId: string }
   | { action: 'execute'; draftId: string; revision: number; caseId: string }
   | { action: 'choose'; type: FlowActionType; templateId?: string; revision: number; caseId: string }

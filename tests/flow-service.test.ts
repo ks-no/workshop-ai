@@ -334,6 +334,36 @@ test('a failed KS source keeps the approval, records the failure and lets the ci
   assert.equal(current.step ?? null, null);
 });
 
+test('each source comes from the register, the digital wallet or neither; wallet sources are declined from the registers and never fetched', async () => {
+  const requests: string[] = [];
+  const fake = {
+    readHousehold: async () => { requests.push('household'); return { value: { husstandId: 'h', type: 'ENSLIG_FORSORGER', adresse: 'x', kommune: 'Ålesund', kommunenummer: '1508', medlemmer: [{ personId: 'p1', rolle: 'foresatt' }], syntetisk: true } }; },
+    readSfo: async () => { throw new Error('must not be called'); },
+    grantIncomeConsent: async () => { throw new Error('must not be called'); },
+  } as unknown as KsClient;
+  const current = session(); bumpRevision(current);
+  addInput(current, 'Hjelp med SFO.');
+  await planNextStep(current, 'input', planner(() => ({ kind: 'review', fetch: ['husstand', 'sfo', 'inntekt'] })), keep);
+  const before = structuredClone(current);
+  await assert.rejects(approveReview(current, { facts: [], remove: [], fetch: ['husstand'], wallet: ['husstand'], note: '' }, fake), /enten digital lommebok eller kommunens registre/);
+  assert.deepEqual(current, before, 'A source picked twice leaves the case untouched.');
+  const lastEvent = await approveReview(current, { facts: [], remove: [], fetch: ['husstand'], wallet: ['sfo'], note: '' }, fake);
+  assert.equal(lastEvent, 'review-approved-and-fetched');
+  assert.deepEqual(requests, ['household']);
+  assert.deepEqual(current.ks.fetched, ['husstand']);
+  assert.deepEqual(current.ks.declined, ['sfo', 'inntekt']);
+  assert.match(current.notice ?? '', /digital lommebok for SFO-plass og satser/);
+  assert.ok(current.events.some(event => event.type === 'human' && /digital lommebok for: SFO-plass og satser/.test(event.detail)));
+  assert.ok(current.events.some(event => event.type === 'human' && /Valgte å ikke hente: inntektsgrunnlag/.test(event.detail)));
+});
+
+test('a wallet choice for a source that was not offered is rejected like an unoffered fetch', async () => {
+  const current = session();
+  addInput(current, 'Husleien er 12000 kroner.');
+  await planNextStep(current, 'input', planner(() => ({ kind: 'review', facts: [{ key: 'monthly_rent', label: 'Husleie', value: '12000', sourceId: current.sources[0].id, quote: 'Husleien er 12000 kroner.' }] })), keep);
+  await assert.rejects(approveReview(current, { facts: [], remove: [], fetch: [], wallet: ['husstand'], note: '' }), /ikke ble vist/);
+});
+
 test('review approval cannot confirm an unseen fact, an omitted fact, or an unoffered source', async () => {
   const current = session();
   addInput(current, 'Husleien er 12000 kroner. Vi er 3 personer.');

@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type Ref } from 'react';
 import { ArrowLeft, ArrowRight, CaretRight, EnvelopeSimple, Phone, Sparkle } from '@phosphor-icons/react';
 import {
-  Alert, Button, Card, CardBlock, Checkbox, ChipButton, ChipRemovable, Details, DetailsContent, DetailsSummary, Divider, ErrorSummary,
+  Alert, Button, Card, CardBlock, ChipButton, ChipRemovable, Details, DetailsContent, DetailsSummary, Divider, ErrorSummary,
   EXPERIMENTAL_FileUpload, Field, FieldDescription, Fieldset, FieldsetLegend, Heading, Label, Link as DsLink, ListItem, ListUnordered, Paragraph, Radio, Select, SelectOption, Spinner, Tag, Textfield, ValidationMessage,
 } from '@digdir/designsystemet-react';
 import { componentForStep, type FlowComponentId } from '../domain/flow-components';
 import { FamilyOverview } from './family-overview';
 import { FlowActivityPanel } from './flow-activity-panel';
 import { dateTime } from '../domain/format';
-import { ACTION_LABELS, FLOW_SOURCES } from '../domain/flow-catalogue';
-import type { FlowCase, FlowCommand, FlowExecution, FlowFact, FlowFetchable, FlowOutcome, FlowProposal, FlowQuestion, FlowResponse, FlowStep } from '../domain/flow-types';
+import { ACTION_LABELS, FLOW_SOURCES, WALLET_SOURCE } from '../domain/flow-catalogue';
+import type { FlowCase, FlowCommand, FlowExecution, FlowFact, FlowOutcome, FlowProposal, FlowQuestion, FlowResponse, FlowStep } from '../domain/flow-types';
 import type { ContactPoint, ModelStatus } from '../domain/assistant-types';
 import styles from './sok-wizard.module.css';
 
@@ -27,6 +27,10 @@ type Busy = { heading: string; hint: string; tasks: Task[] };
 type Phase = 'start' | 'thinking' | 'ask' | 'review' | 'action' | 'acted' | 'done' | 'summary' | 'error';
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type CaseCommand = DistributiveOmit<Extract<FlowCommand, { caseId: string }>, 'caseId' | 'revision'>;
+type ApproveInput = DistributiveOmit<Extract<FlowCommand, { action: 'approve' }>, 'action' | 'caseId' | 'revision'>;
+/** Where one offered source comes from. Register and wallet exclude each other per source; "none" means the citizen fills it in. */
+type FetchMode = 'register' | 'wallet' | 'none';
+const FETCH_MODES: { value: FetchMode; label: string }[] = [{ value: 'register', label: 'Kommunens registre' }, { value: 'wallet', label: WALLET_SOURCE.title }, { value: 'none', label: 'Jeg fyller inn selv' }];
 const SUGGESTIONS = [
   'Jeg har mistet jobben og har barn på SFO',
   'Jeg skal flytte til en ny kommune',
@@ -170,10 +174,12 @@ export function SokWizard() {
     const body = withCase({ action: 'answers', answers, note });
     if (body) await command(body, { heading: 'Vi bruker svarene dine', hint: 'Svarene lagres som opplysninger du selv har bekreftet.', tasks: thinkingTasks({ title: 'Lagrer svarene dine', detail: `${answers.length} svar merkes «oppgitt av deg».` }) });
   }
-  async function approve(input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string }) {
+  async function approve(input: ApproveInput) {
     const body = withCase({ action: 'approve', ...input });
-    if (body) await command(body, { heading: input.fetch.length ? 'Henter KS-opplysninger med samtykke' : 'Vi bruker det du godkjente', hint: input.fetch.length ? 'Bare det du valgte hentes. Du kontrollerer alt før det brukes.' : 'Opplysningene er nå bekreftet av deg.',
-      tasks: thinkingTasks({ title: 'Registrerer godkjenningen', detail: `${input.facts.length} opplysninger er bekreftet av deg.` }, input.fetch.map(key => ({ title: `Henter ${FLOW_SOURCES[key].lower}`, detail: 'Henter fra kommunens registre.' }))) });
+    if (body) await command(body, { heading: input.fetch.length ? 'Henter KS-opplysninger med samtykke' : input.wallet.length ? 'Registrerer valget om digital lommebok' : 'Vi bruker det du godkjente',
+      hint: input.fetch.length ? 'Bare det du valgte hentes. Du kontrollerer alt før det brukes.' : input.wallet.length ? 'Ingenting hentes fra kommunens registre. Du fyller inn opplysningene selv.' : 'Opplysningene er nå bekreftet av deg.',
+      tasks: thinkingTasks({ title: 'Registrerer godkjenningen', detail: `${input.facts.length} opplysninger er bekreftet av deg.` },
+        [...input.fetch.map(key => ({ title: `Henter ${FLOW_SOURCES[key].lower}`, detail: 'Henter fra kommunens registre.' })), ...input.wallet.map(key => ({ title: `Noterer ${WALLET_SOURCE.lower} for ${FLOW_SOURCES[key].lower}`, detail: 'Ingen lommebok er koblet til i demoen.' }))]) });
   }
   async function prepare(execution: FlowExecution) {
     const body = withCase({ action: 'prepare', execution });
@@ -409,14 +415,16 @@ function AskScreen({ session, step, onSubmit, onSkip, headingRef }: { session: F
   </Screen>;
 }
 
-function ReviewScreen({ session, step, onApprove, headingRef }: { session: FlowCase; step: FlowStep; onApprove: (input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string }) => void; headingRef: Ref<HTMLHeadingElement> }) {
+function ReviewScreen({ session, step, onApprove, headingRef }: { session: FlowCase; step: FlowStep; onApprove: (input: ApproveInput) => void; headingRef: Ref<HTMLHeadingElement> }) {
   const facts = activeFacts(session, step);
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(facts.map(fact => [fact.id, fact.value])));
   const [removed, setRemoved] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Record<string, boolean>>(() => Object.fromEntries(step.fetch.map(key => [key, true])));
+  const [modes, setModes] = useState<Record<string, FetchMode>>(() => Object.fromEntries(step.fetch.map(key => [key, 'register'])));
   const [note, setNote] = useState('');
   const visible = facts.filter(fact => !removed.includes(fact.id));
-  const chosen = step.fetch.filter(key => selected[key]);
+  const chosen = step.fetch.filter(key => modes[key] === 'register');
+  const wallet = step.fetch.filter(key => modes[key] === 'wallet');
+  const fetchLabel = [chosen.length ? `${chosen.length} fra registrene` : '', wallet.length ? `${wallet.length} fra digital lommebok` : ''].filter(Boolean).join(' og ');
   const proposedCount = visible.filter(fact => fact.status === 'proposed').length;
   return <Screen kind="review" eyebrow={`Steg ${session.stepCount} · Kontroller opplysninger`} heading={step.title} hint={step.message} headingRef={headingRef}>
     <StepMeta step={step} />
@@ -433,18 +441,24 @@ function ReviewScreen({ session, step, onApprove, headingRef }: { session: FlowC
         </div>)}
       </div>
     </CardBlock></Card> : <Alert data-color="info">Vi har ingen bekreftede opplysninger ennå.</Alert>}
-    {step.fetch.length > 0 && <Fieldset>
-      <FieldsetLegend>Vi foreslår å hente fra kommunens registre</FieldsetLegend>
-      <FieldDescription>Ved å hente samtykker du til at opplysningene brukes i saken. Huk vekk det du ikke vil dele – da fyller du det inn selv.</FieldDescription>
-      <div className={styles.stackSm}>
-        {step.fetch.map(key => <Checkbox key={key} value={key} label={FLOW_SOURCES[key].title} description={FLOW_SOURCES[key].description}
-          checked={!!selected[key]} onChange={event => { const checked = event.target.checked; setSelected(current => ({ ...current, [key]: checked })); }} />)}
+    {step.fetch.length > 0 && <div className={styles.stack}>
+      <div>
+        <Heading level={2} data-size="2xs">Hvor skal vi hente opplysningene fra?</Heading>
+        <Paragraph data-size="sm" className={styles.subtle}>Velg kilde for hver opplysning. Ved å hente fra kommunens registre samtykker du til at opplysningen brukes i saken. {WALLET_SOURCE.description}</Paragraph>
       </div>
-    </Fieldset>}
+      {step.fetch.map(key => <Fieldset key={key}>
+        <FieldsetLegend>{FLOW_SOURCES[key].title}</FieldsetLegend>
+        <FieldDescription>{FLOW_SOURCES[key].description}</FieldDescription>
+        <div className={styles.choiceRow}>
+          {FETCH_MODES.map(option => <Radio key={option.value} name={`fetch-${key}`} value={option.value} label={option.label} checked={modes[key] === option.value} onChange={() => setModes(current => ({ ...current, [key]: option.value }))} />)}
+        </div>
+      </Fieldset>)}
+    </div>}
     <MoreInfo value={note} onChange={setNote} />
+    {wallet.length > 0 && <Paragraph data-size="sm" className={styles.subtle}>{WALLET_SOURCE.notice(wallet.map(key => FLOW_SOURCES[key].lower))}</Paragraph>}
     {step.next && <Paragraph data-size="sm" className={styles.subtle}>{step.next}</Paragraph>}
-    <NavRow onNext={() => onApprove({ facts: visible.map(fact => ({ id: fact.id, value: values[fact.id] ?? fact.value })), remove: removed, fetch: chosen, note })}
-      nextLabel={chosen.length ? `Godkjenn og hent ${chosen.length} av ${step.fetch.length} opplysninger` : 'Godkjenn og gå videre'} />
+    <NavRow onNext={() => onApprove({ facts: visible.map(fact => ({ id: fact.id, value: values[fact.id] ?? fact.value })), remove: removed, fetch: chosen, wallet, note })}
+      nextLabel={fetchLabel ? `Godkjenn og hent ${fetchLabel}` : 'Godkjenn og gå videre'} />
     <ActivityLog session={session} />
   </Screen>;
 }
