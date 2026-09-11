@@ -99,6 +99,10 @@ export type AssistantCase = {
   intent?: 'information' | 'personalized' | null;
   services: ServiceResult[]; questions: FollowUp[]; unsupported: string[];
   runs: AgentRun[]; events: AgentEvent[]; summary: string; critique: CritiqueRound[];
+  /** Assembled answer as it stood before the critic ever saw it; for the naive-vs-godkjent demobryter (#7). */
+  draftAnswer?: string | null;
+  /** Set when a critic REVISE verdict was intentionally not acted on, see CRITIC_ALWAYS_PASS. */
+  revisionSkipped?: boolean;
   analyzedRevision: number | null; handoff: Handoff | null; error: string | null;
   ksData: { personId: string; connectedAt: string; incomeReadAt: string | null; consent: KsDemoConsent | null } | null;
   ksAccessDecision?: KsAccessDecision | null;

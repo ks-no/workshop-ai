@@ -110,6 +110,11 @@
 .assistant-live-critique { border-top: var(--assistant-border); margin-top: var(--s3); padding-top: var(--s3); }
 .assistant-live-critique ul { padding-left: var(--s6); margin-top: var(--s2); }
 .assistant-live-critique p { margin-top: var(--s2); color: var(--muted); }
+.assistant-draft-compare { border: var(--assistant-border); background: var(--warm-tint); margin-top: var(--s4); padding: var(--s4); }
+.assistant-draft-compare summary { font-weight: 700; cursor: pointer; }
+.assistant-draft-compare-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s4); margin-top: var(--s3); }
+.assistant-draft-compare-columns h3 { font-size: var(--text-small); margin-bottom: var(--s1); }
+@media (max-width: 48rem) { .assistant-draft-compare-columns { grid-template-columns: minmax(0, 1fr); } }
 .assistant-task-card { border: var(--assistant-border); background: var(--paper); }
 .assistant-task-disclosure > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s3); min-height: 4.5rem; padding: var(--s3) var(--s4); list-style: none; }
 .assistant-task-disclosure > summary::-webkit-details-marker { display: none; }

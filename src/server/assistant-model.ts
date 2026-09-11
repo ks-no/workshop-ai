@@ -101,6 +101,10 @@ export function maxRevisions() {
   const rounds = Number(configured);
   return configured && Number.isFinite(rounds) ? Math.min(5, Math.max(1, Math.trunc(rounds))) : 2;
 }
+/** Demo switch (#7): critic still runs and its critique still shows, but a REVISE verdict is not acted on. Default off. */
+export function criticAlwaysPass() {
+  return (process.env.CRITIC_ALWAYS_PASS || '').trim().toLowerCase() === 'true';
+}
 let lastSuccessAt: string | null = null;
 export function markModelSuccess() { lastSuccessAt = new Date().toISOString(); }
 export async function modelStatus(): Promise<ModelStatus> {

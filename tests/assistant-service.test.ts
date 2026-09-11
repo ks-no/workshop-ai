@@ -7,7 +7,7 @@ import type { submitKsApplication } from '../src/server/assistant-ks';
 
 const previousModelEnv = new Map<string, string | undefined>();
 beforeEach(() => {
-  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'ASSISTANT_MAX_REVISIONS']) {
+  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'ASSISTANT_MAX_REVISIONS', 'CRITIC_ALWAYS_PASS']) {
     previousModelEnv.set(key, process.env[key]);
     delete process.env[key];
   }
@@ -749,6 +749,44 @@ test('ASSISTANT_MAX_REVISIONS=4 allows more revision rounds before stopping', as
   assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'polish']);
   assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 3);
   assert.equal(current.critique.length, 4);
+});
+
+test('CRITIC_ALWAYS_PASS=true skips the revise stage on a REVISE verdict but still shows the critique and the naive draft', async () => {
+  process.env.CRITIC_ALWAYS_PASS = 'true';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].verdict, 'REVISE');
+  assert.equal(current.revisionSkipped, true);
+  assert.ok(current.draftAnswer);
+  assert.ok(current.events.some(event => event.detail.includes('CRITIC_ALWAYS_PASS')));
+});
+
+test('CRITIC_ALWAYS_PASS default is off, so a REVISE verdict still triggers a normal revision', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.revisionSkipped, false);
+});
+
+test('CRITIC_ALWAYS_PASS does not affect a PASS verdict: no revision was requested to skip', async () => {
+  process.env.CRITIC_ALWAYS_PASS = 'true';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.critique[0].verdict, 'PASS');
+  assert.equal(current.revisionSkipped, false);
 });
 
 test('the full critique survives without truncation, including long notes and every gap', async () => {

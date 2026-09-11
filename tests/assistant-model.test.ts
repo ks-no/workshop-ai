@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { z } from 'zod';
-import { aiProvider, callModel, maxRevisions, modelName, modelStatus, planSchema, responseLanguageName, specialistPrompt, specialistSchema, TRIAGE_PROMPT } from '../src/server/assistant-model';
+import { aiProvider, callModel, criticAlwaysPass, maxRevisions, modelName, modelStatus, planSchema, responseLanguageName, specialistPrompt, specialistSchema, TRIAGE_PROMPT } from '../src/server/assistant-model';
 import { runtimeInstalled } from '../src/server/assistant-runtime';
 import type { ModelPlan } from '../src/domain/assistant-types';
 
@@ -24,7 +24,8 @@ const telenorFixture = {
 // afterEach, so a test only has to set what it needs and never has to remember to unset it.
 const volatileKeys = ['LLM_TRIAGE_MODEL', 'LLM_DRAFT_MODEL', 'LLM_CRITIC_MODEL', 'LLM_POLISH_MODEL',
   'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'AI_PROVIDER',
-  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'];
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MAX_REVISIONS', 'CRITIC_ALWAYS_PASS',
+  'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID'];
 const previousEnv = new Map<string, string | undefined>();
 beforeEach(() => {
   for (const [key, value] of Object.entries(fixtureConfig)) {
@@ -173,6 +174,19 @@ test('maxRevisions defaults to 2, clamps to 1..5, falls back on non-numeric inpu
   for (const [input, expected] of [['1', 1], ['5', 5], ['0', 1], ['-3', 1], ['9', 5], ['not-a-number', 2], ['2.7', 2]] as const) {
     process.env.ASSISTANT_MAX_REVISIONS = input;
     assert.equal(maxRevisions(), expected, `expected ASSISTANT_MAX_REVISIONS=${input} to resolve to ${expected}`);
+  }
+});
+
+test('criticAlwaysPass defaults to false and only "true" (case/whitespace-insensitive) switches it on', () => {
+  delete process.env.CRITIC_ALWAYS_PASS;
+  assert.equal(criticAlwaysPass(), false);
+  for (const value of ['true', 'TRUE', 'True', ' true ', '\ttrue\n']) {
+    process.env.CRITIC_ALWAYS_PASS = value;
+    assert.equal(criticAlwaysPass(), true, `expected ${JSON.stringify(value)} to enable the switch`);
+  }
+  for (const value of ['false', '1', 'yes', '']) {
+    process.env.CRITIC_ALWAYS_PASS = value;
+    assert.equal(criticAlwaysPass(), false, `expected ${JSON.stringify(value)} to leave the switch off`);
   }
 });
 

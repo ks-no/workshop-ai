@@ -287,7 +287,7 @@ function Workspace() {
           <div className="assistant-conversation-scroll" role="region" aria-label={t('Samtale og neste steg')} tabIndex={0}>
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
-          {!!session?.messages.length && <div className="assistant-messages" role="log" aria-live="polite" aria-atomic="false" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong>{item.precomputed && <span className="assistant-precomputed-badge" role="status">{t('Forhåndsberegnet svar')}</span>}<time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
+          {!!session?.messages.length && <div className="assistant-messages" role="log" aria-live="polite" aria-atomic="false" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong>{item.precomputed && <span className="assistant-precomputed-badge" role="status">{t('Forhåndsberegnet svar')}</span>}<time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p>{session.revisionSkipped && session.draftAnswer && item.id === session.messages.at(-1)?.id && <AssistantDraftComparison draft={session.draftAnswer} approved={item.text} language={item.language || 'nb'} />}</>}</article>)}</div>}
           {liveStep && <AssistantLiveSteps step={liveStep} critique={liveCritique} />}
           {(busy || analyzing || !!session?.events.length) && <AssistantActivity session={session} pendingLabel={busy || (analyzing ? 'Arbeider med saken din' : '')} pollError={pollError} selectedTaskId={selectedActivityId} onTaskSelect={openActivity} />}
           {session?.error && session.error !== error && <div className="assistant-error" role="alert"><AssistantIcon name="alert-warning" aria-hidden="true"  /><p>{t(session.error)}</p></div>}
@@ -324,6 +324,20 @@ function AssistantMessageSources({ message, sources, onOpen }: { message: Assist
     <summary>{t('Kilder for dette svaret')} ({usedSources.length})</summary>
     <ul>{usedSources.map(source => <li key={source.id}>{source.url && /^https?:\/\//i.test(source.url) ? <a href={source.url} target="_blank" rel="noreferrer">{t(source.title)}</a> : t(source.title)}</li>)}</ul>
     <AssistantButton skin="tertiary" size="small" onClick={onOpen}>{t('Se alle kilder og utdrag')}</AssistantButton>
+  </details>;
+}
+
+/** Demobryter (#7): kritikeren ba om revisjon, men CRITIC_ALWAYS_PASS lot det naive utkastet stå. Vis begge så publikum ser hva kritikeren fanget opp. */
+function AssistantDraftComparison({ draft, approved, language }: { draft: string; approved: string; language: string }) {
+  const { locale, t } = useAssistantLocale();
+  const tableLabel = locale === 'en' ? 'Table' : 'Tabell';
+  return <details className="assistant-draft-compare">
+    <summary>{t('Demo: naivt utkast mot kritikergodkjent svar')}</summary>
+    <p className="small">{t('Kritikeren ba om en revisjon, men demobryteren CRITIC_ALWAYS_PASS lot utkastet stå uendret. Kritikken over viser hva som ble fanget opp.')}</p>
+    <div className="assistant-draft-compare-columns">
+      <div><h3>{t('Naivt utkast (uten revisjon)')}</h3><AssistantMarkdown text={draft} language={language} tableLabel={tableLabel} /></div>
+      <div><h3>{t('Kritikergodkjent svar')}</h3><AssistantMarkdown text={approved} language={language} tableLabel={tableLabel} /></div>
+    </div>
   </details>;
 }
 

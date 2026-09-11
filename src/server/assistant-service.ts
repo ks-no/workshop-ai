@@ -11,7 +11,7 @@ import { allowedActionKinds, buildFormDraft, citizenNarrative, contactFor, email
 import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { submitKsApplication } from './assistant-ks';
-import { emailPrompt, emailSchema, answerSchema, callModel, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
+import { emailPrompt, emailSchema, answerSchema, callModel, criticAlwaysPass, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
 import { democacheTimeoutMs, lookupDemocache, type DemocacheEntry } from './assistant-democache';
 import { ksPersonId } from './ks-runtime';
 
@@ -38,7 +38,7 @@ export function invalidateAnalysis(session: AssistantCase) {
   // Drafts belong to one analysed revision. Executed outcomes are history and stay.
   session.drafts = { email: null, form: null };
   session.outcomes ??= [];
-  session.critique = [];
+  session.critique = []; session.draftAnswer = null; session.revisionSkipped = false;
 }
 function event(session: AssistantCase, runId: string, agent: string, type: AssistantCase['events'][number]['type'], detail: string) {
   session.events.push({ id: randomUUID(), runId, agent, type, at: new Date().toISOString(), detail });
@@ -380,7 +380,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
         return null;
       }
       if (method === 'stage') {
-        if (!answer) answer = assembledAnswer();
+        if (!answer) { answer = assembledAnswer(); session.draftAnswer = answer; }
         const previous = data.id ? stageRuns.get(String(data.id)) : undefined;
         if (previous && typeof data.error === 'string') { finish(previous, data.error); nextStage = 'done'; }
         else if (previous) try {
@@ -392,8 +392,10 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
             session.critique.push(round);
             hooks.onCritique?.(round);
             finish(previous);
-            const revising = review.verdict === 'REVISE' && criticRound < maxRevisions();
-            if (review.verdict === 'REVISE' && !revising) event(session, previous.id, 'Kritiker', 'blocked', `Kritikeren ba om endringer, men grensen på ${maxRevisions()} runder er nådd. Utkastet vises som det er.`);
+            const forcedPass = review.verdict === 'REVISE' && criticAlwaysPass();
+            if (forcedPass) { session.revisionSkipped = true; event(session, previous.id, 'Kritiker', 'blocked', 'CRITIC_ALWAYS_PASS er på: kritikken vises, men revisjonsrunden hoppes over.'); }
+            const revising = !forcedPass && review.verdict === 'REVISE' && criticRound < maxRevisions();
+            if (review.verdict === 'REVISE' && !revising && !forcedPass) event(session, previous.id, 'Kritiker', 'blocked', `Kritikeren ba om endringer, men grensen på ${maxRevisions()} runder er nådd. Utkastet vises som det er.`);
             nextStage = revising ? 'revise' : 'polish';
           } else {
             const rewritten = answerSchema.parse(data.output);
