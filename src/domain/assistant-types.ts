@@ -28,7 +28,7 @@ export type MemoryFact = {
   status: 'proposed' | 'confirmed' | 'rejected' | 'superseded' | 'conflict';
   citation: Citation; createdAt: string; confirmedAt: string | null;
 };
-export type AssistantMessage = { language?: string; id: string; role: 'user' | 'assistant'; text: string; at: string; sourceId: string | null; sourceIds?: string[] };
+export type AssistantMessage = { language?: string; id: string; role: 'user' | 'assistant'; text: string; at: string; sourceId: string | null; sourceIds?: string[]; precomputed?: boolean };
 export type FollowUp = { key: string; question: string; serviceIds: ServiceId[] };
 export type StructuredAnswer = { key: FactKey; value: string; quote: string };
 export type ModelPlan = { language?: string;
@@ -118,9 +118,9 @@ export type AssistantStreamEvent =
   | { event: 'error'; data: { message: string } };
 export type AssistantCommand =
   | { action: 'start' }
-  | { action: 'message'; message: string; revision: number; caseId: string }
+  | { action: 'message'; message: string; revision: number; caseId: string; forceDemoCache?: boolean }
   | { action: 'answers'; message: string; answers: StructuredAnswer[]; revision: number; caseId: string }
-  | { action: 'analyze'; revision: number; caseId: string }
+  | { action: 'analyze'; revision: number; caseId: string; forceDemoCache?: boolean }
   | { action: 'fact'; factId: string; decision: 'confirm' | 'reject'; revision: number; caseId: string }
   | { action: 'connect-ks'; revision: number; caseId: string }
   | { action: 'income-consent'; approved: true; revision: number; caseId: string }

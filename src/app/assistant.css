@@ -63,6 +63,7 @@
 .assistant-message.is-user { background: var(--neutral-100); border-radius: var(--radius); padding: var(--s4); margin-left: var(--s8); }
 .assistant-message.is-assistant { padding-right: var(--s4); }
 .assistant-message.is-assistant .assistant-message-label strong { color: var(--accent); }
+.assistant-precomputed-badge { background: var(--warm-tint); color: var(--ink); padding: 0 var(--s2); border-radius: var(--radius); font-weight: 700; white-space: nowrap; }
 .assistant-next-step { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s4); margin-top: var(--s6); padding: var(--s6); background: var(--tint); border-left: var(--s1) solid var(--accent); }
 .assistant-next-step > div { min-width: 0; }
 .assistant-next-step-kicker { display: block; margin-bottom: var(--s1); color: var(--accent); font-size: var(--text-small); font-weight: 700; }

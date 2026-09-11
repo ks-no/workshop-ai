@@ -185,17 +185,29 @@ function Workspace() {
     await sendText(message.trim());
   }
 
-  async function sendText(text: string) {
+  async function sendText(text: string, forceDemoCache = false) {
     if (text.length < 1) { setMessageError('Skriv hva du trenger hjelp med.'); input.current?.focus(); return false; }
     if (text.length > 4000) { setMessageError('Meldingen kan ha høyst 4000 tegn.'); setError('Meldingen kan ha høyst 4000 tegn.'); return false; }
     if (locked || !modelAvailable) return false;
     const sent = await perform('Leser meldingen og undersøker relevante tjenester', async epoch => {
       const activeCase = await ensureSession(epoch);
-      await commandRequest({ action: 'message', message: text, revision: activeCase.revision, caseId: activeCase.id }, epoch);
+      await commandRequest({ action: 'message', message: text, revision: activeCase.revision, caseId: activeCase.id, forceDemoCache }, epoch);
     });
     if (sent) { setMessage(''); setMessageError(''); setEditingQuestions([]); }
     return sent;
   }
+
+  /** Sikkerhetsnettets manuelle utløser (issue #12): tving fram det forhåndsberegnede svaret uansett
+   * hva den levende modellen gjør. Uten et cache-treff for meldingen har den ingen effekt. */
+  const forceDemoCacheRef = useRef<() => void>(() => {});
+  forceDemoCacheRef.current = () => { void sendText(message.trim(), true); };
+  useEffect(() => {
+    function onKeydown(event: KeyboardEvent) {
+      if (event.altKey && event.key.toLowerCase() === 'd') { event.preventDefault(); forceDemoCacheRef.current(); }
+    }
+    window.addEventListener('keydown', onKeydown);
+    return () => window.removeEventListener('keydown', onKeydown);
+  }, []);
 
   async function sendAnswers(text: string, answers: StructuredAnswer[]) {
     if (!answers.length) return sendText(text);
@@ -275,7 +287,7 @@ function Workspace() {
           <div className="assistant-conversation-scroll" role="region" aria-label={t('Samtale og neste steg')} tabIndex={0}>
           <div className="assistant-conversation-heading"><h1 id="conversation-heading">{t(session?.messages.length ? 'Vi finner veien videre.' : 'Hva kan vi hjelpe deg med?')}</h1><p>{t("Fortell med egne ord. Vi samler det som er relevant for deg, og spør om det som mangler.")}</p></div>
           {!session?.messages.length && <div className="assistant-starting-points"><strong>{t('Du trenger ikke velge tjeneste.')}</strong><p className="small">{t('Beskriv situasjonen din, så finner agenten relevante tjenester og neste steg. Du kan for eksempel skrive om jobb, familie, bolig eller flytting i samme melding.')}</p></div>}
-          {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
+          {!!session?.messages.length && <div className="assistant-messages" aria-label={t("Samtalen")}>{session.messages.map(item => <article key={item.id} className={`assistant-message is-${item.role}`} lang={item.role === 'assistant' ? item.language || 'nb' : undefined}><div className="assistant-message-label" lang={locale}><strong>{t(item.role === 'user' ? 'Du' : 'Innbyggerassistenten · KI-tolkning')}</strong>{item.precomputed && <span className="assistant-precomputed-badge" role="status">{t('Forhåndsberegnet svar')}</span>}<time dateTime={item.at}>{new Date(item.at).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'nb-NO', { hour: '2-digit', minute: '2-digit' })}</time></div><>{item.role === 'assistant' ? <AssistantMarkdown text={item.text} language={item.language || 'nb'} tableLabel={locale === 'en' ? 'Table' : 'Tabell'} /> : <p>{item.text}</p>}</>{item.role === 'assistant' && <><AssistantMessageSources message={item} sources={session.sources} onOpen={() => { setCaseView('sources'); setTab('case'); }} /><p className="small" lang={locale}>{t("Kontroller tolkningen før du bruker den. Sjekklisten og kildene viser grunnlaget.")}</p></>}</article>)}</div>}
           {liveStep && <AssistantLiveSteps step={liveStep} critique={liveCritique} />}
           {(busy || analyzing || !!session?.events.length) && <AssistantActivity session={session} pendingLabel={busy || (analyzing ? 'Arbeider med saken din' : '')} pollError={pollError} selectedTaskId={selectedActivityId} onTaskSelect={openActivity} />}
           {session?.error && session.error !== error && <div className="assistant-error" role="alert"><AssistantIcon name="alert-warning" aria-hidden="true"  /><p>{t(session.error)}</p></div>}
@@ -292,7 +304,7 @@ function Workspace() {
           {!session?.handoff && <div className="assistant-composer-dock">
             <form className="assistant-composer" onSubmit={send} aria-busy={locked}>
               <PktTextarea id="assistant-message" ref={element => { input.current = element; }} label={t(session?.messages.length ? 'Skriv en melding' : 'Hva er situasjonen din?')} rows={2} inputSize="small" value={message} maxLength={4000} disabled={locked} fullwidth placeholder={t('For eksempel: Jeg har mistet jobben og er usikker på hvordan jeg skal betale husleien.')} onChange={event => { setMessage(event.target.value); setMessageError(''); }} ariaDescribedby={messageError ? 'assistant-message-input-error' : undefined} aria-errormessage={messageError ? 'assistant-message-input-error' : undefined} hasError={!!messageError} errorMessage={t(messageError)} />
-              <div className="assistant-composer-actions"><AssistantButton type="button" size="small" skin="tertiary" disabled={locked} aria-expanded={uploadOpen} aria-controls="assistant-upload" onClick={() => setUploadOpen(open => !open)}><AssistantIcon name="attachment" aria-hidden="true"  />{t("Legg ved dokument")}</AssistantButton><AssistantButton type="submit" size="small" skin="primary" disabled={locked || !modelAvailable}>{t(locked ? 'Arbeider…' : 'Send melding')}<AssistantIcon name="arrow-right" aria-hidden="true"  /></AssistantButton></div>
+              <div className="assistant-composer-actions"><AssistantButton type="button" size="small" skin="tertiary" disabled={locked} aria-expanded={uploadOpen} aria-controls="assistant-upload" onClick={() => setUploadOpen(open => !open)}><AssistantIcon name="attachment" aria-hidden="true"  />{t("Legg ved dokument")}</AssistantButton><AssistantButton type="button" size="small" skin="tertiary" disabled={locked || !modelAvailable} title={t('Hurtigtast: Alt+D')} onClick={() => forceDemoCacheRef.current()}>{t("Bruk forhåndsberegnet svar")}</AssistantButton><AssistantButton type="submit" size="small" skin="primary" disabled={locked || !modelAvailable}>{t(locked ? 'Arbeider…' : 'Send melding')}<AssistantIcon name="arrow-right" aria-hidden="true"  /></AssistantButton></div>
               {!loading && !modelAvailable && <p className="assistant-inline-notice">{t("Du kan skrive et utkast. Sending og dokumentanalyse blir tilgjengelig når språkmodellen er tilkoblet.")}</p>}
             </form>
             {uploadOpen && <form id="assistant-upload" className="assistant-upload" onSubmit={upload}><label htmlFor="assistant-file">{t("Velg et dokument")}</label><p className="small" id="assistant-file-help">{t("TXT eller tekstbasert PDF, inntil 1,5 MB, ti sider og 14 000 tegn. Skannede bilder støttes ikke. Bruk testdokumenter.")}</p><input ref={fileInput} id="assistant-file" type="file" accept=".txt,.pdf,text/plain,application/pdf" disabled={locked} aria-describedby="assistant-file-help" onChange={event => setFile(event.target.files?.[0] ?? null)} /><AssistantButton type="submit" skin="secondary" disabled={locked || !file || !modelAvailable}>{t("Last opp og analyser")}</AssistantButton></form>}

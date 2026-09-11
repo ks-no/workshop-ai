@@ -12,10 +12,12 @@ import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { submitKsApplication } from './assistant-ks';
 import { emailPrompt, emailSchema, answerSchema, callModel, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
+import { democacheTimeoutMs, lookupDemocache, type DemocacheEntry } from './assistant-democache';
+import { ksPersonId } from './ks-runtime';
 
 type Persist = (session: AssistantCase) => void;
 /** Live step visibility for the SSE route; the polling-based JSON path passes no hooks. */
-export type AnalyzeHooks = { onStep?: (step: AssistantStepName) => void; onCritique?: (round: CritiqueRound) => void; signal?: AbortSignal };
+export type AnalyzeHooks = { onStep?: (step: AssistantStepName) => void; onCritique?: (round: CritiqueRound) => void; signal?: AbortSignal; forceDemoCache?: boolean };
 const STRUCTURED_ANSWER_PURPOSE = 'Direkte svar fra strukturert spørsmålsskjema; lagret som innbyggerens eget valg.';
 const MODEL_SECURITY = { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] } as const;
 
@@ -131,7 +133,65 @@ function jobSchema(id: string, role: ModelRole) {
   if (id === 'draft-revision' || id === 'polish') return answerSchema;
   return role === 'triage' ? planSchema : specialistSchema;
 }
+/**
+ * Democachen er sikkerhetsnettet fra issue #12: et forhåndsberegnet svar for standardsaken
+ * (person-022, sfo-moderasjon), lagret som fil, aldri generert på demodagen. Oppslaget skjer
+ * her, før Python-runtimen i det hele tatt spawnes, og treffer kun på en eksakt hash av
+ * normalisert henvendelse pluss KS_PERSON_ID — alt annet går til levende modell som før.
+ */
 export async function analyzeCase(session: AssistantCase, infer: ModelCall = callModel, persist: Persist = saveAssistantCase, hooks: AnalyzeHooks = {}) {
+  const latestUser = [...session.messages].reverse().find(message => message.role === 'user');
+  const entry = latestUser ? lookupDemocache(latestUser.text, ksPersonId()) : null;
+  if (entry && hooks.forceDemoCache) {
+    applyDemocacheAnswer(session, entry, 'manual');
+    persist(session);
+    return session;
+  }
+  if (!entry) return runLiveAnalysis(session, infer, persist, hooks);
+  // Et cache-treff finnes: gi den levende modellen et forsøk, men kutt den av ved terskelen.
+  // runLiveAnalysis kaster aldri (den fanger alt internt), så det holder å vente på den ferdig
+  // avbrutt og se om resultatet ble en feil.
+  const controller = new AbortController();
+  const upstream = hooks.signal;
+  if (upstream) {
+    if (upstream.aborted) controller.abort();
+    else upstream.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, democacheTimeoutMs());
+  try { await runLiveAnalysis(session, infer, persist, { ...hooks, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+  // Brukeren avbrøt selv (f.eks. lukket fanen) uten at vår terskel eller en modellfeil var årsaken:
+  // ikke lat som en cache traff når ingenting egentlig feilet mot Cloudflare.
+  if (session.status !== 'error' || (upstream?.aborted && !timedOut)) return session;
+  applyDemocacheAnswer(session, entry, timedOut ? 'auto-timeout' : 'auto-error');
+  persist(session);
+  return session;
+}
+type DemocacheTrigger = 'manual' | 'auto-timeout' | 'auto-error';
+/** Sjekklisten bygges av de faktiske sesjonsfaktaene som før; kun oppsummering og sluttsvar er forhåndsberegnet. */
+function applyDemocacheAnswer(session: AssistantCase, entry: DemocacheEntry, trigger: DemocacheTrigger) {
+  session.language = entry.language;
+  const definition = SERVICE_CATALOGUE.find(item => item.id === entry.serviceId)!;
+  const snapshots = guidanceSources();
+  for (const sourceId of definition.sourceIds) {
+    if (!session.sources.some(source => source.id === sourceId)) session.sources.push(snapshots.find(source => source.id === sourceId)!);
+  }
+  const service = prepareService(entry.serviceId, session, entry.reason);
+  service.summary = entry.serviceSummary;
+  session.services = [service];
+  session.summary = entry.summary;
+  session.intent = 'personalized';
+  session.questions = mergeQuestions(service.questions, session);
+  session.analyzedRevision = session.revision;
+  session.status = session.facts.some(fact => ['proposed', 'conflict'].includes(fact.status)) ? 'awaiting-human' : 'ready';
+  session.error = null;
+  const detail = trigger === 'manual' ? 'Forhåndsberegnet svar hentet manuelt med hurtigtasten.'
+    : `Sikkerhetsnettet brukte det forhåndsberegnede svaret fordi modellkallet ${trigger === 'auto-timeout' ? 'passerte tidsgrensen' : 'feilet'} mot Cloudflare.`;
+  event(session, '', 'Sikkerhetsnett', 'completed', detail);
+  session.messages.push({ id: randomUUID(), role: 'assistant', language: entry.language, text: entry.answer, at: new Date().toISOString(), sourceId: null, sourceIds: [...service.sourceIds], precomputed: true });
+}
+async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callModel, persist: Persist = saveAssistantCase, hooks: AnalyzeHooks = {}) {
   invalidateAnalysis(session);
   const revision = session.revision;
   session.status = 'analyzing'; session.error = null; session.analyzedRevision = null; session.services = [];

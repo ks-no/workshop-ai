@@ -53,6 +53,7 @@ const translations: Record<string, string> = {
   'Se saksgrunnlaget': 'View preparation packet', 'Skriv en melding': 'Write a message', 'Hva er situasjonen din?': 'What is your situation?',
   'For eksempel: Jeg har mistet jobben og er usikker på hvordan jeg skal betale husleien.': 'For example: I have lost my job and am unsure how to pay the rent.',
   'Legg ved dokument': 'Attach document', 'Arbeider…': 'Working…', 'Send melding': 'Send message',
+  'Bruk forhåndsberegnet svar': 'Use precomputed answer', 'Forhåndsberegnet svar': 'Precomputed answer', 'Hurtigtast: Alt+D': 'Shortcut: Alt+D',
   'Du kan skrive et utkast. Sending og dokumentanalyse blir tilgjengelig når språkmodellen er tilkoblet.': 'You can write a draft. Sending and document analysis become available when the language models are connected.',
   'Velg et dokument': 'Choose a document',
   'TXT eller tekstbasert PDF, inntil 1,5 MB, ti sider og 14 000 tegn. Skannede bilder støttes ikke. Bruk testdokumenter.': 'TXT or a text-based PDF, up to 1.5 MB, ten pages and 14,000 characters. Scanned images are not supported. Use test documents.',

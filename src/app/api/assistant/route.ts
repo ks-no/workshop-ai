@@ -16,9 +16,9 @@ const revision = z.number().int().positive();
 const caseId = z.string().uuid();
 const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('start') }).strict(),
-  z.object({ action: z.literal('message'), message: z.string().trim().min(1).max(4000), revision, caseId }).strict(),
+  z.object({ action: z.literal('message'), message: z.string().trim().min(1).max(4000), revision, caseId, forceDemoCache: z.boolean().optional() }).strict(),
   z.object({ action: z.literal('answers'), message: z.string().trim().min(1).max(4000), answers: z.array(z.object({ key: z.enum(factKeys), value: z.string().trim().min(1).max(200), quote: z.string().trim().min(1).max(1000) }).strict()).min(1).max(8), revision, caseId }).strict(),
-  z.object({ action: z.literal('analyze'), revision, caseId }).strict(),
+  z.object({ action: z.literal('analyze'), revision, caseId, forceDemoCache: z.boolean().optional() }).strict(),
   z.object({ action: z.literal('fact'), factId: z.string().uuid(), decision: z.enum(['confirm', 'reject']), revision, caseId }).strict(),
   z.object({ action: z.literal('connect-ks'), revision, caseId }).strict(),
   z.object({ action: z.literal('income-consent'), approved: z.literal(true), revision, caseId }).strict(),
@@ -41,9 +41,9 @@ function sseFrame(event: string, data: unknown) {
 }
 type NonStartCommand = Exclude<AssistantCommand, { action: 'start' }>;
 async function runAction(command: NonStartCommand, session: AssistantCase, hooks: AnalyzeHooks) {
-  if (command.action === 'message') { addMessage(session, command.message); await analyzeCase(session, undefined, undefined, hooks); }
+  if (command.action === 'message') { addMessage(session, command.message); await analyzeCase(session, undefined, undefined, { ...hooks, forceDemoCache: command.forceDemoCache }); }
   else if (command.action === 'answers') { addConfirmedAnswers(session, command.message, command.answers); await analyzeCase(session, undefined, undefined, hooks); }
-  else if (command.action === 'analyze') { if (!session.messages.length) throw new CaseError('Beskriv hva du trenger hjelp med først.'); await analyzeCase(session, undefined, undefined, hooks); }
+  else if (command.action === 'analyze') { if (!session.messages.length) throw new CaseError('Beskriv hva du trenger hjelp med først.'); await analyzeCase(session, undefined, undefined, { ...hooks, forceDemoCache: command.forceDemoCache }); }
   else if (command.action === 'fact') await decideFactAndContinue(session, command.factId, command.decision, undefined, undefined, hooks);
   else if (command.action === 'connect-ks') { await connectKs(session); if (session.messages.length) await analyzeCase(session, undefined, undefined, hooks); }
   else if (command.action === 'income-consent') { await consentAndReadIncome(session, command.approved); if (session.messages.length) await analyzeCase(session, undefined, undefined, hooks); }
