@@ -1,0 +1,27 @@
+{
+  "at": "2026-09-10T18:11:47.112Z",
+  "tool": "@axe-core/playwright",
+  "tags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21aa"
+  ],
+  "checks": [
+    {
+      "screen": "startsiden",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "screen": "assistentskjermen",
+      "passed": true,
+      "violations": []
+    },
+    {
+      "screen": "kvitteringen",
+      "passed": true,
+      "violations": []
+    }
+  ],
+  "note": "Innsynsfanen (issue #11) er ikke med her; den ligger i en egen, ikke sammenslått gren (PR #21) og finnes ikke i dette worktreet."
+}

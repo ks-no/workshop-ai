@@ -1,0 +1,25 @@
+.overview { display: grid; gap: var(--ds-size-6); overflow-wrap: anywhere; }
+.heading, .stack { display: grid; gap: var(--ds-size-4); }
+.heading { padding-block: var(--ds-size-5); }
+.heading:focus, .heading h1:focus { outline-offset: 4px; }
+.panel { padding-block: var(--ds-size-5); }
+.panel > * + * { margin-block-start: var(--ds-size-4); }
+.tabs { max-width: 100%; }
+.tabs > * { flex: 1; padding-inline: var(--ds-size-2); }
+.family { text-align: center; position: relative; }
+.family::after { content: ''; width: 2px; height: var(--ds-size-5); background: var(--ds-color-accent-border-subtle); position: absolute; top: 100%; left: 50%; }
+.family h2 { margin-block: var(--ds-size-3); }
+.family dd { margin-inline-start: 0; margin-block-end: var(--ds-size-3); }
+.branches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-size-4); border-top: 2px solid var(--ds-color-accent-border-subtle); padding-top: var(--ds-size-5); }
+.service { min-width: 0; position: relative; }
+.service::before { content: ''; width: 2px; height: var(--ds-size-5); background: var(--ds-color-accent-border-subtle); position: absolute; bottom: 100%; left: 50%; }
+.service button { justify-content: space-between; width: 100%; text-align: left; white-space: normal; }
+.text { white-space: pre-wrap; }
+.requirements { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--ds-size-4); }
+.requirements li { display: grid; gap: var(--ds-size-2); justify-items: start; }
+.timeline { list-style: none; margin: 0 0 0 var(--ds-size-2); padding: 0 0 0 var(--ds-size-6); border-left: 2px solid var(--ds-color-accent-border-subtle); }
+.timeline li { position: relative; display: grid; justify-items: start; gap: var(--ds-size-2); padding-bottom: var(--ds-size-7); }
+.timeline li::before { content: ''; position: absolute; top: 5px; left: calc(-1 * var(--ds-size-6) - 7px); width: 12px; height: 12px; border-radius: 50%; background: var(--ds-color-accent-base-default); border: 2px solid var(--ds-color-neutral-background-default); }
+.timeline li[data-scheduled='true']::before { background: var(--ds-color-neutral-background-default); border-color: var(--ds-color-accent-base-default); }
+.timeline time { color: var(--ds-color-neutral-text-subtle); font-size: var(--ds-body-sm-font-size); }
+@media (max-width: 480px) { .branches { grid-template-columns: 1fr; } .service::before { display: none; } }

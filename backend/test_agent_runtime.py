@@ -14,9 +14,8 @@ import agent_runtime as runtime
 
 
 CONFIG = {
-    "CF_ACCOUNT_ID": "0123456789abcdef0123456789abcdef",
-    "CF_AI_GATEWAY_TOKEN": "test-only-not-a-real-cloudflare-token",
-    "CF_AI_GATEWAY_ID": "adapter-tests",
+    "LLM_BASE_URL": "https://litellm.test.invalid/v1",
+    "LLM_API_KEY": "test-only-not-a-real-api-key",
     "ASSISTANT_MODEL_TIMEOUT_MS": "10000",
 }
 PRIVATE_DETAIL = "PRIVATE-UPSTREAM-DETAIL"
@@ -38,11 +37,11 @@ SCHEMA = {
 VALID_OUTPUT = {"summary": "Tôi có thể giúp bạn chuẩn bị hồ sơ.", "findings": [{"sourceId": "citizen", "quote": "Husleien er 13500 kroner."}]}
 
 
-def job(role="specialist", service_id="housing"):
+def job(role="draft", service_id="housing"):
     return {
-        "id": "coordinator" if role == "coordinator" else service_id,
+        "id": "triage" if role == "triage" else service_id,
         "name": role, "role": role,
-        "model": "workers-ai/@cf/qwen/qwen3.8-27b" if role == "coordinator" else "workers-ai/@cf/google/gemma-4-26b-a4b-it",
+        "model": "controlled-triage" if role == "triage" else "controlled-draft",
         "prompt": "Controlled instruction. Preserve exact Norwegian quotes.",
         "context": {"_security": copy.deepcopy(runtime.SECURITY_CONTRACT), "responseLanguage": "Vietnamese", "quote": "Husleien er 13500 kroner."},
         "schema": copy.deepcopy(SCHEMA),
@@ -60,7 +59,7 @@ def completion(output=VALID_OUTPUT, finish_reason="stop", raw_content=None):
 
 class InterruptedBody(httpx2.AsyncByteStream):
     async def __aiter__(self):
-        raise httpx2.ReadError(f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}")
+        raise httpx2.ReadError(f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}")
         yield b""  # Makes this an async iterator whose body fails after headers.
 
 
@@ -92,25 +91,23 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(value, message)
         return message
 
-    async def test_real_agent_sdk_uses_cloudflare_endpoint_private_headers_and_role_models(self):
-        for role in ("coordinator", "specialist"):
+    async def test_real_agent_sdk_uses_configured_endpoint_bearer_key_and_role_models(self):
+        for role in ("triage", "draft"):
             with self.subTest(role=role):
                 selected_job = job(role)
                 output = await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
                 self.assertEqual(output, VALID_OUTPUT)
                 request = self.requests[-1]
                 self.assertEqual(request.method, "POST")
-                self.assertEqual(str(request.url), f"https://api.cloudflare.com/client/v4/accounts/{CONFIG['CF_ACCOUNT_ID']}/ai/v1/chat/completions")
-                self.assertEqual(request.headers["authorization"], f"Bearer {CONFIG['CF_AI_GATEWAY_TOKEN']}")
+                self.assertEqual(str(request.url), f"{CONFIG['LLM_BASE_URL']}/chat/completions")
+                self.assertEqual(request.headers["authorization"], f"Bearer {CONFIG['LLM_API_KEY']}")
                 self.assertEqual(request.headers["content-type"], "application/json")
-                self.assertEqual(request.headers["cf-aig-gateway-id"], CONFIG["CF_AI_GATEWAY_ID"])
-                self.assertEqual(request.headers["cf-aig-skip-cache"], "true")
-                self.assertEqual(request.headers["cf-aig-collect-log"], "false")
+                self.assertFalse([name for name in request.headers if name.lower().startswith("cf-aig-")])
                 body = json.loads(request.content)
-                self.assertEqual(body["model"], selected_job["model"].removeprefix("workers-ai/"))
+                self.assertEqual(body["model"], selected_job["model"])
                 self.assertEqual(body["response_format"], {"type": "json_object"})
-                self.assertEqual(body["chat_template_kwargs"], {"enable_thinking": False})
-                self.assertFalse(body["store"])
+                self.assertNotIn("chat_template_kwargs", body)
+                self.assertFalse(body.get("store", False))
                 self.assertFalse(body["stream"])
                 self.assertNotIn("tools", body)
                 self.assertEqual(body["temperature"], 0)
@@ -152,18 +149,21 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             await runtime.analysis_only_middleware(context, call_next)
         self.assertFalse(called)
 
-    async def test_default_gateway_and_native_model_identifier_are_preserved(self):
-        with patch.dict(os.environ):
-            os.environ.pop("CF_AI_GATEWAY_ID", None)
-            selected_job = job()
-            selected_job["model"] = "@cf/google/gemma-4-26b-a4b-it"
-            await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
-        self.assertEqual(self.requests[0].headers["cf-aig-gateway-id"], "default")
-        self.assertEqual(json.loads(self.requests[0].content)["model"], selected_job["model"])
+    async def test_trailing_slash_and_loopback_http_base_urls_are_accepted_and_model_identifier_is_preserved(self):
+        for base_url, expected in [(CONFIG["LLM_BASE_URL"] + "/", CONFIG["LLM_BASE_URL"]), ("http://127.0.0.1:4000", "http://127.0.0.1:4000")]:
+            with self.subTest(base_url=base_url), patch.dict(os.environ, {"LLM_BASE_URL": base_url}):
+                selected_job = job()
+                selected_job["model"] = "openai/gpt-4o-mini"
+                await runtime.run_agent(selected_job, self.factory(lambda *_: completion()))
+                self.assertEqual(str(self.requests[-1].url), f"{expected}/chat/completions")
+                self.assertEqual(json.loads(self.requests[-1].content)["model"], selected_job["model"])
 
     async def test_invalid_configuration_fails_before_any_http_client_is_created(self):
-        for key, value in [("CF_ACCOUNT_ID", ""), ("CF_ACCOUNT_ID", PRIVATE_DETAIL),
-                           ("CF_AI_GATEWAY_TOKEN", ""), ("CF_AI_GATEWAY_ID", "../" + PRIVATE_DETAIL)]:
+        for key, value in [("LLM_BASE_URL", ""), ("LLM_BASE_URL", PRIVATE_DETAIL),
+                           ("LLM_BASE_URL", f"http://{PRIVATE_DETAIL}.example/v1"),
+                           ("LLM_BASE_URL", f"https://user:{PRIVATE_DETAIL}@litellm.test.invalid/v1"),
+                           ("LLM_BASE_URL", f"ftp://litellm.test.invalid/{PRIVATE_DETAIL}"),
+                           ("LLM_API_KEY", "")]:
             with self.subTest(key=key, value=value), patch.dict(os.environ, {key: value}):
                 with self.assertRaises(ValueError) as caught:
                     await runtime.run_agent(job(), self.factory(lambda *_: completion()))
@@ -242,7 +242,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
         for status in [401, 403, 402, 429, 500, 503]:
             with self.subTest(status=status):
                 before = len(self.requests)
-                response = lambda *_: httpx2.Response(status, json={"error": {"message": f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}", "type": "test_error"}})
+                response = lambda *_: httpx2.Response(status, json={"error": {"message": f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}", "type": "test_error"}})
                 with self.assertRaises(Exception) as caught:
                     await runtime.run_agent(job(), self.factory(response))
                 self.assertEqual(len(self.requests) - before, 1)
@@ -254,7 +254,7 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(failure_type=failure_type):
                 before = len(self.requests)
                 def fail(request, _):
-                    raise failure_type(f"{PRIVATE_DETAIL} {CONFIG['CF_AI_GATEWAY_TOKEN']}", request=request)
+                    raise failure_type(f"{PRIVATE_DETAIL} {CONFIG['LLM_API_KEY']}", request=request)
                 with self.assertRaises(Exception) as caught:
                     await runtime.run_agent(job(), self.factory(fail))
                 self.assertEqual(len(self.requests) - before, 1)
@@ -272,6 +272,17 @@ class AgentTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.requests), 1)
         self.assert_safe_error(caught.exception)
 
+    async def test_telenor_provider_401_error_names_telenor_ai_factory_not_cloudflare(self):
+        telenor_env = {"AI_PROVIDER": "telenor", "TELENOR_AI_FACTORY_BASE_URL": "https://abc123.execute-api.eu-north-1.amazonaws.com/prod",
+                       "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"}
+        with patch.dict(os.environ, telenor_env):
+            response = lambda *_: httpx2.Response(401, json={"error": {"message": PRIVATE_DETAIL, "type": "test_error"}})
+            with self.assertRaises(Exception) as caught:
+                await runtime.run_agent(job(), self.factory(response))
+            message = self.assert_safe_error(caught.exception, "avviste tilgangen")
+            self.assertIn("Telenor AI Factory", message)
+            self.assertNotIn("Cloudflare", message)
+
 
 class InMemoryBridge:
     """Only model inference/host effects are controlled; framework executors run normally."""
@@ -288,7 +299,7 @@ class InMemoryBridge:
         if method == "started":
             return None
         if method == "model":
-            if data["role"] == "coordinator":
+            if data["role"] == "triage":
                 return {"output": {"services": [{"id": item["id"]} for item in self.jobs]}}
             self.inference_started.add(data["id"])
             if len(self.inference_started) == len(self.jobs):
@@ -302,14 +313,54 @@ class InMemoryBridge:
             return {"jobs": self.jobs}
         if method == "specialist":
             return None
+        if method == "stage":
+            return None
         raise AssertionError(f"Unexpected host method: {method}")
+
+
+class StagedReviewBridge(InMemoryBridge):
+    """Hands out a critic then a polish stage job, proving the Reviewer tail loop runs in order."""
+    def __init__(self):
+        super().__init__(["housing"])
+        self.stage_calls = []
+        self.stage_step = 0
+
+    async def request(self, method, data):
+        if method != "stage":
+            return await super().request(method, data)
+        self.stage_calls.append(copy.deepcopy(data))
+        self.stage_step += 1
+        if self.stage_step == 1:
+            return {"job": job(role="critic", service_id="critic")}
+        if self.stage_step == 2:
+            return {"job": job(role="polish", service_id="polish")}
+        return None
+
+
+class FailingStageBridge(InMemoryBridge):
+    """The one stage job it hands out fails at the model call; the tail must still end cleanly."""
+    def __init__(self):
+        super().__init__(["housing"])
+        self.stage_calls = []
+        self.served = False
+
+    async def request(self, method, data):
+        if method == "stage":
+            self.stage_calls.append(copy.deepcopy(data))
+            if self.served:
+                return None
+            self.served = True
+            return {"job": job(role="critic", service_id="critic")}
+        if method == "model" and data.get("id") == "critic":
+            raise ValueError(f"{PRIVATE_DETAIL} upstream failure")
+        return await super().request(method, data)
 
 
 class WorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def run_graph(self, bridge):
         graph = runtime.build_workflow(bridge, host_models=True)
         self.assertEqual(type(graph).__module__.split(".")[0], "agent_framework")
-        result = await asyncio.wait_for(graph.run({"planner": job("coordinator")}), timeout=5)
+        result = await asyncio.wait_for(graph.run({"triage": job("triage")}), timeout=5)
         outputs = result.get_outputs()
         self.assertEqual(len(outputs), 1)
         self.assertEqual(outputs[0]["framework"], runtime.FRAMEWORK)
@@ -319,8 +370,8 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         bridge = InMemoryBridge(["housing"])
         self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "completed", "moving": "skipped"})
         model_jobs = [data for method, data in bridge.calls if method == "model"]
-        self.assertEqual([item["id"] for item in model_jobs], ["coordinator", "housing"])
-        self.assertEqual([item["role"] for item in model_jobs], ["coordinator", "specialist"])
+        self.assertEqual([item["id"] for item in model_jobs], ["triage", "housing"])
+        self.assertEqual([item["role"] for item in model_jobs], ["triage", "draft"])
         self.assertEqual([data["id"] for method, data in bridge.calls if method == "specialist"], ["housing"])
 
     async def test_three_selected_specialists_start_concurrently_before_any_finishes(self):
@@ -329,7 +380,7 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bridge.inference_started, {"family", "housing", "moving"})
         first_finished = next(index for index, (method, _) in enumerate(bridge.calls) if method == "specialist")
         started_before_finish = {data["id"] for method, data in bridge.calls[:first_finished] if method == "started"}
-        self.assertEqual(started_before_finish, {"coordinator", "family", "housing", "moving"})
+        self.assertEqual(started_before_finish, {"triage", "family", "housing", "moving"})
 
     async def test_failed_specialist_is_redacted_and_still_joins_other_parallel_results(self):
         bridge = InMemoryBridge(["family", "housing", "moving"], failed="housing", require_parallel=True)
@@ -344,7 +395,81 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def test_empty_selection_joins_without_any_specialist_inference(self):
         bridge = InMemoryBridge([])
         self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "skipped", "moving": "skipped"})
-        self.assertEqual([data["id"] for method, data in bridge.calls if method == "model"], ["coordinator"])
+        self.assertEqual([data["id"] for method, data in bridge.calls if method == "model"], ["triage"])
+
+    async def test_reviewer_runs_critic_then_polish_stage_jobs_in_order(self):
+        bridge = StagedReviewBridge()
+        self.assertEqual(await self.run_graph(bridge), {"family": "skipped", "housing": "completed", "moving": "skipped"})
+        self.assertEqual(len(bridge.stage_calls), 3)
+        self.assertEqual(bridge.stage_calls[0], {})
+        self.assertEqual(bridge.stage_calls[1], {"id": "critic", "output": VALID_OUTPUT})
+        self.assertEqual(bridge.stage_calls[2], {"id": "polish", "output": VALID_OUTPUT})
+
+    async def test_failing_stage_job_is_redacted_and_still_ends_the_tail(self):
+        bridge = FailingStageBridge()
+        statuses = await self.run_graph(bridge)
+        self.assertEqual(set(statuses), {"family", "housing", "moving"})
+        self.assertEqual(len(bridge.stage_calls), 2)
+        reported = bridge.stage_calls[1]
+        self.assertEqual(reported["id"], "critic")
+        self.assertNotIn("output", reported)
+        self.assertNotIn(PRIVATE_DETAIL, reported["error"])
+
+
+class ProviderConfigurationTests(unittest.TestCase):
+    TELENOR_BASE = "https://abc123.execute-api.eu-north-1.amazonaws.com/prod"
+
+    def test_telenor_configuration_appends_v1_and_carries_no_cloudflare_headers(self):
+        with patch.dict(os.environ, {"AI_PROVIDER": "telenor", "TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE,
+                                      "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"}):
+            configuration = runtime.provider_configuration()
+        self.assertEqual(configuration["base_url"], self.TELENOR_BASE + "/v1")
+        self.assertEqual(configuration["api_key"], "telenor-test-key")
+        self.assertEqual(configuration["max_retries"], 0)
+        self.assertNotIn("default_headers", configuration)
+
+    def test_invalid_telenor_configuration_fails_closed_without_echoing_values(self):
+        cases = [
+            {"TELENOR_AI_FACTORY_BASE_URL": "", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE.replace("https", "http"), "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": "https://evil.example.com/prod", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE + "?x=1", "TELENOR_AI_FACTORY_API_KEY": "telenor-test-key"},
+            {"TELENOR_AI_FACTORY_BASE_URL": self.TELENOR_BASE, "TELENOR_AI_FACTORY_API_KEY": ""},
+        ]
+        for values in cases:
+            with self.subTest(base=values["TELENOR_AI_FACTORY_BASE_URL"], key=values["TELENOR_AI_FACTORY_API_KEY"]):
+                with patch.dict(os.environ, {"AI_PROVIDER": "telenor", **values}):
+                    with self.assertRaises(ValueError) as caught:
+                        runtime.provider_configuration()
+                self.assertEqual(str(caught.exception), "Invalid server configuration")
+                for value in values.values():
+                    if value:
+                        self.assertNotIn(value, str(caught.exception))
+
+
+class ResponseContentTests(unittest.TestCase):
+    def test_plain_text_wins_over_reasoning_content(self):
+        response = SimpleNamespace(text="answer", messages=None)
+        self.assertEqual(runtime.response_content(response), "answer")
+
+    def test_empty_text_falls_back_to_reasoning_content_on_a_content_object(self):
+        content = SimpleNamespace(reasoning_content="chain of thought", raw_representation=None)
+        response = SimpleNamespace(text="", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "chain of thought")
+
+    def test_empty_text_falls_back_to_reasoning_content_on_raw_representation(self):
+        content = SimpleNamespace(raw_representation=SimpleNamespace(reasoning_content="raw chain"))
+        response = SimpleNamespace(text="", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "raw chain")
+
+    def test_nothing_anywhere_returns_empty_string(self):
+        content = SimpleNamespace(raw_representation=None)
+        response = SimpleNamespace(text="  ", messages=[SimpleNamespace(contents=[content])])
+        self.assertEqual(runtime.response_content(response), "")
+
+    def test_malformed_response_with_no_messages_returns_empty_string_without_raising(self):
+        response = SimpleNamespace(text="", messages=None)
+        self.assertEqual(runtime.response_content(response), "")
 
 
 if __name__ == "__main__":

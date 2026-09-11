@@ -1,7 +1,7 @@
 """Microsoft Agent Framework workflow; JSONL over private parent/child pipes.
 
 The host owns sourced case data and human consent. This runtime owns agent
-execution and the planner -> fan-out -> join graph. No public HTTP port.
+execution and the triage -> fan-out -> reviewer graph. No public HTTP port.
 """
 import asyncio
 import json
@@ -11,6 +11,7 @@ import re
 import sys
 import uuid
 from typing import Any
+from urllib.parse import urlsplit
 
 from agent_framework import Agent, Executor, WorkflowBuilder, WorkflowContext, agent_middleware, handler
 from agent_framework.openai import OpenAIChatCompletionClient
@@ -21,18 +22,28 @@ from openai import AsyncOpenAI, APIStatusError, APIConnectionError, APITimeoutEr
 logging.disable(logging.CRITICAL)  # stdout is a protocol, never a prompt/credential log.
 FRAMEWORK = {"name": "Microsoft Agent Framework", "version": "1.17.0", "language": "Python"}
 SECURITY_CONTRACT = {"integrity": "untrusted", "confidentiality": "private", "allowedCapabilities": ["analyze"]}
+TELENOR_HOSTNAME_PATTERN = re.compile(
+    r"^[a-z0-9][a-z0-9.-]*\.(?:execute-api\.[a-z0-9-]+\.amazonaws\.com|telenor\.(?:no|com))$", re.IGNORECASE)
+PROVIDER_NAMES = {"cloudflare": "Cloudflare", "telenor": "Telenor AI Factory", "litellm": "Modelltjenesten"}
 
 
 def emit(value: dict[str, Any]) -> None:
     print(json.dumps(value, ensure_ascii=False, separators=(",", ":")), flush=True)
 
 
-PROVIDER_NAMES = {"cloudflare": "Cloudflare", "telenor-ai-factory": "Telenor AI Factory"}
+def configured_provider() -> str:
+    # Presence selects the generic endpoint even when its value is invalid: never fall back silently.
+    return (os.environ.get("AI_PROVIDER") or ("litellm" if "LLM_BASE_URL" in os.environ else "cloudflare")).strip().lower()
 
 
-def safe_error(error: Exception, provider: str = "cloudflare") -> str:
+def provider_label(provider: str | None = None) -> str:
+    # A job carries the provider that was actually active for it, which the admin panel may
+    # have overridden per role; fall back to the server-wide env default when none is given.
+    return PROVIDER_NAMES.get(provider or configured_provider(), "Leverandøren")
+
+
+def safe_error(error: Exception, provider: str | None = None) -> str:
     # Framework clients wrap SDK errors. Inspect typed causes, never their raw text.
-    name = PROVIDER_NAMES.get(provider, "Leverandøren")
     seen: set[int] = set()
     while id(error) not in seen:
         seen.add(id(error))
@@ -42,20 +53,42 @@ def safe_error(error: Exception, provider: str = "cloudflare") -> str:
         if not isinstance(cause, Exception):
             break
         error = cause
+    label = provider_label(provider)
     if isinstance(error, APIStatusError):
         if error.status_code in (401, 403):
-            return f"{name} avviste tilgangen. Kontroller serverens nøkkel og tilgang."
+            return f"{label} avviste tilgangen. Kontroller serverens nøkkel og modelltilgang."
         if error.status_code in (402, 429):
-            return f"{name} har nådd en bruksgrense. Kontroller saldo eller vent før du prøver igjen."
-        return f"{name} kunne ikke fullføre modellkallet (HTTP {error.status_code})."
+            return f"{label} har nådd en bruksgrense. Kontroller saldo eller vent før du prøver igjen."
+        return f"{label} kunne ikke fullføre modellkallet (HTTP {error.status_code})."
     if isinstance(error, (TimeoutError, APIConnectionError, APITimeoutError)):
-        return f"{name} kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
+        return f"{label} kunne ikke nås innen tidsgrensen. Opplysningene er bevart; prøv analysen på nytt."
     if isinstance(error, ValueError) and str(error).startswith("KI returnerte"):
         return str(error)
     return "Agentkjøringen kunne ikke fullføres. Opplysningene er bevart; kontroller Python-oppsettet og prøv igjen."
 
 
-def cloudflare_configuration() -> dict[str, Any]:
+def provider_configuration(provider: str | None = None) -> dict[str, Any]:
+    # A job's own provider wins so a per-role admin override actually reaches the model call;
+    # the server's own environment is still the only source of the connection secrets below.
+    provider = provider or configured_provider()
+    if provider == "litellm":
+        base_url = os.environ.get("LLM_BASE_URL", "").strip()
+        api_key = os.environ.get("LLM_API_KEY", "")
+        url = urlsplit(base_url)
+        secure = url.scheme == "https" or (url.scheme == "http" and url.hostname in ("localhost", "127.0.0.1", "::1"))
+        if not url.hostname or not secure or url.username or url.password or url.query or url.fragment or not api_key:
+            raise ValueError("Invalid server configuration")
+        return {"api_key": api_key, "base_url": base_url.rstrip("/"), "max_retries": 0}
+    if provider == "telenor":
+        base = os.environ.get("TELENOR_AI_FACTORY_BASE_URL", "").strip()
+        key = os.environ.get("TELENOR_AI_FACTORY_API_KEY", "").strip()
+        parts = urlsplit(base)
+        if parts.scheme != "https" or not TELENOR_HOSTNAME_PATTERN.match(parts.hostname or "") or parts.username or parts.password or parts.query or parts.fragment or not key:
+            raise ValueError("Invalid server configuration")
+        root = base.rstrip("/")
+        return {"api_key": key, "base_url": root if root.endswith("/v1") else root + "/v1", "max_retries": 0}
+    if provider != "cloudflare":
+        raise ValueError("Invalid server configuration")
     account = os.environ.get("CF_ACCOUNT_ID", "")
     token = os.environ.get("CF_AI_GATEWAY_TOKEN", "")
     gateway = os.environ.get("CF_AI_GATEWAY_ID", "default")
@@ -65,26 +98,15 @@ def cloudflare_configuration() -> dict[str, Any]:
             "max_retries": 0, "default_headers": {"cf-aig-gateway-id": gateway, "cf-aig-skip-cache": "true", "cf-aig-collect-log": "false"}}
 
 
-def telenor_ai_factory_configuration() -> dict[str, Any]:
-    base_url = os.environ.get("TELENOR_AI_FACTORY_BASE_URL", "")
-    key = os.environ.get("TELENOR_AI_FACTORY_API_KEY", "")
-    # Base URL comes only from the server's own environment, never from a job payload or the admin endpoint.
-    if not key or not re.fullmatch(r"https://[^\s@]+", base_url):
-        raise ValueError("Invalid server configuration")
-    return {"api_key": key, "base_url": base_url, "max_retries": 0, "default_headers": {}}
-
-
-def provider_configuration(provider: str = "cloudflare") -> dict[str, Any]:
-    if provider == "telenor-ai-factory":
-        return telenor_ai_factory_configuration()
-    return cloudflare_configuration()
-
-
 async def host_agent(bridge, job):
     result = await bridge.request("model", job)
     if result.get("error"):
         raise ValueError("Host model failed")
     return result["output"]
+
+
+async def run_stage(bridge, job: dict[str, Any], host_models: bool) -> Any:
+    return await host_agent(bridge, job) if host_models else await run_agent(job)
 
 
 def secured_message(role: str, content: str, *, trusted: bool = False) -> LabeledMessage:
@@ -120,6 +142,20 @@ def validate_security_contract(job: dict[str, Any]) -> None:
         raise ValueError("Agent security policy rejected the model context")
 
 
+def response_content(response) -> str:
+    """Reasoning models leave text empty and put the turn in reasoning_content."""
+    text = (getattr(response, "text", None) or "").strip()
+    if text:
+        return text
+    for message in reversed(getattr(response, "messages", None) or []):
+        for content in getattr(message, "contents", None) or []:
+            for candidate in (content, getattr(content, "raw_representation", None)):
+                value = getattr(candidate, "reasoning_content", None)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+    return ""
+
+
 async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str, Any]:
     """One framework Agent, strict schema, at most one format repair in one budget."""
     validate_security_contract(job)
@@ -127,16 +163,21 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     schema = job["schema"]
     validator = Draft202012Validator(schema)
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
+    provider = job.get("provider") or configured_provider()
     async with asyncio.timeout(timeout):
-        async with client_factory(**provider_configuration(job.get("provider", "cloudflare")), timeout=timeout) as sdk:
-            chat = OpenAIChatCompletionClient(model=job["model"].removeprefix("workers-ai/"), async_client=sdk)
+        async with client_factory(**provider_configuration(provider), timeout=timeout) as sdk:
+            cloudflare = provider == "cloudflare"
+            model = job["model"].removeprefix("workers-ai/") if cloudflare else job["model"]
+            options = {"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}, "store": False}
+            if cloudflare:
+                options["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+            chat = OpenAIChatCompletionClient(model=model, async_client=sdk)
             agent = Agent(client=chat, name=job["name"], instructions=job["prompt"] + "\nReturn exactly one JSON object matching: " + json.dumps(schema),
                           middleware=[analysis_only_middleware],
-                          default_options={"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"},
-                                           "store": False, "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}})
+                          default_options=options)
             for attempt in range(2):
                 response = await agent.run(messages)
-                content = response.text
+                content = response_content(response)
                 issues: list[dict[str, Any]] = []
                 try:
                     output = json.loads(content)
@@ -181,16 +222,16 @@ class HostBridge:
                 future.cancel()
 
 
-class Planner(Executor):
+class Triage(Executor):
     def __init__(self, bridge: HostBridge, host_models: bool):
-        super().__init__(id="coordinator")
+        super().__init__(id="triage")
         self.bridge, self.host_models = bridge, host_models
 
     @handler
     async def plan(self, payload: dict, ctx: WorkflowContext[dict]) -> None:
-        job = payload["planner"]
-        await self.bridge.request("started", {"id": "coordinator", "role": "coordinator", "name": job["name"]})
-        output = await host_agent(self.bridge, job) if self.host_models else await run_agent(job)
+        job = payload["triage"]
+        await self.bridge.request("started", {"id": "triage", "role": "triage", "name": job["name"]})
+        output = await run_stage(self.bridge, job, self.host_models)
         prepared = await self.bridge.request("prepare", {"output": output})
         await ctx.send_message(prepared)
 
@@ -205,34 +246,42 @@ class Specialist(Executor):
         job = next((item for item in payload["jobs"] if item["id"] == self.id), None)
         result: dict[str, Any] = {"id": self.id, "status": "skipped"}
         if job:
-            await self.bridge.request("started", {"id": self.id, "role": "specialist", "name": job["name"]})
+            await self.bridge.request("started", {"id": self.id, "role": "draft", "name": job["name"]})
             try:
-                output = await host_agent(self.bridge, job) if self.host_models else await run_agent(job)
+                output = await run_stage(self.bridge, job, self.host_models)
                 await self.bridge.request("specialist", {"id": self.id, "output": output})
                 result["status"] = "completed"
             except Exception as error:
-                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error, job.get("provider", "cloudflare"))})
+                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error, job.get("provider"))})
                 result["status"] = "failed"
-        # Every graph branch emits once, including unselected services. The fixed join
+        # Every graph branch emits once, including unselected services. The fixed fan-in
         # never waits forever for a branch that did not need an actual model call.
         await ctx.send_message(result)
 
 
-class Join(Executor):
-    def __init__(self):
-        super().__init__(id="join")
+class Reviewer(Executor):
+    def __init__(self, bridge: HostBridge, host_models: bool):
+        super().__init__(id="reviewer")
+        self.bridge, self.host_models = bridge, host_models
 
     @handler
-    async def collect(self, results: list[dict], ctx: WorkflowContext[dict, dict]) -> None:
+    async def review(self, results: list[dict], ctx: WorkflowContext[dict, dict]) -> None:
+        # The host owns stage order and the revision bound; a job of None ends the tail.
+        payload: dict[str, Any] = {}
+        while job := ((await self.bridge.request("stage", payload)) or {}).get("job"):
+            try:
+                payload = {"id": job["id"], "output": await run_stage(self.bridge, job, self.host_models)}
+            except Exception as error:
+                payload = {"id": job["id"], "error": safe_error(error, job.get("provider"))}
         await ctx.yield_output({"framework": FRAMEWORK, "branches": results})
 
 
 def build_workflow(bridge: HostBridge, host_models: bool = False):
-    planner = Planner(bridge, host_models)
+    triage = Triage(bridge, host_models)
     specialists = [Specialist(service_id, bridge, host_models) for service_id in ("family", "housing", "moving")]
-    join = Join()
-    return (WorkflowBuilder(start_executor=planner, name="citizen-assistance", output_from=[join])
-            .add_fan_out_edges(planner, specialists).add_fan_in_edges(specialists, join).build())
+    reviewer = Reviewer(bridge, host_models)
+    return (WorkflowBuilder(start_executor=triage, name="citizen-assistance", output_from=[reviewer])
+            .add_fan_out_edges(triage, specialists).add_fan_in_edges(specialists, reviewer).build())
 
 
 async def main() -> None:
@@ -258,7 +307,7 @@ async def main() -> None:
         if task in done:
             emit({"type": "complete", **task.result()})
     except Exception as error:
-        provider = (payload.get("job") or payload.get("planner") or {}).get("provider", "cloudflare")
+        provider = (payload.get("job") or payload.get("triage") or {}).get("provider")
         emit({"type": "error", "message": safe_error(error, provider)})
     finally:
         task.cancel()

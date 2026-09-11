@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { AssistantCase, ModelPlan, ServiceId, SpecialistOutput } from '../src/domain/assistant-types';
+import type { AssistantCase, CritiqueRound, ModelPlan, ServiceId, SpecialistOutput } from '../src/domain/assistant-types';
 import type { ModelCall } from '../src/server/assistant-model';
-import { addConfirmedAnswers, addDocument, addMessage, analyzeCase, decideFact, decideFactAndContinue, handoffDocument, prepareHandoff } from '../src/server/assistant-service';
+import { addConfirmedAnswers, addDocument, addMessage, analyzeCase, decideFact, decideFactAndContinue, discardDraft, draftEmail, fillForm, handoffDocument, prepareHandoff, sendEmail, submitForm } from '../src/server/assistant-service';
+import type { submitKsApplication } from '../src/server/assistant-ks';
 
 const previousModelEnv = new Map<string, string | undefined>();
 beforeEach(() => {
-  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL']) {
+  for (const key of ['LLM_MODEL', 'LLM_COORDINATOR_MODEL', 'LLM_SPECIALIST_MODEL', 'ASSISTANT_MAX_REVISIONS', 'CRITIC_ALWAYS_PASS']) {
     previousModelEnv.set(key, process.env[key]);
     delete process.env[key];
   }
@@ -22,16 +23,33 @@ afterEach(() => {
 
 function session(): AssistantCase {
   const now = new Date().toISOString();
-  return { id: 'service-test', createdAt: now, updatedAt: now, expiresAt: now, revision: 1, status: 'collecting', messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', analyzedRevision: null, handoff: null, error: null, ksData: null };
+  return { id: 'service-test', createdAt: now, updatedAt: now, expiresAt: now, revision: 1, status: 'collecting', messages: [], facts: [], sources: [], services: [], questions: [], unsupported: [], runs: [], events: [], summary: '', critique: [], analyzedRevision: null, handoff: null, error: null, ksData: null };
 }
 function plan(services: ServiceId[] = ['housing']): ModelPlan {
   return { summary: 'Forbered opplysningene for menneskelig vurdering.', services: services.map(id => ({ id, reason: 'Innbyggerens beskrivelse' })), facts: [], questions: [], unsupported: [] };
 }
 type SpecialistContext = { intent?: 'information' | 'personalized'; citizenQuestion?: string; service: { id: ServiceId }; sources: { id: string; kind: string; text: string }[]; facts: { key: string; value: string; status: string }[] };
+type TailContext = { intent?: 'information' | 'personalized'; citizenQuestion?: string; draft: string; review: CritiqueRound | null; openQuestions: { key: string; question: string }[]; sources: { id: string; kind: string; text: string }[] };
+type CriticOutput = { verdict: 'PASS' | 'REVISE'; gaps: { point: string; quote: string }[]; notes: string };
+type TailOverrides = {
+  critic?: (context: TailContext) => CriticOutput | Promise<CriticOutput>;
+  revise?: (context: TailContext) => { answer: string } | Promise<{ answer: string }>;
+  polish?: (context: TailContext) => { answer: string } | Promise<{ answer: string }>;
+};
 // These injected responses exercise transport boundaries; they are never installed as production inference.
-function model(response: ModelPlan, specialist?: (context: SpecialistContext) => SpecialistOutput | Promise<SpecialistOutput>): ModelCall {
-  return async (_system, context, schema) => schema.parse(context && typeof context === 'object' && 'service' in context
-    ? await (specialist?.(context as SpecialistContext) ?? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }) : response);
+// By default the critic PASSes and the revision/polish steps hand the draft back untouched, so a test that
+// only cares about the triage/draft stages does not have to know the review tail exists.
+function model(response: ModelPlan, specialist?: (context: SpecialistContext) => SpecialistOutput | Promise<SpecialistOutput>, tail?: TailOverrides): ModelCall {
+  return async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      const tailContext = context as TailContext;
+      if (role === 'critic') return schema.parse(await (tail?.critic?.(tailContext) ?? { verdict: 'PASS', gaps: [], notes: '' }));
+      const rewrite = role === 'polish' ? tail?.polish : tail?.revise;
+      return schema.parse(await (rewrite?.(tailContext) ?? { answer: tailContext.draft }));
+    }
+    return schema.parse(context && typeof context === 'object' && 'service' in context
+      ? await (specialist?.(context as SpecialistContext) ?? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }) : response);
+  };
 }
 const discardPersistence = () => {};
 
@@ -165,31 +183,37 @@ test('selected specialists start separately, receive bounded evidence, and canno
   await analyzeCase(current, inference, discardPersistence);
   assert.equal(contexts.length, 3);
   assert.ok(contexts.every(context => !JSON.stringify(context).includes('PRIVAT-UTENFOR-UTDRAG')));
-  assert.equal(current.runs.length, 4);
+  assert.equal(current.runs.length, 6); // triage + 3 specialists + critic + polish
   assert.ok(current.runs.every(run => run.status === 'completed'));
   assert.ok(current.services.every(service => service.findings.some(finding => finding.text === 'Kilden gir veiledning til forberedelsen.')));
   assert.ok(current.services.every(service => !service.findings.some(finding => finding.text === 'Denne påstanden mangler dekning.')));
   assert.equal(current.events.filter(event => event.type === 'blocked').length, 3);
 });
 
-test('analysis passes explicit model roles and records the coordinator and specialist models separately', async () => {
-  process.env.LLM_COORDINATOR_MODEL = '@cf/qwen/qwen3.8-27b';
-  process.env.LLM_SPECIALIST_MODEL = '@cf/google/gemma-4-26b-a4b-it';
+test('analysis passes explicit model roles and records the triage, draft, critic and polish models separately', async () => {
+  process.env.LLM_COORDINATOR_MODEL = '@cf/qwen/qwen3.8-27b'; // legacy fallback for triage, critic and polish
+  process.env.LLM_SPECIALIST_MODEL = '@cf/google/gemma-4-26b-a4b-it'; // legacy fallback for draft
   const current = session();
   addMessage(current, 'Jeg trenger hjelp med familie, bolig og flytting.');
   const roles: (string | undefined)[] = [];
   const infer: ModelCall = async (_system, context, schema, role) => {
-    const isSpecialist = context !== null && typeof context === 'object' && 'service' in context;
     roles.push(role);
-    assert.equal(role, isSpecialist ? 'specialist' : 'coordinator');
+    if (context !== null && typeof context === 'object' && 'draft' in context) {
+      assert.ok(role === 'critic' || role === 'polish');
+      return schema.parse(role === 'critic' ? { verdict: 'PASS', gaps: [], notes: '' } : { answer: (context as { draft: string }).draft });
+    }
+    const isSpecialist = context !== null && typeof context === 'object' && 'service' in context;
+    assert.equal(role, isSpecialist ? 'draft' : 'triage');
     return schema.parse(isSpecialist ? { summary: 'Kontroller sjekklisten før du går videre.', findings: [], questions: [] } : plan(['family', 'housing', 'moving']));
   };
   await analyzeCase(current, infer, discardPersistence);
-  assert.deepEqual(roles, ['coordinator', 'specialist', 'specialist', 'specialist']);
-  assert.equal(current.runs.length, 4);
+  assert.deepEqual(roles, ['triage', 'draft', 'draft', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.length, 6);
   assert.ok(current.runs.every(run => run.status === 'completed'));
   assert.equal(current.runs[0].model, '@cf/qwen/qwen3.8-27b');
-  assert.ok(current.runs.slice(1).every(run => run.model === '@cf/google/gemma-4-26b-a4b-it'));
+  assert.ok(current.runs.slice(1, 4).every(run => run.model === '@cf/google/gemma-4-26b-a4b-it'));
+  assert.equal(current.runs.find(run => run.stage === 'critic')?.model, '@cf/qwen/qwen3.8-27b');
+  assert.equal(current.runs.find(run => run.stage === 'polish')?.model, '@cf/qwen/qwen3.8-27b');
   assert.equal(current.error, null);
 });
 
@@ -303,7 +327,11 @@ test('a case with no prior language defaults to Norwegian and normalizes the Nor
   const seenLanguages: unknown[] = [];
   const response = plan(['housing']);
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') {
       seenLanguages.push((context as { currentLanguage: string }).currentLanguage);
       return schema.parse(response);
     }
@@ -379,7 +407,11 @@ test('the chosen response language reaches specialists and messages while source
   const languages: unknown[] = [];
   const originalSources = structuredClone(current.sources);
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') {
       languages.push((context as { currentLanguage: string }).currentLanguage);
       return schema.parse(response);
     }
@@ -425,7 +457,11 @@ test('unsafe generated amounts use Vietnamese safety notices without changing th
   response.services[0].reason = 'Du får 888888 kroner.';
   response.facts = [{ key: 'monthly_rent', value: '12000', sourceId: document.id, quote }];
   const infer: ModelCall = async (system, context, schema, role) => {
-    if (role === 'coordinator') return schema.parse(response);
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') return schema.parse(response);
     assert.match(system, /REQUIRED OUTPUT LANGUAGE: Vietnamese/);
     assert.equal((context as { responseLanguage: string }).responseLanguage, 'Vietnamese (tiếng Việt)');
     return schema.parse({ summary: 'Du får 777777 kroner.', findings: [
@@ -463,7 +499,11 @@ test('specialists receive only exact cited register facts and never full KS snap
     citation: { sourceId: 'ks-income', quote: '"beregningstype": "household_year"', lineStart: 3, lineEnd: 3, page: null }, createdAt: now, confirmedAt: now });
   const response = plan(['family']);
   const infer: ModelCall = async (_system, context, schema, role) => {
-    if (role === 'coordinator') return schema.parse(response);
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    if (role === 'triage') return schema.parse(response);
     const specialist = context as SpecialistContext & { _security: { integrity: string; confidentiality: string; allowedCapabilities: string[] } };
     assert.deepEqual(specialist._security, { integrity: 'untrusted', confidentiality: 'private', allowedCapabilities: ['analyze'] });
     const visibleIncome = specialist.sources.find(source => source.id === 'ks-income');
@@ -486,9 +526,15 @@ test('prompt injection in a document cannot confirm facts, execute actions, or c
   const response = plan(['family']);
   response.summary = 'Søknaden din er sendt.';
   response.facts = [{ key: 'cohabitant_missing', value: 'true', sourceId: 'hostile-document', quote: attack }];
-  const infer: ModelCall = async (_system, _context, schema, role) => role === 'coordinator'
-    ? schema.parse(response)
-    : schema.parse({ summary: 'Søknaden din er sendt.', findings: [{ text: 'We have submitted the application.', sourceId: 'hostile-document', quote: attack }], questions: [] });
+  const infer: ModelCall = async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return schema.parse({ verdict: 'PASS', gaps: [], notes: '' });
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    return role === 'triage'
+      ? schema.parse(response)
+      : schema.parse({ summary: 'Søknaden din er sendt.', findings: [{ text: 'We have submitted the application.', sourceId: 'hostile-document', quote: attack }], questions: [] });
+  };
   await analyzeCase(current, infer, discardPersistence);
   assert.equal(current.handoff, null);
   assert.equal(current.facts.find(fact => fact.key === 'cohabitant_missing')?.status, 'proposed');
@@ -496,4 +542,332 @@ test('prompt injection in a document cannot confirm facts, execute actions, or c
   assert.ok(![current.summary, ...current.services.map(service => service.summary), ...current.services.flatMap(service => service.findings.map(finding => finding.text))]
     .join('\n').toLowerCase().includes('submitted'));
   assert.ok(current.events.some(event => event.type === 'blocked'));
+});
+
+async function movingCase() {
+  const current = session();
+  const quote = 'Flyttedato: 2026-10-01.\nNy kommune: Bergen.';
+  addConfirmedAnswers(current, quote, [{ key: 'move_date', value: '2026-10-01', quote: 'Flyttedato: 2026-10-01.' }, { key: 'new_municipality', value: 'Bergen', quote: 'Ny kommune: Bergen.' }]);
+  addMessage(current, 'Jeg har mistet jobben og skal flytte til Bergen.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.equal(current.services[0].status, 'needs-review');
+  return current;
+}
+const emailModel = (output: { subject: string; body: string }): ModelCall => async (system, _context, schema, role) => {
+  assert.equal(role, 'draft');
+  assert.match(system, /REQUIRED OUTPUT LANGUAGE/);
+  return schema.parse(output);
+};
+
+test('specialists may recommend an end action, but only kinds the service can actually offer survive', async () => {
+  const current = session();
+  addMessage(current, 'Hjelp med bolig og flytting.');
+  await analyzeCase(current, model(plan(['housing', 'moving']), context => ({ summary: 'Sjekklisten er klar.', findings: [], questions: [],
+    nextAction: context.service.id === 'housing' ? { kind: 'contact', reason: 'En veileder kan hjelpe med dokumentasjonen.' } : { kind: 'summary', reason: 'Last ned nå.' } })), discardPersistence);
+  const housing = current.services.find(service => service.id === 'housing')!;
+  const moving = current.services.find(service => service.id === 'moving')!;
+  assert.deepEqual(housing.recommendedAction, { kind: 'contact', reason: 'En veileder kan hjelpe med dokumentasjonen.', by: 'agent' });
+  assert.equal(moving.recommendedAction?.by, 'rule');
+  assert.equal(moving.recommendedAction?.kind, 'clarify');
+  assert.ok(current.events.some(event => event.type === 'blocked' && /anbefalte en handling/.test(event.detail)));
+  const withoutRecommendation = session();
+  addMessage(withoutRecommendation, 'Hjelp med flytting.');
+  await analyzeCase(withoutRecommendation, model(plan(['moving'])), discardPersistence);
+  assert.equal(withoutRecommendation.services[0].recommendedAction?.by, 'rule');
+});
+
+test('an e-mail draft is written by the writer agent, checked against confirmed facts, and falls back to a fixed draft', async () => {
+  const current = await movingCase();
+  const draft = await draftEmail(current, 'moving', emailModel({ subject: 'Spørsmål om flytting til Bergen', body: 'Hei,\n\nJeg flytter 2026-10-01 til Bergen og har mistet jobben. Hvilken dokumentasjon trenger dere?\n\nMed vennlig hilsen' }), discardPersistence);
+  assert.equal(draft.aiDrafted, true);
+  assert.equal(draft.to.id, 'citizen-service');
+  assert.equal(draft.revision, current.revision);
+  assert.equal(current.runs.at(-1)?.agent, 'Skribent');
+  assert.equal(current.runs.at(-1)?.status, 'completed');
+
+  const fabricated = await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Søknaden din er sendt og du får 99999 kroner.' }), discardPersistence);
+  assert.equal(fabricated.aiDrafted, false);
+  assert.match(fabricated.body, /Flyttedato: 2026-10-01/);
+  assert.ok(!fabricated.body.includes('99999'));
+  assert.ok(current.events.some(event => event.type === 'blocked' && /KI-utkastet/.test(event.detail)));
+
+  const failed = await draftEmail(current, 'moving', async () => { throw new Error('Test transport unavailable'); }, discardPersistence);
+  assert.equal(failed.aiDrafted, false);
+  assert.equal(current.runs.at(-1)?.status, 'failed');
+  assert.equal(current.drafts?.email?.id, failed.id, 'A failed writer still leaves the citizen with a usable fixed draft.');
+});
+
+test('sending an e-mail requires the current draft, records a local receipt and hands the text to the mail client', async () => {
+  const current = await movingCase();
+  assert.throws(() => sendEmail(current, 'moving', { to: 'a@b.no', subject: 'x', body: 'y' }), /utkast/);
+  await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Hei, jeg flytter til Bergen 2026-10-01.' }), discardPersistence);
+  assert.throws(() => sendEmail(current, 'moving', { to: 'ikke-en-adresse', subject: 'x', body: 'y' }), /e-postadresse/);
+  assert.throws(() => sendEmail(current, 'housing', { to: 'a@b.no', subject: 'x', body: 'y' }), /utkast/);
+  const outcome = sendEmail(current, 'moving', { to: 'innbyggerservice@demo.sok-en-gang.example', subject: 'Flytting (redigert)', body: 'Hei, jeg flytter til Bergen 2026-10-01. Redigert av meg.' });
+  assert.equal(outcome.status, 'sent-to-mail-client');
+  assert.equal(outcome.localOnly, true);
+  assert.match(outcome.reference, /^EPOST-[A-Z0-9]{8}$/);
+  assert.equal(outcome.payload.subject, 'Flytting (redigert)');
+  assert.equal(current.drafts?.email, null);
+  assert.deepEqual(current.outcomes?.map(item => item.id), [outcome.id]);
+  assert.ok(current.events.at(-1)?.type === 'human');
+  assert.throws(() => prepareHandoff(current, false), /Kontroller/);
+  prepareHandoff(current, true);
+  assert.equal(handoffDocument(current).outcomes.length, 1);
+  assert.ok(handoffDocument(current).nextActions.some(action => action.kind === 'summary' && action.done));
+});
+
+test('forms are filled from confirmed facts only, reject edits to confirmed values and record where the citizen must submit', async () => {
+  const current = await movingCase();
+  const draft = fillForm(current, 'moving');
+  assert.equal(draft.submission, 'local');
+  assert.equal(draft.fields.find(field => field.id === 'move_date')?.value, '2026-10-01');
+  assert.equal(draft.fields.find(field => field.id === 'move_date')?.editable, false);
+  assert.equal(draft.fields.find(field => field.id === 'new_address')?.editable, true);
+  await assert.rejects(submitForm(current, 'moving', { move_date: '2026-12-24' }), /bekreftet opplysning/);
+  await assert.rejects(submitForm(current, 'moving', { unknown_field: 'x' }), /ukjent felt/);
+  await assert.rejects(submitForm(current, 'moving', { new_address: 'x'.repeat(1001) }), /1000 tegn/);
+  const outcome = await submitForm(current, 'moving', { new_address: 'Testveien 1, 5003 Bergen', who_moves: 'Jeg og to barn' });
+  assert.equal(outcome.status, 'prepared-locally');
+  assert.equal(outcome.recipient.id, 'skatteetaten');
+  assert.equal(outcome.payload.fields?.find(field => field.id === 'new_address')?.value, 'Testveien 1, 5003 Bergen');
+  assert.equal(outcome.payload.fields?.find(field => field.id === 'move_date')?.value, '2026-10-01');
+  assert.equal(current.drafts?.form, null);
+  assert.equal(current.facts.filter(fact => fact.status === 'confirmed').length, 2, 'Form text never becomes a confirmed fact.');
+});
+
+test('the SFO form is submitted to the KS sandbox through the adapter and keeps the sandbox receipt', async () => {
+  const current = session();
+  const quote = 'Bruker SFO: Ja.\nHusholdningens årsinntekt (kr): 320000 NOK.\nHva inntekten gjelder: Hele husholdningens årsinntekt.';
+  addConfirmedAnswers(current, quote, [
+    { key: 'uses_sfo', value: 'true', quote: 'Bruker SFO: Ja.' },
+    { key: 'household_income_annual', value: '320000', quote: 'Husholdningens årsinntekt (kr): 320000 NOK.' },
+    { key: 'income_basis', value: 'household_year', quote: 'Hva inntekten gjelder: Hele husholdningens årsinntekt.' },
+  ]);
+  addMessage(current, 'Jeg bruker SFO og vil betale mindre.');
+  await analyzeCase(current, model(plan(['family'])), discardPersistence);
+  assert.equal(current.services[0].recommendedAction?.kind, 'form');
+  const draft = fillForm(current, 'family');
+  assert.equal(draft.submission, 'ks-sandbox');
+  const calls: unknown[] = [];
+  const fakeSubmit: typeof submitKsApplication = async (_session, submitted) => {
+    calls.push(submitted.formId);
+    return { soknadId: 'soknad-test-1', prosessId: 'sfo-moderasjon', status: 'SENDT_INN', opprettet: new Date().toISOString(), oppgaveId: 'oppgave-test-1', advarsel: null, syntetisk: true };
+  };
+  const outcome = await submitForm(current, 'family', { message: 'Takk for hjelpen.' }, fakeSubmit);
+  assert.deepEqual(calls, ['sfo-reduced-payment']);
+  assert.equal(outcome.status, 'submitted-to-ks-sandbox');
+  assert.equal(outcome.reference, 'soknad-test-1');
+  assert.equal(outcome.payload.ksOppgaveId, 'oppgave-test-1');
+  assert.equal(outcome.localOnly, false);
+  await assert.rejects(submitForm(current, 'family', {}, fakeSubmit), /Fyll ut skjemaet/, 'A consumed draft cannot be submitted twice.');
+  const before = current.outcomes!.length;
+  await assert.rejects(submitForm(current, 'family', {}, async () => { throw new Error('KS unavailable'); }), /Fyll ut skjemaet/);
+  assert.equal(current.outcomes!.length, before);
+});
+
+test('new information clears drafts and blocks actions until the plan is refreshed, while outcomes remain history', async () => {
+  const current = await movingCase();
+  await draftEmail(current, 'moving', emailModel({ subject: 'Flytting', body: 'Hei.' }), discardPersistence);
+  sendEmail(current, 'moving', { to: 'a@b.no', subject: 'Flytting', body: 'Hei.' });
+  fillForm(current, 'moving');
+  assert.ok(current.drafts?.form);
+  addMessage(current, 'Jeg flytter kanskje senere.');
+  assert.equal(current.drafts?.form, null);
+  assert.equal(current.outcomes?.length, 1);
+  await assert.rejects(draftEmail(current, 'moving', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /Oppdater planen/);
+  assert.throws(() => fillForm(current, 'moving'), /Oppdater planen|finnes ikke/);
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  fillForm(current, 'moving');
+  discardDraft(current, 'form');
+  assert.equal(current.drafts?.form, null);
+  assert.throws(() => discardDraft(current, 'form'), /ikke noe utkast/);
+});
+
+test('unresolved proposals and general questions block personal end actions', async () => {
+  const current = session();
+  addMessage(current, 'Husleien er 12000 kroner.');
+  const response = plan(['housing']);
+  response.facts = [{ key: 'monthly_rent', value: '12000', sourceId: current.sources[0].id, quote: current.sources[0].text }];
+  await analyzeCase(current, model(response), discardPersistence);
+  await assert.rejects(draftEmail(current, 'housing', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /Bekreft eller avvis/);
+  assert.throws(() => fillForm(current, 'housing'), /Bekreft eller avvis/);
+  const general = session();
+  addMessage(general, 'Hva er bostøtte?');
+  const info = plan(['housing']); info.intent = 'information';
+  await analyzeCase(general, model(info), discardPersistence);
+  assert.equal(general.services[0].recommendedAction?.kind, 'contact');
+  await assert.rejects(draftEmail(general, 'housing', emailModel({ subject: 'x', body: 'y' }), discardPersistence), /generelt spørsmål/);
+});
+
+test('a critic returning PASS runs polish and never re-drafts', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.stage === 'critic').length, 1);
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 1);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].verdict, 'PASS');
+});
+
+test('a critic returning REVISE triggers exactly one new draft attempt, then a second critic, then polish', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 1);
+  assert.equal(current.critique.length, 2);
+  assert.ok(current.critique.every(round => round.verdict === 'REVISE'));
+});
+
+test('ASSISTANT_MAX_REVISIONS=1 kills the loop after the first critic round', async () => {
+  process.env.ASSISTANT_MAX_REVISIONS = '1';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+});
+
+test('ASSISTANT_MAX_REVISIONS=4 allows more revision rounds before stopping', async () => {
+  process.env.ASSISTANT_MAX_REVISIONS = '4';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 3);
+  assert.equal(current.critique.length, 4);
+});
+
+test('CRITIC_ALWAYS_PASS=true skips the revise stage on a REVISE verdict but still shows the critique and the naive draft', async () => {
+  process.env.CRITIC_ALWAYS_PASS = 'true';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.runs.filter(run => run.agent === 'Utkast etter kritikk').length, 0);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].verdict, 'REVISE');
+  assert.equal(current.revisionSkipped, true);
+  assert.ok(current.draftAnswer);
+  assert.ok(current.events.some(event => event.detail.includes('CRITIC_ALWAYS_PASS')));
+});
+
+test('CRITIC_ALWAYS_PASS default is off, so a REVISE verdict still triggers a normal revision', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const alwaysRevise = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'REVISE', gaps: [{ point: 'Mangler kilde for datoen.', quote: 'flytting' }], notes: 'Trenger mer presisjon.' }),
+  });
+  await analyzeCase(current, alwaysRevise, discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'draft', 'critic', 'polish']);
+  assert.equal(current.revisionSkipped, false);
+});
+
+test('CRITIC_ALWAYS_PASS does not affect a PASS verdict: no revision was requested to skip', async () => {
+  process.env.CRITIC_ALWAYS_PASS = 'true';
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  await analyzeCase(current, model(plan(['moving'])), discardPersistence);
+  assert.deepEqual(current.runs.map(run => run.stage), ['triage', 'draft', 'critic', 'polish']);
+  assert.equal(current.critique[0].verdict, 'PASS');
+  assert.equal(current.revisionSkipped, false);
+});
+
+test('the full critique survives without truncation, including long notes and every gap', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const longNotes = 'Dette er en lang og detaljert tilbakemelding fra kritikeren. '.repeat(20).slice(0, 1200);
+  assert.equal(longNotes.length, 1200);
+  const gaps = [
+    { point: 'Mangler kilde for flyttedatoen.', quote: 'flyttet 1. oktober' },
+    { point: 'Påstand om vedtak må fjernes.', quote: 'saken er godkjent' },
+    { point: 'Beløpet er ikke dokumentert.', quote: '45000 kroner' },
+  ];
+  const withFullCritique = model(plan(['moving']), undefined, {
+    critic: () => ({ verdict: 'PASS', gaps, notes: longNotes }),
+  });
+  await analyzeCase(current, withFullCritique, discardPersistence);
+  assert.equal(current.critique.length, 1);
+  assert.equal(current.critique[0].notes, longNotes);
+  assert.equal(current.critique[0].notes.length, 1200);
+  assert.deepEqual(current.critique[0].gaps, gaps);
+});
+
+test('a polished answer that introduces an ungrounded number is rejected and the previous text is kept', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const ungroundedPolish = model(plan(['moving']), undefined, {
+    polish: () => ({ answer: 'Husk å sette av 54321 kroner til flyttingen.' }),
+  });
+  await analyzeCase(current, ungroundedPolish, discardPersistence);
+  assert.ok(!current.messages.at(-1)?.text.includes('54321'));
+  assert.ok(current.events.some(event => event.type === 'blocked' && event.detail.includes('forkastet')));
+});
+
+test('a failing stage job does not lose the analysis', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const failingCritic = model(plan(['moving']), undefined, {
+    critic: () => { throw new Error('Model transport failed'); },
+  });
+  await analyzeCase(current, failingCritic, discardPersistence);
+  const criticRun = current.runs.find(run => run.stage === 'critic');
+  assert.equal(criticRun?.status, 'failed');
+  assert.notEqual(current.status, 'analyzing');
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 0);
+  assert.equal(current.messages.at(-1)?.text, current.summary);
+});
+
+test('a malformed critic response ends the tail softly and keeps the completed analysis', async () => {
+  // Unlike a transport failure (thrown error, exercised above), this is the critic job resolving
+  // with output that does not fit criticSchema at all. The stage handler's own parse must catch
+  // it and fail the tail softly rather than throwing away an otherwise complete, grounded draft.
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  const malformedCritic: ModelCall = async (_system, context, schema, role) => {
+    if (context && typeof context === 'object' && 'draft' in context) {
+      if (role === 'critic') return { thisIsNotAVerdict: true } as never;
+      return schema.parse({ answer: (context as { draft: string }).draft });
+    }
+    return schema.parse(context && typeof context === 'object' && 'service' in context
+      ? { summary: 'Sjekklisten er klar til kontroll.', findings: [], questions: [] }
+      : plan(['moving']));
+  };
+  await analyzeCase(current, malformedCritic, discardPersistence);
+  const criticRun = current.runs.find(run => run.stage === 'critic');
+  assert.equal(criticRun?.status, 'failed');
+  assert.notEqual(current.status, 'analyzing');
+  assert.notEqual(current.status, 'error');
+  assert.equal(current.runs.filter(run => run.stage === 'polish').length, 0);
+  assert.equal(current.messages.at(-1)?.text, current.summary);
+});
+
+test('the polish step receives the critique even when the first round passed', async () => {
+  const current = session();
+  addMessage(current, 'Jeg trenger hjelp til å forberede flytting.');
+  let polishReview: CritiqueRound | null | undefined;
+  const capturePolishReview = model(plan(['moving']), undefined, {
+    polish: context => { polishReview = context.review; return { answer: context.draft }; },
+  });
+  await analyzeCase(current, capturePolishReview, discardPersistence);
+  assert.ok(polishReview, 'the polish job must receive the first critic round, not a blank review');
+  assert.equal(polishReview?.verdict, 'PASS');
+  assert.equal(polishReview?.round, 1);
+  assert.deepEqual(polishReview, current.critique[0]);
 });

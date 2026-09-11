@@ -47,6 +47,16 @@ const sfoAssessmentSchema = z.object({
   godkjent: z.boolean(), melding: label,
   grunnlag: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
+const applicationSchema = z.object({
+  soknadId: identifier, personId, prosessId: z.string().min(1).max(160), status: z.literal('SENDT_INN'),
+  opprettet: z.iso.datetime(), sporingsId: identifier, syntetisk: z.literal(true),
+  oppgave: z.object({ oppgaveId: z.string().max(160).optional(), advarsel: z.string().max(1000).optional(), detalj: z.string().max(2000).optional(), syntetisk: z.boolean().optional() }).passthrough().optional(),
+}).passthrough();
+const revisjonSchema = z.array(z.object({
+  hendelseId: identifier, tidspunkt: z.iso.datetime(), syntetisk: z.literal(true), sporingsId: identifier,
+  handling: label, ressurs: label, formaal: label.optional(),
+  aktor: z.object({ type: z.enum(['innbygger', 'system', 'utvikler', 'ukjent']), id: z.string().max(160).nullable(), acr: label.optional(), paaVegneAv: identifier.optional() }).passthrough(),
+}).passthrough()).max(500);
 const consentSchema = z.object({
   samtykkeId: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/), personId, formaal: label,
   dataKilder: z.array(z.string().min(1).max(160)).max(20),
@@ -63,6 +73,8 @@ export type KsDemoCatalogueEntry = z.infer<typeof catalogueSchema>[number];
 export type KsDemoIncome = z.infer<typeof incomeSchema>;
 export type KsDemoConsent = z.infer<typeof consentSchema>;
 export type KsDemoSfoAssessment = z.infer<typeof sfoAssessmentSchema>;
+export type KsDemoApplication = z.infer<typeof applicationSchema>;
+export type KsDemoRevisjonshendelse = z.infer<typeof revisjonSchema>[number];
 export type KsDemoSnapshot<T> = {
   value: T;
   source: { url: string; retrievedAt: string; text: string; synthetic: true; resource: string };
@@ -70,12 +82,14 @@ export type KsDemoSnapshot<T> = {
 export type KsDemoConfig = {
   backendBaseUrl: string; fiksBaseUrl: string; personId: string;
   getCitizenToken: () => Promise<string>; getConsentToken: () => Promise<string>; timeoutMs?: number;
+  /** Correlates every sandbox call with this case's own revisjonslogg (GET /api/revisjonslogg/:sporingsId). */
+  sporingsId?: string;
 };
 export const KS_DEMO_INCOME_PURPOSE = 'Forberede vurdering av SFO-betaling';
 export type KsDemoErrorCode = 'configuration' | 'authentication' | 'authorization' | 'consent-required' | 'consent-expired'
   | 'not-found' | 'conflict' | 'unavailable' | 'invalid-response';
 export class KsDemoError extends Error {
-  constructor(public readonly code: KsDemoErrorCode, message: string, public readonly status?: number) {
+  constructor(public readonly code: KsDemoErrorCode, message: string, public readonly status?: number, public readonly submissionNotSent = false) {
     super(message); this.name = 'KsDemoError';
   }
 }
@@ -88,7 +102,7 @@ function baseUrl(value: string): string {
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
     if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error();
     return url.origin;
-  } catch { throw new KsDemoError('configuration', 'Kontroller serveradressene til KS-demo API-et.'); }
+  } catch { throw new KsDemoError('configuration', 'Kontroller serveradressene til KS-demo API-et.', undefined, true); }
 }
 async function readText(response: Response): Promise<string> {
   if (Number(response.headers.get('content-length')) > MAX_BYTES) {
@@ -126,19 +140,25 @@ function httpError(status: number, data: unknown): KsDemoError {
 export function createKsDemoClient(config: KsDemoConfig, fetchImpl: typeof fetch = fetch) {
   const backend = baseUrl(config.backendBaseUrl); const fiks = baseUrl(config.fiksBaseUrl);
   if (!personId.safeParse(config.personId).success || (config.timeoutMs !== undefined && (!Number.isFinite(config.timeoutMs) || config.timeoutMs < 1 || config.timeoutMs > 30_000))) {
-    throw new KsDemoError('configuration', 'Kontroller serverens KS-testbruker og tidsgrense.');
+    throw new KsDemoError('configuration', 'Kontroller serverens KS-testbruker og tidsgrense.', undefined, true);
   }
   const subject = config.personId;
+  /** Tags a resource read with this case's sporingsId, so revisjonslogg entries can be correlated back to it. */
+  function withSporingsId(path: string): string {
+    if (!config.sporingsId) return path;
+    return `${path}${path.includes('?') ? '&' : '?'}sporingsId=${encodeURIComponent(config.sporingsId)}`;
+  }
   async function request<T>(base: string, path: string, resource: string, schema: z.ZodType<T>,
     tokenLoader?: () => Promise<string>, method = 'GET', body?: unknown): Promise<KsDemoSnapshot<T>> {
     const url = base + path;
+    const applicationSubmission = method === 'POST' && base === backend && path === '/api/soknader';
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (tokenLoader) {
       let token: string;
       try { token = await tokenLoader(); }
-      catch { throw new KsDemoError('authentication', 'Innloggingen til KS-demo API-et kunne ikke fullføres.'); }
-      if (!token || token.length > 20_000 || /\s/.test(token)) throw new KsDemoError('authentication', 'Serveren mangler et gyldig token for KS-demo API-et.');
+      catch { throw new KsDemoError('authentication', 'Innloggingen til KS-demo API-et kunne ikke fullføres.', undefined, applicationSubmission); }
+      if (!token || token.length > 20_000 || /\s/.test(token)) throw new KsDemoError('authentication', 'Serveren mangler et gyldig token for KS-demo API-et.', undefined, applicationSubmission);
       headers.Authorization = `Bearer ${token}`;
     }
     const controller = new AbortController();
@@ -166,21 +186,22 @@ export function createKsDemoClient(config: KsDemoConfig, fetchImpl: typeof fetch
     if (parsed.data.status !== status) throw new KsDemoError('consent-required', 'Inntektssamtykket er ikke aktivt. Kontroller valget før opplysningene leses.');
     return parsed.data;
   }
-  const readRates = () => request(backend, '/api/regler/satser', 'satser', ratesSchema);
+  const readRates = () => request(backend, withSporingsId('/api/regler/satser'), 'satser', ratesSchema);
   return {
     async readPerson() {
-      const result = await request(backend, `/api/personer/${subject}`, 'person', personSchema, config.getCitizenToken);
+      const result = await request(backend, withSporingsId(`/api/personer/${subject}`), 'person', personSchema, config.getCitizenToken);
       if (result.value.personId !== subject) throw invalidResponse();
       return result;
     },
     async readHousehold() {
-      const result = await request(backend, `/api/personer/${subject}/husstand`, 'husstand', householdSchema, config.getCitizenToken);
+      const result = await request(backend, withSporingsId(`/api/personer/${subject}/husstand`), 'husstand', householdSchema, config.getCitizenToken);
       if (!result.value.medlemmer.some(member => member.personId === subject)) throw invalidResponse();
       return result;
     },
-    readSfo: () => request(backend, `/api/personer/${subject}/sfo`, 'sfo', z.array(sfoSchema).max(100), config.getCitizenToken),
+    readSfo: () => request(backend, withSporingsId(`/api/personer/${subject}/sfo`), 'sfo', z.array(sfoSchema).max(100), config.getCitizenToken),
     readRates, readRules: readRates,
-    readCatalogue: () => request(backend, '/api/katalog/ressurser', 'ressurser', catalogueSchema),
+    readCatalogue: () => request(backend, withSporingsId('/api/katalog/ressurser'), 'ressurser', catalogueSchema),
+    readRevisjonslogg: (sporingsId: string) => request(backend, `/api/revisjonslogg/${encodeURIComponent(sporingsId)}`, 'revisjonslogg', revisjonSchema, config.getCitizenToken),
     async grantIncomeConsent(choice: { approved: true; caseId: string }): Promise<KsDemoSnapshot<KsDemoConsent>> {
       const parsed = z.object({ approved: z.literal(true), caseId: z.uuid() }).strict().safeParse(choice);
       if (!parsed.success) throw new KsDemoError('consent-required', 'Du må uttrykkelig samtykke før inntektsopplysninger hentes.');
@@ -196,12 +217,33 @@ export function createKsDemoClient(config: KsDemoConfig, fetchImpl: typeof fetch
       if (granted.value.samtykkeId !== pending.samtykkeId || granted.value.sporingsId !== parsed.data.caseId) throw invalidResponse();
       return granted;
     },
+    /** An empty lookup does not prove that an earlier submission was never stored. */
+    async readApplications(caseId: string, prosessId: string): Promise<KsDemoSnapshot<KsDemoApplication[]>> {
+      if (!z.uuid().safeParse(caseId).success || !z.string().regex(/^[a-z0-9-]{1,80}$/).safeParse(prosessId).success) {
+        throw new KsDemoError('configuration', 'Oppslaget mangler en gyldig saks- eller prosessidentitet.');
+      }
+      const result = await request(backend, `/api/personer/${subject}/soknader`, 'soknader', z.array(applicationSchema).max(2000), config.getCitizenToken);
+      if (result.value.some(application => application.personId !== subject)) throw invalidResponse();
+      const value = result.value.filter(application => application.sporingsId === caseId && application.prosessId === prosessId);
+      // Keep evidence scoped to the requested case, including the source payload.
+      return { value, source: { ...result.source, text: JSON.stringify(value) } };
+    },
+    /** Submit a test application for the configured test citizen. The sandbox also creates a Fiks casework task, best effort. */
+    async createApplication(input: { prosessId: string; prosessNavn: string; caseId: string }): Promise<KsDemoSnapshot<KsDemoApplication>> {
+      const parsed = z.object({ prosessId: z.string().regex(/^[a-z0-9-]{1,80}$/), prosessNavn: z.string().min(1).max(160), caseId: z.uuid() }).strict().safeParse(input);
+      if (!parsed.success) throw new KsDemoError('configuration', 'Skjemaet mangler en gyldig prosessidentitet for KS-sandkassen.', undefined, true);
+      const created = await request(backend, '/api/soknader', 'soknad', applicationSchema, config.getCitizenToken, 'POST', {
+        personId: subject, prosessId: parsed.data.prosessId, prosessNavn: parsed.data.prosessNavn, sporingsId: parsed.data.caseId,
+      });
+      if (created.value.personId !== subject || created.value.sporingsId !== parsed.data.caseId || created.value.prosessId !== parsed.data.prosessId) throw invalidResponse();
+      return created;
+    },
     async readSfoAssessment(receipt: KsDemoConsent): Promise<KsDemoSnapshot<KsDemoSfoAssessment>> {
       const consent = validConsent(receipt);
       const current = await request(fiks, `/fiks/samtykke/${consent.samtykkeId}`, 'inntektssamtykke', consentSchema, config.getConsentToken);
       validConsent(current.value);
       if (current.value.samtykkeId !== consent.samtykkeId || current.value.sporingsId !== consent.sporingsId) throw invalidResponse();
-      return request(backend, `/api/regler/sjekk/ordning?personId=${encodeURIComponent(subject)}&tjeneste=sfo`, 'sfo-vurdering', sfoAssessmentSchema, config.getCitizenToken);
+      return request(backend, withSporingsId(`/api/regler/sjekk/ordning?personId=${encodeURIComponent(subject)}&tjeneste=sfo`), 'sfo-vurdering', sfoAssessmentSchema, config.getCitizenToken);
     },
     async readIncome(receipt: KsDemoConsent): Promise<KsDemoSnapshot<KsDemoIncome>> {
       const consent = validConsent(receipt);
@@ -209,7 +251,7 @@ export function createKsDemoClient(config: KsDemoConfig, fetchImpl: typeof fetch
       validConsent(current.value);
       if (current.value.samtykkeId !== consent.samtykkeId || current.value.sporingsId !== consent.sporingsId) throw invalidResponse();
       // The backend, rather than the raw Fiks register route, enforces consent again.
-      return request(backend, `/api/personer/${subject}/inntekt`, 'inntektsgrunnlag', incomeSchema, config.getCitizenToken);
+      return request(backend, withSporingsId(`/api/personer/${subject}/inntekt`), 'inntektsgrunnlag', incomeSchema, config.getCitizenToken);
     },
   };
 }

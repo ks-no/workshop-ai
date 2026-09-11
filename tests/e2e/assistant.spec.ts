@@ -22,12 +22,12 @@ function expectRecordedRoleModels(response: AssistantResponse) {
   expect(response.model.models).toBeDefined();
   const models = response.model.models!;
   const runs = response.session?.runs ?? [];
-  const coordinators = runs.filter(run => run.agent === 'Koordinator');
-  const specialists = runs.filter(run => run.agent !== 'Koordinator');
-  expect(coordinators.length, response.session?.error || 'The coordinator must have a recorded run.').toBeGreaterThan(0);
-  expect(specialists.length, response.session?.error || 'At least one specialist must have a recorded run.').toBeGreaterThan(0);
-  for (const run of coordinators) expect(run.model, 'Recorded coordinator model must match its configured role.').toBe(models.coordinator);
-  for (const run of specialists) expect(run.model, `Recorded ${run.agent} model must match the specialist role.`).toBe(models.specialist);
+  const triageRuns = runs.filter(run => run.stage === 'triage');
+  const draftRuns = runs.filter(run => run.stage === 'draft');
+  expect(triageRuns.length, response.session?.error || 'The triage step must have a recorded run.').toBeGreaterThan(0);
+  expect(draftRuns.length, response.session?.error || 'At least one draft specialist must have a recorded run.').toBeGreaterThan(0);
+  for (const run of triageRuns) expect(run.model, 'Recorded triage model must match its configured role.').toBe(models.triage);
+  for (const run of draftRuns) expect(run.model, `Recorded ${run.agent} model must match the draft role.`).toBe(models.draft);
 }
 
 function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: string): Buffer {
@@ -56,10 +56,10 @@ function twoPagePdf(firstPage: string, secondPage: string, metadataMarker: strin
   return Buffer.from(document);
 }
 
-test('citizen assistant starts with an honest connection state and no invented case', async ({ page }) => {
+test('citizen assistant starts with an honest connection state and no invented case', async ({ page, baseURL }) => {
   const remoteRequests: string[] = [];
-  page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:3210/')) remoteRequests.push(request.url()); });
-  await page.goto('/');
+  page.on('request', request => { if (new URL(request.url()).origin !== new URL(baseURL!).origin) remoteRequests.push(request.url()); });
+  await page.goto('/assistent');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   const initial = await snapshot(page);
   expect(initial.session).toBeNull();
@@ -82,7 +82,7 @@ test('citizen assistant starts with an honest connection state and no invented c
 });
 
 test('a real API case resumes and can be explicitly deleted', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   expect((await snapshot(page)).session).toBeNull();
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   expect(started.ok()).toBe(true);
@@ -102,7 +102,7 @@ test('a real API case resumes and can be explicitly deleted', async ({ page }) =
 
 test('mobile conversation and shared case remain usable at 375 pixels', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByRole('heading', { name: 'Hva kan vi hjelpe deg med?' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Samtale' })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'Din oversikt' }).click();
@@ -122,11 +122,11 @@ test('a stale tab cannot delete a replacement case with the same revision', asyn
     await target.reload();
     await expect(target.getByRole('button', { name: 'Avslutt og slett', exact: true })).toBeVisible();
   }
-  await page.goto('/');
+  await page.goto('/assistent');
   await startCase(page);
   const previous = (await snapshot(page)).session!;
   const other = await context.newPage();
-  await other.goto('/');
+  await other.goto('/assistent');
   await other.getByRole('button', { name: 'Avslutt og slett', exact: true }).click();
   await other.getByRole('button', { name: 'Slett saken', exact: true }).click();
   await expect(other.getByRole('status').filter({ hasText: 'Samtalen, opplysningene og dokumentene er slettet.' })).toBeVisible();
@@ -147,7 +147,7 @@ test('a stale tab cannot delete a replacement case with the same revision', asyn
 test('real model document flow shares confirmed memory and creates an explicit local packet', async ({ page }) => {
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Opt in to a real configured model with ASSISTANT_LIVE_E2E=1; no browser-side AI simulation.');
   test.setTimeout(420000);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByText('Språkmodellen er konfigurert', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Legg ved dokument' }).click();
   await page.getByLabel('Velg et dokument').setInputFiles({ name: 'test-situasjon.txt', mimeType: 'text/plain', buffer: Buffer.from('Dette er testopplysninger. Jeg har barn og bruker SFO. Jeg har mistet jobben og trenger hjelp med boligutgifter. Hele husholdningens samlede årsinntekt er 320000 kroner. Husleien er 12000 kroner per måned. Vi er 3 personer i husholdningen. Jeg har ingen samboer som mangler i oversikten. Jeg skal flytte til Bergen 2026-11-01.') });
@@ -205,7 +205,7 @@ test('real two-page PDF keeps page-two evidence without storing original bytes',
   test.setTimeout(420000);
   const metadataMarker = 'PDF_ORIGINAL_BYTES_ONLY_METADATA_SENTINEL';
   const pdf = twoPagePdf('This is a synthetic test case. I am moving.', 'My move date is 2026-12-04. My new municipality is Trondheim.', metadataMarker);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByText('Språkmodellen er konfigurert', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Legg ved dokument' }).click();
   await page.getByLabel('Velg et dokument').setInputFiles({ name: 'test-moving-two-pages.pdf', mimeType: 'application/pdf', buffer: pdf });
@@ -266,7 +266,7 @@ test('real two-page PDF keeps page-two evidence without storing original bytes',
 test('real replies follow the question language while Norwegian controls and original quotes remain', async ({ page }) => {
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Opt in to the real configured model with ASSISTANT_LIVE_E2E=1.');
   test.setTimeout(420000);
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.locator('html')).toHaveAttribute('lang', 'nb');
   await expect(page.getByText('Svar følger språket du skriver på. Norsk er standard.', { exact: false })).toBeVisible();
   await page.getByLabel('Hva er situasjonen din?').fill('OK');
@@ -313,7 +313,7 @@ test('real replies follow the question language while Norwegian controls and ori
 
 
 test('the compact plan tabs remain usable on desktop and mobile', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByLabel('Grensesnittspråk')).toHaveValue('nb');
   await expect(page.locator('.assistant-locale .pkt-inputwrapper__label')).toHaveCount(0);
   await expect(page.locator('.assistant-locale .pkt-sr-only')).toHaveText('Grensesnittspråk');
@@ -405,11 +405,11 @@ test('presentation flows use generic AI labels and provide PNG exports', async (
 });
 
 test('agent task disclosure opens a selected run in the right activity panel', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/assistent');
   const started = await page.request.post('/api/assistant', { data: { action: 'start' } });
   const state = (await started.json() as AssistantResponse).session!;
   const startedAt = new Date().toISOString();
-  state.runs = [{ id: 'test-run', agent: 'Koordinator', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
+  state.runs = [{ id: 'test-run', agent: 'Koordinator', stage: 'triage', revision: state.revision, status: 'completed', startedAt, completedAt: startedAt, model: 'test-coordinator-model', durationMs: 2300, framework: 'Microsoft Agent Framework · Python' }];
   state.events = [
     { id: 'test-start', runId: 'test-run', agent: 'Koordinator', type: 'started', at: startedAt, detail: 'Modellanalysen er startet.' },
     { id: 'test-complete', runId: 'test-run', agent: 'Koordinator', type: 'completed', at: startedAt, detail: 'Strukturert svar mottatt og kontrollert.' },
@@ -419,7 +419,7 @@ test('agent task disclosure opens a selected run in the right activity panel', a
   finally { database.close(); }
   await page.reload();
   await page.locator('.assistant-task-disclosure > summary').click();
-  const task = page.getByRole('button', { name: /Vis detaljer for Koordinator/ });
+  const task = page.getByRole('button', { name: /Vis detaljer for Triage/ });
   await expect(task).toBeVisible();
   await task.click();
   await expect(page.getByRole('tab', { name: 'Aktivitet', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -458,7 +458,7 @@ test('real typed questions send a citizen message and board corrections retain c
   test.skip(process.env.ASSISTANT_LIVE_E2E !== '1', 'Requires actual configured Python agents and model transport.');
   test.setTimeout(600000);
   await page.addInitScript(() => localStorage.setItem('sok-assistant-ui-language', 'en'));
-  await page.goto('/');
+  await page.goto('/assistent');
   await page.getByLabel('What is your situation?').fill('I am planning to move within Norway. Help me prepare. I have not provided a date or new municipality yet.');
   await page.getByRole('button', { name: 'Send message', exact: true }).click();
   await expect(page.locator('.assistant-message.is-assistant')).toHaveCount(1, { timeout: 200000 });
@@ -519,31 +519,37 @@ test('the agent routes a personal SFO request to contextual KS consent and suppo
   page.on('request', request => {
     if (request.url().endsWith('/api/assistant') && request.method() === 'POST') mutations.push(request.postDataJSON());
   });
-  await page.goto('/');
+  await page.goto('/assistent');
   await expect(page.getByRole('button', { name: 'Hent fra KS', exact: true })).toHaveCount(0);
   await page.getByLabel('Hva er situasjonen din?').fill('Jeg bruker SFO og vil vite om familien min kan betale mindre.');
   await page.getByRole('button', { name: 'Send melding', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Kan vi hente testopplysninger fra KS?' })).toBeVisible({ timeout: 200000 });
+  await expect(page.getByRole('heading', { name: 'Kan jeg hente opplysninger for deg?' })).toBeVisible({ timeout: 200000 });
+  // Consent is visible after triage; the reply is appended only after critic/polish completes.
+  await expect.poll(async () => (await snapshot(page)).session?.status, { timeout: 200000 }).not.toBe('analyzing');
+  expect((await snapshot(page)).session?.error).toBeNull();
+  await expect(page.locator('.assistant-message.is-assistant').last()).toContainText('Vil du at jeg henter opplysninger for deg?');
+  expect((await snapshot(page)).session?.pendingConsents?.map(consent => consent.toolId)).toEqual(['ks_connect', 'ks_income']);
   const state = (await snapshot(page)).session!;
   expect(state.intent).toBe('personalized');
   expect(state.services.some(service => service.id === 'family')).toBe(true);
   expect(state.ksData?.incomeReadAt ?? null).toBeNull();
   await expect(page.getByRole('heading', { name: 'Dette trenger vi å vite' })).toHaveCount(0);
-  const consentLabel = 'Jeg samtykker til å hente disse syntetiske personopplysningene fra KS-sandkassen for denne SFO-vurderingen.';
+  const consentLabel = 'Jeg samtykker til at disse syntetiske opplysningene hentes for denne vurderingen.';
   await expect(page.getByLabel(consentLabel)).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Samtykk, hent og fortsett', exact: true })).toBeDisabled();
   await page.getByLabel(consentLabel).check();
   await expect(page.getByRole('button', { name: 'Samtykk, hent og fortsett', exact: true })).toBeEnabled();
   await page.reload();
   await expect(page.getByLabel(consentLabel)).not.toBeChecked();
-  await page.getByRole('button', { name: 'Fortsett uten KS', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Vi fortsetter uten KS' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fortsett uten å hente', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Vi fortsetter uten å hente opplysninger' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Dette trenger vi å vite' })).toBeVisible();
   const declined = (await snapshot(page)).session!;
   expect(declined.ksAccessDecision?.status).toBe('declined');
   expect(declined.ksData?.incomeReadAt ?? null).toBeNull();
-  expect(mutations.find(command => command.action === 'ks-access')).toMatchObject({ approved: false, caseId: state.id, revision: state.revision });
-  expect(mutations.some(command => command.action === 'connect-ks' || command.action === 'income-consent')).toBe(false);
+  expect(mutations.find(command => command.action === 'tool-consent')).toMatchObject({ approved: false, toolIds: ['ks_connect', 'ks_income'], caseId: state.id, revision: state.revision });
+  expect(declined.pendingConsents).toEqual([]);
+  expect(mutations.some(command => ['connect-ks', 'income-consent', 'ks-access'].includes(String(command.action)))).toBe(false);
   await noAccessibilityErrors(page);
   await page.getByRole('button', { name: 'Avslutt og slett', exact: true }).click();
   await page.getByRole('button', { name: 'Slett saken', exact: true }).click();

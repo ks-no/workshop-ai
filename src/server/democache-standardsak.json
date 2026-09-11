@@ -1,0 +1,10 @@
+{
+  "personId": "person-022",
+  "triggerMessage": "Hei, jeg heter Fatima Ali og lurer på om jeg kan få redusert foreldrebetaling for SFO-plassen til barnet mitt fordi husholdningen har lav inntekt.",
+  "language": "nb",
+  "serviceId": "family",
+  "reason": "Henvendelsen nevner SFO og redusert foreldrebetaling direkte.",
+  "summary": "Sjekklisten for redusert foreldrebetaling i SFO er klar til kontroll. Dette er standardsaken for demoen (person-022, Fatima Ali, prosess sfo-moderasjon).",
+  "serviceSummary": "Kommunen skal sørge for at foreldrebetalingen per barn i SFO ikke overstiger seks prosent av husholdningens samlede inntekt. Sjekklisten under viser hva som er bekreftet og hva som gjenstår før kommunen kan vurdere en søknad om redusert betaling.",
+  "answer": "Hei Fatima. Du kan søke om redusert foreldrebetaling for SFO-plassen dersom foreldrebetalingen per barn overstiger seks prosent av husholdningens samlede inntekt. Se sjekklisten under for hva som allerede er bekreftet og hva som gjenstår før kommunen kan vurdere saken videre."
+}

@@ -1,18 +1,38 @@
 'use client';
 
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import type { FactKey, ServiceCheck, ServiceId } from '../domain/assistant-types';
 
 export type UiLocale = 'nb' | 'en';
 export const UI_LOCALE_KEY = 'sok-assistant-ui-language';
 const translations: Record<string, string> = {
+  'Skjema': 'Form', 'redusert SFO-betaling': 'reduced SFO payment', 'Avklarer om skjemaet er aktuelt': 'Checking whether the form applies', 'Venter på samtykke': 'Awaiting consent',
+  'Mangler opplysninger': 'Missing information', 'Klart til kontroll': 'Ready for review', 'Ikke aktuelt nå': 'Not applicable now',
+  'Kan jeg hente opplysninger for deg?': 'May I fetch information for you?', 'Opplysningene er hentet': 'The information has been fetched',
+  'Assistenten har bedt om tilgang til disse kildene for å forberede saken. Ingenting hentes før du velger.': 'The assistant has asked for access to these sources to prepare your case. Nothing is fetched until you choose.',
+  'Agentene fortsatte automatisk med de nye kildene og fylte ut søknadsutkastet. Du kan kontrollere og rette opplysningene i oversikten.': 'The agents continued automatically with the new sources and filled in the application draft. You can check and correct the information in your overview.',
+  'Vi fortsetter uten å hente opplysninger': 'We continue without fetching information', 'Fortsett uten å hente': 'Continue without fetching', 'Foreslått av koordinatoren.': 'Suggested by the coordinator.',
+  'Jeg samtykker til at disse syntetiske opplysningene hentes for denne vurderingen.': 'I consent to these synthetic details being fetched for this assessment.',
+  'Husstand, SFO-plass og satser': 'Household, SFO place and rates', 'Inntektsgrunnlag fra Skatteetaten': 'Income basis from Skatteetaten',
+  'Kommunen via KS workshop API': 'The municipality via the KS workshop API', 'Skatteetaten via KS Fiks samtykke': 'Skatteetaten via KS Fiks consent',
+  'Søknadsutkast': 'Application draft', 'felt fylt': 'fields filled', 'Fylt ut': 'Filled in',
+  'Søknad om redusert foreldrebetaling i SFO (utkast)': 'Application for reduced SFO parental payment (draft)',
+  'Utkastet er fylt fra bekreftede opplysninger og hentede registerutdrag. Kontroller feltene; ingenting er sendt.': 'The draft is filled from confirmed information and fetched register excerpts. Check the fields; nothing has been submitted.',
+  'Husstand': 'Household', 'Husstandsmedlemmer': 'Household members', 'Barnet bruker SFO': 'The child uses SFO', 'SFO-plass': 'SFO place', 'Inntektsår': 'Income year',
+  'Husholdningens årsinntekt': 'Household annual income', 'Hva inntekten gjelder': 'Income basis', 'Vesentlig og varig inntektsendring (mistet jobb)': 'Significant lasting income change (job lost)',
+  'Endring i husstanden': 'Household change', 'KS regelresultat (veiledende)': 'KS rule result (indicative)', 'Signatur og innsending': 'Signature and submission',
+  'Hentet fra kommunen etter samtykke.': 'Fetched from the municipality after consent.', 'Hentet fra Skatteetaten via KS Fiks etter samtykke.': 'Fetched from Skatteetaten via KS Fiks after consent.',
+  'Hentet fra register etter samtykke.': 'Fetched from a register after consent.', 'Bekreftet av deg i samtalen.': 'Confirmed by you in the conversation.',
+  'Gjøres av deg i kommunens tjeneste. Demoen sender ingenting.': 'Done by you in the municipality\u2019s service. The demo submits nothing.',
+  'Deterministisk testresultat, ikke et vedtak. Kommunen avgjør.': 'Deterministic test result, not a decision. The municipality decides.',
+  'Ingen endring meldt': 'No change reported', 'Si fra hvis samboer eller andre mangler i grunnlaget.': 'Tell us if a partner or others are missing from the basis.',
   'Hopp til innhold': 'Skip to content', 'Hackathondemo': 'Hackathon demo', 'Hackathondemo · Team Oslo': 'Hackathon demo · Team Oslo', 'Dokumentasjon': 'Documentation',
   'Bruk bare testopplysninger. Ingen søknad sendes.': 'Use test information only. No application is submitted.',
   'Søk én gang, forsiden': 'Søk én gang, home', 'Fra skjema til samtale.': 'From forms to conversation.',
   'Hovedmeny': 'Main navigation', 'SFO-sjekken': 'SFO check', 'Om løsningen': 'About this demo', 'Avslutt og slett': 'End and delete',
   'Henter saken og kontrollerer tilkoblingen…': 'Loading your case and checking the connection…',
   'Språkmodellen er konfigurert': 'Language models are configured', 'Språkmodellen er ikke tilgjengelig': 'Language models are unavailable',
-  'Om tilkoblingen': 'About the connection', 'Koordinator:': 'Coordinator:', 'Fagassistenter:': 'Specialists:', 'Leverandør:': 'Provider:', 'Modell:': 'Model:',
+  'Om tilkoblingen': 'About the connection', 'Triage:': 'Triage:', 'Utkast:': 'Draft:', 'Kritiker:': 'Critic:', 'Språkvask:': 'Proofreading:', 'Leverandør:': 'Provider:', 'Modell:': 'Model:',
   'Kontroller tilkoblingen': 'Check connection', 'Prøv å koble til igjen': 'Try connecting again',
   'Slett saken': 'Delete case', 'Slette denne demosaken?': 'Delete this demo case?', 'Behold saken': 'Keep case',
   'Samtalen, opplysningene og opplastede dokumenter fjernes. Dette kan ikke angres.': 'The conversation, information and uploaded documents will be removed. This cannot be undone.',
@@ -33,6 +53,7 @@ const translations: Record<string, string> = {
   'Se saksgrunnlaget': 'View preparation packet', 'Skriv en melding': 'Write a message', 'Hva er situasjonen din?': 'What is your situation?',
   'For eksempel: Jeg har mistet jobben og er usikker på hvordan jeg skal betale husleien.': 'For example: I have lost my job and am unsure how to pay the rent.',
   'Legg ved dokument': 'Attach document', 'Arbeider…': 'Working…', 'Send melding': 'Send message',
+  'Bruk forhåndsberegnet svar': 'Use precomputed answer', 'Forhåndsberegnet svar': 'Precomputed answer', 'Hurtigtast: Alt+D': 'Shortcut: Alt+D',
   'Du kan skrive et utkast. Sending og dokumentanalyse blir tilgjengelig når språkmodellen er tilkoblet.': 'You can write a draft. Sending and document analysis become available when the language models are connected.',
   'Velg et dokument': 'Choose a document',
   'TXT eller tekstbasert PDF, inntil 1,5 MB, ti sider og 14 000 tegn. Skannede bilder støttes ikke. Bruk testdokumenter.': 'TXT or a text-based PDF, up to 1.5 MB, ten pages and 14,000 characters. Scanned images are not supported. Use test documents.',
@@ -116,6 +137,12 @@ const translations: Record<string, string> = {
   'Agentoppgaver': 'Agent tasks', 'Vis detaljer for': 'View details for', 'Oppgavedetaljer': 'Task details',
   'Ingen agentoppgaver er registrert ennå.': 'No agent tasks have been recorded yet.', 'Varighet': 'Duration', 'Pågår': 'In progress', 'Modell': 'Model', 'Rammeverk': 'Framework',
   'Aktiviteter i denne oppgaven': 'Activity in this task', 'Ingen detaljer er registrert for denne oppgaven.': 'No details have been recorded for this task.',
+  'Triage': 'Triage', 'Utkast': 'Draft', 'Kritiker': 'Critic', 'Språkvask': 'Proofreading',
+  'Kritikerens gjennomgang': 'The critic’s review', 'Dette er modellens egen kontroll av utkastet. Det erstatter ikke en saksbehandlers vurdering.': 'This is the model checking its own draft. It does not replace a caseworker’s assessment.',
+  'Runde': 'Round', 'Godkjent': 'Approved', 'Må revideres': 'Needs revision',
+  'Demo: naivt utkast mot kritikergodkjent svar': 'Demo: naive draft vs. critic-approved answer',
+  'Kritikeren ba om en revisjon, men demobryteren CRITIC_ALWAYS_PASS lot utkastet stå uendret. Kritikken over viser hva som ble fanget opp.': 'The critic asked for a revision, but the CRITIC_ALWAYS_PASS demo switch left the draft unchanged. The critique above shows what it caught.',
+  'Naivt utkast (uten revisjon)': 'Naive draft (before revision)', 'Kritikergodkjent svar': 'Critic-approved answer',
   'Kontrollerer kontekst, kilder og hva vi bør spørre om videre.': 'Checking context, sources and what to ask next.',
   'Oversikt': 'Overview', 'Tavle': 'Board', 'Gjennomgang': 'Review', 'Planvisning': 'Plan view', 'Tjenestetavle': 'Service board',
   'Tavlen viser faktiske sjekkpunkter i planen. Du kan svare på manglende opplysninger; vurderinger må fortsatt gjøres av en person.': 'The board shows actual plan checklist items. You can answer missing information; a person must still carry out the reviews.',
@@ -199,12 +226,87 @@ const translations: Record<string, string> = {
   'KS-demo API-et avviste tilgangen til disse opplysningene.': 'The KS demo API denied access to this information.',
   'KS-demo API-et fant ikke den etterspurte opplysningen.': 'The KS demo API did not find the requested information.',
 
+  'Anbefalt neste steg': 'Recommended next step', 'Andre muligheter': 'Other options', 'Gjør på nytt': 'Do again', 'Utført': 'Done', 'Anbefalt': 'Recommended',
+  'Svar på det som mangler': 'Answer what is missing', 'Agenten trenger flere opplysninger før neste steg kan gjøres klart.': 'The agent needs more information before the next step can be prepared.',
+  'Kontakt riktig person': 'Contact the right person', 'Du kan alltid ta saken videre med en person som kan hjelpe.': 'You can always take the case further with a person who can help.',
+  'Send en e-post': 'Send an e-mail', 'Vi lager et utkast med opplysningene dine. Du leser over og sender selv.': 'We draft it with your information. You review it and send it yourself.',
+  'Fyll ut skjemaet': 'Fill in the form', 'Vi fyller ut skjemaet fra opplysningene du har bekreftet. Du leser over og sender inn.': 'We fill in the form from the information you confirmed. You review it and submit.',
+  'Gå til den offisielle tjenesten': 'Go to the official service', 'Søknaden eller meldingen sendes i den offisielle tjenesten med innlogging.': 'The application or notice is sent in the official service after signing in.',
+  'Fullfør og last ned oppsummeringen': 'Complete and download the summary', 'Avslutt med en lokal oppsummering av saken og det som er gjort.': 'Finish with a local summary of the case and what has been done.',
+  'Skjemaet fylles ut fra bekreftede opplysninger og sendes inn til KS-sandkassen som testsøknad.': 'The form is filled in from confirmed information and submitted to the KS sandbox as a test application.',
+  'Søknad om redusert foreldrebetaling i SFO/AKS': 'Application for reduced parental payment in SFO/AKS', 'Forberedt søknad om bostøtte (til Husbanken)': 'Prepared housing allowance application (for Husbanken)', 'Forberedt flyttemelding (til Skatteetaten)': 'Prepared change-of-address notice (for Skatteetaten)',
+  'Planen må oppdateres med de siste opplysningene.': 'The plan must be updated with the latest information.', 'Saken er fullført og låst.': 'The case is completed and locked.',
+  'Noen opplysninger mangler før skjema eller e-post kan gjøres klart.': 'Some information is missing before a form or e-mail can be prepared.', 'Alle nødvendige opplysninger er bekreftet. Skjemaet kan fylles ut og sendes inn.': 'All required information is confirmed. The form can be filled in and submitted.',
+  'Denne tjenesten har en offisiell selvbetjening. Vi har forberedt opplysningene du trenger.': 'This service has an official self-service. We have prepared the information you need.', 'Opplysningene er klare til å deles med en saksbehandler.': 'The information is ready to share with a caseworker.', 'Ta kontakt for å gå videre.': 'Get in touch to continue.',
+  'Et generelt spørsmål er besvart fra veiledning. Ta kontakt dersom du vil gå videre med din egen sak.': 'A general question was answered from guidance. Get in touch if you want to continue with your own case.', 'Analysen kunne ikke fullføres. En person kan hjelpe deg videre.': 'The analysis could not complete. A person can help you further.',
+  'Allerede utført. Kvitteringen ligger under Neste steg.': 'Already done. The receipt is under Next steps.', 'Saken er fullført.': 'The case is completed.', 'Når du er ferdig med handlingene, kan du': 'When you have finished the actions, you can', 'fullføre og laste ned oppsummeringen': 'complete and download the summary',
+  'Oppsummeringen kan lastes ned når alle tjenestevurderinger er fullført.': 'The summary can be downloaded when all service reviews are complete.', 'handling er utført.': 'action completed.', 'handlinger er utført.': 'actions completed.',
+  'Vis kontaktinformasjon': 'Show contact information', 'Skjul kontaktinformasjon': 'Hide contact information', 'Svar nå': 'Answer now', 'Lag e-postutkast': 'Draft an e-mail', 'Lag nytt utkast': 'Draft again', 'Fyll ut på nytt': 'Fill in again', 'Åpne tjenesten': 'Open the service',
+  'Telefon': 'Phone', 'E-post': 'E-mail', 'Åpningstid': 'Opening hours', 'Nettside': 'Website', 'Mandag–fredag 08.00–15.30': 'Monday–Friday 08:00–15:30', 'Mandag–fredag 09.00–15.00': 'Monday–Friday 09:00–15:00', 'Mandag–fredag 09.00–15.30': 'Monday–Friday 09:00–15:30',
+  'Aktivitetsskolen (AKS) – foreldrebetaling': 'Aktivitetsskolen (AKS) – parental payment', 'Saksbehandler for redusert foreldrebetaling i SFO/AKS': 'Caseworker for reduced parental payment in SFO/AKS', 'Oslo kommune · Utdanningsetaten': 'City of Oslo · Education Agency',
+  'Boligkontoret i bydelen': 'District housing office', 'Veileder for bostøtte og kommunal bolig': 'Adviser for housing allowance and municipal housing', 'Oslo kommune · bydelens NAV-kontor': 'City of Oslo · district NAV office',
+  'Husbanken – bostøtte': 'Husbanken – housing allowance', 'Statlig bostøtteordning': 'National housing allowance scheme', 'Skatteetaten – flyttemelding': 'Skatteetaten – change of address', 'Folkeregisteret': 'National Population Register',
+  'Innbyggerservice': 'Citizen service', 'Veiledning om kommunale tjenester': 'Guidance on municipal services', 'Oslo kommune': 'City of Oslo',
+  'Demo-kontaktpunkt. Telefonnummeret er Oslo kommunes publikumstelefon; e-postadressen er en plassholder for demoen.': 'Demo contact point. The phone number is the City of Oslo public line; the e-mail address is a demo placeholder.',
+  'Demo-kontaktpunkt. Bostøtte vedtas av Husbanken; bydelen veileder og tar imot søknaden.': 'Demo contact point. Husbanken decides housing allowance; the district advises and receives the application.',
+  'Offisiell selvbetjening. Søknaden sendes i Husbankens egen tjeneste med innlogging.': 'Official self-service. The application is sent in Husbanken’s own service after signing in.', 'Offisiell selvbetjening. Flyttemeldingen sendes av deg selv i Skatteetatens tjeneste.': 'Official self-service. You send the change-of-address notice yourself in Skatteetaten’s service.',
+  'Demo-kontaktpunkt for spørsmål som ikke hører til én bestemt tjeneste.': 'Demo contact point for questions that do not belong to one specific service.',
+  'Utkast · les over før du sender': 'Draft · review before sending', 'E-post til': 'E-mail to', 'Til': 'To', 'Emne': 'Subject', 'Tekst': 'Message',
+  'KI-utkast kontrollert mot bekreftede opplysninger. Du kan endre alt før du sender.': 'AI draft checked against confirmed information. You can change everything before sending.', 'Fast utkast laget fra bekreftede opplysninger, uten KI. Du kan endre alt før du sender.': 'Fixed draft built from confirmed information, without AI. You can change everything before sending.',
+  'Ingenting sendes fra denne appen; e-posten åpnes i ditt eget e-postprogram.': 'Nothing is sent from this app; the e-mail opens in your own mail client.', 'Godkjenn og åpne i e-postprogrammet': 'Approve and open in your mail client', 'Kopier teksten': 'Copy the text', 'Kopiert': 'Copied', 'Forkast utkastet': 'Discard draft',
+  'Fyll inn en gyldig e-postadresse, et emne og en tekst på inntil 4000 tegn.': 'Enter a valid e-mail address, a subject and a message of up to 4,000 characters.',
+  'Utfylt skjema · les over før du sender': 'Completed form · review before sending', 'Feltene er fylt ut fra opplysninger du har bekreftet. Ingen verdi er beregnet eller antatt. Bekreftede opplysninger rettes i oversikten, ikke her.': 'The fields are filled in from information you confirmed. No value is calculated or assumed. Confirmed information is corrected in the overview, not here.',
+  'Fylt ut fra dine egne meldinger. Du kan endre teksten.': 'Filled in from your own messages. You can edit the text.', 'Dine egne ord': 'Your own words', 'Ikke utfylt': 'Not filled in', 'Dokumentasjon du må legge ved selv': 'Documentation you must attach yourself', 'Mottaker': 'Recipient',
+  'Beskrivelse av situasjonen (dine egne ord)': 'Description of your situation (your own words)', 'Melding til saksbehandler': 'Message to the caseworker', 'Ny adresse (gate, postnummer, eventuelt bolignummer)': 'New address (street, postcode, dwelling number if any)', 'Hvem flytter': 'Who is moving',
+  'Dokumentasjon på husholdningens inntekt (skattemelding eller lønnsslipper)': 'Documentation of household income (tax return or payslips)', 'Dokumentasjon på endret inntekt dersom situasjonen er ny': 'Documentation of changed income if the situation is new', 'Leiekontrakt': 'Lease', 'Oversikt over boutgifter': 'Overview of housing costs', 'Dokumentasjon på inntekt for søknadsmåneden': 'Documentation of income for the application month', 'Leiekontrakt eller kjøpekontrakt for ny bolig dersom Skatteetaten ber om det': 'Lease or purchase contract for the new home if Skatteetaten asks for it',
+  'Innsendingen går til KS sin workshop-sandkasse for den konfigurerte testpersonen. Sandkassen registrerer søknaden og oppretter en saksbehandleroppgave. Dette er ikke en søknad til en virkelig kommune.': 'The submission goes to the KS workshop sandbox for the configured test citizen. The sandbox records the application and creates a casework task. This is not an application to a real municipality.',
+  'Denne tjenesten krever innlogging hos mottakeren. Vi klargjør skjemaet og gir deg en kvittering du kan bruke når du fyller ut den offisielle tjenesten.': 'This service requires signing in with the recipient. We prepare the form and give you a receipt to use when you complete the official service.',
+  'Godkjenn og send testsøknaden': 'Approve and send the test application', 'Godkjenn og klargjør skjemaet': 'Approve and prepare the form',
+  'Utførte handlinger': 'Completed actions', 'Overlevert til e-postprogrammet': 'Handed to your mail client', 'Sendt inn til KS-sandkassen': 'Submitted to the KS sandbox', 'Klargjort lokalt': 'Prepared locally', 'Referanse': 'Reference', 'Saksbehandleroppgave': 'Casework task', 'Tidspunkt': 'Time', 'Merknad fra KS:': 'Note from KS:',
+  'Last ned kvittering': 'Download receipt', 'Åpne i e-postprogrammet igjen': 'Open in your mail client again',
+  'E-posten er lest gjennom av deg og overlevert til ditt e-postprogram. Selve sendingen skjer der.': 'You reviewed the e-mail and it was handed to your mail client. The actual sending happens there.',
+  'Testsøknaden er registrert i KS-sandkassen, og en saksbehandleroppgave er opprettet i Fiks-simulatoren.': 'The test application is recorded in the KS sandbox and a casework task was created in the Fiks simulator.', 'Testsøknaden er registrert i KS-sandkassen. Saksbehandleroppgaven kunne ikke opprettes.': 'The test application is recorded in the KS sandbox. The casework task could not be created.',
+  'Veien videre per tjeneste': 'The way forward per service', 'Hver tjeneste ender i en konkret handling. Agenten anbefaler, appen kontrollerer hva som er mulig, og du utfører.': 'Each service ends in a concrete action. The agent recommends, the app checks what is possible, and you carry it out.',
+  'Handlingene dine er registrert': 'Your actions are recorded', 'Du har fullført gjennomgangen. Kvitteringene og en lokal oppsummering er klare til nedlasting.': 'You have completed the review. The receipts and a local summary are ready to download.',
+  'Handlingene over er utført. Åpne Neste steg for å laste ned oppsummeringen og kvitteringene.': 'The actions above are done. Open Next steps to download the summary and receipts.',
+  'Lager e-postutkast': 'Drafting the e-mail', 'Fyller ut skjemaet fra bekreftede opplysninger': 'Filling in the form from confirmed information', 'Registrerer e-posten og åpner e-postprogrammet': 'Recording the e-mail and opening your mail client', 'Sender testsøknaden til KS-sandkassen': 'Sending the test application to the KS sandbox', 'Klargjør skjemaet': 'Preparing the form', 'Forkaster utkastet': 'Discarding the draft',
+  'Skribent': 'Writer', 'Skjemaverktøy': 'Form tool', 'Samtale og neste steg': 'Conversation and next steps',
+
   'KS API · Husstand (syntetiske testopplysninger)': 'KS API · Household (synthetic test information)',
   'KS API · SFO-plasser (syntetiske testopplysninger)': 'KS API · SFO places (synthetic test information)',
   'KS API · SFO-satser (syntetiske testopplysninger)': 'KS API · SFO rates (synthetic test information)',
   'KS API · Inntektsgrunnlag for SFO (syntetiske testopplysninger)': 'KS API · Income basis for SFO (synthetic test information)',
   'KS API · Regelvurdering for SFO (syntetiske testopplysninger)': 'KS API · SFO rules assessment (synthetic test information)',
 
+  'Tolker henvendelsen': 'Interpreting your request', 'Forbereder svar for hver tjeneste': 'Preparing an answer for each service',
+  'Kvalitetssikrer svaret': 'Quality-checking the answer', 'Retter opp basert på tilbakemeldingen': 'Revising based on the feedback', 'Finpusser språket': 'Polishing the language',
+
+  'Forskriftstekst mot klarspråk': 'Regulation text versus plain language', 'Velg språk for klarspråksteksten': 'Choose a language for the plain-language text',
+  'Forskriftstekst og satsgrunnlag': 'Regulation text and rate basis', 'Klarspråk': 'Plain language',
+  'Fast tekst fra regelmotoren, ingen språkmodell er brukt. Beløpene er identiske i begge språk.': 'Fixed text from the rule engine, no language model was used. The amounts are identical in both languages.',
+  'Teksten er skrevet om av KS-sandkassens KI-gateway. Den har bare en forklarende rolle og endrer ingen beløp. Beløpene er identiske i begge språk.': 'The text was rewritten by the KS sandbox AI gateway. It only has an explanatory role and changes no amounts. The amounts are identical in both languages.',
+  'Teksten er skrevet om av vår egen KI-modell. Beløpene er identiske i begge språk.': 'The text was rewritten by our own AI model. The amounts are identical in both languages.',
+
+  'Moderasjonsbevis for lommebok': 'Wallet moderation credential', 'Demosignatur – ingen tillitsforankring': 'Demo signature – no trust anchor',
+  'Ordning': 'Scheme', 'Utfall': 'Outcome', 'Innvilget': 'Approved', 'Avslag': 'Denied', 'Gyldig fra': 'Valid from', 'Gyldig til': 'Valid until', 'Utsteder': 'Issuer', 'Signert': 'Signed',
+  'QR-kode med et OpenID4VCI credential-offer for dette beviset': 'QR code with an OpenID4VCI credential offer for this credential',
+  'Ingen inntektstall eller fødselsnummer er lagt inn i beviset. Formatet er W3C Verifiable Credentials, med et OpenID4VCI credential-offer i QR-koden.':
+    'No income figures or national ID numbers are included in the credential. The format is W3C Verifiable Credentials, with an OpenID4VCI credential offer in the QR code.',
+  'Demosignatur med en lokal nøkkel generert av demoen. Ingen kommune, Digdir eller annen tillitsforankring har godkjent eller signert dette beviset, og signaturtypen er ikke en registrert W3C-kryptosuite. En ekte lommebok vil ikke kunne verifisere den.':
+    'Demo signature with a local key generated by this demo. No municipality, Digdir or other trust anchor has approved or signed this credential, and the proof type is not a registered W3C cryptosuite. A real wallet will not be able to verify it.',
+  'Søk én gang – hackathondemo (ingen kommune eller nasjonal instans har signert dette)':
+    'Søk én gang – hackathon demo (no municipality or national body has signed this)',
+  'Forvaltningsinnsyn': 'Administrative transparency', 'Ingen sak er lastet ennå.': 'No case has been loaded yet.',
+  'Hele behandlingskjeden for denne saken, sporet med samme id gjennom samtykke, registeroppslag, modellkall og regelberegning. Ingen fødselsnummer, navn eller adresser vises her.': 'The full processing chain for this case, tracked with the same id through consent, register lookups, model calls and rule calculation. No national ID number, name or address is ever shown here.',
+  'Sporings-id:': 'Tracking id:', 'Kunne ikke hente forvaltningsinnsynet.': 'Could not load the administrative transparency data.',
+  'Henter behandlingskjeden…': 'Loading the processing chain…', 'Ingen hendelser er registrert for denne saken ennå.': 'No events have been recorded for this case yet.',
+  'Samtykke': 'Consent', 'Registeroppslag': 'Register lookup', 'Modellkall': 'Model call', 'Regelberegning': 'Rule calculation', 'Innbyggerbekreftelse': 'Citizen confirmation',
+  'Endepunkt': 'Endpoint', 'Token-scope': 'Token scope', 'Syntetiske data': 'Synthetic data', 'Ukjent': 'Unknown',
+  'Rolle': 'Role', 'Responstid': 'Latency',
+  'Fjernede identitetsfelt før prompt': 'Identity fields stripped before prompt', 'Ingen': 'None',
+  'Terskelverdi (satser)': 'Threshold value (rates)', 'Inndata': 'Inputs', 'Beregning': 'Calculation', 'Rettslig grunnlag': 'Legal basis',
+  'Ikke innvilget': 'Not approved', 'Ikke vurdert': 'Not assessed', 'Vurdering ikke lest ennå.': 'Assessment not read yet.',
+  'Modellkallet feilet.': 'The model call failed.',
 };
 
 const LocaleContext = createContext<{ locale: UiLocale; setLocale: (value: UiLocale) => void }>({ locale: 'nb', setLocale: () => {} });
@@ -218,6 +320,7 @@ function subscribeLocale(callback: () => void) {
 }
 export function AssistantLocaleProvider({ children }: { children: ReactNode }) {
   const locale = useSyncExternalStore(subscribeLocale, readLocale, () => 'nb' as const);
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
   function setLocale(value: UiLocale) {
     inMemoryLocale = value;
     try { localStorage.setItem(UI_LOCALE_KEY, value); } catch { /* The selection remains usable when storage is denied. */ }
@@ -232,6 +335,10 @@ export function translate(text: string, locale: UiLocale) {
   if (description) return `Your description ${description[1]}`;
   const sourceRead = /^Leste kontrollert veiledningsutdrag: ([a-z-]+)\. Ikke et live registeroppslag\.$/.exec(text);
   if (sourceRead) return `Read a checked guidance excerpt: ${sourceRead[1]}. This was not a live register lookup.`;
+  const missing = /^Mangler: (.*)\.$/.exec(text);
+  if (missing) return `Missing: ${missing[1].split(', ').map(label => Object.values(factNames).find(pair => pair[0] === label)?.[1] ?? label).join(', ')}.`;
+  const pendingFacts = /^(\d+) foreslåtte opplysninger må bekreftes eller avvises\.$/.exec(text);
+  if (pendingFacts) return `${pendingFacts[1]} proposed facts must be confirmed or rejected.`;
   const confirmation = /^(.*): (bekreftet|avvist)\. Tidligere analyse er ugyldig\.$/.exec(text);
   if (confirmation) {
     const name = Object.values(factNames).find(pair => pair[0] === confirmation[1])?.[1] ?? confirmation[1];

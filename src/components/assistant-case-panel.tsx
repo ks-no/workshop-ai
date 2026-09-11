@@ -6,14 +6,17 @@ import { PktCheckbox, PktTabs, PktTag } from './punkt-react';
 import { AssistantMarkdown } from './assistant-markdown';
 import { AssistantPlanBoard } from './assistant-plan-board';
 import { AssistantSfoAnswer } from './assistant-sfo-answer';
+import { AssistantActionList, AssistantOutcomes } from './assistant-actions';
+import { AssistantWalletCredential } from './assistant-wallet-credential';
+import { AssistantInnsyn } from './assistant-innsyn';
 
 import { useState } from 'react';
-import type { AssistantCase, AssistantCommand, MemoryFact, ServiceResult, FollowUp, EvidenceSource } from '../domain/assistant-types';
+import type { AgentRun, AssistantCase, AssistantCommand, MemoryFact, ServiceResult, FollowUp, EvidenceSource } from '../domain/assistant-types';
 import { ore } from '../domain/format';
 import { AssistantEvidence, AssistantSource } from './assistant-evidence';
 
 type CaseAction = (command: AssistantCommand, label: string) => Promise<boolean>;
-export type AssistantCaseView = 'overview' | 'board' | 'review' | 'activity' | 'sources';
+export type AssistantCaseView = 'overview' | 'board' | 'review' | 'activity' | 'sources' | 'innsyn';
 const factStatuses: Record<MemoryFact['status'], string> = { proposed: 'Til bekreftelse', confirmed: 'Bekreftet av deg', rejected: 'Avvist av deg', superseded: 'Erstattet', conflict: 'Motstridende opplysning' };
 const serviceStatuses: Record<ServiceResult['status'], string> = { ready: 'Forberedt', 'needs-information': 'Trenger opplysninger', 'needs-review': 'Kontroller før du går videre', error: 'Kunne ikke fullføres' };
 
@@ -39,6 +42,7 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
     { id: 'review', text: t('Neste steg'), controls: 'assistant-review' },
     ...(session?.runs.length ? [{ id: 'activity' as const, text: t('Aktivitet'), controls: 'assistant-activity-panel' }] : []),
     { id: 'sources', text: t('Kilder'), controls: 'assistant-sources', tag: session?.sources.length ? { text: String(session.sources.length), skin: 'blue-light' } : undefined },
+    ...(session ? [{ id: 'innsyn' as const, text: t('Forvaltningsinnsyn'), controls: 'assistant-innsyn' }] : []),
   ];
   const selectedRun = session?.runs.find(run => run.id === selectedActivityId) ?? session?.runs.at(-1) ?? null;
   const selectedEvents = selectedRun ? session?.events.filter(item => item.runId === selectedRun.id) ?? [] : [];
@@ -95,9 +99,11 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
     </div>
 
     <div id="assistant-review" role="tabpanel" aria-label={t('Neste steg')} hidden={view !== 'review'}>
+    {!!session?.services.length && <AssistantActionList session={session} busy={busy} modelAvailable={modelAvailable} act={act} onQuestions={onQuestions} />}
+    {!!session?.outcomes?.length && <section className="assistant-case-section"><AssistantOutcomes session={session} /></section>}
     {!!session?.services.length && personalized && <section className="assistant-case-section assistant-handoff" aria-labelledby="handoff-heading">
       <h2 id="handoff-heading" tabIndex={-1}>{t(session.handoff ? 'Gjennomgangen er fullført' : 'Kontroller og fullfør')}</h2>
-      {session.handoff ? <><div className="assistant-completion-status"><AssistantIcon name="check" aria-hidden="true" /><div><strong>{t('Ingen søknad er sendt')}</strong><p>{t('Du har fullført gjennomgangen. En lokal oppsummering er klar til nedlasting.')}</p></div></div><h3>{t('Dette kan du gjøre nå')}</h3><ol className="assistant-next-actions"><li>{t('Last ned oppsummeringen og behold den til eget bruk.')}</li><li>{t('Fortsett hos kommunen eller den relevante offentlige tjenesten. Punkter merket for kontroll må fortsatt vurderes av en person.')}</li><li>{t('Når du er ferdig med demoen, velg Avslutt og slett.')}</li></ol><p className="small">{t("Gjennomført")} {dateTime(session.handoff.createdAt)}</p><a className="pkt-btn pkt-btn--secondary pkt-btn--medium" href={`/api/assistant/receipt?caseId=${encodeURIComponent(session.id)}&revision=${session.revision}`} download><AssistantIcon name="download" aria-hidden="true"  />{t("Last ned oppsummeringen (JSON)")}</a></> : <>
+      {session.handoff ? <><div className="assistant-completion-status"><AssistantIcon name="check" aria-hidden="true" /><div><strong>{t(session.outcomes?.length ? 'Handlingene dine er registrert' : 'Ingen søknad er sendt')}</strong><p>{t(session.outcomes?.length ? 'Du har fullført gjennomgangen. Kvitteringene og en lokal oppsummering er klare til nedlasting.' : 'Du har fullført gjennomgangen. En lokal oppsummering er klar til nedlasting.')}</p></div></div><h3>{t('Dette kan du gjøre nå')}</h3><ol className="assistant-next-actions"><li>{t('Last ned oppsummeringen og behold den til eget bruk.')}</li><li>{t('Fortsett hos kommunen eller den relevante offentlige tjenesten. Punkter merket for kontroll må fortsatt vurderes av en person.')}</li><li>{t('Når du er ferdig med demoen, velg Avslutt og slett.')}</li></ol><p className="small">{t("Gjennomført")} {dateTime(session.handoff.createdAt)}</p><a className="pkt-btn pkt-btn--secondary pkt-btn--medium" href={`/api/assistant/receipt?caseId=${encodeURIComponent(session.id)}&revision=${session.revision}`} download><AssistantIcon name="download" aria-hidden="true"  />{t("Last ned oppsummeringen (JSON)")}</a>{session.handoff.credential && <AssistantWalletCredential credential={session.handoff.credential} />}</> : <>
         <p>{t("Denne demoen kan ikke sende en søknad. Kontroller punktene nedenfor, bekreft at du har lest dem, og fullfør gjennomgangen.")}</p>
         <ol className="assistant-review-steps"><li>{t('Les hva du eller en saksbehandler fortsatt må kontrollere.')}</li><li>{t('Kontroller at opplysningene og kildene stemmer.')}</li><li>{t('Kryss av og velg Fullfør gjennomgangen.')}</li></ol>
         {!!remaining.length && <details className="assistant-remaining" open><summary>{t("Dette må fortsatt følges opp (")}{remaining.length})</summary><ul>{remaining.map((item, i) => <li key={`${item.service}-${item.id}-${i}`}><strong>{item.service}: {item.label}</strong><p>{item.detail}</p></li>)}</ul></details>}
@@ -115,7 +121,7 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
       <section className="assistant-case-section assistant-activity-panel" aria-labelledby="activity-heading">
         <div className="assistant-section-heading"><h2 id="activity-heading" tabIndex={-1}>{t('Oppgavedetaljer')}</h2>{selectedRun && <PktTag size="small" skin={selectedRun.status === 'failed' ? 'red' : selectedRun.status === 'running' ? 'blue-light' : 'green'}>{t(selectedRun.status === 'running' ? 'Arbeider' : selectedRun.status === 'completed' ? 'Fullført' : 'Feilet')}</PktTag>}</div>
         {!selectedRun ? <div className="assistant-empty"><AssistantIcon name="document-text" aria-hidden="true" /><p>{t('Ingen agentoppgaver er registrert ennå.')}</p></div> : <>
-          <p className="assistant-activity-agent">{t(activityAgentName(selectedRun.agent))}</p>
+          <p className="assistant-activity-agent">{t(activityAgentName(selectedRun))}</p>
           <dl className="assistant-activity-meta">
             <div><dt>{t('Startet')}</dt><dd>{dateTime(selectedRun.startedAt)}</dd></div>
             <div><dt>{t('Varighet')}</dt><dd>{selectedRun.durationMs === null ? t('Pågår') : `${Math.round(selectedRun.durationMs / 1000)} ${t('sekunder')}`}</dd></div>
@@ -124,6 +130,18 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
           {!selectedEvents.length ? <p className="small">{t('Ingen detaljer er registrert for denne oppgaven.')}</p> : <ol className="assistant-task-timeline">{selectedEvents.map(item => <li key={item.id}><span className={`assistant-task-dot is-${item.type}`} aria-hidden="true" /><div><strong>{t(activityEventName(item.type))}</strong><p>{t(item.detail)}</p><time className="small" dateTime={item.at}>{dateTime(item.at)}</time></div></li>)}</ol>}
         </>}
       </section>
+      {!!session?.critique.length && <section className="assistant-case-section assistant-critique-panel" aria-labelledby="critique-heading">
+        <div className="assistant-section-heading"><h2 id="critique-heading" tabIndex={-1}>{t('Kritikerens gjennomgang')}</h2></div>
+        <p className="assistant-section-intro">{t('Dette er modellens egen kontroll av utkastet. Det erstatter ikke en saksbehandlers vurdering.')}</p>
+        {session.critique.map(round => <article className="assistant-critique-round" key={round.round}>
+          <div className="assistant-critique-round-heading"><h3>{t('Runde')} {round.round}</h3><PktTag size="small" skin={round.verdict === 'PASS' ? 'green' : 'yellow'}>{t(round.verdict === 'PASS' ? 'Godkjent' : 'Må revideres')}</PktTag></div>
+          {!!round.gaps.length && <ul className="assistant-critique-gaps">{round.gaps.map((gap, i) => <li key={i}>
+            <blockquote className="assistant-critique-quote" lang={session.language || 'nb'}><AssistantMarkdown text={gap.quote} language={session.language || 'nb'} /></blockquote>
+            <AssistantMarkdown text={gap.point} language={session.language || 'nb'} />
+          </li>)}</ul>}
+          {!!round.notes && <AssistantMarkdown text={round.notes} language={session.language || 'nb'} />}
+        </article>)}
+      </section>}
     </div>
 
     <div id="assistant-sources" role="tabpanel" aria-label={t('Kilder')} hidden={view !== 'sources'}>
@@ -133,16 +151,23 @@ export function AssistantCasePanel({ session, busy, modelAvailable, view, select
         {!session?.sources.length ? <div className="assistant-empty"><AssistantIcon name="document-text" aria-hidden="true" /><p>{t('Ingen kilder er brukt ennå. Kilder vises her når agentene har analysert spørsmålet ditt.')}</p></div> : <div className="assistant-source-list">{session.sources.map(source => <AssistantSource key={source.id} source={source} />)}</div>}
       </section>
     </div>
+
+    <div id="assistant-innsyn" role="tabpanel" aria-label={t('Forvaltningsinnsyn')} hidden={view !== 'innsyn'}>
+      <AssistantInnsyn session={session} active={view === 'innsyn'} />
+    </div>
   </div>;
 }
 
-function activityAgentName(name: string) {
+function activityAgentName(run: Pick<AgentRun, 'agent' | 'stage'>) {
+  if (run.stage === 'triage') return 'Triage';
+  if (run.stage === 'critic') return 'Kritiker';
+  if (run.stage === 'polish') return 'Språkvask';
   const names: Record<string, string> = { coordinator: 'Koordinator', family: 'Familie og SFO', housing: 'Bolig', moving: 'Flytting', human: 'Du', system: 'Systemet' };
-  return names[name] ?? name;
+  return names[run.agent] ?? run.agent;
 }
 
 function activityEventName(type: string) {
-  const names: Record<string, string> = { started: 'Startet', 'source-read': 'Leste kilde', completed: 'Fullført', failed: 'Feilet', human: 'Bekreftelse', blocked: 'Stoppet for avklaring' };
+  const names: Record<string, string> = { started: 'Startet', 'source-read': 'Leste kilde', completed: 'Fullført', failed: 'Feilet', human: 'Bekreftelse', blocked: 'Stoppet for avklaring', 'tool-requested': 'Ba om verktøy' };
   return names[type] ?? type;
 }
 

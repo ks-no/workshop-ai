@@ -2,10 +2,21 @@ import { spawn } from 'node:child_process';
 import { accessSync, constants } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import type { AiProvider, ModelRole } from '../domain/assistant-types';
 
-export type AgentJob = { id: string; name: string; role: 'coordinator' | 'specialist'; provider: string; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
+export type AgentJob = { id: string; name: string; role: ModelRole; provider: AiProvider; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
 type RequestHandler = (method: string, data: Record<string, unknown>) => Promise<unknown>;
-const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
+const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'stage', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
+
+/** Explicit allowlist, as in ks-runtime.ts: an agent process inherits its own settings and no other server secret. */
+const runtimeEnvKeys = ['LLM_BASE_URL', 'LLM_API_KEY', 'AI_PROVIDER', 'CF_ACCOUNT_ID', 'CF_AI_GATEWAY_TOKEN', 'CF_AI_GATEWAY_ID',
+  'TELENOR_AI_FACTORY_BASE_URL', 'TELENOR_AI_FACTORY_API_KEY', 'ASSISTANT_MODEL_TIMEOUT_MS',
+  'PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'SystemRoot', 'TEMP', 'TMP', 'USERPROFILE'];
+function runtimeEnv(): NodeJS.ProcessEnv {
+  const env = { NODE_ENV: process.env.NODE_ENV } as NodeJS.ProcessEnv;
+  for (const key of runtimeEnvKeys) if (process.env[key] !== undefined) env[key] = process.env[key];
+  return env;
+}
 
 function runtimePaths() {
   return { python: resolve(/* turbopackIgnore: true */ process.env.ASSISTANT_PYTHON || (process.platform === 'win32' ? 'backend/.venv/Scripts/python.exe' : 'backend/.venv/bin/python')),
@@ -17,22 +28,26 @@ export function runtimeInstalled() {
 }
 
 /** One owned Python process per bounded workflow. No shell, public port or detached daemon. */
-export async function runPythonRuntime(payload: Record<string, unknown>, handler?: RequestHandler): Promise<Record<string, unknown>> {
+export async function runPythonRuntime(payload: Record<string, unknown>, handler?: RequestHandler, signal?: AbortSignal): Promise<Record<string, unknown>> {
   const paths = runtimePaths();
   if (!runtimeInstalled()) throw new Error('Python-agentene er ikke installert. Kjør npm run setup:backend og prøv igjen.');
+  if (signal?.aborted) throw new Error('Analysen ble avbrutt av brukeren.');
   const budget = Math.min(180000, Math.max(10000, Number(process.env.ASSISTANT_MODEL_TIMEOUT_MS) || 90000));
   return new Promise((resolveResult, reject) => {
-    const child = spawn(paths.python, ['-u', paths.script], { stdio: ['pipe', 'pipe', 'pipe'], env: process.env });
+    const child = spawn(paths.python, ['-u', paths.script], { stdio: ['pipe', 'pipe', 'pipe'], env: runtimeEnv() });
     child.stdout.setEncoding('utf8');
     let buffer = ''; let settled = false; let complete: Record<string, unknown> | null = null;
     let pending = 0; let closed = false;
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true; clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       child.stdin.end();
       if (!closed) child.kill('SIGTERM');
       if (error) reject(error); else resolveResult(complete!);
     };
+    const onAbort = () => finish(new Error('Analysen ble avbrutt av brukeren.'));
+    signal?.addEventListener('abort', onAbort);
     const timer = setTimeout(() => finish(new Error('Agentanalysen tok for lang tid. Opplysningene er bevart; prøv igjen.')), budget * 2 + 30000);
     child.on('error', () => finish(new Error('Python-agentene kunne ikke startes. Kontroller backend-oppsettet.')));
     child.stdin.on('error', () => { if (!settled && !complete) finish(new Error('Forbindelsen til Python-agentene ble avbrutt. Prøv igjen.')); });

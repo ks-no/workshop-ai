@@ -61,14 +61,14 @@ flowchart TB
 
 ## Arbeidsflyt / Workflow
 
-Fra spørsmål til gjennomgått plan. / From a question to a reviewed plan.
+Fra spørsmål til gjennomgått plan og utført sluttaksjon. / From a question to a reviewed plan and an executed end action.
 
 [Kilde / Source](agentic-workflow.mmd) · [SVG](../../public/diagrams/agentic-workflow.svg)
 
 ```mermaid
 flowchart TB
-  accTitle: Søk én gang – agenten finner behovet og ber om data ved behov
-  accDescr: Innbyggeren skriver fritt. Koordinatoren skiller informasjon fra personlig forberedelse, velger tjenester og viser en menneskelig port bare når KS-data er nødvendig.
+  accTitle: Søk én gang – agenten finner behovet, ber om data ved behov og ender i en handling
+  accDescr: Innbyggeren skriver fritt. Koordinatoren skiller informasjon fra personlig forberedelse, velger tjenester og viser en menneskelig port bare når KS-data er nødvendig. Hver tjeneste ender i en konkret sluttaksjon som innbyggeren leser over og utfører.
   A["Innbygger beskriver behovet<br/>ingen kategori velges"]
   N["Node: lagre kilde, ny revisjon<br/>og start Python-prosess"]
   P["AI model · koordinator<br/>språk · hensikt · tjenester"]
@@ -83,10 +83,20 @@ flowchart TB
   KS["Samtykk: hent husstand, SFO,<br/>inntekt og KS-resultat"]
   MANUAL["Avslå: ingen KS-kall<br/>vis manuelle spørsmål"]
   REANALYZE["Ny analyse starter automatisk"]
-  FAN["Framework fordeler valgte tjenester<br/>spesialistagenter kjører parallelt"]
-  SAVE["Node kontrollerer og lagrer<br/>fakta · kilder · sjekklister"]
+  FAN["Framework fordeler valgte tjenester<br/>spesialistagenter kjører parallelt<br/>hver anbefaler én sluttaksjon"]
+  SAVE["Node kontrollerer og lagrer<br/>fakta · kilder · sjekklister · anbefaling"]
   REVIEW["Innbygger retter og avklarer<br/>KI-forslag og konflikter"]
-  READY["Lokal pakke etter siste<br/>menneskelige gjennomgang"]
+  RESOLVE{"Node løser sluttaksjoner<br/>per tjeneste"}
+  CLARIFY["Mer informasjon trengs<br/>spørsmål i samtalen"]
+  CONTACT["Rutes til riktig person<br/>alltid tilgjengelig"]
+  EMAIL["E-postutkast fra skribent-agent<br/>kontrollert mot bekreftede fakta"]
+  FORM["Skjema fylt fra bekreftede fakta<br/>ingen verdi beregnet"]
+  SELF["Offisiell selvbetjening<br/>Husbanken · Skatteetaten"]
+  HUMAN["Innbygger leser over,<br/>retter og godkjenner"]
+  MAIL["Åpnes i eget e-postprogram<br/>lokal kvittering"]
+  KSSUBMIT["Testsøknad til KS-sandkassen<br/>søknads-ID og saksbehandleroppgave"]
+  LOCALFORM["Klargjort skjema og kvittering<br/>til den offisielle tjenesten"]
+  READY["Lokal oppsummering med kvitteringer<br/>etter siste menneskelige gjennomgang"]
   A --> N --> P --> VALID
   VALID -->|Nei| ERROR --> N
   VALID -->|Ja| INTENT
@@ -96,13 +106,25 @@ flowchart TB
   CHOICE -->|Ja| KS --> REANALYZE --> N
   CHOICE -->|Nei| MANUAL --> A
   FAMILY -->|Nei| FAN
-  FAN --> SAVE --> REVIEW --> READY
+  FAN --> SAVE --> REVIEW --> RESOLVE
+  RESOLVE -->|Mangler opplysninger| CLARIFY --> A
+  RESOLVE --> CONTACT
+  RESOLVE -->|Alt klart| EMAIL --> HUMAN
+  RESOLVE -->|Alt klart| FORM --> HUMAN
+  RESOLVE --> SELF
+  HUMAN -->|E-post| MAIL --> READY
+  HUMAN -->|SFO-skjema| KSSUBMIT --> READY
+  HUMAN -->|Bolig · flytting| LOCALFORM --> READY
+  CONTACT --> READY
+  SELF --> READY
   classDef human fill:#fff1d6,stroke:#946000,color:#362a0e
   classDef model fill:#ece9ff,stroke:#6654b4,color:#252040
   classDef error fill:#fff0ed,stroke:#ac4934,color:#54271d
-  class ACTION,CHOICE,REVIEW human
-  class P,INTENT,FAN model
+  classDef outcome fill:#e2f2ec,stroke:#287460,color:#163b31
+  class ACTION,CHOICE,REVIEW,HUMAN human
+  class P,INTENT,FAN,EMAIL model
   class ERROR error
+  class MAIL,KSSUBMIT,LOCALFORM,READY outcome
 ```
 
 ## Sekvens / Sequence

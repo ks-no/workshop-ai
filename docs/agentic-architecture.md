@@ -1,5 +1,8 @@
 # Arkitektur for innbyggerassistenten
 
+Forsidens stegvise veiviser og handlingsutførelse beskrives i
+[interaktiv flyt](interactive-flow.md). Denne siden beskriver samtalevisningen `/assistent`.
+
 Assistenten forbereder familie/SFO, bolig og flytting fra én samtale. En AI-modell
 velger relevante tjenester og lager separate spesialistanalyser.
 Microsoft Agent Framework i en lokal Python-prosess styrer agentflyten.
@@ -37,6 +40,7 @@ Den virker offline. Når appen kjører, finnes den på
 | Dokumentuttrekk | [Dokumenttjenesten](../src/server/assistant-documents.ts) | Filinnhold er ubetrodd dokumentasjon; det gir ingen instruksjonsmyndighet. |
 | Lagring og sakslevetid | [SQLite-lageret](../src/server/assistant-store.ts) | Samme sak skal overleve reload og serverrestart innenfor levetiden. |
 | Visning og eksplisitte valg | [Saksoversikten](../src/components/assistant-case-panel.tsx) | Kildegrunnlag, konflikter og gjenstående arbeid må være synlig før bekreftelse. |
+| Sluttaksjoner og kontaktpunkter | [Aksjonskatalogen](../src/domain/assistant-actions.ts) og [aksjonsvisningen](../src/components/assistant-actions.tsx) | Hver tjeneste må ende i noe innbyggeren faktisk kan gjøre. Katalogen eier mottakere, skjemaer og tilgjengelighetsregler; agenten kan bare anbefale. |
 
 ## Hva «agentic» betyr her
 
@@ -153,6 +157,49 @@ og sender `store: false`. Dette beskriver appens forespørselsvalg, ikke et løf
 om all intern behandling eller lagring hos leverandøren. Lokal sletting fjerner
 appens saksminne; den tilbakekaller ikke modellkall som allerede er utført.
 
+## Verktøykatalog og kontekstuelt samtykke
+
+[Verktøykatalogen](../src/domain/tool-catalogue.ts) er en deklarativ liste over
+det agentene kan be om: veiledningsutdrag, husstand/SFO-plass/satser fra kommunen,
+inntektsgrunnlag fra Skatteetaten via KS Fiks, og lokal utfylling av
+søknadsutkastet. Hvert verktøy har type, port (`none` eller `consent`), integrasjon,
+tillatte roller, tilknyttede tjenester og avhengigheter. Modellen får bare id,
+beskrivelse, port og om verktøyet allerede er hentet. Kjørbar kode ligger i
+[verktøykjøreren](../src/server/tool-runner.ts) på serveren.
+
+Flyten er vertsstyrt. Koordinatoren kan nominere verktøy i `toolRequests`, men
+utfører ingenting. I `prepare`-steget avgjør Node hvilke samtykker som skal
+spørres om: et portet verktøy knyttet til en valgt tjeneste tilbys alltid ved
+personlig hensikt, uansett om modellen husket å be om det. Forespørsler utenfor
+valgte tjenester, ved informasjonshensikt eller etter et avslag blir ignorert og
+logget som `blocked`. Ventende samtykker lagres på saken med revisjon, og Node
+legger en egen samtykketekst fra katalogen inn i assistentens svar. Modellen
+skriver aldri samtykketeksten.
+
+Ett valg i grensesnittet sender `tool-consent` med verktøy-id-er, saks-ID og
+revisjon. Node kontrollerer at forespørslene faktisk venter for gjeldende revisjon,
+kjører integrasjonene i avhengighetsrekkefølge, lagrer resultatene som kilder og
+registerfakta, og starter ny analyse. Etter analysen fyller beregningsverktøyet
+ut et søknadsutkast for redusert SFO-betaling fra bekreftede fakta og hentede
+registerutdrag. Hvert felt har kilde og status (`filled`, `missing`, `review`).
+Uavklarte forslag fyller aldri skjemaet, og ingenting sendes; signatur og
+innsending er et manuelt felt.
+
+[Skjemakatalogen](../src/domain/form-catalogue.ts) legger en egnethetssløyfe
+over verktøyene. Hvert skjema har screeningfakta, et nøkkelordmønster og
+spørsmål for felt som fortsatt mangler. Flyten er: innspill → screening.
+Er egnetheten uavklart, spør Node først og analysen kjøres på nytt når svaret
+kommer. Er skjemaet mulig, bes det om samtykke. Etter at verktøyene har kjørt,
+sjekker Node om utkastet mangler faktafelt; manglende felt blir spørsmål, og
+svaret utløser ny analyse til utkastet er klart. Et diskvalifiserende svar
+stopper skjemaet uten samtykke. Screening kan bruke foreslåtte fakta, siden den
+bare avgjør hva som skal spørres om; selve utfyllingen bruker kun bekreftede
+fakta og hentede registerutdrag. Stadiet (`screening`, `consent`, `collecting`,
+`ready`, `not-applicable`) lagres på tjenesten og vises i tavlen og i svaret.
+
+Python-runtime er uendret. Middlewaren avviser fortsatt alle rammeverksverktøy,
+og agentene ser kun `prepare`- og `specialist`-forespørsler.
+
 ## Prompt injection og agentmyndighet
 
 Samtaletekst, dokumenter og registerutdrag merkes som **ubetrodd** og **privat**
@@ -206,13 +253,62 @@ Videreføring krever riktig saks-ID, siste saksrevisjon, fullført analyse, avkl
 og en separat avkrysning. Et saksgrunnlag kan fortsatt ha dokumentasjon eller
 faglige vurderinger som gjenstår; disse følger med til menneskelig gjennomgang.
 Kvitteringen er lokal og idempotent. Den bekreftede planen låses for videre
-endringer. Ingen søknad sendes til en offentlig tjeneste.
+endringer. Ingen søknad sendes til en virkelig offentlig tjeneste; se
+[Sluttaksjoner](#sluttaksjoner-fra-analyse-til-handling) for hva som faktisk
+utføres mot KS-sandkassen og e-postprogrammet.
 
 Hver ny analyse får en ny revisjon, selv om innbyggerens fakta er uendret.
 Dermed kan en bekreftelse fra en eldre visning ikke godkjenne et nytt modellresultat.
 Saks-ID hindrer at en gammel fane endrer en annen sak etter at den delte
 informasjonskapselen er byttet. Automatisk oppstart gjenåpner en eksisterende
 gyldig sak; den sletter ikke tidligere saksminne.
+
+## Sluttaksjoner: fra analyse til handling
+
+En analyse er ikke ferdig før hver valgt tjeneste har løst seg til en
+**sluttaksjon** innbyggeren kan utføre. Aksjonstypene er lukket og eies av
+[aksjonskatalogen](../src/domain/assistant-actions.ts):
+
+| Aksjon | Når den er tilgjengelig | Hva som faktisk skjer |
+|---|---|---|
+| `clarify` – svar på det som mangler | Tjenesten har manglende sjekkpunkter eller åpne spørsmål. | Informasjonsløkken: spørsmålsskjemaet åpnes, svaret blir en ny kilde og en ny analyse kjøres. |
+| `contact` – kontakt riktig person | Alltid, også for generelle spørsmål og etter feil. | Et kontaktkort med rolle, organisasjon, telefon, åpningstid og lenke. Ingen modellkall. |
+| `email` – send en e-post | Gjeldende analyse, ingen uavklarte faktakandidater, tjenesten uten feil. | En skribent-agent lager et utkast fra innbyggerens egne ord, bekreftede fakta og åpne punkter. Innbyggeren redigerer, godkjenner og åpner e-posten i sitt eget e-postprogram. Appen sender ingenting selv. |
+| `form` – fyll ut skjemaet | Som `email`, og alle påkrevde skjemafelt har en bekreftet verdi. | Node fyller skjemaet deterministisk fra bekreftede fakta med opprinnelse (bekreftet av deg / hentet fra KS / dine egne ord). Bekreftede verdier kan ikke redigeres i skjemaet; de rettes i oversikten. |
+| `self-service` – gå til offisiell tjeneste | Tjenesten har en statlig selvbetjening (Husbanken, Skatteetaten). | Lenke og klargjort grunnlag. Innsendingen gjør innbyggeren selv med innlogging. |
+| `summary` – fullfør og last ned | Alle tjenestevurderinger fullført, ingen uavklarte kandidater, gjeldende revisjon. | Den eksisterende lokale oppsummeringen, nå med alle kvitteringer. Saken låses. |
+
+Spesialistagentene får listen over tillatte aksjoner i konteksten og kan
+anbefale **én** med en kort begrunnelse (`nextAction`). Node beholder bare
+anbefalinger tjenesten faktisk kan tilby og kontrollerer begrunnelsen med samme
+tekstkontroll som annen KI-tekst; ellers brukes en regelbasert anbefaling.
+Tilgjengeligheten løses alltid av Node fra sakens tilstand, uavhengig av hva
+modellen sa. En stale analyse eller en uavklart faktakandidat blokkerer e-post,
+skjema og oppsummering, men aldri kontaktruten.
+
+**E-post.** Skribenten kjører som et eget agentløp («Skribent») med samme
+sikkerhetskontrakt som spesialistene. Utkastet må bestå tallkontrollen mot
+bekreftede faktaverdier og innbyggerens egne meldinger, og må ikke påstå
+vedtak eller innsending. Feiler modellen eller kontrollen, brukes et fast
+utkast bygget fra de samme kildene; innbyggeren får alltid et utkast. Når
+innbyggeren godkjenner, registreres en lokal kvittering med referanse, og
+teksten overleveres til e-postprogrammet via `mailto:`. Mottakeradressene i
+katalogen er plassholdere for demoen og kan endres før sending.
+
+**Skjema.** For familie/SFO sendes det utfylte skjemaet som **testsøknad til
+KS-sandkassen** (`POST /api/soknader`, prosess `sfo-moderasjon`) for den
+konfigurerte testpersonen. Sandkassen returnerer søknads-ID med status
+`SENDT_INN` og oppretter en saksbehandleroppgave i Fiks-simulatoren. Kvitteringen
+lagres som registerkilde uten identitetsfelt. Bolig og flytting er statlige
+tjenester uten sandkasseprosess; der klargjøres skjemaet lokalt med kvittering,
+og innbyggeren sender selv hos Husbanken eller Skatteetaten. Selve
+skjemainnholdet sendes ikke til sandkassen; det følger kvitteringen lokalt.
+
+Utkast hører til én analysert revisjon og slettes når ny informasjon kommer.
+Utførte handlinger (`outcomes`) er historikk og bevares med revisjon, mottaker,
+referanse og innhold. De vises i samtalen, i fanen Neste steg og i den nedlastbare
+oppsummeringen, og hver kvittering kan lastes ned som tekst. Ingen søknad sendes
+til en virkelig kommune eller statlig tjeneste.
 
 ## Minne og driftsgrense
 
