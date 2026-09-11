@@ -2,9 +2,9 @@ import { spawn } from 'node:child_process';
 import { accessSync, constants } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import type { ModelRole } from '../domain/assistant-types';
+import type { AiProvider, ModelRole } from '../domain/assistant-types';
 
-export type AgentJob = { id: string; name: string; role: ModelRole; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
+export type AgentJob = { id: string; name: string; role: ModelRole; provider: AiProvider; model: string; prompt: string; context: unknown; schema: Record<string, unknown> };
 type RequestHandler = (method: string, data: Record<string, unknown>) => Promise<unknown>;
 const requestSchema = z.object({ type: z.literal('request'), id: z.string().uuid(), method: z.enum(['started', 'prepare', 'specialist', 'stage', 'model']), data: z.record(z.string(), z.unknown()) }).strict();
 

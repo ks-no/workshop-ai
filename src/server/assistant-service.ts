@@ -12,6 +12,7 @@ import { CaseError } from './case-service';
 import { saveAssistantCase } from './assistant-store';
 import { submitKsApplication } from './assistant-ks';
 import { emailPrompt, emailSchema, answerSchema, callModel, criticAlwaysPass, criticPrompt, criticSchema, draftRevisionPrompt, markModelSuccess, maxRevisions, modelName, planSchema, polishPrompt, TRIAGE_PROMPT, specialistPrompt, specialistSchema, responseLanguageName, type ModelCall } from './assistant-model';
+import { activeSelection, assertReady } from './assistant-providers';
 import { democacheTimeoutMs, lookupDemocache, type DemocacheEntry } from './assistant-democache';
 import { ksPersonId } from './ks-runtime';
 import { walletCredentialPackage } from './wallet-credential';
@@ -231,7 +232,8 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
     const id = nextStage === 'revise' ? 'draft-revision' : nextStage;
     const item = run(nextStage === 'revise' ? 'Utkast etter kritikk' : stageLabels[stage], stage);
     stageRuns.set(id, item);
-    return { id, name: item.agent, role: stage, model: modelName(stage),
+    const stageSelection = activeSelection(stage);
+    return { id, name: item.agent, role: stage, provider: stageSelection.provider, model: stageSelection.model,
       prompt: nextStage === 'critic' ? criticPrompt(language) : nextStage === 'revise' ? draftRevisionPrompt(language) : polishPrompt(language),
       schema: z.toJSONSchema(nextStage === 'critic' ? criticSchema : answerSchema),
       context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(language), intent: session.intent,
@@ -240,6 +242,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
   };
   const strippedFieldsByService = new Map<string, string[]>();
   try {
+    if (infer === callModel) for (const role of modelRoles) assertReady(role);
     const evidence = session.sources.filter(source => ['conversation', 'document'].includes(source.kind)).slice(-12);
     const context = {
       _security: MODEL_SECURITY,
@@ -250,7 +253,8 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
       ksDataAvailable: !!session.ksData,
       tools: modelVisibleTools('coordinator', session),
     };
-    const triage: AgentJob = { id: 'triage', name: 'Triage', role: 'triage', model: modelName('triage'),
+    const triageSelection = activeSelection('triage');
+    const triage: AgentJob = { id: 'triage', name: 'Triage', role: 'triage', provider: triageSelection.provider, model: triageSelection.model,
       prompt: TRIAGE_PROMPT, context, schema: z.toJSONSchema(planSchema) };
     await runPythonRuntime({ mode: 'workflow', triage, hostModels: infer !== callModel }, async (method, data) => {
       if (method === 'model') {
@@ -335,6 +339,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
         for (const consent of resolved.consents) event(session, triageRun.id, 'Verktøykatalog', 'tool-requested', `${consent.title} (${consent.integration}): ${consent.requestedBy === 'model' ? 'koordinatoren ba om verktøyet' : 'katalogen krever verktøyet for valgt tjeneste'}. Venter på samtykke; ingenting er hentet.`);
         for (const toolId of resolved.ignored) event(session, triageRun.id, 'Kontroll', 'blocked', `Verktøyforespørselen «${toolId}» ble ikke tilbudt: ikke knyttet til en valgt tjeneste, feil hensikt eller allerede avslått.`);
         persist(session);
+        const draftSelection = activeSelection('draft');
         const jobs: AgentJob[] = selected.map(selectedService => {
           const definition = SERVICE_CATALOGUE.find(item => item.id === selectedService.id)!;
           const service = session.services.find(item => item.id === selectedService.id)!;
@@ -344,7 +349,7 @@ async function runLiveAnalysis(session: AssistantCase, infer: ModelCall = callMo
           const sources = minimalModelSources(session, sourceIds, facts);
           visibleSources.set(service.id, sources);
           strippedFieldsByService.set(service.id, [...new Set([...sourceIds].flatMap(id => session.sources.find(item => item.id === id)?.strippedFields || []))]);
-          return { id: service.id, name: definition.title, role: 'draft', model: modelName('draft'),
+          return { id: service.id, name: definition.title, role: 'draft', provider: draftSelection.provider, model: draftSelection.model,
             prompt: specialistPrompt(definition.title, session.language || 'nb'), schema: z.toJSONSchema(specialistSchema),
             context: { _security: MODEL_SECURITY, responseLanguage: responseLanguageName(session.language), intent: session.intent,
               citizenQuestion: session.intent === 'information' ? latestUser?.text || '' : '', service: definition, reason: selectedService.reason,

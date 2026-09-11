@@ -115,7 +115,13 @@ export type AssistantCase = {
   drafts?: { email: EmailDraft | null; form: FormDraft | null };
   outcomes?: Outcome[];
 };
-export type ModelStatus = { available: boolean; provider: AiProvider; model: string; models?: Record<ModelRole, string>; message: string };
+export type RoleStatus = { provider: AiProvider; model: string; keyConfigured: boolean };
+export type ModelStatus = {
+  available: boolean; provider: AiProvider; model: string;
+  models?: Record<ModelRole, string>;
+  roles?: Record<ModelRole, RoleStatus>;
+  message: string;
+};
 export type AssistantResponse = { session: AssistantCase | null; model: ModelStatus };
 /** SSE event names sent over the wire during analyzeCase; the UI maps each to a citizen-facing label. */
 export const assistantStepNames = ['triage', 'draft', 'critic', 'revise', 'polish'] as const;

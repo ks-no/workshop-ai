@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { runPythonRuntime, runtimeInstalled } from './assistant-runtime';
-import { actionKinds, aiProviders, factKeys, serviceIds, toolIds, type AiProvider, type ModelRole, type ModelStatus, type ModelPlan, type SpecialistOutput } from '../domain/assistant-types';
+import { activeSelection, providerConfigured } from './assistant-providers';
+import { actionKinds, aiProviders, factKeys, modelRoles, serviceIds, toolIds, type AiProvider, type ModelRole, type ModelStatus, type ModelPlan, type RoleStatus, type SpecialistOutput } from '../domain/assistant-types';
 
 const text = z.string().max(1600);
 export const planSchema = z.object({
@@ -42,8 +43,8 @@ export function aiProvider(): AiProvider {
   return aiProviders.includes(configured as AiProvider) ? configured as AiProvider : 'cloudflare';
 }
 /** Fail closed before any process starts. Python re-validates; neither side returns the values. */
-function configuration(): AiProvider {
-  const provider = aiProvider();
+function configuration(provider: AiProvider = aiProvider()): AiProvider {
+
   // A typo must not quietly send prompts to the other provider, so an unknown value is rejected
   // here as well as in provider_configuration().
   if (!aiProviders.includes(configuredProvider() as AiProvider)) {
@@ -53,7 +54,7 @@ function configuration(): AiProvider {
     let url: URL | null = null;
     try { url = new URL((process.env.LLM_BASE_URL || '').trim()); } catch { /* rejected below */ }
     const secure = !!url && (url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)));
-    if (!url || !secure || url.username || url.password || url.search || url.hash || !process.env.LLM_API_KEY || !Object.keys(roleEnv).every(role => modelName(role as ModelRole))) {
+    if (!url || !secure || url.username || url.password || url.search || url.hash || !process.env.LLM_API_KEY || !Object.keys(roleEnv).every(role => configuredModelName(role as ModelRole))) {
       throw new Error('Legg inn LLM_BASE_URL, LLM_API_KEY og LLM_MODEL i serverens .env.local og start appen på nytt.');
     }
     return provider;
@@ -91,8 +92,13 @@ const roleDefaults: Record<AiProvider, Record<ModelRole, string>> = {
 function envModel(key: string) {
   return (process.env[key] || '').trim() || undefined;
 }
-export function modelName(role: ModelRole = 'triage') {
+/** The server's own env-configured default for a role, ignoring any admin override. */
+export function configuredModelName(role: ModelRole = 'triage') {
   return envModel(roleEnv[role]) || envModel(legacyRoleEnv[role]) || envModel('LLM_MODEL') || roleDefaults[aiProvider()][role];
+}
+/** The model actually in effect for a role: an admin override in drift wins, else the env default. */
+export function modelName(role: ModelRole = 'triage') {
+  return activeSelection(role).model;
 }
 export function maxRevisions() {
   // Guard on the raw string, not the number: Number('') is 0, so an empty variable has to
@@ -108,24 +114,28 @@ export function criticAlwaysPass() {
 let lastSuccessAt: string | null = null;
 export function markModelSuccess() { lastSuccessAt = new Date().toISOString(); }
 export async function modelStatus(): Promise<ModelStatus> {
-  const provider = aiProvider();
-  const model = modelName();
-  const models = { triage: model, draft: modelName('draft'), critic: modelName('critic'), polish: modelName('polish') };
+  const roles = Object.fromEntries(modelRoles.map(role => {
+    const selection = activeSelection(role);
+    return [role, { ...selection, keyConfigured: providerConfigured(selection.provider) }];
+  })) as Record<ModelRole, RoleStatus>;
+  const models = Object.fromEntries(modelRoles.map(role => [role, roles[role].model])) as Record<ModelRole, string>;
+  const { provider, model } = roles.triage;
   try {
-    configuration();
-    if (!runtimeInstalled()) return { available: false, provider, model, models, message: 'Installer Python-agentene med npm run setup:backend før du starter.' };
-    return { available: true, provider, model, models, message: lastSuccessAt
+    for (const role of modelRoles) configuration(roles[role].provider);
+    if (!runtimeInstalled()) return { available: false, provider, model, models, roles, message: 'Installer Python-agentene med npm run setup:backend før du starter.' };
+    return { available: true, provider, model, models, roles, message: lastSuccessAt
       ? 'AI-modellen svarte på siste fullførte modellkall. Bare utvalgte utdrag behandles; saksminnet lagres lokalt.'
       : 'AI-modellen er konfigurert. Forbindelsen prøves når du sender en beskrivelse. Bare utvalgte utdrag behandles.' };
   } catch {
-    return { available: false, provider, model, models, message: 'AI-modellen er ikke konfigurert. Legg inn serverinnstillingene i .env.local. Saksminnet lagres lokalt.' };
+    return { available: false, provider, model, models, roles, message: 'AI-modellen er ikke konfigurert. Legg inn serverinnstillingene i .env.local. Saksminnet lagres lokalt.' };
   }
 }
 
 export type ModelCall = <T>(system: string, context: unknown, schema: z.ZodType<T>, role?: ModelRole) => Promise<T>;
 export const callModel: ModelCall = async <T>(system: string, context: unknown, schema: z.ZodType<T>, role: ModelRole = 'triage'): Promise<T> => {
-  configuration();
-  const result = await runPythonRuntime({ mode: 'single', job: { id: role, name: role, role, model: modelName(role), prompt: system, context, schema: z.toJSONSchema(schema) } });
+  const { provider, model } = activeSelection(role);
+  configuration(provider);
+  const result = await runPythonRuntime({ mode: 'single', job: { id: role, name: role, role, provider, model, prompt: system, context, schema: z.toJSONSchema(schema) } });
   const output = schema.parse(result.output);
   markModelSuccess();
   return output;

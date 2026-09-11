@@ -26,13 +26,25 @@ FRAMEWORK = {"name": "Microsoft Agent Framework", "version": "1.17.0", "language
 SECURITY_CONTRACT = {"integrity": "untrusted", "confidentiality": "private", "allowedCapabilities": ["analyze"]}
 TELENOR_HOSTNAME_PATTERN = re.compile(
     r"^[a-z0-9][a-z0-9.-]*\.(?:execute-api\.[a-z0-9-]+\.amazonaws\.com|telenor\.(?:no|com))$", re.IGNORECASE)
+PROVIDER_NAMES = {"cloudflare": "Cloudflare", "telenor": "Telenor AI Factory", "litellm": "Modelltjenesten"}
 
 
 def emit(value: dict[str, Any]) -> None:
     print(json.dumps(value, ensure_ascii=False, separators=(",", ":")), flush=True)
 
 
-def safe_error(error: Exception) -> str:
+def configured_provider() -> str:
+    # Presence selects the generic endpoint even when its value is invalid: never fall back silently.
+    return (os.environ.get("AI_PROVIDER") or ("litellm" if "LLM_BASE_URL" in os.environ else "cloudflare")).strip().lower()
+
+
+def provider_label(provider: str | None = None) -> str:
+    # A job carries the provider that was actually active for it, which the admin panel may
+    # have overridden per role; fall back to the server-wide env default when none is given.
+    return PROVIDER_NAMES.get(provider or configured_provider(), "Leverandøren")
+
+
+def safe_error(error: Exception, provider: str | None = None) -> str:
     # Framework clients wrap SDK errors. Inspect typed causes, never their raw text.
     seen: set[int] = set()
     while id(error) not in seen:
@@ -43,7 +55,7 @@ def safe_error(error: Exception) -> str:
         if not isinstance(cause, Exception):
             break
         error = cause
-    label = provider_label()
+    label = provider_label(provider)
     if isinstance(error, APIStatusError):
         if error.status_code in (401, 403):
             return f"{label} avviste tilgangen. Kontroller serverens nøkkel og modelltilgang."
@@ -57,17 +69,10 @@ def safe_error(error: Exception) -> str:
     return "Agentkjøringen kunne ikke fullføres. Opplysningene er bevart; kontroller Python-oppsettet og prøv igjen."
 
 
-def configured_provider() -> str:
-    # Presence selects the generic endpoint even when its value is invalid: never fall back silently.
-    return (os.environ.get("AI_PROVIDER") or ("litellm" if "LLM_BASE_URL" in os.environ else "cloudflare")).strip().lower()
-
-
-def provider_label() -> str:
-    return {"telenor": "Telenor AI Factory", "litellm": "Modelltjenesten"}.get(configured_provider(), "Cloudflare")
-
-
-def provider_configuration() -> dict[str, Any]:
-    provider = configured_provider()
+def provider_configuration(provider: str | None = None) -> dict[str, Any]:
+    # A job's own provider wins so a per-role admin override actually reaches the model call;
+    # the server's own environment is still the only source of the connection secrets below.
+    provider = provider or configured_provider()
     if provider == "litellm":
         base_url = os.environ.get("LLM_BASE_URL", "").strip()
         api_key = os.environ.get("LLM_API_KEY", "")
@@ -163,11 +168,12 @@ async def run_agent(job: dict[str, Any], client_factory=AsyncOpenAI) -> dict[str
     schema = job["schema"]
     validator = Draft202012Validator(schema)
     messages = [secured_message("user", json.dumps(job["context"], ensure_ascii=False))]
+    provider = job.get("provider") or configured_provider()
     async with RECORDER.step(job["name"], role=job.get("id", "agent"), model=job["model"]) as span:
         span["input"] = redact(job["context"])
         async with asyncio.timeout(timeout):
-            async with client_factory(**provider_configuration(), timeout=timeout) as sdk:
-                cloudflare = configured_provider() == "cloudflare"
+            async with client_factory(**provider_configuration(provider), timeout=timeout) as sdk:
+                cloudflare = provider == "cloudflare"
                 model = job["model"].removeprefix("workers-ai/") if cloudflare else job["model"]
                 options = {"temperature": 0, "max_tokens": 2400, "response_format": {"type": "json_object"}, "store": False}
                 if cloudflare:
@@ -257,7 +263,7 @@ class Specialist(Executor):
                 await self.bridge.request("specialist", {"id": self.id, "output": output})
                 result["status"] = "completed"
             except Exception as error:
-                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error)})
+                await self.bridge.request("specialist", {"id": self.id, "error": safe_error(error, job.get("provider"))})
                 result["status"] = "failed"
         # Every graph branch emits once, including unselected services. The fixed fan-in
         # never waits forever for a branch that did not need an actual model call.
@@ -279,7 +285,7 @@ class Reviewer(Executor):
                 try:
                     payload = {"id": job["id"], "output": await run_stage(self.bridge, job, self.host_models)}
                 except Exception as error:
-                    payload = {"id": job["id"], "error": safe_error(error)}
+                    payload = {"id": job["id"], "error": safe_error(error, job.get("provider"))}
             await ctx.yield_output({"framework": FRAMEWORK, "branches": results})
 
 
@@ -315,8 +321,9 @@ async def main() -> None:
         if task in done:
             emit({"type": "complete", **task.result()})
     except Exception as error:
+        provider = (payload.get("job") or payload.get("triage") or {}).get("provider")
         outcome = "failed"
-        emit({"type": "error", "message": safe_error(error)})
+        emit({"type": "error", "message": safe_error(error, provider)})
     finally:
         task.cancel()
         listener.cancel()
