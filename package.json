@@ -17,6 +17,7 @@
     "start:digdir": "node apps/digdir-mock/src/server.ts",
     "start:pasientjournal": "node apps/pasientjournal-mock/src/server.ts",
     "start:politiattest": "node apps/politiattest-mock/src/server.ts",
+    "start:hjemmelsok": "node apps/hjemmelsok/src/server.ts",
     "start:lommebok": "pnpm --filter @innbyggerdialog/lommebok dev",
     "dev:lommebok": "pnpm --filter @innbyggerdialog/lommebok dev",
     "start:politiattest-flyt": "pnpm --filter @innbyggerdialog/politiattest-flyt dev",

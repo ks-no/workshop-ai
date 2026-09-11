@@ -8,6 +8,7 @@
   { "navn": "digdir-mock", "port": 8086, "rolle": "ID-porten og Maskinporten", "spesifikasjon": true },
   { "navn": "pasientjournal-mock", "port": 8087, "rolle": "Mock av elektronisk pasientjournal", "spesifikasjon": true },
   { "navn": "politiattest-mock", "port": 8088, "rolle": "Mock av politiattest", "spesifikasjon": true },
+  { "navn": "hjemmelsok", "port": 8089, "rolle": "Hjemmel for en politiattest, fra formål", "spesifikasjon": true },
   { "navn": "demo-gui", "port": 3001, "rolle": "Sidene du er på nå", "spesifikasjon": false },
   { "navn": "lommebok", "port": 3002, "rolle": "Digital lommebok sandkasse (utsted og verifiser)", "spesifikasjon": false },
   { "navn": "politiattest-flyt", "port": 3003, "rolle": "Demo av lommebok-flyt for skole-politiattest", "spesifikasjon": false },

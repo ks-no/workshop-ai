@@ -87,6 +87,7 @@ flowchart LR
     DG["demo-gui"]
     PAG["process-agent"]
     LW["lommebok"]
+    PAF["politiattest-flyt"]
   end
 
   subgraph kjerne["Kjerne"]
@@ -103,8 +104,13 @@ flowchart LR
     DM["digdir-mock"]
   end
 
+  subgraph oppslag["Oppslag"]
+    HS["hjemmelsok"]
+  end
+
   PB --> SB
   DG --> SB
+  PAF -->|"personer, utstedelse, verifisering"| LW
   PAG --> TA
   TA --> SB
   TA --> AG
@@ -120,6 +126,12 @@ flowchart LR
 
 Pilene er hvem som kaller hvem. `digdir-mock` står for seg fordi den ikke kalles inn i
 en flyt: den utsteder tokenet `sandbox-backend` og `fiks-simulator` krever.
+
+`hjemmelsok` står uten piler av en annen grunn: ingenting i sandkassen kaller den ennå.
+Den slår opp hjemmelen en politiattest kan kreves etter, ut fra noen få ord om formålet,
+og er ment for `politiattest-flyt` og for deltakernes egne klienter. Den er også den ene
+tjenesten som kaller en språkmodell utenom `ai-gateway` - `apps/hjemmelsok/README.md`
+sier hvorfor, og hva det koster.
 
 
 ## Dynamisk verktøyoppdagelse i agenten
@@ -147,7 +159,7 @@ Det betyr at:
 
 ## Status og kjente avvik
 
-Alle tolv tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
+Alle fjorten tjenestene er implementert og kjører. Samtykkesperre, revisjonslogg,
 deterministisk vilkårsvurdering og sju demo-case er på plass. Det som følger er
 avvik mellom hvordan sandkassen presenterer seg og hva den faktisk gjør - verdt å
 kjenne til før du bygger på den.

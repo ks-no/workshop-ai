@@ -1,0 +1,1478 @@
+[
+  {
+    "id": "adopsjon-og-assistert-befruktning-adopsjon-soeknad-til-norske-myndigheter",
+    "kategori": "Adopsjon og assistert befruktning",
+    "formaal": "Adopsjon - Søknad til norske myndigheter",
+    "beskrivelse": "Søknad om adopsjon til norske myndigheter.",
+    "hjemmel": "Adopsjonsloven § 5.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "adopsjon-og-assistert-befruktning-adopsjon-soeknad-til-utenlandske-myndigheter-o",
+    "kategori": "Adopsjon og assistert befruktning",
+    "formaal": "Adopsjon - Søknad til utenlandske myndigheter - Ordinær",
+    "beskrivelse": "Søknad om adopsjon til utenlandske myndigheter. Ordinær politiattest.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "adopsjon-og-assistert-befruktning-adopsjon-soeknad-til-utenlandske-myndigheter-u",
+    "kategori": "Adopsjon og assistert befruktning",
+    "formaal": "Adopsjon - Søknad til utenlandske myndigheter - Uttømmende",
+    "beskrivelse": "Søknad om adopsjon til utenlandske myndigheter. Uttømmende politiattest.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "adopsjon-og-assistert-befruktning-assistert-befruktning-soeknad-til-norske-myndi",
+    "kategori": "Adopsjon og assistert befruktning",
+    "formaal": "Assistert befruktning - søknad til norske myndigheter",
+    "beskrivelse": "Søknad om assistert befruktning til norske myndigheter.",
+    "hjemmel": "Bioteknologiloven § 2-6 andre ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "advokatvirksomhet-advokatbevilling",
+    "kategori": "Advokatvirksomhet",
+    "formaal": "Advokatbevilling",
+    "beskrivelse": "Søknad om advokatbevilling.",
+    "hjemmel": "Advokatloven § 4 første ledd bokstav d. Advokatloven § 6 første ledd jf. § 4 første ledd bokstav d.",
+    "attesttype": "Ordinær og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "advokatvirksomhet-advokatfullmektig",
+    "kategori": "Advokatvirksomhet",
+    "formaal": "Advokatfullmektig",
+    "beskrivelse": "Søknad om autorisasjon som advokatfullmektig.",
+    "hjemmel": "Advokatloven § 11 første ledd bokstav b.",
+    "attesttype": "Ordinær og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "advokatvirksomhet-eiere-og-ledelsen-i-advokatforetak",
+    "kategori": "Advokatvirksomhet",
+    "formaal": "Eiere og ledelsen i advokatforetak",
+    "beskrivelse": "Eiere, styremedlemmer, daglig leder og andre som deltar i ledelsen i advokatforetaket.",
+    "hjemmel": "Advokatloven § 22 første ledd.",
+    "attesttype": "Ordinær og utvidet",
+    "bekreftelse": "Bekreftelse fra advokatforetaket."
+  },
+  {
+    "id": "alkohol-og-tobakk-alkohol-registrering-av-virksomhet-som-driver-engrossalg-impor",
+    "kategori": "Alkohol og tobakk",
+    "formaal": "Alkohol - registrering av virksomhet som driver engrossalg, import eller produksjon av alkoholholdig drikk eller teknisk etanol - foretak",
+    "beskrivelse": "Foretak som eier en vesentlig del av virksomheten eller selskap, som oppebærer en vesentlig del av inntektene fra virksomhet som driver engrossalg, import eller produksjon av alkoholholdig drikk eller teknisk etanol.",
+    "hjemmel": "Alkoholloven § 1-4c, jf. forskrift om engrossalg og tilvirkning av alkoholholdig drikk mv. § 5-1 andre ledd, jf. særavgiftsforskriften § 5-3 tredje ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "alkohol-og-tobakk-alkohol-registrering-av-virksomhet-som-driver-engrossalg-impor-2",
+    "kategori": "Alkohol og tobakk",
+    "formaal": "Alkohol - registrering av virksomhet som driver engrossalg, import eller produksjon av alkoholholdig drikk eller teknisk etanol - personer",
+    "beskrivelse": "Personer som eier en vesentlig del av virksomheten eller selskap, som oppebærer en vesentlig del av virksomhetens inntekter, eller som i kraft av sin stilling som leder har vesentlig innflytelse på virksomhet som driver engrossalg, import eller produksjon av alkoholholdig drikk eller teknisk etanol.",
+    "hjemmel": "Alkoholloven § 1-4c, jf. forskrift om engrossalg og tilvirkning av alkoholholdig drikk mv. § 5-1 andre ledd, jf. særavgiftsforskriften § 5-3 tredje ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "alkohol-og-tobakk-tobakk-soeknad-om-bevilling-for-import-eksport-og-produksjon-a",
+    "kategori": "Alkohol og tobakk",
+    "formaal": "Tobakk - søknad om bevilling for import, eksport og produksjon av",
+    "beskrivelse": "Foretak som har vesentlig innflytelse på virksomhet som driver med import, eksport og produksjon av",
+    "hjemmel": "Tobakksskadeloven § 9.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "alkohol-og-tobakk-tobakk-soeknad-om-bevilling-for-import-eksport-og-produksjon-a-2",
+    "kategori": "Alkohol og tobakk",
+    "formaal": "Tobakk - søknad om bevilling for import, eksport og produksjon av tobakksvarer og utstyr for tobakksproduksjon - personer",
+    "beskrivelse": "Personer som har vesentlig innflytelse på virksomhet som driver import, eksport og produksjon av tobakksvarer og utstyr for tobakksproduksjon.",
+    "hjemmel": "Tobakksskadeloven § 11, jf. § 9.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "apotek-og-legemidler-apotek-soeknad-om-konsesjon",
+    "kategori": "Apotek og legemidler",
+    "formaal": "Apotek - Søknad om konsesjon",
+    "beskrivelse": "Søknad om driftskonsesjon til apotek.",
+    "hjemmel": "Apotekloven § 3-2 første ledd bokstav c)",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "apotek-og-legemidler-apotek-og-legemidler",
+    "kategori": "Apotek og legemidler",
+    "formaal": "Apotek og legemidler",
+    "beskrivelse": "Arbeid i farmasøytisk industri, legemiddelgrossister og apotek.",
+    "hjemmel": "Legemiddelloven § 30 a",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra farmasøytisk industri, legemiddelgrossist eller apotek."
+  },
+  {
+    "id": "apotek-og-legemidler-legemidler-soeknad-om-lisens",
+    "kategori": "Apotek og legemidler",
+    "formaal": "Legemidler - Søknad om lisens",
+    "beskrivelse": "Søknad om lisens for import, eksport, transitt, tilvirkning, mottak, besittelse, håndtering og omsetning av stoffer som kan brukes ved illegal fremstilling av narkotika (legemidler).",
+    "hjemmel": "Legemiddelloven § 25a fjerde ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "arbeidsmarkedstiltak-arbeidsmarkedstiltak",
+    "kategori": "Arbeidsmarkedstiltak",
+    "formaal": "Arbeidsmarkedstiltak",
+    "beskrivelse": "Ansettelse i bedrift som arrangerer arbeidsmarkedstiltak rettet mot utviklingshemmede.",
+    "hjemmel": "Arbeidsmarkedsloven § 21, jf. forskrift om politiattest iht. arbeidsmarkedsloven § 1, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "asylmottak-og-representanter-for-enslige-mindreaarige-asylsoekere-asylmottak",
+    "kategori": "Asylmottak og representanter for enslige mindreårige asylsøkere",
+    "formaal": "Asylmottak",
+    "beskrivelse": "Personer skal tilsettes i mottak, og andre som skal utføre oppgaver for utlendingsmyndighetene og som har direkte kontakt med mindreårige som oppholder seg i mottak.",
+    "hjemmel": "Utlendingsloven § 97 første ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "asylmottak-og-representanter-for-enslige-mindreaarige-asylsoekere-representant-f",
+    "kategori": "Asylmottak og representanter for enslige mindreårige asylsøkere",
+    "formaal": "Representant for enslige mindreårige asylsøkere",
+    "beskrivelse": "Personer som skal oppnevnes som representant for enslige mindreårige asylsøkere.",
+    "hjemmel": "Utlendingsloven § 98c andre ledd, jf. politiregisterloven § 39 første ledd første punktum.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra statsforvalteren."
+  },
+  {
+    "id": "barn-og-foreldre-barneombudet",
+    "kategori": "Barn og foreldre",
+    "formaal": "Barneombudet",
+    "beskrivelse": "Personer som skal ansettes i Barneombudet som skal utføre oppgaver som forutsetter et tillits- eller ansvarsforhold overfor mindreårige.",
+    "hjemmel": "Barneombudsloven § 5 a, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra Barneombudet."
+  },
+  {
+    "id": "barn-og-foreldre-familievernkontor",
+    "kategori": "Barn og foreldre",
+    "formaal": "Familievernkontor",
+    "beskrivelse": "Personer som skal ansettes fast eller midlertidig ved et familievernkontor og som skal utføre oppgaver som forutsetter et tillits- eller ansvarsforhold overfor mindreårige. Dette omfatter terapeuter, meklere mv.",
+    "hjemmel": "Familievernkontorloven § 2 a, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra familievernkontor."
+  },
+  {
+    "id": "barn-og-foreldre-godkjenning-av-mekler-etter-barneloven",
+    "kategori": "Barn og foreldre",
+    "formaal": "Godkjenning av mekler etter barneloven",
+    "beskrivelse": "Personer som skal godkjennes som ekstern mekler for å oppnevnes i sak etter barneloven om foreldreansvar, flytting av barnet ut av landet, hvem barnet skal bo fast sammen med og samvær.",
+    "hjemmel": "Barneloven § 53 a jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "barn-og-foreldre-godkjenning-av-mekler-etter-ekteskapsloven",
+    "kategori": "Barn og foreldre",
+    "formaal": "Godkjenning av mekler etter ekteskapsloven",
+    "beskrivelse": "Personer som skal godkjennes som ekstern mekler for å oppnevnes i saker etter ekteskapsloven om separasjon og skilsmisse mellom ektefeller som har felles barn under 16 år.",
+    "hjemmel": "Ekteskapsloven § 26 annet ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "barn-og-foreldre-sakkyndig-og-representanter-for-barn-oppnevnt-av-domstol-etter-",
+    "kategori": "Barn og foreldre",
+    "formaal": "Sakkyndig og representanter for barn oppnevnt av domstol etter barneloven",
+    "beskrivelse": "Sakkyndig som blir oppnevnt av domstolen etter barneloven § 61. Advokater eller andre som blir oppnevnt som representanter for barnet i forbindelse med søksmål etter barneloven § 61 første ledd nr. 5.",
+    "hjemmel": "Barneloven § 61 tredje ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "barn-og-ungdom-barne-og-ungdomsleirer-og-fritidsklubber",
+    "kategori": "Barn og ungdom",
+    "formaal": "Barne- og ungdomsleirer og fritidsklubber",
+    "beskrivelse": "Personer som skal arbeide eller ha oppgaver i fritidsklubber eller i barne- og ungdomsleirer og hvor oppgavene innebærer et tillits- eller ansvarsforhold overfor mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Politiregisterforskriften § 34-12, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barn-og-ungdom-kringkasting",
+    "kategori": "Barn og ungdom",
+    "formaal": "Kringkasting",
+    "beskrivelse": "Personell med arbeidsoppgaver som innebærer regelmessig kontakt med mindreårige hos kringkastere, tilbydere av audiovisuelle bestillingstjenester og produksjonsforetak som produserer programmer bestilt av en kringkaster eller tilbyder av audiovisuelle bestillingstjenester.",
+    "hjemmel": "Kringkastingsloven § 2-18, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barn-og-ungdom-kulturinstitusjoner",
+    "kategori": "Barn og ungdom",
+    "formaal": "Kulturinstitusjoner",
+    "beskrivelse": "Personer som skal utføre oppgaver i kulturinstitusjoner som innebærer et tillitsforhold eller ansvarsforhold overfor mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Politiregisterforskriften § 34-16, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barn-og-ungdom-leksehjelps-eller-mentorordninger-for-mindreaarige",
+    "kategori": "Barn og ungdom",
+    "formaal": "Leksehjelps- eller mentorordninger for mindreårige",
+    "beskrivelse": "Personer som skal arbeide som lærere eller veiledere i leksehjelps- eller mentorordninger og som ikke faller inn under leksehjelpsordningen i opplæringslova.",
+    "hjemmel": "Politiregisterforskriften § 34-14, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barn-og-ungdom-organisert-treningsvirksomhet-for-barn-i-virksomheter-utenfor-fri",
+    "kategori": "Barn og ungdom",
+    "formaal": "Organisert treningsvirksomhet for barn i virksomheter utenfor frivillige organisasjoner",
+    "beskrivelse": "Personer som skal arbeide med eller ha oppgaver knyttet til trening for barn i virksomheter utenfor frivillige organisasjoner, og hvor oppgavene innebærer et tillits- eller ansvarsforhold overfor mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Politiregisterforskriften § 34-13, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barn-og-ungdom-trener-for-idrettslag",
+    "kategori": "Barn og ungdom",
+    "formaal": "Trener for idrettslag",
+    "beskrivelse": "Personer som utfører eller skal utføre oppgaver for frivillige organisasjoner som innebærer et tillits- eller ansvarsforhold overfor mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Politiregisterforskriften § 34-1, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra idrettslaget."
+  },
+  {
+    "id": "barnehage-og-skole-barnehage",
+    "kategori": "Barnehage og skole",
+    "formaal": "Barnehage",
+    "beskrivelse": "Fast ansettelse, midlertidig ansettelse og regelmessig opphold i barnehage. Vikarer tilknyttet en etablert vikarordning, sivilarbeidere og personer som har vesentlig innflytelse på barnehagens drift.",
+    "hjemmel": "Barnehageloven § 30, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barnehage-og-skole-folkehoegskole",
+    "kategori": "Barnehage og skole",
+    "formaal": "Folkehøgskole",
+    "beskrivelse": "Fast eller midlertidig tilsetting ved folkehøyskole.",
+    "hjemmel": "Folkehøgskoleloven § 12, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barnehage-og-skole-offentlig-skole",
+    "kategori": "Barnehage og skole",
+    "formaal": "Offentlig skole",
+    "beskrivelse": "Personer som skal ansettes, ha praksis ved eller utføre oppgaver ved grunnskole, videregående skole, musikk- og kulturskole, SFO, leksehjelp og skolelignende aktivitetstilbud, leirskole eller forberedende opplæring for voksne, eller andre steder der slike tilbud blir gitt.",
+    "hjemmel": "Opplæringsloven § 17-11, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barnehage-og-skole-privatskole",
+    "kategori": "Barnehage og skole",
+    "formaal": "Privatskole",
+    "beskrivelse": "Personer som skal ansettes, ha praksis eller utføre oppgaver ved privat grunnskole, videregående skole, leksehjelp og skolelignende aktivitetstilbud, eller der slike tilbud blir gitt.",
+    "hjemmel": "Privatskoleloven § 4-3 første og andre ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-andre-som-bor-i-fosterhjemmet-eller-avlastningsh",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Andre som bor i fosterhjemmet eller avlastningshjemmet",
+    "beskrivelse": "Andre som bor i fosterhjemmet eller avlastningshjemmet.",
+    "hjemmel": "Barnevernsloven § 12-11 sjette ledd tredje punktum, jf. forskrift om politiattest etter barnevernsloven § 4 tredje ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra kommunen, Bufetat eller privat virksomhet som tilbyr fosterhjemstjenester."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-ansatte-i-bufetat-og-andre-som-utfoerer-oppgaver",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Ansatte i Bufetat og andre som utfører oppgaver på vegne av Bufetat",
+    "beskrivelse": "Personer som skal ansettes i eller utføre oppgaver på vegne av Barne-, ungdoms- og familieetaten (Bufetat) som i sitt arbeid kan ha direkte kontakt med barn.",
+    "hjemmel": "Barnevernsloven § 12-11 tredje ledd, jf. forskrift om politiattest etter barnevernsloven § 3, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra Bufetat."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-barnevernsinstitusjoner-senter-for-foreldre-og-b",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Barnevernsinstitusjoner, senter for foreldre og barn eller omsorgssenter for mindreårige",
+    "beskrivelse": "Ansatte og andre som utfører oppgaver for statlige institusjoner, statlig senter for foreldre og barn, omsorgssentre for mindreårige, godkjente private institusjoner, godkjente private senter for foreldre og barn, godkjente kommunale institusjoner og godkjente kommunale senter for barn og foreldre.",
+    "hjemmel": "Barnevernsloven § 12-11 andre ledd, jf. forskrift om politiattest etter barnevernsloven § 2, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra oppdragsgiver."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-eier-av-eller-representant-for-eier-av-privat-ba",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Eier av, eller representant for eier av privat barneverninstitusjon, senter for foreldre og barn eller omsorgssenter for mindreårige",
+    "beskrivelse": "Eier av eller representant for eier av privat barneverninstitusjon, senter for foreldre og barn eller omsorgssenter for mindreårige som er godkjent etter barnevernsloven, som skal oppholde seg på institusjonen eller senteret.",
+    "hjemmel": "Barnevernsloven § 12-11 andre ledd jf. forskrift om politiattest etter barnevernsloven § 2 tredje ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra Bufdir eller Bufetat."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-fosterforeldre-og-private-som-tar-imot-barn-som-",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Fosterforeldre og private som tar imot barn som avlastningstiltak i fosterhjem eller avlastningshjem",
+    "beskrivelse": "Personer som skal godkjennes som fosterforeldre og personer som tar imot barn i avlastningshjem eller heldøgns avlastningstiltak.",
+    "hjemmel": "Barnevernslova § 12-11 sjette ledd, jf. forskrift om politiattest etter barnevernsloven § 4 første og andre ledd, jf. politiregisterloven § 41 nr. 1 og nr. 2.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra kommunen, Bufetat eller privat virksomhet som tilbyr fosterhjemstjenester."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-kommunal-barneverntjeneste",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Kommunal barneverntjeneste",
+    "beskrivelse": "Ansatte og andre som utfører oppgaver på vegne av kommunal barneverntjeneste, støttekontakter og andre som utfører oppgaver som ledd i hjelpetiltak, tillitspersoner og personer som skal føre tilsyn med barn i fosterhjem.",
+    "hjemmel": "Barnevernsloven § 12-11 første ledd, jf. forskrift om politiattest etter barnevernsloven § 1 og § 5 første ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra kommunen."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-leder-i-barneverns-og-helsenemnda",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Leder i barneverns- og helsenemnda",
+    "beskrivelse": "Oppnevning som leder i barneverns- og helsenemnda.",
+    "hjemmel": "Barnevernsloven § 12-11 syvende ledd, jf. forskrift om politiattest etter barnevernsloven § 6 første ledd, jf. politiregisterloven § 41 nr. 1.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-offentlig-oppnevnt-tilsynsperson-ved-samvaer",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Offentlig oppnevnt tilsynsperson ved samvær",
+    "beskrivelse": "Offentlig oppnevnt tilsynsperson ved beskyttet eller støttet samvær.",
+    "hjemmel": "Barneloven § 43a syvende ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra barneverntjenesten ved beskyttet samvær. Bekreftelse fra Bufetat ved støttet samvær."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-private-som-tar-imot-enslige-mindreaarige-i-et-f",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Private som tar imot enslige mindreårige i et familiebasert botilbud",
+    "beskrivelse": "Godkjenning av private som tar imot enslige mindreårige i familiebaserte botilbud i samsvar med barnevernsloven § 11-1 femte ledd.",
+    "hjemmel": "Barnevernsloven § 12-11 sjette ledd siste punktum, jf. forskrift om politiattest etter barnevernsloven § 4 fjerde ledd, jf. politiregisterloven § 41 nr. 1 og nr. 2.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra Bufetat."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-sakkyndig-oppnevnt-av-nemnda-eller-domstol-etter",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Sakkyndig oppnevnt av nemnda eller domstol etter barnevernsloven",
+    "beskrivelse": "Personer som skal oppnevnes som sakkyndig av barneverns- og helsenemnda etter barnevernsloven § 14-11 andre ledd bokstav e, § 14-13 eller § 14-14 andre ledd og sakkyndig som domstolen oppnevner etter tvisteloven § 25-2 første ledd i saker etter barnevernsloven.",
+    "hjemmel": "Barnevernsloven § 12-11 fjerde ledd første og tredje punktum, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-talspersoner-for-barn-oppnevnt-av-barneverns-og-",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Talspersoner for barn oppnevnt av barneverns- og helsenemnda",
+    "beskrivelse": "Personer som skal oppnevnes som talsperson etter § 14-13 for barn i sak for barneverns- og helsenemnda.",
+    "hjemmel": "Barnevernsloven § 12-11 fjerde ledd andre punktum, jf. forskrift om politiattest etter barnevernsloven § 6 andre ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra barneverns- og helsenemnda"
+  },
+  {
+    "id": "barnevern-og-tilsyn-ved-samvaer-tilsynspersoner-i-barnevernsinstitusjon-senter-f",
+    "kategori": "Barnevern og tilsyn ved samvær",
+    "formaal": "Tilsynspersoner i barnevernsinstitusjon, senter for foreldre og barn eller omsorgssentre",
+    "beskrivelse": "Personer som skal føre tilsyn med barn i barnevernsinstitusjon, sentre for foreldre og barn eller omsorgssentre etter § 17-3 andre ledd.",
+    "hjemmel": "Barnevernsloven § 12-11 femte ledd andre punktum, jf. forskrift om politiattest etter barnevernsloven § 5 andre ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra statsforvalteren."
+  },
+  {
+    "id": "brann-og-eksplosjonsvern-bergsprenging",
+    "kategori": "Brann- og eksplosjonsvern",
+    "formaal": "Bergsprenging",
+    "beskrivelse": "Søknad om sertifikat som bergsprenger eller bergsprengningsleder og søknad om fornyelse av sertifikat som bergsprenger eller bergsprengningsleder.",
+    "hjemmel": "Brann- og eksplosjonsvernloven § 19a, jf. eksplosivforskriften § 81 første ledd bokstav c, § 80 tredje ledd bokstav c og § 82 første ledd bokstav c.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "brann-og-eksplosjonsvern-brann-og-redningspersonell",
+    "kategori": "Brann- og eksplosjonsvern",
+    "formaal": "Brann- og redningspersonell",
+    "beskrivelse": "Personer som skal tilsettes eller er pålagt tjenesteplikt i brann- og redningsvesenet, samt personell i virksomhet som etter avtale helt eller delvis utfører brann- og redningsvesenets oppgaver.",
+    "hjemmel": "Brann- og eksplosjonsvernloven § 18.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "brann-og-eksplosjonsvern-eksplosiv-vare-ansettelse-i-virksomhet",
+    "kategori": "Brann- og eksplosjonsvern",
+    "formaal": "Eksplosiv vare - Ansettelse i virksomhet",
+    "beskrivelse": "Ansettelse av personer som skal håndtere eksplosiv vare.",
+    "hjemmel": "Brann- og eksplosjonsvernloven § 19a, jf. eksplosivforskriften § 13 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "brann-og-eksplosjonsvern-eksplosiv-vare-soeknad-til-dsb",
+    "kategori": "Brann- og eksplosjonsvern",
+    "formaal": "Eksplosiv vare - Søknad til DSB",
+    "beskrivelse": "Søknad om tillatelse til erverv, tilvirkning, oppbevaring, handel og tilintetgjøring av eksplosiv vare.",
+    "hjemmel": "Brann- og eksplosjonsvernloven § 19a, jf. eksplosivforskriften § 35 fjerde punktum, § 73 andre ledd og § 77 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "domstoler-dommere-dommerfullmektiger-rettsmedlemmer-og-rettsfullmektiger",
+    "kategori": "Domstoler",
+    "formaal": "Dommere, dommerfullmektiger, rettsmedlemmer og rettsfullmektiger",
+    "beskrivelse": "Utnevning av faste og midlertidige dommere, tilsetting av dommerfullmektiger. Tilsetting av rettsmedlemmer og rettsfullmektiger i Trygderetten.",
+    "hjemmel": "Domstolloven § 55 fjerde ledd. Trygderettsloven § 3 sjuende ledd jf. domstolloven § 55 fjerde ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "eiendomsmegling-og-inkasso-eiendomsmegling",
+    "kategori": "Eiendomsmegling og inkasso",
+    "formaal": "Eiendomsmegling",
+    "beskrivelse": "Utstedelse av eiendomsmeglerbrev. Tillatelse for jurister til å være fagansvarlig og ansvarlig megler. Styremedlemmer, daglig leder, fagansvarlig av eiendomsmeglingsforetak, autorisert eiendomsmeglerfullmektig, oppgjørsmedhjelper.",
+    "hjemmel": "Eiendomsmeglingsloven § 4-2 andre ledd, § 4-3 andre ledd og § 2-9 første, andre og fjerde ledd, jf. § 2-9 tredje ledd, jf. forskrift om eiendomsmegling § 2-7.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "eiendomsmegling-og-inkasso-inkasso",
+    "kategori": "Eiendomsmegling og inkasso",
+    "formaal": "Inkasso",
+    "beskrivelse": "Personer som søker inkassobevilling. Styremedlemmer, daglig leder og faktisk leder i foretak som søker inkassobevilling og foretak som søker bevilling til å drive oppkjøp og inndriving av fordringer.",
+    "hjemmel": "Inkassoloven § 5 første, andre og tredje ledd, jf. sjette ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "fengsel-og-kriminalomsorg-fengsel-og-kriminalomsorg",
+    "kategori": "Fengsel og kriminalomsorg",
+    "formaal": "Fengsel og kriminalomsorg",
+    "beskrivelse": "Personer som skal tilsettes i eller utføre arbeid for kriminalomsorgen. Andre som skal utføre arbeid i fengselet/kriminalomsorgen som ledd i forvaltningssamarbeidet. Aspiranter i kriminalomsorgen.",
+    "hjemmel": "Straffegjennomføringsloven § 8 første ledd andre til fjerde punktum.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra fengselet eller kriminalomsorgen."
+  },
+  {
+    "id": "fengsel-og-kriminalomsorg-tilsynsraadet-kriminalomsorgen",
+    "kategori": "Fengsel og kriminalomsorg",
+    "formaal": "Tilsynsrådet kriminalomsorgen",
+    "beskrivelse": "Personer som skal oppnevnes som leder eller medlemmer av tilsynsrådet for kriminalomsorgen.",
+    "hjemmel": "Straffegjennomføringsloven § 9 b andre ledd fjerde punktum, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra departementet"
+  },
+  {
+    "id": "finans-og-forsikring-aksessorisk-forsikringsagentforetak",
+    "kategori": "Finans og forsikring",
+    "formaal": "Aksessorisk forsikringsagentforetak",
+    "beskrivelse": "Daglig leder og andre personer i den faktiske ledelsen som er ansvarlig for den aksessoriske forsikringsformidlingsvirksomheten i et aksessorisk forsikringsagentforetak.",
+    "hjemmel": "Forsikringsformidlingsloven § 6-4, jf. § 6-5, jf. forsikringsformidlingsforskriften § 2-6.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra forsikringsforetaket."
+  },
+  {
+    "id": "finans-og-forsikring-alternative-investeringsfond",
+    "kategori": "Finans og forsikring",
+    "formaal": "Alternative investeringsfond",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen hos forvalter av alternative investeringsfond.",
+    "hjemmel": "Lov om forvaltning av alternative investeringsfond § 2-5 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-autorisasjon-for-tilbyder-av-virksomhetstjenester",
+    "kategori": "Finans og forsikring",
+    "formaal": "Autorisasjon for tilbyder av virksomhetstjenester",
+    "beskrivelse": "Søknad til Finanstilsynet om autorisasjon for tilbyder av virksomhetstjenester. Melding om endring av stilling, verv eller funksjon.",
+    "hjemmel": "Hvitvaskingsloven § 42 fjerde ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "finans-og-forsikring-eksportfinansiering-norge",
+    "kategori": "Finans og forsikring",
+    "formaal": "Eksportfinansiering Norge",
+    "beskrivelse": "Styremedlem, varamedlem og observatør i styret, daglig leder eller andre personer som skal inngå i den faktiske ledelsen av virksomheten eller deler av denne, samt andre personer med nøkkelfunksjoner i",
+    "hjemmel": "Politiregisterforskriften § 34-17.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-finanstilsynets-egnethetsvurdering-for-finansforetak",
+    "kategori": "Finans og forsikring",
+    "formaal": "Finanstilsynets egnethetsvurdering for finansforetak",
+    "beskrivelse": "Finanstilsynets egnethetsvurdering av styremedlem, varamedlem og observatør i styret, daglig leder, andre personer som skal inngå i den faktiske ledelsen av virksomheten eller deler av denne, samt andre personer med nøkkelfunksjoner i finansforetaket. Politiattest innhentes ved søknad om konsesjon eller senere endringer i styret, daglig ledelse eller skifte av leder for nøkkelfunksjoner.",
+    "hjemmel": "Finansforetaksloven § 3-5, jf. § 3-1 fjerde ledd, § 8-9, § 8-14 og finansforetaksforskriften § 3-1.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-forsikringsagent",
+    "kategori": "Finans og forsikring",
+    "formaal": "Forsikringsagent",
+    "beskrivelse": "Forsikringsagent i virksomhet som er registrert eller skal registreres som forsikringsagentforetak.",
+    "hjemmel": "Forsikringsformidlingsloven § 6-3, jf. § 6-5.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra forsikringsagentforetaket."
+  },
+  {
+    "id": "finans-og-forsikring-forsikringsdistribusjon",
+    "kategori": "Finans og forsikring",
+    "formaal": "Forsikringsdistribusjon",
+    "beskrivelse": "Ansatte i forsikringsforetak som er direkte beskjeftiget med forsikringsdistribusjon.",
+    "hjemmel": "Finansforetaksloven § 16-12.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra forsikringsforetaket."
+  },
+  {
+    "id": "finans-og-forsikring-forsikringsmegler",
+    "kategori": "Finans og forsikring",
+    "formaal": "Forsikringsmegler",
+    "beskrivelse": "Forsikringsmegler i foretak som har eller skal søke om tillatelse til å drive forsikringsformidling.",
+    "hjemmel": "Forsikringsformidlingsloven § 6-2, jf. § 6-5.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra forsikringsformidlingsforetaket."
+  },
+  {
+    "id": "finans-og-forsikring-gjeldsinformasjonsforetak",
+    "kategori": "Finans og forsikring",
+    "formaal": "Gjeldsinformasjonsforetak",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen av virksomheten i et gjeldsinformasjonsforetak.",
+    "hjemmel": "Gjeldsinformasjonsloven § 6 tredje ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-kredittvurderingsbyraa",
+    "kategori": "Finans og forsikring",
+    "formaal": "Kredittvurderingsbyrå",
+    "beskrivelse": "Søknad til ESMA eller EFTAs overvåkningsorgan om registrering av kredittvurderingsbyrå.",
+    "hjemmel": "Lov om kredittvurderingsbyråer § 1 jf. forskrift om kredittvurderingsbyråer § 4 jf. Kommisjonsforordning (EU) 449/2012 artikkel 15 nr. 2 bokstav a.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "finans-og-forsikring-ledelsen-i-forsikringsmeglingsforetak-eller-forsikringsagen",
+    "kategori": "Finans og forsikring",
+    "formaal": "Ledelsen i forsikringsmeglingsforetak eller forsikringsagentforetak",
+    "beskrivelse": "Styremedlemmer, varamedlemmer, daglig leder og andre personer i den faktiske ledelsen i forsikringsmeglingsforetak eller forsikringsagentforetak.",
+    "hjemmel": "Forsikringsformidlingsloven § 6-1, jf. § 6-5.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra forsikringsformidlingsvirksomheten."
+  },
+  {
+    "id": "finans-og-forsikring-ledelsen-i-laaneformidlingsvirksomheter",
+    "kategori": "Finans og forsikring",
+    "formaal": "Ledelsen i låneformidlingsvirksomheter",
+    "beskrivelse": "Styremedlemmer, daglig leder eller andre personer i den faktiske ledelsen av låneformidlingsvirksomhet eller deler av denne.",
+    "hjemmel": "Låneformidlingsloven § 5-2.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra låneformidlingsvirksomheten"
+  },
+  {
+    "id": "finans-og-forsikring-norges-bank",
+    "kategori": "Finans og forsikring",
+    "formaal": "Norges Bank",
+    "beskrivelse": "Personer som skal utføre arbeid eller tjeneste for Norges Bank, utføre arbeid for en tjenesteleverandør til banken eller for øvrig ha adgang uten følge til bankens bygninger.",
+    "hjemmel": "Sentralbankloven § 2-15 tredje ledd, jf. forskrift om politiattest ved arbeid eller tjeneste for Norges Bank § 2.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-operatoer-av-interbanksystem",
+    "kategori": "Finans og forsikring",
+    "formaal": "Operatør av interbanksystem",
+    "beskrivelse": "Daglig leder og styremedlemmer i operatør av interbanksystem.",
+    "hjemmel": "Betalingssystemloven § 2-4 andre ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "finans-og-forsikring-utkontraktering-av-oppgaver-fra-pensjonsforetak",
+    "kategori": "Finans og forsikring",
+    "formaal": "Utkontraktering av oppgaver fra pensjonsforetak",
+    "beskrivelse": "Personer med nøkkelfunksjoner i foretak som har fått utkontraktert oppgaver fra pensjonsforetak, og som ikke er under tilsyn fra Finanstilsynet eller tilsvarende tilsynsmyndigheter i en annen EØS-stat.",
+    "hjemmel": "Finansforetaksloven § 13-4 fjerde ledd, jf. forskrift om pensjonsforetak § 29.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "forsvar-heimevernet",
+    "kategori": "Forsvar",
+    "formaal": "Heimevernet",
+    "beskrivelse": "Opptak av frivillige til Heimevernet.",
+    "hjemmel": "Forsvarsloven § 59 fjerde ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra Heimevernet."
+  },
+  {
+    "id": "forsvar-tjenestegjoering-i-internasjonale-operasjoner",
+    "kategori": "Forsvar",
+    "formaal": "Tjenestegjøring i internasjonale operasjoner",
+    "beskrivelse": "Personer som skal tjenestegjøre i internasjonale operasjoner.",
+    "hjemmel": "Forsvarsloven § 59 tredje ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra Forsvaret."
+  },
+  {
+    "id": "frivillige-organisasjoner-frivillige-organisasjoner",
+    "kategori": "Frivillige organisasjoner",
+    "formaal": "Frivillige organisasjoner",
+    "beskrivelse": "Personer som utfører eller skal utføre oppgaver for frivillige organisasjoner som innebærer et tillits- eller ansvarsforhold overfor mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Politiregisterforskriften § 34-1, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver/organisasjonen."
+  },
+  {
+    "id": "helse-og-omsorg-incestsentre-og-ressurssentre-for-voldtatte",
+    "kategori": "Helse og omsorg",
+    "formaal": "Incestsentre og ressurssentre for voldtatte",
+    "beskrivelse": "Personer som skal utføre oppgaver for incestsentre eller ressurssentre for voldtatte som innebærer et tillits- eller ansvarsforhold overfor mindreårige",
+    "hjemmel": "Politiregisterforskriften § 34-4, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "helse-og-omsorg-kommunale-helse-og-omsorgstjenester",
+    "kategori": "Helse og omsorg",
+    "formaal": "Kommunale helse- og omsorgstjenester",
+    "beskrivelse": "Tilbud om stilling eller oppdrag til personer som skal yte kommunale helse- og omsorgstjenester for kommune, eller for annen arbeidsgiver som yter kommunale helse- og omsorgstjenester.",
+    "hjemmel": "Helse- og omsorgstjenesteloven § 5-4",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "helse-og-omsorg-krisesenter",
+    "kategori": "Helse og omsorg",
+    "formaal": "Krisesenter",
+    "beskrivelse": "Ansettelse eller tildeling av oppgaver som innebærer kontakt med brukere av krisesenter eller tilsvarende bo- og dagtilbud.",
+    "hjemmel": "Krisesenterloven § 7, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "helse-og-omsorg-meldeplikt-for-inntreden-i-privat-virksomhet-spesialisthelsetjen",
+    "kategori": "Helse og omsorg",
+    "formaal": "Meldeplikt for inntreden i privat virksomhet - Spesialisthelsetjenester og tannhelsetjenester - Barn",
+    "beskrivelse": "Meldeplikt for privatpraktiserende eller offentlig ansatt helsepersonell som åpner, overtar eller trer i privat virksomhet som er omfattet av helsepersonelloven, og som skal yte spesialisthelsetjenester og tannhelsetjenester til barn.",
+    "hjemmel": "Helsepersonelloven § 18 andre ledd jf. § 20 a første ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "helse-og-omsorg-meldeplikt-for-inntreden-i-privat-virksomhet-spesialisthelsetjen-2",
+    "kategori": "Helse og omsorg",
+    "formaal": "Meldeplikt for inntreden i privat virksomhet – Spesialisthelsetjenester og tannhelsetjenester – Utviklingshemmede",
+    "beskrivelse": "Meldeplikt for privatpraktiserende eller offentlig ansatt helsepersonell som åpner, overtar eller trer i privat virksomhet som er omfattet av helsepersonelloven, og som skal yte spesialisthelsetjenester og tannhelsetjenester til personer over 18 år med utviklingshemming.",
+    "hjemmel": "Helsepersonelloven § 18 andre ledd jf. § 20 a andre ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "helse-og-omsorg-regionale-sikkerhetsavdelinger",
+    "kategori": "Helse og omsorg",
+    "formaal": "Regionale sikkerhetsavdelinger",
+    "beskrivelse": "Person som utfører eller skal utføre arbeid ved regional sikkerhetsavdeling.",
+    "hjemmel": "Psykisk helsevernloven § 4A-7 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "helse-og-omsorg-spesialisthelsetjenester-og-tannhelsetjenester-barn",
+    "kategori": "Helse og omsorg",
+    "formaal": "Spesialisthelsetjenester og tannhelsetjenester - Barn",
+    "beskrivelse": "Personer som skal yte spesialisthelsetjenester og tannhelsetjenester til barn.",
+    "hjemmel": "Helsepersonelloven § 20 a første ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "helse-og-omsorg-spesialisthelsetjenester-og-tannhelsetjenester-utviklingshemmede",
+    "kategori": "Helse og omsorg",
+    "formaal": "Spesialisthelsetjenester og tannhelsetjenester – Utviklingshemmede",
+    "beskrivelse": "Helsepersonell som skal yte spesialisthelsetjenester og tannhelsetjenester til personer over 18 år med utviklingshemming.",
+    "hjemmel": "Helsepersonelloven § 20 a andre ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "informasjons-og-kommunikasjonsteknologi-arkivhaandtering-og-informasjonssikkerhe",
+    "kategori": "Informasjons- og kommunikasjonsteknologi",
+    "formaal": "Arkivhåndtering og informasjonssikkerhetssystemer",
+    "beskrivelse": "Personer som skal ansettes i virksomhet som ivaretar arkivhåndtering og informasjonssikkerhetssystemer for offentlige og private virksomheter når det er nødvendig av sikkerhetsmessige hensyn. Endring i en ansatts stilling eller arbeidsoppgaver som gjør at sikkerhetsmessige grunner tilsier at det fremlegges ny politiattest.",
+    "hjemmel": "Politiregisterforskriften § 34-9.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "informasjons-og-kommunikasjonsteknologi-databehandleravtale-etter-politiregister",
+    "kategori": "Informasjons- og kommunikasjonsteknologi",
+    "formaal": "Databehandleravtale etter politiregisterloven",
+    "beskrivelse": "Personer som er ansatt hos eller utfører tjeneste eller arbeid for databehandler.",
+    "hjemmel": "Politiregisterloven § 18 tredje ledd tredje punktum.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra den behandlingsansvarlige."
+  },
+  {
+    "id": "informasjons-og-kommunikasjonsteknologi-ekom-og-datasenter",
+    "kategori": "Informasjons- og kommunikasjonsteknologi",
+    "formaal": "Ekom og datasenter",
+    "beskrivelse": "Personer som har fått tilbud om eller er innstilt til en stilling hos tilbyder av elektroniske kommunikasjonsnett og -tjenester eller datasenteroperatør, og som skal ha tilgang til elektroniske kommunikasjonsnett, tilhørende fasiliteter, datasentre, utstyr, systemer eller informasjon som er av vesentlig betydning for sikkerheten i nett eller tjenester, er taushetsbelagt, eller som av annen grunn er av særlig sensitiv karakter. Personer som er ansatt hos leverandører til tilbyder av elektroniske kommunikasjonsnett og -tjenester eller datasenteroperatør.",
+    "hjemmel": "Ekomloven § 3-9.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra tilbyder av elektroniske kommunikasjonsnett og - tjenester eller datasenteroperatør."
+  },
+  {
+    "id": "informasjons-og-kommunikasjonsteknologi-helseregister",
+    "kategori": "Informasjons- og kommunikasjonsteknologi",
+    "formaal": "Helseregister",
+    "beskrivelse": "Personer med privilegert tilgang til nettverks- og informasjonssystemer for helseregistre eller pasientjournalsystemer",
+    "hjemmel": "Helseregisterloven § 21 tredje ledd / Pasientjournalloven § 22 tredje ledd",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra databehandler eller dataansvarlig"
+  },
+  {
+    "id": "jernbane-jernbaneforetak",
+    "kategori": "Jernbane",
+    "formaal": "Jernbaneforetak",
+    "beskrivelse": "Eier, daglig leder og andre personer i ledelsen av jernbaneforetak.",
+    "hjemmel": "Jernbaneloven § 6 femte ledd, jf. jernbaneforskriften § 12-3. Jernbaneloven § 6 femte ledd, jf. tillatelsesforskriften § 3-3 og § 4-3.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "klimakvoter-det-norske-registeret-for-klimakvoter",
+    "kategori": "Klimakvoter",
+    "formaal": "Det norske registeret for klimakvoter",
+    "beskrivelse": "Den som ønsker å opprette eller disponere konto i Det norske registeret for klimakvoter, og den som gir fullmakt til disponering av auksjonsleveringskonto, personkonto, handelskonto og ekstern plattformkonto i registeret.",
+    "hjemmel": "Klimakvoteloven jf. klimakvoteforskriften § 7-2a.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "lotteri-og-pengespill-medhjelper-for-en-organisasjon-som-har-tillatelse-til-aa-t",
+    "kategori": "Lotteri og pengespill",
+    "formaal": "Medhjelper for en organisasjon som har tillatelse til å tilby pengespill",
+    "beskrivelse": "Søknad til Lotteritilsynet om godkjenning som medhjelper for en organisasjon som har tillatelse til å tilby pengespill.",
+    "hjemmel": "Pengespilloven § 9 jf. pengespillforskriften § 40.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "lotteri-og-pengespill-pengespill",
+    "kategori": "Lotteri og pengespill",
+    "formaal": "Pengespill",
+    "beskrivelse": "Styremedlemmer, administrerende direktør, daglig leder og andre personer i den faktiske ledelsen hos tilbydere av pengespill som omfattes av hvitvaskingsloven. Reelle rettighetshavere i organisasjoner og medhjelpere som har tillatelse etter pengespilloven §§ 18, 20 eller 21.",
+    "hjemmel": "Pengespilloven § 9.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "luftfart-flygesjef",
+    "kategori": "Luftfart",
+    "formaal": "Flygesjef",
+    "beskrivelse": "Godkjenning av flygesjef i luftfartsforetak.",
+    "hjemmel": "Luftfartsloven § 15-4 første ledd, jf. forskrift om organisasjon av luftfartsforetak § 6 første ledd bokstav d.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "luftfart-luftfartstilsynets-bakgrunnssjekk",
+    "kategori": "Luftfart",
+    "formaal": "Luftfartstilsynets bakgrunnssjekk",
+    "beskrivelse": "Personers adgang til og ferdsel på landingsplasser og andre luftfartsanlegg. Personer som utfører oppgaver på landingsplasser og andre luftfartsanlegg. Personer som utfører oppgaver av betydning for sikkerheten i luftfarten andre steder (kjent avsender mv.).",
+    "hjemmel": "Luftfartsloven § 7-24 andre ledd og § 7-25 andre ledd, jf. forskrift om sikkerheten i luftfarten § 40 første ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "laasesmeder-ansettelse-i-medlemsbedrifter-i-foreningen-norske-laasesmeder",
+    "kategori": "Låsesmeder",
+    "formaal": "Ansettelse i medlemsbedrifter i foreningen Norske Låsesmeder",
+    "beskrivelse": "Personer som skal ansettes i medlemsbedrifter i foreningen Norske Låsesmeder",
+    "hjemmel": "Politiregisterforskriften § 34-7 første ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "laasesmeder-opptak-i-foreningen-norske-laasesmeder",
+    "kategori": "Låsesmeder",
+    "formaal": "Opptak i foreningen Norske Låsesmeder",
+    "beskrivelse": "Personer som skal tas opp som medlemmer i foreningen Norske Låsesmeder.",
+    "hjemmel": "Politiregisterforskriften § 34-7 første ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "mentorordninger-kriminalitetsforebyggende-mentorer",
+    "kategori": "Mentorordninger",
+    "formaal": "Kriminalitetsforebyggende mentorer",
+    "beskrivelse": "Personer som skal jobbe som mentorer eller tilsvarende arbeid som innebærer en-til-en-oppfølging av personer som ledd i kommunens kriminalitetsforebyggende arbeid.",
+    "hjemmel": "Politiregisterforskriften § 34-15.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra kommunen."
+  },
+  {
+    "id": "offentlige-anskaffelser-innlevering-av-tilbud-etter-lov-om-offentlige-anskaffels",
+    "kategori": "Offentlige anskaffelser",
+    "formaal": "Innlevering av tilbud etter lov om offentlige anskaffelser - foretak",
+    "beskrivelse": "Innlevering av tilbud etter lov om offentlige anskaffelser der oppdragsgiver krever bevis for at leverandøren ikke er kjent skyldig i straffbare forhold som angår den yrkesmessige vandel.",
+    "hjemmel": "Lov om offentlige anskaffelser § 16, jf. konsesjonskontraktforskriften § 11-7 første ledd bokstav a, forsyningsforskriften § 20-7 andre ledd bokstav a, og anskaffelsesforskriften § 24-7 første ledd bokstav a.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "offentlige-anskaffelser-innlevering-av-tilbud-etter-lov-om-offentlige-anskaffels-2",
+    "kategori": "Offentlige anskaffelser",
+    "formaal": "Innlevering av tilbud etter lov om offentlige anskaffelser - person",
+    "beskrivelse": "Innlevering av tilbud etter lov om offentlige anskaffelser der oppdragsgiver krever bevis for at leverandøren ikke er kjent skyldig i straffbare forhold som angår den yrkesmessige vandel.",
+    "hjemmel": "Lov om offentlige anskaffelser § 16, jf. konsesjonskontraktforskriften § 11-7 første ledd bokstav a, forsyningsforskriften § 20-7 andre ledd bokstav a, og anskaffelsesforskriften § 24-7 første ledd bokstav a.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politi-og-politiregister-begrenset-politimyndighet",
+    "kategori": "Politi og politiregister",
+    "formaal": "Begrenset politimyndighet",
+    "beskrivelse": "Personer som skal tildeles begrenset politimyndighet.",
+    "hjemmel": "Politiloven § 20 åttende ledd første punktum.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra politiet."
+  },
+  {
+    "id": "politi-og-politiregister-datatilsynet-tilsyn-etter-politiregisterloven",
+    "kategori": "Politi og politiregister",
+    "formaal": "Datatilsynet - tilsyn etter politiregisterloven",
+    "beskrivelse": "Personer i Datatilsynet som skal utføre tilsyn med behandling av opplysninger i politiet og påtalemyndigheten.",
+    "hjemmel": "Politiregisterloven § 62 andre ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra Datatilsynet."
+  },
+  {
+    "id": "politi-og-politiregister-politiet",
+    "kategori": "Politi og politiregister",
+    "formaal": "Politiet",
+    "beskrivelse": "Personer som skal ansettes i politi- og lensmannsetaten, inkludert Politidirektoratet. Personer som skal utføre arbeid eller tjeneste for politiet eller for en tjenesteleverandør for politiet.",
+    "hjemmel": "Politiloven § 18.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra politiet."
+  },
+  {
+    "id": "politi-og-politiregister-paatalemyndigheten",
+    "kategori": "Politi og politiregister",
+    "formaal": "Påtalemyndigheten",
+    "beskrivelse": "Utnevning og tilsetting av embets- og tjenestemenn i påtalemyndigheten, inkludert tjenestemenn uten påtalekompetanse. Personer som skal utføre arbeid eller tjeneste for påtalemyndigheten eller for en tjenesteleverandør for påtalemyndigheten.",
+    "hjemmel": "Straffeprosessloven § 55 a tredje ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-politiattest-til-personer-til-bruk-i",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Politiattest til personer til bruk i utlandet - Ordinær",
+    "beskrivelse": "Personer som trenger politiattest til formål der bestemmelser i andre land krever at det dokumenteres om de har vært ilagt straff, andre strafferettslige reaksjoner eller andre tiltak som følge av lovbrudd.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-politiattest-til-personer-til-bruk-i-2",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Politiattest til personer til bruk i utlandet - Uttømmende",
+    "beskrivelse": "Personer som trenger politiattest til formål der bestemmelser i andre land krever at det dokumenteres om de har vært ilagt straff, andre strafferettslige reaksjoner eller andre tiltak som følge av lovbrudd.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-politiattest-til-personer-til-bruk-i-3",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Politiattest til personer til bruk i utlandet - Uttømmende og utvidet",
+    "beskrivelse": "Personer som trenger politiattest til formål der bestemmelser i andre land krever at det dokumenteres om de har vært ilagt straff, andre strafferettslige reaksjoner eller andre tiltak som følge av lovbrudd, eller er under straffeforfølgning.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-visum-til-usa",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Visum til USA",
+    "beskrivelse": "Personer som trenger politiattest for innreise, visum, arbeidstillatelse eller bosetting i USA.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-visum-innreise-arbeidstillatelse-bos",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Visum, innreise, arbeidstillatelse, bosetting eller oppholdstillatelse i et annet land - Ordinær",
+    "beskrivelse": "Personer som trenger politiattest for visum, innreise, arbeidstillatelse, bosetting eller oppholdstillatelse i et annet land.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "politiattester-til-bruk-i-utlandet-personer-visum-innreise-arbeidstillatelse-bos-2",
+    "kategori": "Politiattester til bruk i utlandet - Personer",
+    "formaal": "Visum, innreise, arbeidstillatelse, bosetting eller oppholdstillatelse i et annet land - Uttømmende",
+    "beskrivelse": "Personer som trenger politiattest for visum, innreise, arbeidstillatelse, bosetting eller oppholdstillatelse i et annet land.",
+    "hjemmel": "Politiregisterloven § 38 første ledd.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "post-post-ordinaer-og-utvidet",
+    "kategori": "Post",
+    "formaal": "Post - Ordinær og utvidet",
+    "beskrivelse": "Tilbud om stilling som medfører behandling av postsendinger hos tilbyder av posttjeneste.",
+    "hjemmel": "Postloven § 31 første ledd, jf. postforskriften § 25, jf. politiregisterloven § 40 og § 41 nr. 2.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "post-post-saerlig-betrodde-stillinger",
+    "kategori": "Post",
+    "formaal": "Post - Særlig betrodde stillinger",
+    "beskrivelse": "Tilbud om særlig betrodd stilling hos tilbyder av posttjeneste.",
+    "hjemmel": "Postloven § 31 første ledd, jf. postforskriften § 25, jf. politiregisterloven § 41.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "regnskap-og-revisjon-ledelsen-i-regnskapsselskap",
+    "kategori": "Regnskap og revisjon",
+    "formaal": "Ledelsen i regnskapsselskap",
+    "beskrivelse": "Styremedlemmer, eiere og de som står for den daglige ledelsen av regnskapsselskap.",
+    "hjemmel": "Regnskapsførerloven § 2-2.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra regnskapsselskapet."
+  },
+  {
+    "id": "regnskap-og-revisjon-regnskapsfoerer",
+    "kategori": "Regnskap og revisjon",
+    "formaal": "Regnskapsfører",
+    "beskrivelse": "Søknad om autorisasjon som regnskapsfører.",
+    "hjemmel": "Regnskapsførerloven § 3-3.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "regnskap-og-revisjon-revisor",
+    "kategori": "Regnskap og revisjon",
+    "formaal": "Revisor",
+    "beskrivelse": "Søknad om godkjenning som statsautorisert revisor.",
+    "hjemmel": "Revisorloven § 3-4",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "regnskap-og-revisjon-revisor-i-kommune-eller-fylkeskommune",
+    "kategori": "Regnskap og revisjon",
+    "formaal": "Revisor i kommune eller fylkeskommune",
+    "beskrivelse": "Ansettelse som revisor i kommune eller fylkeskommune. Ansvar for revisjonsoppdrag for kommuner, fylkeskommuner eller kommunale eller fylkeskommunale foretak.",
+    "hjemmel": "Kommuneloven § 24-4.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-gjeldsforhandling",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Gjeldsforhandling",
+    "beskrivelse": "Oppnevnelse av medhjelper ved gjeldsforhandling etter gjeldsordningsloven.",
+    "hjemmel": "Gjeldsordningsloven § 2-4, jf. forskrift om medhjelper ved",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-gjenopptakelseskommisjonen",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Gjenopptakelseskommisjonen",
+    "beskrivelse": "Leder, nestleder, medlemmer og de ansatte i Kommisjonen for gjenopptakelse av straffesaker. Personer som skal utføre arbeid eller tjeneste i saker for kommisjonen.",
+    "hjemmel": "Straffeprosessloven § 395 andre ledd fjerde og femte punktum.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-konfliktraad",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Konfliktråd",
+    "beskrivelse": "Ansettelse og oppnevning av konfliktrådsledere, ungdomskoordinatorer, ansatte i øvrige stillinger som innebærer behandling av enkeltsaker og meklere.",
+    "hjemmel": "Konfliktrådsloven § 6 tredje ledd, jf. politiregisterloven § 41.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-toll-ordinaer",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Toll - Ordinær",
+    "beskrivelse": "Tilsetting i tollmyndighetene.",
+    "hjemmel": "Vareførselsloven § 1-4 første ledd første punktum.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-toll-saerskilte-stillinger-ordinaer-og-utvidet",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Toll - Særskilte stillinger - Ordinær og utvidet",
+    "beskrivelse": "Tilsettinger i særskilte stillinger i tollmyndighetene.",
+    "hjemmel": "Vareførselsloven § 1-4 første ledd andre punktum.",
+    "attesttype": "Ordinær og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "rettsvesen-for-oevrig-toll-saerskilte-stillinger-uttoemmende-og-utvidet",
+    "kategori": "Rettsvesen for øvrig",
+    "formaal": "Toll - Særskilte stillinger - Uttømmende og utvidet",
+    "beskrivelse": "Tilsettinger i særskilte stillinger i tollmyndighetene.",
+    "hjemmel": "Vareførselsloven § 1-4 første ledd andre punktum.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "studenter-student-annet-studie-der-studenten-kan-komme-i-kontakt-med-mindreaarig",
+    "kategori": "Studenter",
+    "formaal": "Student – Annet studie der studenten kan komme i kontakt med mindreårige i klinisk undervisning eller praksisstudier",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som kan komme i kontakt med mindreårige som del av klinisk undervisning eller praksisstudier.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd første punktum og fagskoleloven § 27 første ledd jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-barnehage",
+    "kategori": "Studenter",
+    "formaal": "Student – Barnehage",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal delta i praksisstudier eller klinisk undervisning i barnehage med krav om politiattest etter barnehageloven § 30.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. barnehageloven § 30, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-barnevern",
+    "kategori": "Studenter",
+    "formaal": "Student – Barnevern",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal ha praksisstudier eller klinisk undervisning i den kommunale barneverntjeneste med krav om politiattest etter barnevernloven § 12-11 første ledd eller i barnevernsinstitusjon, senter for foreldre og barn eller omsorgssenter for mindreårige med krav om politiattest etter barnevernloven § 12-11 andre ledd.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. barnevernsloven § 12-11 første ledd og barnevernsloven § 12-11 andre ledd, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-brann-og-redningsskolen",
+    "kategori": "Studenter",
+    "formaal": "Student - Brann- og redningsskolen",
+    "beskrivelse": "Personer som søker opptak til fagskolestudier ved Brann- og redningsskolen.",
+    "hjemmel": "Brann- og eksplosjonsvernloven § 18 d jf. brann- og redningsskoleforskriften § 10.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "studenter-student-farmasi",
+    "kategori": "Studenter",
+    "formaal": "Student – Farmasi",
+    "beskrivelse": "Studenter ved høyere utdanning som skal ha praksisstudier eller klinisk undervisning i apotek eller tilgrensede institusjoner med krav om politiattest etter legemiddelloven § 30 a.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum, jf. legemiddelloven § 30 a.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-kommunale-helse-og-omsorgstjenester",
+    "kategori": "Studenter",
+    "formaal": "Student – Kommunale helse- og omsorgstjenester",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal ha praksisstudier eller klinisk undervisning i kommunale helse- og omsorgstjenester med krav om politiattest etter helse- og omsorgstjenesteloven § 5-4 første ledd.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. helse- og omsorgstjenesteloven § 5-4 første ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-kriminalomsorgens-hoegskole-og-utdanningssenter-krus",
+    "kategori": "Studenter",
+    "formaal": "Student - Kriminalomsorgens høgskole og utdanningssenter - KRUS",
+    "beskrivelse": "Opptak til fengselsbetjentutdanningen ved Kriminalomsorgens høgskole og utdanningssenter.",
+    "hjemmel": "Straffegjennomføringsloven § 5, jf. forskrift til lov om straffegjennomføring § 2-2, jf. forskrift om aspiranter i kriminalomsorgen § 7, jf. straffegjennomføringsloven § 8 første ledd tredje punktum.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra Kriminalomsorgens høgskole og utdanningssenter"
+  },
+  {
+    "id": "studenter-student-politihoegskolen",
+    "kategori": "Studenter",
+    "formaal": "Student – Politihøgskolen",
+    "beskrivelse": "Personer som søker opptak til Politihøgskolen.",
+    "hjemmel": "Politiloven § 24b",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Ingen"
+  },
+  {
+    "id": "studenter-student-statlig-eller-private-spesialisthelsetjenester-for-barn",
+    "kategori": "Studenter",
+    "formaal": "Student – Statlig eller private spesialisthelsetjenester for barn",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal ha praksisstudier eller klinisk undervisning i statlig eller private spesialisthelsetjenester med krav om politiattest etter helsepersonelloven § 20 a første ledd.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. helsepersonelloven § 20 a første ledd jf. politiregisterloven § 39.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-statlig-eller-private-spesialisthelsetjenester-for-personer-me",
+    "kategori": "Studenter",
+    "formaal": "Student – Statlig eller private spesialisthelsetjenester for personer med utviklingshemming",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal ha praksisstudier eller klinisk undervisning i statlig eller private spesialisthelsetjenester med krav om politiattest etter helsepersonelloven § 20 a andre ledd.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. helsepersonelloven § 20 a andre ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-teologi",
+    "kategori": "Studenter",
+    "formaal": "Student – Teologi",
+    "beskrivelse": "Studenter ved høyere utdanning som skal ha praksisstudier eller klinisk undervisning i trossamfunn med krav om politiattest etter trossamfunnsloven § 20.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. trossamfunnsloven § 20, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-toll",
+    "kategori": "Studenter",
+    "formaal": "Student – Toll",
+    "beskrivelse": "Studenter ved høyere utdanning som skal ha praksisstudier i tolletaten hvor krav om politiattest følger av vareførselsloven § 1-4 første ledd.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum, jf. vareførselsloven § 1-4 første ledd andre punktum.",
+    "attesttype": "Ordinær og utvidet",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-trafikklaerer",
+    "kategori": "Studenter",
+    "formaal": "Student – Trafikklærer",
+    "beskrivelse": "Studenter ved høyere utdanning som skal ha praksisstudier som trafikklærer hvor krav om politiattest følger av vegtrafikkloven § 27 første ledd andre punktum.",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum, jf. vegtrafikkloven § 27 første ledd andre punktum.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "studenter-student-undervisning-i-grunnskole-og-videregaaende-skole",
+    "kategori": "Studenter",
+    "formaal": "Student – Undervisning i grunnskole og videregående skole",
+    "beskrivelse": "Studenter ved høyere utdanning eller høyere yrkesfaglig utdanning som skal ha praksisstudier eller klinisk undervisning i offentlig eller privat grunnskole eller videregående skole",
+    "hjemmel": "Universitets- og høyskoleloven § 12-2 første ledd tredje punktum og fagskoleloven § 27 andre ledd, jf. opplæringslova § 17-11 første ledd, jf. politiregisterloven § 39, eller privatskolelova § 4-3 første ledd jf. politiregisterloven § 39",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Tilbudsbrev om opptak til utdanning eller bekreftelse fra utdanningsinstitusjonen som viser til krav om fremleggelse av politiattest."
+  },
+  {
+    "id": "soeknad-om-norsk-statsborgerskap-melding-om-gjenerverv-av-norsk-statsborgerskap",
+    "kategori": "Søknad om norsk statsborgerskap",
+    "formaal": "Melding om gjenerverv av norsk statsborgerskap",
+    "beskrivelse": "Melding om gjenerverv av statsborgerskap for personer som tidligere har mistet sitt norske statsborgerskap på grunn av prinsippet om ett statsborgerskap.",
+    "hjemmel": "Statsborgerloven § 22 a andre ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "soeknad-om-norsk-statsborgerskap-melding-om-statsborgerskap-fra-nordiske-statsbo",
+    "kategori": "Søknad om norsk statsborgerskap",
+    "formaal": "Melding om statsborgerskap fra nordiske statsborgere med 7 års botid",
+    "beskrivelse": "Melding om statsborgerskap fra nordiske (danske, finske, svenske og islandske) statsborgere med 7 års botid i Norge.",
+    "hjemmel": "Statsborgerloven § 20 andre ledd.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "soeknad-om-norsk-statsborgerskap-soeknad-om-statsborgerskap",
+    "kategori": "Søknad om norsk statsborgerskap",
+    "formaal": "Søknad om statsborgerskap",
+    "beskrivelse": "Søknad om norsk statsborgerskap.",
+    "hjemmel": "Statsborgerloven § 7 fjerde ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "tolk-oppdrag-som-tolk-for-offentlige-organer",
+    "kategori": "Tolk",
+    "formaal": "Oppdrag som tolk for offentlige organer",
+    "beskrivelse": "Utføre oppdrag som tolk for politiet, påtalemyndigheten, domstolene, utlendingsforvaltningen, kriminalomsorgen, Kommisjonen for gjenopptakelse av straffesaker, fylkesnemndene for barnevern og sosiale saker eller i straffesaker for konfliktrådet.",
+    "hjemmel": "Tolkeloven § 10 første ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra oppdragsgiver for tolkeoppdraget"
+  },
+  {
+    "id": "trafikkskoler-trafikklaerer",
+    "kategori": "Trafikkskoler",
+    "formaal": "Trafikklærer",
+    "beskrivelse": "Søknad om offentlig godkjenning som trafikklærer.",
+    "hjemmel": "Vegtrafikkloven § 27 første ledd andre punktum.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "transportloeyve-transportloeyve-foretak",
+    "kategori": "Transportløyve",
+    "formaal": "Transportløyve - Foretak",
+    "beskrivelse": "Transportløyve for foretak: Søknad om fellesskapsløyve for person- og godstransport (Yrkestransportloven §§ 4 og 5). Søknad om fellesskapstillatelse for person- eller godstransport på vei til eller fra utlandet (§ 10).",
+    "hjemmel": "Yrkestransportloven § 26, jf. yrkestransportforskriften § 1a jf. § 6 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "transportloeyve-transportloeyve-personer",
+    "kategori": "Transportløyve",
+    "formaal": "Transportløyve - Personer",
+    "beskrivelse": "Transportløyve for personer: Søknad om drosjeløyve, varebilløyve mv. (Yrkestransportloven § 9). Søknad om fellesskapsløyve for person- og godstransport (Yrkestransportloven §§ 4 og 5). Søknad om løyve til persontransport i rute med motorvogn (Yrkestransportloven § 6). Søknad om løyve til persontransport i rute med fartøy (Yrkestransportloven § 7). Søknad om fellesskapstillatelse for person- eller godstransport på vei til eller fra utlandet (§ 10).",
+    "hjemmel": "Yrkestransportloven § 26.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "tros-og-livssynssamfunn-tros-og-livssynssamfunn",
+    "kategori": "Tros- og livssynssamfunn",
+    "formaal": "Tros- og livssynssamfunn",
+    "beskrivelse": "Personer som skal tilsettes, utføre oppgaver eller inneha tillitsverv i tros- og livssynssamfunn der vedkommende vil ha omsorg for eller oppgaver knyttet til mindreårige eller personer med utviklingshemming.",
+    "hjemmel": "Trossamfunnsloven § 20, jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "vaktvirksomhet-alarmmontoer",
+    "kategori": "Vaktvirksomhet",
+    "formaal": "Alarmmontør",
+    "beskrivelse": "Personer som skal jobbe som montører av alarmanlegg, samt selgere av alarmanlegg hvor arbeidet medfører befaring av eiendommer eller lokaler der alarmen skal monteres.",
+    "hjemmel": "Politiregisterforskriften § 34-7 andre ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "vaktvirksomhet-ledelsen-i-vaktvirksomhet",
+    "kategori": "Vaktvirksomhet",
+    "formaal": "Ledelsen i vaktvirksomhet",
+    "beskrivelse": "Personer med vesentlig innflytelse på vaktvirksomheten, deriblant innehaver, styremedlemmer, daglig leder, person med lederfunksjon, personer som eier en vesentlig del av virksomheten eller foretaket som driver virksomheten, eller oppebærer en vesentlig del av dens avkastning. Omfatter foretak, enkeltmannsforetak eller forvaltningsorgan som utøver ervervsmessig vaktvirksomhet eller egenvakthold.",
+    "hjemmel": "Vaktvirksomhetsloven § 3 tredje, fjerde og femte ledd, jf. vaktvirksomhetsforskriften § 4",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "vaktvirksomhet-vakttjeneste",
+    "kategori": "Vaktvirksomhet",
+    "formaal": "Vakttjeneste",
+    "beskrivelse": "Tilsetting av person som skal utføre vakttjeneste eller ha oppgaver direkte knyttet til vakttjeneste, i foretak som driver ervervsmessig vaktvirksomhet eller egenvakthold. Lærlinger i sikkerhetsfaget eller skoleelever med faget yrkesfaglig fordypning som har praksis i foretak som omfattes av loven.",
+    "hjemmel": "Vaktvirksomhetsloven § 8 første ledd, jf. vaktvirksomhetsforskriften § 5.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-datarapporteringsforetak",
+    "kategori": "Verdipapir",
+    "formaal": "Datarapporteringsforetak",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen av datarapporteringsforetak.",
+    "hjemmel": "Verdipapirhandelloven § 14-5 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-erverv-av-betydelig-eller-kvalifisert-eierandel-foretak",
+    "kategori": "Verdipapir",
+    "formaal": "Erverv av betydelig eller kvalifisert eierandel - foretak",
+    "beskrivelse": "Foretak som erverver betydelig eierandel i forvaltningsselskap, børs, verdipapirregister eller regulert marked som ikke er børs. Foretak som erverver betydelig eierandel i alternative investeringsfond. Foretak som erverver kvalifisert eierandel i verdipapirforetak.",
+    "hjemmel": "Verdipapirfondloven § 2-5 andre ledd. Verdipapirhandelloven § 11-10 femte ledd og § 13-3 femte ledd. Verdipapirregisterloven § 5-2 tredje ledd. Lov om forvaltning av alternative investeringsfond § 2-4 fjerde ledd. Verdipapirhandelloven § 9-1 femte ledd jf. verdipapirforskriften § 9-3 og § 9-6 jf. EU-forordning 2017/1943 artikkel 3 bokstav b og EU-forordning 2017/1946 artikkel 5 bokstav a nr. 1.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "verdipapir-erverv-av-betydelig-eller-kvalifisert-eierandel-personer",
+    "kategori": "Verdipapir",
+    "formaal": "Erverv av betydelig eller kvalifisert eierandel - personer",
+    "beskrivelse": "Personer som erverver betydelig eierandel i forvaltningsselskap, børs, verdipapirregister eller regulert marked som ikke er børs. Personer som erverver betydelig eierandel i alternative investeringsfond. Personer som erverver kvalifisert eierandel i verdipapirforetak.",
+    "hjemmel": "Verdipapirfondloven § 2-5 andre ledd. Verdipapirhandelloven § 11-10 femte ledd og § 13-3 femte ledd. Verdipapirregisterloven § 5-2 tredje ledd. Lov om forvaltning av alternative investeringsfond § 2-4 fjerde ledd. Verdipapirhandelloven § 9-1 femte ledd jf. verdipapirforskriften § 9-3 og § 9-6 jf. EU-forordning 2017/1943 artikkel 3 bokstav b og EU-forordning 2017/1946 artikkel 4 bokstav a nr. 1.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "verdipapir-markedsoperatoer-for-regulerte-markeder",
+    "kategori": "Verdipapir",
+    "formaal": "Markedsoperatør for regulerte markeder",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen av markedsoperatør for regulert marked.",
+    "hjemmel": "Verdipapirhandelloven § 11-7 andre ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-sentral-motpart",
+    "kategori": "Verdipapir",
+    "formaal": "Sentral motpart",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen av en sentral motpart.",
+    "hjemmel": "Verdipapirhandelloven § 17-1 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-verdipapirfond",
+    "kategori": "Verdipapir",
+    "formaal": "Verdipapirfond",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk leder virksomheten i forvaltningsselskap som forvalter verdipapirfond. Ledende ansatte i depotmottakerforetak.",
+    "hjemmel": "Verdipapirfondloven § 2-3 første ledd, jf. § 2-7 første ledd, og verdipapirfondforskriften § 10-1 andre ledd jf. verdipapirfondloven § 10-2 tredje ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-verdipapirhandel",
+    "kategori": "Verdipapir",
+    "formaal": "Verdipapirhandel",
+    "beskrivelse": "Styremedlemmer, daglig leder, filialleder og andre som faktisk deltar i ledelsen av verdipapirforetak.",
+    "hjemmel": "Verdipapirhandelloven § 9-10 første ledd, og verdipapirhandelloven § 9-21 jf. 9-10 første ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verdipapir-verdipapirsentral",
+    "kategori": "Verdipapir",
+    "formaal": "Verdipapirsentral",
+    "beskrivelse": "Styremedlemmer, daglig leder og andre som faktisk deltar i ledelsen av verdipapirsentralen.",
+    "hjemmel": "Verdipapirsentralloven § 2-1 andre ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "verge-verge",
+    "kategori": "Verge",
+    "formaal": "Verge",
+    "beskrivelse": "Oppnevnelse som verge.",
+    "hjemmel": "Vergemålsloven § 28 andre ledd, jf. § 26, jf. vergemålsforskriften § 15, jf. politiregisterloven § 39 første ledd første punktum og politiregisterloven § 41 nr. 1 og 2.",
+    "attesttype": "Begrenset",
+    "bekreftelse": "Bekreftelse fra statsforvalteren."
+  },
+  {
+    "id": "verksteder-og-kjoeretoeykontroll-fartsskriververksted",
+    "kategori": "Verksteder og kjøretøykontroll",
+    "formaal": "Fartsskriververksted",
+    "beskrivelse": "Ansvarlig leder og stedfortreder i virksomhet som søker om offentlig godkjenning som fartsskriververksted.",
+    "hjemmel": "Vegtrafikkloven § 19 b jf. forskrift om fartsskriververksteder § 10.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "verksteder-og-kjoeretoeykontroll-kontrolloer-for-periodisk-kontroll-av-kjoeretoe",
+    "kategori": "Verksteder og kjøretøykontroll",
+    "formaal": "Kontrollør for periodisk kontroll av kjøretøy",
+    "beskrivelse": "Søknad om offentlig godkjenning som kontrollør for periodisk kontroll av kjøretøy.",
+    "hjemmel": "Vegtrafikkloven § 19 a jf. forskrift om periodisk kjøretøykontroll § 12 første ledd bokstav c.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "verksteder-og-kjoeretoeykontroll-sermi-kontrollsertifikat-for-godkjenning-av-uav",
+    "kategori": "Verksteder og kjøretøykontroll",
+    "formaal": "SERMI - Kontrollsertifikat for godkjenning av uavhengige operatører - foretak",
+    "beskrivelse": "Søknad om kontrollsertifikat for godkjenning av uavhengige operatører i bilbransjen som skal ha tilgang til sikkerhetsrelaterte opplysninger om reparasjon og vedlikehold av kjøretøy.",
+    "hjemmel": "Vegtrafikkloven § 14 jf. bilforskriften § 1-4 jf. Delegert kommisjonsforordning (EU) 2021/1244 av 20. mai 2021 artikkel 1 om endring av vedlegg X til europaparlaments- og rådsforordning (EU) 2018/858 tillegg punkt 4.3.3 bokstav h.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "verksteder-og-kjoeretoeykontroll-sermi-kontrollsertifikat-for-tillatelse-til-ans",
+    "kategori": "Verksteder og kjøretøykontroll",
+    "formaal": "SERMI - Kontrollsertifikat for tillatelse til ansatte hos uavhengige operatører",
+    "beskrivelse": "Søknad om kontrollsertifikat for tillatelse til ansatte hos en godkjent uavhengig operatør i bilbransjen som skal ha tilgang til sikkerhetsrelaterte opplysninger om reparasjon og vedlikehold av kjøretøy.",
+    "hjemmel": "Vegtrafikkloven § 14 jf. bilforskriften § 1-4 jf. Delegert kommisjonsforordning (EU) 2021/1244 av 20. mai 2021 artikkel 1 om endring av vedlegg X til europaparlaments- og rådsforordning (EU) 2018/858 tillegg 3 punkt 4.3.3 bokstav h og 4.3.4 bokstav b.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Ingen."
+  },
+  {
+    "id": "vertsfamilier-vertsfamilier-for-elever-i-videregaaende-skole",
+    "kategori": "Vertsfamilier",
+    "formaal": "Vertsfamilier for elever i videregående skole",
+    "beskrivelse": "Vertsfamilier for mindreårige elever i videregående skole.",
+    "hjemmel": "Politiregisterforskriften § 34-5 andre ledd jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra videregående skole."
+  },
+  {
+    "id": "vertsfamilier-vertsfamilier-for-utvekslingsstudenter",
+    "kategori": "Vertsfamilier",
+    "formaal": "Vertsfamilier for utvekslingsstudenter",
+    "beskrivelse": "Personer i vertsfamilien som skal ha omsorgen for mindreårige utvekslingsstudenter.",
+    "hjemmel": "Politiregisterforskriften § 34-5 første ledd.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra utvekslingsorganisasjonen."
+  },
+  {
+    "id": "vertsfamilier-vertsfamilier-for-utvekslingsstudenter-andre-som-bor-hos-vertsfami",
+    "kategori": "Vertsfamilier",
+    "formaal": "Vertsfamilier for utvekslingsstudenter - Andre som bor hos vertsfamilien",
+    "beskrivelse": "Andre personer som bor hos vertsfamilien, men som ikke har hovedansvaret for utvekslingsstudenten.",
+    "hjemmel": "Politiregisterforskriften § 34-5 første ledd andre punktum jf. politiregisterloven § 39 første ledd.",
+    "attesttype": "Barneomsorgsattest",
+    "bekreftelse": "Bekreftelse fra utvekslingsorganisasjonen."
+  },
+  {
+    "id": "oevrige-ambassade",
+    "kategori": "Øvrige",
+    "formaal": "Ambassade",
+    "beskrivelse": "Personer som søker om tilsetting ved utenlandsk ambassade eller lignende i Norge.",
+    "hjemmel": "Politiregisterloven § 38 første ledd andre punktum.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra ambassaden."
+  },
+  {
+    "id": "oevrige-det-kongelige-hoff",
+    "kategori": "Øvrige",
+    "formaal": "Det kongelige hoff",
+    "beskrivelse": "Personer som skal ansettes ved Det kongelige hoff.",
+    "hjemmel": "Politiregisterforskriften § 34-2.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "oevrige-honoraer-konsul",
+    "kategori": "Øvrige",
+    "formaal": "Honorær konsul",
+    "beskrivelse": "Personer som er aktuelle for godkjenning som fremmed lands honorære konsul i Norge.",
+    "hjemmel": "Politiregisterforskriften § 34-8.",
+    "attesttype": "Uttømmende",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "oevrige-kortprodusenter",
+    "kategori": "Øvrige",
+    "formaal": "Kortprodusenter",
+    "beskrivelse": "Personer som skal ansettes i virksomhet som skal produsere pass, førerkort, oppholdskort eller andre offentlig utstedte kort.",
+    "hjemmel": "Politiregisterforskriften § 34-11.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "oevrige-museum-nasjonalbiblioteket-og-andre-bibliotek-med-samlinger-av-unik-kara",
+    "kategori": "Øvrige",
+    "formaal": "Museum, Nasjonalbiblioteket og andre bibliotek med samlinger av unik karakter",
+    "beskrivelse": "Personer som skal ansettes eller utføre oppgaver hvor stillingen gir jevnlig tilgang til samlinger eller sensitive opplysninger om forvaltning av samlinger, ved museer som mottar statlig tilskudd eller investeringstilskudd, Nasjonalbiblioteket og andre bibliotek med samlinger",
+    "hjemmel": "Politiregisterforskriften § 34-18.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "oevrige-nasjonalt-id-senter",
+    "kategori": "Øvrige",
+    "formaal": "Nasjonalt ID-senter",
+    "beskrivelse": "Personer som skal ansettes i Nasjonalt ID-senter.",
+    "hjemmel": "Politiregisterforskriften § 34-10.",
+    "attesttype": "Uttømmende og utvidet",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  },
+  {
+    "id": "oevrige-riksarkivet-og-statsarkiver",
+    "kategori": "Øvrige",
+    "formaal": "Riksarkivet og statsarkiver",
+    "beskrivelse": "Personer som skal tilsettes i Riksarkivet eller statsarkivene.",
+    "hjemmel": "Arkivloven § 21 andre ledd.",
+    "attesttype": "Ordinær",
+    "bekreftelse": "Bekreftelse fra arbeidsgiver."
+  }
+]

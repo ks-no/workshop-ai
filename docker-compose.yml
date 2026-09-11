@@ -298,6 +298,31 @@ services:
     volumes:
       - ./:/workspace
 
+  hjemmelsok:
+    healthcheck:
+      <<: *helsesjekk
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8089/helse').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    image: node:24-alpine
+    working_dir: /workspace
+    command: ["/bin/sh", "scripts/dev.sh", "apps/hjemmelsok/src/server.ts"]
+    environment:
+      - PORT=8089
+      # Modellen kalles direkte, ikke via ai-gateway - se apps/hjemmelsok/README.md.
+      # Variablene er med vilje de samme som gatewayens telenor-ai-factory-provider
+      # leser, så nøkkelen settes ett sted i .env og gjelder begge. Tom nøkkel er
+      # greit: da svarer tjenesten på ordsøket alene og sier fra i «merknad».
+      - TELENOR_AI_FACTORY_BASE_URL=${TELENOR_AI_FACTORY_BASE_URL:-https://litellm.apps.s99ct03.aifactory.telenor.com}
+      - TELENOR_AI_FACTORY_API_KEY=${TELENOR_AI_FACTORY_API_KEY:-}
+      - TELENOR_AI_FACTORY_MODEL=${TELENOR_AI_FACTORY_MODEL:-NVIDIA-Nemotron-3-Super-120B-A12B-FP8}
+      - TELENOR_AI_FACTORY_TIMEOUT_MS=${TELENOR_AI_FACTORY_TIMEOUT_MS:-60000}
+      - TELENOR_AI_FACTORY_CACHE_SALT=${TELENOR_AI_FACTORY_CACHE_SALT:-}
+      - HJEMMELSOK_KANDIDATER=${HJEMMELSOK_KANDIDATER:-20}
+      - WATCH_POLL=${WATCH_POLL:-0}
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8089:8089"
+    volumes:
+      - ./:/workspace
+
   ai-gateway:
     healthcheck:
       <<: *helsesjekk

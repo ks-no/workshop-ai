@@ -534,6 +534,16 @@ const tjenester: Tjeneste[] = [
     ]
   },
   {
+    navn: "hjemmelsok",
+    spesifikasjon: "openapi/hjemmelsok.yaml",
+    // Hele flaten er åpen, ikke bare systemrutene: oversikten er politiets
+    // offentlige, og spørsmålet inn er en yrkesbeskrivelse. Skanneren finner ingen
+    // vakter i tjenesten og ville derfor gjettet «aapen» selv - men en flate som
+    // står åpen med vitende og vilje skal si det her, ikke bli gjettet til det.
+    aapneRuter: ["/helse", "/docs", "/openapi.yaml", "/openapi-ruter.json", "/hjemler"],
+    kilde: "apps/hjemmelsok/src/server.ts"
+  },
+  {
     navn: "digdir-mock",
     spesifikasjon: "openapi/digdir-mock.yaml",
     kilde: "apps/digdir-mock/src/server.ts",

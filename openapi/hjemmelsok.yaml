@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: Hjemmelsok API
+  version: 0.1.0
+  description: >-
+    Ett oppslag: noen få ord om hva en politiattest skal brukes til, ut kommer
+    hjemlene attesten kan kreves etter.
+
+    Radene er politiets egen «Politiattest - Formål», 164 formål i 43 kategorier,
+    hentet ordrett. De er derfor det ene stedet i sandkassen der svaret ikke er
+    syntetisk, og hvert svar bærer `syntetisk: false` for å si det.
+
+    Modellen skriver ingen hjemmel. Oppslaget går i to trinn: et ordsøk plukker
+    kandidatene, og modellen velger blant dem ved id. En id modellen finner på blir
+    kastet før svaret sendes, så det som kommer ut står alltid i oversikten. Svarer
+    ikke modellen, er ordsøkets egen rekkefølge svaret, og `kilde` sier fra. Se
+    `apps/hjemmelsok/README.md`.
+
+    Flaten er åpen. Oversikten er offentlig og lik for alle, og spørsmålet inn er en
+    yrkesbeskrivelse - ingen personopplysning passerer her.
+servers:
+  - url: http://localhost:8089
+paths:
+  /helse:
+    get:
+      summary: Helsesjekk
+      security: []
+      responses:
+        "200":
+          description: Tjenesten svarer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  tjeneste:
+                    type: string
+                  kilde:
+                    type: string
+                  antallFormaal:
+                    type: integer
+                  modelltjeneste:
+                    type: string
+                  modell:
+                    type: string
+                  tidspunkt:
+                    type: string
+                    format: date-time
+
+  /docs:
+    get:
+      summary: Lesbar oversikt
+      security: []
+      responses:
+        "200":
+          description: HTML-side
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /openapi.yaml:
+    get:
+      summary: Denne spesifikasjonen
+      security: []
+      responses:
+        "200":
+          description: OpenAPI-dokumentet
+          content:
+            text/yaml:
+              schema:
+                type: string
+
+  /openapi-ruter.json:
+    get:
+      summary: Spesifikasjonen lest, som JSON
+      security: []
+      responses:
+        "200":
+          description: Ruteoversikt
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /hjemler:
+    get:
+      summary: Hjemlene en politiattest kan kreves etter
+      description: >-
+        Samme oppslag som POST, for et raskt kall fra nettleseren. `q` virker som
+        navn på `beskrivelse`.
+      security: []
+      parameters:
+        - name: beskrivelse
+          in: query
+          required: true
+          description: Noen få ord om hva attesten skal brukes til. Kappes på 500 tegn.
+          example: trener for et idrettslag
+          schema:
+            type: string
+        - name: antall
+          in: query
+          required: false
+          description: Hvor mange treff svaret inneholder. Standard 5, tak 25.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 5
+      responses:
+        "200":
+          description: Treffene, mest relevant først
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hjemmelsvar"
+        "400":
+          description: beskrivelse mangler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+    post:
+      summary: Hjemlene en politiattest kan kreves etter
+      description: >-
+        Den vanlige veien inn. Beskrivelsen er fritekst fra en saksbehandler, ikke et
+        oppslagsord - «vikar i barnehage» og «passer barn av og til» skal begge finne
+        fram.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [beskrivelse]
+              properties:
+                beskrivelse:
+                  type: string
+                  description: Noen få ord om hva attesten skal brukes til. Kappes på 500 tegn.
+                  example: trener for et idrettslag
+                antall:
+                  type: integer
+                  description: Hvor mange treff svaret inneholder. Standard 5, tak 25.
+                  minimum: 1
+                  maximum: 25
+                  default: 5
+      responses:
+        "200":
+          description: Treffene, mest relevant først
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hjemmelsvar"
+        "400":
+          description: beskrivelse mangler, eller kroppen er ikke JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+
+components:
+  schemas:
+    Formaal:
+      type: object
+      description: En rad fra politiets formålsoversikt, ordrett.
+      properties:
+        id:
+          type: string
+          example: barn-og-ungdom-trener-for-idrettslag
+        kategori:
+          type: string
+          example: Barn og ungdom
+        formaal:
+          type: string
+          example: Trener for idrettslag
+        beskrivelse:
+          type: string
+          description: Politiets egen forklaring av hvem formålet gjelder.
+        hjemmel:
+          type: string
+          description: Lovhenvisningen. Det er denne som skal inn i beviset.
+          example: Politiregisterforskriften § 34-1, jf. politiregisterloven § 39 første ledd.
+        attesttype:
+          type: string
+          example: Barneomsorgsattest
+        bekreftelse:
+          type: string
+          description: Hva slags bekreftelse politiet krever for formålet.
+        begrunnelse:
+          type: string
+          description: >-
+            Modellens ene setning om hvorfor raden passer. Tom når svaret kom fra
+            ordsøket alene.
+
+    Hjemmelsvar:
+      type: object
+      properties:
+        beskrivelse:
+          type: string
+          description: Beskrivelsen slik tjenesten leste den, trimmet og kappet.
+        kilde:
+          type: string
+          description: >-
+            `modell` når modellen rangerte, `ordsøk` når den ikke gjorde det.
+          enum: [modell, ordsøk]
+        modell:
+          type: string
+          description: Modellen som rangerte. Står bare når `kilde` er `modell`.
+        merknad:
+          type: string
+          description: >-
+            Står bare når svaret kom en annen vei enn den vanlige, og sier hvilken.
+        treff:
+          type: array
+          items:
+            $ref: "#/components/schemas/Formaal"
+        syntetisk:
+          type: boolean
+          description: Alltid false. Radene er politiets egne, ikke oppdiktede.
+        millisekunder:
+          type: integer
+
+    Feil:
+      type: object
+      properties:
+        feil:
+          type: string
+        detalj:
+          type: string
