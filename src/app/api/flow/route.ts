@@ -23,7 +23,7 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('start') }).strict(),
   z.object({ action: z.literal('input'), text: z.string().trim().min(1).max(4000), revision, caseId }).strict(),
   z.object({ action: z.literal('answers'), answers: z.array(z.object({ key, value: z.string().max(400) }).strict()).max(8), note: z.string().max(2000).default(''), revision, caseId }).strict(),
-  z.object({ action: z.literal('approve'), facts: z.array(z.object({ id: z.string().uuid(), value: z.string().max(400) }).strict()).max(40), remove: z.array(z.string().uuid()).max(40).default([]), fetch: z.array(z.enum(flowFetchables)).max(3).default([]), note: z.string().max(2000).default(''), revision, caseId }).strict(),
+  z.object({ action: z.literal('approve'), facts: z.array(z.object({ id: z.string().uuid(), value: z.string().max(400) }).strict()).max(40), remove: z.array(z.string().uuid()).max(40).default([]), fetch: z.array(z.enum(flowFetchables)).max(3).default([]), wallet: z.array(z.enum(flowFetchables)).max(3).default([]), note: z.string().max(2000).default(''), revision, caseId }).strict(),
   z.object({ action: z.literal('prepare'), execution, revision, caseId }).strict(),
   z.object({ action: z.literal('execute'), draftId: z.string().uuid(), revision, caseId }).strict(),
   z.object({ action: z.literal('choose'), type: z.enum(flowActionTypes), templateId: z.string().min(1).max(80).optional(), revision, caseId }).strict(),

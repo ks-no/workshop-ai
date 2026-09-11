@@ -13,6 +13,12 @@ export const FLOW_SOURCES: Record<FlowFetchable, { title: string; lower: string;
   inntekt: { title: 'Inntektsgrunnlag og regelvurdering', lower: 'inntektsgrunnlag', api: 'KS API · Inntektsgrunnlag', description: 'Husholdningens inntektsgrunnlag fra siste skatteoppgjør og KS sin regelvurdering for redusert SFO-betaling. Krever et eget samtykke som registreres hos Fiks.' },
   sfo: { title: 'SFO-plass og satser', lower: 'SFO-plass og satser', api: 'KS API · SFO-plasser og satser', description: 'Barnets SFO-plass, klassetrinn, månedspris og gjeldende satser i kommunen.' },
 };
+/** Digital wallet as a per-source alternative to register fetch. A concept: no wallet app or Digdir issuer is connected in the demo. */
+export const WALLET_SOURCE = {
+  title: 'Digital lommebok', lower: 'digital lommebok',
+  description: 'Du viser opplysningen selv fra en digital lommebok på telefonen i stedet for at kommunen slår opp i registeret. Konsept: ingen lommebok er koblet til i demoen, så du fyller inn opplysningen selv etterpå.',
+  notice: (sources: string[]) => `Du valgte digital lommebok for ${sources.join(', ')}. Ingen lommebok er koblet til i demoen ennå, så disse hentes ikke fra registrene. Du fyller dem inn selv.`,
+};
 export const SANDBOX_NOTE = 'KS workshop-sandkasse med syntetiske testopplysninger';
 export const STEP_LABELS: Record<FlowStep['kind'], string> = { ask: 'Spør om mer', review: 'Kontroller og godkjenn', action: 'Foreslått handling', done: 'Ferdig' };
 export const ACTION_LABELS: Record<NonNullable<FlowProposal>['type'], string> = { email: 'E-post', form: 'Skjema', reminder: 'Påminnelse', contact: 'Kontakt' };

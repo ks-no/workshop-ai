@@ -4,7 +4,7 @@ import { createReminder, createReview, recordMockEmail } from './flow-action-sto
 import type { EvidenceSource } from '../domain/assistant-types';
 import { CONTACT_POINTS } from '../domain/assistant-actions';
 import { narrativeWithinEvidence } from '../domain/assistant-verification';
-import { ACTION_LABELS, activeFacts, buildFlowForm, fallbackFlowEmail, FLOW_FORMS, FLOW_SOURCES, flowContact, narrativeOk, normalizeReminder, rulePlan, SANDBOX_NOTE, STEP_LABELS, templateFor, validDateString } from '../domain/flow-catalogue';
+import { ACTION_LABELS, activeFacts, buildFlowForm, fallbackFlowEmail, FLOW_FORMS, FLOW_SOURCES, flowContact, narrativeOk, normalizeReminder, rulePlan, SANDBOX_NOTE, STEP_LABELS, templateFor, validDateString, WALLET_SOURCE } from '../domain/flow-catalogue';
 import { flowFetchables, type FlowCase, type FlowExecution, type FlowFact, type FlowFetchable, type FlowHistoryEntry, type FlowOutcome, type FlowProposal, type FlowQuestion, type FlowSource, type FlowStep } from '../domain/flow-types';
 import { KsDemoError, KS_DEMO_INCOME_PURPOSE } from '../providers/ks-demo-client';
 import { withoutIdentities } from './assistant-ks';
@@ -126,13 +126,19 @@ export function answerQuestions(session: FlowCase, answers: { key: string; value
   return lines.length || trimmedNote ? 'answers' : 'questions-skipped';
 }
 
-/** Approval covers every fact shown. Edited values become the citizen's own; declined KS sources are remembered. */
-export async function approveReview(session: FlowCase, input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; note: string }, client?: KsClient) {
+/**
+ * Approval covers every fact shown. Edited values become the citizen's own; declined KS sources are remembered.
+ * Per source the citizen picks the register, the digital wallet, or neither; a source can never be both.
+ * A wallet source is declined from the registers and remembered as a wallet choice.
+ */
+export async function approveReview(session: FlowCase, input: { facts: { id: string; value: string }[]; remove: string[]; fetch: FlowFetchable[]; wallet?: FlowFetchable[]; note: string }, client?: KsClient) {
   const step = session.step;
   if (!step || step.kind !== 'review') throw new CaseError('Det er ingen opplysninger å godkjenne nå.', 409);
+  const wallet = input.wallet ?? [];
+  if (wallet.some(source => input.fetch.includes(source))) throw new CaseError('En opplysning kan hentes fra enten digital lommebok eller kommunens registre, ikke begge.');
   const active = activeFacts(session).filter(fact => step.factIds.includes(fact.id));
   const ids = [...input.facts.map(fact => fact.id), ...input.remove];
-  if (new Set(ids).size !== ids.length || ids.some(id => !active.some(fact => fact.id === id)) || input.fetch.some(source => !step.fetch.includes(source))) throw new CaseError('Godkjenningen inneholder opplysninger eller kilder som ikke ble vist.', 409);
+  if (new Set(ids).size !== ids.length || ids.some(id => !active.some(fact => fact.id === id)) || [...input.fetch, ...wallet].some(source => !step.fetch.includes(source))) throw new CaseError('Godkjenningen inneholder opplysninger eller kilder som ikke ble vist.', 409);
   for (const id of input.remove) {
     const fact = active.find(item => item.id === id);
     if (fact) { fact.status = 'rejected'; event(session, 'Innbygger', 'human', `${fact.label}: fjernet av deg.`); }
@@ -159,10 +165,15 @@ export async function approveReview(session: FlowCase, input: { facts: { id: str
   if (trimmedNote) addSource(session, 'note', noteTitle(session), trimmedNote);
   const requested = input.fetch.filter(source => step.fetch.includes(source) && !session.ks.fetched.includes(source));
   const declined = step.fetch.filter(source => !requested.includes(source) && !session.ks.fetched.includes(source));
-  if (declined.length) {
-    session.ks.declined = [...new Set([...session.ks.declined, ...declined])];
-    event(session, 'Innbygger', 'human', `Valgte å ikke hente: ${declined.map(source => FLOW_SOURCES[source].lower).join(', ')}. Opplysningene kan fylles inn manuelt.`);
+  const viaWallet = declined.filter(source => wallet.includes(source));
+  const skipped = declined.filter(source => !wallet.includes(source));
+  if (declined.length) session.ks.declined = [...new Set([...session.ks.declined, ...declined])];
+  if (viaWallet.length) {
+    const names = viaWallet.map(source => FLOW_SOURCES[source].lower);
+    event(session, 'Innbygger', 'human', `Valgte ${WALLET_SOURCE.lower} for: ${names.join(', ')}. Ingen lommebok er koblet til i demoen; opplysningene fylles inn manuelt.`);
+    session.notice = WALLET_SOURCE.notice(names);
   }
+  if (skipped.length) event(session, 'Innbygger', 'human', `Valgte å ikke hente: ${skipped.map(source => FLOW_SOURCES[source].lower).join(', ')}. Opplysningene kan fylles inn manuelt.`);
   const failures: string[] = [];
   for (const source of requested) {
     try { await fetchKsSource(session, source, client); }
