@@ -11,7 +11,7 @@
 // planpunktet om at Drammen er et overstyrt saksbehandler-claim, ikke et faktum
 // om personen.
 
-import type { Person } from "../types";
+import type { Hjemmelvalg, Person } from "../types";
 import { anmerkningerForLommebok } from "../../../shared/lommebokbevis";
 
 export const CREDENTIAL_CONFIGURATION_IDS = {
@@ -64,8 +64,45 @@ function attestFor(person: Person) {
   };
 }
 
-export function byggFormalsbevisClaims(person: Person): Record<string, unknown> {
+/**
+ * Hjemmelen som allerede står på attesten i saken, formet som et hjemmelvalg.
+ *
+ * Brukes bare når oppslaget i steg 0 ikke svarer. Da er dette det saken hadde fra før,
+ * og `kilde: "attest"` sier at ingen slo den opp - hele poenget med steg 0 er at det
+ * skal synes.
+ */
+export function hjemmelFraAttest(person: Person): Hjemmelvalg {
   const attest = attestFor(person);
+  return {
+    treff: {
+      id: `attest-${attest.attestId}`,
+      kategori: "Hjemmelen som lå i saken",
+      formaal: attest.formaal,
+      beskrivelse: "",
+      hjemmel: attest.hjemmel,
+      attesttype: attest.attesttype,
+      bekreftelse: "",
+      begrunnelse: ""
+    },
+    soketekst: "",
+    kilde: "attest"
+  };
+}
+
+/**
+ * Formålsbekreftelsen. Er en hjemmel valgt i steg 0, er det den som blir det rettslige
+ * grunnlaget i beviset - ordrett fra politiets formålsoversikt.
+ *
+ * `rolle` og `ordning` følger derimot alltid saken, ikke oppslaget: de er det
+ * `sjekkFormalsbevisAksept` under sammenligner mot personen når politiet kontrollerer
+ * beviset, og et oppslag skal ikke kunne flytte den kontrollen.
+ */
+export function byggFormalsbevisClaims(
+  person: Person,
+  hjemmelvalg?: Hjemmelvalg | null
+): Record<string, unknown> {
+  const attest = attestFor(person);
+  const grunnlag = hjemmelvalg?.treff ?? attest;
   return {
     issuance_date: todayIso(),
     rolle: attest.formaal,
@@ -80,9 +117,9 @@ export function byggFormalsbevisClaims(person: Person): Record<string, unknown> 
     maks_alder_maaneder: 3,
     syntetisk: true,
     rettslig_grunnlag: {
-      formaal: attest.formaal,
-      attesttype: attest.attesttype,
-      hjemmel: attest.hjemmel
+      formaal: grunnlag.formaal,
+      attesttype: grunnlag.attesttype,
+      hjemmel: grunnlag.hjemmel
     },
     beskrivelse: "Kommunen bekrefter formålet med politiattesten som skal legges fram.",
     instruksjoner: [

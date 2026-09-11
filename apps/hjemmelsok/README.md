@@ -6,8 +6,9 @@ formålsoversikt.
 
 Grunnen til at tjenesten finnes: hjemmelen ender opp som en claim i et bevis, og en
 lovhenvisning skrevet for hånd i et tekstfelt er en lovhenvisning ingen har kontrollert.
-`politiattest-flyt` og `lommebok` er de nærmeste avtakerne i sandkassen; ingenting kaller
-den ennå.
+`politiattest-flyt` kaller den fra steg 0 på kommunesiden, og legger hjemmelen
+saksbehandleren velger i `rettslig_grunnlag` på formålsbekreftelsen. `lommebok` er den
+neste nærliggende avtakeren.
 
 ```
 POST /hjemler   {"beskrivelse": "vikar i barnehage"}

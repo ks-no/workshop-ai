@@ -1,4 +1,4 @@
-import type { Person } from "../types";
+import type { Hjemmelvalg, Person } from "../types";
 import {
   byggFormalsbevisClaims,
   byggPolitiattestClaims
@@ -30,8 +30,11 @@ function personName(value: unknown): string {
   return name || "Ikke oppgitt";
 }
 
-export function formalsbevisRader(person: Person): MetadataRad[] {
-  return formalsbevisRaderFraClaims(byggFormalsbevisClaims(person));
+export function formalsbevisRader(
+  person: Person,
+  hjemmelvalg?: Hjemmelvalg | null
+): MetadataRad[] {
+  return formalsbevisRaderFraClaims(byggFormalsbevisClaims(person, hjemmelvalg));
 }
 
 export function formalsbevisRaderFraClaims(
@@ -42,8 +45,11 @@ export function formalsbevisRaderFraClaims(
   return [
     { label: "Mottaker", verdi: personName(holder) },
     { label: "Fødselsnummer", verdi: asText(holder["foedselsnummer"]) },
-    { label: "Formål", verdi: asText(claims["rolle"]) },
+    { label: "Formål i saken", verdi: asText(claims["rolle"]) },
     { label: "Stilling", verdi: stillingForRolle(asText(claims["rolle"], "")) },
+    // Raden fra politiets formålsoversikt, slått opp i steg 0. Den er en annen ting enn
+    // rollen over: rollen er sakens egen, denne er hjemmelen attesten kan kreves etter.
+    { label: "Formål i politiets oversikt", verdi: asText(rettsligGrunnlag["formaal"]) },
     { label: "Attesttype", verdi: asText(rettsligGrunnlag["attesttype"]) },
     { label: "Hjemmel", verdi: asText(rettsligGrunnlag["hjemmel"]) }
   ];

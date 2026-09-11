@@ -25,6 +25,32 @@ export interface Person {
   } | null;
 }
 
+// Ett treff fra hjemmelsok (apps/hjemmelsok): en rad fra politiets formålsoversikt,
+// ordrett. Feltnavnene er tjenestens egne - se openapi/hjemmelsok.yaml - og gjenbrukes
+// her uten omdøping.
+export interface HjemmelTreff {
+  id: string;
+  kategori: string;
+  formaal: string;
+  beskrivelse: string;
+  hjemmel: string;
+  attesttype: string;
+  bekreftelse: string;
+  /** Modellens ene setning om hvorfor raden passer. Tom når ordsøket svarte alene. */
+  begrunnelse: string;
+}
+
+// Hjemmelen saksbehandleren fant og valgte i steg 0. Den er det rettslige grunnlaget
+// formålsbekreftelsen utstedes på, og hvor den kom fra er en del av valget: en
+// lovhenvisning ingen har slått opp er en lovhenvisning ingen har kontrollert.
+export interface Hjemmelvalg {
+  treff: HjemmelTreff;
+  /** Ordene saksbehandleren søkte med. Tom når hjemmelen kom fra attesten i saken. */
+  soketekst: string;
+  /** «modell», «ordsøk» eller «attest» - hvem som pekte ut raden. */
+  kilde: string;
+}
+
 // De to bevisene i flyten. Rekkefølgen er alltid formalsbekreftelse -> politiattest.
 export type CredentialKind = "formalsbekreftelse" | "politiattest";
 
@@ -120,6 +146,8 @@ export interface CaseState {
   soknadsdato: string | null;
   idPortenAccessToken: string | null;
   kommuneSaksstatus: KommuneSaksstatus;
+  /** Steg 0. Null til saksbehandleren har slått opp hjemmelen formålet krever. */
+  hjemmelvalg: Hjemmelvalg | null;
   formalsbevis: {
     issuance: IssuanceRecord | null;
     verification: VerificationRecord | null;

@@ -696,6 +696,80 @@ button {
   text-align: center;
 }
 
+/* Steg 0: oppslaget mot hjemmelsok. */
+.kommune-page__hjemmelsok p {
+  margin-top: 0;
+}
+
+.kommune-page__hjemmelsok-skjema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kommune-page__hjemmelsok-skjema .kommune-page__hjemmelsok-felt {
+  flex: 1 1 20rem;
+  margin: 0;
+}
+
+.kommune-page__hjemmelsok-felt {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+}
+
+.kommune-page__hjemmelsok-felt label {
+  font-weight: 600;
+}
+
+.kommune-page__hjemmelsok-felt input,
+.kommune-page__hjemmelsok-felt select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--kant);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--tekst);
+  font: inherit;
+}
+
+.kommune-page__hjemmelsok-felt input:focus-visible,
+.kommune-page__hjemmelsok-felt select:focus-visible {
+  outline: 3px solid var(--drammen-groenn);
+  outline-offset: 1px;
+}
+
+.kommune-page__hjemmelsok-merknad {
+  margin: 0.5rem 0 0;
+  color: var(--tekst-lys);
+  font-size: 0.85rem;
+}
+
+.kommune-page__hjemmelsok-feil {
+  margin-top: 1rem;
+}
+
+.kommune-page__hjemmelsok-feil p {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.kommune-page__hjemmelsok-valgt {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--drammen-groenn);
+  border-radius: 10px;
+  background: #f6fbf9;
+}
+
+.kommune-page__hjemmelsok-valgt p {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
 .kommune-page__vurderingskort {
   margin-top: 1rem;
   padding: 1.25rem;

@@ -13,6 +13,7 @@ import { LoadingIndicator } from "../shared/LoadingIndicator";
 import { VandelVurderingskort } from "../shared/VandelVurderingskort";
 import { hentVandelvurdering } from "../../integrations/sandboxApi";
 import { stillingForRolle } from "../../utils/roller";
+import { HjemmelsokKort } from "./HjemmelsokKort";
 
 interface Props {
   sak: CaseState;
@@ -61,7 +62,7 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
     setUtstederLaster(true);
     setUtstedelsesfeil(null);
     try {
-      const resultat = await utstedBevis("formalsbekreftelse", person);
+      const resultat = await utstedBevis("formalsbekreftelse", person, sak.hjemmelvalg);
       const message: InboxMessage = {
         type: "utstedelse",
         id: `msg-formalsbevis-${Date.now()}`,
@@ -103,7 +104,9 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         ? "Steg 3 av 3: politiattest til vurdering"
         : sak.formalsbevis.issuance
           ? "Steg 2 av 3: venter på politiattest"
-          : "Steg 1 av 3: klargjør formålsbekreftelse";
+          : sak.hjemmelvalg
+            ? "Steg 1 av 3: klargjør formålsbekreftelse"
+            : "Steg 0: finn hjemmelen formålet krever";
 
   return (
     <main className="kommune-page">
@@ -144,6 +147,13 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
         />
       </section>
 
+      <HjemmelsokKort
+        person={person}
+        hjemmelvalg={sak.hjemmelvalg}
+        laast={sak.formalsbevis.issuance != null}
+        dispatch={dispatch}
+      />
+
       <section className="kommune-page__kort">
         <h2>Steg 1: Formålsbekreftelse for stillingen</h2>
         {sakErAvsluttet ? (
@@ -159,12 +169,27 @@ export const KommunePage: React.FC<Props> = ({ sak, dispatch }) => {
             </p>
             <MetadataTable
               tittel="Opplysninger kommunen legger i formålsbekreftelsen"
-              rader={formalsbevisRader(person)}
+              rader={formalsbevisRader(person, sak.hjemmelvalg)}
             />
             {sak.formalsbevis.issuance == null && (
-              <button type="button" className="btn btn-primary" onClick={utstedFormalsbevis} disabled={utstederLaster}>
-                Utsted formålsbekreftelse
-              </button>
+              <>
+                {/* Hjemmelen blir en claim i beviset, så den må være valgt i steg 0
+                    før beviset kan utstedes - ikke etterpå. */}
+                {!sak.hjemmelvalg && (
+                  <StatusBadge
+                    tekst="Velg hjemmel i steg 0 før formålsbekreftelsen utstedes"
+                    tone="venter"
+                  />
+                )}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={utstedFormalsbevis}
+                  disabled={utstederLaster || !sak.hjemmelvalg}
+                >
+                  Utsted formålsbekreftelse
+                </button>
+              </>
             )}
             {utstederLaster && (
               <LoadingIndicator tekst="Sender formålsbeviset til lommeboken…" />

@@ -4,7 +4,7 @@
 // verifier-tjenesten som lommebok bruker. Feil vises fram; ingen av protokollstegene
 // erstattes med simulerte QR-koder.
 
-import type { CredentialKind, Person } from "../types";
+import type { CredentialKind, Hjemmelvalg, Person } from "../types";
 import { extractVerifiedClaims } from "../../../shared/openid4vp";
 import {
   CREDENTIAL_CONFIGURATION_IDS,
@@ -16,8 +16,16 @@ import {
 
 const VERIFIER_CLIENT_APP = "bevisgenerator-login";
 
-function claimsFor(kind: CredentialKind, person: Person): Record<string, unknown> {
-  return kind === "formalsbekreftelse" ? byggFormalsbevisClaims(person) : byggPolitiattestClaims(person);
+// Hjemmelvalget gjelder bare formålsbekreftelsen: det er kommunen som fastsetter
+// grunnlaget attesten kreves på, mens politiattesten bærer politiets egen hjemmel.
+function claimsFor(
+  kind: CredentialKind,
+  person: Person,
+  hjemmelvalg?: Hjemmelvalg | null
+): Record<string, unknown> {
+  return kind === "formalsbekreftelse"
+    ? byggFormalsbevisClaims(person, hjemmelvalg)
+    : byggPolitiattestClaims(person);
 }
 
 function dcqlQueryFor(kind: CredentialKind) {
@@ -47,7 +55,11 @@ export interface UtstedelseResultat {
 
 // POST /api/utsted - starter OpenID4VCI pre-authorized-flow mot testmiljøets
 // bevisgenerator, via lommeboks eksisterende middleware.
-export async function utstedBevis(kind: CredentialKind, person: Person): Promise<UtstedelseResultat> {
+export async function utstedBevis(
+  kind: CredentialKind,
+  person: Person,
+  hjemmelvalg?: Hjemmelvalg | null
+): Promise<UtstedelseResultat> {
   const res = await fetch("/api/utsted", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,7 +67,7 @@ export async function utstedBevis(kind: CredentialKind, person: Person): Promise
       credentialConfigurationId: CREDENTIAL_CONFIGURATION_IDS[kind],
       personIdentifier: person.syntetiskFodselsnummer,
       credentialIssuer: "https://utsteder.test.eidas2sandkasse.net/bevisgenerator",
-      credentialData: claimsFor(kind, person)
+      credentialData: claimsFor(kind, person, hjemmelvalg)
     })
   });
 

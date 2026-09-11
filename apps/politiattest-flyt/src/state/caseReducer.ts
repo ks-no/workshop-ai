@@ -1,13 +1,18 @@
 import type {
   CaseState,
   CredentialKind,
+  Hjemmelvalg,
   InboxMessage,
   IssuanceRecord,
   Person,
   Vandelvurdering,
   VerificationRecord
 } from "../types";
-import { byggFormalsbevisClaims, byggPolitiattestClaims } from "../integrations/credentialDefinitions";
+import {
+  byggFormalsbevisClaims,
+  byggPolitiattestClaims,
+  hjemmelFraAttest
+} from "../integrations/credentialDefinitions";
 
 const LAGRINGSNOEKKEL = "politiattest-flyt-case-v2";
 
@@ -37,6 +42,7 @@ export function tomSak(): CaseState {
     soknadsdato: null,
     idPortenAccessToken: null,
     kommuneSaksstatus: "ingen_sak",
+    hjemmelvalg: null,
     formalsbevis: { issuance: null, verification: { ...TOM_VERIFIKASJON } },
     politiattest: { issuance: null, verification: { ...TOM_VERIFIKASJON } },
     vandelvurdering: { ...TOM_VANDELVURDERING },
@@ -56,6 +62,7 @@ export function lastLagretSak(): CaseState {
     const normalisert: CaseState = {
       ...parsed,
       idPortenAccessToken: parsed.idPortenAccessToken ?? null,
+      hjemmelvalg: parsed.hjemmelvalg ?? null,
       vandelvurdering: parsed.vandelvurdering ?? { ...TOM_VANDELVURDERING }
     };
     sessionStorage.setItem(LAGRINGSNOEKKEL, JSON.stringify(normalisert));
@@ -94,6 +101,7 @@ export function slettLagretSak(): void {
 export type SakHandling =
   | { type: "VELG_PERSON"; person: Person }
   | { type: "ID_PORTEN_INNLOGGET"; accessToken: string }
+  | { type: "HJEMMEL_VALGT"; hjemmelvalg: Hjemmelvalg }
   | { type: "UTSTEDELSE_STARTET"; kind: CredentialKind }
   | { type: "UTSTEDELSE_FULLFORT"; kind: CredentialKind; issuance: IssuanceRecord; messages: InboxMessage[] }
   | { type: "MELDING_LEST"; messageId: string }
@@ -151,9 +159,16 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
     case "ID_PORTEN_INNLOGGET":
       return { ...state, idPortenAccessToken: handling.accessToken };
 
+    // Grunnlaget byttes ikke etter at beviset er utstedt - kortet i steg 0 er
+    // skrivebeskyttet fra da av, og dette er bare det andre halve av den låsen.
+    case "HJEMMEL_VALGT":
+      if (state.formalsbevis.issuance != null) return state;
+      return { ...state, hjemmelvalg: handling.hjemmelvalg };
+
     case "SIMULER_FULLFORT_SAK": {
       const tidspunkt = new Date().toISOString();
-      const formalsClaims = byggFormalsbevisClaims(handling.person);
+      const hjemmelvalg = hjemmelFraAttest(handling.person);
+      const formalsClaims = byggFormalsbevisClaims(handling.person, hjemmelvalg);
       const politiattestClaims = byggPolitiattestClaims(handling.person);
       const utstedtBevis: IssuanceRecord = {
         status: "tilbud_klart",
@@ -168,6 +183,7 @@ export function sakReducer(state: CaseState, handling: SakHandling): CaseState {
         person: handling.person,
         soknadsdato: tidspunkt.slice(0, 10),
         kommuneSaksstatus: "avsluttet",
+        hjemmelvalg,
         formalsbevis: {
           issuance: utstedtBevis,
           verification: {

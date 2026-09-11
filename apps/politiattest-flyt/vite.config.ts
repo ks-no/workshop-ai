@@ -8,6 +8,7 @@ import react from "@vitejs/plugin-react";
 const LOMMEBOK_BASE_URL = process.env.LOMMEBOK_BASE_URL || "http://localhost:3002";
 const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8080";
 const DIGDIR_BASE_URL = process.env.DIGDIR_BASE_URL || "http://localhost:8086";
+const HJEMMELSOK_BASE_URL = process.env.HJEMMELSOK_BASE_URL || "http://localhost:8089";
 const VERIFIER_SERVICE_URL =
   process.env.VERIFIER_SERVICE_URL || "https://verifier-service.test.eidas2sandkasse.net";
 
@@ -49,6 +50,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/idporten-api/, "")
+      },
+      // Steg 0 slår opp hjemmelen i politiets formålsoversikt. Flaten er åpen og
+      // svarer CORS *, men den proxyes som alt annet så klienten bare ser same-origin.
+      "/hjemmelsok-api": {
+        target: HJEMMELSOK_BASE_URL,
+        changeOrigin: true,
+        secure: false,
+        // Modellkallet i hjemmelsok har 60 sekunders tidsavbrudd og degraderer til
+        // ordsøket etterpå. Proxyen må vente lenger enn det, ellers ryker det svaret.
+        timeout: 75000,
+        proxyTimeout: 75000,
+        rewrite: (path) => path.replace(/^\/hjemmelsok-api/, "")
       },
       // Vandelvurderingen kjøres gjennom sandboxens eksisterende prosessmotor.
       "/sandbox-api": {

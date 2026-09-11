@@ -132,6 +132,8 @@ services:
       - LOMMEBOK_BASE_URL=http://lommebok:3002
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - DIGDIR_BASE_URL=http://digdir-mock:8086
+      # Steg 0 på kommunesiden: hjemmelsoppslaget i politiets formålsoversikt.
+      - HJEMMELSOK_BASE_URL=http://hjemmelsok:8089
     ports:
       - "${BIND_HOST:-127.0.0.1}:3003:3003"
     volumes:
