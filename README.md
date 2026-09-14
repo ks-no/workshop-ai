@@ -486,6 +486,7 @@ gitignorert. Se `docs/syntetiske-data.md`.
 Dette repoet er lagt opp for flere team. Se:
 
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`SECURITY.md`](SECURITY.md)
 - `CONTRIBUTING.md`
 - `openapi/README.md`
 - `docs/architecture.md`
