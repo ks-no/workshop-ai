@@ -12,6 +12,10 @@ Det er hele føringen. Resten er ditt.
 > **Denne siden er hva og hvorfor.** Skal du få sandkassen til å kjøre, er
 > [`docs/deltakerstart.md`](deltakerstart.md) neste side, og
 > [`docs/README.md`](README.md) er kartet over resten av dokumentasjonen.
+>
+> Er du deltaker på hackathonet, står priser, program og innlevering i
+> [`docs/hackathon-2026.md`](hackathon-2026.md). Kjører du sandkassen på egen hånd,
+> trenger du ikke den siden.
 
 ## To spørsmål hackathonet stiller
 
@@ -69,10 +73,9 @@ om».
 
 ## Bruk av KI utviklingsverktøy
 
-Dette er en KI-workshop, og vi oppfordrer til å bruke KI-verktøy. Prinsippene for hvordan -
-dere bestemmer, dere har ansvaret, dere skal kunne forklare det - står i
-[`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md). Mangler du tilgang på KI-verktøy, send en
-forespørsel til [baard.saari@ksdigital.no](mailto:baard.saari@ksdigital.no).
+KI-verktøy er en naturlig del av arbeidet her, og vi oppfordrer til å bruke dem.
+Prinsippene for hvordan - dere bestemmer, dere har ansvaret, dere skal kunne forklare
+det - står i [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md).
 
 ## Digital lommebok
 
@@ -84,11 +87,8 @@ Tanken er enkel: i stedet for at innbyggeren fyller ut et skjema med opplysninge
 offentlige alt har, viser hen fram et digitalt bevis rett fra lommeboken - og velger
 selv hva som deles, og med hvem.
 
-Digitaliseringsdirektoratet deltar med utviklere og fagressurser. De holder et kort
-innlegg om digital lommebok og sandkassen sin, og er tilgjengelige gjennom hele
-hackathonet for team som vil teste utstedelse, deling og verifisering av digitale
-bevis. Ingenting i denne sandkassen etterligner lommeboken, så det er Digdirs egen du
-bruker - [`docs/bygg-selv.md`](bygg-selv.md) har rollene og lenkene videre.
+Ingenting i denne sandkassen etterligner lommeboken. Digdir driver sin egen sandkasse
+for den, og [`docs/bygg-selv.md`](bygg-selv.md) har rollene og lenkene videre.
 
 ## Én ting det er verdt å vite om demoene
 
@@ -100,21 +100,6 @@ kallene henger sammen.
 En innbygger som skal søke om redusert foreldrebetaling, trenger ikke nødvendigvis å
 skrive med noen for å få det til. Hva hun faktisk trenger, er et åpent spørsmål - og
 det er det spørsmålet som er verdt to dager.
-
-## Hva som premieres
-
-Tre priser deles ut fredag:
-
-- **Hackathonprisen 2026** - beste tekniske konsept. Vandrepokal.
-- **Kunstigprisen** - mest innovative bruk av KI.
-- **Innbyggerprisen** - mest innbyggervennlige løsning.
-
-Hvert team har 15 minutter fredag formiddag. Målet er at alle demonstrerer noe som
-kjører. Det er ikke det samme som at alt er ferdig.
-
-Det dere lager, skal også leveres inn, så det overlever hackathonet. Dere trenger ikke
-lage en pull request: vi henter fra forken. Hva som må ligge der, og hvordan dere
-registrerer teamet, står i [`docs/innlevering.md`](innlevering.md). Fem minutter.
 
 ## Utenfor sandkassen
 

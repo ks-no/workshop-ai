@@ -39,6 +39,10 @@ ikke noe du leser først.
 
 Og [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) gjelder alle som er med, i lokalet, i repoet og på nett.
 
+[`docs/hackathon-2026.md`](hackathon-2026.md) samler det som bare gjelder selve
+arrangementet: priser, program, tilgang på KI-verktøy og at Digdir er til stede.
+Kjører du sandkassen på egen hånd, er den siden ikke din.
+
 Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 
 ## Så slår du opp det du trenger

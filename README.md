@@ -94,6 +94,12 @@ testbruker som hører til hver, står i `docs/deltakerstart.md`.
 
 Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser mellom frontend, backend, simulatorer, policyer og datasett.
 
+**Den er ikke bundet til ett arrangement.** Sandkassen ble laget til et hackathon, og
+det som bare gjelder det arrangementet står i [`docs/hackathon-2026.md`](docs/hackathon-2026.md).
+Resten virker like godt for en kommune eller en leverandør som vil prøve noe på egen
+hånd: klon, kjør `./start.sh --mock`, og bygg mot API-ene. Den er fortsatt en sandkasse
+og ikke et produkt - [«Kjente begrensninger»](#kjente-begrensninger) sier hva det betyr.
+
 ## Designprinsipp for hackathon
 
 Høy autonomi, og nok støtte til at teamene faktisk rekker å levere: felles API-er og enkle integrasjonsflater, uten å låse noen til én bestemt frontend, ett bestemt prosessformat eller ett bestemt verktøy. Referanseimplementasjonene i repoet, som `process-builder` og `demo-gui`, er hjelpemidler og eksempler - ikke tvungne måter å bygge løsningene på.
