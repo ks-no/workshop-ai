@@ -47,3 +47,12 @@ En endring er ikke ferdig før:
 - API-felter: bruk konsistente navn og eksplisitt `syntetisk: true` der det passer
 - ikke introduser tunge plattformer før behovet er reelt
 - unngå å gjøre midlertidige referanseløsninger til harde krav for andre team
+
+## Lisens og sikkerhet
+
+Sandkassen er lisensiert under MIT ([`LICENSE`](LICENSE)), og bidrag du sender inn
+lisensieres under den samme. Ingen CLA. [`NOTICE.md`](NOTICE.md) har vilkårene til det
+vi har hentet inn fra andre - legger du til noe nytt derfra, hører det hjemme der.
+
+Har du funnet en sårbarhet, ikke åpne en issue. [`SECURITY.md`](SECURITY.md) sier
+hvordan du melder fra privat.
