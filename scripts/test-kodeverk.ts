@@ -33,7 +33,10 @@ const appsDir = path.join(repoRoot, "apps");
 const kilder = new Map<string, string>();
 for (const navn of await readdir(appsDir, { recursive: true })) {
   if (!navn.endsWith(".ts") || navn.includes("node_modules")) continue;
-  kilder.set(`apps/${navn}`, await readFile(path.join(appsDir, navn), "utf8"));
+  // readdir gir plattformens separator, så nøkkelen ble «apps/shared\\alder.ts» på
+  // Windows og startsWith("apps/shared/") under traff aldri. Nøkkelen er en
+  // repo-sti og skrives med skråstrek uansett plattform.
+  kilder.set(`apps/${navn.split(path.sep).join("/")}`, await readFile(path.join(appsDir, navn), "utf8"));
 }
 check("fant kildefiler under apps/", kilder.size > 0, `fant ${kilder.size}`);
 
