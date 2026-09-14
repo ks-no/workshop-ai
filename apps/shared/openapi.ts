@@ -512,7 +512,9 @@ function readSecurity(
 }
 
 export function readSpec(text: string, where = "spesifikasjonen"): Spec {
-  const lines = text.split("\n");
+  // Normalised here rather than in each caller: Git for Windows checks the specs out
+  // with core.autocrlf=true, and every line-anchored match below would then miss.
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
   const components = readComponentParameters(lines, where);
 
   const spec: Spec = {

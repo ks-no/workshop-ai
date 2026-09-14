@@ -53,6 +53,16 @@ const tocFor = process.argv[process.argv.indexOf("--innhold") + 1];
 
 // --- the sources -----------------------------------------------------------
 
+/*
+ * Every comparison here is against a source that uses \n. Git for Windows checks out
+ * with core.autocrlf=true, so a tracked file arrives with \r\n and every regex that
+ * anchors on end-of-line stops matching - silently, as a documentation error that is
+ * not one. Read through here, never readFileSync directly.
+ */
+function les(filsti: string): string {
+  return readFileSync(filsti, "utf8").replace(/\r\n/g, "\n");
+}
+
 function readJson(filePath: string): any {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
@@ -71,14 +81,14 @@ function count(filePath: string, key?: string): number {
   return list.length;
 }
 
-const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
+const toolsSource = les("apps/tools-api/src/server.ts");
 
 /**
  * The CI job names its checks as `run: pnpm <name>`. Parsing the yaml as text is
  * enough and keeps the rule against adding dependencies; the alternative is a yaml parser.
  */
 function ciChecks(workflow = ".github/workflows/ci.yml"): string[] {
-  const yaml = readFileSync(workflow, "utf8");
+  const yaml = les(workflow);
   return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:-]+)/gm)].map((m) => m[1]);
 }
 
@@ -140,7 +150,7 @@ type Category = keyof typeof sources;
  */
 const specCounts = new Map<string, { stier: number; ruter: number }>();
 for (const file of readdirSync("openapi").filter((f) => f.endsWith(".yaml"))) {
-  const spec = readSpec(readFileSync(`openapi/${file}`, "utf8"), `openapi/${file}`);
+  const spec = readSpec(les(`openapi/${file}`), `openapi/${file}`);
   specCounts.set(file.replace(/\.yaml$/, ""), {
     stier: spec.paths.length,
     ruter: spec.paths.reduce((sum, path) => sum + path.operations.length, 0)
@@ -328,7 +338,7 @@ let checked = 0;
 let skipped = 0;
 
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   lines.forEach((line, i) => {
     for (const match of line.matchAll(claimPattern)) {
       const whole = match[0];
@@ -384,7 +394,7 @@ for (const file of markdown) {
 const inCi = ciChecks();
 
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   lines.forEach((line, i) => {
     // Both spellings occur: "CI kjører `pnpm lint`" and "`ci.yml` kjører `lint`".
     // `runs` is here because AGENTS.md is written in English, and it was the one
@@ -429,7 +439,7 @@ const toolNames = new Set(
 );
 
 for (const file of markdown) {
-  const text = readFileSync(file, "utf8");
+  const text = les(file);
   const named = new Set(
     [...text.matchAll(/`([a-z_0-9]+)`/g)].map((m) => m[1]).filter((n) => toolNames.has(n))
   );
@@ -516,7 +526,7 @@ const headingCache = new Map<string, Heading[]>();
 function headingsOf(file: string): Heading[] {
   let headings = headingCache.get(file);
   if (headings === undefined) {
-    headings = readHeadings(readFileSync(file, "utf8").split("\n"));
+    headings = readHeadings(les(file).split("\n"));
     headingCache.set(file, headings);
   }
   return headings;
@@ -570,7 +580,7 @@ let stierChecked = 0;
  * is the copy.
  */
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   const slugs = new Set(headingsOf(file).map((h) => h.slug));
   withoutCode(lines).forEach((line, i) => {
     for (const match of line.matchAll(ANCHOR_LINK)) {
@@ -601,7 +611,7 @@ for (const file of markdown) {
  * `node scripts/check-dokumentasjon.ts --innhold <fil>` prints the list to paste.
  */
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   const headings = headingsOf(file);
   const toc = headings.find((h) => h.level === 2 && TOC_TITLES.has(slug(h.text)));
   if (toc === undefined) continue;
@@ -648,7 +658,7 @@ for (const file of markdown) {
 const RELATIVE_LINK = /\[([^\]]*)\]\(([^)\s#]+\.md)(?:#([^)\s]*))?\)/g;
 
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   withoutCode(lines).forEach((line, i) => {
     for (const match of line.matchAll(RELATIVE_LINK)) {
       const [, text, href, anchor] = match;
@@ -709,7 +719,7 @@ const serviceNames = (
 const NODE_LABEL = /(?:^|[\s>|-])([A-Za-z_][\w-]*)\s*([[({]+)\s*([^"'\s\])}])/g;
 
 for (const file of markdown) {
-  const lines = readFileSync(file, "utf8").split("\n");
+  const lines = les(file).split("\n");
   let start = -1;
   lines.forEach((line, i) => {
     if (start < 0) {
@@ -772,7 +782,7 @@ const toppnivaa = [...sporedeKataloger].filter((katalog) => !katalog.includes("/
 const repoSti = new RegExp(String.raw`(?<![\w./-])(?:${toppnivaa.join("|")})/[A-Za-z0-9._/-]+`, "g");
 
 for (const file of markdown) {
-  readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+  les(file).split("\n").forEach((line, i) => {
     for (const match of line.matchAll(repoSti)) {
       // Neither trailing sentence punctuation nor a trailing slash is part of the path.
       const sti = match[0].replace(/[.,:;)]+$/, "").replace(/\/$/, "");
@@ -800,9 +810,9 @@ for (const file of markdown) {
  * Same technique as check 3, which exists because apps/tools-api/README.md carried 18
  * of 25 tool names for months while every count in the repo was right.
  */
-const gatewaySource = readFileSync("apps/ai-gateway/src/server.ts", "utf8");
-const perrerSource = readFileSync("apps/ai-gateway/src/sporsmaalsperrer.ts", "utf8");
-const sikkerhetsdok = readFileSync("docs/sikkerhet-og-personvern.md", "utf8");
+const gatewaySource = les("apps/ai-gateway/src/server.ts");
+const perrerSource = les("apps/ai-gateway/src/sporsmaalsperrer.ts");
+const sikkerhetsdok = les("docs/sikkerhet-og-personvern.md");
 
 const renset = new Set(
   [...(gatewaySource.match(/const gyldigeStier = \[([^\]]*)\]/)?.[1] ?? "")
@@ -898,13 +908,13 @@ for (const sjekk of iPlattform) {
  * VERSION is read as text rather than imported: the script has a top-level await that
  * fetches, so importing it here would download on every test run.
  */
-const vendorVersjon = readFileSync("scripts/hent-designsystem.ts", "utf8")
+const vendorVersjon = les("scripts/hent-designsystem.ts")
   .match(/^const VERSION = "([^"]+)";$/m)?.[1];
 if (!vendorVersjon) {
   failures.push("scripts/hent-designsystem.ts: fant ikke `const VERSION = \"...\"`, så lisensheaderen kan ikke sjekkes.");
 }
 for (const stilark of ["apps/shared/ds-base.css", "apps/shared/ds-ksdigital.css"]) {
-  const header = readFileSync(stilark, "utf8").slice(0, 600);
+  const header = les(stilark).slice(0, 600);
   const vendoret = header.match(/Vendored from @ks-digital\/designsystem-themes@(\S+), MIT-licensed\./);
   if (!vendoret) {
     failures.push(
@@ -932,7 +942,7 @@ for (const pakke of ["package.json", ...readdirSync("apps", { withFileTypes: tru
 
 // --- executable cookbook examples -----------------------------------------
 
-const cookbook = readFileSync("examples/curl/README.md", "utf8");
+const cookbook = les("examples/curl/README.md");
 const healthLoop = cookbook.match(/for p in ([\d ]+); do\n[\s\S]*?\/helse"[\s\S]*?\ndone/);
 const apiPorts = (readJson("apps/shared/tjenester.json") as { port: number; spesifikasjon: boolean }[])
   .filter((service) => service.spesifikasjon).map((service) => service.port).sort();
@@ -941,7 +951,7 @@ if (JSON.stringify(documentedPorts) !== JSON.stringify(apiPorts)) {
   failures.push("examples/curl/README.md: helsesjekken må prøve alle API-portene i apps/shared/tjenester.json.");
 }
 for (const file of ["docs/deltakerstart.md", "examples/curl/README.md"]) {
-  const text = readFileSync(file, "utf8");
+  const text = les(file);
   const headers = [...text.matchAll(/Authorization: ([^"\n]+)/g)].map((match) => match[1]);
   if (!headers.length || headers.some((header) => !/^Bearer \$TOKEN(?:_M|_022)?$/.test(header))) {
     failures.push(`${file}: curl-eksemplene må sende Bearer-tokenet fra token.ts, ikke en plassholder.`);

@@ -82,7 +82,11 @@ check("CRLF leses som LF", parseIssueBody(body.replace(/\n/g, "\r\n")).get("Fork
 
 // --- workflows -------------------------------------------------------------
 
-const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+// Samme grunn som i sjekk-openapi-dekning.ts: CRLF fra en Windows-utsjekk ville
+// brutt hvert linjeanker under.
+const les = (filsti: string) => readFileSync(filsti, "utf8").replace(/\r\n/g, "\n");
+
+const ci = les(".github/workflows/ci.yml");
 const ciTrigger = triggerBlokk(ci);
 check("ci.yml har en on:-blokk", ciTrigger !== undefined);
 check("ci.yml-blokken sier main", ciTrigger?.includes("branches: [main]"));
@@ -125,7 +129,7 @@ const historiske = [
   "on:\n  push:\n    branches: [main]\n  workflow_dispatch:"
 ];
 for (const file of ["ci.yml", "sbom.yml", "sbom-images.yml"]) {
-  const block = triggerBlokk(readFileSync(`.github/workflows/${file}`, "utf8"));
+  const block = triggerBlokk(les(`.github/workflows/${file}`));
   const stripped = block?.split("\n").filter((l) => !/^\s+(paths:|- )/.test(l)).join("\n");
   check(`${file} fyrer bare på main`, stripped !== undefined && historiske.includes(stripped), stripped);
 }
