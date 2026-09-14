@@ -182,6 +182,11 @@ function krevLovnavn(fil: string, tekst: string): void {
   }
 }
 
+// Listed once and used twice: here, and by the fødselsnummer-passthrough check below.
+const tenorFiler = (await readdir("data/tenor"))
+  .filter((navn) => navn.endsWith(".json"))
+  .map((navn) => `data/tenor/${navn}`);
+
 for (const fil of files) {
   krevAntall(fil, await read(fil));
   krevLovnavn(fil, await readText(fil));
@@ -446,6 +451,39 @@ if (ugyldigeFnr.length > 0) {
 }
 if (new Set(personer.map((p) => p.syntetiskFodselsnummer)).size !== personer.length) {
   throw new Error("To personer deler fødselsnummer.");
+}
+
+/*
+ * The same rule, over every seed file instead of over personer.json alone. The check
+ * above reads one field in one file, so brreg.seed.json, krr.json, politiattester.json
+ * and the Tenor extracts carried identifiers nothing had ever looked at.
+ *
+ * Scanning the raw text rather than the parsed fields, for the reason krevLovnavn
+ * gives above: the field names differ per dataset (syntetiskFodselsnummer,
+ * foedselsEllerDNummer, fnr, identifikator, styrelederFnr, morFnr and a dozen more),
+ * so a list of them would be the list that drove the check. The directory listing
+ * rather than `files`, so a seed file added later is swept without being remembered.
+ */
+const seedFiler = [
+  ...(await readdir("data")).filter((navn) => navn.endsWith(".json")).map((navn) => `data/${navn}`),
+  ...tenorFiler
+];
+
+const ikkeSyntetiske: string[] = [];
+for (const fil of seedFiler) {
+  for (const [, nummer] of (await readText(fil)).matchAll(/"(\d{11})"/g)) {
+    if (!isSyntetiskFoedselsnummer(nummer)) ikkeSyntetiske.push(`${fil}: ${nummer}`);
+  }
+}
+
+if (ikkeSyntetiske.length > 0) {
+  throw new Error(
+    `${ikkeSyntetiske.length} elleve-sifrede strenger i seed-dataene er ikke syntetiske ` +
+    `og mod11-gyldige fødselsnumre: ${ikkeSyntetiske.slice(0, 5).join(", ")}. ` +
+    `Syntetiske numre har +80 på fødselsmåneden (måned 81-92) og kontrollsifre regnet ` +
+    `ut etter påslaget. Er strengen ikke et fødselsnummer, hører den ikke hjemme som ` +
+    `elleve sifre i en streng.`
+  );
 }
 
 // The date inside the identifier need not equal foedselsdato - real
@@ -833,10 +871,9 @@ if (!freg.personer.some((p: any) => p.sivilstand === "ENKE_ELLER_ENKEMANN")) {
 // Every imported fødselsnummer must appear verbatim in data/tenor/. The import
 // must pass them through, never mint one - the only numbers it generates belong to
 // the curated fixtures.
-const tenorFiler = (await readdir("data/tenor")).filter((f) => f.endsWith(".json"));
 const tenorFnr = new Set();
 for (const fil of tenorFiler) {
-  const innhold = await read(`data/tenor/${fil}`);
+  const innhold = await read(fil);
   const samle = (dokument: any) => {
     const ident = dokument?.identifikator;
     const fnr = Array.isArray(ident) && ident.length ? ident[0] : dokument?.id;
