@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/sandbox-backend",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Backend for innbyggerdialog-sandbox.",
   "type": "module"
 }

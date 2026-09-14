@@ -2,6 +2,7 @@
   "name": "innbyggerdialog-sandbox",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Monorepo for hackathon-sandkasse for moderne innbyggerdialog i kommunal sektor.",
   "packageManager": "pnpm@10.34.5",

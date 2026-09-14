@@ -183,6 +183,11 @@ Gjelder bare hvis du likevel bygger inne i dette repoet:
 
 Filnavnet er kommunenummeret.
 
+Bildene ligger på KS' CDN og er ikke en del av repoet. Et kommunevåpen eies av
+kommunen og er vernet etter straffeloven §§ 165 og 166, så det er ikke dekket av
+lisensen sandkassen ellers har. Bruk dem til å se på designsystemet; skal de med i
+noe du publiserer, spør kommunen først. [`NOTICE.md`](../NOTICE.md) sier det samme.
+
 ---
 
 ## Neste steg

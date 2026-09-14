@@ -29,6 +29,7 @@ Målet er å gjøre det enkelt for interne og eksterne utviklingsteam å prototy
 - [Hvordan legge til nye prosesser](#hvordan-legge-til-nye-prosesser)
 - [Hvordan legge til nye syntetiske datasett](#hvordan-legge-til-nye-syntetiske-datasett)
 - [Samarbeid](#samarbeid)
+- [Lisens](#lisens)
 - [Kjente begrensninger](#kjente-begrensninger)
 - [Viktige filer](#viktige-filer)
 
@@ -491,6 +492,15 @@ Dette repoet er lagt opp for flere team. Se:
 - `docs/api-oversikt.md`
 - `docs/designsystem.md`
 
+## Lisens
+
+Sandkassen er lisensiert under **MIT** ([`LICENSE`](LICENSE)). Du kan bruke, endre og
+bygge videre på den, også kommersielt, så lenge opphavsnotisen følger med.
+
+[`NOTICE.md`](NOTICE.md) dekker det som har egne vilkår: designsystemet vi har hentet
+inn som CSS, adressedataene fra Geonorge, Tenor-uttrekkene, kommunevåpnene i
+eksempelsiden og språkmodellene `./start.sh` laster ned.
+
 ## Kjente begrensninger
 
 - Tjenestene er bygget som en enkel MVP uten byggesteg, ikke som produksjonsklar
@@ -519,4 +529,5 @@ Dette repoet er lagt opp for flere team. Se:
 - `data/` - de syntetiske datasettene. `docs/syntetiske-data.md` forklarer dem
 - `openapi/` - én spesifikasjon per API-tjeneste, holdt i takt av `pnpm test:openapi`
 - `policies/` - datapolicy, KI-policy, tilgangspolicy
+- [`LICENSE`](LICENSE) og [`NOTICE.md`](NOTICE.md) - MIT, og vilkårene til det vi har hentet inn
 - `docker-compose.yml`, `package.json`, `tsconfig.json`

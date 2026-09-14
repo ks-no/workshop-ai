@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/digdir-mock",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Mock av Maskinporten og ID-porten. Utsteder RS256-tokens for sandkassen.",
   "type": "module"
 }
