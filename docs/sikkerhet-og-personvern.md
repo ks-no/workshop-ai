@@ -17,10 +17,27 @@ Provideren avgjør om promptene forlater maskinen:
 - `bedrock` - til AWS Bedrock: hele prompten går ut av maskinen, til AWS.
 
 > [!WARNING]
-> Og prompten er ikke bare spørsmålet: den inneholder hele konteksten som rå JSON - navn,
-> adresser og syntetiske fødselsnumre fra prosessøkten. Ufarlig her, fordi alt er
-> syntetisk, men ikke et mønster å kopiere til en løsning med reelle data. Unntaket er
-> `/ai/sporsmaal`, som minimerer konteksten i kode før modellen ser den.
+> Og prompten er ikke bare spørsmålet: den inneholder konteksten fra prosessøkten som
+> rå JSON. Ufarlig her, fordi alt er syntetisk, men ikke et mønster å kopiere til en
+> løsning med reelle data.
+
+Hvor mye som faktisk renses, er ulikt per rute, og det er verdt å vite nøyaktig:
+
+| Rute | Hva som fjernes før modellen ser det |
+|---|---|
+| `/ai/sporsmaal` | **Tillatelsesliste.** `sanitizeSporsmaalKontekst` bygger et nytt objekt og slipper bare gjennom tjeneste, satser, stegnavn, samtykkestatus og utfall. Alt annet faller bort |
+| `/ai/dialogforslag`, `/ai/oppsummering`, `/ai/forklar-databruk`, `/ai/klarsprak`, `/ai/risikosjekk` | **Nektliste på fem feltnavn.** `utenIdentifikatorer` fjerner `identifikator`, `fnr`, `syntetiskFodselsnummer`, `personId` og `pid` |
+| `/ai/tolk-svar`, `/ai/velg-prosess`, `/ai/velg-verktoy`, `/ai/dommer` | **Ingenting.** Konteksten serialiseres som den er |
+
+`pnpm test:docs` sammenligner tabellen med `gyldigeStier` og `IDENTIFIKATORFELT` i
+koden, i begge retninger, så en ny rute eller et nytt feltnavn kan ikke gjøre den
+stille utdatert.
+
+Nektlisten er et gulv, ikke et tak, og koden sier det selv i
+`apps/ai-gateway/src/sporsmaalsperrer.ts`. Navn, fødselsdato, adresse, e-post,
+telefon, beløp og diagnose går gjennom alle rutene under de to nederste radene. Det
+er greit så lenge alt er syntetisk. Bygger du videre på dette mot ekte data, er dette
+det første som må gjøres om.
 
 **Bytteren sitter på <http://localhost:8082/admin>** og virker uten restart. Valget
 persisteres i `state/ai-provider-override.json` og overstyrer `AI_PROVIDER` fra `.env`

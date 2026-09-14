@@ -81,7 +81,8 @@ tilgjengeliggjort av Kartverket.»**
 
 Gate, nummer, postnummer, koordinat, gårds- og bruksnummer er altså ekte.
 Eierforholdene i `data/eierforhold.json` er ikke: de er forfattet, og de kobler
-syntetiske personer til reelle matrikkelenheter.
+syntetiske personer til reelle matrikkelenheter. [`data/README.md`](data/README.md)
+sier hva det betyr for det du deler.
 
 `apps/matrikkel-mock` slår også opp mot det samme API-et i kjøretid når en adresse
 mangler i seeden. Kjører mange maskiner sandkassen samtidig, går den trafikken til

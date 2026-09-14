@@ -446,7 +446,8 @@ og uten nett svarer den `404` - ikke `500`.
 
 ## Hvor syntetiske data ligger
 
-Syntetiske data ligger under `data/`:
+Syntetiske data ligger under `data/`, og [`data/README.md`](data/README.md) sier hvor de
+kommer fra og hva som gjelder for å bruke dem videre:
 
 - `data/personer.json` - 394 personer
 - `data/husstander.json` - 200 husstander

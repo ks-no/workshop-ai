@@ -58,6 +58,7 @@ Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 | Se hele flyten som `curl` | [`examples/curl/README.md`](../examples/curl/README.md) |
 | Vite hvem som kan logge inn, og hvem som bare er part i saken | [`docs/testpersoner.md`](testpersoner.md) |
 | Forstå datagrunnlaget, og hvor grensene går | [`docs/syntetiske-data.md`](syntetiske-data.md) |
+| Vite hvor dataene kommer fra, og hva som gjelder for å bruke dem videre | [`data/README.md`](../data/README.md) |
 | Lage en ny case inne i prosessmotoren | [`docs/prosessmodell.md`](prosessmodell.md) |
 | Style frontenden din som resten av KS Digital | [`docs/designsystem.md`](designsystem.md) |
 | Vite hva sandkassen logger, og hvordan du sletter det | [`docs/hva-logges.md`](hva-logges.md) |
