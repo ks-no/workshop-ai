@@ -77,8 +77,8 @@ const toolsSource = readFileSync("apps/tools-api/src/server.ts", "utf8");
  * The CI job names its checks as `run: pnpm <name>`. Parsing the yaml as text is
  * enough and keeps the rule against adding dependencies; the alternative is a yaml parser.
  */
-function ciChecks(): string[] {
-  const yaml = readFileSync(".github/workflows/ci.yml", "utf8");
+function ciChecks(workflow = ".github/workflows/ci.yml"): string[] {
+  const yaml = readFileSync(workflow, "utf8");
   return [...yaml.matchAll(/^\s*run:\s*pnpm\s+([\w:-]+)/gm)].map((m) => m[1]);
 }
 
@@ -863,6 +863,27 @@ if (!renset.size || !alleAiRuter.size || !identifikatorfelt.size) {
       );
     }
   }
+}
+
+// --- check 10: plattform.yml runs a subset of ci.yml ----------------------
+
+/*
+ * plattform.yml is a second copy of ci.yml's check list, for macOS and Windows. A
+ * check renamed or dropped in ci.yml would leave a dead name here, and it would
+ * surface as a Monday cron failure on two runners rather than as a red PR.
+ *
+ * Only one direction is checked. ci.yml legitimately runs more - the ones that need
+ * a stack, and the contract dump - so a name there and not here is a choice, while a
+ * name here and not there is drift.
+ */
+const iPlattform = ciChecks(".github/workflows/plattform.yml");
+const iCi = new Set(ciChecks());
+for (const sjekk of iPlattform) {
+  if (iCi.has(sjekk)) continue;
+  failures.push(
+    `.github/workflows/plattform.yml: kjører \`pnpm ${sjekk}\`, som ikke finnes i ` +
+    `.github/workflows/ci.yml. Enten er den døpt om eller fjernet der.`
+  );
 }
 
 // --- the licence claims ---------------------------------------------------

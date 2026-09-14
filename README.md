@@ -65,6 +65,16 @@ opptatt, står det i `docs/feilsoking.md` hvordan du finner ut hvilken.
 med språkmodell, og vesentlig mer på delt konferansenett. Språkmodellen er fra 400 MB
 til 9 GB avhengig av hvor mye minne maskinen har. Senere oppstarter tar sekunder.
 
+**Plass på disk.** Med `--mock` er det repoet, rundt 65 MB med git-historikken, pluss
+ett delt `node:24-alpine`-image som alle elleve tjenestene kjører fra. Med språkmodell
+kommer ollama-imaget på rundt 4 GB i tillegg, og modellen på toppen av det - 0,4 GB for
+den minste og 9 GB for den største. Regn med 15 GB ledig hvis du vil ha den største.
+
+**Minne.** Docker-tjenestene har ingen minnegrense satt, og de er små; det som faktisk
+avgjør er modellen, og `./start.sh` velger den ut fra hvor mye RAM maskinen har. Under
+12 GB RAM får du den minste modellen, og da er svarene merkbart dårligere enn i en demo
+kjørt på en stor maskin. `--mock` bryr seg ikke om noe av dette.
+
 På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https://learn.microsoft.com/windows/wsl/install) - se [«På Windows»](#på-windows) lenger ned.
 
 > [!NOTE]
@@ -172,8 +182,15 @@ ekvivalent. `start.bat` sjekker portene, lager `.env` hvis den mangler, og vente
 elleve tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
 `--help`, men ingen modellflagg. **Den kjører alltid uten
 språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
-ville vært en tom lovnad. Vil du ha en ekte modell, bruk Git Bash eller WSL og
-`./start.sh`. Foretrekk uansett den veien hvis du har valget.
+ville vært en tom lovnad. Den krever også `curl`, og stopper med en beskjed hvis den
+mangler, siden den ikke kan sjekke oppstarten uten. Vil du ha en ekte modell, bruk
+Git Bash eller WSL og `./start.sh`. Foretrekk uansett den veien hvis du har valget.
+
+Windows-stien er dessuten den vi kjører minst selv. Sjekkene som verken trenger stack
+eller modell kjøres nå på Windows og macOS i en egen arbeidsflyt
+(`.github/workflows/plattform.yml`), så et plattformavvik blir funnet av en rød sjekk
+og ikke av deg. Selve oppstarten er fortsatt ikke dekket av noen automatisk sjekk på
+Windows.
 
 ### Valg
 

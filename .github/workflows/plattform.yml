@@ -1,0 +1,103 @@
+# Does the repo work on the machines participants actually have?
+#
+# ci.yml runs on ubuntu-latest only, so every claim about macOS and Windows in the
+# documentation has been untested. This workflow runs the checks that need no model on
+# the other two. It is deliberately NOT on pull_request: it would double the wait on
+# every PR to answer a question that changes weekly at most.
+name: Plattform
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays, so a break is found at the start of a week rather than by a participant.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+# main gets merge bursts - 27 in one day in August - and this workflow is
+# informational rather than required, so superseding a running one costs nothing.
+concurrency:
+  group: plattform-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sjekker:
+    strategy:
+      # One platform failing must not hide the result on the others.
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typesjekk
+        run: pnpm lint
+
+      - name: Datasettene
+        run: pnpm test
+
+      # One step per check, not one block: pwsh reports only the last line's exit
+      # status, and a named step says which check broke.
+      - name: Lokal svartolkning i chat
+        run: pnpm test:chat-intent
+
+      - name: Sperrene på /ai/sporsmaal
+        run: pnpm test:sperrer
+
+      - name: Skjerming
+        run: pnpm test:skjerming
+
+      - name: Vedtaket
+        run: pnpm test:vilkaar
+
+      - name: Fødselsnummer
+        run: pnpm test:foedselsnummer
+
+      - name: Handleevne
+        run: pnpm test:handleevne
+
+      # Binds a real port and spawns a fiks-simulator, so it is one of the few here
+      # that can actually differ by platform. Same for test:parametere below.
+      - name: Samtykke
+        run: pnpm test:samtykke
+
+      - name: Forsendelse
+        run: pnpm test:forsendelse
+
+      - name: Oppstrøms
+        run: pnpm test:upstream
+
+      - name: Innlevering
+        run: pnpm test:innlevering
+
+      - name: Importgrafen
+        run: pnpm test:imports
+
+      - name: Kodeverk
+        run: pnpm test:kodeverk
+
+      - name: Påkrevde parametere
+        run: pnpm test:parametere
+
+      - name: OpenAPI mot koden
+        run: pnpm test:openapi
+
+      # Reads git ls-files and walks relative paths, so it is the check most likely to
+      # tell a Windows path bug from a genuine documentation error.
+      - name: Dokumentasjonen
+        run: pnpm test:docs
