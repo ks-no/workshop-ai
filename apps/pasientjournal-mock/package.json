@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/pasientjournal-mock",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Mock av elektronisk pasientjournal: legeerklæringer til søknad om TT-kort.",
   "type": "module"
 }

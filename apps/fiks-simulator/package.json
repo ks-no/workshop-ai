@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/fiks-simulator",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Fiks-simulator for innbyggerdialog-sandbox.",
   "type": "module"
 }

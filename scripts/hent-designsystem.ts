@@ -22,6 +22,25 @@ const files = [
   { url: `${cdn}/themes/${THEME}.css`, navn: `ds-${THEME}.css` }
 ];
 
+// MIT requires the copyright notice to travel with the redistributed file, and this
+// script overwrites both files - so the header has to be written here, not by hand.
+// pnpm test:docs fails if either file loses it, or if the version in it drifts from
+// VERSION above.
+function medLisensheader(css: string, url: string): string {
+  // @charset must be the first thing in the file, so the header goes after it.
+  const charset = css.match(/^@charset\s+"[^"]*";\r?\n/)?.[0] ?? "";
+  const header =
+    `/*\n` +
+    ` * Vendored from @ks-digital/designsystem-themes@${VERSION}, MIT-licensed.\n` +
+    ` * Copyright (c) 2025 KS Digital\n` +
+    ` * Built on @digdir/designsystemet-css - Copyright 2024 Digitaliseringsdirektoratet (Digdir), MIT.\n` +
+    ` * Full permission notices: NOTICE.md in the repository root.\n` +
+    ` * Source: ${url}\n` +
+    ` * Fetched by scripts/hent-designsystem.ts - do not edit by hand.\n` +
+    ` */\n`;
+  return `${charset}${header}${css.slice(charset.length)}`;
+}
+
 async function download({ url, navn }: { url: string; navn: string }): Promise<void> {
   const response = await fetch(url);
   if (!response.ok) {
@@ -34,7 +53,7 @@ async function download({ url, navn }: { url: string; navn: string }): Promise<v
     throw new Error(`${url} ser ikke ut som CSS fra designsystemet (mangler @layer)`);
   }
   const filsti = path.join(sharedDir, navn);
-  await writeFile(filsti, css, "utf8");
+  await writeFile(filsti, medLisensheader(css, url), "utf8");
   console.log(`  ${navn}  ${(css.length / 1024).toFixed(0)} kB`);
 }
 

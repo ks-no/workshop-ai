@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/tools-api",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "REST tool service for process guidance.",
   "type": "module"
 }

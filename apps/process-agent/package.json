@@ -2,6 +2,7 @@
   "name": "@innbyggerdialog/process-agent",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Generic process guide agent using the tools-api REST tools.",
   "type": "module"
 }

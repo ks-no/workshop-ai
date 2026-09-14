@@ -745,6 +745,50 @@ for (const file of markdown) {
   });
 }
 
+// --- the licence claims ---------------------------------------------------
+
+/*
+ * NOTICE.md says pnpm ds:hent writes the MIT notice into both vendored stylesheets.
+ * A writer is not a check: a hand re-vendor, a curl, or a refactor that drops the
+ * header leaves the files redistributed without the notice MIT requires, and nothing
+ * would go red until someone read the CSS. The version is compared too, because
+ * bumping VERSION without re-fetching makes the header a false provenance line.
+ *
+ * VERSION is read as text rather than imported: the script has a top-level await that
+ * fetches, so importing it here would download on every test run.
+ */
+const vendorVersjon = readFileSync("scripts/hent-designsystem.ts", "utf8")
+  .match(/^const VERSION = "([^"]+)";$/m)?.[1];
+if (!vendorVersjon) {
+  failures.push("scripts/hent-designsystem.ts: fant ikke `const VERSION = \"...\"`, så lisensheaderen kan ikke sjekkes.");
+}
+for (const stilark of ["apps/shared/ds-base.css", "apps/shared/ds-ksdigital.css"]) {
+  const header = readFileSync(stilark, "utf8").slice(0, 600);
+  const vendoret = header.match(/Vendored from @ks-digital\/designsystem-themes@(\S+), MIT-licensed\./);
+  if (!vendoret) {
+    failures.push(
+      `${stilark}: mangler MIT-notisen øverst. Filen er videredistribuert kode, og ` +
+      `lisensen krever at notisen følger med. Kjør pnpm ds:hent i stedet for å hente den for hånd.`
+    );
+  } else if (vendorVersjon && vendoret[1] !== vendorVersjon) {
+    failures.push(
+      `${stilark}: notisen sier versjon ${vendoret[1]}, mens scripts/hent-designsystem.ts ` +
+      `pinner ${vendorVersjon}. Kjør pnpm ds:hent.`
+    );
+  }
+}
+
+// Same shape, one level down: a service added later must not ship without the field.
+for (const pakke of ["package.json", ...readdirSync("apps", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => `apps/${entry.name}/package.json`)
+  .filter((sti) => existsSync(sti))]) {
+  const lisens = (readJson(pakke) as { license?: string }).license;
+  if (lisens !== "MIT") {
+    failures.push(`${pakke}: mangler "license": "MIT". LICENSE i roten gjelder hele repoet.`);
+  }
+}
+
 // --- executable cookbook examples -----------------------------------------
 
 const cookbook = readFileSync("examples/curl/README.md", "utf8");

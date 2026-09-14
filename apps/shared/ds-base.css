@@ -1,3 +1,11 @@
+/*
+ * Vendored from @ks-digital/designsystem-themes@0.0.1-alpha.69, MIT-licensed.
+ * Copyright (c) 2025 KS Digital
+ * Built on @digdir/designsystemet-css - Copyright 2024 Digitaliseringsdirektoratet (Digdir), MIT.
+ * Full permission notices: NOTICE.md in the repository root.
+ * Source: https://cdn.jsdelivr.net/npm/@ks-digital/designsystem-themes@0.0.1-alpha.69/dist/base.css
+ * Fetched by scripts/hent-designsystem.ts - do not edit by hand.
+ */
 @layer ds, ksd;
 
 @layer ds.theme, ds.base, ds.components;
