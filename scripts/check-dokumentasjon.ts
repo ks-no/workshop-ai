@@ -560,6 +560,7 @@ let anchorsChecked = 0;
 let linksChecked = 0;
 let tocsChecked = 0;
 let diagramsChecked = 0;
+let stierChecked = 0;
 
 // --- check 4: an anchor link hits a heading in the same file ---------------
 
@@ -745,6 +746,47 @@ for (const file of markdown) {
   });
 }
 
+// --- check 8: a repo path named in prose exists ---------------------------
+
+/*
+ * AGENTS.md described apps/brreg-mcp and apps/folkeregister-mcp for months after the
+ * directories were deleted, and every check here stayed green: check 6 only follows
+ * markdown links, and the paragraph wrote the paths as inline code.
+ *
+ * So this one reads the whole line, code spans included - do not wrap it in
+ * withoutCode the way checks 4, 5 and 6 are. A path inside backticks is the case that
+ * went wrong, and a path in a shell example has to be right too.
+ *
+ * Directories count, since a service is a directory, with or without a trailing
+ * slash. A glob or a placeholder never matches: `*` and `<` are outside the pattern.
+ * The lookbehind keeps https://docs.digdir.no/docs/... from reading as a repo path.
+ * state/ and _backup/ are skipped: both are runtime output, and the paths prose names
+ * inside them are created by a run rather than checked in.
+ */
+const sporedeKataloger = new Set<string>();
+for (const sti of trackedPaths) {
+  const deler = sti.split("/");
+  for (let i = 1; i < deler.length; i += 1) sporedeKataloger.add(deler.slice(0, i).join("/"));
+}
+const toppnivaa = [...sporedeKataloger].filter((katalog) => !katalog.includes("/"));
+const repoSti = new RegExp(String.raw`(?<![\w./-])(?:${toppnivaa.join("|")})/[A-Za-z0-9._/-]+`, "g");
+
+for (const file of markdown) {
+  readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+    for (const match of line.matchAll(repoSti)) {
+      // Neither trailing sentence punctuation nor a trailing slash is part of the path.
+      const sti = match[0].replace(/[.,:;)]+$/, "").replace(/\/$/, "");
+      if (sti.startsWith("state/") || sti.startsWith("_backup/")) continue;
+      stierChecked++;
+      if (trackedPaths.has(sti) || sporedeKataloger.has(sti)) continue;
+      failures.push(
+        `${file}:${i + 1}: «${sti}» finnes ikke i repoet. Enten er filen fjernet og ` +
+        `avsnittet står igjen, eller så er stien skrevet feil. Kilden er git ls-files.`
+      );
+    }
+  });
+}
+
 // --- the licence claims ---------------------------------------------------
 
 /*
@@ -842,8 +884,9 @@ console.log(
 );
 console.log(
   `${linksChecked} relative lenker, ${anchorsChecked} ankere, ` +
-  `${tocsChecked} innholdsfortegnelse${tocsChecked === 1 ? "" : "r"} og ` +
-  `${diagramsChecked} mermaid-diagram sjekket mot kilden sin.`
+  `${tocsChecked} innholdsfortegnelse${tocsChecked === 1 ? "" : "r"}, ` +
+  `${diagramsChecked} mermaid-diagram og ${stierChecked} repo-stier ` +
+  `sjekket mot kilden sin.`
 );
 if (renamed.length > 0) {
   console.log(
