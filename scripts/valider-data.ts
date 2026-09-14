@@ -1826,7 +1826,10 @@ const forventetDok = buildTestpersondok(
   kuratert,
   satser.gjelderFra
 );
-const faktiskDok = await readFile("docs/testpersoner.md", "utf8");
+// Sammenligningen tåler CRLF: Git for Windows setter core.autocrlf=true, så filen
+// sjekkes ut med \r\n mens generatoren skriver \n. Uten dette feilet pnpm test på
+// linje 1 for hver eneste Windows-klone, og bare der.
+const faktiskDok = (await readFile("docs/testpersoner.md", "utf8")).replace(/\r\n/g, "\n");
 if (faktiskDok !== forventetDok) {
   const forventedeLinjer = forventetDok.split("\n");
   const faktiskeLinjer = faktiskDok.split("\n");

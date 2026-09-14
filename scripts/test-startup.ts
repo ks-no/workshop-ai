@@ -11,7 +11,9 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const bash = readFileSync(path.join(root, "start.sh"), "utf8");
 const batch = readFileSync(path.join(root, "start.bat"), "utf8");
-const compose = readFileSync(path.join(root, "docker-compose.yml"), "utf8");
+// docker-compose.yml er ikke pinnet i .gitattributes slik *.sh og *.bat er, så en
+// Windows-utsjekk gir CRLF og hvert \n-anker i regexene under bommer.
+const compose = readFileSync(path.join(root, "docker-compose.yml"), "utf8").replace(/\r\n/g, "\n");
 const services = [...compose.matchAll(/^  ([\w-]+):\n(?:(?!^  \S)[\s\S])*?^    command: \["\/bin\/sh", "scripts\/dev.sh",/gm)]
   .map(match => match[1]).sort();
 const shellServices = bash.match(/^NODE_SERVICES=\(([^)]+)\)/m)![1].split(" ").sort();

@@ -594,7 +594,7 @@ for (const tjeneste of tjenester) {
   if (tjeneste.ruter) {
     ruter = await tjeneste.ruter();
   } else {
-    const kilde = await readFile(path.join(repoRoot, tjeneste.kilde!), "utf8");
+    const kilde = (await readFile(path.join(repoRoot, tjeneste.kilde!), "utf8")).replace(/\r\n/g, "\n");
     const scanned = scanRoutes(kilde, tjeneste);
     for (const linje of scanned.uparsede) {
       feil.push(
@@ -719,7 +719,10 @@ for (const tjeneste of tjenester) {
   }
 
   // 7. Kodeverk spesifikasjonen gjentar.
-  const tekst = await readFile(path.join(repoRoot, tjeneste.spesifikasjon), "utf8");
+  // \r\n normaliseres bort: en Windows-utsjekk gir CRLF, og hvert linjeanker under
+  // slutter da å treffe - som en manglende enum som ikke mangler.
+  const tekst = (await readFile(path.join(repoRoot, tjeneste.spesifikasjon), "utf8"))
+    .replace(/\r\n/g, "\n");
   if (tjeneste.navn === "tools-api") {
     const response = skjemablokk(tekst, "InvokeToolResponse");
     // All specialised object results also match the unrestricted object branch.
