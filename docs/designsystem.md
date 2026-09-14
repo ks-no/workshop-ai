@@ -117,7 +117,7 @@ Da trenger du verken `!important` eller spesifisitetstriks.
 | Kjørende markup for hver komponent, lest ut av DOM-en | <http://localhost:3001/ds-eksempel> |
 | Storybook og Figma - begge virker uten å kjøre noe | lenkene øverst i denne filen |
 | Kildekode | <https://github.com/ks-no/designsystem> |
-| Spørsmål | `fiks@ksdigital.no`, eller Slack `#designsystem` |
+| Spørsmål | `fiks@ksdigital.no`, eller Slack `#designsystem` hvis du er intern i KS |
 
 Kodeeksemplene på `/ds-eksempel` serialiseres fra den levende DOM-en, så de kan ikke bli
 utdaterte. Kopier derfra - markupen er den samme i ditt eget prosjekt.
