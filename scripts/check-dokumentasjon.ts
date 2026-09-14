@@ -787,6 +787,84 @@ for (const file of markdown) {
   });
 }
 
+// --- check 9: the AI sanitisation table -----------------------------------
+
+/*
+ * docs/sikkerhet-og-personvern.md tells a reader which /ai/ routes strip what. Both
+ * halves are literals in the code - gyldigeStier in ai-gateway's server.ts and
+ * IDENTIFIKATORFELT in sporsmaalsperrer.ts - so the table is a hand-typed copy, and
+ * this is the document where a stale copy costs most. Add a sixth route to
+ * gyldigeStier and the table understates what is protected; add one the way
+ * /ai/dommer is written and it overstates it.
+ *
+ * Same technique as check 3, which exists because apps/tools-api/README.md carried 18
+ * of 25 tool names for months while every count in the repo was right.
+ */
+const gatewaySource = readFileSync("apps/ai-gateway/src/server.ts", "utf8");
+const perrerSource = readFileSync("apps/ai-gateway/src/sporsmaalsperrer.ts", "utf8");
+const sikkerhetsdok = readFileSync("docs/sikkerhet-og-personvern.md", "utf8");
+
+const renset = new Set(
+  [...(gatewaySource.match(/const gyldigeStier = \[([^\]]*)\]/)?.[1] ?? "")
+    .matchAll(/"([^"]+)"/g)].map((m) => m[1])
+);
+const alleAiRuter = new Set(
+  [...gatewaySource.matchAll(/url\.pathname === "(\/ai\/[a-z-]+)"/g)].map((m) => m[1])
+);
+const identifikatorfelt = new Set(
+  [...(perrerSource.match(/const IDENTIFIKATORFELT = new Set\(\[([^\]]*)\]/)?.[1] ?? "")
+    .matchAll(/"([^"]+)"/g)].map((m) => m[1])
+);
+
+if (!renset.size || !alleAiRuter.size || !identifikatorfelt.size) {
+  failures.push(
+    "scripts/check-dokumentasjon.ts: fant ikke gyldigeStier, /ai/-rutene eller " +
+    "IDENTIFIKATORFELT i ai-gateway. Sjekk 9 sammenlignet ingenting."
+  );
+} else {
+  // The table's rows, in the order the document writes them.
+  const rader = [...sikkerhetsdok.matchAll(/^\| (`\/ai\/.*?) \| (.*) \|$/gm)]
+    .map((rad) => ({
+      ruter: [...rad[1].matchAll(/`(\/ai\/[a-z-]+)`/g)].map((m) => m[1]),
+      tekst: rad[2]
+    }));
+  const iTabellen = new Set(rader.flatMap((rad) => rad.ruter));
+  const ugatet = [...alleAiRuter].filter((rute) => !renset.has(rute) && rute !== "/ai/sporsmaal");
+
+  for (const rute of alleAiRuter) {
+    if (!iTabellen.has(rute)) {
+      failures.push(
+        `docs/sikkerhet-og-personvern.md: tabellen mangler ${rute}. Hver /ai/-rute i ` +
+        `apps/ai-gateway/src/server.ts må stå der, ellers sier dokumentet mindre enn det lover.`
+      );
+    }
+  }
+  const nektlisteraden = rader.find((rad) => rad.tekst.includes("utenIdentifikatorer"));
+  if (!nektlisteraden || nektlisteraden.ruter.length !== renset.size ||
+      nektlisteraden.ruter.some((rute) => !renset.has(rute))) {
+    failures.push(
+      `docs/sikkerhet-og-personvern.md: raden om utenIdentifikatorer må navngi nøyaktig ` +
+      `rutene i gyldigeStier: ${[...renset].join(", ")}.`
+    );
+  }
+  const ingentingraden = rader.find((rad) => rad.tekst.includes("Ingenting"));
+  if (!ingentingraden || ingentingraden.ruter.length !== ugatet.length ||
+      ingentingraden.ruter.some((rute) => !ugatet.includes(rute))) {
+    failures.push(
+      `docs/sikkerhet-og-personvern.md: raden om ruter uten rensing må navngi nøyaktig ` +
+      `${ugatet.join(", ")}.`
+    );
+  }
+  for (const felt of identifikatorfelt) {
+    if (!sikkerhetsdok.includes(`\`${felt}\``)) {
+      failures.push(
+        `docs/sikkerhet-og-personvern.md: nektlisten i IDENTIFIKATORFELT har \`${felt}\`, ` +
+        `som ikke står i tabellen.`
+      );
+    }
+  }
+}
+
 // --- the licence claims ---------------------------------------------------
 
 /*

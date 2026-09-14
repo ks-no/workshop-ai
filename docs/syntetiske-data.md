@@ -200,7 +200,8 @@ Datamodellen låner vokabular fra ekte spesifikasjoner, men er bevisst forenklet
   reelt kommunalt behov, og fnr valideres med modulus 11 - strengere enn spekkens
   regex.
 - **Eiendom** kommer fra [Geonorges adresse-API](https://ws.geonorge.no/adresser/v1),
-  som er offentlige adressedata. Eierskapet er vårt eget og syntetisk.
+  som er åpne data under NLOD: «Inneholder data under norsk lisens for offentlige
+  data (NLOD) tilgjengeliggjort av Kartverket.» Eierskapet er vårt eget og syntetisk.
 - **Regelverket** er 6 %-regelen fra forskrift om foreldrebetaling. Grensene i
   `satser.json` må verifiseres mot gjeldende forskrift før de brukes til annet enn
   demo - noen er nasjonale, andre kommunale.
@@ -309,6 +310,14 @@ på plass, og `pnpm test` feiler hvis noen «rydder opp» i seeden.
   hverken kommunenummer eller noe utfall flyttet seg. `person-001` bor nå i
   Storgata 3 i Bergen - samme eiendom personen eier, som binder
   fartsdempende-casen sammen.
+
+  Det gjelder ikke bare de tolv: nesten hele befolkningen bor på en adresse som
+  finnes. Bare to bor på en oppdiktet adresse fra `matrikkel.seed.json`, og resten
+  har enten en adresse fra Geonorge eller ingen adresse i det hele tatt - D-nummer,
+  døde og utflyttede. `eierforhold.json` gjør det samme for eiendom: reelle
+  matrikkelenheter med forfattede eiere. Adressen kan altså tilhøre noen selv om
+  personen ikke gjør det - [`data/README.md`](../data/README.md) sier hva det betyr
+  for det du deler.
 - **Sivilstanden til én person.** Tenor lot en gjenlevende ektefelle stå som `gift`
   fordi uttrekket ble hentet per person og aldri avstemt. Registeret ville sagt
   `enkeEllerEnkemann`, så importen overstyrer det. Det er det eneste stedet importen
