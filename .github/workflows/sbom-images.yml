@@ -77,6 +77,23 @@ jobs:
             --source-version "$VERSION" \
             -o 'cyclonedx-json@1.6=bom.json'
 
+      # A binary built without a version stamp becomes UNKNOWN in the BOM, and syft
+      # then writes a CPE with a wildcard in the version field, which matches every
+      # CVE ever filed for the product. The image tag is the version we run.
+      - name: Stemple versjon der bygget ikke gjorde det
+        env:
+          VERSION: ${{ steps.navn.outputs.version }}
+        run: |
+          set -euo pipefail
+          jq --arg v "$VERSION" '
+            .components |= map(
+              if .purl and .version == "UNKNOWN"
+              then .version = $v
+                 | if .cpe then .cpe = (.cpe | split(":") | .[5] = $v | join(":")) else . end
+              else . end)
+          ' bom.json > bom.stemplet.json
+          mv bom.stemplet.json bom.json
+
       # project_version sendes ikke: da bruker actionen "main", og hver opplasting
       # lander på samme DT-prosjekt. Sendte vi taggen, ville et retagg minte et nytt
       # prosjekt og latt det gamle stå aktivt med en BOM ingen oppdaterer. Taggen er
