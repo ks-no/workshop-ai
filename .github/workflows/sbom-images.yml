@@ -77,12 +77,16 @@ jobs:
             --source-version "$VERSION" \
             -o 'cyclonedx-json@1.6=bom.json'
 
+      # project_version sendes ikke: da bruker actionen "main", og hver opplasting
+      # lander på samme DT-prosjekt. Sendte vi taggen, ville et retagg minte et nytt
+      # prosjekt og latt det gamle stå aktivt med en BOM ingen oppdaterer. Taggen er
+      # ikke tapt - syft skriver den inn i BOM-en som source-version. sbom.yml gjør
+      # det samme, og har aldri hatt problemet.
       - name: SBOM Upload and Report
         uses: ks-no/github-actions-public/sbom-upload-and-report@main
         with:
           dependency_track_api_key: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
           project_name: ${{ steps.navn.outputs.project }}
-          project_version: ${{ steps.navn.outputs.version }}
 
       # The image tag is the DT project version, so a retag leaves the old project
       # active with a BOM nobody refreshes. The project name is the last path segment
