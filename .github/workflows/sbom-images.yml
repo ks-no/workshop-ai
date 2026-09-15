@@ -88,38 +88,6 @@ jobs:
           dependency_track_api_key: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
           project_name: ${{ steps.navn.outputs.project }}
 
-      # The image tag is the DT project version, so a retag leaves the old project
-      # active with a BOM nobody refreshes. The project name is the last path segment
-      # of the image and has to stay unique across the matrix: two legs sharing a name
-      # would deactivate each other. DT_BASE_URL is a second copy of the host the
-      # upload action holds internally; the action exports neither it nor the uuid.
-      - name: Deaktiver eldre versjoner av prosjektet i Dependency-Track
-        continue-on-error: true
-        env:
-          DT_API_KEY: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
-          DT_BASE_URL: https://dt.fiks.dev.ks.no
-          PROJECT: ${{ steps.navn.outputs.project }}
-          # Versjonen som faktisk ble lastet opp, ikke image-taggen: siden vi sluttet
-          # å sende project_version, bruker actionen sin egen default. Sto taggen her,
-          # ville steget deaktivert det ferske prosjektet og latt det gamle stå.
-          # Actionen eksporterer ikke versjonen, så den må gjentas.
-          VERSION: main
-        run: |
-          set -uo pipefail
-          # DT matcher name som delstreng, så jq gjentar likhetstesten.
-          curl -fsS --get -H "X-Api-Key: $DT_API_KEY" \
-            --data-urlencode "name=$PROJECT" -d excludeInactive=true -d pageSize=500 \
-            "$DT_BASE_URL/api/v1/project" \
-            | jq -r --arg n "$PROJECT" --arg v "$VERSION" \
-                '.[] | select(.name == $n and .version != $v) | "\(.uuid) \(.version)"' \
-            | while read -r uuid version; do
-                curl -fsS -o /dev/null -X PATCH \
-                  -H "X-Api-Key: $DT_API_KEY" -H "Content-Type: application/json" \
-                  -d '{"active": false}' "$DT_BASE_URL/api/v1/project/$uuid" \
-                  && echo "Deaktiverte $PROJECT @ $version" \
-                  || echo "::warning::Fikk ikke deaktivert $PROJECT @ $version"
-              done
-
       - uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ steps.navn.outputs.project }}-${{ steps.navn.outputs.version }}
