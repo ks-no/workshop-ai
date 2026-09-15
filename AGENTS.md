@@ -657,6 +657,22 @@ docker compose restart sandbox-backend demo-gui   # targeted restart if you only
 - `matrikkel-mock` used to be the exception - a baked image with no volume mount, so every seed
   change needed `--build`. It no longer is: it reads the work tree like the rest, and
   `apps/matrikkel-mock/Dockerfile` survives only for running it standalone outside Compose.
+- **On macOS `./start.sh` picks the `macos-native` profile and runs Ollama on the host, so
+  the `ollama/ollama` image in `docker-compose.yml` never starts there.** Docker Desktop
+  cannot reach Metal and gets a fraction of the host's memory, so a containerised model
+  would be CPU-only and could not hold the larger ones. The pin in `docker-compose.yml`
+  therefore governs Linux and Windows; on a Mac the version is whatever the host has
+  installed. Nothing on a Mac exercises that image, and CI does not start it either, so a
+  bump of it needs the container started by hand - on a spare port, with `ai-gateway`
+  pointed at it over the compose network:
+```bash
+printf 'services:\n  ollama:\n    ports: !override\n      - "127.0.0.1:11435:11434"\n' > /tmp/ollama-port.yml
+docker compose -f docker-compose.yml -f /tmp/ollama-port.yml up -d ollama
+OLLAMA_MODEL=qwen2.5:0.5b docker compose -f docker-compose.yml -f /tmp/ollama-port.yml --profile pull up ollama-pull-selected
+OLLAMA_BASE_URL=http://ollama:11434 OLLAMA_MODEL=qwen2.5:0.5b docker compose up -d --no-deps --force-recreate ai-gateway
+pnpm test:agent
+```
+  Recreate `ai-gateway` without those two variables afterwards, and remove the container.
 - `./start.sh --reload` is still useful when you change `docker-compose.yml` itself (e.g. environment
   variables), since `--watch` only restarts the Node process, not the container.
 - `pnpm test:kontrakt` writes a normalised, deterministic dump - identifiers and
