@@ -99,7 +99,11 @@ jobs:
           DT_API_KEY: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
           DT_BASE_URL: https://dt.fiks.dev.ks.no
           PROJECT: ${{ steps.navn.outputs.project }}
-          VERSION: ${{ steps.navn.outputs.version }}
+          # Versjonen som faktisk ble lastet opp, ikke image-taggen: siden vi sluttet
+          # å sende project_version, bruker actionen sin egen default. Sto taggen her,
+          # ville steget deaktivert det ferske prosjektet og latt det gamle stå.
+          # Actionen eksporterer ikke versjonen, så den må gjentas.
+          VERSION: main
         run: |
           set -uo pipefail
           # DT matcher name som delstreng, så jq gjentar likhetstesten.
