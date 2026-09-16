@@ -20,7 +20,7 @@ maskinen. Se [Hva som forlater maskinen](#hva-som-forlater-maskinen) under.
 
 | Fil i `state/` | Hva den inneholder | Hvem skriver den |
 |---|---|---|
-| `revisjonslogg.json` | Én hendelse per datatilgang, avvist tilgang, samtykkeendring, prosessteg, KI-kall, søknad, forsendelse og oppgave | `sandbox-backend`, i `revisjon.ts` |
+| `revisjonslogg.json` | Én hendelse per datatilgang, avvist tilgang, samtykkeendring, prosessteg, KI-kall, søknad, forsendelse, oppgave og varsel | `sandbox-backend`, i `revisjon.ts` |
 | `ai-trace.jsonl` | Full prompt og fullt svar per modellkall, med modell, varighet og om kallet feilet | `ai-gateway`, i `writeTrace` |
 | `prosessoekter.json` | Alt innbyggeren svarte underveis, og alt stegene hentet inn | `sandbox-backend`, i `lagreProsessoekt` |
 | `soknader.json` | Søknadsdokumentet: navn, personId, adresse, inntektsposter, vedtaket og KI-oppsummeringen | `sandbox-backend`, når et `SUBMIT`-steg kjører |
@@ -28,6 +28,7 @@ maskinen. Se [Hva som forlater maskinen](#hva-som-forlater-maskinen) under.
 | `oppgaver.json` | Saksbehandleroppgaven. Tittelen røper hvilken tjeneste personen søkte på | `fiks-simulator` |
 | `forsendelser.json` | Mottakerens navn, fødselsnummer og postadresse, pluss kanalvalget. Den mest identifiserende raden i hele `state/` | `fiks-simulator` |
 | `meldinger.json` | Fritekstmelding. Ingen av casene skriver den i dag | `fiks-simulator` |
+| `varsler.json` | Mottakerens fødselsnummer, og selve beskjeden til innbyggeren - teksten i SMS-en eller e-posten - pluss hvilken kanal den gikk på, og grunnen når den ikke gikk. Telefonnummeret og e-postadressen står ikke her: kanalen sier nok | `fiks-simulator` |
 | `prosessdefinisjoner.json` | Prosesskatalogen, men bare når prosessbyggeren har lagret. Da skygger den seeden i `data/` | `sandbox-backend` |
 | `ai-provider-override.json` | Hvilken KI-provider som er valgt. To strenger, ingen persondata | `ai-gateway` |
 | `digdir-nokkel.json` | Signeringsnøkkelen tokenene hviler på. Ingen persondata, men roten til all tillit i sandkassen | `digdir-mock`, ved første oppstart |

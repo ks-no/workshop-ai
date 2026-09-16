@@ -451,6 +451,15 @@ revisjonslogg. `vilkaar.ts` carries a passage from their rettleiing inside
 guillemets for the same reason. A statute name is not ours to re-spell either:
 A house style that rewrites a source is no longer quoting it.
 
+**Code a team wrote is a source too.** Work that came in from a hackathon delivery
+keeps the register it was written in - nynorsk, a transliterated `paa`, whatever it
+was - because rewriting it would erase who wrote it, the same way rewriting a
+quotation would. `apps/fiks-simulator/src/varsel.ts` comes from team Haugesander and
+says so at the top. The note is the point: a spelling nobody
+has explained is one the next sweep "corrects" without anything turning red. So when
+prose from a delivery lands here and its register differs from the house style, write
+one line beside it saying where it came from, and leave the prose alone.
+
 `apps/shared/hjemmel.ts` holds the short title each act this sandbox cites actually
 has, with its Lovdata id, and the spellings that are quotations rather than titles.
 The register is a module and not a paragraph because which title an act has is not
@@ -639,6 +648,7 @@ pnpm test:upstream        # what a non-ok answer from another service means, pur
 pnpm test:karantene       # new versions in the diff against the seven-day rule; reads two registries
 pnpm test:innlevering     # the rules hent-innleveringer.ts pushes team branches by, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
+pnpm test:varsel          # varsel channel decision, pure functions - falls to INGEN, not PRINT
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
 pnpm test:agent:dialog     # starts isolated services with the AI mock, through actual submission
 pnpm test:tools-matrikkel  # starts tools-api, matrikkel-mock and a fake Geonorge service
@@ -701,7 +711,8 @@ pnpm test:bergen-matrikkel
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
   `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`,
-  `test:handleevne`, `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:innlevering`,
+  `test:handleevne`, `test:samtykke`, `test:forsendelse`, `test:varsel`, `test:upstream`,
+  `test:innlevering`,
   `test:karantene`, `test:concurrency`, `test:replay`, `test:chat`, `test:parametere`,
   `test:imports`, `test:startup`, `test:kodeverk`, `test:revisjon`, `test:openapi`, `test:docs`,
   `test:agent:dialog`, `test:tools-matrikkel`, `test:agent:matrikkel`, `test:matrikkel-mock`

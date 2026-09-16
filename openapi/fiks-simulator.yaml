@@ -9,10 +9,10 @@ info:
     utledet status, oppgaver og meldinger. Alle data er syntetiske, og hvert
     svar bærer `syntetisk: true`.
 
-    Alle seks flatene ligger bak Maskinporten med audience `fiks-simulator` og
+    Alle sju flatene ligger bak Maskinporten med audience `fiks-simulator` og
     ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
-    `ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave` og
-    `ks:fiks:melding`. Scopet er hjemmelen, så et oppgave-token åpner ikke
+    `ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave`, `ks:fiks:melding`
+    og `ks:fiks:varsel`. Scopet er hjemmelen, så et oppgave-token åpner ikke
     samtykkeflaten. Hvilket scope hver rute krever står per rute nedenfor.
 servers:
   - url: http://localhost:8081
@@ -526,6 +526,170 @@ paths:
           $ref: "#/components/responses/ManglerToken"
         "403":
           $ref: "#/components/responses/ManglerHjemmel"
+  /fiks/varsler:
+    get:
+      summary: Utboksen - varslene som er forsøkt sendt
+      security:
+        - maskinporten: [ks:fiks:varsel]
+      description: >
+        Radene bærer teksten, fordi det er en beskjed kommunen selv har skrevet -
+        men aldri telefonnummeret. Også forsøk som endte i `kanal: INGEN` står her:
+        «vi prøvde og hun kunne ikke nås» er forskjellig fra «vi prøvde aldri».
+        Nyeste først.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Varseltype"
+      responses:
+        "200":
+          description: Utboksen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  varsler:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Varsel"
+                  antall:
+                    type: integer
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: >-
+            `type` står ikke i kodeverket. En ukjent type er en feil og ikke en tom
+            liste, ellers ser en skrivefeil ut som «ingen varsler av den typen».
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+    post:
+      summary: Send et varsel til en innbygger
+      security:
+        - maskinporten: [ks:fiks:varsel]
+      description: >
+        Den korte beskjeden - «husk turen på tirsdag», «kurset er avlyst» - ikke
+        dokumentet. Dette er ikke SvarUt, og kanalvalget er et annet: et varsel har
+        **ingen papirkanal**. En påminnelse i posten kommer etter turen, og et
+        varsel ingen kan lese i tide er verre enn ingen varsel, fordi det ser sendt
+        ut i loggen.
+
+        Følgen er at reservasjonen i kontaktregisteret stenger varselet helt. En
+        innbygger som er reservert får vedtaket sitt på papir og ingen påminnelser,
+        og de to tabellene skal derfor ikke stemme overens.
+
+        `kanal: INGEN` er 200 og ikke en feil: at en innbygger ikke kan nås er et
+        utfall kalleren skal telle, ikke noe som stopper en jobb midt i en liste.
+        Raden skrives uansett, slik at «vi prøvde og hun kunne ikke nås» er
+        forskjellig fra «vi prøvde aldri». `grunn` står bare når kanalen er `INGEN`.
+
+        Lengden på teksten måles mot kanalen og ikke mot kroppen: 160 tegn er
+        grensen for en SMS og ikke for en e-post, og hvilken det blir vet vi først
+        etter oppslaget i kontaktregisteret.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, digitalId, tekst]
+              properties:
+                type:
+                  $ref: "#/components/schemas/Varseltype"
+                digitalId:
+                  type: string
+                  description: Fødselsnummer. Slås opp i kontaktregisteret her.
+                tekst:
+                  type: string
+                eksternReferanse:
+                  type: string
+                sporingsId:
+                  type: string
+                  description: >-
+                    Flyten varselet hører til, så raden og revisjonshendelsen kan
+                    kobles til resten av den. Settes av kalleren; uten den lager
+                    tjenesten en, og svaret sier hvilken.
+      responses:
+        "200":
+          description: Avgjørelsen er tatt og raden er skrevet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  varselId:
+                    type: string
+                  sporingsId:
+                    type: string
+                  kanal:
+                    $ref: "#/components/schemas/Varselkanal"
+                  grunn:
+                    $ref: "#/components/schemas/Varselgrunn"
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: >-
+            Et felt som mangler eller ikke er en streng, et fnr som ikke er 11
+            gyldige siffer, ukjent varseltype, eller en tekst for lang for SMS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+
+  /fiks/varselkanal:
+    get:
+      summary: Kanalen et varsel ville gått på, uten å sende noe
+      security:
+        - maskinporten: [ks:fiks:varsel]
+      description: >
+        Samme avgjørelse som POST /fiks/varsler tar som en bivirkning av å sende -
+        denne svarer på den uten den bivirkningen, og uten å skrive en rad i
+        utboksen. Til en fane som må vite om noen hører til SMS- eller
+        brevsporet, uten at det å spørre selv skal se ut som et forsøk på å
+        varsle.
+      parameters:
+        - name: fnr
+          in: query
+          required: true
+          description: Fødselsnummer. Slås opp i kontaktregisteret her.
+          example: "12818800078"
+          schema: { type: string }
+      responses:
+        "200":
+          description: Kanalen avgjørelsen ville landet på
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kanal:
+                    $ref: "#/components/schemas/Varselkanal"
+                  grunn:
+                    $ref: "#/components/schemas/Varselgrunn"
+                  syntetisk:
+                    type: boolean
+        "400":
+          description: fnr mangler, eller er ikke 11 gyldige siffer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feil"
+        "401":
+          $ref: "#/components/responses/ManglerToken"
+        "403":
+          $ref: "#/components/responses/ManglerHjemmel"
+
   /fiks/meldinger:
     post:
       summary: Legg en melding i innbyggerens innboks
@@ -1653,6 +1817,55 @@ components:
         foreldrebarnrelasjon.
       enum: [personnavn, foedselsdato, kjoenn, personstatus, doedsfall, sivilstand, bostedsadresse, kontaktadresse, forelderbarnrelasjon, familierelasjon, foreldreansvar, adressebeskyttelse]
 
+    Varselkanal:
+      type: string
+      description: >
+        Kanalene et varsel kan gå på. Ingen papirkanal, og det er ikke en
+        forglemmelse - se beskrivelsen på POST /fiks/varsler.
+      enum: [SMS, EPOST, INGEN]
+    Varseltype:
+      type: string
+      description: >
+        Hva varselet er. Typen avgjør ikke kanalen, men den står i loggen: «hvem
+        fikk et uanmodet varsel» og «hvem ble minnet på noe hun meldte seg på» er
+        to spørsmål med to hjemler.
+      enum: [tilbud-finnes, paamelding-bekreftet, paaminnelse, avlysning, portal-kunngjoring]
+    Varselgrunn:
+      type: string
+      description: >
+        Hvorfor et varsel ikke kunne sendes. Bare satt når kanalen er INGEN. Fire
+        grunner og ikke én, fordi de fører til fire forskjellige handlinger.
+      enum: [ukjent_i_kontaktregisteret, reservert, kan_ikke_varsles, ingen_kontaktopplysning]
+    Varsel:
+      type: object
+      description: >-
+        Raden i `varsler.json`, og det `GET /fiks/varsler` svarer med. Den bærer
+        teksten, fordi det er en beskjed kommunen selv har skrevet, men hverken
+        telefonnummer eller e-postadresse: `kanal` sier nok om hvordan den gikk.
+        `digitalId` er mottakerens fødselsnummer.
+      properties:
+        varselId:
+          type: string
+        type:
+          $ref: "#/components/schemas/Varseltype"
+        digitalId:
+          type: string
+        tekst:
+          type: string
+        kanal:
+          $ref: "#/components/schemas/Varselkanal"
+        grunn:
+          $ref: "#/components/schemas/Varselgrunn"
+        eksternReferanse:
+          type: string
+        sporingsId:
+          type: string
+        opprettet:
+          type: string
+          format: date-time
+        syntetisk:
+          type: boolean
+
     Melding:
       type: object
       properties:
@@ -1842,15 +2055,16 @@ components:
         Krever aud `fiks-simulator` - et token utstedt for en annen tjeneste avvises
         med 401, som er hele poenget med audience-begrensning.
 
-        Seks flater, seks scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
+        Sju flater, sju scope, fordi scopet *er* hjemmelen: `ks:fiks:register`
         for registeroppslag, `ks:fiks:folkeregister` for Folkeregisteret (egen
         stifamilie, eget hjemmelsgrunnlag - et register-token åpner det ikke),
         `ks:fiks:svarut` for å sende forsendelser og slå opp status,
         `ks:fiks:samtykke` for å be om, svare på og trekke et samtykke,
-        `ks:fiks:oppgave` for oppgavekøen og `ks:fiks:melding` for meldinger.
-        Et oppgave-scope åpner ikke samtykkeflaten.
+        `ks:fiks:oppgave` for oppgavekøen, `ks:fiks:melding` for meldinger og
+        `ks:fiks:varsel` for å sende et varsel. Et oppgave-scope åpner ikke
+        samtykkeflaten, og et registertoken kan ikke sende SMS til en innbygger.
 
-        Innbyggerens eget ID-porten-token avvises på alle seks med 403
+        Innbyggerens eget ID-porten-token avvises på alle sju med 403
         `KREVER_MASKINPORTEN`: samtykke *spørres om* av en kommune og svares
         gjennom den. `sandbox-backend` holder det verifiserte innbyggertokenet,
         avgjør, og navngir innbyggeren i `aktor` på vei ut - hjemmelen er maskinens,

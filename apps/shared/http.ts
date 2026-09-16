@@ -96,6 +96,11 @@ export function svarhjelpere(policy: Svarpolicy = {}): Svarhjelpere {
  * its shape. Callers name the shape they expect with a cast at the call site, so
  * the assumption is written down where it is made rather than hidden here.
  *
+ * **A cast records an assumption. It narrows nothing.** Where a body crosses into rules
+ * or storage, declare its fields `unknown` and narrow them once, so the compiler asks
+ * for the check instead of trusting the cast.
+ *
+ * `JSON.parse` is handed back verbatim, so a body of literal `null` arrives as `null`.
  * An empty body yields `{}` - routes that take no arguments call this too.
  */
 export async function readRequestBody(request: IncomingMessage): Promise<unknown> {
