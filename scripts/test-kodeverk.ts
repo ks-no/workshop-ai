@@ -54,13 +54,44 @@ for (const [fil, kilde] of kilder) {
 }
 check("fant kodeverk i apps/shared", kodeverk.length > 0, `fant ${kodeverk.length}`);
 
+/*
+ * Kroppen til hver typeerklæring, med nøstingen intakt.
+ *
+ * Uten den leste feltsøket «const koder: Datakilde[] = []» som et felt som het
+ * «koder», og krevde at noen leste «.koder» et sted. En lokal variabel er ikke et
+ * felt, og en parameter er det heller ikke, så en regel som faktisk brukte
+ * kodeverket kunne gjøre sjekken rød.
+ *
+ * Alternativet «| {» er for unionsmedlemmer. «kilde: Datakilde» i
+ * Samtykkekildeoppslag er et like ekte felt som ett i en vanlig objekttype, og
+ * uten det falt det ut av sjekken i stillhet.
+ */
+function typekropper(kilde: string): string[] {
+  const kropper: string[] = [];
+  const start = /(?:^|\n)\s*(?:\|\s*|(?:export\s+)?(?:type\s+\w+\s*=|interface\s+\w+)[^\n{]*)\{/g;
+  for (const treff of kilde.matchAll(start)) {
+    const foerste = treff.index! + treff[0].length - 1;
+    let dybde = 0;
+    for (let i = foerste; i < kilde.length; i += 1) {
+      if (kilde[i] === "{") dybde += 1;
+      else if (kilde[i] === "}") {
+        dybde -= 1;
+        if (dybde === 0) { kropper.push(kilde.slice(foerste + 1, i)); break; }
+      }
+    }
+  }
+  return kropper;
+}
+
 for (const { navn, type, fil } of kodeverk) {
   // Uten ^-anker: feltet kan stå i en innebygd objekttype eller på én linje, og en
   // erklæring sjekken ikke ser er en sjekk som består uten å ha målt noe.
   const felter = new Map<string, string>();
   for (const [sti, kilde] of kilder) {
-    for (const treff of kilde.matchAll(new RegExp(`(\\w+)\\??:\\s*${type}(?:\\[\\])?\\b`, "g"))) {
-      felter.set(treff[1]!, sti);
+    for (const kropp of typekropper(kilde)) {
+      for (const treff of kropp.matchAll(new RegExp(`(\\w+)\\??:\\s*${type}(?:\\[\\])?\\b`, "g"))) {
+        felter.set(treff[1]!, sti);
+      }
     }
   }
   check(`${navn} typer minst ett felt`, felter.size > 0, `${fil} har ingen felt av typen ${type}`);
