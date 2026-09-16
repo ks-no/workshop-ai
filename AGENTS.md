@@ -562,7 +562,14 @@ is the one place prose transliterates, and the file carries a `rem` saying why s
 - Keep changes scoped to one app unless cross-service change is required.
 - **A new package version must be at least seven days old before it enters the repo.**
   `minimumReleaseAge` in `pnpm-workspace.yaml` and `cooldown` in `.github/dependabot.yml`
-  enforce it. Dependabot security updates are exempt, and that exemption is npm-only:
+  ask for it; `pnpm test:karantene` is what enforces it. The gate looks up when every
+  version the diff changes was published and fails the pull request while it is younger.
+  It exists because `cooldown` does not hold for `docker-compose`: `ollama/ollama:0.34.1`
+  was pushed on 15.09.2026 and the bump opened nine hours later (dependabot-core#14072,
+  #14044 and #15446 are the same bug upstream). The gate covers image tags in the compose
+  files and dependencies in a `package.json`. `github-actions`, and a transitive package
+  that moves only in `pnpm-lock.yaml`, rest on `cooldown`, which does hold for them.
+  Dependabot security updates are exempt, and that exemption is npm-only:
   the `docker` and `docker-compose` ecosystems get version updates and no security
   updates at all, so a CVE in an image waits out the full seven days like any other bump.
 - **Nothing floats. Every dependency carries a version a bot can bump.**
@@ -629,6 +636,7 @@ pnpm test:imports         # the import graph between apps is a DAG, pure text an
 pnpm test:startup         # launcher lifecycle with fake Docker/curl, no running stack
 pnpm test:parametere      # required query parameters per route, read off the specs
 pnpm test:upstream        # what a non-ok answer from another service means, pure functions
+pnpm test:karantene       # new versions in the diff against the seven-day rule; reads two registries
 pnpm test:innlevering     # the rules hent-innleveringer.ts pushes team branches by, pure functions
 pnpm test:forsendelse     # SvarUt channel decision and time-derived status, pure functions
 pnpm test:kontrakt   # starts its own backend + fiks on 18080/18081 against a fresh STATE_DIR
@@ -692,12 +700,13 @@ pnpm test:bergen-matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
-  `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`, `test:handleevne`,
-  `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:innlevering`, `test:concurrency`,
-  `test:replay`, `test:chat`, `test:parametere`, `test:imports`, `test:startup`, `test:kodeverk`,
-  `test:revisjon`, `test:openapi`, `test:docs`, `test:agent:dialog`, `test:tools-matrikkel`,
-  `test:agent:matrikkel`, `test:matrikkel-mock` and `test:kontrakt` on every PR
-  and on push to main, and uploads the contract dump as an artifact. It deliberately
+  `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`,
+  `test:handleevne`, `test:samtykke`, `test:forsendelse`, `test:upstream`, `test:innlevering`,
+  `test:karantene`, `test:concurrency`, `test:replay`, `test:chat`, `test:parametere`,
+  `test:imports`, `test:startup`, `test:kodeverk`, `test:revisjon`, `test:openapi`, `test:docs`,
+  `test:agent:dialog`, `test:tools-matrikkel`, `test:agent:matrikkel`, `test:matrikkel-mock`
+  and `test:kontrakt` on every PR and on push to main, and uploads the contract dump as
+  an artifact. It deliberately
   does **not** run `test:eval` (needs a live model). `test:agent:dialog` starts its own
   isolated services with the AI mock and runs `test:agent` and `test:agent:nl` through
   actual submission. Running `test:agent` or `test:agent:nl` on its own needs the

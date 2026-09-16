@@ -401,8 +401,9 @@ for (const file of markdown) {
     // file whose CI list had actually drifted - matching only «kjører» let the
     // drift the check exists for walk straight past it.
     if (!/(\bCI\b|ci\.yml)/i.test(line) || !/(kj(ø|oe)rer|\bruns\b)/i.test(line)) return;
-    // The list usually wraps, so read the sentence, not the line.
-    const paragraph = lines.slice(i, i + 6).join(" ").split(/(?<=\.)\s/)[0];
+    // The list usually wraps, so read the sentence, not the line. The window has to
+    // hold the whole list: at 6 lines the 29th check fell outside it and read as drift.
+    const paragraph = lines.slice(i, i + 8).join(" ").split(/(?<=\.)\s/)[0];
     const mentioned = [...paragraph.matchAll(/`(?:pnpm )?((?:test:)?[\w:-]+)`/g)]
       .map((m) => m[1])
       .filter((name) => name === "lint" || name === "test" || name.startsWith("test:"));

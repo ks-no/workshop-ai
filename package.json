@@ -46,6 +46,7 @@
     "test:parametere": "node scripts/test-paakrevde-parametere.ts",
     "test:openapi": "node scripts/sjekk-openapi-dekning.ts",
     "test:docs": "node scripts/check-dokumentasjon.ts",
+    "test:karantene": "node scripts/sjekk-karantene.ts",
     "ds:hent": "node scripts/hent-designsystem.ts",
     "innlevering:hent": "node scripts/hent-innleveringer.ts",
     "test:eval": "node scripts/eval.ts",
