@@ -21,7 +21,9 @@
 # major bumps are left out of the group, so each one lands as its own PR and
 # gets reviewed on its own.
 #
-# cooldown is the Dependabot half of the rule in AGENTS.md.
+# cooldown is the Dependabot half of the rule in AGENTS.md. It holds for npm and not
+# for docker-compose (dependabot-core#15446), so pnpm test:karantene is the half that
+# actually blocks a merge.
 version: 2
 updates:
   - package-ecosystem: "npm"

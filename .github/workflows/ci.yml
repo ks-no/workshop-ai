@@ -25,9 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Otherwise checkout leaves GITHUB_TOKEN in .git/config for every later step.
+      # fetch-depth: 0 so the karantene step below can diff against the base.
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       # No version here: the packageManager field in package.json is the pin.
       - uses: pnpm/action-setup@v6
@@ -38,6 +40,16 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # Dependabots cooldown holder ikke for docker-compose: ollama/ollama:0.34.1 ble
+      # lastet opp 15.09 og bumpen kom ni timer etter. Porten ser bare versjonene
+      # denne diffen endrer, så en PR uten versjonsendring gjør ingen nettkall.
+      # Bare pull_request: en merge-kø eller en push kan bare gjøre en versjon eldre.
+      - name: Karantene på nye versjoner
+        if: github.event_name == 'pull_request'
+        env:
+          KARANTENE_BASIS: ${{ github.event.pull_request.base.sha }}
+        run: pnpm test:karantene
 
       # Type-checks the .ts modules in sandbox-backend. checkJs is off, so the
       # .js services are not covered - see tsconfig.json.
