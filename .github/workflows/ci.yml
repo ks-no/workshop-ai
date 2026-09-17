@@ -121,6 +121,14 @@ jobs:
       - name: Forsendelsens kanalvalg og utledning
         run: pnpm test:forsendelse
 
+      # Kanalvalget for et varsel, som rene funksjoner. Det ser ut som
+      # test:forsendelse og er det ikke: chooseKanal faller til PRINT, denne til
+      # INGEN. Testen måler begge mot hele befolkningen, nettopp fordi de to
+      # tabellene *ikke* skal stemme overens - en reservert innbygger får brev og
+      # ingen påminnelse, og den forskjellen skal være tellet og ikke oppdaget.
+      - name: Varselkanalen
+        run: pnpm test:varsel
+
       # What a non-ok answer from an upstream service means, as pure functions:
       # `send` is a callback, so a Response is handed in as a literal. Every case
       # is one the kontrakt dump cannot reach - that dump records the flows where

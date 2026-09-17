@@ -440,6 +440,18 @@ const tjenester: Tjeneste[] = [
         verdier: async () => (await import("../apps/fiks-simulator/src/oppgave.ts")).OPPGAVESTATUSER
       },
       {
+        skjema: "Varselkanal",
+        verdier: async () => (await import("../apps/fiks-simulator/src/varsel.ts")).VARSELKANALER
+      },
+      {
+        skjema: "Varseltype",
+        verdier: async () => (await import("../apps/fiks-simulator/src/varsel.ts")).VARSELTYPER
+      },
+      {
+        skjema: "Varselgrunn",
+        verdier: async () => (await import("../apps/fiks-simulator/src/varsel.ts")).VARSELGRUNNER
+      },
+      {
         skjema: "Forsendelsesstatus",
         verdier: async () =>
           (await import("../apps/fiks-simulator/src/forsendelse.ts")).FORSENDELSESSTATUSER

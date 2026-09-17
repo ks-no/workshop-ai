@@ -8,11 +8,12 @@ Stack: Node.js med innebygd HTTP-server, null avhengigheter.
 
 ## Endepunkter
 
-27 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle seks flatene er bak
+30 ruter, alle dokumentert i `openapi/fiks-simulator.yaml`. **Alle sju flatene er bak
 Maskinporten**, med ett scope hver: `ks:fiks:register`, `ks:fiks:folkeregister`,
-`ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave` og `ks:fiks:melding`. Scopet
-*er* hjemmelen, så et oppgave-token åpner ikke samtykkeflaten. Innbyggerens eget
-ID-porten-token avvises på alle seks med `403 KREVER_MASKINPORTEN` - et samtykke
+`ks:fiks:svarut`, `ks:fiks:samtykke`, `ks:fiks:oppgave`, `ks:fiks:melding` og
+`ks:fiks:varsel`. Scopet *er* hjemmelen, så et oppgave-token åpner ikke
+samtykkeflaten, og et registertoken kan ikke sende SMS til en innbygger. Innbyggerens
+eget ID-porten-token avvises på alle sju med `403 KREVER_MASKINPORTEN` - et samtykke
 spørres om av en kommune og svares gjennom den.
 
 `POST`/`PUT`-rutene kalles normalt bare av prosessmotoren i sandbox-backend, og aktøren i
@@ -138,6 +139,20 @@ statusen *utledes* av tiden siden opprettelsen - MOTTATT, så SENDT_DIGITALT/SEN
 etter 10 sekunder, så LEST/PRINTET etter 60 - ingen timere, ingen ekstra skrivevei.
 Tilstandsmaskinen og utledningen ligger i `src/forsendelse.ts`; `pnpm test:forsendelse`
 dekker kanalvalget og hvert utledningssteg, uten stack og uten modell.
+
+Varsel - den korte beskjeden og ikke dokumentet, scope `ks:fiks:varsel`:
+
+- `POST /fiks/varsler` - send, svarer `{ "varselId": "...", "kanal": "..." }`
+- `GET /fiks/varsler` - utboksen, nyeste først, valgfritt `?type=`
+- `GET /fiks/varselkanal?fnr=` - hvilken kanal et varsel ville gått på, uten å sende
+
+Dette er ikke SvarUt, og kanalvalget skiller seg på det ene punktet som betyr noe:
+`chooseKanal` faller til `PRINT`, fordi et brev tåler tre dager, mens denne faller til
+`INGEN`. En påminnelse i posten kommer etter turen. Følgen er at en reservert innbygger
+ikke får varsel i det hele tatt, og at `INGEN` er et utfall med en navngitt grunn og
+ikke en feil - kalleren skal kunne telle det framfor å stoppe en jobb midt i en liste.
+Reglene ligger i `src/varsel.ts`; `pnpm test:varsel` dekker kanalvalget og måler det mot
+`chooseKanal` over hele befolkningen, uten stack og uten modell.
 
 Pluss `/helse`, `/docs`, `/openapi.yaml` og `/openapi-ruter.json`.
 

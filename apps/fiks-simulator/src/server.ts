@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { maskinportenHeader } from "../../digdir-mock/src/client.ts";
 import { createVerifier } from "../../digdir-mock/src/verify.ts";
-import { createMaskinportenPort, TokenportError } from "../../digdir-mock/src/tokenport.ts";
+import { createMaskinportenPort, TokenportError, type Klient } from "../../digdir-mock/src/tokenport.ts";
 // Masking reused rather than reimplemented: fiks-simulator reads
 // data/personer.json itself, so it is a second data layer that must mask on its
 // own way out - sandbox-backend's masking cannot cover it.
@@ -10,6 +10,15 @@ import { maskFregPerson, maskHusstand, maskKrr, maskPerson } from "../../shared/
 // all three live in samtykke.ts so the compiler can hold them together.
 import { effektivStatus, validateSamtykkeovergang } from "../../shared/samtykke.ts";
 import { validateOppgaveovergang } from "./oppgave.ts";
+import {
+  erVarseltype,
+  ukjentVarseltype,
+  validateVarsel,
+  validateVarsellengde,
+  velgVarselkanal,
+  type Varselfeil,
+  type Varselkropp
+} from "./varsel.ts";
 import {
   chooseKanal,
   deriveForsendelsesstatus,
@@ -66,6 +75,9 @@ const SCOPE_REGISTER = "ks:fiks:register";
 const SCOPE_SAMTYKKE = "ks:fiks:samtykke";
 const SCOPE_OPPGAVE = "ks:fiks:oppgave";
 const SCOPE_MELDING = "ks:fiks:melding";
+// Å sende et varsel er sin egen hjemmel. Et registertoken skal ikke kunne sende
+// SMS til en innbygger, og et varseltoken skal ikke kunne lese inntekten hennes.
+const SCOPE_VARSEL = "ks:fiks:varsel";
 // Folkeregisteret is its own path family with its own legal basis, so it is not
 // folded into ks:fiks:register: a register token must not open FREG.
 const SCOPE_FOLKEREGISTER = "ks:fiks:folkeregister";
@@ -487,6 +499,33 @@ const requireOppgaveHjemmel = (request: IncomingMessage) =>
 const requireMeldingHjemmel = (request: IncomingMessage) =>
   requireMaskinporten(request, { scope: SCOPE_MELDING, flate: "Meldingsflaten" });
 
+const requireVarselHjemmel = (request: IncomingMessage) =>
+  requireMaskinporten(request, { scope: SCOPE_VARSEL, flate: "Varselflaten" });
+
+/*
+ * Én vei fra fnr til kanal, med fnr-porten inni, brukt av både sendingen og
+ * forhåndsvisningen: det er det som gjør at GET /fiks/varselkanal svarer nøyaktig
+ * det POST ville gjort, og at ingen av dem kan hoppe over sjekken alene.
+ *
+ * Begge leser den ekte kontaktraden, også for en adressebeskyttet innbygger, og det
+ * er en avgjørelse og ikke en forglemmelse. En varselflate må kjenne kanalen for å
+ * kunne sende, så `POST /fiks/varsler` svarer `SMS` for en kode 6-person uansett.
+ * Å maskere bare forhåndsvisningen ville ikke skjult noe - samme token når den andre
+ * ruten - men den ville svart `ingen_kontaktopplysning`, altså påstått en datafeil i
+ * registeret som ikke finnes, og sendt en innbygger som kan nås til papirsporet.
+ * Skjermingen på denne flaten ligger i hva svarene *bærer*: verken responsen eller
+ * raden i `varsler.json` inneholder telefonnummer eller e-postadresse.
+ */
+const varselkanalFor = async (tilstand: ReturnType<typeof createStateReader>, fnr: string) => {
+  requireGyldigFnr(fnr, fnr);
+  return velgVarselkanal(await tilstand.krrRad(fnr));
+};
+
+/** Samme jobb som requireOvergang, for avslagene som alltid er 400. */
+function krevGyldig(feil: Varselfeil | null): void {
+  if (feil) throw new FiksError(feil.melding, 400, feil.kode);
+}
+
 const requireFolkeregisterHjemmel = (request: IncomingMessage) =>
   requireMaskinporten(request, { scope: SCOPE_FOLKEREGISTER, flate: "Folkeregisterflaten" });
 
@@ -524,6 +563,18 @@ function samtykkeAktor(oppgitt: Aktor | undefined, personId?: string): Aktor {
     return oppgitt;
   }
   return { type: "system", id: "fiks-simulator", ...(personId ? { paaVegneAv: personId } : {}) };
+}
+
+/**
+ * Maskinen som kalte, for de flatene der det ikke er innbyggeren som handler.
+ *
+ * Consumer-claimet navngir organisasjonen bak klienten, og det er det som gjør
+ * «hvilken kommune slo dette opp» mulig å svare på. Uten et verifisert token er
+ * det tjenesten selv som står der.
+ */
+function maskinAktor(klient: Klient | null): Aktor {
+  if (!klient) return { type: "system", id: "fiks-simulator" };
+  return { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) };
 }
 
 /**
@@ -639,6 +690,9 @@ function docsHtml(): string {
         <li><code>POST /fiks/oppgaver</code></li>
         <li><code>GET /fiks/oppgaver/{oppgaveId}</code></li>
         <li><code>PUT /fiks/oppgaver/{oppgaveId}/status</code></li>
+        <li><code>POST /fiks/varsler</code></li>
+        <li><code>GET /fiks/varsler</code></li>
+        <li><code>GET /fiks/varselkanal</code></li>
         <li><code>POST /fiks/meldinger</code></li>
         <li><code>GET /fiks/meldinger/{meldingId}</code></li>
       </ul>
@@ -667,9 +721,7 @@ async function handleBeregning(
     // Who asked, not just who computed. The consumer claim names the
     // organisation behind the client, which is what makes "which municipality
     // looked this up" answerable.
-    aktor: klient
-      ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
-      : { type: "system", id: "fiks-simulator" },
+    aktor: maskinAktor(klient),
     // The BARNEHAGE_SFO event predates the other beregningstyper and stays as
     // it was; for the newer types the audit log says which beregning ran.
     ...(typeoppsett.beregningstype === "BARNEHAGE_SFO"
@@ -778,7 +830,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       if (!person) {
         throw new FiksError(`Fant ingen person med fnr ${fnr}.`, 404, "PERSON_IKKE_FUNNET");
       }
-      const rad = (await tilstand.krr()).find((kandidat) => kandidat.fnr === fnr);
+      const rad = await tilstand.krrRad(fnr);
       if (!rad) {
         throw new FiksError(
           "Personen er kjent, men står ikke i kontaktregisteret. Registeret dekker " +
@@ -858,9 +910,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       await addRevisjon({
         handling: "FOLKEREGISTEROPPSLAG_UTFOERT",
         ressurs: "folkeregister",
-        aktor: klient
-          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
-          : { type: "system", id: "fiks-simulator" },
+        aktor: maskinAktor(klient),
         grunnlag: { rolle: rolle.navn, deler }
       });
 
@@ -888,9 +938,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       // Reservert i KRR betyr print: the DIGITAL rule fires only for a recipient
       // who can be notified and is not reserved. The lookup happens here, where
       // the data is; the decision itself lives in chooseKanal.
-      const krrRad = mottaker.digitalId
-        ? (await tilstand.krr()).find((kandidat) => kandidat.fnr === mottaker.digitalId)
-        : undefined;
+      const krrRad = mottaker.digitalId ? await tilstand.krrRad(mottaker.digitalId) : undefined;
       const utfall = chooseKanal(mottaker, Boolean(body.kunDigitalLevering), krrRad);
       if (!utfall.lovlig) {
         throw new FiksError(utfall.melding, utfall.status, utfall.kode);
@@ -920,9 +968,7 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
       await addRevisjon({
         handling: "FORSENDELSE_SENDT",
         ressurs: "forsendelse",
-        aktor: klient
-          ? { type: "system", id: klient.clientId, ...(klient.consumer ? { consumer: klient.consumer } : {}) }
-          : { type: "system", id: "fiks-simulator" },
+        aktor: maskinAktor(klient),
         grunnlag: { id: forsendelse.id, kanal: forsendelse.kanal, mottakerVarslet: forsendelse.kanal === "DIGITAL" }
       });
       // 200 med bare id-en, som spekken - ikke 201 med hele raden.
@@ -1181,6 +1227,95 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
         grunnlag: { status: oppgave.status, id: oppgave.oppgaveId }
       });
       jsonResponse(response, 200, oppgave);
+      return;
+    }
+
+    /*
+     * Varselflaten. Ikke SvarUt: se varsel.ts for hvorfor et varsel ikke har en
+     * papirkanal, og hvorfor reservasjonen derfor stenger helt.
+     *
+     * `INGEN` er 200 og ikke 4xx. At en innbygger ikke kan nås er et utfall
+     * kalleren skal få vite og telle, ikke en feil som stopper en jobb midt i en
+     * liste over sju personer - og raden skrives, slik at «vi prøvde og hun kunne
+     * ikke nås» er forskjellig fra «vi prøvde aldri».
+     */
+    if (request.method === "POST" && url.pathname === "/fiks/varsler") {
+      const klient = await requireVarselHjemmel(request);
+      const body = await readRequestBody(request) as Varselkropp;
+      const validert = validateVarsel(body);
+      if ("feil" in validert) {
+        throw new FiksError(validert.feil.melding, 400, validert.feil.kode);
+      }
+      const utfall = await varselkanalFor(tilstand, validert.varsel.digitalId);
+      krevGyldig(validateVarsellengde(validert.varsel.tekst, utfall.kanal));
+      const varsel = {
+        varselId: newId("varsel"),
+        ...validert.varsel,
+        sporingsId: validert.varsel.sporingsId || newId("flyt"),
+        ...utfall,
+        opprettet: new Date().toISOString(),
+        syntetisk: true
+      };
+      await updateJson("varsler.json", [], (varsler) => varsler.push(varsel));
+      // Kanalen og typen, ikke teksten og ikke mottakeren. «Hva slags varsel gikk ut,
+      // og hvordan» er det loggen svarer på; hvem og hva det sto står på raden, og
+      // sporingsId binder de to sammen.
+      await addRevisjon({
+        handling: "VARSEL_SENDT",
+        ressurs: "varsel",
+        aktor: maskinAktor(klient),
+        sporingsId: varsel.sporingsId,
+        grunnlag: { id: varsel.varselId, type: varsel.type, ...utfall }
+      });
+      jsonResponse(response, 200, {
+        varselId: varsel.varselId,
+        sporingsId: varsel.sporingsId,
+        ...utfall,
+        syntetisk: true
+      });
+      return;
+    }
+
+    /*
+     * Utboksen. Uten den er «hva sto det i SMS-en» et spørsmål man må svare på ved
+     * å åpne en fil i state/, og et varsel ingen kan vise fram er vanskelig å tro
+     * på. Nyeste først, som en innboks.
+     *
+     * Radene bærer teksten - det er en beskjed vi selv har skrevet - men aldri
+     * telefonnummeret. `kanal` sier nok om hvordan den gikk.
+     */
+    if (request.method === "GET" && url.pathname === "/fiks/varsler") {
+      await requireVarselHjemmel(request);
+      // En ukjent type er en feil og ikke et tomt svar: uten dette er "reklame" og
+      // "en type ingen har brukt ennå" samme 200 med tom liste. Sjekket før filen
+      // leses, så en skrivefeil ikke koster et diskoppslag.
+      const type = url.searchParams.get("type");
+      if (type !== null && !erVarseltype(type)) krevGyldig(ukjentVarseltype(type));
+      const alle = await tilstand.varsler();
+      const rader = (type ? alle.filter((rad) => rad.type === type) : [...alle])
+        .sort((a, b) => b.opprettet.localeCompare(a.opprettet));
+      jsonResponse(response, 200, { varsler: rader, antall: rader.length, syntetisk: true });
+      return;
+    }
+
+    /*
+     * Hvilken kanal et varsel *ville* gått på, uten å sende noe.
+     *
+     * `POST /fiks/varsler` avgjør kanalen som en bivirkning av å sende - den
+     * eneste måten å spørre var å faktisk skrive en rad i utboksen. Denne ruten
+     * svarer på det samme spørsmålet uten den bivirkningen, så en fane kan velge
+     * mellom SMS- og brevsporet for en person uten å legge en falsk utsendelse i
+     * loggen for hver gang den som demoer bytter person i en nedtrekksliste.
+     */
+    if (request.method === "GET" && url.pathname === "/fiks/varselkanal") {
+      await requireVarselHjemmel(request);
+      const fnr = url.searchParams.get("fnr");
+      if (!fnr) {
+        throw new FiksError("fnr er påkrevd.", 400, "MANGLER_MOTTAKER");
+      }
+      jsonResponse(response, 200, {
+        ...(await varselkanalFor(tilstand, fnr)), syntetisk: true
+      });
       return;
     }
 

@@ -72,6 +72,15 @@ const tjenester: Tjeneste[] = [
     portVariabel: "PARAM_ATTEST_PORT",
     scope: "politiattest:attest.read",
     dekkerRuter: ["/attester", "/attester/{attestId}"]
+  },
+  {
+    navn: "fiks-simulator",
+    fil: "apps/fiks-simulator/src/server.ts",
+    spesifikasjon: "openapi/fiks-simulator.yaml",
+    port: Number(process.env.PARAM_FIKS_PORT) || 18101,
+    portVariabel: "PARAM_FIKS_PORT",
+    scope: "ks:fiks:varsel",
+    dekkerRuter: ["/fiks/varselkanal"]
   }
 ];
 

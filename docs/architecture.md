@@ -197,9 +197,10 @@ identitetslaget er ekte i form og syntetisk i tillit.
 
 **Hele `fiks-simulator` er bak Maskinporten, med ett scope per flate.**
 `ks:fiks:register`, `ks:fiks:folkeregister`, `ks:fiks:svarut`, `ks:fiks:samtykke`,
-`ks:fiks:oppgave` og `ks:fiks:melding` - scopet *er* hjemmelen, så et
-oppgave-scope åpner ikke samtykkeflaten, og et register-scope åpner ikke
-Folkeregisteret eller SvarUt. Folkeregisterflaten
+`ks:fiks:oppgave`, `ks:fiks:melding` og `ks:fiks:varsel` - scopet *er* hjemmelen, så
+et oppgave-scope åpner ikke samtykkeflaten, et register-scope åpner ikke
+Folkeregisteret eller SvarUt, og et registertoken kan ikke sende SMS til en
+innbygger. Folkeregisterflaten
 snevrer i tillegg inn *innenfor* scopet: rolleId-en i stien avgjør hvilke
 informasjonsdeler som kommer ut, og en del utenfor rollen er et 403-avslag -
 dataminimering som API-adferd. Token-kravet på samtykke- og
@@ -207,7 +208,7 @@ oppgaveflatene er ikke pynt: uten det kunne samtykkesperren `sandbox-backend`
 håndhever så nøye - pid-binding, ressurskatalog, formål hentet fra samtykket - vært
 tilfredsstilt med to uautentiserte kall mot 8081.
 
-Innbyggerens eget ID-porten-token avvises på alle seks flatene med `403
+Innbyggerens eget ID-porten-token avvises på alle sju flatene med `403
 KREVER_MASKINPORTEN`. Det er ikke en forenkling: et samtykke *spørres om* av en
 kommune og svares gjennom den. `sandbox-backend` holder det verifiserte
 innbyggertokenet, avgjør, og navngir innbyggeren i `aktor` på vei ut - hjemmelen er
