@@ -41,3 +41,7 @@ kjører. Det er ikke det samme som at alt er ferdig.
 Det dere lager, skal leveres inn, så det overlever hackathonet. Dere trenger ikke lage
 en pull request: vi henter fra forken. Hva som må ligge der, og hvordan dere registrerer
 teamet, står i [`docs/innlevering.md`](innlevering.md). Fem minutter.
+
+Hackathonet er over, og alle åtte innleveringene ligger nå som brancher i dette repoet.
+[`docs/innleveringer-2026.md`](innleveringer-2026.md) sier hva hvert team lagde og hvor
+du finner det.

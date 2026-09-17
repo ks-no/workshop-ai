@@ -65,6 +65,7 @@ Resten av filene er oppslagsverk. Du trenger ingen av dem før du trenger dem.
 | Vite hva som forlater maskinen din før du demonstrerer | [`docs/sikkerhet-og-personvern.md`](sikkerhet-og-personvern.md) |
 | Vite hva som forventes av deg, hvordan KI skal brukes, og hvor du sier fra | [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) |
 | Levere det dere lagde, uten pull request | [`docs/innlevering.md`](innlevering.md) |
+| Se hva de åtte teamene lagde på hackathonet i 2026 | [`docs/innleveringer-2026.md`](innleveringer-2026.md) |
 | Slå opp et forvaltningsord | [`docs/ordliste.md`](ordliste.md) |
 
 > [!TIP]
