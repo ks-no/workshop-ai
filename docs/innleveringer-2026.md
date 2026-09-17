@@ -38,6 +38,11 @@ Diffen mot sandkassen slik den kom, ligger på
 en `INNLEVERING.md` i roten, skrevet av teamet selv, og den er alltid en bedre kilde enn
 denne siden.
 
+Hver innlevering har i tillegg en annotert tagg på tuppen sin,
+`innlevering/2026-09/<slug>`. Taggen er det som gjør at arbeidet overlever om branchen
+en gang ryddes bort, og `git switch --detach innlevering/2026-09/bergen` virker like
+godt som branchnavnet.
+
 To ting å vite før du kjører noe:
 
 - **Branchene ligger bak `main`.** Alle ble forket i september 2026, og `main` har gått
@@ -176,7 +181,11 @@ Bevis Studio. `OVERLEVERING.md` i hvert prosjekt er inngangen.
 ## Hva som er hentet inn i main
 
 Sandkassen tar inn det som er nyttig for alle, ett tema om gangen, framfor å merge en
-hel branch. Denne listen fylles ut etter hvert som det skjer, og hver linje sier hvilken
-branch det kom fra.
+hel branch. Listen vedlikeholdes for hånd: ingen sjekk sammenligner den med koden, så
+den som henter inn noe, fører det opp her selv.
 
-Foreløpig er ingenting hentet inn.
+| Hva | Fra | PR |
+|---|---|---|
+| Id-taket i `scripts/importer-tenor.ts` leses fra de kuraterte id-ene i stedet for tallene 51 og 18 | `fork/haugesander` | [#147](https://github.com/ks-no/workshop-ai/pull/147) |
+| `scripts/test-kodeverk.ts` teller bare felt som står i en typekropp | `fork/haugesander` | [#148](https://github.com/ks-no/workshop-ai/pull/148) |
+| Varselflaten i `fiks-simulator` - `POST`/`GET /fiks/varsler` og `GET /fiks/varselkanal` bak scopet `ks:fiks:varsel`, med kodeverkene i `apps/fiks-simulator/src/varsel.ts` | `fork/haugesander` | [#149](https://github.com/ks-no/workshop-ai/pull/149) |

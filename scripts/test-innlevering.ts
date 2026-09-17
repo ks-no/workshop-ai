@@ -134,6 +134,21 @@ for (const file of ["ci.yml", "sbom.yml", "sbom-images.yml"]) {
   check(`${file} fyrer bare på main`, stripped !== undefined && historiske.includes(stripped), stripped);
 }
 
+// --- the index page ---------------------------------------------------------
+
+// docs/innleveringer-2026.md navngir én branch per innlevering, og branchnavnet er
+// det hent-innleveringer.ts pushet til. Skrivefeil i et slug gir en compare-lenke som
+// ikke virker, og ingenting annet ville sagt fra. Selve høstelisten lenger ned på
+// siden er prosa og kan ikke sjekkes - siden sier det om seg selv.
+const indeks = les("docs/innleveringer-2026.md");
+const overskrifter = [...indeks.matchAll(/^### `(team|fork)\/([^`]+)`/gm)];
+check("indekssiden navngir minst én innlevering", overskrifter.length > 0);
+for (const [, prefiks, navn] of overskrifter) {
+  check(`${prefiks}/${navn} er et gyldig branchsegment`, slug(navn) === navn, slug(navn));
+}
+const navnene = overskrifter.map(treff => `${treff[1]}/${treff[2]}`);
+check("ingen innlevering står oppført to ganger", new Set(navnene).size === navnene.length);
+
 // --- report ----------------------------------------------------------------
 if (feil.length > 0) {
   console.error(`test-innlevering: ${feil.length} av ${bestatt + feil.length} sjekker feilet.`);
