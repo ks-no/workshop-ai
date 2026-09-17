@@ -97,6 +97,13 @@ jobs:
       - name: OpenAPI mot koden
         run: pnpm test:openapi
 
+      # The whole point of this workflow: start.bat is the participant's entry point on
+      # Windows and nothing ran against it there. On Windows the gate keeps the static
+      # half - that start.bat starts the same services and ports as start.sh - and skips
+      # the shell fixtures, which are POSIX.
+      - name: Oppstart og nullstilling
+        run: pnpm test:startup
+
       # Reads git ls-files and walks relative paths, so it is the check most likely to
       # tell a Windows path bug from a genuine documentation error.
       - name: Dokumentasjonen
