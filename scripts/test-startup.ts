@@ -95,6 +95,9 @@ if (command === "docker") {
 }
 if (command === "curl") {
   const url = args.find(arg => arg.startsWith("http"));
+  // ::1-proben: 7 er curls «could not connect», altså ingenting der. Med
+  // FIXTURE_FAIL=ipv6 svarer roten, men /helse gjør det ikke - en fremmed lytter.
+  if (url?.includes("[::1]")) process.exit(fail === "ipv6" && !url.includes("/helse") ? 0 : 7);
   if (url.includes("/api/tags")) {
     // Modellen som faktisk ble hentet, ikke en fast streng: ellers kan ingen test la
     // start.sh velge modellen selv, og auto_model er nettopp grenen ingen dekket.
@@ -313,6 +316,14 @@ try {
       if (platform === "Darwin") assert.ok(!events(directory).some(event => event.command === "docker" && event.args.includes("ollama")));
     });
   }
+
+  check("En fremmed IPv6-lytter på en tjenesteport stopper oppstart", () => {
+    const directory = makeFixture("ipv6-conflict", false);
+    const result = run(directory, ["--mock"], { FIXTURE_FAIL: "ipv6" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Portene er allerede i bruk/);
+    assert.ok(!events(directory).some(event => event.command === "docker" && event.args.includes("up")));
+  });
 
   // Uten --model og uten OLLAMA_MODEL velger start.sh selv, ut fra minnet. Den grenen
   // hadde ingen sjekk: hver test over oppgir modellen. Bare Darwin pinnes her - på

@@ -213,10 +213,24 @@ port_in_use() {
   return 1
 }
 
+# Compose publishes on 127.0.0.1, but a second process can still bind the same port
+# on ::1 and make localhost alternate between two different services.
+port_in_use_ipv6() {
+  curl -g -sS --noproxy '*' -m 1 -o /dev/null "http://[::1]:$1/" >/dev/null 2>&1
+}
+
 # Every Node service answers /helse with a "tjeneste" field, so this tells
 # our own containers apart from an unrelated process on the same port.
+#
+# 127.0.0.1 rather than localhost, to match port_in_use above: localhost resolves
+# ::1 first on many machines, so the two probes asked different questions. --noproxy
+# because an http_proxy in the environment would send the probe to the proxy.
 port_is_ours() {
-  curl -fsS -m 2 "http://localhost:$1/helse" 2>/dev/null | grep -q '"tjeneste"'
+  curl -fsS --noproxy '*' -m 2 "http://127.0.0.1:$1/helse" 2>/dev/null | grep -q '"tjeneste"'
+}
+
+port_is_ours_ipv6() {
+  curl -fsS -g --noproxy '*' -m 2 "http://[::1]:$1/helse" 2>/dev/null | grep -q '"tjeneste"'
 }
 
 preflight() {
@@ -239,7 +253,8 @@ preflight() {
   local conflicts=()
   local p
   for p in "${SERVICE_PORTS[@]}"; do
-    if port_in_use "$p" && ! port_is_ours "$p"; then
+    if { port_in_use_ipv6 "$p" && ! port_is_ours_ipv6 "$p"; } \
+      || { port_in_use "$p" && ! port_is_ours "$p"; }; then
       conflicts+=("$p")
     fi
   done
