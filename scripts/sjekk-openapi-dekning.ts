@@ -113,7 +113,7 @@ function skjemablokk(tekst: string, skjema: string): string | null {
 function readEnum(tekst: string, skjema: string): string[] | null {
   const blokk = skjemablokk(tekst, skjema);
   if (blokk === null) return null;
-  const treff = blokk.match(/^ {6}enum: \[([^\]]*)\]/m);
+  const treff = blokk.match(/^ {6}enum:\s*\[([^\]]*)\]/m);
   return treff ? treff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean) : null;
 }
 
@@ -128,6 +128,14 @@ function readEnum(tekst: string, skjema: string): string[] | null {
 function readNestedEnum(tekst: string, skjema: string, felt: string): string[] | null {
   const blokk = skjemablokk(tekst, skjema);
   if (blokk === null) return null;
+  // YAML skriver et felt på to måter, og begge er gyldige: et nøstet kart med `enum:`
+  // på egen linje under, eller hele typen inline i en flytmapping. Uten den andre
+  // formen svarte sjekken «fant ingen enum» på en spesifikasjon som var helt i orden.
+  // Fra team/bergen.
+  const inlineTreff = blokk.match(new RegExp(`^\\s+${felt}:\\s*\\{[^}]*enum:\\s*\\[([^\\]]*)\\]`, "m"));
+  if (inlineTreff) {
+    return inlineTreff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean);
+  }
   const feltTreff = blokk.match(new RegExp(`^(\\s+)${felt}:\\s*$`, "m"));
   if (!feltTreff) return null;
   const innrykk = feltTreff[1].length;
@@ -137,7 +145,7 @@ function readNestedEnum(tekst: string, skjema: string, felt: string): string[] |
     if (!eget) continue;
     // Tilbake på feltets eget nivå eller grunnere: feltet er ferdig.
     if (eget[1].length <= innrykk) return null;
-    const enumTreff = linje.match(/^\s+enum: \[([^\]]*)\]/);
+    const enumTreff = linje.match(/^\s+enum:\s*\[([^\]]*)\]/);
     if (enumTreff) {
       return enumTreff[1].split(",").map((verdi) => verdi.trim()).filter(Boolean);
     }
