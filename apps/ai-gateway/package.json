@@ -6,6 +6,6 @@
   "description": "Mock AI-gateway for innbyggerdialog-sandbox.",
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.1127.0"
+    "@aws-sdk/client-bedrock-runtime": "^3.1130.0"
   }
 }
