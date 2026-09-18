@@ -327,7 +327,10 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
     passedToOllama,
     "kallstedet i callModel utelater systemMessage"
   );
-  const passedToAiFactory = /callAiFactory\(prompt, temperature, systemMessage, signal\)/.test(source);
+  // Ikke ankret på slutten: kallet tar et reasoning-argument etter signal, og
+  // sperren her handler om at systemMessage er med, ikke om hvor mange argumenter
+  // funksjonen har.
+  const passedToAiFactory = /callAiFactory\(prompt, temperature, systemMessage, signal[,)]/.test(source);
   check(
     "callModel sender systemMessage til Telenor AI Factory",
     passedToAiFactory,

@@ -10,6 +10,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { cors, readRequestBody, sammeOpphav, svarhjelpere } from "../../shared/http.ts";
 import { feilkode, feilmelding } from "../../shared/errors.ts";
 import { buildFartsdempendeOppsummering } from "./fartsdempende-oppsummering.ts";
+import {
+  AI_FACTORY_MODELS,
+  PROVIDER_REASONING,
+  providerKanReasoning,
+  reasoningForOppgave,
+  velgReasoningModell
+} from "./reasoning.ts";
 import type { Sporsmaalskontekst } from "./sporsmaalsperrer.ts";
 import {
   buildGrunnlag,
@@ -104,8 +111,8 @@ type Revisjonshendelse = {
   grunnlag?: Record<string, unknown>;
 };
 
-/** Svaret fra en provider: teksten og hvilken modell som ga den. */
-type Modellsvar = { tekst: string; modell: string };
+/** Svaret fra en provider: teksten, modellen, og tenkingen hvis den tenkte. */
+type Modellsvar = { tekst: string; modell: string; reasoning?: string; tenkte?: boolean };
 
 /** Valgene et modellkall kan overstyre. */
 type Modellvalg = {
@@ -124,17 +131,14 @@ const openRouterApiKey = process.env.OPENROUTER_API_KEY || "";
 const openRouterModel = process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct:free";
 const aiFactoryBaseUrl = (process.env.TELENOR_AI_FACTORY_BASE_URL || "https://litellm.apps.s99ct03.aifactory.telenor.com").replace(/\/+$/, "");
 const aiFactoryApiKey = process.env.TELENOR_AI_FACTORY_API_KEY || "";
-// Curated shortlist for the /admin dropdown, mirroring BEDROCK_MODELS below - not
-// fetched from AI Factory, since the point is a handful of known-good names to pick
-// from. First entry is the fallback when TELENOR_AI_FACTORY_MODEL is unset entirely
-// (not just commented out in .env) - keep it the same model .env.example and
-// docker-compose.yml document as the default, so the three do not silently disagree.
-const AI_FACTORY_MODELS = [
-  { id: "GLM-5.2-FP8", label: "GLM-5.2-FP8" },
-  { id: "NVIDIA-Nemotron-3-Super-120B-A12B-FP8", label: "NVIDIA-Nemotron-3-Super-120B-A12B-FP8" },
-  { id: "Qwen3-Coder-Next-FP8", label: "Qwen3-Coder-Next-FP8" }
-];
+// The shortlist lives in reasoning.ts, because which model can think is a property of
+// the same table that says which provider can - and a test can import that file.
 let aiFactoryModel = process.env.TELENOR_AI_FACTORY_MODEL || AI_FACTORY_MODELS[0].id;
+// Reasoning runs on its own model: the default one may have no thinking mode, or be
+// the one that ran out of time. TELENOR_AI_FACTORY_REASONING_MODEL overrides it.
+const reasoningValg = velgReasoningModell(AI_FACTORY_MODELS, process.env.TELENOR_AI_FACTORY_REASONING_MODEL);
+const aiFactoryReasoningModel = reasoningValg.modell;
+if (reasoningValg.advarsel) console.warn(`ai-gateway: ${reasoningValg.advarsel}`);
 // AI Factory recommends a cache salt on every request to isolate the shared KV
 // cache. A process-local value is safer than omitting it when no stable salt is set.
 const aiFactoryCacheSalt = process.env.TELENOR_AI_FACTORY_CACHE_SALT || randomUUID();
@@ -394,6 +398,11 @@ function traceHtml(
             </section>
             <section>
               <h4>Svar fra modellen</h4>
+              ${typeof l.reasoningResponse === "string" && l.reasoningResponse ? `
+                <details class="data">
+                  <summary>Modellens tenking <span class="hint">${l.reasoningResponse.split("\n").length} linjer</span></summary>
+                  <pre class="prompt">${escapeHtml(l.reasoningResponse)}</pre>
+                </details>` : ""}
               ${l.response ? `<pre class="svar">${escapeHtml(l.response)}</pre>` : `<p class="hint">Ingen svar registrert.</p>`}
               <p class="hint">Dette er svaret <em>før</em> heuristikk og sperrer har vært innom. Ble det erstattet, ser du det i <code>advarsel</code> i API-svaret.</p>
             </section>
@@ -1471,10 +1480,15 @@ async function callOpenRouter(prompt: string, temperature: number, systemMessage
   };
 }
 
-async function callAiFactory(prompt: string, temperature: number, systemMessage: string, signal: AbortSignal): Promise<Modellsvar> {
+async function callAiFactory(
+  prompt: string, temperature: number, systemMessage: string, signal: AbortSignal, reasoning = false
+): Promise<Modellsvar> {
   if (!aiFactoryApiKey) {
     throw new Error("TELENOR_AI_FACTORY_API_KEY mangler");
   }
+  // Reasoning kjører på sin egen modell, så modellnavnet i svaret må si hvilken det
+  // faktisk var - ellers peker KI-sporet på standardmodellen for et kall den ikke tok.
+  const modell = reasoning && aiFactoryReasoningModel ? aiFactoryReasoningModel : aiFactoryModel;
   const svar = await fetch(`${aiFactoryBaseUrl}/v1/chat/completions`, {
     method: "POST",
     headers: {
@@ -1482,9 +1496,12 @@ async function callAiFactory(prompt: string, temperature: number, systemMessage:
       Authorization: `Bearer ${aiFactoryApiKey}`
     },
     body: JSON.stringify({
-      model: aiFactoryModel,
+      model: modell,
       temperature,
       cache_salt: aiFactoryCacheSalt,
+      // Alltid satt, også til false: endepunktet har sin egen standard, og en oppgave
+      // som er vurdert til å ikke tenke skal ikke arve den.
+      chat_template_kwargs: { enable_thinking: reasoning },
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: prompt }
@@ -1495,10 +1512,15 @@ async function callAiFactory(prompt: string, temperature: number, systemMessage:
   if (!svar.ok) {
     throw new Error(`Telenor AI Factory svarte med status ${svar.status}`);
   }
-  const data = (await svar.json()) as { choices?: { message?: { content?: string } }[] };
+  const data = (await svar.json()) as {
+    choices?: { message?: { content?: string; reasoning_content?: string } }[];
+  };
+  const tenking = data?.choices?.[0]?.message?.reasoning_content?.trim();
   return {
     tekst: data?.choices?.[0]?.message?.content?.trim() || "",
-    modell: `telenor-ai-factory:${aiFactoryModel}`
+    modell: `telenor-ai-factory:${modell}`,
+    ...(tenking ? { reasoning: tenking } : {}),
+    tenkte: reasoning
   };
 }
 
@@ -1684,8 +1706,14 @@ async function buildProviderStatus() {
     "telenor-ai-factory": {
       models: AI_FACTORY_MODELS,
       currentModel: aiFactoryModel,
+      reasoningModel: aiFactoryReasoningModel,
+      timeoutMs: aiFactoryTimeoutMs,
       baseUrl: aiFactoryBaseUrl,
       keyConfigured: Boolean(aiFactoryApiKey)
+    },
+    reasoning: {
+      providere: PROVIDER_REASONING,
+      naa: providerKanReasoning(aiProvider)
     }
   };
 }
@@ -1774,6 +1802,10 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
   );
   const signal = AbortSignal.timeout(effektivTimeout);
 
+  // Ett sted avgjøres det: oppgaven må være vurdert til å tenke, og provideren må ha
+  // en målt måte å be om det på. Ingen av kallstedene bestemmer dette selv.
+  const reasoning = reasoningForOppgave(valg.task) && providerKanReasoning(aiProvider);
+
   const baseEntry = {
     timestamp: new Date().toISOString(),
     sporingsId: valg.sporingsId || null,
@@ -1790,7 +1822,7 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
     } else if (aiProvider === "openrouter") {
       svar = await callOpenRouter(prompt, temperature, systemMessage, signal);
     } else if (aiProvider === "telenor-ai-factory") {
-      svar = await callAiFactory(prompt, temperature, systemMessage, signal);
+      svar = await callAiFactory(prompt, temperature, systemMessage, signal, reasoning);
     } else if (aiProvider === "bedrock") {
       svar = await callBedrock(prompt, temperature, systemMessage, signal);
     } else {
@@ -1801,6 +1833,8 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
       ...baseEntry,
       model: svar.modell,
       response: svar.tekst,
+      reasoning,
+      ...(svar.reasoning ? { reasoningResponse: svar.reasoning } : {}),
       durationMs: Date.now() - start,
       failed: false
     });

@@ -234,12 +234,29 @@ modellen ikke er koblet på. Enkeltsvar som faller tilbake vises også i samtale
 `./start.sh` gjør et ekte `/ai/klarsprak`-kall til slutt og advarer tydelig hvis svaret
 har `advarsel`.
 
+## Reasoning
+
+Om et kall ber modellen tenke, er en egenskap ved oppgaven og ikke en innstilling for
+tjenesten: en global bryter ville gjort de fleste kallene tregere for å hjelpe ett.
+`apps/ai-gateway/src/reasoning.ts` har tabellen, med en målt begrunnelse per oppgave,
+og `pnpm test:reasoning` sier fra hvis en ny oppgave eller en ny provider mangler en
+rad. Ingen av oppgavene tenker i dag.
+
+Providertabellen i samme fil sier hvilke providere gatewayen har en *målt* måte å be om
+tenking på. Bare Telenor AI Factory har det, og `false` for de andre betyr at det ikke
+er prøvd her - ikke at modellen mangler evnen. Tenkingen havner i KI-sporet som
+`reasoningResponse` og vises i en egen blokk på `/trace`.
+
 ## KI-spor
 
 Alle modellkall går gjennom én funksjon, `callModel`, som skriver én JSONL-linje per
 kall til `state/ai-trace.jsonl`. Feltene er engelske, siden sporet er utviklerverktøy
 og ikke tjenestekontrakt: `timestamp`, `sporingsId`, `task`, `provider`, `model`,
-`temperature`, `prompt`, `response`, `durationMs`, `failed`, `error`.
+`temperature`, `prompt`, `response`, `durationMs`, `failed`, `error`, `reasoning` og
+`reasoningResponse`.
+
+`reasoning` sier om kallet ba modellen tenke, og står på hver linje, også når svaret er
+`false`. `reasoningResponse` er selve tenkingen, og står bare når modellen leverte den.
 
 - `http://localhost:8082/trace` - HTML, nyeste øverst, prompt og svar utfellbart
 - `GET /trace.json` - samme som JSON, med `?sporingsId=`, `?task=` og `?limit=`

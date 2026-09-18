@@ -638,6 +638,7 @@ docker compose down -t 0
 pnpm lint            # tsc --noEmit
 pnpm test            # valider-data.ts: referential integrity across all datasets
 pnpm test:sperrer    # guardrails on /ai/sporsmaal as pure functions
+pnpm test:reasoning  # which tasks think and which providers can, pure functions
 pnpm test:vilkaar    # the vedtak in vilkaar.ts, as pure functions against fixtures
 pnpm test:foedselsnummer  # modulus 11 and the +80 synthetic marker, pure functions
 pnpm test:handleevne      # who may act and on whose behalf, pure functions
@@ -710,7 +711,7 @@ pnpm test:bergen-matrikkel
 ```
 - Optional orchestrated startup script (model selection/reset): `./start.sh --help`.
 - CI (`.github/workflows/ci.yml`) runs `lint`, `test:chat-intent`, `test`, `test:sperrer`,
-  `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`,
+  `test:reasoning`, `test:oppsummering`, `test:skjerming`, `test:vilkaar`, `test:foedselsnummer`,
   `test:handleevne`, `test:samtykke`, `test:forsendelse`, `test:varsel`, `test:upstream`,
   `test:innlevering`,
   `test:karantene`, `test:concurrency`, `test:replay`, `test:chat`, `test:parametere`,

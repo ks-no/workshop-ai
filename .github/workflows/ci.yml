@@ -75,6 +75,9 @@ jobs:
 
       # The deterministic traffic summary must preserve structured answers and
       # distinguish an explicit no from an unknown answer without using a model.
+      - name: Hvilke oppgaver som tenker
+        run: pnpm test:reasoning
+
       - name: Oppsummering av fartsdempende tiltak
         run: pnpm test:oppsummering
 
