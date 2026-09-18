@@ -185,6 +185,13 @@ let bedrockModel = process.env.BEDROCK_MODEL_ID || BEDROCK_MODELS[0].id;
 // instead of hanging forever.
 const modelTimeoutMs = Number(process.env.AI_TIMEOUT_MS) || 180000;
 
+// A provider can have a shorter ceiling than ours, and then ours never applies.
+// AI Factory sits behind a 30 s gateway: the sandbox waited out AI_TIMEOUT_MS, got a
+// 503 from the gateway and reported it as if the model had refused. Capping here makes
+// the sandbox time out first, so the message says what actually happened.
+const aiFactoryTimeoutMs = Number(process.env.TELENOR_AI_FACTORY_TIMEOUT_MS) || 30000;
+const PROVIDER_TIMEOUT_TAK: Record<string, number> = { "telenor-ai-factory": aiFactoryTimeoutMs };
+
 const { jsonResponse, textResponse } = svarhjelpere({
   cors: cors("GET,POST,OPTIONS"),
   // /docs, /trace og /admin har bare Allow-Origin, ikke Allow-Methods og
@@ -1761,7 +1768,11 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
   // and it looks like the sandbox itself has frozen. The default ceiling is
   // generous because a SUMMARY may legitimately take a minute; a task that sits
   // mid-conversation passes a shorter one, since a user will not wait.
-  const signal = AbortSignal.timeout(valg.timeoutMs || modelTimeoutMs);
+  const effektivTimeout = Math.min(
+    valg.timeoutMs || modelTimeoutMs,
+    PROVIDER_TIMEOUT_TAK[aiProvider] ?? Infinity
+  );
+  const signal = AbortSignal.timeout(effektivTimeout);
 
   const baseEntry = {
     timestamp: new Date().toISOString(),
@@ -1798,7 +1809,7 @@ async function callModel(prompt: string, valg: Modellvalg = {}): Promise<Modells
     const navn = feil instanceof Error ? feil.name : "";
     const melding =
       navn === "TimeoutError" || navn === "AbortError"
-        ? `Modellen svarte ikke innen ${valg.timeoutMs || modelTimeoutMs} ms`
+        ? `Modellen svarte ikke innen ${effektivTimeout} ms`
         : feilmelding(feil);
 
     await writeTrace({
