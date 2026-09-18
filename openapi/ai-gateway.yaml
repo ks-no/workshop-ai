@@ -440,11 +440,39 @@ components:
                 properties:
                   id: { type: string, example: "GLM-5.2-FP8" }
                   label: { type: string, example: "GLM-5.2-FP8" }
+                  reasoning: { type: boolean }
+                  reasoningAnbefalt: { type: boolean }
+                  merknad: { type: string }
             currentModel: { type: string, example: "GLM-5.2-FP8" }
+            reasoningModel:
+              type: string
+              nullable: true
+              description: >-
+                Modellen reasoning-oppgaver kjører på, som kan være en annen enn
+                currentModel. Null når ingen av modellene har en tenkemodus.
+            timeoutMs:
+              type: integer
+              description: >-
+                Taket denne provideren har uansett AI_TIMEOUT_MS, fordi gatewayen foran
+                gir opp tidligere.
             baseUrl:
               type: string
               example: https://litellm.apps.s99ct03.aifactory.telenor.com
             keyConfigured: { type: boolean }
+        reasoning:
+          type: object
+          description: >-
+            Hvilke providere gatewayen har en målt måte å be om tenking på. false
+            betyr at støtten ikke er prøvd her, ikke at modellen mangler den.
+          properties:
+            providere:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  stotter: { type: boolean }
+                  grunn: { type: string }
+            naa: { type: boolean }
     SporsmaalRequest:
       type: object
       required: [tekst]
