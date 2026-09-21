@@ -189,3 +189,7 @@ den som henter inn noe, fører det opp her selv.
 | Id-taket i `scripts/importer-tenor.ts` leses fra de kuraterte id-ene i stedet for tallene 51 og 18 | `fork/haugesander` | [#147](https://github.com/ks-no/workshop-ai/pull/147) |
 | `scripts/test-kodeverk.ts` teller bare felt som står i en typekropp | `fork/haugesander` | [#148](https://github.com/ks-no/workshop-ai/pull/148) |
 | Varselflaten i `fiks-simulator` - `POST`/`GET /fiks/varsler` og `GET /fiks/varselkanal` bak scopet `ks:fiks:varsel`, med kodeverkene i `apps/fiks-simulator/src/varsel.ts` | `fork/haugesander` | [#149](https://github.com/ks-no/workshop-ai/pull/149) |
+| Oppstartsgaten `scripts/test-startup.ts` kjører på Windows og pinner modellvalget på Darwin, og `start.sh` stopper på en fremmed lytter på `::1` | `team/bergen` | [#151](https://github.com/ks-no/workshop-ai/pull/151) |
+| `callModel` i `ai-gateway` tar det minste av `AI_TIMEOUT_MS` og providerens eget tak, så AI Factorys 30 sekunder ikke rapporteres som en nektelse | `team/bergen` | [#152](https://github.com/ks-no/workshop-ai/pull/152) |
+| `scripts/sjekk-openapi-dekning.ts` leser en enum skrevet på flytform | `team/bergen` | [#153](https://github.com/ks-no/workshop-ai/pull/153) |
+| Reasoning per oppgave i `apps/ai-gateway/src/reasoning.ts`, med `pnpm test:reasoning` som sperre | `team/bergen` | [#154](https://github.com/ks-no/workshop-ai/pull/154) |
