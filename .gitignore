@@ -29,3 +29,8 @@ data/soknader.json
 data/meldinger.json
 
 .claude/settings.local.json
+
+# Lokale arbeidsfiler, utenfor git med vilje.
+TODO.md
+CLAUDE.local.md
+Claude outputs/
