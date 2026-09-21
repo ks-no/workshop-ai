@@ -37,9 +37,25 @@ assert.match(batch, /\$ErrorActionPreference = 'Stop'/);
 assert.match(batch, /Get-ChildItem -LiteralPath state -Force/);
 assert.ok(!batch.includes("NO_CURL"), "Mangler curl, skal oppstart feile");
 
-for (const [shell, file] of [["bash", "start.sh"], ["sh", "scripts/dev.sh"]]) {
-  const result = spawnSync(shell, ["-n", path.join(root, file)], { encoding: "utf8" });
+// cmd.exe har verken bash eller sh på PATH. Git for Windows har begge, og det er det
+// deltakerne på Windows faktisk har installert. `sh` for dev.sh er ikke en skrivefeil:
+// den er en POSIX-sh-fil, og sjekkes med sh nettopp for å fange en bashisme.
+const shellCommand = (navn: "bash" | "sh") =>
+  process.platform === "win32" && existsSync(`C:/Program Files/Git/bin/${navn}.exe`)
+    ? `C:/Program Files/Git/bin/${navn}.exe`
+    : navn;
+
+for (const [shell, file] of [["bash", "start.sh"], ["sh", "scripts/dev.sh"]] as const) {
+  const result = spawnSync(shellCommand(shell), ["-n", path.join(root, file)], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
+}
+
+// Resten bygger fixturer av shell-skript med en PATH foran seg, og det er en
+// POSIX-øvelse. De statiske sjekkene over er de som gjelder alle tre plattformene,
+// og de er nettopp de som fanger at start.bat har drevet fra start.sh.
+if (process.platform === "win32") {
+  console.log("Statiske oppstartssjekker bestått. De dynamiske shell-fixturene kjøres på POSIX.");
+  process.exit(0);
 }
 
 type Event = { command: string; args: string[]; state: boolean; running: boolean; provider?: string };
@@ -73,14 +89,20 @@ if (command === "docker") {
   }
   if (args.includes("pull")) {
     if (fail === "pull") process.exit(1);
-    writeFileSync("model-present", "yes");
+    writeFileSync("model-present", args.at(-1) || "");
   }
   process.exit(0);
 }
 if (command === "curl") {
   const url = args.find(arg => arg.startsWith("http"));
+  // ::1-proben: 7 er curls «could not connect», altså ingenting der. Med
+  // FIXTURE_FAIL=ipv6 svarer roten, men /helse gjør det ikke - en fremmed lytter.
+  if (url?.includes("[::1]")) process.exit(fail === "ipv6" && !url.includes("/helse") ? 0 : 7);
   if (url.includes("/api/tags")) {
-    console.log(JSON.stringify({ models: existsSync("model-present") ? [{name:"qwen2.5:0.5b"}] : [] }));
+    // Modellen som faktisk ble hentet, ikke en fast streng: ellers kan ingen test la
+    // start.sh velge modellen selv, og auto_model er nettopp grenen ingen dekket.
+    const hentet = existsSync("model-present") ? readFileSync("model-present", "utf8").trim() : "";
+    console.log(JSON.stringify({ models: hentet ? [{ name: hentet }] : [] }));
   } else if (url.includes("/ai/klarsprak")) {
     console.log('{"modell":"qwen2.5:0.5b"}');
   } else {
@@ -95,9 +117,13 @@ if (command === "curl") {
 if (command === "uname") { console.log(process.env.FIXTURE_PLATFORM || "Linux"); process.exit(0); }
 if (command === "date") { console.log("20260908-200000"); process.exit(0); }
 if (command === "nvidia-smi") process.exit(1);
+// hw.memsize i byte, så Darwin-grenen i total_ram_gb deler ned til et rent tall.
+if (command === "sysctl" && args.includes("hw.memsize")) {
+  console.log(String(Number(process.env.FIXTURE_MEMSIZE_GB || 16) * 1024 ** 3)); process.exit(0);
+}
 if (command === "sleep") process.exit(0);
 if (command === "ollama") {
-  if (args[0] === "pull") writeFileSync("model-present", "yes");
+  if (args[0] === "pull") writeFileSync("model-present", args[1] || "");
   process.exit(0);
 }
 if (command === "cp" && args[0] === "-R" && fail === "backup") {
@@ -119,7 +145,7 @@ function makeFixture(name: string, state = true): string {
     copyFileSync(path.join(root, file), path.join(directory, file));
   }
   writeFileSync(path.join(directory, "bin/fixture.ts"), fake);
-  for (const command of ["docker", "curl", "uname", "date", "nvidia-smi", "sleep", "ollama", "cp", "rm", "mkdir"]) {
+  for (const command of ["docker", "curl", "uname", "date", "nvidia-smi", "sysctl", "sleep", "ollama", "cp", "rm", "mkdir"]) {
     const target = path.join(directory, "bin", command);
     writeFileSync(target, `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fixture.ts" ${command} "$@"\n`);
     chmodSync(target, 0o755);
@@ -288,6 +314,27 @@ try {
       assert.ok(!nodeUp(directory).args.includes("--force-recreate"));
       assert.ok(existsSync(path.join(directory, "model-present")));
       if (platform === "Darwin") assert.ok(!events(directory).some(event => event.command === "docker" && event.args.includes("ollama")));
+    });
+  }
+
+  check("En fremmed IPv6-lytter på en tjenesteport stopper oppstart", () => {
+    const directory = makeFixture("ipv6-conflict", false);
+    const result = run(directory, ["--mock"], { FIXTURE_FAIL: "ipv6" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Portene er allerede i bruk/);
+    assert.ok(!events(directory).some(event => event.command === "docker" && event.args.includes("up")));
+  });
+
+  // Uten --model og uten OLLAMA_MODEL velger start.sh selv, ut fra minnet. Den grenen
+  // hadde ingen sjekk: hver test over oppgir modellen. Bare Darwin pinnes her - på
+  // Linux leses /proc/meminfo på den ekte maskinen, og tallet er ikke vårt å bestemme.
+  for (const [gb, modell] of [["16", "qwen2.5:7b"], ["2", "qwen2.5:0.5b"]] as const) {
+    check(`Darwin med ${gb} GB RAM velger ${modell}`, () => {
+      const directory = makeFixture(`automodell-${gb}`, false);
+      rmSync(path.join(directory, ".env"));
+      const result = run(directory, ["-y"], { FIXTURE_PLATFORM: "Darwin", FIXTURE_MEMSIZE_GB: gb });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stderr + result.stdout, new RegExp(`valgte ${modell} ut fra ${gb} GB RAM`));
     });
   }
 
