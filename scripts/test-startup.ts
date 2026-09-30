@@ -87,15 +87,33 @@ appendFileSync("events.jsonl", JSON.stringify({
   command, args, state: existsSync("state"), running, provider: process.env.AI_PROVIDER
 }) + "\\n");
 const fail = process.env.FIXTURE_FAIL;
+function envValue(key) {
+  if (!existsSync(".env")) return undefined;
+  return readFileSync(".env", "utf8").match(new RegExp("^" + key + "=(.*)$", "m"))?.[1];
+}
 if (command === "docker") {
   if (args[0] === "info") process.exit(fail === "daemon" ? 1 : 0);
   if (args.includes("config") && fail === "config") process.exit(1);
+  if (args.includes("config") && !args.includes("--quiet")) console.log("name: workshop-ai");
   if (args.includes("stop")) {
     if (fail === "stop") { console.error("SIMULERT STOPPFEIL"); process.exit(1); }
     if (existsSync("state")) writeFileSync("state/shutdown.json", '{"ferdig":true}');
     writeFileSync("running", "no");
   }
   if (args.includes("down")) process.exit(fail === "down" ? 1 : 0);
+  // Proben fra ai-gateway mot Ollama på verten. Compose tar OLLAMA_BASE_URL fra
+  // miljøet før .env, og den gamle containeradressen finnes ikke lenger.
+  if (args[1] === "run") {
+    const url = process.env.OLLAMA_BASE_URL !== undefined ? process.env.OLLAMA_BASE_URL : envValue("OLLAMA_BASE_URL");
+    process.exit(fail === "bridge" || url === "http://ollama:11434" ? 1 : 0);
+  }
+  // Ollama-containeren fra en eldre start.sh - bare når filteret er dette prosjektets.
+  if (args[0] === "ps") {
+    const filter = args.join(" ");
+    if (fail === "orphan" && filter.includes("label=com.docker.compose.project=workshop-ai")
+      && filter.includes("label=com.docker.compose.service=ollama")) console.log("abc123");
+    process.exit(0);
+  }
   if (args.includes("up") && args.includes("sandbox-backend")) {
     if (fail === "up") { console.error("SIMULERT OPPSTARTSFEIL"); process.exit(1); }
     writeFileSync("running", "yes");
@@ -107,8 +125,7 @@ function provider() {
   if (existsSync("state/ai-provider-override.json")) {
     return JSON.parse(readFileSync("state/ai-provider-override.json", "utf8")).provider;
   }
-  const fraFil = existsSync(".env") ? readFileSync(".env", "utf8").match(/^AI_PROVIDER=(.*)$/m)?.[1] : undefined;
-  return process.env.AI_PROVIDER || fraFil || "mock";
+  return process.env.AI_PROVIDER || envValue("AI_PROVIDER") || "mock";
 }
 if (command === "curl") {
   const url = args.find(arg => arg.startsWith("http"));
@@ -134,14 +151,19 @@ if (command === "sysctl" && args.includes("hw.memsize")) {
   console.log(String(Number(process.env.FIXTURE_MEMSIZE_GB || 16) * 1024 ** 3)); process.exit(0);
 }
 if (command === "sleep") process.exit(0);
-// Ollama på verten: list svarer bare når den kjører, og viser modellen som er hentet.
+// Ollama på verten: svarer bare når den kjører, og show kjenner bare modellen som er hentet.
+// ollama-late er ollama.service som får porten tilbake etter to forsøk.
 if (command === "ollama") {
   if (args[0] === "serve") { writeFileSync("ollama-started", ""); process.exit(0); }
   if (fail === "ollama-down" && !existsSync("ollama-started")) process.exit(1);
-  const hentet = existsSync("model-present") ? readFileSync("model-present", "utf8").trim() : "";
-  if (args[0] === "list") {
-    console.log("NAME    ID    SIZE    MODIFIED");
-    if (hentet) console.log(hentet + "    abc123    1 GB    nå");
+  if (fail === "ollama-late") {
+    const forsok = existsSync("ollama-tries") ? Number(readFileSync("ollama-tries", "utf8")) + 1 : 1;
+    writeFileSync("ollama-tries", String(forsok));
+    if (forsok < 3) process.exit(1);
+  }
+  if (args[0] === "show") {
+    const hentet = existsSync("model-present") ? readFileSync("model-present", "utf8").trim() : "";
+    process.exit(hentet === args[1] ? 0 : 1);
   }
   if (args[0] === "pull") {
     if (fail === "pull") process.exit(1);
@@ -220,8 +242,10 @@ function noOllama(directory: string) {
   assert.ok(!events(directory).some(event => ["ollama", "brew", "open"].includes(event.command) || event.args.some(arg => arg.includes("ollama"))));
 }
 
+// Imaget, eller ollama som tjeneste å starte eller kjøre i - ikke etikettfilteret
+// som leter etter containeren en eldre start.sh lot ligge.
 function noOllamaInDocker(directory: string) {
-  assert.ok(!events(directory).some(event => event.command === "docker" && event.args.some(arg => arg.includes("ollama"))));
+  assert.ok(!events(directory).some(event => event.command === "docker" && event.args.some(arg => arg.includes("ollama/ollama") || arg === "ollama")));
 }
 
 function index(directory: string, predicate: (event: Event) => boolean): number {
@@ -230,6 +254,7 @@ function index(directory: string, predicate: (event: Event) => boolean): number 
 
 const pull = (event: Event) => event.command === "ollama" && event.args[0] === "pull";
 const up = (event: Event) => event.command === "docker" && event.args.includes("up");
+const stop = (event: Event) => event.command === "docker" && event.args.includes("stop");
 
 function verifiedModel(directory: string): boolean {
   return events(directory).some(event => event.command === "curl" && event.args.some(arg => arg.includes("/ai/klarsprak")));
@@ -253,11 +278,10 @@ try {
     const result = run(directory, ["--mock", "--reset"]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const history = events(directory);
-    const stop = history.findIndex(event => event.command === "docker" && event.args.includes("stop"));
+    const stopped = history.findIndex(stop);
     const copy = history.findIndex(event => event.command === "cp" && event.args.includes("-R"));
     const remove = history.findIndex(event => event.command === "rm" && event.args.includes("state"));
-    const up = history.findIndex(event => event.command === "docker" && event.args.includes("up"));
-    assert.ok(stop >= 0 && stop < copy && copy < remove && remove < up);
+    assert.ok(stopped >= 0 && stopped < copy && copy < remove && remove < history.findIndex(up));
     assert.equal(history[copy].running, false);
     assert.equal(nodeUp(directory).state, false);
     assert.ok(nodeUp(directory).args.includes("--force-recreate"));
@@ -317,21 +341,23 @@ try {
     assert.match(result.stdout, /-g trengs ikke lenger/);
   });
 
-  for (const platform of ["Linux", "Darwin"]) {
-    check(`--ollama på ${platform} henter modellen før tjenestene og husker valget`, () => {
-      const directory = makeFixture(`ollama-${platform}`, false);
-      rmSync(path.join(directory, ".env"));
-      const result = run(directory, ["--ollama", "-y", "-m", "qwen2.5:0.5b"], { FIXTURE_PLATFORM: platform });
-      assert.equal(result.status, 0, result.stdout + result.stderr);
-      assert.ok(index(directory, pull) >= 0 && index(directory, pull) < index(directory, up));
-      const env = readFileSync(path.join(directory, ".env"), "utf8");
-      assert.match(env, /^AI_PROVIDER=ollama$/m);
-      assert.match(env, /^OLLAMA_MODEL=qwen2\.5:0\.5b$/m);
-      assert.equal(nodeUp(directory).provider, "ollama");
-      assert.match(result.stdout, /bekreftet: ai-gateway bruker ollama:fixture/);
-      noOllamaInDocker(directory);
-    });
-  }
+  check("--ollama henter modellen før tjenestene og husker valget", () => {
+    const directory = makeFixture("ollama", false);
+    rmSync(path.join(directory, ".env"));
+    const result = run(directory, ["--ollama", "-y", "-m", "qwen2.5:0.5b"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.ok(index(directory, pull) >= 0 && index(directory, pull) < index(directory, up));
+    const env = readFileSync(path.join(directory, ".env"), "utf8");
+    assert.match(env, /^AI_PROVIDER=ollama$/m);
+    assert.match(env, /^OLLAMA_MODEL=qwen2\.5:0\.5b$/m);
+    assert.equal(nodeUp(directory).provider, "ollama");
+    assert.match(result.stdout, /bekreftet: ai-gateway bruker ollama:fixture/);
+    assert.ok(events(directory).some(event => event.command === "docker" && event.args[1] === "run" && event.args.includes("ai-gateway")),
+      "Proben skal gå fra ai-gateway, med tjenestens nettverk og OLLAMA_BASE_URL");
+    noOllamaInDocker(directory);
+    assert.ok(!events(directory).some(event => event.command === "docker" && ["rm", "down"].includes(event.args[0] === "compose" ? event.args[1] : event.args[0])),
+      "Uten en gammel container skal ingenting fjernes");
+  });
 
   check("--ollama på Darwin starter en Ollama som ikke kjører", () => {
     const directory = makeFixture("ollama-start", false);
@@ -349,6 +375,44 @@ try {
     assertOriginalState(directory);
   });
 
+  check("--ollama stopper før nedlasting når containeren ikke når Ollama", () => {
+    const directory = makeFixture("ollama-bridge", false);
+    const result = run(directory, ["--ollama", "-y", "-m", "qwen2.5:0.5b"], { FIXTURE_FAIL: "bridge" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /OLLAMA_HOST/);
+    assert.equal(index(directory, pull), -1, "Ingen nedlasting når modellen likevel ikke kan nås");
+    assert.equal(index(directory, up), -1);
+    assert.equal(readFileSync(path.join(directory, ".env"), "utf8"), "AI_PROVIDER=mock\n", "Et --ollama som stopper skal ikke huskes");
+  });
+
+  check("--ollama fjerner en gammel Ollama-container før den spør Ollama", () => {
+    const directory = makeFixture("ollama-orphan", false);
+    const result = run(directory, ["--ollama", "-y", "-m", "qwen2.5:0.5b"], { FIXTURE_FAIL: "orphan" });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const removed = index(directory, event => event.command === "docker" && event.args.join(" ") === "rm -f abc123");
+    assert.ok(removed >= 0 && removed < index(directory, event => event.command === "ollama"));
+    assert.ok(!events(directory).some(event => event.command === "docker" && event.args.includes("down")), "Stacken skal stå");
+  });
+
+  check("En gammel .env med Ollama-containeren får en advarsel som sier det", () => {
+    const directory = makeFixture("ollama-stale", false);
+    const gammel = "AI_PROVIDER=ollama\nOLLAMA_BASE_URL=http://ollama:11434\n";
+    writeFileSync(path.join(directory, ".env"), gammel);
+    const result = run(directory, [], { FIXTURE_FAIL: "klarsprak" });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /peker på Ollama-containeren/);
+    assert.equal(readFileSync(path.join(directory, ".env"), "utf8"), gammel, "En vanlig start skal ikke endre .env");
+    assert.ok(nodeUp(directory).args.includes("--remove-orphans"), "Den gamle containeren skal ryddes");
+  });
+
+  check("--ollama på Linux venter på en Ollama som kommer opp", () => {
+    const directory = makeFixture("ollama-late", false);
+    const result = run(directory, ["--ollama", "-y", "-m", "qwen2.5:0.5b"], { FIXTURE_FAIL: "ollama-late" });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.ok(!events(directory).some(event => ["brew", "open"].includes(event.command) || (event.command === "ollama" && event.args[0] === "serve")),
+      "Utenfor macOS starter tjenestehåndtereren Ollama, ikke skriptet");
+  });
+
   check("--ollama uten Ollama installert peker til ollama.com", () => {
     const directory = makeFixture("ollama-missing", false);
     rmSync(path.join(directory, "bin/ollama"));
@@ -363,8 +427,7 @@ try {
     const directory = makeFixture("ollama-reset");
     const result = run(directory, ["--ollama", "--reset", "-y", "-m", "qwen2.5:0.5b"]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    const stop = index(directory, event => event.command === "docker" && event.args.includes("stop"));
-    assert.ok(index(directory, pull) >= 0 && index(directory, pull) < stop, "Ingen sletting før modellen er lastet ned");
+    assert.ok(index(directory, pull) >= 0 && index(directory, pull) < index(directory, stop), "Ingen sletting før modellen er lastet ned");
     assert.equal(nodeUp(directory).state, false);
   });
 
@@ -374,6 +437,7 @@ try {
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /--ollama ble overstyrt av et lagret admin-valg/);
     assert.ok(!result.stdout.includes("✅ Klar"));
+    assert.equal(readFileSync(path.join(directory, ".env"), "utf8"), "AI_PROVIDER=mock\n", "Et --ollama som feiler skal ikke huskes");
   });
 
   check("--ollama retter en gammel .env som peker på Ollama-containeren", () => {
@@ -382,7 +446,7 @@ try {
     const result = run(directory, ["--ollama", "-y"]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const env = readFileSync(path.join(directory, ".env"), "utf8");
-    assert.match(env, /^OLLAMA_BASE_URL=http:\/\/host\.docker\.internal:11434$/m);
+    assert.doesNotMatch(env, /^OLLAMA_BASE_URL=/m, "Den døde adressen skal ut, så compose-standarden gjelder");
     assert.equal(env.match(/^OLLAMA_MODEL=/gm)?.length, 1, "OLLAMA_MODEL skal byttes, ikke legges til");
     assert.ok(events(directory).some(event => pull(event) && event.args[1] === "qwen2.5:0.5b"));
   });

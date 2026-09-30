@@ -317,6 +317,8 @@ og Windows, og på Linux kjører du installasjonsskriptet på nytt
   `OLLAMA_HOST` med `sudo systemctl edit ollama.service`
   ([Ollama FAQ](https://docs.ollama.com/faq)). `0.0.0.0` er enklest, men Ollama har
   ingen autentisering, så da bør en brannmur stenge porten `11434` mot nettet.
+  `./start.sh --ollama` prøver veien fra en container før den laster ned modellen, og
+  stopper med denne beskjeden hvis den er stengt.
   `ai-gateway` har `extra_hosts: host.docker.internal:host-gateway`, så navnet finnes
   også her.
 

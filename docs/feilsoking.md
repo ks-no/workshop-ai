@@ -147,11 +147,11 @@ maltekst etter at du hentet en ny versjon av repoet.
 i `.env`. Nå kjører Ollama bare på maskinen, og bare med `./start.sh --ollama`.
 Standarden er `mock`. Den gamle containeren og den gamle `.env`-en blir liggende.
 
-**Løsning:** Fjern containeren og modellene den lastet ned, som til sammen kan være
-over 10 GB:
+**Løsning:** `./start.sh` fjerner den gamle containeren selv ved neste start. Starter du
+med `start.bat` eller `docker compose` selv, gjør `docker compose down --remove-orphans`
+det samme. Modellene den lastet ned blir liggende i et volum, og de kan være over 10 GB:
 
 ```bash
-docker compose down --remove-orphans
 docker volume rm workshop-ai_ollama-data    # docker volume ls viser navnet hvis mappen heter noe annet
 ```
 
