@@ -10,57 +10,6 @@ x-helsesjekk: &helsesjekk
 
 # Ports are loopback-only unless BIND_HOST says otherwise - see .env.example.
 services:
-  ollama:
-    image: ollama/ollama:0.34.0
-    ports:
-      - "${BIND_HOST:-127.0.0.1}:11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
-  ollama-pull-selected:
-    image: ollama/ollama:0.34.0
-    profiles: ["pull"]
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - ollama pull "$$OLLAMA_MODEL"
-    volumes:
-      - ollama-data:/root/.ollama
-    restart: "no"
-
-  ollama-pull-all:
-    image: ollama/ollama:0.34.0
-    depends_on:
-      ollama:
-        condition: service_healthy
-    profiles: ["models"]
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODELS=qwen2.5:0.5b qwen2.5:7b qwen2.5:14b llama3.1:8b mistral-nemo
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -e
-        for model in $$OLLAMA_MODELS; do
-          echo "Pulling $$model"
-          ollama pull "$$model"
-        done
-    volumes:
-      - ollama-data:/root/.ollama
-    restart: "no"
-
   process-builder:
     healthcheck:
       <<: *helsesjekk
@@ -247,16 +196,19 @@ services:
     working_dir: /workspace
     command: ["/bin/sh", "scripts/dev.sh", "apps/ai-gateway/src/server.ts"]
     depends_on:
-      ollama:
-        condition: service_healthy
       digdir-mock:
         condition: service_healthy
+    # Ollama runs on the host (./start.sh --ollama), never in this file. Docker
+    # Desktop resolves host.docker.internal by itself; on Linux this line is what
+    # makes the name exist at all.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - BACKEND_BASE_URL=http://sandbox-backend:8080
       - DIGDIR_BASE_URL=http://digdir-mock:8086
       - DIGDIR_ISSUER=${DIGDIR_ISSUER:-http://localhost:8086}
-      - AI_PROVIDER=${AI_PROVIDER:-ollama}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - AI_PROVIDER=${AI_PROVIDER:-mock}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}
@@ -343,6 +295,3 @@ services:
       - "${BIND_HOST:-127.0.0.1}:8084:8084"
     volumes:
       - ./:/workspace
-
-volumes:
-  ollama-data:

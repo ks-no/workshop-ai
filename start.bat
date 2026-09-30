@@ -5,10 +5,10 @@ if errorlevel 1 exit /b 1
 
 rem One-command start for workshop-ai on Windows, without Git Bash or WSL.
 rem
-rem Deliberately smaller than start.sh: it never installs Ollama, never selects a
-rem model from the hardware and never downloads one, so the stack always answers
-rem with template text. Everything else - the port check, .env, --reset, and
-rem waiting until the services actually answer - mirrors start.sh.
+rem Deliberately smaller than start.sh: it always runs with the mock provider and
+rem never verifies a model, so the stack always answers with template text.
+rem Everything else - the port check, .env, --reset, and waiting until the
+rem services actually answer - mirrors start.sh.
 rem
 rem The file is plain ASCII on purpose, and it has no chcp. cmd.exe reads a batch
 rem file in the console code page rather than UTF-8, so Norwegian letters in an
@@ -21,9 +21,8 @@ set DOWN=0
 set RESET=0
 set RECREATE=
 
-rem The eleven Node services. Naming them explicitly keeps the ~4 GB ollama image
-rem out of the pull: it has no compose profile, so a bare "up -d" would start it
-rem even though this script never downloads a model for it to serve.
+rem The eleven Node services. They are started by name with --no-deps, as in
+rem start.sh, so the list must name them all.
 set SERVICES=sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder
 set SERVICE_PORTS=3000 3001 8080 8081 8082 8083 8084 8085 8086 8087 8088
 
@@ -67,11 +66,11 @@ if errorlevel 1 goto compose_failed
 docker compose config --quiet
 if errorlevel 1 goto compose_failed
 
-rem This script never pulls a language model, so anything other than mock would
-rem leave the gateway reaching for a model that is not there - every AI reply
-rem would be template text with nothing saying so. Being explicit makes the
-rem stack honest about what it is. For a real model, use Git Bash or WSL and
-rem run ./start.sh, which detects your hardware and downloads a matching model.
+rem This script never verifies a model, so anything other than mock could leave
+rem the gateway reaching for a model that is not there - every AI reply would be
+rem template text with nothing saying so. Being explicit makes the stack honest
+rem about what it is. For a local model, install Ollama for Windows and run
+rem ./start.sh --ollama from Git Bash, which verifies that the model answers.
 set AI_PROVIDER=mock
 
 rem WATCH_POLL=1 switches scripts/dev.sh to nodemon --legacy-watch so that
@@ -87,7 +86,7 @@ set WATCH_POLL=1
 rem Both variables are set above the --reload branch, not only on the start path.
 rem "up -d" recreates each container from the current environment, so setting
 rem them later would let a reload silently swap working template text for
-rem AI_PROVIDER=ollama out of .env and turn polling back off - and the first code
+rem whatever AI_PROVIDER .env names and turn polling back off - and the first code
 rem change a participant makes would turn into "the model is not connected".
 echo Sjekker forutsetninger ...
 call :check_ports
@@ -139,7 +138,8 @@ echo   KI-spor:              http://localhost:8082/trace
 echo   KI-leverandor:        http://localhost:8082/admin
 echo.
 echo   Ingen modell er koblet til: KI-svarene er ferdigskrevet maltekst.
-echo   Vil du ha en ekte modell, bruk Git Bash eller WSL og start ./start.sh
+echo   Vil du ha en lokal modell: installer Ollama fra https://ollama.com/download
+echo   og start ./start.sh --ollama fra Git Bash.
 echo.
 echo   Har du gjort "pnpm install", lastes kodeendringer inn automatisk.
 echo   Uten den starter alt likevel, men da laster du om selv: start.bat --reload
@@ -178,7 +178,7 @@ exit /b 0
 
 :model_flag
 echo Modellvalg styres ikke herfra: start.bat starter alltid uten modell.
-echo Bruk Git Bash eller WSL: ./start.sh -m MODELL
+echo Installer Ollama og start ./start.sh --ollama -m MODELL fra Git Bash.
 pause
 exit /b 1
 
@@ -262,8 +262,9 @@ echo   --mock      Uten effekt: denne filen starter alltid uten modell
 echo   -d, --down  Stopp og fjern alle containere
 echo   -h, --help  Vis denne hjelpen
 echo.
-echo Vil du ha en ekte modell, bruk Git Bash eller WSL og start ./start.sh
-echo Det skriptet finner maskinvaren din og laster ned en modell som passer.
+echo Vil du ha en lokal modell: installer Ollama fra https://ollama.com/download
+echo og start ./start.sh --ollama fra Git Bash. Det skriptet henter modellen og
+echo sjekker at den svarer.
 goto :eof
 
 :ensure_env
@@ -272,8 +273,6 @@ if exist .env (
     exit /b 0
 )
 if not exist .env.example exit /b 1
-rem Unlike start.sh this copies .env.example verbatim. The two lines that script
-rem rewrites both point at Ollama, and there is no Ollama here to point at.
 copy .env.example .env >nul
 if errorlevel 1 exit /b 1
 echo   opprettet .env fra .env.example

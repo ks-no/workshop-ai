@@ -104,8 +104,8 @@ videredistribusjonen vår egen vurdering og ikke noe avtalen bekrefter.
 
 ## Språkmodeller
 
-`./start.sh` laster ned en modell til Ollama. Modellene har sine egne lisenser og er
-ikke en del av dette repoet:
+`./start.sh --ollama` laster ned en modell til Ollama på maskinen din. Modellene har
+sine egne lisenser og er ikke en del av dette repoet:
 
 | Modell | Lisens |
 |---|---|

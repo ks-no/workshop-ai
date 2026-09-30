@@ -2,11 +2,16 @@
 #
 # One-command start for the innbyggerdialog sandbox.
 #
-# Detects your platform, makes sure a local language model is available,
-# starts the services, and verifies that the model is actually reachable
-# before reporting success.
+# Starts the services and, unless the active AI provider is mock, verifies that
+# the model actually answers before reporting success. Mock is the default.
 #
-# That last step matters: ai-gateway falls back to template text when the
+# --ollama opts in to a local model, and Ollama then runs on the host, never in a
+# container: the ollama/ollama image carries many known CVEs, every image in
+# docker-compose.yml is scanned and reported by sbom-images.yml, and a host install
+# is updated by Ollama itself rather than pinned by us. On macOS it also gets
+# Metal, which Docker Desktop cannot reach.
+#
+# The verification matters: ai-gateway falls back to template text when the
 # model is unreachable, and the responses look perfectly fine. Without an
 # explicit check you cannot tell a working setup from a broken one.
 
@@ -15,24 +20,22 @@ set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Services that run in Docker on every platform.
-# matrikkel-mock must stay in this list: on macOS we start only these by name, and
-# tools-api proxies its three matrikkel_* tools to it over MATRIKKEL_BASE_URL.
+# matrikkel-mock must stay in this list: we start only these by name, with --no-deps,
+# and tools-api proxies its three matrikkel_* tools to it over MATRIKKEL_BASE_URL.
 # Leave it out and those tools fail with "fetch failed" while everything else looks fine.
-# digdir-mock must stay in this list for the same reason as matrikkel-mock: on
-# macOS we start only these by name, and everything that needs a token dials it.
+# digdir-mock must stay in this list for the same reason as matrikkel-mock: we
+# start only these by name, and everything that needs a token dials it.
 # Leave it out and every authenticated call fails while the stack looks healthy.
 NODE_SERVICES=(sandbox-backend fiks-simulator ai-gateway tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock politiattest-mock demo-gui process-builder)
 SERVICE_PORTS=(8080 8081 8082 8083 8084 8085 8086 8087 8088 3000 3001)
-OLLAMA_PORT=11434
 
 MODEL=""
 ASSUME_YES=false
 DOWN=false
 MOCK=false
+OLLAMA=false
 RESET=false
 RELOAD=false
-PROFILE=""
-COMPOSE_FILES=(-f docker-compose.yml)
 
 step() { printf '\n%s\n' "$*"; }
 info() { printf '   %s\n' "$*"; }
@@ -43,36 +46,32 @@ usage() {
   cat <<'EOF'
 Bruk: ./start.sh [VALG]
 
-Starter sandkassen. Plattform, GPU og modell oppdages automatisk - du skal ikke
-trenge noen valg.
+Starter sandkassen. Uten noe annet valgt er KI-leverandøren mock, og da er
+KI-svarene maltekst. Leverandøren velges i .env (AI_PROVIDER) eller på
+http://localhost:8082/admin, og er den noe annet enn mock, sjekker skriptet at
+modellen svarer.
 
 Valg:
-  -m, --model MODELL Bruk en bestemt Ollama-modell i stedet for den automatiske
+      --ollama       Bruk en lokal modell i Ollama på denne maskinen, og husk valget i .env
+  -m, --model MODELL Bruk en bestemt Ollama-modell i stedet for den automatiske (med --ollama)
   -y, --yes          Ikke spør før Ollama installeres eller en modell lastes ned
-      --mock         Kjør uten språkmodell (KI-svarene blir maler)
+      --mock         Bruk mock denne gangen, uansett hva .env sier
       --reset        Stopp Node-tjenestene, sikkerhetskopier og tøm state/, og gjenskap dem
       --reload       Gjenskap Node-containerne med dagens konfigurasjon, og avslutt
   -d, --down         Stopp og fjern alle containere
   -h, --help         Vis denne hjelpen
 
-Anbefalte modeller:
-  qwen2.5:0.5b       Raskest, lavest kvalitet (rundt 400 MB)
-  qwen2.5:7b         Best balanse som standard (rundt 4,7 GB)
-  qwen2.5:14b        Bedre kvalitet hvis du har nok RAM/VRAM (rundt 9 GB)
-  llama3.1:8b        Sterkt alternativ til qwen2.5:7b (rundt 4,9 GB)
-  mistral-nemo       Godt flerspråklig alternativ (rundt 7 GB)
-
-Tips:
-  Skriptet velger modell selv ut fra RAM/VRAM.
-  Bruk --model bare hvis du vil overstyre det valget.
+Ollama kjører på maskinen, ikke i Docker. På macOS installerer skriptet den med
+brew hvis den mangler. Andre steder må den være installert fra
+https://ollama.com/download. Modellen velges ut fra RAM/VRAM:
+  qwen2.5:0.5b       under 12 GB RAM (rundt 400 MB)
+  qwen2.5:7b         12 GB RAM eller mer (rundt 4,7 GB)
+  qwen2.5:14b        32 GB RAM eller mer (rundt 9 GB)
 
 Eksempler:
   ./start.sh                  # bare start
-  ./start.sh -y               # uten spørsmål, nedlastinger inkludert
-  ./start.sh -m qwen2.5:7b    # mindre modell
-  ./start.sh -m qwen2.5:14b   # bedre kvalitet, tyngre
-  ./start.sh -m llama3.1:8b   # annen modellfamilie
-  ./start.sh --mock           # ingen modell - nyttig på dårlig linje
+  ./start.sh --ollama         # med lokal modell
+  ./start.sh --ollama -m qwen2.5:7b
   ./start.sh --reset          # glem alle tidligere demokjøringer
   ./start.sh --reload         # start tjenestene på nytt etter en kodeendring
   ./start.sh -d               # stopp alt
@@ -83,16 +82,17 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --mock)     MOCK=true; shift ;;
+    --ollama)   OLLAMA=true; shift ;;
     -m|--model) MODEL="${2:-}"; [[ -n "$MODEL" && "$MODEL" != -* ]] || fail "--model trenger en verdi"; shift 2 ;;
     -y|--yes)   ASSUME_YES=true; shift ;;
-    --mock)     MOCK=true; shift ;;
     --reset)    RESET=true; shift ;;
     --reload)   RELOAD=true; shift ;;
     -d|--down)  DOWN=true; shift ;;
     -h|--help)  usage; exit 0 ;;
     -g|--gpu|-p|--pull)
-      # Kept so older commands do not break. Both are automatic now.
-      warn "$1 trengs ikke lenger - GPU og modellnedlasting oppdages automatisk"
+      # Kept so older commands do not break.
+      warn "$1 trengs ikke lenger - Ollama kjører på maskinen og tar GPU-en selv"
       shift ;;
     *) printf 'Ukjent valg: %s\n\n' "$1" >&2; usage; exit 1 ;;
   esac
@@ -101,30 +101,21 @@ done
 if { $RESET && $RELOAD; } || { $DOWN && { $RESET || $RELOAD; }; }; then
   fail "--reset, --reload og --down kan ikke kombineres."
 fi
-if [[ -n "$MODEL" ]] && { $MOCK || $RELOAD || $DOWN; }; then
-  fail "--model brukes bare ved oppstart med modell."
+if $OLLAMA && { $MOCK || $RELOAD || $DOWN; }; then
+  fail "--ollama kan ikke kombineres med --mock, --reload eller --down.
+   Valget huskes i .env, så etter første gang holder ./start.sh --reload."
+fi
+if [[ -n "$MODEL" ]] && ! $OLLAMA; then
+  fail "--model brukes bare sammen med --ollama: ./start.sh --ollama -m $MODEL"
 fi
 
-# --- 2. Platform and model --------------------------------------------------
+IS_MAC=false
+if [[ "$(uname -s)" == Darwin ]]; then IS_MAC=true; fi
 
-detect_platform() {
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    # Docker Desktop on macOS cannot reach Metal, so a containerised Ollama
-    # would be CPU-only. We run Ollama natively and only the Node services
-    # in Docker.
-    PROFILE="macos-native"
-  elif command -v nvidia-smi >/dev/null 2>&1 && docker info 2>/dev/null | grep -qi nvidia; then
-    PROFILE="linux-gpu"
-    COMPOSE_FILES+=(-f docker-compose.gpu.yml)
-  elif grep -qi microsoft /proc/version 2>/dev/null; then
-    PROFILE="wsl-cpu"
-  else
-    PROFILE="linux-cpu"
-  fi
-}
+# --- 2. Model ---------------------------------------------------------------
 
 total_ram_gb() {
-  if [[ "$(uname -s)" == "Darwin" ]]; then
+  if $IS_MAC; then
     echo $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))
   else
     awk '/MemTotal/ {printf "%d", $2 / 1024 / 1024}' /proc/meminfo
@@ -179,8 +170,6 @@ model_size() {
     qwen2.5:0.5b) echo "rundt 400 MB" ;;
     qwen2.5:7b)   echo "rundt 4,7 GB" ;;
     qwen2.5:14b)  echo "rundt 9 GB" ;;
-    llama3.1:8b)  echo "rundt 4,9 GB" ;;
-    mistral-nemo) echo "rundt 7 GB" ;;
     *)            echo "ukjent nedlastingsstørrelse" ;;
   esac
 }
@@ -201,7 +190,7 @@ resolve_model() {
     info "valgte $MODEL ut fra $AUTO_REASON"
     if [[ "$MODEL" == "qwen2.5:0.5b" ]]; then
       warn "denne maskinen har lite minne, så den minste modellen ble valgt."
-      warn "den svarer, men kvaliteten er dårlig. --mock er ofte like nyttig."
+      warn "den svarer, men kvaliteten er dårlig. Uten --ollama er det maltekst."
     fi
   fi
 }
@@ -248,7 +237,7 @@ preflight() {
     fail "Docker er installert, men kjører ikke. Start Docker og prøv igjen."
   fi
   docker compose version >/dev/null || fail "Docker Compose v2 mangler."
-  docker compose "${COMPOSE_FILES[@]}" config --quiet || fail "Compose-konfigurasjonen er ugyldig."
+  docker compose config --quiet || fail "Compose-konfigurasjonen er ugyldig."
 
   local conflicts=()
   local p
@@ -272,15 +261,36 @@ ensure_env() {
     return
   fi
   [[ -f .env.example ]] || fail ".env.example mangler i repoet."
-
-  local base_url="http://ollama:11434"
-  [[ "$PROFILE" == "macos-native" ]] && base_url="http://host.docker.internal:11434"
-
   cp .env.example .env
-  sed -i.bak -E "s|^OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=${base_url}|" .env
-  sed -i.bak -E "s|^OLLAMA_MODEL=.*|OLLAMA_MODEL=${MODEL}|" .env
-  rm -f .env.bak
-  info "opprettet .env som peker på ${base_url}"
+  info "opprettet .env fra .env.example"
+}
+
+# Replace KEY=... in .env, or append it. Only called for an explicit --ollama, so
+# the choice survives a plain --reload, which recreates ai-gateway from .env.
+set_env_value() {
+  if grep -qE "^${1}=" .env; then
+    sed -i.bak -E "s|^${1}=.*|${1}=${2}|" .env && rm -f .env.bak
+  else
+    printf '%s=%s\n' "$1" "$2" >> .env
+  fi
+}
+
+# The value every earlier start.sh wrote on Linux and WSL, pointing at the
+# container this repo no longer has.
+OLD_OLLAMA_URL=http://ollama:11434
+stale_ollama_url() { [[ "$(env_value OLLAMA_BASE_URL)" == "$OLD_OLLAMA_URL" ]]; }
+
+# Only once --ollama has succeeded: a run that stops halfway must leave .env as it was.
+# The stale URL is deleted rather than replaced, so the default in
+# docker-compose.yml stays the one place that says where the host is.
+remember_ollama() {
+  set_env_value AI_PROVIDER ollama
+  set_env_value OLLAMA_MODEL "$MODEL"
+  if stale_ollama_url; then
+    sed -i.bak -E "/^OLLAMA_BASE_URL=/d" .env && rm -f .env.bak
+    info "fjernet OLLAMA_BASE_URL=$OLD_OLLAMA_URL fra .env - den pekte på den gamle Ollama-containeren"
+  fi
+  info "husket i .env: AI_PROVIDER=ollama, OLLAMA_MODEL=$MODEL"
 }
 
 # Called only after all Node writers have stopped. Include hidden files and
@@ -312,7 +322,7 @@ reset_state() {
   [[ ! -L state ]] || fail "state/ er en symbolsk lenke. Avbryter uten å slette."
   [[ ! -e state || -d state ]] || fail "state/ er ikke en mappe. Avbryter uten å slette."
   step "🛑 Stopper alle Node-tjenester før nullstilling"
-  docker compose "${COMPOSE_FILES[@]}" stop "${NODE_SERVICES[@]}" \
+  docker compose stop "${NODE_SERVICES[@]}" \
     || fail "Kunne ikke stoppe tjenestene. state/ er ikke slettet."
   backup_state
   rm -rf -- state || fail "Kunne ikke tømme state/. Tjenestene er fortsatt stoppet."
@@ -325,11 +335,6 @@ confirm() {
   read -r _ || true
 }
 
-# --- 5. Ollama --------------------------------------------------------------
-
-# Both profiles publish Ollama on localhost:11434, so one check covers each.
-ollama_up() { curl -fsS -m 2 "http://localhost:${OLLAMA_PORT}/api/tags" >/dev/null 2>&1; }
-
 wait_for() { # wait_for FUNCTION TIMEOUT_SECONDS MESSAGE
   local fn="$1" timeout="$2" msg="$3" i=0
   while (( i < timeout )); do
@@ -340,14 +345,50 @@ wait_for() { # wait_for FUNCTION TIMEOUT_SECONDS MESSAGE
   fail "$msg"
 }
 
-ensure_ollama_native() {
-  if ! command -v ollama >/dev/null 2>&1 && [[ ! -d /Applications/Ollama.app ]]; then
-    command -v brew >/dev/null 2>&1 || fail "Ollama er ikke installert. Hent den fra https://ollama.com/download og kjør ./start.sh igjen."
+# --- 5. Ollama on the host --------------------------------------------------
+
+# The CLI rather than curl on localhost:11434: it reaches the server wherever it
+# is local to the CLI, which is also true for Ollama for Windows under Git Bash.
+ollama_up() { ollama list >/dev/null 2>&1; }
+
+# An ollama container from an older start.sh publishes 127.0.0.1:11434, so it
+# would answer every check below in place of the host Ollama - and keep a host
+# Ollama from binding the port. Matched on this project's labels, so an ollama
+# service in someone's other Compose project is never touched.
+remove_old_ollama_container() {
+  local project ids
+  project="$(docker compose config 2>/dev/null | awk '/^name:/ {print $2; exit}')"
+  [[ -n "$project" ]] || return 0
+  ids="$(docker ps -aq --filter "label=com.docker.compose.project=$project" \
+    --filter label=com.docker.compose.service=ollama 2>/dev/null)"
+  [[ -n "$ids" ]] || return 0
+  info "fjerner Ollama-containeren en eldre start.sh startet"
+  # shellcheck disable=SC2086 # one id per word
+  docker rm -f $ids >/dev/null
+}
+
+ensure_ollama() {
+  if ! command -v ollama >/dev/null 2>&1; then
+    local hent="Ollama er ikke installert. Hent den fra https://ollama.com/download og kjør ./start.sh --ollama igjen."
+    $IS_MAC || fail "$hent"
+    [[ ! -d /Applications/Ollama.app ]] \
+      || fail "Ollama.app finnes, men kommandoen ollama mangler. Åpne Ollama én gang, så legger den inn kommandoen."
+    command -v brew >/dev/null 2>&1 || fail "$hent"
     confirm "Ollama er ikke installert. Dette kjører: brew install ollama"
     brew install ollama
   fi
 
   ollama_up && { info "Ollama kjører"; return; }
+
+  # Not failing at once: ollama.service restarts every few seconds, and it may just
+  # have got port 11434 back from the container removed above. Starting it is
+  # left to the service manager here; only macOS gets a start below.
+  if ! $IS_MAC; then
+    wait_for ollama_up 10 "Ollama er installert, men svarer ikke. Start den og prøv igjen:
+   Linux: sudo systemctl start ollama    Windows: start Ollama fra Start-menyen"
+    info "Ollama kjører"
+    return
+  fi
 
   info "Ollama svarer ikke - starter den"
   if command -v brew >/dev/null 2>&1 && brew list ollama >/dev/null 2>&1; then
@@ -361,24 +402,21 @@ ensure_ollama_native() {
   wait_for ollama_up 30 "Ollama kom ikke opp innen 30 sekunder. Prøv: brew services start ollama"
 }
 
-ensure_ollama_container() {
-  docker compose "${COMPOSE_FILES[@]}" up -d ollama
-  wait_for ollama_up 60 "Ollama-containeren ble ikke tilgjengelig på port ${OLLAMA_PORT}."
+# Answering the CLI on loopback says nothing about the container, and Linux Ollama
+# listens on 127.0.0.1 only. So ask from ai-gateway itself - its network,
+# extra_hosts and OLLAMA_BASE_URL - before a download of up to 9 GB.
+ensure_ollama_reachable() {
+  docker compose run --rm --no-deps -T ai-gateway \
+    sh -c 'wget -q -O /dev/null -T 3 "$OLLAMA_BASE_URL/api/version"' >/dev/null 2>&1 && return
+  fail "Ollama svarer på maskinen, men ikke fra ai-gateway-containeren.
+   På Linux lytter Ollama bare på 127.0.0.1. Sett OLLAMA_HOST med
+     sudo systemctl edit ollama.service
+   Står OLLAMA_BASE_URL i .env, må containeren nå den adressen.
+   Se apps/ai-gateway/README.md, og kjør ./start.sh --ollama igjen."
 }
 
-model_present() {
-  local want="$MODEL"
-  [[ "$want" == *:* ]] || want="${want}:latest"
-  curl -fsS -m 5 "http://localhost:${OLLAMA_PORT}/api/tags" 2>/dev/null | grep -q "\"${want}\""
-}
-
-pull_model() {
-  if [[ "$PROFILE" == "macos-native" ]]; then
-    ollama pull "$MODEL"
-  else
-    docker compose "${COMPOSE_FILES[@]}" exec -T ollama ollama pull "$MODEL"
-  fi
-}
+# A bare name means :latest, the same way ollama pull reads it.
+model_present() { ollama show "$MODEL" >/dev/null 2>&1; }
 
 # The model is fetched before the services start. If it were pulled after,
 # ai-gateway would be live and silently answering with template text for the
@@ -389,29 +427,20 @@ ensure_model() {
     return
   fi
   confirm "Modellen $MODEL er ikke lastet ned ennå ($(model_size "$MODEL")). Dette henter den."
-  pull_model
+  ollama pull "$MODEL"
   model_present || fail "Modellen $MODEL er fortsatt ikke tilgjengelig etter nedlastingen."
 }
 
 # --- 6. Services ------------------------------------------------------------
 
+# --no-deps, as start.bat also does: wait_for_services polls every service itself, so
+# NODE_SERVICES must name them all. --remove-orphans takes down the ollama
+# container an older start.sh left running; it holds port 11434, where a host
+# Ollama needs to listen.
 start_services() {
-  local args=(up -d)
+  local args=(up -d --remove-orphans)
   if $RESET || $RELOAD; then args+=(--force-recreate); fi
-  if [[ "$PROFILE" == "macos-native" ]] || $MOCK; then
-    # --no-deps because ai-gateway depends_on the ollama container, which we
-    # deliberately do not use here: on macOS Ollama runs natively on the host,
-    # and with --mock no model is used at all. Naming the services explicitly is
-    # what keeps the 4 GB ollama image from being pulled - it has no profile, so
-    # a bare "up -d" would start it even under --mock, on exactly the bad
-    # connection that flag exists for.
-    docker compose "${COMPOSE_FILES[@]}" "${args[@]}" --no-deps "${NODE_SERVICES[@]}"
-  elif $RESET || $RELOAD; then
-    # Name only the Node services so --force-recreate never restarts Ollama.
-    docker compose "${COMPOSE_FILES[@]}" "${args[@]}" "${NODE_SERVICES[@]}"
-  else
-    docker compose "${COMPOSE_FILES[@]}" up -d
-  fi
+  docker compose "${args[@]}" --no-deps "${NODE_SERVICES[@]}"
 }
 
 services_healthy() {
@@ -437,16 +466,27 @@ json_field() { # json_field FIELD <<<JSON  -> the string value, unquoted
 
 # ai-gateway's active provider is whatever /admin last set, which can differ
 # from AI_PROVIDER in .env and survives a restart (state/ai-provider-override.json).
-# Ask it, rather than assuming ollama - the warning at the bottom used to
-# hardcode "Ollama is NOT connected" even when the active provider was Bedrock.
+# Ask it, rather than assuming - the warning at the bottom used to hardcode
+# "Ollama is NOT connected" even when the active provider was Bedrock.
+# Empty when /helse cannot be read. || true keeps that from ending the script
+# under set -e wherever the result is assigned.
 active_provider() {
-  curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider
+  curl -fsS -m 5 http://localhost:8082/helse 2>/dev/null | json_field provider || true
 }
 
-verify_mock() {
-  [[ "$(active_provider)" == mock ]] || fail "--mock ble overstyrt av et lagret admin-valg, eller KI-statusen kunne ikke leses.
-   Velg mock på http://localhost:8082/admin og prøv igjen.
-   Vil du nullstille hele kjøringen, bruk ./start.sh --mock --reset."
+verify_provider() { # verify_provider mock|ollama - against PROVIDER, read once
+  [[ "$PROVIDER" == "$1" ]] || fail "--$1 ble overstyrt av et lagret admin-valg, eller KI-statusen kunne ikke leses.
+   Velg $1 på http://localhost:8082/admin og prøv igjen.
+   Vil du nullstille hele kjøringen, bruk ./start.sh --$1 --reset."
+}
+
+# Shared by --reload and a normal start, so the two cannot drift apart again.
+# AI_PROVIDER is exported exactly when --mock or --ollama asked for one.
+start_and_verify() {
+  start_services
+  wait_for_services
+  PROVIDER="$(active_provider)"
+  if $MOCK || $OLLAMA; then verify_provider "$AI_PROVIDER"; fi
 }
 
 # A real call, not just /helse: /helse's bedrock/openrouter/telenor-ai-factory check only
@@ -483,71 +523,59 @@ verify_llm() {
 
 # --- Run --------------------------------------------------------------------
 
-detect_platform
-
 if $DOWN; then
   step "🛑 Stopper workshop-ai"
-  docker compose "${COMPOSE_FILES[@]}" down -t 0
+  docker compose down -t 0
   printf '\n✅ Stoppet.\n\n'
   exit 0
 fi
 
+# Above the --reload branch: "up -d" recreates the container from the current
+# environment, so a --mock --reload would otherwise swap in whatever .env names.
+if $MOCK; then export AI_PROVIDER=mock; fi
+
 if $RELOAD; then
   step "🔄 Laster Node-tjenestene på nytt"
-  # --mock has to be exported here too, not only on the start path below, which
-  # this branch exits before reaching. "up -d" recreates the container from the
-  # current environment, so without this line a --mock --reload silently swaps
-  # working template text for AI_PROVIDER=ollama out of .env - and the first
-  # code change a participant makes turns into "the model is not connected".
-  if $MOCK; then
-    export AI_PROVIDER=mock
-  fi
   preflight
-  start_services
-  wait_for_services
-  if $MOCK; then verify_mock; fi
+  start_and_verify
   info "alle ${#NODE_SERVICES[@]} tjenestene er lastet på nytt"
   printf '\n✅ Klar - kodeendringene er i drift.\n\n'
   exit 0
 fi
 
 step "🚀 Starter workshop-ai"
-info "Plattform: $PROFILE"
-
-if $MOCK; then
-  export AI_PROVIDER=mock
-  info "Modell:    ingen (--mock)"
-else
+if $OLLAMA; then
   resolve_model
-  export OLLAMA_MODEL="$MODEL"
-  info "Modell:    $MODEL"
+  export AI_PROVIDER=ollama OLLAMA_MODEL="$MODEL"
+  info "Modell: $MODEL i Ollama på denne maskinen"
 fi
 
 step "🔎 Sjekker forutsetninger"
 preflight
 ensure_env
 
-if ! $MOCK; then
-  step "🦙 Klargjør språkmodellen"
-  case "$PROFILE" in
-    macos-native) ensure_ollama_native ;;
-    *)            ensure_ollama_container ;;
-  esac
+if $OLLAMA; then
+  step "🦙 Klargjør Ollama"
+  remove_old_ollama_container
+  ensure_ollama
+  # Empty, so compose falls back to its own default - the address remember_ollama
+  # leaves once the dead one is deleted.
+  if stale_ollama_url; then export OLLAMA_BASE_URL=; fi
+  ensure_ollama_reachable
   ensure_model
 fi
 
-# Do downloads and configuration checks before stopping writers or clearing data.
+# Downloads and configuration checks come before stopping writers or clearing data.
 if $RESET; then reset_state; fi
 
 step "📦 Starter tjenestene"
-start_services
-wait_for_services
-if $MOCK; then verify_mock; fi
+start_and_verify
+if $OLLAMA; then remember_ollama; fi
 info "alle ${#NODE_SERVICES[@]} tjenestene svarer"
 
 LLM_OK=false
 VERIFIED_MODEL=""
-if ! $MOCK; then
+if [[ "$PROVIDER" != mock ]]; then
   step "🔌 Verifiserer at modellen er koblet til"
   if verify_llm; then
     LLM_OK=true
@@ -573,12 +601,13 @@ printf '\n   Når KI-en ser feil ut:\n'
 printf '   🔍 KI-spor:           http://localhost:8082/trace\n'
 printf '   🔀 KI-leverandør:     http://localhost:8082/admin\n'
 
-if $MOCK; then
-  printf '\n   ⚠️  Kjører med --mock: KI-svarene er ferdigskrevet maltekst, ikke en modell.\n'
+if [[ "$PROVIDER" == mock ]]; then
+  printf '\n   ⚠️  KI-leverandøren er mock: svarene er ferdigskrevet maltekst, ikke en modell.\n'
+  printf '       Lokal modell: ./start.sh --ollama. Andre leverandører: http://localhost:8082/admin.\n'
 elif ! $LLM_OK; then
-  # The active provider is whatever /admin last set - not necessarily ollama -
-  # so the warning below names the provider actually configured, not a fixed guess.
-  case "$(active_provider)" in
+  # The active provider is whatever /admin last set, so the warning below names
+  # the provider actually configured, not a fixed guess.
+  case "$PROVIDER" in
     bedrock)
       printf '\n   ⚠️  Leverandøren er satt til AWS Bedrock, men den svarte ikke. Svarene ser\n'
       printf '       normale ut, men kommer fra maler. Sjekk legitimasjon og modelltilgang\n'
@@ -595,9 +624,18 @@ elif ! $LLM_OK; then
       printf '       Svarene ser normale ut, men kommer fra maler. Sjekk API-nøkkelen\n'
       printf '       og modelltilgangen på http://localhost:8082/admin.\n'
       ;;
-    ollama|"")
-      printf '\n   ⚠️  Ollama er IKKE koblet til. Svarene ser normale ut, men kommer fra\n'
-      printf '       maler. Sjekk at Ollama kjører, og start på nytt.\n'
+    ollama)
+      if stale_ollama_url; then
+        printf '\n   ⚠️  .env peker på Ollama-containeren, som ikke finnes lenger\n'
+        printf '       (OLLAMA_BASE_URL=%s). Svarene kommer fra maler.\n' "$OLD_OLLAMA_URL"
+        printf '       ./start.sh --ollama bruker Ollama på maskinen og retter .env, og\n'
+        printf '       AI_PROVIDER=mock i .env gir maltekst uten advarsel.\n'
+      else
+        printf '\n   ⚠️  Leverandøren er satt til Ollama, men den svarte ikke. Svarene ser normale\n'
+        printf '       ut, men kommer fra maler. ./start.sh --ollama starter Ollama og henter\n'
+        printf '       modellen. På Linux lytter Ollama bare på 127.0.0.1, så containeren når den\n'
+        printf '       ikke før OLLAMA_HOST er satt - se apps/ai-gateway/README.md.\n'
+      fi
       ;;
     *)
       printf '\n   ⚠️  Den aktive leverandøren svarte ikke. Svarene ser normale ut, men\n'

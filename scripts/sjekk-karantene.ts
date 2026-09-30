@@ -215,7 +215,8 @@ async function pakkePublisert(navn: string, versjon: string): Promise<string> {
 
 const grenseMs = lesGrenseMs(readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8"));
 const basisSha = basis();
-const endredeFiler = git("diff", "--name-only", basisSha)
+// --diff-filter=d: a deleted file has nothing to read and cannot add a version.
+const endredeFiler = git("diff", "--name-only", "--diff-filter=d", basisSha)
   .split("\n")
   .filter((sti) => /(^|\/)docker-compose[^/]*\.ya?ml$/.test(sti) || /(^|\/)package\.json$/.test(sti));
 

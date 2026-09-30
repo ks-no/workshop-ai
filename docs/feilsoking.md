@@ -14,9 +14,9 @@ om modellen er koblet på. De tre raskeste sjekkene står i
 | [Alt svarer 401](#alt-svarer-401) | Hvert autentisert kall svarer `401`, også kall som virket i går |
 | [401 etter at `state/` ble tømt](#401-etter-at-state-ble-tømt) | Alt virket, du nullstilte, og nå er alt `401` igjen |
 | [«fetch failed» på matrikkel-oppslag](#fetch-failed-på-matrikkel-oppslag) | Gate- eller eiendomsoppslag feiler, gjerne uten nett |
-| [Maltekst du ikke ba om](#maltekst-du-ikke-ba-om) | KI-svarene er generiske, og du kjørte ikke med `--mock` |
+| [Maltekst du ikke ba om](#maltekst-du-ikke-ba-om) | KI-svarene er generiske, selv om du har valgt en modell |
 | [Modellkall henger eller tar lang tid](#modellkall-henger-eller-tar-lang-tid) | Et steg står og spinner |
-| [Treg eller manglende modellnedlasting](#treg-eller-manglende-modellnedlasting) | Oppstart kommer ikke videre, typisk på delt nett |
+| [Gammel Ollama-container etter oppdatering](#gammel-ollama-container-etter-oppdatering) | Compose advarer om «orphan containers», eller KI-en ble maltekst etter en `git pull` |
 | [Port opptatt](#port-opptatt) | Oppstart stopper med at en port er i bruk |
 | [Container som ikke blir healthy](#container-som-ikke-blir-healthy) | `docker compose ps` viser noe annet enn `healthy` |
 | [«Cannot find module» i en container](#cannot-find-module-i-en-container) | En tjeneste krasjer ved oppstart |
@@ -70,14 +70,14 @@ skal forbli gyldige. `./start.sh --reset` starter alt på nytt og treffer det he
 ikke.
 
 **Løsning:** Gjenskap alle Node-containerne, også tokenutstederen og leserne av
-signeringsnøkkelen. Behold mock-modus hvis det var den du brukte:
+signeringsnøkkelen:
 
 ```bash
-./start.sh --mock --reload
+./start.sh --reload
 export TOKEN=$(node scripts/token.ts --innbygger person-001)
 ```
 
-Bruk `./start.sh --reload` med modell. Hent nytt token i egne klienter også.
+Hent nytt token i egne klienter også.
 Nullstilling den trygge veien: se «Nullstille» nederst i denne filen.
 
 ## «fetch failed» på matrikkel-oppslag
@@ -102,7 +102,7 @@ på nett. Se «Manuell oppstart» i [`README.md`](../README.md) for hele tjenest
 
 ## Maltekst du ikke ba om
 
-**Symptom:** KI-svarene er maltekst selv om du startet med modell - eller motsatt: en
+**Symptom:** KI-svarene er maltekst selv om du har valgt en modell - eller motsatt: en
 oppstart med `--mock` stopper fordi admin-valget overstyrer den.
 
 **Årsak:** To muligheter, i denne rekkefølgen:
@@ -121,7 +121,7 @@ curl -s http://localhost:8082/helse
 
 Er `modellNaaBar` `false`, sier et `feil`-felt hvorfor. Velg riktig provider i
 <http://localhost:8082/admin> - byttet gjelder umiddelbart, uten omstart. Vil du
-fjerne admin-valget helt, nullstiller `./start.sh --mock --reset` filen - se
+fjerne admin-valget helt, nullstiller `./start.sh --reset` filen - se
 «Nullstille» nederst.
 
 ## Modellkall henger eller tar lang tid
@@ -135,25 +135,32 @@ i stedet for å henge evig.
 **Løsning:** Vent - opptil et minutt på et oppsummeringssteg er normalt på en liten
 maskin. Se hva modellen faktisk fikk og svarte på <http://localhost:8082/trace>.
 Går det alltid til timeout: sjekk `modellNaaBar` på `:8082/helse`, eller velg en
-mindre modell med `./start.sh -m qwen2.5:0.5b`.
+mindre modell med `./start.sh --ollama -m qwen2.5:0.5b` - se
+[«Lokal modell med Ollama»](../apps/ai-gateway/README.md#lokal-modell-med-ollama).
 
-## Treg eller manglende modellnedlasting
+## Gammel Ollama-container etter oppdatering
 
-**Symptom:** `./start.sh` står lenge på nedlasting, eller kommer aldri i mål.
+**Symptom:** `docker compose` advarer om «orphan containers», eller KI-svarene ble
+maltekst etter at du hentet en ny versjon av repoet.
 
-**Årsak:** Språkmodellen er fra 400 MB til 9 GB, og delt konferansenett gjør det
-verre.
+**Årsak:** Sandkassen startet før Ollama i en container og satte `AI_PROVIDER=ollama`
+i `.env`. Nå kjører Ollama bare på maskinen, og bare med `./start.sh --ollama`.
+Standarden er `mock`. Den gamle containeren og den gamle `.env`-en blir liggende.
 
-**Løsning:** `./start.sh --mock` er redningen: alt annet enn KI-teksten er ekte, og
-ingen modell eller Ollama-image lastes ned. Docker kan fortsatt måtte hente
-Node-imaget første gang. Andre utveier:
+**Løsning:** `./start.sh` fjerner den gamle containeren selv ved neste start. Starter du
+med `start.bat` eller `docker compose` selv, gjør `docker compose down --remove-orphans`
+det samme. Modellene den lastet ned blir liggende i et volum, og de kan være over 10 GB:
 
-- Velg en liten modell: `./start.sh -m qwen2.5:0.5b`.
-- Forhåndslast alle anbefalte modeller mens nettet er godt:
-  `docker compose --profile models up ollama-pull-all`.
-- På macOS kjører Ollama nativt, så `ollama pull qwen2.5:14b` fungerer også direkte.
+```bash
+docker volume rm workshop-ai_ollama-data    # docker volume ls viser navnet hvis mappen heter noe annet
+```
 
-Se «Hvordan starte den» i [`README.md`](../README.md) for modellvalget og tidsbruken.
+Står det fortsatt `OLLAMA_BASE_URL=http://ollama:11434` i `.env`, peker den på
+containeren du nettopp fjernet. `./start.sh --ollama` retter den og bruker Ollama på
+maskinen i stedet - se
+[«Lokal modell med Ollama»](../apps/ai-gateway/README.md#lokal-modell-med-ollama).
+Vil du heller ha maltekst, sett `AI_PROVIDER=mock`. Kjørte du Ollama på macOS, virker
+den som før.
 
 ## Port opptatt
 
@@ -161,7 +168,7 @@ Se «Hvordan starte den» i [`README.md`](../README.md) for modellvalget og tids
 in use».
 
 **Årsak:** Noe annet lytter på en av portene sandkassen bruker: `3000`, `3001`,
-`8080`–`8088`, og `11434` når Ollama kjører i container (Linux/WSL). Ofte er det en
+`8080`–`8088`. Ofte er det en
 gammel kjøring av sandkassen selv, eller en annen utviklingsserver på `3000`/`3001`.
 
 **Løsning:** Stopp en gammel kjøring først:
@@ -216,8 +223,8 @@ ikke SDK-en for å starte - ser du pakkenavnet derfra, er provideren satt til
 
 **Årsak:** Skriptet er bash.
 
-**Løsning:** Kjør det fra Git Bash eller WSL - da får du plattformdeteksjon,
-modellvalg og verifisering av at modellen svarer. `start.bat` finnes som nødløsning:
+**Løsning:** Kjør det fra Git Bash eller WSL - da får du `--ollama` og en sjekk av at
+modellen svarer. `start.bat` finnes som nødløsning:
 den sjekker porter og venter til tjenestene svarer på `/helse`, men den kjører alltid
 uten språkmodell. Den setter `WATCH_POLL=1`, slik at kodeendringer plukkes opp med polling -
 filsystemhendelser når ikke gjennom Docker Desktops volummontering fra
@@ -232,12 +239,12 @@ og tokenklienten, og `data/`. Uten nodemon varsler loggen om at polling mangler.
 Ved Compose-endringer, eller dersom watcheren ikke oppdager en lagring:
 
 ```bash
-./start.sh --mock --reload     # eller --reload uten --mock med modell
+./start.sh --reload
 ```
 
 I cmd: `start.bat --reload`. Dette bruker `--force-recreate`, så også en container
 med uendret konfigurasjon får en ny prosess. `state/` og signeringsnøkkelen beholdes;
-agentøkter som bare lå i minnet blir borte. Ollama på macOS røres ikke.
+agentøkter som bare lå i minnet blir borte.
 
 ## Nullstille
 
@@ -250,14 +257,8 @@ vil begynne på nytt.
 **Løsning:**
 
 ```bash
-./start.sh --mock --reset      # kjørte du --mock
-./start.sh --reset             # kjørte du med modell
+./start.sh --reset
 ```
-
-**Fella:** `--reset` er ikke bare en reset - den tømmer `state/` og starter deretter
-alt på vanlig måte, *inkludert modellnedlasting*. Ta derfor med `--mock` hvis du
-kjørte med `--mock`, ellers begynner den å laste ned flere gigabyte. Se «Valg» i
-[`README.md`](../README.md).
 
 Nullstillingen stopper alle Node-tjenestene før den leser sikkerhetskopien, og
 gjenskaper containerne etter sletting. Den fjerner også admin-valget
@@ -275,8 +276,7 @@ Stopp egne skrivende tjenester utenfor Compose før nullstilling. På Windows gj
 **Fant du ikke symptomet ditt?** `docker compose logs -f <tjeneste>` og
 <http://localhost:8082/trace> er de to beste kildene til hva som faktisk skjedde.
 [`docs/deltakerstart.md`](deltakerstart.md) §5 har de tre raske sjekkene, og
-[`README.md`](../README.md) har manuell oppstart og modellvalg under «Hvordan starte
-den».
+[`README.md`](../README.md) har manuell oppstart under «Hvordan starte den».
 
 ---
 

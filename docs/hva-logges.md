@@ -110,15 +110,13 @@ den kunne hvilken som helst nettside i nettleseren din lese den.
   `start.bat --reset` det samme, uten modell.
 - **`--reset` tar en kopi først,** i en ny katalog under `_backup/`, slik at KI-sporet
   ikke går tapt bare fordi noen ryddet opp. Signeringsnøkkelen kopieres ikke.
-  Feiler stopp eller kopiering, slettes ikke `state/`. Ollama og nedlastede modeller
-  beholdes. Ta med `--mock` på `start.sh` hvis du ikke vil klargjøre en modell.
+  Feiler stopp eller kopiering, slettes ikke `state/`.
   [`_backup/README.md`](../_backup/README.md) forklarer katalogen.
 - **`./start.sh --reload` og `docker compose down` sletter ingenting.** `state/` ligger
   på din egen maskin gjennom bind-mounten, ikke inne i containerne.
 - Vil du bare bli kvitt én fil, stopp først tjenestene som skriver til `state/`,
   også eventuelle prosesser du har startet utenfor Compose. Slett filen og
-  gjenskap Node-containerne med `./start.sh --mock --reload` (uten `--mock` med
-  modell). Filbaserte lesere faller tilbake til `data/` når filen mangler; buffere
+  gjenskap Node-containerne med `./start.sh --reload`. Filbaserte lesere faller tilbake til `data/` når filen mangler; buffere
   i minnet tømmes først ved omstart. Se
   [`docs/syntetiske-data.md`](syntetiske-data.md) om hvordan `state/` skygger for
   `data/`, og [`docs/feilsoking.md`](feilsoking.md) om tokenene som slutter å virke.

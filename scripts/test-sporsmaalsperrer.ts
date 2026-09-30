@@ -286,7 +286,7 @@ check("satser navngis med dato", grunnlag.kilder.some((kilde) => kilde.includes(
 //
 // callOllama used to take (prompt, temperature, signal) while the remote
 // providers took a systemMessage in third place. callModel passed the system
-// message to every provider, so on Ollama - the workshop default - it landed in the
+// message to every provider, so on Ollama - then the workshop default - it landed in the
 // `signal` slot and vanished. SYSTEM_JSON ("return only valid JSON, no code
 // fences") was therefore a no-op for exactly the three callers that parse the
 // reply as JSON.

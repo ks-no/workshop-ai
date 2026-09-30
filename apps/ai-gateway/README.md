@@ -104,19 +104,19 @@ Se `ai-no-decisions` i `policies/ai-policy.yaml`.
 
 Provider-modus:
 
-- `AI_PROVIDER=mock` (kodens default, ingen ekstern modell - men se under)
-- `AI_PROVIDER=ollama` (lokal gratis modell via Ollama, kjørt i Docker Compose)
+- `AI_PROVIDER=mock` (standard, ingen ekstern modell)
+- `AI_PROVIDER=ollama` (lokal modell i Ollama på maskinen - se «Lokal modell med Ollama» under)
 - `AI_PROVIDER=openrouter` (billige/gratis modeller via OpenRouter)
 - `AI_PROVIDER=telenor-ai-factory` (Telenor AI Factory via et OpenAI-kompatibelt LiteLLM-endepunkt)
 - `AI_PROVIDER=bedrock` (AWS Bedrock, Anthropic-modeller - se eget avsnitt under)
 
-Merk at kodens default er `mock`, men både `.env.example` og `docker-compose.yml`
-setter `ollama`. Siden `./start.sh` kopierer `.env.example` til `.env`, er den
-effektive standarden i en kjørende sandkasse `ollama`.
+Standarden er `mock` i koden, i `docker-compose.yml` og i `.env.example`, og
+`pnpm test:startup` sjekker at de tre er like.
 
 Valgfrie miljovariabler:
 
-- `OLLAMA_BASE_URL` (standard `http://localhost:11434`)
+- `OLLAMA_BASE_URL` (standard `http://host.docker.internal:11434` i
+  `docker-compose.yml`, og `http://localhost:11434` når tjenesten kjøres utenfor Docker)
 - `OLLAMA_MODEL` (standard `qwen2.5:7b`)
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (standard `mistralai/mistral-7b-instruct:free`)
@@ -271,13 +271,9 @@ curl -s "http://localhost:8082/trace.json?task=oppsummering&limit=1"
 ## Timeout
 
 Alle kall mot modellen avbrytes etter `AI_TIMEOUT_MS` (standard 180000). Uten det henger
-et kall ubestemt når Ollama er treg eller halvveis oppe, og det ser ut som at sandkassen
-har hengt seg. Ved timeout får du vanlig fallback med
+et kall ubestemt når modellen er treg eller halvveis oppe, og det ser ut som at
+sandkassen har hengt seg. Ved timeout får du vanlig fallback med
 `advarsel: "Provider ollama feilet: Modellen svarte ikke innen 180000 ms"`.
-
-Vanligste årsak på macOS: Ollama har stoppet. `ollama serve` kjørt manuelt i en terminal
-dør når vinduet lukkes - bruk `brew services start ollama` og sjekk med
-`brew services list | grep ollama`.
 
 ## Legge til en ny provider
 
@@ -291,54 +287,45 @@ kopier slik det var før.
 `checkProvider` og i fire fallback-strenger, så en ny provider berører flere steder enn
 dette avsnittet lover. Å samle dem i én tabell er en avgrenset opprydding.
 
-## macOS: kjør Ollama nativt
-
-`docker compose up` starter Ollama i en container, som ikke får Metal-tilgang på Apple
-Silicon og bare ser Docker-VM-ens minne. `docker-compose.gpu.yml` er NVIDIA-only og har
-ingen effekt. Kjør heller Ollama nativt og resten i Docker:
+## Lokal modell med Ollama
 
 ```bash
-brew services start ollama
-ollama pull qwen2.5:14b
-# .env: AI_PROVIDER=ollama, OLLAMA_BASE_URL=http://host.docker.internal:11434
-docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  tools-api process-agent matrikkel-mock digdir-mock demo-gui process-builder
+./start.sh --ollama                  # modellen velges ut fra RAM/VRAM
+./start.sh --ollama -m qwen2.5:7b    # eller en bestemt modell
 ```
 
-`--no-deps` er nødvendig fordi `ai-gateway` har `depends_on: ollama`, som ellers drar
-opp container-Ollama likevel. Men det slår av `depends_on` for alle, så `digdir-mock`
-må navngis eksplisitt - uten den svarer hvert autentisert kall `401`.
+Skriptet sjekker at Ollama kjører, henter modellen hvis den mangler, og skriver
+`AI_PROVIDER=ollama` og `OLLAMA_MODEL` i `.env`. Valget blir altså husket, og en vanlig
+`./start.sh` eller `--reload` bruker det videre. `./start.sh --mock` er mock én gang, og
+`AI_PROVIDER=mock` i `.env` slår det av for godt.
 
-Enklere: `./start.sh` gjør dette, med riktig liste.
+**Ollama kjører på maskinen, aldri i Docker.** `ollama/ollama`-imaget har mange kjente
+sårbarheter, alt i `docker-compose.yml` blir skannet og rapportert av
+`sbom-images.yml`, og en pinnet tagg blir oppdatert først når vi bumper den. En Ollama på maskinen oppdaterer seg selv på macOS
+og Windows, og på Linux kjører du installasjonsskriptet på nytt
+([Ollama FAQ](https://docs.ollama.com/faq)). Den får i tillegg Metal eller GPU direkte.
+`pnpm test:startup` feiler hvis Ollama kommer inn i `docker-compose.yml` igjen.
 
-Med standard `docker compose up --build` startes `ollama`, men modeller pulles ikke automatisk.
+- **macOS:** Mangler Ollama, installerer skriptet den med `brew install ollama` (det
+  spør først), og starter den med `brew services`. Ikke bruk `ollama serve` i en
+  terminal - den dør når vinduet lukkes.
+- **Windows:** Installer Ollama for Windows fra <https://ollama.com/download>, og kjør
+  `./start.sh --ollama` fra Git Bash. Docker Desktop når Ollama på verten gjennom
+  `host.docker.internal`.
+- **Linux:** Installer fra <https://ollama.com/download>. Ollama lytter bare på
+  `127.0.0.1` som standard, og containeren kommer inn fra Docker-broen, så sett
+  `OLLAMA_HOST` med `sudo systemctl edit ollama.service`
+  ([Ollama FAQ](https://docs.ollama.com/faq)). `0.0.0.0` er enklest, men Ollama har
+  ingen autentisering, så da bør en brannmur stenge porten `11434` mot nettet.
+  `./start.sh --ollama` prøver veien fra en container før den laster ned modellen, og
+  stopper med denne beskjeden hvis den er stengt.
+  `ai-gateway` har `extra_hosts: host.docker.internal:host-gateway`, så navnet finnes
+  også her.
 
-Pull valgt modell eksplisitt:
+Uten `OLLAMA_BASE_URL` i `.env` bruker `ai-gateway` `http://host.docker.internal:11434`.
+Kjører Ollama på en annen maskin, setter du adressen dit selv, og `AI_PROVIDER=ollama`
+i `.env` - da er `--ollama` ikke nødvendig. `OLLAMA_MODEL` og `OLLAMA_BASE_URL` leses
+bare fra miljøet, også når du velger «Lokal (Ollama)» på `/admin`.
 
-```bash
-OLLAMA_MODEL=qwen2.5:7b docker compose --profile pull up ollama-pull-selected
-```
-
-GPU-støtte i Docker (NVIDIA):
-
-- https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
-
-Start med GPU-override når Docker GPU-støtte er aktivert:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
-```
-
-Verifiser Docker GPU-tilgang:
-
-```bash
-docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
-```
-
-Eksempel p modellvalg:
-
-- `OLLAMA_MODEL=qwen2.5:0.5b`
-- `OLLAMA_MODEL=qwen2.5:7b`
-- `OLLAMA_MODEL=qwen2.5:14b`
-- `OLLAMA_MODEL=llama3.1:8b`
-- `OLLAMA_MODEL=mistral-nemo`
+`GET /helse` sier om modellen er nåbar og lastet ned. `./start.sh` gjør i tillegg et
+ekte kall og sier fra hvis den ikke svarer.
