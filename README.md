@@ -41,11 +41,10 @@ Dette må du ha installert på maskinen din:
 
 | Hva                               | Trengs til | Hent den |
 |-----------------------------------|---|---|
-| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh --mock` | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| **Docker**, installert og startet | å kjøre sandkassen. Det eneste kravet for `./start.sh` | [docs.docker.com](https://docs.docker.com/get-docker/) |
 | **git**                           | å hente repoet | [git-scm.com](https://git-scm.com/downloads) |
 | **Node 22.18 eller nyere**        | å hente et token (`node scripts/token.ts`), og å kjøre testskriptene. **Nesten alle API-kall krever token**, så i praksis trenger du Node så snart du gjør noe selv | [nodejs.org](https://nodejs.org/en/download) |
 | **pnpm**                          | å kjøre `pnpm <skript>` i det hele tatt. `pnpm install` i tillegg bare til `pnpm lint`, live reload på Windows, og Bedrock-provideren - verken sandkassen eller de andre testskriptene trenger et `pnpm install` | [pnpm.io](https://pnpm.io/installation) |
-| **Homebrew** (bare macOS)         | at skriptet kan installere Ollama for deg. Ikke nødvendig med `--mock` | [brew.sh](https://brew.sh) |
 
 Har du allerede Node, er `corepack enable` som regel nok til å få pnpm - `package.json`
 sier hvilken versjon som skal brukes. Følger ikke Corepack med din Node-versjon, tar
@@ -57,23 +56,15 @@ Sjekk at du har det:
 docker --version && node --version && git --version
 ```
 
-**Portene `3000`, `3001` og `8080`–`8088` må være ledige.** Med modell trengs også
-`11434` til Ollama. Er en av dem
+**Portene `3000`, `3001` og `8080`–`8088` må være ledige.** Er en av dem
 opptatt, står det i `docs/feilsoking.md` hvordan du finner ut hvilken.
 
-**Sett av tid første gang: 4-7 minutter** med `./start.sh --mock`, **12–25 minutter**
-med språkmodell, og vesentlig mer på delt konferansenett. Språkmodellen er fra 400 MB
-til 9 GB avhengig av hvor mye minne maskinen har. Senere oppstarter tar sekunder.
+**Sett av tid første gang: 4-7 minutter**, og mer med `--ollama` eller på delt
+konferansenett. Senere oppstarter tar sekunder.
 
-**Plass på disk.** Med `--mock` er det repoet, rundt 65 MB med git-historikken, pluss
-ett delt `node:24-alpine`-image som alle elleve tjenestene kjører fra. Med språkmodell
-kommer ollama-imaget på rundt 4 GB i tillegg, og modellen på toppen av det - 0,4 GB for
-den minste og 9 GB for den største. Regn med 15 GB ledig hvis du vil ha den største.
-
-**Minne.** Docker-tjenestene har ingen minnegrense satt, og de er små; det som faktisk
-avgjør er modellen, og `./start.sh` velger den ut fra hvor mye RAM maskinen har. Under
-12 GB RAM får du den minste modellen, og da er svarene merkbart dårligere enn i en demo
-kjørt på en stor maskin. `--mock` bryr seg ikke om noe av dette.
+**Plass på disk.** Repoet, rundt 65 MB med git-historikken, pluss ett delt
+`node:24-alpine`-image som alle elleve tjenestene kjører fra. Med `--ollama` kommer
+Ollama og modellen i tillegg: 0,4 GB for den minste og 9 GB for den største.
 
 På Windows: kjør fra Git Bash (følger med Git for Windows) eller [WSL](https://learn.microsoft.com/windows/wsl/install) - se [«På Windows»](#på-windows) lenger ned.
 
@@ -107,7 +98,7 @@ Arkitekturen er lagt opp for samarbeid mellom flere team, med tydelige grenser m
 **Den er ikke bundet til ett arrangement.** Sandkassen ble laget til et hackathon, og
 det som bare gjelder det arrangementet står i [`docs/hackathon-2026.md`](docs/hackathon-2026.md).
 Resten virker like godt for en kommune eller en leverandør som vil prøve noe på egen
-hånd: klon, kjør `./start.sh --mock`, og bygg mot API-ene. Den er fortsatt en sandkasse
+hånd: klon, kjør `./start.sh`, og bygg mot API-ene. Den er fortsatt en sandkasse
 og ikke et produkt - [«Kjente begrensninger»](#kjente-begrensninger) sier hva det betyr.
 
 ## Designprinsipp for hackathon
@@ -145,46 +136,44 @@ Kjører du mot en KI-provider som ikke er lokal, går hele prompten ut av maskin
 
 Kravene til maskinen står under [«Før du begynner»](#før-du-begynner).
 
-**Vil du bare se noe kjøre? Start her:**
-
-```bash
-./start.sh --mock
-```
-
-Fire til sju minutter. Alt fungerer bortsett fra at KI-svarene er maltekst i
-stedet for modellgenerert - flyten, samtykkesperren, revisjonsloggen og alle
-API-ene er de samme. Dette er den riktige veien inn første gang, og den eneste
-som ikke krever nedlasting av flere gigabyte.
-
-Når du vil ha den ekte modellen:
-
 ```bash
 ./start.sh
 ```
 
-Skriptet finner ut hvilken plattform du er på, velger modell ut fra minnet i
-maskinen, starter tjenestene, og verifiserer at modellen faktisk svarer før den
-melder klar.
+Fire til sju minutter første gang. KI-leverandøren er mock til du velger noe annet, så
+KI-svarene er maltekst i stedet for modellgenerert - flyten, samtykkesperren,
+revisjonsloggen og alle API-ene er de samme. Skriptet sjekker portene, lager `.env`
+hvis den mangler, starter tjenestene og venter til alle svarer.
 
-Tidsbruken første gang står under [«Før du begynner»](#før-du-begynner); en stor modell
-legger seg i overkant av det. Skriptet spør før det laster ned. På macOS spør det i tillegg før det installerer Ollama, siden den kjører nativt der; på Linux og WSL kjører Ollama i container og installeres ikke. `./start.sh -y` hopper over alle spørsmål.
+**Vil du ha en lokal modell:**
+
+```bash
+./start.sh --ollama
+```
+
+Da kjører Ollama på maskinen din, ikke i Docker. Skriptet henter en modell som passer
+minnet, 0,4-9 GB, sjekker at den svarer og husker valget i `.env`. På macOS installerer
+det Ollama med brew hvis den mangler, og spør først. På Linux og Windows må Ollama være
+installert fra <https://ollama.com/download>. Detaljene, og hvorfor Ollama ikke ligger
+i Docker, står i
+[«Lokal modell med Ollama»](apps/ai-gateway/README.md#lokal-modell-med-ollama). Andre
+leverandører velger du på <http://localhost:8082/admin>.
 
 Stopp med `./start.sh -d`.
 
 ### På Windows
 
-Kjør skriptet fra Git Bash eller WSL. Da får du plattformdeteksjon,
-automatisk modellvalg basert på minnet i maskinen, og verifisering av at modellen
-faktisk svarer.
+Kjør skriptet fra Git Bash eller WSL. Da får du `--ollama` og en sjekk av at modellen
+svarer. Med Ollama for Windows er det Git Bash som ser `ollama`-kommandoen.
 
 `start.bat` og `stop.bat` finnes i repoet, men de er et nødløsningsalternativ, ikke en
 ekvivalent. `start.bat` sjekker portene, lager `.env` hvis den mangler, og venter til alle
 elleve tjenestene svarer på `/helse`. Den tar `--reset`, `--reload`, `-d`, `--down` og
-`--help`, men ingen modellflagg. **Den kjører alltid uten
-språkmodell** - den laster verken ned eller velger modell, så alt annet enn maltekst
-ville vært en tom lovnad. Den krever også `curl`, og stopper med en beskjed hvis den
-mangler, siden den ikke kan sjekke oppstarten uten. Vil du ha en ekte modell, bruk
-Git Bash eller WSL og `./start.sh`. Foretrekk uansett den veien hvis du har valget.
+`--help`, men ingen modellflagg. **Den kjører alltid med mock** - den sjekker ikke om en
+modell svarer, så alt annet enn maltekst ville vært en tom lovnad. Den krever også
+`curl`, og stopper med en beskjed hvis den mangler, siden den ikke kan sjekke oppstarten
+uten. Vil du ha en ekte modell, bruk Git Bash eller WSL og `./start.sh`. Foretrekk
+uansett den veien hvis du har valget.
 
 Windows-stien er dessuten den vi kjører minst selv. Sjekkene som verken trenger stack
 eller modell kjøres nå på Windows og macOS i en egen arbeidsflyt
@@ -198,41 +187,18 @@ Du skal normalt ikke trenge noen av disse.
 
 | Flagg | |
 |---|---|
-| `-m, --model MODEL` | Bruk en bestemt modell i stedet for den automatisk valgte |
-| `-y, --yes` | Ikke spør før installasjon eller nedlasting |
-| `--mock` | Kjør uten språkmodell. Raskeste vei inn, og redningen når nedlasting ikke er mulig |
+| `--ollama` | Bruk en lokal modell i Ollama på maskinen, og husk valget i `.env` |
+| `-m, --model MODEL` | Sammen med `--ollama`: en bestemt modell i stedet for den automatisk valgte |
+| `-y, --yes` | Ikke spør før Ollama installeres eller en modell lastes ned |
+| `--mock` | Bruk mock denne gangen, uansett hva `.env` sier |
 | `--reload` | Gjenskap Node-containerne, også når konfigurasjonen er uendret. Tar inn kode og Compose-endringer uten å slette `state/` |
 | `--reset` | Stopp Node-tjenestene, kopier `state/` til `_backup/`, tøm den, og gjenskap containerne fra kildedataene |
 | `-d, --down` | Stopp alt |
 | `-h, --help` | Hjelp |
 
-> [!WARNING]
-> **`--reset` er ikke bare en reset.** Den tømmer `state/` og starter deretter alt på
-> vanlig måte - inkludert modellnedlasting. Kjørte du `--mock`, skriv
-> **`./start.sh --mock --reset`**, ellers begynner den å laste ned flere gigabyte.
-
-Ta også med `--mock` ved omlasting: `./start.sh --mock --reload`. `--reset`,
-`--reload` og `--down` er separate operasjoner og kan ikke kombineres.
-Et lagret valg i KI-admin overstyrer fortsatt miljøvariabler. Dersom det hindrer
-mock-modus, stopper skriptet med en forklaring i stedet for å melde at alt er klart.
-
-### Hva skriptet gjør for deg
-
-**Plattform** oppdages automatisk:
-
-| Plattform | Hvordan Ollama kjøres |
-|---|---|
-| macOS | Nativt på verten. Docker Desktop når ikke Metal på Apple Silicon, så Ollama i container ville blitt ren CPU-inferens. |
-| Linux med NVIDIA-GPU | I container, med `docker-compose.gpu.yml` |
-| Linux og WSL ellers | I container, uten GPU |
-
-**Modell** velges ut fra minnet på maskinen: 32 GB RAM eller mer gir `qwen2.5:14b`, 12 GB eller mer gir `qwen2.5:7b`, under det `qwen2.5:0.5b`.
-
-Har du et NVIDIA-kort, leses også VRAM, og det mest restriktive av de to avgjør - en modell som får plass i RAM men ikke i VRAM blir splittet mot CPU og går tregt. Apple Silicon har unified memory, så der er RAM riktig tall.
-
-Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env` opprettes fra `.env.example` hvis den mangler.
-
-**Til slutt bekreftes det at modellen svarer.** Sier skriptet `⚠️ The model is NOT connected`, virker sandkassen fortsatt - men AI-svarene er maler. Vanligste årsak er at Ollama har stoppet.
+`--reset`, `--reload` og `--down` er separate operasjoner og kan ikke kombineres.
+Et lagret valg i KI-admin overstyrer `.env`. Dersom det hindrer
+`--mock`, stopper skriptet med en forklaring i stedet for å melde at alt er klart.
 
 ### Kildedata og kjøringstilstand
 
@@ -241,7 +207,7 @@ Har du satt `OLLAMA_MODEL` i miljøet eller i `.env`, brukes den i stedet. `.env
 `./start.sh --reset` stopper først alle Node-tjenestene, tar en sikkerhetskopi uten
 signeringsnøkkelen og sletter så `state/`. Feiler stopp eller kopiering, slettes
 ingenting. Containerne gjenskapes etterpå, slik at lagret KI-valg, tokenbuffer og
-agentøkter i minnet også nullstilles. Ollama på macOS og nedlastede modeller beholdes.
+agentøkter i minnet også nullstilles.
 Stopp eventuelle tjenester du har startet utenfor Compose selv før du nullstiller.
 Se `docs/syntetiske-data.md`, også for hvordan du deler en prosess du har laget i byggeren.
 
@@ -266,7 +232,7 @@ docker compose ps
 Alle skal stå som `healthy`.
 
 Alt annet - `401` på alt, «fetch failed» på matrikkel-oppslag, maltekst du ikke ba
-om, port opptatt, en container som ikke blir `healthy`, treg modellnedlasting og
+om, port opptatt, en container som ikke blir `healthy`, en gammel Ollama-container og
 hvordan du nullstiller - står i `docs/feilsoking.md`: ett symptom per avsnitt, med
 årsak og løsning.
 
@@ -285,54 +251,19 @@ Logger: `docker compose logs -f ai-gateway`.
 ### Manuell oppstart
 
 <details>
-<summary>Kommandoene, per plattform</summary>
+<summary>Kommandoene</summary>
 
 `./start.sh` gjør dette for deg. Les skriptet hvis du vil se detaljene - det er kommentert.
 
-macOS, med Ollama nativt på verten:
-
 ```bash
-brew services start ollama    # ikke "ollama serve" - den dør når terminalen lukkes
-ollama pull qwen2.5:14b
-cp .env.example .env          # OLLAMA_BASE_URL=http://host.docker.internal:11434
-docker compose up -d --no-deps sandbox-backend fiks-simulator ai-gateway \
-  tools-api process-agent matrikkel-mock digdir-mock pasientjournal-mock \
-  politiattest-mock demo-gui process-builder
+cp .env.example .env
+docker compose up -d
 ```
 
-**Hele listen må med** - særlig `digdir-mock` og `matrikkel-mock`, som svikter stille
-når de mangler. Hvordan de feiler står i punktlisten under
+Det starter alle elleve tjenestene, og Compose venter på helsesjekkene der én tjeneste
+avhenger av en annen. Starter du bare noen av dem, må `digdir-mock` og `matrikkel-mock`
+være med - de svikter stille når de mangler. Hvordan de feiler står i punktlisten under
 [tjenesteoversikten](#oversikt-over-tjenester-og-porter).
-
-`--no-deps` er nødvendig for å hoppe over `depends_on: ollama` i `ai-gateway`, som
-ellers drar opp container-Ollama - men det er også grunnen til at listen må være
-komplett: `--no-deps` slår av `depends_on` for *alle* tjenestene, `digdir-mock`
-inkludert.
-
-Linux og WSL, alt i Docker:
-
-```bash
-./start.sh --mock             # uten modell
-# eller, med modellvalg, nedlasting og verifisering:
-./start.sh -y
-```
-
-Bruk skriptet også her. En ren kopi av `.env.example` peker på macOS-verten, ikke
-på Ollama-containeren, og `docker compose up -d` laster ikke ned noen modell.
-Skriptet lager riktig `.env` når den mangler. Har du allerede kopiert eksempelfilen
-på Linux/WSL, rett `OLLAMA_BASE_URL` til `http://ollama:11434` før du starter;
-en eksisterende `.env` blir ikke overskrevet.
-
-Med NVIDIA-GPU velger skriptet GPU-overlegget når Docker har NVIDIA-støtte.
-Verifiser GPU-tilgangen med `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` - feiler den, mangler [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
-
-Forhåndslast alle anbefalte modeller, for eksempel før en workshop med dårlig nett:
-
-```bash
-docker compose --profile models up ollama-pull-all
-```
-
-Modellene er `qwen2.5:0.5b` (raskest), `qwen2.5:7b` (balansert), `qwen2.5:14b` (best av Qwen-variantene), `llama3.1:8b` og `mistral-nemo`.
 
 </details>
 
@@ -342,7 +273,7 @@ Modellene er `qwen2.5:0.5b` (raskest), `qwen2.5:7b` (balansert), `qwen2.5:14b` (
 ./start.sh -d
 ```
 
-Eller direkte med `docker compose down`. På macOS kjører Ollama utenfor Docker og stoppes med `brew services stop ollama` hvis du vil frigjøre minnet.
+Eller direkte med `docker compose down`.
 
 ## Oversikt over tjenester og porter
 

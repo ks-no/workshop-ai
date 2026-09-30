@@ -38,16 +38,17 @@ trenger også **[Node 22.18 eller nyere](https://nodejs.org/en/download)** så s
 skal kalle et API selv - se avsnitt 4. Så:
 
 ```bash
-./start.sh --mock
+./start.sh
 ```
 
-Fire til sju minutter. `--mock` kjører uten språkmodell, så KI-svarene er maltekst i
-stedet for modellgenerert. Alt annet er ekte: flyten, samtykkesperren, revisjonsloggen
-og alle API-ene. Dette er den riktige veien inn første gang, og den eneste som ikke
-krever nedlasting av flere gigabyte.
+Fire til sju minutter første gang. KI-leverandøren er mock til du velger noe annet, så
+KI-svarene er maltekst i stedet for modellgenerert. Alt annet er ekte: flyten,
+samtykkesperren, revisjonsloggen og alle API-ene. Vil du ha en lokal modell, starter
+du med `./start.sh --ollama` i stedet. Det tar lenger tid første gang, fordi modellen
+skal lastes ned. Andre leverandører velger du på <http://localhost:8082/admin>.
 
-Suksess ser slik ut: skriptet skriver `✅ Klar` (med `--mock` følger en advarsel om
-at KI-svarene er maltekst - det er som forventet) - åpne da <http://localhost:3001>,
+Suksess ser slik ut: skriptet skriver `✅ Klar` (etterfulgt av en advarsel om at
+KI-svarene er maltekst - det er som forventet) - åpne da <http://localhost:3001>,
 der alle tjenestene i tabellen skal vise grønt («oppe»).
 
 Vil du ha den ekte modellen etterpå, kjør `./start.sh` uten flagg. Sett av 12–25
@@ -240,8 +241,8 @@ curl -s http://localhost:8082/helse
 ```
 
 Les `modellNaaBar`. Er den `false`, forklarer et `feil`-felt hvorfor. Merk at status
-alltid er 200 - tjenesten lever selv om modellen ikke gjør det. Kjørte du med
-`--mock`, skal den være `false`, og det er som forventet.
+alltid er 200 - tjenesten lever selv om modellen ikke gjør det. Er leverandøren
+mock, skal den være `false`, og det er som forventet.
 
 **Hva fikk modellen egentlig?**
 
@@ -256,13 +257,12 @@ validering har vært innom. Dette er raskeste vei til å forstå et rart KI-svar
 docker compose ps
 ```
 
-De elleve Node-tjenestene skal stå som `healthy`. De to valgfrie MCP-containerne
-har ingen helsesjekk; Ollama avhenger av plattform og oppstartsvalg.
+De elleve Node-tjenestene skal stå som `healthy`.
 
 Fant du ikke feilen med disse tre? **[`docs/feilsoking.md`](feilsoking.md) har resten**,
 ett symptom per avsnitt med årsak og løsning: `401` på alt, «fetch failed» på
 matrikkel-oppslag, maltekst du ikke ba om, port opptatt, en container som ikke blir
-`healthy`, treg modellnedlasting og mer.
+`healthy`, en gammel Ollama-container og mer.
 
 Skal du demonstrere for andre, eller bytte KI-provider:
 [`docs/sikkerhet-og-personvern.md`](sikkerhet-og-personvern.md) sier hva som sendes ut
@@ -271,11 +271,10 @@ av maskinen per provider, og hvor bytteren sitter.
 ## 6. Nullstille
 
 ```bash
-./start.sh --mock --reset
+./start.sh --reset
 ```
 
-`--reset` tømmer `state/` og starter deretter alt på vanlig måte. **Ta med `--mock` hvis
-du kjørte med `--mock`** - uten det begynner den å laste ned språkmodellen.
+`--reset` tømmer `state/` og starter deretter alt på vanlig måte.
 
 `data/` er kildedata og skrives aldri til. Alt tjenestene endrer under kjøring havner
 i `state/`, som er gitignorert - en demokjøring skitner ikke til arbeidstreet.

@@ -3,14 +3,12 @@
 # Ecosystems covered, i.e. every place this repo actually declares a
 # dependency version:
 #   - npm:            root package.json + pnpm-workspace.yaml (apps/*)
-#   - docker-compose: docker-compose.yml (node:24-alpine, ollama/ollama).
+#   - docker-compose: docker-compose.yml (node:24-alpine).
 #                     Compose files are their own ecosystem, not the "docker"
 #                     one: the docker fetcher only looks for a Dockerfile,
 #                     a Containerfile or Kubernetes YAML, so pointing it at
 #                     the root failed every run with "No Dockerfiles nor
-#                     Kubernetes YAML found in /". The same entry also matches
-#                     docker-compose.gpu.yml, which declares no images, so
-#                     there is nothing for Dependabot to find there.
+#                     Kubernetes YAML found in /".
 #   - docker:         apps/matrikkel-mock/Dockerfile - a standalone image, not
 #                     used by docker-compose.yml (see AGENTS.md service map),
 #                     so it needs its own directory entry. This is the repo's

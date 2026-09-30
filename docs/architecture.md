@@ -28,7 +28,7 @@ blokkere hverandre.
 3. Logg all datatilgang, som standard og ikke som tilvalg
 4. Håndhev policyer i kode, og dokumenter dem der de håndheves
 5. La KI formulere - aldri beregne eller avgjøre
-6. Hold lokal kjøring enkel: `./start.sh --mock` starter uten språkmodell
+6. Hold lokal kjøring enkel: `./start.sh` starter uten språkmodell
 7. Hold strukturen åpen for utvidelse uten å endre kjernen
 8. Velg det som lærer bort mest, foran det som ligner mest på produksjon
 
@@ -161,7 +161,8 @@ til maltekst og setter et `advarsel`-felt. `GET /helse` rapporterer `modellNaaBa
 begge GUI-ene viser en gul stripe ved sidelast hvis modellen er nede. `/chat` viser i
 tillegg `advarsel` per svar - men bare for resultater som kommer via backend (i praksis
 `SUMMARY`). `advarsel` fra `/ai/tolk-svar` vises ikke. Verifiser med
-`POST /ai/klarsprak` - svaret skal ha `modell: "ollama:<navn>"` og ingen `advarsel`.
+`POST /ai/klarsprak` - svaret skal ha en annen `modell` enn `mock-ai-gateway`, og ingen
+`advarsel`.
 
 **Modellkall har timeout.** `AI_TIMEOUT_MS` (default 180000) avbryter og faller tilbake
 i stedet for å henge. Merk at `modellNaaBar` for `openrouter`, `telenor-ai-factory` og `bedrock`

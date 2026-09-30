@@ -9,15 +9,16 @@ This monorepo is a local sandbox for modern, dialog-based municipal services usi
 
 ### Recommended
 ```bash
-./start.sh --mock     # fastest way in, no model download
-./start.sh            # with the real model
+./start.sh            # start; the AI provider is mock unless .env or /admin says otherwise
+./start.sh --ollama   # opt in to a local model, run by Ollama on the host
 ./start.sh -d         # stop
 ```
 
-`./start.sh` handles platform detection, model selection by available memory, and
-verifies the model actually answers. Prefer it over raw `docker compose` - on macOS
-in particular, plain `docker compose up` starts Ollama in a container where it cannot
-reach Metal, and `--no-deps` is required. Run `./start.sh --help` for all flags.
+`./start.sh` checks the ports, creates `.env`, starts the services, waits for them
+to answer, and verifies the model actually answers when the active AI provider is not
+mock. Ollama runs on the host and never in Docker Compose - do not add the
+`ollama/ollama` image back; `pnpm test:startup` fails if you do. Run
+`./start.sh --help` for all flags.
 
 ### Basic checks (no running services needed)
 ```bash
@@ -42,7 +43,7 @@ here; a second copy is how it went stale before.
 3. `sandbox-backend` executes process steps from JSON process definitions.
 4. Data steps read synthetic datasets from `data/` (household, income, etc.).
 5. Consent-dependent steps interact with `fiks-simulator` before protected data access.
-6. AI summary/explanation steps call `ai-gateway` (which can use Ollama locally).
+6. AI summary/explanation steps call `ai-gateway` (mock by default, or whichever provider it is pointed at).
 7. Completion creates relevant outcomes/tasks and writes audit events.
 8. `tools-api` and `process-agent` provide tool-driven/agent-driven access to the same capabilities.
 
